@@ -11,12 +11,11 @@
         "bootstrap-file": "bootstrap.php"
     },
     "minimum-stability": "stable",
-    "require": {},
     "repositories": [
         {
             "type": "vcs",
             "url": "https://github.com/salthareket/theme"
         }
     ],
-    "version": "1.0.0"
+    "require": {}
 }
