@@ -1,0 +1,198 @@
+.star-rating-readonly-ui{
+    .star-rating-readonly {
+        display:flex;
+        //display:inline-block;
+        //align-items: center;
+        font-size: 14px;
+        //justify-content: center;
+        .back {
+            display:flex;
+            color: #eee!important;
+            position: relative;
+            i:not(:last-child){
+               margin-right:3px;
+            }
+        }
+        .front {
+            display:flex;
+            color: #FFBC0B!important;
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+            i:not(:last-child){
+               margin-right:3px;
+            }
+        }
+        .sum{
+           display: flex;
+           flex: 0;
+           line-height: 100%;
+           vertical-align: top;
+           padding-left: 8px;
+           font-weight: 700;
+           color:#999;
+           >.count{
+              margin-left:2px;
+              font-weight:400;
+              color:#aaa;
+           }
+        }
+    }
+    &.star-rating-readonly-xs{
+        .star-rating-readonly {
+            font-size: 14px!important;
+        }
+    }
+    &.star-rating-readonly-sm{
+        .star-rating-readonly {
+            font-size: 16px!important;
+        }
+    }
+    &.star-rating-readonly-md{
+        .star-rating-readonly {
+            font-size: 18px!important;
+        }
+    }
+    &.star-rating-readonly-lg{
+        .star-rating-readonly {
+           font-size: 22px!important;
+        }
+    }
+
+    &.text-right{
+        .star-rating-readonly {
+           justify-content:flex-end;
+        }
+    }
+
+    &.not-reviewed{
+        .star-rating-readonly {
+            .back{
+                color:#ddd!important;
+            }
+            .sum{
+                 color:#ddd!important;
+            }
+        }
+    }
+}
+
+
+.star-rating-ui{
+    .star-rating{
+        display:flex;
+        //display:inline-block;
+        //align-items: center;
+        font-size: 14px;
+        //justify-content: center;
+        .back{
+            display:flex;
+            color: #eee!important;
+            position: relative;
+            i{
+                margin-right:3px;
+            }
+            .front{
+                display:flex;
+                flex-direction:row-reverse;
+                color: #FFBC0B!important;
+                overflow: hidden;
+                position: absolute;
+                top: 0;
+                right:0;
+                margin:0;
+                .star-rating-input{
+                    display:none;
+                }
+                .star-rating-star{
+                    opacity:0;
+                    cursor: pointer;
+                    margin-right:3px;
+                }
+                .star-rating-star:hover,
+                .star-rating-star:hover ~ .star-rating-star,
+                .star-rating-input:checked ~ .star-rating-star{
+                     opacity:1;
+                }
+            }
+        }
+        .sum{
+            display: flex;
+            flex: 0;
+            line-height: 100%;
+            vertical-align: top;
+            padding-left: 8px;
+            font-weight: 700;
+            color:#999;
+            >.count{
+                margin-left:2px;
+                font-weight:400;
+                color:#aaa;
+            }
+        }
+    }
+    &.star-rating-xs{
+        .star-rating {
+            font-size: 14px!important;
+        }
+    }
+    &.star-rating-sm{
+        .star-rating {
+            font-size: 16px!important;
+        }
+    }
+    &.star-rating-md{
+        .star-rating {
+            font-size: 18px!important;
+        }
+    }
+    &.star-rating-lg{
+        .star-rating {
+           font-size: 22px!important;
+        }
+    }
+    &.star-rating-xxl{
+        .star-rating {
+            font-size: 26px!important;
+            .back i,
+            .front .star-rating-star{
+                margin-right:4px;
+            }
+        }
+    }
+    &.star-rating-xl{
+        .star-rating {
+            font-size: 32px!important;
+            .back i,
+            .front .star-rating-star{
+                margin-right:6px;
+            }
+        }
+    }
+    &.star-rating-xxxl{
+        .star-rating {
+            font-size: 42px!important;
+            .back i,
+            .front .star-rating-star{
+                margin-right:8px;
+            }
+        }
+    }
+
+    &.text-right{
+        .star-rating {
+           justify-content:flex-end;
+        }
+    }
+
+    &.not-reviewed{
+        .star-rating {
+            .back{
+                color:#ddd!important;
+            }
+            .sum{
+                 color:#ddd!important;
+            }
+        }
+    }
+}

@@ -1,0 +1,1 @@
+AOS.init({offset:0,easing:'ease-out',duration:500,once:!0});$(".aos-hover").on("mouseover",function(){if($(this).hasAttr("data-aos-delay")){$(this).attr("data-aos-delay",0)}})

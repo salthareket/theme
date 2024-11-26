@@ -1,0 +1,15 @@
+{
+    "name": "salthareket/theme",
+    "description": "Projenin açıklaması",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "ProjeAdi\\": "src/"
+        }
+    },
+    "extra": {
+        "bootstrap-file": "bootstrap.php"
+    },
+    "minimum-stability": "stable",
+    "require": {}
+}

@@ -1,0 +1,12 @@
+	.bg-image{
+		opacity: 0;
+		@include transition(opacity .5s ease-out);
+		&.lazyload,
+		&.lazyloading {
+			opacity: 0;
+			@include transition(opacity .5s ease-out);
+		}
+		&.lazyloaded {
+			opacity: 1;
+		}	
+	}

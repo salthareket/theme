@@ -1,0 +1,15 @@
+/*! purgecss start ignore */
+.block-hero{
+	.swiper-slide{
+		&.overlay{
+			 &:before{
+				content:"";
+				@include absolute-fill();
+				z-index:1;
+				@include transition(all .3s ease-out);
+			}
+		}
+	}
+}
+
+/*! purgecss end ignore */

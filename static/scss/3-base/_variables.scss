@@ -1,0 +1,188 @@
+
+@import '../../../theme/static/scss/colors';
+
+/* Plugin Versions*/
+$bootstrap-select-version: 1.13.7;
+
+
+
+$icon-font: 'Font Awesome 6 Pro';
+$icon-font-brands: 'Font Awesome 6 Brands';
+$use-fontawesome: true;
+
+$fontawesome-brands: true;
+$fontawesome-thin: false;
+$fontawesome-light: false;
+$fontawesome-regular: true;
+$fontawesome-solid: false;
+
+
+$base-font-size-rem: #{$base-font-size / 16px * 1rem};
+$font-size-base: $base-font-size-rem;
+$base-font-line-height: 1.6;
+
+
+$base-color: $primary;
+$base-color-dark: $primary;
+$base-color-light: $primary;
+
+
+$header-border-color:transparent;
+$header-border-style:solid;
+$header-border-width:0;
+
+
+//sidebar
+$sidebar-width  : 360px;
+$sidebar-width-offcanvas: 380px;
+$sidebar-padding: 20px 25px;
+$sidebar-border-radius:8px;
+$sidebar-bg:#fff;
+$sidebar-mobile-margin-top:100px;
+$sidebar-item-gap:20px;
+//common
+$sidebar-font-family :$font-primary;
+$sidebar-font-size   :14px;
+$sidebar-font-weight :400;
+$sidebar-color       :#333;
+$sidebar-color-active:$base-color;
+$sidebar-color-hover :#000;
+$sidebar-item-padding:12px 15px;
+//child
+$sidebar-child-font-family :$font-primary;
+$sidebar-child-font-size   :14px;
+$sidebar-child-color       :#666;
+$sidebar-child-color-active:$base-color;
+$sidebar-child-color-hover :#333;
+$sidebar-child-indent      :18px;
+
+@if strip-unit($pagination-item-gap) == 0 and strip-unit($pagination-item-border-radius) > 0 {
+    $pagination-item-gap:20px;
+}
+
+
+
+/***************************************
+
+F O R M S
+
+***************************************/
+
+$form-input-color: #666;
+$form-input-color-focus: #333;
+$form-input-font: $font-primary;
+$form-input-font-weight: 400;
+$form-input-text-transform:normal;
+$form-input-bg-color: #fff;
+$form-input-bg-color-focus: #fff;
+$form-input-border-top: 1px solid rgba(#ddd, 1);
+$form-input-border-bottom: 1px solid rgba(#ddd, 1);
+$form-input-border-left: 1px solid rgba(#ddd, 1);
+$form-input-border-right: 1px solid rgba(#ddd, 1);
+$form-input-border-radius: 8px;
+
+$form-input-border-focus-top: 1px solid rgba(#aaa, 1);
+$form-input-border-focus-bottom: 1px solid rgba(#aaa, 1);
+$form-input-border-focus-left: 1px solid rgba(#aaa, 1);
+$form-input-border-focus-right: 1px solid rgba(#aaa, 1);
+
+$form-input-color-placeholder: rgba(#a3a3a3, 1);
+$form-input-font-weight-placeholder: 400;
+$form-input-text-transform-placeholder:normal;
+
+$form-option-color: #fff;
+$form-option-color-active: #ebad19;
+$form-option-border: 1px solid #aaa;
+
+$form-label-font-size:15px;
+$form-label-font-size-xl:15px;
+$form-label-font-size-lg:15px;
+$form-label-font-size-md:15px;
+$form-label-font-size-sm:15px;
+$form-label-color: $base-color;
+$form-label-font-weight:600;
+
+$form-spinner-button-color:#666;
+$form-spinner-button-bg-color:#fff;
+$form-spinner-button-color-hover:#fff;
+$form-spinner-button-bg-color-hover:#ebad19;
+
+//errors
+$form-input-border-error: red;
+$form-input-bg-color-error: rgba(#faeeee,.3);
+$form-input-color-error: inherit;
+$form-input-color-placeholder-error: lighten(red, .5);
+
+
+//bootstrap slider
+$bootstrap-slider-version: "10.6.2";
+$slider-line-height: 22px !default;
+$slider-border-radius: 8px !default;
+$slider-horizontal-width: 100% !default;
+$slider-vertical-height: 210px !default;
+// Primary colors
+$slider-primary: #edab17 !default;
+$slider-primary-top: $slider-primary !default;
+$slider-primary-bottom: darken($slider-primary, 5%) !default;
+$slider-secondary-top: saturate(lighten($slider-primary, 28%), 20%) !default;
+$slider-secondary-bottom: saturate(lighten($slider-primary, 23%), 2%) !default;
+
+// unicode color for demo page
+$slider-unicode-color: #edab17 !default;
+
+
+
+
+// Page Parts
+$header-page-height:50px;
+$header-page-padding:10px 0px;
+$header-page-bg:#fff;
+
+
+
+
+
+
+
+$login-height: auto;
+$login-bg-color: $base-color;
+$login-bg-image: (
+    url: "#{$host_url}/static/img/bg-login.jpg",
+    bg-color:  transparent,
+    index: 0,
+    opacity: .6,
+    grayscale: true,
+    multiply: true,
+    size: "cover",
+    repeat: "no-repeat",
+    position: center center
+);
+
+
+$card-profile-image-height: 130px;
+$card-profile-bg-color: #fff;
+$card-profile-color:$base-color;
+$card-profile-padding: 30px;
+$card-profile-height: $card-profile-image-height + ($card-profile-padding * 2);
+$card-profile-bg-image: ();
+/*$card-profile-bg-image: (
+    url: "../img/bg-footer.png",
+    bg-color: $base-color,
+    index: 0,
+    opacity: .2,
+    grayscale: false,
+    multiply: false,
+    size: "",
+    repeat: "repeat",
+    position: left top
+);*/
+
+
+
+$base-screen-sizes:lg, md, sm, xs;
+$loading-sizes: 64, 48, 32, 16;
+$loading-size-default: 32;
+$loading-color-dark: #000;
+$loading-color-light: #ddd;
+$loading-color-bg-light: #fff;
+$loading-color-bg-dark: #111;

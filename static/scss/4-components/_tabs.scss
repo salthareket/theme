@@ -1,0 +1,62 @@
+.card-tabs{
+	//@extend %card-raw;
+	>.card-header{
+		padding:0px;
+		border:1px solid $base-color;
+		border-radius:6px 6px 0px 0px;
+		.nav{
+			width:100%;
+			>li{
+				a{
+					border:none;
+                background-color:transparent;
+				    color:$base-color;
+				    font-weight:600;
+				    font-size:18px;
+				    display:block;
+				    &:hover{
+				    	border:none!important;
+				    }
+				}
+				&.active{
+					a{
+						border:none;
+						background-color:$base-color;
+						color:#fff;
+						&:hover{
+					    	border:none!important;
+					    }
+				    }
+				}
+				&:not(:first-child){
+				 	a{				    	
+				 		border-radius:0px 5px 0px 0px;
+				 	}
+				}
+				&:not(:last-child){
+				 	a{				    	
+				 		border-radius:5px 0px 0px 0px;
+				 	}
+				}
+			}
+		}
+	}
+	>.card-body{
+		padding:0px;
+		background-color:#fff;
+		border-left:2px dashed $base-color;
+		border-right:2px dashed $base-color;
+		border-bottom:2px dashed $base-color;
+		border-radius: 0px 0px 6px 6px;
+	}
+}
+
+@media (max-width: 767px) {
+   .card-tabs{
+	   	>.card-header,
+	   	>.card-body{
+			border:none;
+			border-radius:4px;
+		}
+   }
+}

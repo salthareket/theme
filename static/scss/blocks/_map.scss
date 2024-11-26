@@ -1,0 +1,40 @@
+.block-map{
+	position:relative;
+	.container{
+		min-height:inherit;
+		height:inherit;
+	}
+	.leaflet-map,
+	.googlemaps-map{
+		width:100%!important;
+		height:100%!important;
+		min-height: 100%!important;
+		z-index: 0;
+		@include absolute-fill();
+	}
+	.leaflet-custom,
+	.googlemaps-custom{
+		height:inherit;
+		min-height: inherit;
+		width:100%!important;
+	}
+}
+
+/*! purgecss start ignore */
+.googlemaps-control-button{
+	position: absolute;
+	//top: 10px;
+	//left: 10px;
+	z-index: 5;
+	.googlemaps-button {
+		background-color: #007bff;
+		color: white;
+		border: none;
+		padding: 10px 15px;
+		margin: 5px;
+		cursor: pointer;
+		border-radius: 5px;
+	}
+}
+.gm-style-iw > .gm-style-iw-chr > button {display: none!important;}
+/*! purgecss end ignore */

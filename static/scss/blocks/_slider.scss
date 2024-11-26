@@ -1,0 +1,17 @@
+/*! purgecss start ignore */
+.block-slider{
+	.swiper-slide{
+		.description{
+			line-height: 1;
+		}
+		&.overlay{
+			 &:before{
+				content:"";
+				@include absolute-fill();
+				z-index:1;
+				@include transition(all .3s ease-out);
+			}
+		}
+	}
+}
+/*! purgecss end ignore */
