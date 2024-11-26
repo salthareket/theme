@@ -4,12 +4,19 @@
     "type": "library",
     "autoload": {
         "psr-4": {
-            "ProjeAdi\\": "src/"
+            "theme\\": "includes/"
         }
     },
     "extra": {
         "bootstrap-file": "bootstrap.php"
     },
     "minimum-stability": "stable",
-    "require": {}
+    "require": {},
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/salthareket/theme"
+        }
+    ],
+    "version": "1.0.0"
 }
