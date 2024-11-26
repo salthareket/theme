@@ -2,6 +2,7 @@
     "name": "salthareket/theme",
     "description": "Projenin açıklaması",
     "type": "library",
+    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
             "theme\\": "includes/"
