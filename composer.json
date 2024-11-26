@@ -1,6 +1,7 @@
 {
     "name": "salthareket/theme",
     "description": "Projenin açıklaması",
+    "license": "MIT",
     "type": "library",
     "minimum-stability": "dev",
     "autoload": {
@@ -18,7 +19,5 @@
             "url": "https://github.com/salthareket/theme"
         }
     ],
-    "require": {},
-    "license": ["Apache 2.0"]
-
+    "require": {}
 }
