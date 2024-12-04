@@ -8,7 +8,7 @@
         "psr-4": {
             "SaltHareket\\Theme": "src/"
         },
-        "files": ["bootstrap.php"]
+        "files": [ "bootstrap.php" ]
     },
     "minimum-stability": "stable",
     "repositories": [
