@@ -3,14 +3,10 @@
     "description": "Projenin açıklaması",
     "license": "MIT",
     "type": "library",
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "theme\\": "includes/"
+            "SaltHareket\\Theme": "src/"
         }
-    },
-    "extra": {
-        "bootstrap-file": "bootstrap.php"
     },
     "minimum-stability": "stable",
     "repositories": [
@@ -19,5 +15,7 @@
             "url": "https://github.com/salthareket/theme"
         }
     ],
-    "require": {}
+     "require": {
+        "php": ">=8.2"
+      },
 }

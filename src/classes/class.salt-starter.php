@@ -1,4 +1,5 @@
 <?php
+echo "class.starter";
 
 class SaltStarter{
     function __construct(){
