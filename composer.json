@@ -1,12 +1,12 @@
 {
     "name": "salthareket/theme",
-    "version": "1.0.5",
+    "version": "1.0.3",
     "description": "Projenin açıklaması",
     "license": "MIT",
     "type": "library",
     "autoload": {
         "psr-4": {
-            "SaltHareket\\Theme": "src/"
+            "SaltHareket\\Theme\\": "src/"
         },
         "files": [ "bootstrap.php" ]
     },
