@@ -17,7 +17,7 @@
             "url": "https://github.com/salthareket/theme"
         }
     ],
-     "require": {
+    "require": {
         "php": ">=8.2"
-      },
+    }
 }
