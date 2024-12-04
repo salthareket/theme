@@ -323,6 +323,28 @@ function create_options_menu($options){
 			}
 		}
 };
+/*function create_options_menu_children($menu_title, $options) {
+    for ($i = 0; $i < count($options); $i++) {
+        if (is_array($options[$i])) {
+            create_options_menu_children($options[$i]["title"], $options[$i]["children"]);
+        } else {
+            // ACF options sub-page oluşturuluyor
+            $sub_page_slug = sanitize_title($options[$i]);
+
+            // Polylang varsa URL'ye &lang=all parametresi ekle
+            if (function_exists('pll_current_language')) {
+                $sub_page_slug .= '&lang=all';
+            }
+
+            acf_add_options_sub_page(array(
+                'page_title'    => $options[$i],
+                'menu_title'    => $options[$i],
+                'menu_slug'     => $sub_page_slug,
+                'parent_slug'   => sanitize_title($menu_title),
+            ));
+        }
+    }
+}*/
 function create_options_menu_children($menu_title, $options){
 	for($i = 0; $i < count($options); $i++){
 		if(is_array($options[$i])){

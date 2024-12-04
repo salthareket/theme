@@ -22,6 +22,77 @@ add_filter( 'timber/acf-gutenberg-blocks-default-data', function( $data ){
     return $data;
 });
 
+add_filter( 'timber/acf-gutenberg-blocks-example-identifier', function( $sufix ){
+    return $sufix;
+});
+
+add_filter( 'timber/acf-gutenberg-blocks-preview-identifier', function( $sufix ){
+    return $sufix;
+});
+
+function block_responsive_classes($field=[], $type="", $block_column=""){
+    $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
+    $tempClasses = [];
+    $lastAlign = null;
+
+    if((!empty($block_column) && $block_column["block"] != "bootstrap-columns")){ //&& empty($type)){
+        $type = "align-items-";
+    }
+
+    foreach ($field as $key => $align) {
+        if (!empty($align)) {
+            if ($lastAlign !== null && $lastAlign !== $align) {
+                $tempClasses[] = [
+                    "key" => $prevKey === "xs" ? "" : $prevKey, // Son geçerli key
+                    "align" => $lastAlign,
+                ];
+            }
+            $lastAlign = $align;
+            $prevKey = $key;
+        }
+    }
+    if ($lastAlign !== null) {
+        $tempClasses[] = [
+            "key" => $prevKey === "xs" ? "" : $prevKey,
+            "align" => $lastAlign,
+        ];
+    }
+
+    // Class'ları oluştur
+    $classes = [];
+    foreach ($tempClasses as $index => $entry) {
+        $prefix = $entry["key"] ? $entry["key"] . "-" : "";
+        $classes[] = $type . $prefix . $entry["align"];
+    }
+    return $classes;
+}
+
+function block_responsive_column_classes($field=[], $type="col-", $field_name=""){
+    $tempClasses = [];
+    $lastValue = null;
+    $lastKey = null;
+    foreach ($field as $key => $value) {
+        if (($value)) {
+            if(!empty($field_name) && isset($value[$field_name])){
+                $value = $value[$field_name];
+            }
+            if ($value !== $lastValue) {
+                $col = ($key === "xs") ? "" : $key . "-";
+                $tempClasses[] = $type . $col . $value;
+            } else {
+                if ($key > $lastKey) {
+                    $key = ($key === "xs") ? "" : $key . "-";
+                    $tempClasses[count($tempClasses) - 1] = $type . $key . $value;
+                }
+            }
+            $lastValue = $value;
+            $lastKey = $key;
+        }
+    }
+    return $tempClasses;
+}
+
+
 
 function block_container($container=""){
     $default = get_field("default_container", "options");
@@ -55,7 +126,9 @@ function block_ratio_padding($ratio=""){
     return (number_format(($ratio_val[1]/$ratio_val[0]), 2) * 100);
 }
 function block_classes($block, $fields, $block_column){
+    $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $classes = [];
+
     if(isset($fields["block_settings"]["hero"])){
         if($fields["block_settings"]["hero"]){
             $classes[] = "block--hero";
@@ -117,35 +190,11 @@ function block_classes($block, $fields, $block_column){
         if(empty(block_container($fields["block_settings"]["container"]))){
             $classes[] = "flex-column-justify-content-center";
         }
-        if(isset($fields["block_settings"]["text_align"])){
-            if($fields["block_settings"]["text_align"]){
-                foreach($fields["block_settings"]["text_align"] as $key => $align){
-                    if(!empty($align)){
-                        $key = $key!="xs"?$key."-":"";
-                        $classes[] = "text-".$key.$align;
-                        /*if(!empty($block_column)){
-                            $classes[] = "align-items-".$key.$align;
-                        }else{
-                            $classes[] = "justify-content-".$key.$align;
-                        }*/
-                    }
-                }                
-            }
+        if(isset($fields["block_settings"]["text_align"]) && $fields["block_settings"]["text_align"]){
+            $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["text_align"], "text-", ""));
         }
-        if(isset($fields["block_settings"]["horizontal_align"])){
-            if($fields["block_settings"]["horizontal_align"]){
-                foreach($fields["block_settings"]["horizontal_align"] as $key => $align){
-                    if(!empty($align)){
-                        $key = $key!="xs"?$key."-":"";
-                         /*$classes[] = "text-".$key.$align;*/
-                       if(!empty($block_column)){
-                            $classes[] = "align-items-".$key.$align;
-                        }else{
-                            $classes[] = "justify-content-".$key.$align;
-                        }
-                    }
-                }                
-            }
+        if(isset($fields["block_settings"]["horizontal_align"]) && $fields["block_settings"]["horizontal_align"]){
+            $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["horizontal_align"], "justify-content-", $block_column));
         }
     }
 
@@ -173,6 +222,8 @@ function block_attrs($block, $fields, $block_column){
     $attrs = array2Attrs($attrs);
     return $attrs;
 }
+
+
 function block_spacing($settings) {
     $margin = $settings['margin'] ?? [];
     $padding = $settings['padding'] ?? [];
@@ -185,76 +236,6 @@ function block_spacing($settings) {
 
     return $combined_string;
 }
-/*
-function generate_spacing_classes($spacing, $prefix) {
-    $classes = [];
-    $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
-    
-    $default = get_field("default_".($prefix=="m"?"margin":"padding"), "options");
-    foreach($spacing as $key => $item){
-        if($item == "default"){
-            $spacing[$key] = $default[$key];
-        }
-    }        
-
-    foreach ($directions as $key => $short) {
-        if (isset($spacing[$key])) {
-            if ($spacing[$key] == 'responsive' && isset($spacing[$key . '_responsive'])) {
-                foreach ($spacing[$key . '_responsive'] as $breakpoint => $value) {
-                    if ($value !== 'default') {
-                        if(!empty($value)){
-                            $classes[] = "{$prefix}{$short}-{$breakpoint}-{$value}";                            
-                        }
-                    }else{
-                        if(!empty($default[$key])){
-                            $classes[] = "{$prefix}{$short}-{$breakpoint}-{$default[$key]}";                            
-                        }
-                    }
-                }
-            } elseif ($spacing[$key] !== 'default' && !empty($spacing[$key])) {
-                $classes[] = "{$prefix}{$short}-{$spacing[$key]}";
-            }
-        }
-    }
-
-    // Combine y-axis (top + bottom) or x-axis (left + right) if possible
-    $combined_axes = [
-        'y' => ['t', 'b'],
-        'x' => ['s', 'e']
-    ];
-
-    foreach ($combined_axes as $axis => $sides) {
-        $axis_classes = [];
-        foreach ($classes as $key => $class) {
-            foreach ($sides as $side) {
-                if (strpos($class, "{$prefix}{$side}-") === 0) {
-                    $axis_classes[] = $class;
-                    unset($classes[$key]);
-                }
-            }
-        }
-
-        $grouped = [];
-        foreach ($axis_classes as $class) {
-            preg_match("/{$prefix}([se|tb])-((\w+-)?\w+)$/", $class, $matches);
-            if (!empty($matches)) {
-                $grouped[$matches[2]][] = $matches[1];
-            }
-        }
-
-        foreach ($grouped as $value => $directions) {
-            if (count($directions) === 2) {
-                $classes[] = "{$prefix}{$axis}-{$value}";
-            } else {
-                foreach ($directions as $direction) {
-                    $classes[] = "{$prefix}{$direction}-{$value}";
-                }
-            }
-        }
-    }
-
-    return $classes;
-}*/
 function generate_spacing_classes($spacing, $prefix) {
     $classes = [];
     $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
@@ -278,18 +259,17 @@ function generate_spacing_classes($spacing, $prefix) {
                     if (isset($spacing[$key . '_responsive'][$breakpoint])) {
                         $value = $spacing[$key . '_responsive'][$breakpoint];
                         if ($value === 'auto' || $value === 'none') {
-                            if (!$added_auto_or_none) {
+                            if (!$added_auto_or_none || $breakpoint === 'xs' || $breakpoint === 'sm') {
+                                // 'xs' ve 'sm' gibi küçük breakpointler için auto/none değerlerini yine ekleyelim
                                 $classes[] = "{$prefix}{$short}-{$breakpoint}-{$value}";
                                 $added_auto_or_none = true;
                             }
                         } else {
-                            if (!$added_auto_or_none) {
-                                // İlk dolu breakpoint için prefix kaldır
-                                if ($breakpoint === 'xs') {
-                                    $classes[] = "{$prefix}{$short}-{$value}";
-                                } else {
-                                    $classes[] = "{$prefix}{$short}-{$breakpoint}-{$value}";
-                                }
+                            // İlk dolu breakpoint için prefix kaldır
+                            if ($breakpoint === 'xs') {
+                                $classes[] = "{$prefix}{$short}-{$value}";
+                            } else {
+                                $classes[] = "{$prefix}{$short}-{$breakpoint}-{$value}";
                             }
                         }
                     }
@@ -340,14 +320,12 @@ function generate_spacing_classes($spacing, $prefix) {
 }
 
 
-
-
 function block_columns($args=array(), $block = []){
 
     $classes = [];
     $attrs = [];
     //$code = "";
-    $sizes = array("xxxl", "xxl","xl","lg","md","sm","xs");
+    $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $gap_sizes = array(
         "0" => 0,
         "1" => 4,
@@ -374,11 +352,6 @@ function block_columns($args=array(), $block = []){
                                 $breakpoints[$key] = intval($item["columns"]);
                             }
                             if(isset($item["gx"])){
-                                //1 = 0.25rem => 4px
-                                //3 = 0.5rem  => 8px
-                                //3 = 1rem    => 16px
-                                //4 = 1.5rem  => 24px
-                                //5 = 3rem    => 48px
                                 $gaps[$key] = $gap_sizes[$item["gx"]];
                             }
                         }
@@ -396,39 +369,21 @@ function block_columns($args=array(), $block = []){
                 }
                 
             }else if(isset($args["column_breakpoints"])){
-                foreach($args["column_breakpoints"] as $key => $item){
-                    if(in_array($key, $sizes)){
-                        $col = $key == "xs" ? "": $key."-";
-                        if(isset($item["columns"])){
-                            $classes[] = "row-cols-".$col.$item["columns"];
-                        }
-                        if(isset($item["gx"])){
-                            $classes[] = "gx-".$col.$item["gx"];
-                        }
-                        if(isset($item["gy"])){
-                            $classes[] = "gy-".$col.$item["gy"];
-                        }
-                    }
-                }
+
+                $classes = array_merge($classes, block_responsive_column_classes($args["column_breakpoints"], "row-cols-", "columns"));
+                $classes = array_merge($classes, block_responsive_column_classes($args["column_breakpoints"], "gx-", "gx"));
+                $classes = array_merge($classes, block_responsive_column_classes($args["column_breakpoints"], "gy-", "gy"));
+
                 if(isset($args["column_breakpoints"]["masonry"]) && $args["column_breakpoints"]["masonry"]){
+
                     $attrs["data-masonry"] = '{"percentPosition": true }';
+
                 }else{
-                    if(isset($args["block_settings"])){
-                        if(isset($args["block_settings"]["horizontal_align"])){
-                            if($args["block_settings"]["horizontal_align"]){
-                                foreach($args["block_settings"]["horizontal_align"] as $key => $align){
-                                    if(!empty($align)){
-                                        $key = $key!="xs"?$key."-":"";
-                                        if(!empty($block_column)){
-                                            $classes[] = "align-items-".$key.$align;
-                                        }else{
-                                            $classes[] = "justify-content-".$key.$align;
-                                        }
-                                    }
-                                }                
-                            }
-                        }
+
+                    if(isset($args["block_settings"]) && isset($args["block_settings"]["horizontal_align"]) && $args["block_settings"]["horizontal_align"]){
+                        $classes = array_merge($classes, block_responsive_classes($args["block_settings"]["horizontal_align"], "justify-content-"));
                     }
+                    
                 }         
             }            
         }
@@ -460,16 +415,8 @@ function block_aos_delay($str="", $delay=0) {
 function block_bs_columns_col_classes($args){
     $classes = [];
     if($args){
-        if(!isset($args["row_cols"]) && isset($args["breakpoints"])){
-            $sizes = array("xxxl", "xxl","xl","lg","md","sm","xs");
-            foreach($args["breakpoints"] as $key => $item){
-                if($item){
-                    if(in_array($key, $sizes)){
-                        $col = $key == "xs" ? "": $key."-";
-                        $classes[] = "col-".$col.$item;
-                    }
-                }
-            }
+        if(isset($args["breakpoints"])){
+            $classes = array_merge($classes, block_responsive_column_classes($args["breakpoints"]));
         }
     }
     return implode(" ", $classes);
@@ -478,15 +425,7 @@ function block_bs_columns_rowcols_classes($args){
     $classes = [];
     if($args){
         if(isset($args["row_cols"]) && $args["row_cols"]){
-            $sizes = array("xxxl", "xxl","xl","lg","md","sm","xs");
-            foreach($args["column_breakpoints"] as $key => $item){
-                if($item){
-                    if(in_array($key, $sizes)){
-                        $col = $key == "xs" ? "": $key."-";
-                        $classes[] = "row-cols-".$col.$item;
-                    }                    
-                }
-            }
+           $classes = array_merge($classes, block_responsive_column_classes($args["column_breakpoints"], "row-cols-"));
         }
     }
     return implode(" ", $classes);
@@ -1152,46 +1091,6 @@ function block_css_media_query($query = []) {
     return $css;
 }
 
-function block_css_media_query_v1($query = []){
-
-    $css = "";
-    if($query){
-        //$query = array_reverse($query);
-        $breakpoints = $GLOBALS["breakpoints"];//array_reverse($GLOBALS["breakpoints"]);
-        $keys = array_keys($breakpoints);
-        foreach($query as $breakpoint => $code){
-            if(in_array($breakpoint, $keys)){
-                $index = array_search($breakpoint, $keys);
-                if(empty($code)){
-                    if($index > 0){
-                        $code = $query[$keys[$index - 1]];
-                        $query[$breakpoint] = $code;
-                    }
-                }
-                if(!empty($code)){
-                    if($index == 0){
-                        $css .= "@media (max-width: ".($breakpoints[$breakpoint])."px){";
-                    }elseif ($index == count($breakpoints)-1){
-                        $css .= "@media (min-width: ".($breakpoints[$breakpoint])."px){";
-                    }elseif ($index < count($breakpoints)-1){
-                        if($index == 1){
-                            $min = $breakpoints[$keys[$index - 1]] + 1;
-                            $max = $breakpoints[$keys[$index + 1]] - 1;
-                        }else{
-                            $min = $breakpoints[$breakpoint];
-                            $max = $breakpoints[$keys[$index + 1]] - 1;
-                        }
-                        $css .= "@media (min-width: ".$min."px) and (max-width: ".$max."px) {";
-                    }
-                    $css .= $code;
-                    $css .= "}\n";
-                }
-            }            
-        }
-    }
-    return $css;
-}
-
 function block_meta($block_data=array(), $fields = array(), $extras = array(), $block_column = "", $block_column_index = -1){
     $meta = array(
         "index"     => 0,
@@ -1204,7 +1103,14 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
         "css"       => ""
     );
     if($block_data){
-        $id = $block_data["id"];
+
+        //if(isset($fields["block_settings"]["custom_id"]) && !empty($fields["block_settings"]["custom_id"])){
+        if(isset($block_data["block_settings_custom_id"]) && !empty($block_data["block_settings_custom_id"])){
+            $block_id = $block_data["block_settings_custom_id"];//$fields["block_settings"]["custom_id"];
+        }else{
+            $block_id = $block_data["id"];
+        }
+        $id = $block_id;
         if( $block_data["name"] == "acf/bootstrap-columns" && empty($block_column) &&
             isset($fields["acf_block_columns"][0]["acf_fc_layout"]) &&
             $fields["acf_block_columns"][0]["acf_fc_layout"] != "block-bootstrap-columns" && 
@@ -1220,7 +1126,7 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
                 "block"  => $block_column?$block_column:"bootstrap-columns",
                 "id"     => $id,
                 "index"  => $block_column_index,
-                "parent" => $block_data["id"]
+                "parent" => $block_id//$block_data["id"]
            );
         }
         $block_data["id"] = $id;
@@ -1294,13 +1200,106 @@ function page_has_block($page="", $block_name=""){
     }
     return $found;
 }
+/*
+function generate_custom_id( $value, $post_id, $field ) {
+    if ( empty( $value ) ) {
+        $value = 'block_' . md5( uniqid( '', true ) );
+    }
+    return $value;
+}
+add_filter( 'acf/load_value/name=custom_id', 'generate_custom_id', 10, 3 );
+add_filter( 'acf/update_value/name=custom_id', 'generate_custom_id', 10, 3 );
+*/
+
+
 
 function generate_unique_column_id( $value, $post_id, $field ) {
-    // Eğer value boşsa
     if ( empty( $value ) ) {
         $value = unique_code(5);
     }
-
     return $value;
 }
 add_filter( 'acf/load_value/name=column_id', 'generate_unique_column_id', 10, 3 );
+add_filter( 'acf/update_value/name=column_id', 'generate_unique_column_id', 10, 3 );
+
+/*
+add_filter('acf/update_value/name=custom_id', function($value, $post_id, $field) {
+    // Eğer alan boşsa post ID'yi veya başka bir mantıksal ID'yi kullan.
+    $value = uniqid('block_'); // Bloğun DOM ID'si yerine başka bir benzersiz değer.
+    error_log("custom_id:".$value);
+    if (empty($value)) {
+        
+    }
+    return $value;
+}, 10, 3);
+
+function set_custom_id_on_load( $value, $post_id, $field ) {
+    // Eğer `custom_id` boşsa, yeni bir değer ata.
+    if ( empty( $value ) ) {}
+        // Burada istediğin ID'yi al.
+        $block_id = $post_id;//uniqid('block_'); // Uniqid yerine istediğin ID’yi oluştur veya al.
+        $value = $block_id;
+
+        // Kaydetmek için update_post_meta kullan.
+        update_post_meta( $post_id, $field['name'], $value );
+    
+
+    return $value;
+}
+add_filter( 'acf/load_value/name=custom_id', 'set_custom_id_on_load', 10, 3 );
+
+
+*/
+function acf_block_id_fields($post_id){
+    $content = get_post_field('post_content', $post_id);
+    if (empty($content)) {
+        return;
+    }
+    error_log("blocks parsing for id set");
+    $blocks = parse_blocks($content);
+    $updated = false;
+    foreach ($blocks as &$block) {
+        if (isset($block['blockName']) && strpos($block['blockName'], 'acf/') === 0) {
+            
+            error_log($block['blockName']);
+
+            $data = $block['attrs']['data'];
+
+            $block_settings_field_id = explode("_field", $data['_block_settings_hero'])[0];
+
+            if (!isset($data['block_settings_custom_id'])){
+                $block['attrs']['data']['_block_settings_custom_id'] = $block_settings_field_id."_field_674d65b2e1dd0";
+                $block['attrs']['data']['block_settings_custom_id'] = 'block_' . md5(uniqid('', true));
+                error_log("block : block_settings_custom_id added");
+                $updated = true;
+            }
+            if (!isset($data['block_settings_column_id'])){
+                $block['attrs']['data']['_block_settings_column_id'] = $block_settings_field_id."_field_67213addcfaf3";
+                $block['attrs']['data']['block_settings_column_id'] = unique_code(5);
+                error_log("block : block_settings_column_id added");
+                $updated = true;
+            }
+            if($block['blockName'] == "acf/bootstrap-columns"){
+                foreach ($data as $key => $value) {
+                    if (str_ends_with($key, '_block_settings_column_id')) {
+                        if (!preg_match('/^(_|block_settings|_block_settings)/', $key)) {
+                            if (empty($data[$key])) {
+                                $id = unique_code(5);
+                                error_log("column : ".$key."=".$id);
+                                $block['attrs']['data'][$key] = $id;
+                                $updated = true;
+                            }
+                        }
+                    }
+                }                  
+            }
+        }
+    }
+    if ($updated) {
+        $new_content = wp_slash(serialize_blocks($blocks));
+        wp_update_post([
+            'ID'           => $post_id,
+            'post_content' => $new_content,
+        ]);
+    }
+}

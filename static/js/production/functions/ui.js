@@ -935,6 +935,7 @@ function btn_loading_page(){
 	$(".btn-loading-page").not("."+token_init).each(function(){
         $(this)
         .on("click", function(e){
+        	$("body").removeClass("init");
         	if(IsUrl($(this).attr("href"))){
         		if($(this).attr("target") == "_blank"){
         			e.preventDefault();
@@ -945,10 +946,6 @@ function btn_loading_page(){
         	}
         })
         .addClass(token_init);
-	});
-	window.addEventListener('popstate', function () {
-        // Geri tuşuna basıldığında sınıfı kaldır
-	    $("body").removeClass("loading-process");
 	});
 }
 function btn_loading_page_hide(){

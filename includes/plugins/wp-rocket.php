@@ -27,6 +27,7 @@ add_filter( 'rocket_defer_inline_exclusions', function( $inline_exclusions_list 
   $inline_exclusions_list[] = 'site_config_vars';
   $inline_exclusions_list[] = 'site_config_vars-js';
   $inline_exclusions_list[] = 'site_config_vars-js-extra';
+  $inline_exclusions_list[] = 'site_config_vars-js-after';
   $inline_exclusions_list[] = 'preload_image';
   $inline_exclusions_list[] = 'map_data';
   return $inline_exclusions_list;

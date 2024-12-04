@@ -682,10 +682,11 @@ function lightGallerySource($fields) {
                 $sources[] = [
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
-                    "src"       => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]),
-                    "poster"    => uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
+                    "src"       => $item["file"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]),
+                    "poster"    => $item["image"]["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
                     "sub-html"  => "",
-                    "video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
+                    "video"     => ["source" => [["src" => $item["file"], "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
+                    /*"video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]*/
                 ];
             }
         }
@@ -708,19 +709,20 @@ function lightGallerySource($fields) {
                 $sources[] = [
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
-                    "src"       => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]),
-                    "poster"    => uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
+                    "src"       => $item["file"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]),
+                    "poster"    => $item["image"]["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
                     "sub-html"  => "",
-                    "video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
+                    "video"     => ["source" => [["src" => $item["file"], "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
+                    /*"video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]*/
                 ];
             }
         } else {
             // Image türündeki öğeler
             $sources[] = [
             	"type"      => $item["type"],
-                "href"      => uploadUrlMigration($fields["upload_url"], $upload_url, $item["url"]),
+                "href"      => $item["url"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["url"]),
                 "title"     => $item["alt"],
-                "src"       => uploadUrlMigration($fields["upload_url"], $upload_url, $item["sizes"]["medium_large"]),
+                "src"       => $item["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["sizes"]["medium_large"]),
                 "width"     => $item["width"],
                 "height"    => $item["height"]
             ];
@@ -744,10 +746,11 @@ function lightGallerySource($fields) {
                 $sources[] = [
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
-                    "src"       => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]["source"][0]),
-                    "poster"    => uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
+                    "src"       => $item["file"]["source"][0],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]["source"][0]),
+                    "poster"    => $item["image"]["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
                     "sub-html"  => "",
-                    "video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
+                    "video"     => ["source" => [["src" => $item["file"], "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]                    
+                    /*"video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]*/
                 ];
             }
         }
@@ -767,14 +770,14 @@ function lightGallerySource($fields) {
 	            case 'file':
 	                // 'file' türü için sadece belirttiğiniz alanları döndür
 	                return [
-	                    'video'    => uploadUrlMigration($fields["upload_url"], $upload_url, $item['video']) ?? null,
-	                    'poster'   => uploadUrlMigration($fields["upload_url"], $upload_url, $item['poster']) ?? null,
+	                    'video'    => $item['video'] ?? null,//uploadUrlMigration($fields["upload_url"], $upload_url, $item['video']) ?? null,
+	                    'poster'   => $item['poster'] ?? null,//uploadUrlMigration($fields["upload_url"], $upload_url, $item['poster']) ?? null,
 	                    'sub-html' => $item['sub-html'] ?? null
 	                ];
 	            case 'image':
 	                // 'image' türü için sadece belirttiğiniz alanları döndür
 	                return [
-	                    'src' => uploadUrlMigration($fields["upload_url"], $upload_url, $item['src']) ?? null,
+	                    'src' => $item['src'] ?? null,//uploadUrlMigration($fields["upload_url"], $upload_url, $item['src']) ?? null,
 	                    'sub-html' => $item['sub-html'] ?? null
 	                ];
 	            default:

@@ -5,31 +5,31 @@
 
  
 .loading{
-		&:after {
-			content: '';
-			box-sizing: border-box;
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			width: ($loading-size-default)+px;
-			height: ($loading-size-default)+px;
-			margin-top: -($loading-size-default/2)+px;
-			margin-left: -($loading-size-default/2)+px;
-			border-radius: 50%;
-			border-top: 2px solid $loading-color-dark;
-			border-right: 2px solid transparent;
-			animation: spinner .6s linear infinite;
+	&:after {
+		content: '';
+		box-sizing: border-box;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: ($loading-size-default)+px;
+		height: ($loading-size-default)+px;
+		margin-top: -($loading-size-default/2)+px;
+		margin-left: -($loading-size-default/2)+px;
+		border-radius: 50%;
+		border-top: 2px solid $loading-color-dark;
+		border-right: 2px solid transparent;
+		animation: spinner .6s linear infinite;
 	}
 	//&:not(.loaded){
 	@each $screen-size in $base-screen-sizes {
-				&.loading-#{$screen-size}:after { 
-					$index : index($base-screen-sizes, $screen-size);
-								width  : #{nth($loading-sizes,$index)}px;
-								height : #{nth($loading-sizes,$index)}px;
-								margin-top  : -#{nth($loading-sizes,$index)/2}px!important;
-						margin-left : -#{nth($loading-sizes,$index)/2}px!important;
-						//zoom: $index;
-				}
+		&.loading-#{$screen-size}:after { 
+			$index : index($base-screen-sizes, $screen-size);
+			width  : #{nth($loading-sizes,$index)}px;
+			height : #{nth($loading-sizes,$index)}px;
+			margin-top  : -#{nth($loading-sizes,$index)/2}px!important;
+			margin-left : -#{nth($loading-sizes,$index)/2}px!important;
+			//zoom: $index;
+		}
 	}
 	//}
 	&.loading-light{
@@ -194,11 +194,11 @@ body.loading:not(.loaded){
 	overflow-y:hidden;
 	@extend .loading-lg;
 	&:after{
-			z-index:101;
-			position:fixed;
-		}
+		z-index:101;
+		position:fixed;
+	}
 	&:before{
-			content:"";
+	    content:"";
 		position:fixed;
 		top:0;
 		left:0;
@@ -206,13 +206,13 @@ body.loading:not(.loaded){
 		right:0;
 		background-color:rgba($body-bg-color ,.8);//rgba(255,255,255,.8);
 		z-index:100;
-		}
+	}
 }
 
 .loading{
-		&.bootstrap-select{
-				 pointer-events:none;
-		}
+	&.bootstrap-select{
+		pointer-events:none;
+	}
 }
 
 

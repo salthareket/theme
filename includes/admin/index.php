@@ -1080,7 +1080,7 @@ rocket_clean_minify();
 }
 // compile js files and css files
 if (!function_exists("compile_files_config")) {
-require get_stylesheet_directory() . "/theme/includes/minify-rules.php";
+require get_stylesheet_directory() . "/includes/minify-rules.php";
 }
 //require get_stylesheet_directory() . "/includes/minify.php";
 require get_stylesheet_directory() . "/classes/class.minify.php";

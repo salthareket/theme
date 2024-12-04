@@ -98,6 +98,25 @@ function get_field_from_block( $selector, $post_id, $block_id ) {
     return false;
 }
 
+
+function get_block_from_page($block_name, $source_page_id = null, $args = []) {
+    if (!$source_page_id) {
+        $source_page_id = get_option('page_on_front');
+    }
+    $content = get_post_field('post_content', $source_page_id);
+    $blocks = parse_blocks($content);
+    foreach ($blocks as $block) {
+        if ($block['blockName'] === $block_name) {
+            if (!empty($args)) {
+                $block['attrs']["data"] = array_merge($block['attrs']["data"] ?? [], $args);
+            }
+            return render_block($block);
+        }
+    }
+    return '';
+}
+
+
 function add_player_class_to_embed_block($block_content, $block) {
 
     switch ($block['blockName']) {

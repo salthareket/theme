@@ -24,50 +24,7 @@ class SaltBase{
     public $search_history;
     public $extractor;
 
-    function __construct($user=array()) {
-        if($user){
-           $this->user = Timber::get_user($user);//wp_get_current_user();//new User($user);
-        }else{
-           $this->user = Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
-        }
-        
-        $localization = new Localization();
-        $localization->woocommerce_support = true;
-        $this->localization = $localization;
-
-        $extractor = new PageAssetsExtractor();
-        $this->extractor = $extractor;
-
-        if(ENABLE_SEARCH_HISTORY){
-            $search_history = new SearchHistory();
-            $this->search_history = $search_history;            
-        }
-
-        $timezone = $this->user->get_timezone();
-
-        if($timezone){
-            if(strpos($timezone, "/") > 0){
-                //print_r($timezone);
-                date_default_timezone_set($timezone);
-            }
-        }
-    }
-
-    Public function response(){
-        return array(
-            "error"       => false,
-            "message"     => '',
-            "description" => '',
-            "data"        =>  "",
-            "resubmit"    => false,
-            "redirect"    => "",
-            "refresh"     => false,
-            "html"        => "",
-            "template"    => ""
-        );
-    }
-
-    function init(){
+    public function __construct($user=array()) {
 
         if(ENABLE_MEMBERSHIP && !is_admin()){
             add_action('wp', [ $this, 'update_online_users_status' ]);
@@ -153,6 +110,136 @@ class SaltBase{
         }
 
         //add_action('wp_footer', [$this, 'add_page_assets']);
+
+        if($user){
+           $this->user = Timber::get_user($user);//wp_get_current_user();//new User($user);
+        }else{
+           $this->user = Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
+        }
+        
+        $localization = new Localization();
+        $localization->woocommerce_support = true;
+        $this->localization = $localization;
+
+        $extractor = new PageAssetsExtractor();
+        $this->extractor = $extractor;
+
+        if(ENABLE_SEARCH_HISTORY){
+            $search_history = new SearchHistory();
+            $this->search_history = $search_history;            
+        }
+
+        $timezone = $this->user->get_timezone();
+
+        if($timezone){
+            if(strpos($timezone, "/") > 0){
+                //print_r($timezone);
+                date_default_timezone_set($timezone);
+            }
+        }
+    }
+
+    public function response(){
+        return array(
+            "error"       => false,
+            "message"     => '',
+            "description" => '',
+            "data"        =>  "",
+            "resubmit"    => false,
+            "redirect"    => "",
+            "refresh"     => false,
+            "html"        => "",
+            "template"    => ""
+        );
+    }
+
+    public function on_post_pre_update($data){
+        /*if($data["post_type"] == "page"){
+           $menu_order = wp_count_posts("page")->publish;
+           $menu_order = $menu_order>0?$menu_order-1:0;
+           $data['menu_order'] = $menu_order;            
+        }*/
+        return $data; 
+    }
+
+    public function on_post_published($post_id, $post, $update){
+        remove_action('save_post', [ $this, 'on_post_published'], 100, 3);
+        remove_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
+        remove_action('publish_post', [ $this, 'on_post_published'], 100, 3);
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            return;
+        }
+        if (defined('DOING_CRON') && DOING_CRON) {
+            return;
+        }
+        if ( wp_is_post_revision( $post_id ) ) {
+            return;
+        }
+        if ( get_post_status( $post_id ) !== 'publish' ) {
+            return;
+        }
+        $post_types = get_post_types(['public' => true], 'names');
+        if (in_array($post->post_type, $post_types)) {
+            
+            $has_map = false;
+            if(page_has_block($post_id, "acf/map")){
+                $has_map = true;
+            }
+            update_post_meta( $post_id, 'has_map', $has_map );
+            
+            
+            acf_block_id_fields($post_id);
+            
+
+            error_log("P O S T  S A V I N G  H O O K....");
+
+            $extractor = $this->extractor;//new PageAssetsExtractor();
+            $extractor->on_save_post($post_id, $post, $update);
+
+            // post'un featured image'ının alt text'i eklenmemişse post'un title'ını alt text olarak kaydet.
+            $thumbnail_id = get_post_thumbnail_id($post_id);
+            if (!$thumbnail_id) {
+                return;
+            }
+            $alt_text = get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true);
+            if (empty($alt_text)) {
+                $post_title = get_the_title($post_id);
+                update_post_meta($thumbnail_id, '_wp_attachment_image_alt', $post_title);
+            }
+        }
+        add_action('save_post', [ $this, 'on_post_published'], 100, 3);
+        add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
+        add_action('publish_post', [ $this, 'on_post_published'], 100, 3); 
+    }
+
+    public function on_term_published($term_id, $tt_id, $taxonomy){
+        $taxonomy_object = get_taxonomy($taxonomy);
+        if ($taxonomy_object && $taxonomy_object->public) {
+            $extractor = $this->extractor;//new PageAssetsExtractor();
+            $extractor->on_save_term($term_id, $tt_id, $taxonomy);
+        }
+    }
+
+    public function on_post_delete( $post_id ){
+        $post = get_post($post_id);
+        if ( !isset($post->post_type) ) return;
+        if(ENABLE_NOTIFICATIONS && $GLOBALS["notification_post_types"]){
+            if(in_array($post->post_type, $GLOBALS["notification_post_types"])){
+                Notifications::delete_post_notifications($post_id);
+            }
+        }
+        if(ENABLE_CHAT){
+            yobro_remove_conversation_by_post($post_id);            
+        }
+    }
+
+    public function on_user_delete($user_id){
+        if(ENABLE_NOTIFICATIONS){
+            Notifications::delete_user_notifications($user_id);            
+        }
+        if(ENABLE_CHAT){
+           yobro_remove_conversation_by_user($user_id); 
+        }
     }
 
 
@@ -162,7 +249,7 @@ class SaltBase{
         }
     }*/
 
-    function is_ip_changed() {
+    public function is_ip_changed() {
         /*if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }*/
@@ -248,7 +335,7 @@ class SaltBase{
         }
     }
 
-    function login($vars=array(), $callback="", $role=""){
+    public function login($vars=array(), $callback="", $role=""){
         $response = $this->response();
         $info = array();
         $info['user_login'] = $vars['username'];
@@ -309,10 +396,10 @@ class SaltBase{
         
         return $response;
     }
-    function on_user_login( $user_login, $user ) {
+    public function on_user_login( $user_login, $user ) {
         update_user_meta( $user->ID, 'last_login', time() );
     }
-    function on_login_redirect() {
+    public function on_login_redirect() {
         if (isset($_SESSION['referer_url'])) {
             $url = $_SESSION['referer_url'];
             session_write_close();
@@ -322,10 +409,10 @@ class SaltBase{
             wp_redirect(get_account_endpoint_url('dashboard'));
         }
     }
-    function on_user_logout($user_id=0){
+    public function on_user_logout($user_id=0){
         $this->update_online_users_status_logout($user_id);
     }
-    function logout_without_confirmation($action, $result){
+    public function logout_without_confirmation($action, $result){
         if(!$result && ($action == 'log-out')){ 
             wp_safe_redirect(getLogoutUrl()); 
             exit(); 
@@ -334,7 +421,7 @@ class SaltBase{
     
 
     // Lost Password
-    function password_recover($vars=array(), $callback=""){
+    public function password_recover($vars=array(), $callback=""){
         switch(PASSWORD_RECOVER_TYPE){
             case "renew" :
                 $response = $this->password_renew($vars, $callback);
@@ -345,7 +432,7 @@ class SaltBase{
         }
         return $response;
     }
-    function password_renew($vars=array(), $callback=""){
+    public function password_renew($vars=array(), $callback=""){
         $response = $this->response();
         $error = false;
         $message = "";
@@ -381,7 +468,7 @@ class SaltBase{
         $response["message"] = $message;
         echo json_encode($response);
     }
-    function password_reset($vars=array(), $callback=""){
+    public function password_reset($vars=array(), $callback=""){
         $response = $this->response();
         $error = false;
         $message = "";
@@ -446,13 +533,13 @@ class SaltBase{
         $response["message"] = $message; 
         echo json_encode($response);
     }
-    function get_password_activation_link($email){
+    public function get_password_activation_link($email){
         $data = array('type' => 'password', 'email' => $email);
         $encrypt = new Encrypt();
         $code = $encrypt->encrypt($data);
         return add_query_arg( array( 'activation-password' => $code ), $GLOBALS["base_urls"]["account"]);
     }
-    function send_password_activation($email){
+    public function send_password_activation($email){
         $activation_link = $this->get_password_activation_link($email);
         $from_name = get_bloginfo( 'name' );
         $from_email = get_bloginfo( 'admin_email' );
@@ -465,7 +552,7 @@ class SaltBase{
     }
 
 
-    function register($vars=array(), $callback="", $role="author" ){
+    public function register($vars=array(), $callback="", $role="author" ){
         $response = $this->response();
 
         $user_name = vars_fix($vars, "email");
@@ -711,7 +798,7 @@ class SaltBase{
 
 
     // Form validations
-    function validate_phone($phone="", $country="", $phone_code=""){
+    public function validate_phone($phone="", $country="", $phone_code=""){
         $error = false;
         $message = "";
         $response = $this->response();
@@ -815,7 +902,7 @@ class SaltBase{
           // online, if (s)he is in the list and last activity was less than 15 minutes ago
           return isset($logged_in_users[$user_id]) && ($logged_in_users[$user_id] > (current_time('timestamp') - (15 * 60)));
     }
-    function update_online_users_status(){
+    public function update_online_users_status(){
         if(is_user_logged_in()){
 
             // get the online users list
@@ -831,7 +918,7 @@ class SaltBase{
             }
         }
     }
-    function update_online_users_status_logout($user_id=0){
+    public function update_online_users_status_logout($user_id=0){
         if($user_id > 0){
             update_user_meta( $user_id, 'last_logout', time() );
             if(($logged_in_users = get_transient('users_online')) === false) $logged_in_users = array();
@@ -844,14 +931,14 @@ class SaltBase{
         }
     }
 
-    function redirect_to_profile(){
+    public function redirect_to_profile(){
         if (is_user_logged_in() && get_current_endpoint() == "my-account" && $this->user->get_status() ) {
             wp_safe_redirect(get_account_endpoint_url('profile'));
             exit();
         }
     }
 
-    function user_not_activated() {
+    public function user_not_activated() {
         if(is_user_logged_in()){
             //$endpoint = WC()->query->get_current_endpoint();
             $endpoint = get_current_endpoint();
@@ -866,7 +953,7 @@ class SaltBase{
         }
     }
 
-    function user_profile_not_completed() {
+    public function user_profile_not_completed() {
         if(is_user_logged_in()){
             //$endpoint = WC()->query->get_current_endpoint();
             $endpoint = get_current_endpoint("my-account");
@@ -886,7 +973,7 @@ class SaltBase{
         }
     }
 
-    function notification($event="", $data=array()){
+    public function notification($event="", $data=array()){
         if(ENABLE_NOTIFICATIONS){
             $user = $this->user;
             $notifications = new Notifications($user, false);
@@ -897,7 +984,7 @@ class SaltBase{
             }
         }
     }
-    function notification_count(){
+    public function notification_count(){
         if(ENABLE_NOTIFICATIONS){
             $user = $this->user;
             $data = ["get_count" => true, "seen" => 0];
@@ -913,7 +1000,7 @@ class SaltBase{
     }
 
 
-    function favorites($vars=array()){
+    public function favorites($vars=array()){
         $response = $this->response();
         $favorites = new Favorites();
         if(isset($vars["action"])){
@@ -947,7 +1034,7 @@ class SaltBase{
         }
         return $response;
     }
-    function get_favorites_count(){
+    public function get_favorites_count(){
         $favorites = new Favorites();
         return $favorites->count();
     }
@@ -963,7 +1050,7 @@ class SaltBase{
     RewriteCond %{QUERY_STRING} action=up_asset_upload
     RewriteRule (.*) /zitango/index.php?ajax=query&method=message_upload [L,R=307]
     */
-    function send_message_upload($uploaded_file){
+    public function send_message_upload($uploaded_file){
             $upload_dir = wp_upload_dir();
             $upload_path = $upload_dir['basedir'];
             $image_data = file_get_contents( $uploaded_file["tmp_name"]);
@@ -1003,24 +1090,24 @@ class SaltBase{
 
 
 
-    function is_following($id=0, $type="user"){
+    public function is_following($id=0, $type="user"){
         global $wpdb;
         return boolval($wpdb->get_var("SELECT meta_value FROM wp_usermeta WHERE user_id=".$this->user->ID." and meta_key='following_".$type."' and meta_value=".$id));
     }
-    function is_follows($id=0, $type="user"){
+    public function is_follows($id=0, $type="user"){
         global $wpdb;
         return boolval($wpdb->get_var("SELECT meta_value FROM wp_usermeta WHERE user_id=".$id." and meta_key='following_".$type."' and meta_value=".$this->user->ID));
     }
-    function get_followers_count($id=0, $type="user"){
+    public function get_followers_count($id=0, $type="user"){
         global $wpdb;
         return $wpdb->get_var("SELECT count(*) FROM wp_usermeta WHERE meta_key='following_".$type."' and meta_value=".$id);
     }
-    function get_followers($id=0, $type="user"){
+    public function get_followers($id=0, $type="user"){
         global $wpdb;
         $users = $wpdb->get_results("SELECT user_id FROM wp_usermeta WHERE meta_key='following_".$type."' and meta_value=".$id);
         return wp_list_pluck($users, "user_id");
     }
-    function follow($id=0, $type="user"){
+    public function follow($id=0, $type="user"){
         $response = $this->response();
         $meta_id = 0;
         if(is_user_logged_in() || $this->user->ID > 0){
@@ -1045,7 +1132,7 @@ class SaltBase{
         $response["data"] = $meta_id;
         return $response;
     }
-    /*function unfollow($id=0, $type="user"){
+    /*public function unfollow($id=0, $type="user"){
         $response = $this->response();
         $meta_id = 0;
         if((is_user_logged_in() || $this->user->ID > 0) && !$this->is_following($id, $type)){
@@ -1062,7 +1149,7 @@ class SaltBase{
 
 
 
-    function comment_product($vars=array()){
+    public function comment_product($vars=array()){
         $error = false;
         $message = "";
         
@@ -1288,7 +1375,7 @@ class SaltBase{
         );
         return json_encode($data);
     }
-    function comment_product_detail($vars=array()){
+    public function comment_product_detail($vars=array()){
         $error = false;
         $message = "";
         if(isset($vars["id"])){
@@ -1314,7 +1401,7 @@ class SaltBase{
         global $wpdb;
         return $wpdb->get_results("SELECT wpc.comment_ID, wpc.comment_approved, wpc.comment_author,wpc.comment_author_email,wpc.comment_date,wpc.comment_content,wpcm.meta_value AS rating FROM " . $wpdb->prefix . "comments AS wpc INNER JOIN " . $wpdb->prefix . "commentmeta AS wpcm ON wpcm.comment_id = wpc.comment_id " . ($approved?" AND wpc.comment_approved = ".$approved : "") ." AND wpc.comment_type = 'review' AND wpcm.meta_key = 'rating' WHERE wpc.comment_post_id = " . $product_id);
     }
-    function on_insert_comment($comment_id, $comment_object) {
+    public function on_insert_comment($comment_id, $comment_object) {
         // Yorumun yazarı olan kullanıcı ID'sini al
         $user_id = $comment_object->user_id;
         
@@ -1333,7 +1420,7 @@ class SaltBase{
 
 
     /*// events
-    function after_store_new_message($message){
+    public function after_store_new_message($message){
         //print_r($message);
         $attributes = $message["attributes"];
         //print_r($attributes);
@@ -1372,7 +1459,7 @@ class SaltBase{
     }*/
 
     // autologin after registration
-    function user_register_hook( $user_id ) {
+    public function user_register_hook( $user_id ) {
         $response = $this->response();
 
         $register_type = "email";
@@ -1438,17 +1525,17 @@ class SaltBase{
             exit();             
         }
     }
-    function user_after_update_hook($user_id, $old_user_data){
+    public function user_after_update_hook($user_id, $old_user_data){
         if(!is_admin()){
             $this->update_user($user_id);
         }
     }
-    function user_before_update_hook($user_id) {
+    public function user_before_update_hook($user_id) {
         if(!is_admin()){
             $this->update_user($user_id);
         }
     }
-    function user_after_meta_update_hook($meta_id, $user_id, $meta_key, $_meta_valu){
+    public function user_after_meta_update_hook($meta_id, $user_id, $meta_key, $_meta_valu){
         if(!is_admin()){
             $this->update_user($user_id);
         }
@@ -1456,7 +1543,7 @@ class SaltBase{
 
     
 
-    function remove_cart_content(){
+    public function remove_cart_content(){
         global $woocommerce;
         if ( $woocommerce->cart->get_cart_contents_count() > 0 ) {
             $items = $woocommerce->cart->get_cart();
@@ -1466,19 +1553,19 @@ class SaltBase{
             }
         }
     }
-    function add_to_cart($post_id){
+    public function add_to_cart($post_id){
         global $woocommerce;
         $woocommerce->cart->add_to_cart( $post_id );
     }
 
 
-    function get_menu($args){
+    public function get_menu($args){
         return Timber::get_menu($args);
     }
 
 
 
-    function get_markers($posts=array(), $popup = false){
+    public function get_markers($posts=array(), $popup = false){
         $data = array();
         foreach($posts as $post){
             $marker_data = get_field($type."_".$status, "istasyon_options");
@@ -1510,7 +1597,7 @@ class SaltBase{
 
 
 
-    function duplicate_post($post_id=0, $post_type="", $title=""){
+    public function duplicate_post($post_id=0, $post_type="", $title=""){
         if(empty($title)){
             $title = get_the_title($post_id);
         }
@@ -1549,14 +1636,14 @@ class SaltBase{
         return $new_post_id;
     }
 
-    function log($functionName="", $description=""){
+    public function log($functionName="", $description=""){
         if(class_exists("Logger")){
             $log = new Logger();
             $log->logAction($functionName, $description);
         }
     }
 
-    function delete_session_data() {
+    public function delete_session_data() {
         if (isset($_SESSION['wp_notice'])) {
             unset($_SESSION['wp_notice']);
         }
@@ -1565,7 +1652,7 @@ class SaltBase{
         }
     }
 
-    function get_site_config($jsLoad = 0){
+    public function get_site_config($jsLoad = 0){
         
         $is_cached = false;
         if(function_exists("wprocket_is_cached")){
@@ -1733,7 +1820,7 @@ class SaltBase{
         return $config;  
     }
 
-    function site_config_js(){
+    public function site_config_js(){
 
             wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/includes/methods/index.js', array("jquery"), '1.0', false );
             wp_enqueue_script('site_config_vars');
@@ -1745,6 +1832,27 @@ class SaltBase{
             }
             $args["dictionary"] = $GLOBALS["lang_predefined"];
             wp_localize_script( 'site_config_vars', 'site_config', $args);
+
+            /*$inline_js = "
+                document.addEventListener('visibilitychange', function () {
+                    if (document.visibilityState === 'hidden') {
+                        document.body.classList.remove('loading-process');
+                    }
+                });
+                window.addEventListener('popstate', function () {
+                    document.body.classList.remove('loading-process');
+                    document.body.style.position = '';
+                    document.body.style.overflow = '';
+                });
+                window.addEventListener('pageshow', function (event) {
+                    if (event.persisted) {
+                        // Geri dönüldüğünde body'deki sınıfları sıfırla
+                        document.body.classList.remove('loading-process');
+                        document.body.classList.add('init'); // init class'ını yeniden ekle
+                    }
+                });
+            ";
+            wp_add_inline_script('site_config_vars', $inline_js);*/
 
             //required js files
             //$required = json_decode(file_get_contents(get_stylesheet_directory() ."/static/js/js_files.json"), true);
@@ -1760,10 +1868,14 @@ class SaltBase{
                     wp_add_inline_script( 'page-scripts', SITE_ASSETS["js"]);                    
                 }*/
 
-                if(!empty(SITE_ASSETS["css"]) && !isset($_GET['fetch'])){
+                if(!empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
                     wp_register_style( 'page-styles', false );
                     wp_enqueue_style( 'page-styles' );
-                    wp_add_inline_style( 'page-styles', SITE_ASSETS["css"]); 
+                    $upload_dir = wp_upload_dir();
+                    $upload_url = $upload_dir['baseurl']."/";
+                    $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
+                    $code = str_replace("{home_url}", home_url("/"), $code);
+                    wp_add_inline_style( 'page-styles', $code); 
                 }              
             }
 
@@ -1807,7 +1919,6 @@ if(!function_exists("is_product_category")){
         return false;
     }
 }
-
 
 if(!function_exists("is_product_tag")){
     function is_product_tag(){

@@ -185,10 +185,19 @@ class Post extends Timber\Post{
                     "js" => $js
                 ); 
             }
-
-            if(!isset($_GET["fetch"]) ) {
-                $content = $this->strip_tags($content);//strip_tags_opposite($content, '<script><style>');
-            }/**/
+            
+            if(!isset($_GET["fetch"]) ) { 
+                $tags = "";
+                if(SEPERATE_CSS){
+                    $tags = "<style>";
+                }
+                if(SEPERATE_CSS){
+                    $tags .= "<script>";
+                }
+                if(!empty($tags)){
+                    $content = $this->strip_tags($content, $tags);//strip_tags_opposite($content, '<script><style>');                    
+                }
+            }
 
         }else{
             if(in_array(get_query_var("qpt_settings"), [2, 3])){

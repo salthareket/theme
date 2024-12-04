@@ -8,6 +8,7 @@ function init_lightGallery(){
 			$(this).attr("id", id);
 		}
 		var gallery_type = $(this).data("gallery-type");
+		var lightbox = bool($(this).data("lightbox"), true);
 		var gallery_source = [];
 
 		let plugins = [];
@@ -36,17 +37,20 @@ function init_lightGallery(){
             })
             .on("jg.complete", function () {
                 $(this).removeClass("loading-hide");
-                lightGallery(
-					document.getElementById(id),
-					{
-						download: false,
-						galleryId: id,
-						getCaptionFromTitleOrAlt: false,
-						plugins: plugins,
-						licenseKey:"1111-1111-111-1111",
-						mobileSettings: { controls: true, showCloseIcon: true, download: false } 
-					}
-				);
+                if(lightbox){
+	                lightGallery(
+						document.getElementById(id),
+						{
+							download: false,
+							galleryId: id,
+							getCaptionFromTitleOrAlt: false,
+							plugins: plugins,
+							licenseKey:"1111-1111-111-1111",
+							mobileSettings: { controls: true, showCloseIcon: true, download: false } 
+						}
+					);                	
+                }
+
 			});	
 
 		}else if(gallery_type == "dynamic"){
@@ -67,16 +71,18 @@ function init_lightGallery(){
 		}else{
 
 			$(this).removeClass("loading-hide");
-            lightGallery(
-				document.getElementById(id),
-				{
-					download: false,
-					galleryId: id,
-					getCaptionFromTitleOrAlt: false,
-					plugins: plugins,
-					mobileSettings: { controls: true, showCloseIcon: true, download: false } 
-				}
-			);
+			if(lightbox){
+	            lightGallery(
+					document.getElementById(id),
+					{
+						download: false,
+						galleryId: id,
+						getCaptionFromTitleOrAlt: false,
+						plugins: plugins,
+						mobileSettings: { controls: true, showCloseIcon: true, download: false } 
+					}
+				);
+	        }
 
 		}
 	});

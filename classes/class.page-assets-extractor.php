@@ -9,9 +9,19 @@ class PageAssetsExtractor {
     public $type = null;
     public $mass = false;
     public $disable_hooks = false;
+    public $home_url = "";
+    public $home_url_encoded = "";
+    public $upload_url = "";
+    public $upload_url_encoded = "";
 
     public function __construct() {
         error_log("PageAssetsExtractor initialized in admin.");
+        $this->home_url = home_url("/");
+        $this->home_url_encoded = str_replace("/","\/", $this->home_url);
+        $upload_dir = wp_upload_dir();
+        $upload_url = $upload_dir['baseurl']."/";;
+        $this->upload_url = $upload_url;
+        $this->upload_url_encoded = str_replace("/","\/", $this->upload_url);
         if (defined('ENABLE_MULTILANGUGE') && ENABLE_MULTILANGUGE) {
             $this->multilang_plugin = ENABLE_MULTILANGUGE; // Multilanguage plugin adı
         }
@@ -75,6 +85,11 @@ class PageAssetsExtractor {
 
     // URL'den HTML'yi fetch et
     public function fetch($url, $id) {
+
+        if(in_array($this->type, ["post", "term"]) && $this->mass){
+            acf_block_id_fields($id);
+        }
+
         error_log("fetch->".$url." : ".$id." type:".$this->type);
         $fetch_url = $url. (strpos($url, '?') === false ? '?fetch&nocache=true' : '&fetch&nocache=true');
 
@@ -143,7 +158,8 @@ class PageAssetsExtractor {
             }
             $scripts = $scripts_filtered;
             foreach ($scripts as $script) {
-                $js[] = $script->innerHtml();
+                $code = $script->innerHtml();
+                $js[] = $code;
             }
             if($js){
                 $js = array_unique($js);
@@ -151,6 +167,11 @@ class PageAssetsExtractor {
                 $minifier = new Minify\JS();
                 $minifier->add($js);
                 $js = $minifier->minify();
+                
+                $js = str_replace($this->upload_url, "{upload_url}", $js);
+                $js = str_replace($this->upload_url_encoded, "{upload_url}", $js);
+                $js = str_replace($this->home_url, "{home_url}", $js);
+                $js = str_replace($this->home_url_encoded, "{home_url}", $js);
             }
 
             $styles = $html->findMulti('style');
@@ -162,7 +183,8 @@ class PageAssetsExtractor {
             }
             $styles = $styles_filtered;
             foreach ($styles as $style) {
-                $css[] = $style->innerHtml();
+                $code = $style->innerHtml();
+                $css[] = $code;
             }
             if($css){
                 $css = array_unique($css);
@@ -170,12 +192,16 @@ class PageAssetsExtractor {
                 $minifier = new Minify\CSS();
                 $minifier->add($css);
                 $css = $minifier->minify();
+                $css = str_replace($this->upload_url, "{upload_url}", $css);
+                $css = str_replace($this->upload_url_encoded, "{upload_url}", $css);
+                $css = str_replace($this->home_url, "{home_url}", $css);
+                $css = str_replace($this->home_url_encoded, "{home_url}", $css);
             }
         }
 
         // Plugin konfigürasyonunu kontrol et
         if (!function_exists("compile_files_config")) {
-            require get_stylesheet_directory() . "/theme/includes/minify-rules.php";
+            require get_stylesheet_directory() . "/includes/minify-rules.php";
         }
         $files = compile_files_config(true);
 
@@ -243,7 +269,7 @@ class PageAssetsExtractor {
                     $plugin_files_js[] = get_stylesheet_directory() . '/static/js/min/plugins/'.$plugin."-init.js";
                 }
                 if($plugin_files_js){
-                    error_log(json_encode($plugin_files_js));
+                    //error_log(json_encode($plugin_files_js));
                     $plugin_js = $this->combine_and_cache_files("js", $plugin_files_js);
                     $plugin_js = str_replace(get_stylesheet_directory_uri(), '', $plugin_js);
                 }
@@ -259,7 +285,7 @@ class PageAssetsExtractor {
             "plugin_css" => $plugin_css,
             "plugin_css_rtl" => $plugin_css_rtl
         );
-        error_log(json_encode($result));
+        //error_log(json_encode($result));
         return $this->save_meta($result, $id);
     }
 
@@ -410,7 +436,7 @@ class PageAssetsExtractor {
             $sitemap_url = site_url('/sitemap_index.xml'); // Yoast XML sitemap URL'si
         }
 
-        error_log("-----------".$sitemap_url);
+        //error_log("-----------".$sitemap_url);
 
         // Sitemap URL'sini çek
         $sitemap_content = file_get_contents($sitemap_url);
@@ -444,7 +470,7 @@ class PageAssetsExtractor {
 
                 // Sitemap dosya adını al ve "-sitemap.xml" kısmını çıkar
                 $sitemap_file_name = basename($sitemap_url, '-sitemap.xml');
-                error_log("Sitemap type: " . $sitemap_file_name);
+                //error_log("Sitemap type: " . $sitemap_file_name);
 
                 switch($sitemap_file_name){
 
@@ -452,12 +478,11 @@ class PageAssetsExtractor {
                         case "post" :
                             $post_id = url_to_postid($url_string);
                             if ($post_id === 0 && function_exists('pll_get_post')) {
-                                $home_url = home_url('/');
-                                if (strpos($url_string, $home_url) === 0) {
+                                if (strpos($url_string, $this->home_url) === 0) {
                                     // Anasayfanın diline göre post ID'yi al
-                                    $lang = str_replace($home_url, "", $url_string);
+                                    $lang = str_replace($this->home_url, "", $url_string);
                                     $lang = str_replace("/", "", $lang);
-                                    error_log("--- yabancı sayfa : ".$lang);
+                                    //error_log("--- yabancı sayfa : ".$lang);
                                     $post_id = pll_get_post(get_option('page_on_front'), $lang);
                                 }
                             }
@@ -624,8 +649,7 @@ class PageAssetsExtractor {
     }
 
     function get_url_language($url = "") {
-        $home_url = home_url('/');
-        $url = str_replace($home_url, "", $url);
+        $url = str_replace($this->home_url, "", $url);
         if (preg_match('#^([a-z]{2})/#', $url, $matches)) {
             return $matches[1];
         } else {

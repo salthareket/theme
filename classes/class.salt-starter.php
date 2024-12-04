@@ -2,9 +2,8 @@
 
 class SaltStarter{
     function __construct(){
-        $this->copy_static_to_theme();
         $salt = new Salt();
-        $salt->init();
+        //$salt->init();
         $GLOBALS["salt"] = $salt;
         show_admin_bar(false);
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
@@ -543,33 +542,4 @@ class SaltStarter{
             }
         }
     }
-    public function copy_static_to_theme() {
-        global $wp_filesystem;
-
-        // WP Filesystem'i başlat
-        if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-
-        WP_Filesystem();
-
-        // Static klasör yolu ve hedef yol
-        $source_dir = __DIR__ . '/static'; // Paket içindeki static klasör
-        $theme_dir = get_template_directory(); // Aktif tema kök dizini
-
-        // Static klasörünü hedef dizine taşı
-        if (is_dir($source_dir)) {
-            $wp_filesystem->copy($source_dir, $theme_dir . '/static', true, true);
-
-            // Hata varsa loglama
-            if (!is_dir($theme_dir . '/static')) {
-                error_log('Static klasör temaya kopyalanamadı.');
-            } else {
-                echo 'Static klasör başarıyla temaya taşındı.';
-            }
-        } else {
-            error_log('Static klasörü bulunamadı: ' . $source_dir);
-        }
-    }
-
 }

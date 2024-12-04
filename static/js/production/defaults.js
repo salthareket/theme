@@ -1,5 +1,12 @@
 //var ajax = false;
 var debug = false;
+
+document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+        document.body.classList.remove('loading-process');
+    }
+});
+
 window.lazySizesConfig = window.lazySizesConfig || {};
 window.lazySizesConfig.customMedia = {
     '--xs'   : '(max-width: 575px)',

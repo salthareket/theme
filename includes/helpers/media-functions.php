@@ -649,6 +649,10 @@ add_filter('image_size_names_choose', 'upload_sizes_names');
 
 function get_image_set($args=array()){
 
+	$image = new Image($args);
+	return $image->init();/**/
+/*
+	
 	$defaults = array(
 		'src' => '',
 		'id' => null,
@@ -668,6 +672,8 @@ function get_image_set($args=array()){
         'attrs' => []
     );
     $args = array_merge($defaults, $args);
+
+    $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
 
     if(empty($args["src"])){
     	if($args["placeholder"]){
@@ -692,8 +698,9 @@ function get_image_set($args=array()){
 	$has_breakpoints = false;
 	$is_single = false;
 
-	if(is_array($args["src"]) && in_array(array_keys($args["src"])[0], ["xxxl", "xxl", "xl", "lg", "md", "sm", "xs"])){
+	if(is_array($args["src"]) && in_array(array_keys($args["src"])[0], $sizes)){
 		$values = remove_empty_items(array_values($args["src"]));
+	
 		if(count($values) == 1){
 			$args["src"] = $values;
 			$has_breakpoints = true;
@@ -743,7 +750,7 @@ function get_image_set($args=array()){
 
 		//$has_breakpoints = false;
 		//$is_single = false;
-		if(isset(array_keys($args["src"])[0]) && in_array(array_keys($args["src"])[0], ["xxxl", "xxl", "xl", "lg", "md", "sm", "xs"])){
+		if(isset(array_keys($args["src"])[0]) && in_array(array_keys($args["src"])[0], $sizes)){
 
 			foreach($args["src"] as $key => $item){
 				if(!empty($item)){
@@ -900,8 +907,9 @@ function get_image_set($args=array()){
 		$html = '<div class="img-placeholder '.$args["placeholder_class"].' '. ($args["lazy"] && !$args["preview"]?"loading":"").'"  style="background-color:'.$args["post"]->meta("average_color").';">' . $html . '</div>';
 	}
 
-	return $html;
+	return $html;*/
 }
+/*
 function get_image_set_post($args=array()){
 
 	if (is_numeric($args["src"])) {
@@ -1004,8 +1012,6 @@ function get_image_set_multiple($args=array(), $has_breakpoints = false){
         $length = count($breakpoints);
         $breakpoint_index = 0;
 
-        //print_r($args);
-
 	    foreach ($breakpoints as $breakpoint => $min_width) {
 		    $value = $values[$breakpoint_index];
 	    	$query_w = $breakpoint == "xs" ? "max": "min";
@@ -1015,13 +1021,6 @@ function get_image_set_multiple($args=array(), $has_breakpoints = false){
 	    	}
 	    	$breakpoint = $breakpoint == "xs"?"sm":$breakpoint;
 	        $best_image = find_best_image_for_breakpoint($args, $breakpoint, array_keys($breakpoints));
-
-	        /*$best_image = [
-	        	"src" => $args[$index]["post"],
-	        	"images" => ,
-	        	"sizes" => 
-	        ];*/
-
 	        if ($best_image) {
 	        	//print_r("best image for ".$breakpoint." = ".$best_image["image"]."\n");
 	            $html .= '<source media="('.$query_w.'-width: '.$min_width.'px)" '.$args[0]["prefix"].'srcset="'.$best_image["image"].'">' . "\n";
@@ -1040,7 +1039,6 @@ function get_image_set_multiple($args=array(), $has_breakpoints = false){
     return $srcset;
 }
 function find_best_image_for_breakpoint($images, $breakpoint, $breakpoints) {
-	//$breakpoint = $breakpoint == end($breakpoints)?"sm":$breakpoint;
     $current_index = array_search($breakpoint, $breakpoints);
     $index = array_search2d_by_field($breakpoint, $images, "breakpoint");
 
@@ -1050,33 +1048,12 @@ function find_best_image_for_breakpoint($images, $breakpoint, $breakpoints) {
     if($index>-1){
 
     	$item = $images[$index]["post"];
-    	//$sizes = array_keys($images[$index]["meta"]["sizes"]);
 
-    	//if(in_array($breakpoint, $sizes)){
-    		//echo "---var--\n-";
-	    	return array(
-	    		"src" => $item,
-			    //"image" => $breakpoint == "xxxl" ? $item->src() : $item->src($breakpoint), updated to below
-			    "image" => $item->src(),//$breakpoint == "xxxl" ? $item->src() : $item->src($breakpoints[$index-1]),
-			    "sizes" => $item->img_sizes()
-			);
-
-    	/*}else{
-
-    		for ($i = $current_index+1; $i < count($breakpoints); $i++) {
-		        $current_breakpoint = $breakpoints[$i];
-		        if(in_array($current_breakpoint, $sizes)){
-
-			    	return array(
-			    		"src" => $item,
-					    //"image" => $current_breakpoint == "xxxl" ? $item->src() : $item->src($current_breakpoint), updated to below
-					    "image" => $current_breakpoint == "xxxl" ? $item->src() : $item->src($breakpoints[$i-1]),
-					    "sizes" => $item->img_sizes()
-					);
-		    	}
-		    }
-
-    	}*/
+	    return array(
+	    	"src" => $item,
+		    "image" => $item->src(),//$breakpoint == "xxxl" ? $item->src() : $item->src($breakpoints[$index-1]),
+		    "sizes" => $item->img_sizes()
+		);
 
     }else{
 
@@ -1087,7 +1064,6 @@ function find_best_image_for_breakpoint($images, $breakpoint, $breakpoints) {
 			  	$item = $images[$index]["post"];
 			   	return array(
 			   		"src" => $item,
-			    	//"image" => $breakpoint == "xxxl" ? $item->src() : $item->src($breakpoint), updated to below
 			    	"image" => $item->src(),//$breakpoint == "xxxl" ? $item->src() : $item->src($breakpoints[$i-1]),
 			    	"sizes" => $item->img_sizes()
 			    );
@@ -1097,7 +1073,7 @@ function find_best_image_for_breakpoint($images, $breakpoint, $breakpoints) {
 	}
     return [];
 }
-function reorder_srcset($srcset) {
+function reorder_srcset($srcset) {// img için
     // Her bir kaynağı virgülle ayır
     $sources = explode(', ', $srcset);
     
@@ -1156,18 +1132,6 @@ function create_sizes_attribute($srcset) {
     // Son virgülü kaldır
     return rtrim($sizes, ', ');
 }
-/*function create_width_array($srcset){
-	$srcset = explode(', ', $srcset);
-    $sources_array = [];
-    foreach ($srcset as $source) {
-        $parts = explode(' ', $source);
-        $width = intval($parts[1]);
-        $sources_array[$width] = $parts[0];
-    }
-    ksort($sources_array);
-    return $sources_array;
-}*/
-
 function add_preload_image($attrs){
 	error_log("add_preload_image ".json_encode($attrs));
 	if(empty($attrs)){
@@ -1183,7 +1147,7 @@ function add_preload_image($attrs){
 	}else{
 		echo '<link rel="preload" href="'.$attrs.'" as="image">'."\n";
 	}
-}
+}*/
 
 function get_video($video_args=array()){
 
