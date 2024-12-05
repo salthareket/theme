@@ -28,7 +28,6 @@
         "twig/twig": "^3.10",
         "timber/timber": "^2.2",
         "voku/simple_html_dom": "^4.8",
-        "salthareket/theme": "^1.0"
     },
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4"
