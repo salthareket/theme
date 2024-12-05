@@ -1,11 +1,17 @@
 <?php
 
+define('THEME_INCLUDES_PATH', get_template_directory() . '/includes/');
+define('THEME_CLASSES_PATH', get_template_directory() . '/classes/');
+
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
 
 define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && get_option("options_enable_production"));
 define("ENABLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_logs"));
 define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_console_logs"));
+
+define("SEPERATE_CSS", get_option("options_seperate_css"));
+define("SEPERATE_JS",  get_option("options_seperate_js"));
 
 $exclude_from_search = get_option("options_exclude_from_search");
 $exclude_from_search = $exclude_from_search?$exclude_from_search:[];
@@ -151,17 +157,17 @@ define("ENABLE_POSTCODE_VALIDATION", get_option("options_enable_postcode_validat
 $multilanguage = false;
 if(function_exists("qtranxf_getSortedLanguages")){
     $multilanguage = "qtranslate-xt";
-    include_once "includes/plugins/qtranslate-xt.php";
+    include_once THEME_INCLUDES_PATH . "plugins/qtranslate-xt.php";
 }elseif(class_exists('SitePress')){
     $multilanguage = "wpml";
-    include_once "includes/plugins/wpml.php";
+    include_once THEME_INCLUDES_PATH . "plugins/wpml.php";
 }elseif(function_exists("pll_the_languages")){
     $multilanguage = "polylang";
-    include_once "includes/plugins/polylang.php";
+    include_once THEME_INCLUDES_PATH . "plugins/polylang.php";
 }
 define("ENABLE_MULTILANGUAGE", $multilanguage);
 if (ENABLE_MULTILANGUAGE){
-    include_once "includes/multilanguage.php";
+    include_once THEME_INCLUDES_PATH . "multilanguage.php";
 }
 
 define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
@@ -177,6 +183,7 @@ if (class_exists("acf")) {
     $GLOBALS["google_maps_api_key"] = get_option("options_google_maps_api_key"); //get_post_meta
 }
 
+add_action('after_setup_theme', function () {
 if (!class_exists("Timber")) {
     add_action("admin_notices", function () {
         echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
@@ -193,13 +200,14 @@ if (!class_exists("Timber")) {
     Timber::$dirname = array( 'theme/templates', 'templates' );
     Timber::$autoescape = false;
     Timber::$cache = false;
-    include_once "includes/plugins/twig.php"; 
-    include_once 'includes/twig-extends.php';
-    include_once "theme/includes/twig-extends.php";
+    include_once THEME_INCLUDES_PATH . "plugins/twig.php"; 
+    include_once THEME_INCLUDES_PATH . 'twig-extends.php';
+    include_once get_template_directory() . "/theme/includes/twig-extends.php";
     if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
-        include_once "includes/plugins/timber-acf-blocks.php"; 
+        include_once THEME_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
     }
 }
+});
 
 $required_plugins = array(
     'acf-extended/acf-extended.php',
@@ -225,14 +233,14 @@ if(ENABLE_PUBLISH){
 }
 $GLOBALS["plugins"] = $required_plugins;
 
-include_once "includes/helpers/index.php";
-include_once "theme/includes/globals.php";
-include_once "includes/blocks.php";
-include_once "includes/styles-scripts.php";
-//include_once "includes/install-plugins.php";
+include_once THEME_INCLUDES_PATH . "helpers/index.php";
+include_once get_template_directory() . "/theme/includes/globals.php";
+include_once THEME_INCLUDES_PATH . "blocks.php";
+include_once THEME_INCLUDES_PATH . "styles-scripts.php";
+//include_once THEME_INCLUDES_PATH . "install-plugins.php";
 
 if (ENABLE_MEMBERSHIP) {
-   include_once "classes/class.otp.php";
+   include_once THEME_CLASSES_PATH . "class.otp.php";
 }
 
 if (!ENABLE_ECOMMERCE) {
@@ -255,117 +263,117 @@ if (!ENABLE_ECOMMERCE) {
 }
 
 if (ENABLE_FAVORITES) {
-    include_once "classes/class.favorites.php";
+    include_once THEME_CLASSES_PATH . "class.favorites.php";
 }
 
 if (ENABLE_SEARCH_HISTORY) {
-    include_once "classes/class.search-history.php";
+    include_once THEME_CLASSES_PATH . "class.search-history.php";
 }
 
 if (ENABLE_NOTIFICATIONS) {
-    include_once "classes/class.notifications.php";
+    include_once THEME_CLASSES_PATH . "class.notifications.php";
 }
 
 if ($GLOBALS["pagenow"] === "wp-login.php") {
-    include_once "includes/admin/custom-login.php";
+    include_once THEME_INCLUDES_PATH . "admin/custom-login.php";
 }
 
 if (is_admin()) {
-    include_once "includes/admin/index.php";
+    include_once THEME_INCLUDES_PATH . "admin/index.php";
     if(!function_exists("acf_general_settings_rewrite")){
-        include_once "includes/admin/general-settings/index.php";
+        include_once THEME_INCLUDES_PATH . "admin/general-settings/index.php";
     }
 }
 
 if (class_exists("ACF")) {
-    include_once "includes/plugins/acf.php";
+    include_once THEME_INCLUDES_PATH . "plugins/acf.php";
     if(class_exists('ACFE')){
-       include_once "includes/plugins/acfe.php";
+       include_once THEME_INCLUDES_PATH . "plugins/acfe.php";
     }
     if(class_exists("OpenStreetMap")){
         die;
-        include_once "includes/plugins/acf-osm.php";
+        include_once THEME_INCLUDES_PATH . "plugins/acf-osm.php";
     }
 }else{
-    //include_once "includes/plugins/acf-fallback.php";
+    //include_once THEME_INCLUDES_PATH . "plugins/acf-fallback.php";
 }
 
 if (class_exists("WPCF7")) {
-    include_once "includes/plugins/cf7.php";
+    include_once THEME_INCLUDES_PATH . "plugins/cf7.php";
 }
 
 if (defined("WPSEO_FILE")) {
-    include_once "classes/class.schema_breadcrumbs.php";
-    include_once "includes/plugins/yoast-seo.php";
+    include_once THEME_CLASSES_PATH . "class.schema_breadcrumbs.php";
+    include_once THEME_INCLUDES_PATH . "plugins/yoast-seo.php";
 }
 
 if (class_exists("Loco_Locale")) {
-    include_once "includes/plugins/loco-translate.php";
+    include_once THEME_INCLUDES_PATH . "plugins/loco-translate.php";
 }
 
 if (function_exists("yasr_fs")) {
-    include_once "includes/plugins/yasr-star-rating.php";
+    include_once THEME_INCLUDES_PATH . "plugins/yasr-star-rating.php";
 }
 
 if (class_exists("APSS_Class")) {
-    include_once "includes/plugins/apps.php";
+    include_once THEME_INCLUDES_PATH . "plugins/apps.php";
 }
 
 if (class_exists("Redq_YoBro")) {
-    include_once "includes/plugins/yobro.php";
+    include_once THEME_INCLUDES_PATH . "plugins/yobro.php";
 }
 
 if (class_exists("Newsletter")) {
-    include_once "includes/plugins/newsletter.php";
+    include_once THEME_INCLUDES_PATH . "plugins/newsletter.php";
 }
 
 if (ENABLE_ECOMMERCE) {
     if (class_exists("YITH_WC_Dynamic_Discounts")) {
-        include_once "includes/plugins/yith-dynamic-pricing-and-discounts.php";
+        include_once THEME_INCLUDES_PATH . "plugins/yith-dynamic-pricing-and-discounts.php";
     }
 
     if (class_exists("YITH_WCBR")) {
-        include_once "includes/plugins/yith-brands-add-on.php";
+        include_once THEME_INCLUDES_PATH . "plugins/yith-brands-add-on.php";
     }
 
     if ( function_exists( 'wpcbr_init' ) ) {
-        include_once "includes/plugins/wpc-brands.php";
+        include_once THEME_INCLUDES_PATH . "plugins/wpc-brands.php";
     }
 
     if ( defined( 'YITH_WCAN' ) ) {
-        include_once "includes/plugins/yith-ajax-product-filter.php";
+        include_once THEME_INCLUDES_PATH . "plugins/yith-ajax-product-filter.php";
     }
 
     if ( class_exists( 'DGWT_WC_Ajax_Search' )){
-        include_once "includes/plugins/ajax-search-for-woocommerce.php";
+        include_once THEME_INCLUDES_PATH . "plugins/ajax-search-for-woocommerce.php";
     }
 
     if (class_exists("WC_Bundles")) {
-        include_once "includes/plugins/product-bundles.php";
+        include_once THEME_INCLUDES_PATH . "plugins/product-bundles.php";
     }
 
     if ( function_exists( 'woosb_init' ) ) {
-        include_once "includes/plugins/wpc-product-bundles.php";
+        include_once THEME_INCLUDES_PATH . "plugins/wpc-product-bundles.php";
     }
 }
 
 if (function_exists("mt_profile_img")) {
-    include_once "includes/plugins/metronet-profile-picture.php";
+    include_once THEME_INCLUDES_PATH . "plugins/metronet-profile-picture.php";
 }
 
 if (defined("WP_ROCKET_VERSION")) {
-    include_once "includes/plugins/wp-rocket.php";
+    include_once THEME_INCLUDES_PATH . "plugins/wp-rocket.php";
 }
 if (class_exists("WP_Socializer")) {
-    include_once "includes/plugins/wpsr.php";
+    include_once THEME_INCLUDES_PATH . "plugins/wpsr.php";
 }
 
 if(ENABLE_SOCIAL_LOGIN){
-    include_once "includes/plugins/nsl.php";
+    include_once THEME_INCLUDES_PATH . "plugins/nsl.php";
 }
 
 if (class_exists("YABE_WEBFONT")) {
-    include_once "includes/plugins/yabe-font.php";
+    include_once THEME_INCLUDES_PATH . "plugins/yabe-font.php";
 }
 
 if (!function_exists("get_home_path")) {
@@ -373,46 +381,46 @@ if (!function_exists("get_home_path")) {
 }
 
 if (ENABLE_PRODUCTION) {
-    include_once "theme/includes/minify-rules.php";
+    include_once get_stylesheet_directory() . "/theme/includes/minify-rules.php";
 }
 
-include_once "classes/class.shortcodes.php";
-include_once "classes/class.logger.php";    
-include_once "classes/class.encrypt.php";
-include_once "classes/class.paginate.php";
-include_once "classes/class.localization.php";
-include_once "classes/class.page-assets-extractor.php"; 
+include_once THEME_CLASSES_PATH . "class.shortcodes.php";
+include_once THEME_CLASSES_PATH . "class.logger.php";    
+include_once THEME_CLASSES_PATH . "class.encrypt.php";
+include_once THEME_CLASSES_PATH . "class.paginate.php";
+include_once THEME_CLASSES_PATH . "class.localization.php";
+include_once THEME_CLASSES_PATH . "class.page-assets-extractor.php"; 
 //include 'classes/class.geolocation.query.php';
 
 
-include_once "includes/actions.php";
-include_once "includes/notices.php";
-include_once "includes/rewrite.php";
-include_once "includes/ajax.php";
-include_once "includes/custom.php";
+include_once THEME_INCLUDES_PATH . "actions.php";
+include_once THEME_INCLUDES_PATH . "notices.php";
+include_once THEME_INCLUDES_PATH . "rewrite.php";
+include_once THEME_INCLUDES_PATH . "ajax.php";
+include_once THEME_INCLUDES_PATH . "custom.php";
 echo "kkoook";
 
 if(!is_admin()){
-   include_once "classes/class.custom-menu-items.php";
-   include_once "includes/menu.php"; 
+   include_once THEME_CLASSES_PATH . "class.custom-menu-items.php";
+   include_once THEME_INCLUDES_PATH . "menu.php"; 
 }
 
 if(ENABLE_REGIONAL_POSTS){
-    include_once "includes/regional-posts/index.php";
+    include_once THEME_INCLUDES_PATH . "regional-posts/index.php";
 }
 
 if (ENABLE_ECOMMERCE) {
     if (ENABLE_MEMBERSHIP) {
-        include_once "includes/woocommerce/redirect.php";
-        include_once "includes/woocommerce/my-account.php";
+        include_once THEME_INCLUDES_PATH . "woocommerce/redirect.php";
+        include_once THEME_INCLUDES_PATH . "woocommerce/my-account.php";
     }
-    include_once "includes/woocommerce/functions.php";
-    //include_once "includes/woocommerce.php";
+    include_once THEME_INCLUDES_PATH . "woocommerce/functions.php";
+    //include_once THEME_INCLUDES_PATH . "woocommerce.php";
 }
 
 // extend with theme files
-include_once "theme/index.php";
-include_once "includes/shortcodes.php";
+include_once get_template_directory() . "/theme/index.php";
+include_once THEME_INCLUDES_PATH . "shortcodes.php";
 /*
 $GLOBALS["base_urls"] = array();
 //if (ENABLE_MEMBERSHIP) {
