@@ -1,6 +1,6 @@
 {
     "name": "salthareket/theme",
-    "version": "1.0.4",
+    "version": "1.0.3",
     "description": "Projenin açıklaması",
     "license": "MIT",
     "type": "library",
@@ -21,5 +21,5 @@
         "php": ">=8.2",
         "timber/timber": "^2.0"
     }
-    
+
 }
