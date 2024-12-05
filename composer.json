@@ -27,7 +27,7 @@
         "wyrihaximus/html-compress": "^4.2",
         "twig/twig": "^3.10",
         "timber/timber": "^2.2",
-        "voku/simple_html_dom": "^4.8",
+        "voku/simple_html_dom": "^4.8"
     },
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4"
