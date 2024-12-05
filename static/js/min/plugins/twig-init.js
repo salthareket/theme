@@ -1,1 +1,0 @@
-if(typeof Twig!=="undefined"){twig=Twig.twig}

@@ -1,1 +1,0 @@
-function init_locomotive_scroll(){var token_init="locomotive-scroll-init"}

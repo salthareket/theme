@@ -1,13 +1,10 @@
 <?php
-error_log("bootstrap");
-
-
-
 namespace SaltHareket;
 
-include "starter.php";
+include_once "variables.php";
+include_once "starter.php";
 
-Class Theme(){
+Class Theme{
 	private static function copyIncludes()
     {
         $srcDir = __DIR__ . '/includes';
@@ -19,6 +16,19 @@ Class Theme(){
             echo " Includes folder copied to theme root!";
         } else {
             echo " Includes folder not found!";
+        }
+    }
+    private static function copyStatic()
+    {
+        $srcDir = __DIR__ . '/static';
+        $destDir = get_template_directory() . '/static';
+
+        // Eğer static klasörü varsa, kopyalamaya başla
+        if (is_dir($srcDir)) {
+            self::recurseCopy($srcDir, $destDir);
+            echo " static folder copied to theme root!";
+        } else {
+            echo " static folder not found!";
         }
     }
 
@@ -48,10 +58,10 @@ Class Theme(){
         }
         closedir($dir);
     }
-	public static fnction init(){
+	public static function init(){
 		echo "pop";
-		die;
-		self:copyIncludes();
-		new SaltStarter();
+		self::copyIncludes();
+        self::copyStatic();
+		//new Starter();
 	}
 }

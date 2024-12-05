@@ -1,426 +1,547 @@
 <?php 
 
-define("PUBLISH_URL", get_option("options_publish_url"));
-define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
+namespace SaltHareket;
 
-define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && get_option("options_enable_production"));
-define("ENABLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_logs"));
-define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_console_logs"));
-
-$exclude_from_search = get_option("options_exclude_from_search");
-$exclude_from_search = $exclude_from_search?$exclude_from_search:[];
-define("EXCLUDE_FROM_SEARCH", $exclude_from_search);
-
-define("DISABLE_COMMENTS", true);
-define("DISABLE_REVIEW_APPROVE", get_option("options_disable_review_approve"));
-define("ENABLE_SEARCH_HISTORY", get_option("options_enable_search_history"));
-
-define("ENABLE_ECOMMERCE", class_exists("WooCommerce"));
-
-define("ENABLE_MEMBERSHIP", get_option("options_enable_membership"));
-define("ENABLE_MEMBERSHIP_ACTIVATION", ENABLE_MEMBERSHIP && get_option("options_enable_membership_activation"));
-define("MEMBERSHIP_ACTIVATION_TYPE", ENABLE_MEMBERSHIP_ACTIVATION?get_option("options_membership_activation_settings"):"");
-define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? get_option("options_enable_activation_email_autologin") : false);
-
-$enable_registration = true;
-if(ENABLE_MEMBERSHIP){
-   if(ENABLE_ECOMMERCE){
-      $enable_registration = get_option("woocommerce_enable_myaccount_registration")=="yes"?true:false;
-   }else{
-      $enable_registration = get_option("options_enable_registration");
-   }
-}
-define("ENABLE_REGISTRATION", $enable_registration);
-
-define("ENABLE_REMEMBER_LOGIN",  ENABLE_MEMBERSHIP && get_option("options_enable_remember_login"));
-define("ENABLE_SOCIAL_LOGIN",  ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && get_option("options_enable_social_login"));
-
-define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && get_option("options_enable_lost_password"));
-define("ENABLE_PASSWORD_RECOVER",  ENABLE_MEMBERSHIP && get_option("options_enable_password_recover"));
-define("PASSWORD_RECOVER_TYPE", ENABLE_LOST_PASSWORD||ENABLE_PASSWORD_RECOVER?get_option("options_password_recover_settings"):array());
-
-define("ENABLE_FAVORITES", ENABLE_MEMBERSHIP && get_option("options_enable_favorites"));
-$favorite_types = array(
-    "post_types" => array(),
-    "taxonomies" => array(),
-    "roles"      => array()
-);
-if(ENABLE_FAVORITES){
-    $favorite_post_types = get_option("options_favorite_types_post_types");
-    if($favorite_post_types){
-       $favorite_types["post_types"] = $favorite_post_types;
+class Starter{
+    function __construct(){
+        $salt = new \Salt();
+        //$salt->init();
+        $GLOBALS["salt"] = $salt;
+        show_admin_bar(false);
+        add_action("after_setup_theme", [$this, "after_setup_theme"]);
+        add_action("init", [$this, "global_variables"]);
+        add_action("wp", [$this, "language_settings"]);
+        add_action("wp", [$this, "site_assets"]);
+        add_action("init", [$this, "language_settings"], 1);
+        add_action("pre_get_posts", [$this, "query_all_posts"], 10);
+        add_action("wp_enqueue_scripts", "load_frontend_files", 20);
+        add_action("admin_init", "load_admin_files");
+        add_action("admin_init", [$this, "remove_comments"]);
+        add_filter( 'body_class', [$this, 'body_class'] );
+        if(is_admin()){
+            add_action("admin_init", function(){
+                visibility_under_construction();
+            });    
+        }else{
+            add_action("wp", function(){
+                visibility_under_construction();
+            });    
+        }
     }
-    $favorite_taxonomies = get_option("options_favorite_types_taxonomies");
-    if($favorite_taxonomies){
-       $favorite_types["taxonomies"] = $favorite_taxonomies;
-    }
-    $favorite_user_roles = get_option("options_favorite_types_user_roles");
-    if($favorite_user_roles){
-       $favorite_types["roles"] = $favorite_user_roles;
-    }
-}
-define("FAVORITE_TYPES", $favorite_types);
-define("ENABLE_FOLLOW", ENABLE_MEMBERSHIP && get_option("options_enable_follow"));
-$follow_types = array(
-    "post_types" => array(),
-    "taxonomies" => array(),
-    "roles"      => array()
-);
-if(ENABLE_FOLLOW){
-    $follow_post_types = get_option("options_follow_types_post_types");
-    if($follow_post_types){
-       $follow_types["post_types"] = $follow_post_types;
-    }
-    $follow_taxonomies = get_option("options_follow_types_taxonomies");
-    if($follow_taxonomies){
-       $follow_types["taxonomies"] = $follow_taxonomies;
-    }
-    $follow_user_roles = get_option("options_follow_types_user_roles");
-    if($follow_user_roles){
-       $follow_types["roles"] = $follow_user_roles;
-    }
-}
-define("FOLLOW_TYPES", $follow_types);
-define("ENABLE_CHAT", ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && get_option("options_enable_chat"));
-define("ENABLE_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_option("options_enable_notifications"));
-define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_option("options_enable_sms_notifications"));
+    public function after_setup_theme(){
+        if (class_exists("WooCommerce")) {
+            add_theme_support("woocommerce");
+        }
 
-define("ENABLE_ROLE_THEMES", ENABLE_MEMBERSHIP && get_option("options_role_themes") && is_user_logged_in());
+        if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
+            Schema_Breadcrumbs::instance();
+        }
+        //if(isset($GLOBALS["theme_menus"])){
+        add_action("acf/init", function(){
+            register_nav_menus(get_menu_locations());
+        });
 
-define("ENABLE_IP2COUNTRY", get_option("options_enable_ip2country"));
-define("ENABLE_IP2COUNTRY_DB", get_option("options_ip2country_settings")=="db"?true:false);
-define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_option("options_enable_regional_posts"));
-add_action('acf/init', function(){
-    $regional_post_settings = array();
-    if(ENABLE_REGIONAL_POSTS){
-       $regional_post_settings = get_field("regional_post_settings", "option");
+        /*add options pages to admin*/
+        if (function_exists("acf_add_options_page")) {
+            $menu = [
+                "Anasayfa",
+                "Header",
+                "Footer",
+                "Menu",
+                "Theme Styles",
+                "Ayarlar",
+                "Page Assets Update",
+                "Development",
+            ];
+            if(ENABLE_SEARCH_HISTORY){
+                $menu[] = "Search Ranks";
+            }
+            $options_menu = [
+                "title" => get_bloginfo("name"),
+                "redirect" => true,
+                "children" => $menu,
+            ];
+            if(class_exists("WPCF7")) {
+                $options_menu["children"][] = "Formlar";
+            }
+            create_options_menu($options_menu);
+
+            if(ENABLE_NOTIFICATIONS){
+                $notifications_menu = [
+                    "title" => "Notifications",
+                    "redirect" => false,
+                    "children" => [
+                        "Notification Events",
+                    ],
+                ];
+                create_options_menu($notifications_menu);            
+            }
+        }
     }
-    define("REGIONAL_POST_SETTINGS", $regional_post_settings);
-});
+    public function global_variables(){
 
-define("ENABLE_LOCATION_DB", get_option("options_enable_location_db"));
+        //error_log( var_export( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ), true ) );
 
-define("ACTIVATE_UNDER_CONSTRUCTION", get_option("underConstructionActivationStatus"));
-$white_pages = get_option("options_white_pages");
-define("WHITE_PAGES_UNDER_CONSTRUCTION", is_array($white_pages)?$white_pages:array());
-function visibility_under_construction(){
-    if(defined("VISIBILITY_UNDER_CONSTRUCTION")){
-        return;
-    }
-    $page_id = url_to_postid(current_url()); 
-    $visibility_under_construction = false;
-    if(isset($GLOBALS["user"]->ID)){
-        if($GLOBALS["user"]->get_role() != "administrator"){
-            if(ACTIVATE_UNDER_CONSTRUCTION){
-               if(in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)){
-                    $visibility_under_construction = true;
+        $salt = $GLOBALS["salt"];
+ 
+        //check_and_load_translation(TEXT_DOMAIN);
+        load_theme_textdomain(
+            TEXT_DOMAIN,
+            get_template_directory() . "/languages"
+        );
+        lang_predefined();
+
+        $user = Timber::get_user();
+        if(!$user){
+            $user = new stdClass();
+        }
+        $user->logged = 0;
+        $user->role = "";
+        if(isset($user->roles)){
+            $user->role = array_keys($user->roles)[0];
+        }
+
+        if (!isset($GLOBALS["site_config"])) {
+            $site_config = $salt->get_site_config();
+            $GLOBALS["site_config"] = $site_config;
+        }else{
+            $site_config = $GLOBALS["site_config"];
+        }
+            
+        if(ENABLE_IP2COUNTRY){
+            $user->user_country = $GLOBALS["site_config"]["user_country"];
+            $user->user_country_code = $GLOBALS["site_config"]["user_country_code"];
+            $user->user_city = $GLOBALS["site_config"]["user_city"];              
+        }
+
+        if (ENABLE_FAVORITES) {
+            $favorites = $GLOBALS["site_config"]["favorites"];
+            if (empty($favorites)) {
+                $favorites = [];
+            } else {
+                if (!is_array($favorites)) {
+                    $favorites = json_decode($favorites);
                 }
-            }else{
-                $visibility_under_construction = true;
-            }  
-        }else{
-            $visibility_under_construction = true;
-        }        
-    }else{
-        if(ACTIVATE_UNDER_CONSTRUCTION){
-            if(in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)){
-                $visibility_under_construction = true;
             }
+            $GLOBALS["favorites"] = $favorites;
+        }
+
+        if (ENABLE_SEARCH_HISTORY) {
+            $GLOBALS["search_history"] = $GLOBALS["site_config"]["search_history"];
+        }
+
+        if (ENABLE_MEMBERSHIP) {
+            $account_nav = [];
+
+            if (is_user_logged_in()) {
+                $user->logged = 1;
+                $user->role = $user->get_role();
+
+                if((empty($user->billing_country) || empty($user->billing_state)) && $salt->is_ip_changed() && ENABLE_IP2COUNTRY){//warning
+                    $login_location = $salt->localization->ip_info("visitor", "Location");
+                    $user->login_location = $login_location;
+                    if($user->login_location && (empty($user->billing_country) || empty($user->billing_state))){
+                        $user->billing_country = $user->login_location["country_code"];
+                        $user->billing_state = $user->login_location["state"];
+                        $user->city = $user->login_location["state"];
+                        global $wpdb; 
+                        $query = "SELECT id FROM states WHERE name LIKE '".$user->login_location["state"]."'";
+                        $city_data = $wpdb->get_var($query);//$wpdb->get_var($query);
+                        $user->city = $city_data;
+                        $user->billing_state = $city_data;  
+                    }
+                    session_write_close();   
+                }
+
+                //date_default_timezone_set($user->get_timezone());
+
+                if (class_exists("Newsletter")) {
+                    $user->newsletter = Salt::newsletter(
+                        "status",
+                        $user->user_email
+                    );
+                }
+
+                $messages_count = 0;
+                $notification_count = 0;
+                if(ENABLE_MEMBERSHIP){
+                    if(ENABLE_CHAT){
+                       $messages_count = yobro_unseen_messages_count();
+                    }
+                    if(ENABLE_NOTIFICATIONS){
+                       $notification_count = $salt->notification_count();
+                    }
+                }
+                $user->messages_count = $messages_count;
+                $user->notification_count = $notification_count;
+                //$user->profile_completion = array();/
+
+                $user->menu = get_account_menu();
+            }
+        } else {
+            if (is_user_logged_in()) {
+                $user->logged = 1;
+                $user->role = array_keys($user->roles)[0];
+            }
+            session_write_close();
+        }
+
+        // post pagination settings
+        if(function_exists('get_field')){
+            $post_pagination = get_field("post_pagination", "option");//
         }else{
-            $visibility_under_construction = true;
+            $post_pagination = get_option("options_post_pagination");
+        }
+            if($post_pagination){
+                $post_pagination_tmp = [];
+                foreach ($post_pagination as $item) {
+                    $post_type = $item["post_type"];
+                    $posts_per_page = -1;
+                    if($item["paged"]){
+                        $posts_per_page = intval($item["catalog_rows"]) * intval($item["catalog_columns"]);
+                    }else{
+                        $item["catalog_rows"] = $item["catalog_columns"] = 1;
+                    }
+                    $item["posts_per_page"] = $posts_per_page;
+                    unset($item["post_type"]);
+                    $post_pagination_tmp[$post_type] = $item;
+                }
+                $post_pagination = $post_pagination_tmp;
+                unset($post_pagination_tmp);       
+            }
+
+        // search pagination settings
+        if(function_exists('get_field')){
+            $search_pagination = get_field("search_pagination", "option");//
+        }else{
+            $search_pagination = get_option("options_search_pagination");
+        }
+            if($search_pagination && $search_pagination["paged"]){
+                $posts_per_page = -1;
+                if($search_pagination["paged"]){
+                    $posts_per_page = intval($search_pagination["catalog_rows"]) * intval($search_pagination["catalog_columns"]);
+                }else{
+                    $search_pagination["catalog_rows"] = $search_pagination["catalog_columns"] = 1;
+                }
+                $search_pagination["posts_per_page"] = $posts_per_page;
+                $post_pagination["search"] = $search_pagination;
+            }
+        $GLOBALS["post_pagination"] = $post_pagination;
+        
+        $salt->user = $user;
+        $GLOBALS["user"] = $user;
+        $GLOBALS["salt"] = $salt;
+    }
+    public function language_settings(){
+
+        if(ENABLE_MULTILANGUAGE){
+            $languages = [];
+            switch(ENABLE_MULTILANGUAGE){
+
+                case "qtranslate-xt" :
+                    if(class_exists("QTX_Module_Slugs")){
+                        add_action("request", function($query) use (&$languages){
+                            foreach (qtranxf_getSortedLanguages() as $language) {
+                                $url = qtrans_get_qtx_language_url($language);//qtranxf_slugs_get_url($language);
+                                array_push($languages, [
+                                    "name" => $language,
+                                    "name_long" => qtranxf_getLanguageName($language),
+                                    "url" => $url,
+                                    "active" => boolval($language == qtranxf_getLanguage())
+                                        ? true
+                                        : false,
+                                ]);
+                            }
+                            global $q_config;
+                            $GLOBALS["languages"] = $languages;
+                            $GLOBALS["language"] = qtranxf_getLanguage();
+                            $GLOBALS["language_default"] = $q_config['default_language'];
+                            $GLOBALS["language_url_view"] = $q_config['hide_default_language'] && qtranxf_getLanguage() == $q_config['default_language']?false:true;
+                            return $query;
+                        }, 9999);
+                    }else{
+                        foreach (qtranxf_getSortedLanguages() as $language) {
+                            $url = qtranxf_convertURL( "", $language, false, true );
+                            array_push($languages, [
+                                "name" => $language,
+                                "name_long" => qtranxf_getLanguageName($language),
+                                "url" => $url,//."/",
+                                "active" => boolval($language == qtranxf_getLanguage())
+                                    ? true
+                                    : false,
+                            ]);
+                        }
+                        global $q_config;
+                        $GLOBALS["languages"] = $languages;
+                        $GLOBALS["language"] = qtranxf_getLanguage();
+                        $GLOBALS["language_default"] = $q_config['default_language'];
+                        $GLOBALS["language_url_view"] = $q_config['hide_default_language'] && qtranxf_getLanguage() == $q_config['default_language']?false:true;
+                    }
+                break;
+
+                case "wpml" :
+                    $languages = [];
+                    foreach (icl_get_languages("skip_missing=0&orderby=id&order=asc") as $language) {
+                        $lang_url = $language["url"];
+                        $has_brand = get_query_var("product_brand");
+                        if ($has_brand) {
+                            $lang_url = add_query_arg(
+                                "product_brand",
+                                $has_brand,
+                                $lang_url
+                            );
+                        }
+                        array_push($languages, [
+                            "name" => $language["code"],
+                            "url" => $lang_url,
+                            "active" => boolval($language["active"]) ? "true" : "false",
+                        ]);
+                    }
+                    global $sitepress;
+                    $settings = icl_get_settings();
+                    $GLOBALS["languages"] = $languages;
+                    $GLOBALS["language"] = ICL_LANGUAGE_CODE;
+                    $GLOBALS["language_default"] = apply_filters( 'wpml_default_language', NULL );
+                    $GLOBALS["language_url_view"] = $settings['current_language'] && ICL_LANGUAGE_CODE == $GLOBALS["language_default"] ? false : true;
+
+                break;
+
+                case "polylang" :
+
+                    foreach (pll_the_languages(['raw' => 1]) as $language) {
+                        if (is_post_type_archive()) {
+                            $post_type = get_query_var('post_type');
+                            if ($post_type) {
+                                if ( pll_is_translated_post_type( $post_type )) {
+                                    $post_type_slug = pll_translate_string( $post_type, $language['slug'] );
+                                } else {
+                                    $post_type_slug = $post_type;
+                                }
+                                $hide_default = PLL()->options['hide_default'];
+                                $lang_slug = pll_default_language() == $language['slug'] && $hide_default ? "" : "/".$language['slug'];
+                                $url = home_url($lang_slug."/".$post_type_slug."/");
+                            } else {
+                                $url = pll_home_url($language['slug']);
+                            }
+
+                         } elseif (is_tax()) {  // Taxonomy sayfası için ekleme
+
+                            $taxonomy = get_query_var('taxonomy');
+                            $term = get_query_var('term');
+                            if ($taxonomy && $term) {
+                                $term_data = get_term_by('slug', $term, $taxonomy);
+                                $term_id = $term_data ? $term_data->term_id : null;
+                                if (pll_is_translated_taxonomy($taxonomy)) {
+                                    $taxonomy_slug = pll_translate_string($taxonomy, $language['slug']);
+                                    $term_id = pll_get_term($term_id, $language['slug']);//pll_translate_string($term, $language['slug']);
+                                    if($term_id){
+                                        $term_slug = get_term_by('id', $term_id, $taxonomy)->slug;
+                                    }else{
+                                        $term_slug = $term;
+                                    }
+                                } else {
+                                    $taxonomy_slug = $taxonomy;
+                                    $term_slug = $term;
+                                }
+                                $taxonomy_slug = $taxonomy_slug."/";
+                                $taxonomy_prefix_remove = get_field("taxonomy_prefix_remove", "option");
+                                if($taxonomy_prefix_remove && in_array($taxonomy, get_field("taxonomy_prefix_remove", "option"))){
+                                   $taxonomy_slug = "";
+                                }
+                                $hide_default = PLL()->options['hide_default'];
+                                $lang_slug = pll_default_language() == $language['slug'] && $hide_default ? "" : "/".$language['slug'];
+                                $url = home_url($lang_slug."/".$taxonomy_slug.$term_slug."/");
+                            } else {
+                                $url = pll_home_url($language['slug']);
+                            }
+                        } else {
+                            $post_language = pll_get_post(get_the_ID(), $language['slug']);
+                            if ($post_language) {
+                                $url = get_permalink($post_language);
+                            } else {
+                                $url = pll_home_url($language['slug']);
+                            }
+                        }
+                        $languages[] = [
+                            "name" => $language['slug'],
+                            "name_long" => $language['name'],
+                            "url" => $url,
+                            "active" => $language['current_lang'] ? true : false,
+                        ];
+                    }
+                    $GLOBALS["languages"] = $languages;
+                    $GLOBALS["language"] = pll_current_language();
+                    $GLOBALS["language_default"] = pll_default_language();
+                    $GLOBALS["language_url_view"] = PLL()->options['hide_default'] && pll_current_language() == pll_default_language()?false:true;
+
+                break;
+            }
         }
     }
-    define("VISIBILITY_UNDER_CONSTRUCTION", $visibility_under_construction);
-    add_filter( 'option_underConstructionActivationStatus', function( $status ){
-        if($status == "1"){
-            if(VISIBILITY_UNDER_CONSTRUCTION && !is_admin()){
-                $status = "0";
-            }
+    public function query_all_posts($query){
+
+        if (is_admin()) {
+            return $query;
         }
-        return $status;
-    });
-}
 
-define("ENABLE_WOO_API", get_option("options_enable_woo_api"));
-define("ENABLE_CART", ENABLE_ECOMMERCE && get_option("options_enable_cart"));
-define("PAYMENT_EXPIRE_HOURS", get_option("options_payment_expire_hours"));
-define("ENABLE_FILTERS", defined( 'YITH_WCAN' ));
-define("DISABLE_DEFAULT_CAT", true);
-define("ENABLE_POSTCODE_VALIDATION", get_option("options_enable_postcode_validation"));
-
-$multilanguage = false;
-if(function_exists("qtranxf_getSortedLanguages")){
-    $multilanguage = "qtranslate-xt";
-    include_once "includes/plugins/qtranslate-xt.php";
-}elseif(class_exists('SitePress')){
-    $multilanguage = "wpml";
-    include_once "includes/plugins/wpml.php";
-}elseif(function_exists("pll_the_languages")){
-    $multilanguage = "polylang";
-    include_once "includes/plugins/polylang.php";
-}
-define("ENABLE_MULTILANGUAGE", $multilanguage);
-if (ENABLE_MULTILANGUAGE){
-    include_once "includes/multilanguage.php";
-}
-
-define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
-
-$theme = wp_get_theme();
-define("TEXT_DOMAIN", $theme->get('TextDomain'));
-$GLOBALS["is_admin"] = is_admin();
-$GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
-
-$GLOBALS["post_id"] = get_the_ID();
-
-if (class_exists("acf")) {
-    $GLOBALS["google_maps_api_key"] = get_option("options_google_maps_api_key"); //get_post_meta
-}
-
-if (!class_exists("Timber")) {
-    add_action("admin_notices", function () {
-        echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
-            esc_url(admin_url("plugins.php#timber")) .
-            '">' .
-            esc_url(admin_url("plugins.php")) .
-            "</a></p></div>";
-    });
-    add_filter("template_include", function ($template) {
-        return get_stylesheet_directory() . "/static/no-timber.html";
-    });
-    return;
-} else {
-    Timber::$dirname = array( 'theme/templates', 'templates' );
-    Timber::$autoescape = false;
-    Timber::$cache = false;
-    include_once "includes/plugins/twig.php"; 
-    include_once 'includes/twig-extends.php';
-    include_once "theme/includes/twig-extends.php";
-    if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
-        include_once "includes/plugins/timber-acf-blocks.php"; 
-    }
-}
-
-$required_plugins = array(
-    'acf-extended/acf-extended.php',
-    'contact-form-7/wp-contact-form-7.php',
-    'post-smtp/postman-smtp.php',
-    'favicon-by-realfavicongenerator/favicon-by-realfavicongenerator.php',
-    'featured-image-admin-thumb-fiat/featured-image-admin-thumb.php',
-    'google-site-kit/google-site-kit.php',
-    'post-type-archive-links/post-type-archive-links.php',
-    'simple-custom-post-order/simple-custom-post-order.php',
-    //'webp-converter-for-media/webp-converter-for-media.php',
-    'yabe-webfont/yabe-webfont.php',
-    'wordpress-seo/wp-seo.php',
-);
-if(ACTIVATE_UNDER_CONSTRUCTION){
-    $required_plugins[] = 'underconstruction/underConstruction.php';
-}
-if(ENABLE_MEMBERSHIP){
-    $required_plugins[] = 'one-user-avatar/one-user-avatar.php';
-}
-if(ENABLE_PUBLISH){
-    $required_plugins[] = 'wp-scss/wp-scss.php';
-}
-$GLOBALS["plugins"] = $required_plugins;
-
-include_once "includes/helpers/index.php";
-include_once "theme/includes/globals.php";
-include_once "includes/blocks.php";
-include_once "includes/styles-scripts.php";
-//include_once "includes/install-plugins.php";
-
-if (ENABLE_MEMBERSHIP) {
-   include_once "classes/class.otp.php";
-}
-
-if (!ENABLE_ECOMMERCE) {
-    $current_page = $_SERVER['REQUEST_URI']; 
-    $admin_path = '/wp-admin/';
-    if (defined('WP_ADMIN_DIR')) {
-        $admin_path = '/' . trim(WP_ADMIN_DIR, '/') . '/';
-    }
-    if (!ENABLE_MEMBERSHIP && is_user_logged_in() && !is_admin() && strpos($current_page, $admin_path) === false && !current_user_can('manage_options')) {
-        if (defined('DOING_AJAX') && DOING_AJAX) {
+        if (isset($query->query_vars['suppress_filters']) && $query->query_vars['suppress_filters']) {
             return;
         }
-        if (defined('DOING_CRON') && DOING_CRON) {
-            return;
+       
+        $post_type = $query->get("post_type");
+        $post_type = empty($post_type)?$query->get("qpt"):$post_type;
+        $post_type = empty($post_type)?"post":$post_type;
+        if(is_search() && is_array($post_type) || $post_type == "any"){
+            $post_type = "search";
         }
-        wp_logout();
-        wp_redirect(home_url());
-        exit;
+        if( $query->get("post_type") == get_query_var("qpt") && 
+            in_array(get_query_var("qpt_settings"), [2]) && 
+            $query->get("s") && 
+            !$query->is_main_query()){
+                $post_type = "search";
+        }
+
+
+        if($query->is_main_query()){
+
+            if($query->is_search()) {
+                if(isset($GLOBALS["post_pagination"]["search"])){
+                    $posts_per_page = $GLOBALS["post_pagination"]["search"]["posts_per_page"];
+                    $query->set("posts_per_page", $posts_per_page);
+                }
+                $exclude_from_search_result = [];
+                if (class_exists("Newsletter")) {
+                    $exclude_from_search_result[] = get_option("newsletter_page");
+                }
+                $query->set("post__not_in", $exclude_from_search_result);
+
+                if (EXCLUDE_FROM_SEARCH) {
+                    $post_types = get_post_types(['public' => true], 'names');
+                    foreach (EXCLUDE_FROM_SEARCH as $post_type) {
+                        if (in_array($post_type, $post_types)) {
+                            unset($post_types[$post_type]);
+                        }
+                    }
+                    $query->set('post_type', $post_types);
+                }
+            }
+
+            if (!is_shop() && !empty($query->get("post_type"))) {
+                $pagination = get_post_type_pagination($post_type);
+                $posts_per_page = -1;
+                if($pagination){
+                    $posts_per_page = $pagination["posts_per_page"];
+                }
+                if($posts_per_page == -1 || $posts_per_page > 0){
+                    $query->set("posts_per_page", $posts_per_page);
+                    $query->set("numberposts", $posts_per_page);            
+                }
+            }
+
+            if (!empty(get_query_var("q"))) {
+                if(is_numeric(get_query_var("qpt"))){
+                    $qpt_settings = get_query_var("qpt");
+                    set_query_var("qpt", "search");
+                    set_query_var("qpt_settings", $qpt_settings);
+                }
+                add_action('wp_footer', 'custom_search_add_term');
+            }
+
+            if ($query->is_post_type_archive() || is_home()) {
+                // Sticky meta'ya göre sıralama yap
+                $meta_query = [
+                    'relation' => 'OR',
+                    [
+                        'key' => '_is_sticky',
+                        'value' => 1,
+                        'compare' => '=',
+                    ],
+                    [
+                        'key' => '_is_sticky',
+                        'value' => 0,
+                        'compare' => '=',
+                    ]
+                ];
+
+                $query->set('meta_query', $meta_query);
+                $query->set('orderby', ['meta_value_num' => 'DESC', 'date' => 'DESC']); // Sticky postları öne al, ardından tarihi sırala
+            }
+
+        }else{
+
+           if( $query->get("post_type") == get_query_var("qpt") && !empty($query->get("s"))){
+
+            }
+
+        }
+
+        return $query;
+    }
+    public function body_class( $classes ) {
+        if ( is_page_template( 'template-layout.php' ) ) {
+            global $post;
+            $classes[] = 'page-'.$post->post_name;
+        }
+        if ( is_page() && ENABLE_MULTILANGUAGE == "polylang") {
+            global $post;
+            $default_lang_post_id = pll_get_post($post->ID, pll_default_language());
+            $default_lang_post = get_post($default_lang_post_id);
+            if ($default_lang_post) {
+                $classes[] = 'page-' . $default_lang_post->post_name;
+            }
+        }
+        $classes[] = is_user_logged_in()?"logged":"not-logged";
+        $classes[] = is_front_page()?"home":"";
+        return $classes;
+    }
+    public function site_assets(){
+        if (is_singular()) {
+            $post_id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
+            $site_assets = get_post_meta($post_id, 'assets', true);
+        } elseif (is_category() || is_tag() || is_tax()) {
+            $term = get_queried_object(); // Term objesini al
+            $site_assets = get_term_meta($term->term_id, 'assets', true);
+        } elseif (is_post_type_archive()) {
+            $site_assets = get_option(get_post_type().'_'.ml_get_current_language().'_assets', true);
+        } elseif(is_single() && comments_open()){
+            if (isset($_GET['comment_id'])) {
+                $comment_id = intval($_GET['comment_id']);
+                $comment = get_comment($comment_id);
+                if ($comment) {
+                    $site_assets = get_comment_meta($comment_id, 'assets', true);
+                }
+            }
+        } elseif(is_author()){
+            $user_id = get_queried_object_id();
+            $site_assets = get_user_meta($user_id, 'assets', true);
+        }
+        $site_assets = !empty($site_assets) ? $site_assets : ["js" => "", "css" => "", "plugins" => ""];
+        define("SITE_ASSETS", $site_assets);
+    }
+    public function remove_comments(){
+        $disable_comments_file = "/remove-comments-absolute.php";
+        $disable_comments_path = get_stylesheet_directory() . "/includes" . $disable_comments_file;
+        $disable_comments_plugin = WP_PLUGIN_DIR . $disable_comments_file;
+        if (DISABLE_COMMENTS) {
+            if (!class_exists("Remove_Comments_Absolute")) {
+                if (copy($disable_comments_path, $disable_comments_plugin)) {
+                    echo "File copied! \n";
+                    activate_plugin("remove-comments-absolute.php");
+                } else {
+                    echo "File has not been copied! \n";
+                }
+            }
+        } else {
+            if (class_exists("Remove_Comments_Absolute")) {
+                function remove_comments_absolute_deactivate(){
+                    delete_plugins(["remove-comments-absolute.php"]);
+                }
+                register_deactivation_hook(
+                    "/remove-comments-absolute.php",
+                    "remove_comments_absolute_deactivate"
+                );
+                deactivate_plugins($disable_comments_file);
+            }
+        }
     }
 }
-
-if (ENABLE_FAVORITES) {
-    include_once "classes/class.favorites.php";
-}
-
-if (ENABLE_SEARCH_HISTORY) {
-    include_once "classes/class.search-history.php";
-}
-
-if (ENABLE_NOTIFICATIONS) {
-    include_once "classes/class.notifications.php";
-}
-
-if ($GLOBALS["pagenow"] === "wp-login.php") {
-    include_once "includes/admin/custom-login.php";
-}
-
-if (is_admin()) {
-    include_once "includes/admin/index.php";
-    if(!function_exists("acf_general_settings_rewrite")){
-        include_once "includes/admin/general-settings/index.php";
-    }
-}
-
-if (class_exists("ACF")) {
-    include_once "includes/plugins/acf.php";
-    if(class_exists('ACFE')){
-       include_once "includes/plugins/acfe.php";
-    }
-    if(class_exists("OpenStreetMap")){
-        die;
-        include_once "includes/plugins/acf-osm.php";
-    }
-}else{
-    //include_once "includes/plugins/acf-fallback.php";
-}
-
-if (class_exists("WPCF7")) {
-    include_once "includes/plugins/cf7.php";
-}
-
-if (defined("WPSEO_FILE")) {
-    include_once "classes/class.schema_breadcrumbs.php";
-    include_once "includes/plugins/yoast-seo.php";
-}
-
-if (class_exists("Loco_Locale")) {
-    include_once "includes/plugins/loco-translate.php";
-}
-
-if (function_exists("yasr_fs")) {
-    include_once "includes/plugins/yasr-star-rating.php";
-}
-
-if (class_exists("APSS_Class")) {
-    include_once "includes/plugins/apps.php";
-}
-
-if (class_exists("Redq_YoBro")) {
-    include_once "includes/plugins/yobro.php";
-}
-
-if (class_exists("Newsletter")) {
-    include_once "includes/plugins/newsletter.php";
-}
-
-if (ENABLE_ECOMMERCE) {
-    if (class_exists("YITH_WC_Dynamic_Discounts")) {
-        include_once "includes/plugins/yith-dynamic-pricing-and-discounts.php";
-    }
-
-    if (class_exists("YITH_WCBR")) {
-        include_once "includes/plugins/yith-brands-add-on.php";
-    }
-
-    if ( function_exists( 'wpcbr_init' ) ) {
-        include_once "includes/plugins/wpc-brands.php";
-    }
-
-    if ( defined( 'YITH_WCAN' ) ) {
-        include_once "includes/plugins/yith-ajax-product-filter.php";
-    }
-
-    if ( class_exists( 'DGWT_WC_Ajax_Search' )){
-        include_once "includes/plugins/ajax-search-for-woocommerce.php";
-    }
-
-    if (class_exists("WC_Bundles")) {
-        include_once "includes/plugins/product-bundles.php";
-    }
-
-    if ( function_exists( 'woosb_init' ) ) {
-        include_once "includes/plugins/wpc-product-bundles.php";
-    }
-}
-
-if (function_exists("mt_profile_img")) {
-    include_once "includes/plugins/metronet-profile-picture.php";
-}
-
-if (defined("WP_ROCKET_VERSION")) {
-    include_once "includes/plugins/wp-rocket.php";
-}
-if (class_exists("WP_Socializer")) {
-    include_once "includes/plugins/wpsr.php";
-}
-
-if(ENABLE_SOCIAL_LOGIN){
-    include_once "includes/plugins/nsl.php";
-}
-
-if (class_exists("YABE_WEBFONT")) {
-    include_once "includes/plugins/yabe-font.php";
-}
-
-if (!function_exists("get_home_path")) {
-    include_once ABSPATH . "/wp-admin/includes/file.php";
-}
-
-if (ENABLE_PRODUCTION) {
-    include_once "theme/includes/minify-rules.php";
-}
-
-include_once "classes/class.shortcodes.php";
-include_once "classes/class.logger.php";    
-include_once "classes/class.encrypt.php";
-include_once "classes/class.paginate.php";
-include_once "classes/class.localization.php";
-include_once "classes/class.page-assets-extractor.php"; 
-//include 'classes/class.geolocation.query.php';
-
-
-include_once "includes/actions.php";
-include_once "includes/notices.php";
-include_once "includes/rewrite.php";
-include_once "includes/ajax.php";
-include_once "includes/custom.php";
-
-if(!is_admin()){
-   include_once "classes/class.custom-menu-items.php";
-   include_once "includes/menu.php"; 
-}
-
-if(ENABLE_REGIONAL_POSTS){
-    include_once "includes/regional-posts/index.php";
-}
-
-if (ENABLE_ECOMMERCE) {
-    if (ENABLE_MEMBERSHIP) {
-        include_once "includes/woocommerce/redirect.php";
-        include_once "includes/woocommerce/my-account.php";
-    }
-    include_once "includes/woocommerce/functions.php";
-    //include_once "includes/woocommerce.php";
-}
-
-// extend with theme files
-include_once "theme/index.php";
-include_once "includes/shortcodes.php";
-/*
-$GLOBALS["base_urls"] = array();
-//if (ENABLE_MEMBERSHIP) {
-    $GLOBALS["base_urls"] = [
-        "profile" => get_account_endpoint_url("profile"),
-        "account" => get_page_url("my-account"),
-        "logged_url" => home_url(),
-    ];
-//}
-*/
-
-include_once "classes/class.salt-starter.php";
