@@ -211,7 +211,7 @@ function check_my_account_page( $value, $post_id, $field, $original ){
         if($value){
             set_my_account_page();
         }
-        require get_stylesheet_directory() . "/classes/class.methods.php";
+        require THEME_CLASSES_PATH . "class.methods.php";
         $methods = new MethodClass();
         $methods->createFiles(false); 
         $methods->createFiles(false, "admin");
@@ -866,10 +866,9 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
             
             // compile js files and css files
             if (!function_exists("compile_files_config")) {
-                require get_stylesheet_directory() . "/includes/minify-rules.php";
+                require THEME_INCLUDES_PATH . "minify-rules.php";
             }
-            //require get_stylesheet_directory() . "/includes/minify.php";
-            require get_stylesheet_directory() . "/classes/class.minify.php";
+            require THEME_CLASSES_PATH . "class.minify.php";
 
             if(function_exists("wp_scss_compile")){
                 global $wpscss_settings, $wpscss_compiler;
@@ -967,7 +966,7 @@ function acf_development_methods_settings( $value=0, $post_id=0, $field="", $ori
             if ( function_exists( 'rocket_clean_minify' ) ) {
                 rocket_clean_minify();
             }
-            require get_stylesheet_directory() . "/classes/class.methods.php";
+            require THEME_CLASSES_PATH . "class.methods.php";
             $methods = new MethodClass();
             $frontend = $methods->createFiles(false); 
             $admin = $methods->createFiles(false, "admin");
@@ -1044,7 +1043,7 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                 $excludeFilePaths[] = 'templates/partials/modals/login.twig';
                 $excludeFilePaths[] = 'templates/partials/modals/fields-localization.twig';
                 $excludeFilePaths[] = 'templates/partials/modals/list-languages.twig';
-                $excludeFilePaths[] = 'includes/helpers/membership-functions.php';
+                $excludeFilePaths[] = THEME_INCLUDES_PATH . 'helpers/membership-functions.php';
             }
             if(!ENABLE_ECOMMERCE){
                 $excludeFilePaths[] = 'template-shop.php';

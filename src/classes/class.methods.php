@@ -12,11 +12,11 @@ class MethodClass {
         $methodsDirs = [];
 
         if ($platform == "frontend") {
-            $storeDir = get_stylesheet_directory() . '/includes/methods/';
-            $methodsDirs[] = get_stylesheet_directory() . '/includes/methods/';
+            $storeDir = THEME_INCLUDES_PATH . 'methods/';
+            $methodsDirs[] = THEME_INCLUDES_PATH . 'methods/';
         } elseif ($platform == "admin") {
-            $storeDir = get_stylesheet_directory() . '/includes/admin/';
-            $methodsDirs[] = get_stylesheet_directory() . '/includes/admin/';
+            $storeDir = THEME_INCLUDES_PATH . 'admin/';
+            $methodsDirs[] = THEME_INCLUDES_PATH . 'admin/';
         }
 
         // Ek klasörleri buraya ekleyebilirsiniz.
@@ -78,8 +78,23 @@ class MethodClass {
         $indexJsFile = fopen($storeDir . 'index.js', 'w');
         fwrite($indexJsFile, $this->optimizeCode($indexJsContent));
         fclose($indexJsFile);
+        $this->copyToTheme($indexJsFile, $platform);
         
         return $errors;
+    }
+
+    private function copyToTheme($path, $platform) {
+        $target_dir = get_template_directory() . '/static/js/min/';
+        $target_file = $target_dir . ($platform=="frontend"?"methods":$platform).'.min.js'; // Hedef dosya
+        $source_file = $path; // Kaynak dosya
+        if (!file_exists($target_file)) {
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0755, true); 
+            }
+            if (file_exists($source_file)) {
+                copy($source_file, $target_file);
+            }
+        }
     }
 
     private function requirement($phpContent = "") {
@@ -232,7 +247,7 @@ class MethodClass {
         $command = 'parallel-lint';
         $options = [
             '-e' => 'php',
-            '--exclude' => '.git,vendor', // .git ve vendor dizinlerini hariç tut
+            '--exclude' => '.git', // .git ve vendor dizinlerini hariç tut
             '--colors' => null, // Renkli çıktı kullan
             '--no-progress' => null, // İlerleme çubuğunu kapat
             '--json' => null
@@ -251,8 +266,12 @@ class MethodClass {
         //error_log($command . ' ' . implode(' ', $arguments));
         exec($command . ' ' . implode(' ', $arguments), $output, $returnCode);
         //$outputContent = implode(PHP_EOL, $output);
-        $output = json_decode($output[0],true);
-        $errors = $output["results"]["errors"];
+        //error_log(json_encode($output));
+        $errors = [];
+        if($output){
+            $output = json_decode($output[0], true);
+            $errors = $output["results"]["errors"];            
+        }
         //error_log(json_encode($errors));
         return $errors;
     }

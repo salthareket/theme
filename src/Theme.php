@@ -1,13 +1,10 @@
 <?php
 namespace SaltHareket;
 
-
-
 Class Theme{
 
     function __construct(){
-
-        
+        //echo "Theme->__construct()<br>";
         show_admin_bar(false);
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
         add_action("init", [$this, "global_variables"]);
@@ -35,7 +32,7 @@ Class Theme{
         }
 
         if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
-            Schema_Breadcrumbs::instance();
+            \Schema_Breadcrumbs::instance();
         }
         //if(isset($GLOBALS["theme_menus"])){
         add_action("acf/init", function(){
@@ -92,9 +89,9 @@ Class Theme{
         );
         lang_predefined();
 
-        $user = Timber::get_user();
+        $user = \Timber::get_user();
         if(!$user){
-            $user = new stdClass();
+            $user = new \stdClass();
         }
         $user->logged = 0;
         $user->role = "";
@@ -235,6 +232,8 @@ Class Theme{
 
     }
     public function language_settings(){
+
+        //echo "Theme->language_settings(".ENABLE_MULTILANGUAGE.")<br>";
 
         if(ENABLE_MULTILANGUAGE){
             $languages = [];
@@ -522,7 +521,7 @@ Class Theme{
     }
     public function remove_comments(){
         $disable_comments_file = "/remove-comments-absolute.php";
-        $disable_comments_path = get_stylesheet_directory() . "/includes" . $disable_comments_file;
+        $disable_comments_path = THEME_INCLUDES_PATH . $disable_comments_file;
         $disable_comments_plugin = WP_PLUGIN_DIR . $disable_comments_file;
         if (DISABLE_COMMENTS) {
             if (!class_exists("Remove_Comments_Absolute")) {
@@ -587,9 +586,36 @@ Class Theme{
         }
     }
 
+    private static function copyAdmin() {
+        $target_dir = get_template_directory() . '/static/js/min/';
+        $target_file = $target_dir . 'admin.min.js'; // Hedef dosya
+        $source_file = __DIR__ . '/includes/admin/index.js'; // Kaynak dosya
+        if (!file_exists($target_file)) {
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0755, true); 
+            }
+            if (file_exists($source_file)) {
+                copy($source_file, $target_file);
+            }
+        }
+    }
+    private static function copyMethods() {
+        $target_dir = get_template_directory() . '/static/js/min/';
+        $target_file = $target_dir . 'methods.min.js'; // Hedef dosya
+        $source_file = __DIR__ . '/includes/methods/index.js'; // Kaynak dosya
+        if (!file_exists($target_file)) {
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0755, true); 
+            }
+            if (file_exists($source_file)) {
+                copy($source_file, $target_file);
+            }
+        }
+    }
+
+
     // Klasörleri ve dosyaları kopyalamak için recursive fonksiyon
-    private static function recurseCopy($src, $dest)
-    {
+    private static function recurseCopy($src, $dest){
         // Kaynak klasörü var mı kontrol et
         $dir = opendir($src);
         @mkdir($dest);
@@ -613,16 +639,16 @@ Class Theme{
         }
         closedir($dir);
     }
-	public static function init(){
-		echo "pop";
-        self::copyIncludes();
-        self::copyStatic();
-        self::copyClasses();echo "set salt";
-        $salt = new \Salt();
+	public  function init(){
+		//echo "Salthareket/Theme::init()<br>";
+        //self::copyIncludes();
+        //self::copyStatic();
+        //self::copyClasses();echo "set salt";
+        self::copyAdmin();
+        self::copyMethods();
+        //$salt = new \Salt();
         //$salt->init();
-        $GLOBALS["salt"] = $salt;
+        //$GLOBALS["salt"] = $salt;
         new \starterSite();
-        
-
 	}
 }

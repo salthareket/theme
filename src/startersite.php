@@ -3,7 +3,7 @@
 
 class StarterSite extends Timber\Site{
     function __construct(){
-    	echo "StarterSite";
+    	//echo "new StarterSite()<br>";
     	//define('THEME_INCLUDES_PATH', get_template_directory() . '/includes/');
         //define('THEME_CLASSES_PATH', get_template_directory() . '/classes/');
         add_action("after_setup_theme", [$this, "theme_supports"]);
@@ -82,9 +82,6 @@ class StarterSite extends Timber\Site{
             $ajax_process = true;
         }
 
-        echo "get salt";
-
-        
         $salt = $GLOBALS["salt"];
         $user = $GLOBALS["user"];
 
@@ -133,8 +130,9 @@ class StarterSite extends Timber\Site{
             if (!has_nav_menu($location)) {
                 continue;
             }
-            $menus[$location] = Timber::get_menu($location);
+            $menus[$location] = \Timber::get_menu($location);
         }
+        //print_r($menus);
         $context["menu"] = $menus;
 
         $upload_dir = wp_upload_dir();
@@ -179,7 +177,7 @@ class StarterSite extends Timber\Site{
         }
         
         if(!isset($GLOBALS["site_config"])){
-           $GLOBALS["site_config"] = get_site_config();
+           $GLOBALS["site_config"] = $salt->get_site_config();
         }
         $context["site_config"] = $GLOBALS["site_config"];
             
@@ -213,6 +211,7 @@ class StarterSite extends Timber\Site{
         }
 
         $context["language"] = $GLOBALS["language"];
+        //print_r($GLOBALS["language"]);
         if(ENABLE_MULTILANGUAGE){
             $context["languages"] = $GLOBALS["languages"];
             $context["language_default"] = $GLOBALS["language_default"];

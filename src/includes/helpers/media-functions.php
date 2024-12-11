@@ -648,8 +648,7 @@ add_filter('image_size_names_choose', 'upload_sizes_names');
 
 
 function get_image_set($args=array()){
-
-	$image = new Image($args);
+	$image = new \Image($args);
 	return $image->init();/**/
 /*
 	

@@ -1,7 +1,10 @@
 <?php
 
-define('THEME_INCLUDES_PATH', get_template_directory() . '/includes/');
-define('THEME_CLASSES_PATH', get_template_directory() . '/classes/');
+define('THEME_INCLUDES_PATH',  __DIR__ . '/includes/');
+define('THEME_CLASSES_PATH', __DIR__ .  '/classes/');
+
+define('THEME_INCLUDES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/includes/");
+define('THEME_CLASSES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/classes/");
 
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
@@ -381,9 +384,10 @@ if (!function_exists("get_home_path")) {
 }
 
 if (ENABLE_PRODUCTION) {
-    include_once get_stylesheet_directory() . "/theme/includes/minify-rules.php";
+    include_once THEME_INCLUDES_PATH . "minify-rules.php";
 }
 
+include_once THEME_CLASSES_PATH . "class.image.php";
 include_once THEME_CLASSES_PATH . "class.shortcodes.php";
 include_once THEME_CLASSES_PATH . "class.logger.php";    
 include_once THEME_CLASSES_PATH . "class.encrypt.php";
@@ -392,13 +396,11 @@ include_once THEME_CLASSES_PATH . "class.localization.php";
 include_once THEME_CLASSES_PATH . "class.page-assets-extractor.php"; 
 //include 'classes/class.geolocation.query.php';
 
-
 include_once THEME_INCLUDES_PATH . "actions.php";
 include_once THEME_INCLUDES_PATH . "notices.php";
 include_once THEME_INCLUDES_PATH . "rewrite.php";
 include_once THEME_INCLUDES_PATH . "ajax.php";
 include_once THEME_INCLUDES_PATH . "custom.php";
-echo "kkoook";
 
 if(!is_admin()){
    include_once THEME_CLASSES_PATH . "class.custom-menu-items.php";
@@ -431,3 +433,7 @@ $GLOBALS["base_urls"] = array();
     ];
 //}
 */
+
+$salt = new \Salt();
+//$salt->init();
+$GLOBALS["salt"] = $salt;

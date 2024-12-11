@@ -1,7 +1,7 @@
 <?php
 
 function get_menu_item_visibility($menu_item) {
-    $user_role = $GLOBALS["user"]->role;
+    $user_role = isset($GLOBALS["user"]->role)?$GLOBALS["user"]->role:"";
     $is_logged_in = is_user_logged_in();
     $user_language = function_exists('qtranxf_getLanguage') ? qtranxf_getLanguage() : $GLOBALS["language"];
 

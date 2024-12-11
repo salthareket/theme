@@ -24,11 +24,11 @@ Class Notifications{
     	}else{
     		$this->user = Timber::get_user(wp_get_current_user());
     	}
-        $this->events = json_decode(file_get_contents(get_stylesheet_directory() ."/static/data/notifications.json"), true);//array();
+        $this->events = json_decode(file_get_contents(get_stylesheet_directory() ."/theme/static/data/notifications.json"), true);//array();
         $this->debug = $debug;
         $this->debug_output = array();
-        $this->html_path = get_stylesheet_directory() . "/static/templates/notifications/events/";
-        $this->html_url = get_stylesheet_directory_uri() . "/static/templates/notifications/events/";
+        $this->html_path = get_stylesheet_directory() . "/theme/templates/notifications/events/";
+        $this->html_url = get_stylesheet_directory_uri() . "/theme/templates/notifications/events/";
         $this->css_path = get_stylesheet_directory() . "/static/css/email.css";
         $this->css_url = get_stylesheet_directory_uri() . "/static/css/email.css";
         $table = "notifications";

@@ -176,7 +176,7 @@ function query($data){
 
     $output = [];
 
-    include "methods/index.php";
+    include_once THEME_INCLUDES_PATH . "methods/index.php";
 
     if (isset($template)) {
         $context["ajax_call"] = true;

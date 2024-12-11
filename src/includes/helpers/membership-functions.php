@@ -14,7 +14,7 @@ if(ENABLE_MEMBERSHIP_ACTIVATION){
     }else{
         if(isset($_GET['activation-code']) && ENABLE_ACTIVATION_EMAIL_AUTOLOGIN){
             $activation_code = $_GET['activation-code'];
-            require get_stylesheet_directory() . "/classes/class.encrypt.php";
+            require THEME_CLASSES_PATH . "class.encrypt.php";
             $decrypt = new Encrypt();
             $data = $decrypt->decrypt($activation_code);
             if($data){

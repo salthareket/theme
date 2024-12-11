@@ -26,6 +26,8 @@ class SaltBase{
 
     public function __construct($user=array()) {
 
+        //echo "new Salt()<br>";
+
         if(ENABLE_MEMBERSHIP && !is_admin()){
             add_action('wp', [ $this, 'update_online_users_status' ]);
             add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
@@ -112,9 +114,9 @@ class SaltBase{
         //add_action('wp_footer', [$this, 'add_page_assets']);
 
         if($user){
-           $this->user = Timber::get_user($user);//wp_get_current_user();//new User($user);
+           $this->user = Timber\Timber::get_user($user);//wp_get_current_user();//new User($user);
         }else{
-           $this->user = Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
+           $this->user = Timber\Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
         }
         
         $localization = new Localization();
@@ -1817,12 +1819,18 @@ class SaltBase{
         }
         $config["required_js"] = $required_js;
 
+        if(defined("THEME_INCLUDES_URL")){
+           $config["theme_includes_url"] = THEME_INCLUDES_URL; 
+        }
+
         return $config;  
     }
 
     public function site_config_js(){
 
-            wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/includes/methods/index.js', array("jquery"), '1.0', false );
+            //wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/includes/methods/index.js', array("jquery"), '1.0', false );
+            //wp_register_script( 'site_config_vars', THEME_INCLUDES_URL . 'methods/index.js', array("jquery"), '1.0', false );
+            wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/static/js/min/methods.min.js', array("jquery"), '1.0', false );
             wp_enqueue_script('site_config_vars');
 
             if(isset($GLOBALS["site_config"])){

@@ -125,7 +125,7 @@ function enqueue_admin_sticky_script($hook) {
 global $typenow;
 $post_types = get_sticky_supported_post_types();
 if ('edit.php' === $hook && in_array($typenow, $post_types)) {
-wp_enqueue_script('admin-sticky-script', get_template_directory_uri() . '/includes/admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
+wp_enqueue_script('admin-sticky-script', THEME_INCLUDES_PATH . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
 wp_localize_script('admin-sticky-script', 'stickyAjax', array('ajaxurl' => admin_url('admin-ajax.php')));
 }
 }
@@ -525,7 +525,7 @@ if($field["name"] == "enable_membership" && $value == 1){
 if($value){
 set_my_account_page();
 }
-require get_stylesheet_directory() . "/classes/class.methods.php";
+require THEME_CLASSES_PATH . "class.methods.php";
 $methods = new MethodClass();
 $methods->createFiles(false);
 $methods->createFiles(false, "admin");
@@ -1080,10 +1080,9 @@ rocket_clean_minify();
 }
 // compile js files and css files
 if (!function_exists("compile_files_config")) {
-require get_stylesheet_directory() . "/includes/minify-rules.php";
+require THEME_INCLUDES_PATH . "minify-rules.php";
 }
-//require get_stylesheet_directory() . "/includes/minify.php";
-require get_stylesheet_directory() . "/classes/class.minify.php";
+require THEME_CLASSES_PATH . "class.minify.php";
 if(function_exists("wp_scss_compile")){
 global $wpscss_settings, $wpscss_compiler;
 wp_scss_compile();
@@ -1171,7 +1170,7 @@ if (is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_AD
 if ( function_exists( 'rocket_clean_minify' ) ) {
 rocket_clean_minify();
 }
-require get_stylesheet_directory() . "/classes/class.methods.php";
+require THEME_CLASSES_PATH . "class.methods.php";
 $methods = new MethodClass();
 $frontend = $methods->createFiles(false);
 $admin = $methods->createFiles(false, "admin");
@@ -1240,7 +1239,7 @@ $excludeFilePaths[] = 'templates/author.twig';
 $excludeFilePaths[] = 'templates/partials/modals/login.twig';
 $excludeFilePaths[] = 'templates/partials/modals/fields-localization.twig';
 $excludeFilePaths[] = 'templates/partials/modals/list-languages.twig';
-$excludeFilePaths[] = 'includes/helpers/membership-functions.php';
+$excludeFilePaths[] = THEME_INCLUDES_PATH . 'helpers/membership-functions.php';
 }
 if(!ENABLE_ECOMMERCE){
 $excludeFilePaths[] = 'template-shop.php';

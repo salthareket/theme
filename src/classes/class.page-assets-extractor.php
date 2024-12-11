@@ -201,7 +201,7 @@ class PageAssetsExtractor {
 
         // Plugin konfigürasyonunu kontrol et
         if (!function_exists("compile_files_config")) {
-            require get_stylesheet_directory() . "/includes/minify-rules.php";
+            require THEME_INCLUDES_PATH . "minify-rules.php";
         }
         $files = compile_files_config(true);
 
