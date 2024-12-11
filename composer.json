@@ -31,6 +31,14 @@
     },
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4"
+    },
+    "scripts": {
+        "post-update-cmd": [
+            "php -r \"require 'bootstrap.php'; PluginManager::check_and_install_required_plugins(); PluginManager::check_and_update_local_plugins();\""
+        ],
+        "post-install-cmd": [
+            "php -r \"require 'bootstrap.php'; PluginManager::check_and_install_required_plugins(); PluginManager::check_and_update_local_plugins();\""
+        ]
     }
 
 }

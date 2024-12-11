@@ -187,54 +187,37 @@ if (class_exists("acf")) {
 }
 
 add_action('after_setup_theme', function () {
-if (!class_exists("Timber")) {
-    add_action("admin_notices", function () {
-        echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
-            esc_url(admin_url("plugins.php#timber")) .
-            '">' .
-            esc_url(admin_url("plugins.php")) .
-            "</a></p></div>";
-    });
-    add_filter("template_include", function ($template) {
-        return get_stylesheet_directory() . "/static/no-timber.html";
-    });
-    return;
-} else {
-    Timber::$dirname = array( 'theme/templates', 'templates' );
-    Timber::$autoescape = false;
-    Timber::$cache = false;
-    include_once THEME_INCLUDES_PATH . "plugins/twig.php"; 
-    include_once THEME_INCLUDES_PATH . 'twig-extends.php';
-    include_once get_template_directory() . "/theme/includes/twig-extends.php";
-    if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
-        include_once THEME_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
+    if (!class_exists("Timber")) {
+        add_action("admin_notices", function () {
+            echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
+                esc_url(admin_url("plugins.php#timber")) .
+                '">' .
+                esc_url(admin_url("plugins.php")) .
+                "</a></p></div>";
+        });
+        add_filter("template_include", function ($template) {
+            return get_stylesheet_directory() . "/static/no-timber.html";
+        });
+        return;
+    } else {
+        Timber::$dirname = array( 'theme/templates', 'templates' );
+        Timber::$autoescape = false;
+        Timber::$cache = false;
+        include_once THEME_INCLUDES_PATH . "plugins/twig.php"; 
+        include_once THEME_INCLUDES_PATH . 'twig-extends.php';
+        include_once get_template_directory() . "/theme/includes/twig-extends.php";
+        if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
+            include_once THEME_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
+        }
     }
-}
-});
 
-$required_plugins = array(
-    'acf-extended/acf-extended.php',
-    'contact-form-7/wp-contact-form-7.php',
-    'post-smtp/postman-smtp.php',
-    'favicon-by-realfavicongenerator/favicon-by-realfavicongenerator.php',
-    'featured-image-admin-thumb-fiat/featured-image-admin-thumb.php',
-    'google-site-kit/google-site-kit.php',
-    'post-type-archive-links/post-type-archive-links.php',
-    'simple-custom-post-order/simple-custom-post-order.php',
-    //'webp-converter-for-media/webp-converter-for-media.php',
-    'yabe-webfont/yabe-webfont.php',
-    'wordpress-seo/wp-seo.php',
-);
-if(ACTIVATE_UNDER_CONSTRUCTION){
-    $required_plugins[] = 'underconstruction/underConstruction.php';
-}
-if(ENABLE_MEMBERSHIP){
-    $required_plugins[] = 'one-user-avatar/one-user-avatar.php';
-}
-if(ENABLE_PUBLISH){
-    $required_plugins[] = 'wp-scss/wp-scss.php';
-}
-$GLOBALS["plugins"] = $required_plugins;
+    if (!class_exists("ACF")) {
+        add_filter("template_include", function ($template) {
+            return get_stylesheet_directory() . "/static/no-timber.html";
+        });
+        return;
+    }
+});
 
 include_once THEME_INCLUDES_PATH . "helpers/index.php";
 include_once get_template_directory() . "/theme/includes/globals.php";

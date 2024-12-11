@@ -546,32 +546,6 @@ Class Theme{
         }
     }
 
-	private static function copyIncludes()
-    {
-        $srcDir = __DIR__ . '/includes';
-        $destDir = get_template_directory() . '/includes';
-
-        // Eğer includes klasörü varsa, kopyalamaya başla
-        if (is_dir($srcDir)) {
-            self::recurseCopy($srcDir, $destDir);
-            echo " Includes folder copied to theme root!";
-        } else {
-            echo " Includes folder not found!";
-        }
-    }
-    private static function copyClasses()
-    {
-        $srcDir = __DIR__ . '/classes';
-        $destDir = get_template_directory() . '/classes';
-
-        // Eğer includes klasörü varsa, kopyalamaya başla
-        if (is_dir($srcDir)) {
-            self::recurseCopy($srcDir, $destDir);
-            echo " classes folder copied to theme root!";
-        } else {
-            echo " classes folder not found!";
-        }
-    }
     private static function copyStatic()
     {
         $srcDir = __DIR__ . '/static';
