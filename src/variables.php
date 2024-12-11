@@ -219,7 +219,6 @@ add_action('after_setup_theme', function () {
     }
 });
 
-
 include_once THEME_INCLUDES_PATH . "helpers/index.php";
 include_once get_template_directory() . "/theme/includes/globals.php";
 include_once THEME_INCLUDES_PATH . "blocks.php";
