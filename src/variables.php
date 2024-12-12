@@ -213,7 +213,7 @@ add_action('after_setup_theme', function () {
 
     if (!class_exists("ACF")) {
         add_filter("template_include", function ($template) {
-            return get_stylesheet_directory() . "/static/no-timber.html";
+            return get_stylesheet_directory() . "/static/no-acf.html";
         });
         return;
     }
