@@ -12,15 +12,13 @@ $required_plugins = array(
     //'webp-converter-for-media/webp-converter-for-media.php',
     'yabe-webfont/yabe-webfont.php',
     'wordpress-seo/wp-seo.php',
+    'wp-scss/wp-scss.php'
 );
-if(ACTIVATE_UNDER_CONSTRUCTION){
+if(is_defined("ACTIVATE_UNDER_CONSTRUCTION") && ACTIVATE_UNDER_CONSTRUCTION){
     $required_plugins[] = 'underconstruction/underConstruction.php';
 }
-if(ENABLE_MEMBERSHIP){
+if(is_defined("ENABLE_MEMBERSHIP") && ENABLE_MEMBERSHIP){
     $required_plugins[] = 'one-user-avatar/one-user-avatar.php';
-}
-if(ENABLE_PUBLISH){
-    $required_plugins[] = 'wp-scss/wp-scss.php';
 }
 $GLOBALS["plugins"] = $required_plugins;
 
