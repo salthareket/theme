@@ -587,10 +587,6 @@ Class Theme{
         }
     }
 
-    public static function plugins(){
-        PluginManager::check_and_install_required_plugins();
-        PluginManager::check_and_update_local_plugins();
-    }
 
     // Klasörleri ve dosyaları kopyalamak için recursive fonksiyon
     private static function recurseCopy($src, $dest){
@@ -627,6 +623,10 @@ Class Theme{
         //$salt = new \Salt();
         //$salt->init();
         //$GLOBALS["salt"] = $salt;
+        add_action("init", function(){
+            \PluginManager::check_and_install_required_plugins();
+            \PluginManager::check_and_update_local_plugins();
+        });
         new \starterSite();
 	}
 }

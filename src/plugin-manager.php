@@ -1,5 +1,42 @@
 <?php
 
+if (!defined('ABSPATH')) {
+    require_once dirname(__DIR__, 5) . '/wp-load.php'; // WordPress kök yolunu bul
+}
+
+require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+require_once ABSPATH . 'wp-admin/includes/file.php';
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+class Silent_Upgrader_Skin extends WP_Upgrader_Skin {
+    public function feedback($string, ...$args) {
+        // Geri bildirimleri devre dışı bırak
+    }
+
+    public function header() {
+        // Header işlemlerini devre dışı bırak
+    }
+
+    public function footer() {
+        // Footer işlemlerini devre dışı bırak
+    }
+
+    public function error($errors) {
+        // Hata mesajlarını loglayabiliriz
+        error_log(print_r($errors, true));
+    }
+
+    public function before() {
+        // Başlamadan önce yapılacak işlemler
+    }
+
+    public function after() {
+        // İşlem sonrası yapılacak işlemler
+    }
+}
+
+
+
 class PluginManager {
 
     // Check and install required plugins from the $GLOBALS["plugins"] array
@@ -8,7 +45,7 @@ class PluginManager {
 
         foreach ($required_plugins as $plugin) {
             if (!self::is_plugin_installed($plugin)) {
-                self::install_plugin_via_composer($plugin);
+                self::install_plugin_from_wp_repo($plugin);
             }
             self::activate_plugin($plugin);
         }
@@ -37,32 +74,38 @@ class PluginManager {
         return file_exists(WP_PLUGIN_DIR . '/' . $plugin_name);
     }
 
-    // Install a plugin via Composer
-    private static function install_plugin_via_composer($plugin_name) {
-        $command = "composer require " . escapeshellarg($plugin_name);
-        exec($command, $output, $return_var);
-
-        if ($return_var !== 0) {
-            error_log("Failed to install plugin via Composer: $plugin_name");
-        }
-    }
-
-    // Install a local plugin from the plugins directory
     private static function install_local_plugin($plugin_dir, $plugin_info) {
         $zip_file = $plugin_dir . '/' . $plugin_info['file'] . '.zip';
-        $unzip_path = WP_PLUGIN_DIR . '/' . dirname($plugin_info['name']);
 
         if (file_exists($zip_file)) {
-            $zip = new ZipArchive;
-            if ($zip->open($zip_file) === true) {
-                $zip->extractTo($unzip_path);
-                $zip->close();
-            } else {
-                error_log("Failed to extract plugin zip file: " . $zip_file);
+            include_once ABSPATH . 'wp-admin/includes/file.php';
+            include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+            WP_Filesystem();
+            $skin = new Silent_Upgrader_Skin(); // Özel skin'i kullan
+            $upgrader = new Plugin_Upgrader($skin);
+            $upgrader->install($zip_file);
+
+            // Yükleme sonrası dizini kontrol et
+            $plugin_path = WP_PLUGIN_DIR . '/' . dirname($plugin_info['name']);
+            if (!file_exists($plugin_path)) {
+                error_log("Plugin yüklenemedi: " . $plugin_info['name']);
             }
         } else {
             error_log("Plugin zip file not found: " . $zip_file);
         }
+    }
+
+
+    private static function install_plugin_from_wp_repo($plugin_slug) {
+        include_once ABSPATH . 'wp-admin/includes/file.php';
+        include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+        WP_Filesystem();
+        $skin = new Silent_Upgrader_Skin(); // Özel skin'i kullan
+        $upgrader = new Plugin_Upgrader($skin);
+        $plugin_url = 'https://downloads.wordpress.org/plugin/' . $plugin_slug . '.zip';
+        $upgrader->install($plugin_url);
     }
 
     // Activate a plugin
@@ -90,7 +133,7 @@ class PluginManager {
     // Utility function to delete a directory
     private static function delete_directory($dir) {
         if (!is_dir($dir)) return;
-        
+
         $files = array_diff(scandir($dir), ['.', '..']);
         foreach ($files as $file) {
             $path = $dir . '/' . $file;
