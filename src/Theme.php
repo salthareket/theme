@@ -587,6 +587,10 @@ Class Theme{
         }
     }
 
+    public static function plugins(){
+        PluginManager::check_and_install_required_plugins();
+        PluginManager::check_and_update_local_plugins();
+    }
 
     // Klasörleri ve dosyaları kopyalamak için recursive fonksiyon
     private static function recurseCopy($src, $dest){

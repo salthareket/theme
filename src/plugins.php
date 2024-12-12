@@ -2,14 +2,8 @@
 
 $required_plugins = array(
     'acf-extended/acf-extended.php',
-    //'contact-form-7/wp-contact-form-7.php',
-    //'post-smtp/postman-smtp.php',
-    //'favicon-by-realfavicongenerator/favicon-by-realfavicongenerator.php',
-    //'featured-image-admin-thumb-fiat/featured-image-admin-thumb.php',
-    //'google-site-kit/google-site-kit.php',
     'post-type-archive-links/post-type-archive-links.php',
     'simple-custom-post-order/simple-custom-post-order.php',
-    //'webp-converter-for-media/webp-converter-for-media.php',
     'yabe-webfont/yabe-webfont.php',
     'wordpress-seo/wp-seo.php',
     'wp-scss/wp-scss.php'
