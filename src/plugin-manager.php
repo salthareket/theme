@@ -112,11 +112,24 @@ class PluginManager {
         include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
         WP_Filesystem();
-        $skin = new Silent_Upgrader_Skin(); // Özel skin'i kullan
+        $skin = new Silent_Upgrader_Skin();
         $upgrader = new Plugin_Upgrader($skin);
-        $plugin_url = 'https://downloads.wordpress.org/plugin/' . $plugin_slug . '.zip';
-        $upgrader->install($plugin_url);
+
+        // Slug'ı temizle
+        $slug_parts = explode('/', $plugin_slug);
+        $clean_slug = $slug_parts[0]; // İlk kısmı al
+
+        $plugin_url = 'https://downloads.wordpress.org/plugin/' . $clean_slug . '.zip';
+
+        $result = $upgrader->install($plugin_url);
+
+        if (is_wp_error($result)) {
+            error_log("Plugin yüklenemedi: " . $clean_slug . " - " . $result->get_error_message());
+        } else {
+            error_log("Plugin başarıyla yüklendi: " . $clean_slug);
+        }
     }
+
 
     // Activate a plugin
     private static function activate_plugin($plugin_name) {
