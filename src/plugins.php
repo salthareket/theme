@@ -61,4 +61,9 @@ $required_plugins_local[] = array(
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
+$required_plugins_local[] = array(
+    "v" => "1.1 ",
+    "name" => "ajaxflow/ajaxflow.php",
+    "file" => 'ajaxflow'
+);
 $GLOBALS["plugins_local"] = $required_plugins_local;

@@ -624,8 +624,7 @@ Class Theme{
         //$salt->init();
         //$GLOBALS["salt"] = $salt;
         add_action("init", function(){
-            \PluginManager::check_and_install_required_plugins();
-            \PluginManager::check_and_update_local_plugins();
+\PluginManager::init();
         });
         new \starterSite();
 	}
