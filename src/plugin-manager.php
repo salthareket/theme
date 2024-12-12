@@ -63,35 +63,38 @@ class PluginManager {
 
     // Yönetim sayfası içeriğini oluşturur
     public static function render_option_page() {
-        $required_plugins = $GLOBALS['plugins'] ?? []; // WordPress Repo'dan gelen pluginler
-        $required_plugins_local = $GLOBALS['plugins_local'] ?? []; // Local ZIP pluginler
-
+        $required_plugins = $GLOBALS['plugins'] ?? [];
+        $required_plugins_local = $GLOBALS['plugins_local'] ?? [];
         ?>
         <div class="wrap">
-            <h1>Plugin Yönetimi</h1>
+            <h1>Plugin Management</h1>
             <table id="plugin-manager-table" class="widefat fixed striped">
                 <thead>
                     <tr>
-                        <th>Plugin Adı</th>
-                        <th>Durum</th>
-                        <th>Versiyon</th>
-                        <th>İşlem</th>
+                        <th>Plugin Name</th>
+                        <th>Version</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($required_plugins as $plugin_slug): ?>
-                        <?php $plugin_name = self::get_plugin_name($plugin_slug); ?>
+                        <?php 
+                        $plugin_data = self::get_plugin_data($plugin_slug);
+                        $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug);
+                        $installed_version = $plugin_data['Version'] ?? 'Not Installed';
+                        $is_active = self::is_plugin_active($plugin_slug);
+                        $is_installed = self::is_plugin_installed($plugin_slug);
+                        ?>
                         <tr>
                             <td><?php echo esc_html($plugin_name); ?></td>
-                            <td class="status">
-                                <?php echo self::is_plugin_installed($plugin_slug) ? 'Installed' : 'Not Installed'; ?>
-                            </td>
-                            <td>N/A</td>
+                            <td><?php echo esc_html($installed_version); ?></td>
                             <td>
-                                <?php if (self::is_plugin_installed($plugin_slug)): ?>
-                                    <button class="button button-secondary" disabled>Installed</button>
+                                <?php if (!$is_installed): ?>
+                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Install</button>
+                                <?php elseif (!$is_active): ?>
+                                    <button class="button button-primary activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Activate</button>
                                 <?php else: ?>
-                                    <button class="button button-primary install-plugin" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Install</button>
+                                    <button class="button button-secondary deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Deactivate</button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -99,25 +102,28 @@ class PluginManager {
 
                     <?php foreach ($required_plugins_local as $plugin_info): ?>
                         <?php 
-                        $installed_version = self::get_installed_version($plugin_info['name']); // Yüklü sürüm bilgisi al
-                        $status = self::is_plugin_installed($plugin_info['name']) ? 'Installed' : 'Not Installed'; // Plugin durumu
-                        $update_available = self::is_version_outdated($plugin_info['v'], $plugin_info['name']); // Güncelleme durumu
+                        $plugin_data = self::get_plugin_data($plugin_info['name']);
+                        $installed_version = $plugin_data['Version'] ?? 'Not Installed';
+                        $current_version = $plugin_info['v'];
+                        $plugin_name = $plugin_data['Name'] ?? $plugin_info['name'];
+                        $is_active = self::is_plugin_active($plugin_info['name']);
+                        $is_installed = self::is_plugin_installed($plugin_info['name']);
+                        $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version);
                         ?>
                         <tr>
-                            <td><?php echo esc_html($plugin_info['name']); ?></td>
-                            <td class="status">
-                                <?php echo $status; ?>
+                            <td><?php echo esc_html($plugin_name); ?></td>
+                            <td>
+                                <?php echo esc_html($installed_version !== 'Not Installed' && $update_available ? $installed_version . ' -> ' . $current_version : $installed_version); ?>
                             </td>
                             <td>
-                                <?php echo $installed_version ? $installed_version . ' -> ' . $plugin_info['v'] : 'Not Installed'; ?>
-                            </td>
-                            <td>
-                                <?php if ($update_available): ?>
-                                    <button class="button button-warning update-plugin" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Update</button>
-                                <?php elseif ($status === 'Installed'): ?>
-                                    <button class="button button-secondary" disabled>Installed</button>
+                                <?php if (!$is_installed): ?>
+                                    <button class="button button-primary install-local-plugin" style="border:none;border-radius:6px;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Install</button>
+                                <?php elseif ($update_available): ?>
+                                    <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Update</button>
+                                <?php elseif (!$is_active): ?>
+                                    <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Activate</button>
                                 <?php else: ?>
-                                    <button class="button button-primary install-local-plugin" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Install</button>
+                                    <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Deactivate</button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -127,6 +133,8 @@ class PluginManager {
         </div>
         <?php
     }
+
+
 
 
     // Scriptleri enqueue et
@@ -140,13 +148,36 @@ class PluginManager {
                 true
             );
 
+            // Tüm plugin bilgilerini JS'ye aktar
+            $plugins = [];
+            foreach ($GLOBALS['plugins'] as $plugin_slug) {
+                $plugin_data = self::get_plugin_data($plugin_slug);
+                $plugins[] = [
+                    'slug' => $plugin_slug,
+                    'name' => $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug),
+                    'version' => $plugin_data['Version'] ?? 'Not Installed',
+                    'active' => self::is_plugin_active($plugin_slug),
+                    'installed' => self::is_plugin_installed($plugin_slug),
+                ];
+            }
+
+            $plugins_local = [];
+            foreach ($GLOBALS['plugins_local'] as $plugin_info) {
+                $plugin_data = self::get_plugin_data($plugin_info['name']);
+                $plugins_local[] = [
+                    'slug' => $plugin_info['file'],
+                    'name' => $plugin_data['Name'] ?? $plugin_info['name'],
+                    'version' => $plugin_data['Version'] ?? 'Not Installed',
+                    'repo_version' => $plugin_info['v'],
+                    'active' => self::is_plugin_active($plugin_info['name']),
+                    'installed' => self::is_plugin_installed($plugin_info['name']),
+                ];
+            }
+
             wp_localize_script('plugin-manager-script', 'pluginManagerAjax', [
                 'ajax_url' => admin_url('admin-ajax.php'),
-                'plugins' => $GLOBALS["plugins"] ?? [], // WordPress repository pluginleri
-                'plugins_local' => array_map(function ($plugin) {
-                    $plugin['installed_version'] = self::get_installed_version($plugin['name']);
-                    return $plugin;
-                }, $GLOBALS["plugins_local"] ?? []),
+                'plugins' => $plugins,
+                'plugins_local' => $plugins_local,
             ]);
 
         }
@@ -154,58 +185,72 @@ class PluginManager {
 
     // Plugin işlemini AJAX üzerinden yap
     public static function process_plugin() {
-        $plugin_slug = $_POST['plugin_slug'] ?? ''; // WordPress repo için slug
-        $plugin_file = $_POST['plugin_file'] ?? ''; // Local plugin için dosya adı
-        $action = $_POST['action_type'] ?? ''; // İşlem türü (install/update)
 
-        if (!$plugin_slug && !$plugin_file) {
-            wp_send_json_error(['message' => 'Plugin bilgisi boş!']); // Hata mesajı döndür
-        }
+        ob_start(); // Tamponlamayı başlat
 
-        if ($action === 'update' && $plugin_file) {
-            self::remove_plugin($plugin_file); // Güncelleme için eski plugin kaldırılır
-        }
+        try {
+            $plugin_slug = $_POST['plugin_slug'] ?? '';
+            $action_type = $_POST['action_type'] ?? '';
 
-        if ($plugin_file) {
-            // Local plugin yükleme
-            $plugin_info = array_filter($GLOBALS["plugins_local"], function ($plugin) use ($plugin_file) {
-                return $plugin['file'] === $plugin_file; // Doğru dosyayı bul
-            });
-
-            if (empty($plugin_info)) {
-                wp_send_json_error(['message' => 'Local plugin bilgisi bulunamadı.']);
+            if (!$plugin_slug || !$action_type) {
+                wp_send_json_error(['message' => 'Eksik parametreler!']);
             }
 
-            $plugin_info = reset($plugin_info); // İlk öğeyi al
-            $plugin_dir = __DIR__ . '/plugins'; // Local ZIP dizini
-            self::install_local_plugin($plugin_dir, $plugin_info);
-        } else {
-            // WordPress repository plugin yükleme
-            include_once ABSPATH . 'wp-admin/includes/file.php';
-            include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-
-            WP_Filesystem();
-            $skin = new Silent_Upgrader_Skin();
-            $upgrader = new Plugin_Upgrader($skin);
-
-            $plugin_url = 'https://downloads.wordpress.org/plugin/' . $plugin_slug . '.zip';
-            $result = $upgrader->install($plugin_url);
-
-            if (is_wp_error($result)) {
-                wp_send_json_error(['message' => $result->get_error_message()]);
+            // İşlem türüne göre ayrım
+            if ($action_type === 'install') {
+                self::install_plugin_from_wp_repo($plugin_slug);
+            } elseif ($action_type === 'activate') {
+                activate_plugin($plugin_slug);
+            } elseif ($action_type === 'deactivate') {
+                deactivate_plugins($plugin_slug);
+            } else {
+                wp_send_json_error(['message' => 'Bilinmeyen işlem türü!']);
             }
+
+            // İşlem sonrası başarılı mesaj
+            $response_message = match ($action_type) {
+                'install' => $plugin_slug . ' başarıyla yüklendi.',
+                'activate' => $plugin_slug . ' başarıyla aktifleştirildi.',
+                'deactivate' => $plugin_slug . ' başarıyla devre dışı bırakıldı.',
+                default => 'İşlem tamamlandı.'
+            };
+
+            ob_end_clean(); // Tüm tamponu temizle
+            wp_send_json_success(['message' => $response_message]);
+        } catch (Exception $e) {
+            ob_end_clean(); // Tamponu temizle
+            wp_send_json_error(['message' => 'Hata oluştu: ' . $e->getMessage()]);
         }
 
-        // Plugin'i aktifleştir
-        activate_plugin($plugin_slug);
+        ob_end_clean(); // Her durumda tamponu temizle
 
-        wp_send_json_success(['message' => $plugin_slug . ' başarıyla yüklendi ve aktifleştirildi.']);
     }
+
+
+
+
 
     private static function get_plugin_name($plugin_slug) {
         $parts = explode('/', $plugin_slug);
         return ucwords(str_replace(['-', '_'], ' ', $parts[0])); // Plugin adını temizle ve büyük harfe çevir
     }
+
+    private static function get_plugin_data($plugin_slug) {
+        $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_slug;
+
+        if (!file_exists($plugin_path)) {
+            error_log("Plugin path not found: " . $plugin_path);
+            return ['Name' => null, 'Version' => null];
+        }
+
+        $plugin_data = get_plugin_data($plugin_path, false, false);
+
+        // Debug için log yaz
+        error_log("Plugin data: " . print_r($plugin_data, true));
+
+        return $plugin_data;
+    }
+
 
     private static function get_installed_version($plugin_name) {
         if (!self::is_plugin_installed($plugin_name)) {
@@ -214,7 +259,6 @@ class PluginManager {
         $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_name, false, false);
         return $plugin_data['Version'] ?? false; // Sürümü döndür
     }
-
 
     // Check and install required plugins from the $GLOBALS["plugins"] array
     public static function check_and_install_required_plugins() {
@@ -281,6 +325,9 @@ class PluginManager {
     }
 
     private static function install_plugin_from_wp_repo($plugin_slug) {
+        include_once ABSPATH . 'wp-admin/includes/file.php';
+        include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
         WP_Filesystem();
         $skin = new Silent_Upgrader_Skin();
         $upgrader = new Plugin_Upgrader($skin);
@@ -290,15 +337,25 @@ class PluginManager {
         $clean_slug = $slug_parts[0]; // İlk kısmı al
 
         $plugin_url = 'https://downloads.wordpress.org/plugin/' . $clean_slug . '.zip';
+        error_log("Downloading plugin from: " . $plugin_url);
 
         $result = $upgrader->install($plugin_url);
 
         if (is_wp_error($result)) {
             error_log("Plugin yüklenemedi: " . $clean_slug . " - " . $result->get_error_message());
         } else {
-            error_log("Plugin başarıyla yüklendi: " . $clean_slug);
+            // Plugin dizinini kontrol et
+            $plugin_path = WP_PLUGIN_DIR . '/' . $clean_slug;
+            if (!file_exists($plugin_path)) {
+                error_log("Plugin yüklendi ancak doğru yere taşınamadı: " . $plugin_path);
+            } else {
+                error_log("Plugin başarıyla yüklendi: " . $plugin_path);
+            }
         }
     }
+
+
+
 
     // Activate a plugin
     private static function activate_plugin($plugin_name) {
@@ -307,6 +364,18 @@ class PluginManager {
             error_log("Plugin aktifleştirildi: " . $plugin_name);
         }
     }
+
+    private static function deactivate_plugin($plugin_slug) {
+        deactivate_plugins($plugin_slug);
+
+        // Deaktif işlem sonrası kontrol
+        if (!is_plugin_active($plugin_slug)) {
+            error_log("Plugin başarıyla deaktif edildi: " . $plugin_slug);
+        } else {
+            error_log("Plugin deaktif edilemedi: " . $plugin_slug);
+        }
+    }
+
 
     // Remove an outdated plugin
     private static function remove_plugin($plugin_name) {
@@ -337,8 +406,9 @@ class PluginManager {
     }
 
     // Check if a plugin is active
-    private static function is_plugin_active($plugin_name) {
-        return is_plugin_active($plugin_name);
+    private static function is_plugin_active($plugin_slug) {
+        // Plugin slug'dan aktiflik durumu kontrol edilir
+        return is_plugin_active($plugin_slug);
     }
 }
 

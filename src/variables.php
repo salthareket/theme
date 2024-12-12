@@ -417,6 +417,8 @@ $GLOBALS["base_urls"] = array();
 //}
 */
 
+
+
 $salt = new \Salt();
 //$salt->init();
 $GLOBALS["salt"] = $salt;

@@ -624,7 +624,8 @@ Class Theme{
         //$salt->init();
         //$GLOBALS["salt"] = $salt;
         add_action("init", function(){
-\PluginManager::init();
+           \PluginManager::init();
+           \Update::init();
         });
         new \starterSite();
 	}
