@@ -43,13 +43,15 @@ class PluginManager {
     public static function check_and_install_required_plugins() {
         $required_plugins = $GLOBALS["plugins"] ?? [];
 
-        foreach ($required_plugins as $plugin) {
-            if (!self::is_plugin_installed($plugin)) {
-                self::install_plugin_from_wp_repo($plugin);
+        foreach ($required_plugins as $plugin_slug) {
+            // Plugin zaten yüklü mü?
+            if (!self::is_plugin_installed($plugin_slug)) {
+                // WordPress repository'den yükleme
+                self::install_plugin_from_wp_repo($plugin_slug);
             }
-            self::activate_plugin($plugin);
         }
     }
+
 
     // Check and update local plugins from the $GLOBALS["plugins_local"] array
     public static function check_and_update_local_plugins() {
@@ -71,8 +73,16 @@ class PluginManager {
 
     // Check if a plugin is installed
     private static function is_plugin_installed($plugin_name) {
-        return file_exists(WP_PLUGIN_DIR . '/' . $plugin_name);
+        $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_name;
+        if (file_exists($plugin_path)) {
+            error_log("Plugin zaten yüklü: " . $plugin_name);
+            return true;
+        } else {
+            error_log("Plugin yüklü değil: " . $plugin_name);
+            return false;
+        }
     }
+
 
     private static function install_local_plugin($plugin_dir, $plugin_info) {
         $zip_file = $plugin_dir . '/' . $plugin_info['file'] . '.zip';
@@ -111,7 +121,7 @@ class PluginManager {
     // Activate a plugin
     private static function activate_plugin($plugin_name) {
         if (!is_plugin_active($plugin_name)) {
-            activate_plugin($plugin_name);
+            //activate_plugin($plugin_name);
         }
     }
 
