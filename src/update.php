@@ -30,7 +30,7 @@ class Update {
     }
 
     private static function get_composer_lock_path() {
-        return self::get_repo_directory() . '/composer.lock';
+        return get_template_directory() . '/composer.lock';
     }
 
     private static function get_vendor_directory() {
