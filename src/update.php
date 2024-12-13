@@ -5,7 +5,8 @@ class Update {
     private static $github_repo = 'salthareket/theme'; // GitHub deposu adı
     private static $github_api_url = 'https://api.github.com/repos';
     private static $composer_lock_path = ABSPATH . 'wp-content/themes/salthareket/composer.lock';
-    private static $theme_directory = ABSPATH . 'wp-content/themes/salthareket';
+    private static $theme_directory = ABSPATH . 'wp-content/themes/salthareket/vendor/salthareket/theme';
+    private static $vendor_directory = ABSPATH . 'wp-content/themes/salthareket/vendor/salthareket';
 
     // Admin notifi ekler
     public static function init() {
@@ -114,12 +115,18 @@ class Update {
             wp_send_json_error(['message' => 'WP_Filesystem başlatılamadı.']);
         }
 
+        if (self::is_composer_available()) {
+            self::run_composer_update();
+            wp_send_json_success(['message' => 'Composer ile güncelleme başarılı!']);
+        }
+
         $latest_version = self::get_latest_version();
 
         if ($latest_version === 'Unknown') {
             wp_send_json_error(['message' => 'Could not retrieve latest version.']);
         }
 
+        $temp_dir = self::$vendor_directory . '/temp';
         $url = self::$github_api_url . '/' . self::$github_repo . '/zipball/' . $latest_version;
         $tmp_file = download_url($url);
 
@@ -127,38 +134,38 @@ class Update {
             wp_send_json_error(['message' => 'Failed to download the update.']);
         }
 
-        $temp_directory = self::$theme_directory . '/vendor/salthareket/temp';
-        if (!is_dir($temp_directory)) {
-            mkdir($temp_directory, 0755, true);
-        }
-
-        $unzip_result = unzip_file($tmp_file, $temp_directory);
+        $unzip_result = unzip_file($tmp_file, $temp_dir);
         @unlink($tmp_file);
 
         if (is_wp_error($unzip_result)) {
-            self::delete_directory($temp_directory);
             wp_send_json_error(['message' => 'Failed to unzip the update.']);
         }
 
-        $extracted_dir = glob($temp_directory . '/*')[0] ?? null;
-        if (!$extracted_dir || !is_dir($extracted_dir)) {
-            self::delete_directory($temp_directory);
+        $extracted_dir = glob($temp_dir . '/*')[0];
+        if (is_dir($extracted_dir)) {
+            self::delete_directory(self::$theme_directory);
+            rename($extracted_dir, self::$theme_directory);
+            self::delete_directory($temp_dir);
+            self::update_composer_lock($latest_version);
+            wp_send_json_success(['message' => 'Update successful!']);
+        } else {
             wp_send_json_error(['message' => 'Invalid extracted directory structure.']);
         }
+    }
 
-        // Eski dosyaları kaldır
-        self::delete_directory(self::$theme_directory . '/vendor/salthareket/theme');
+    private static function is_composer_available() {
+        $output = null;
+        $result_code = null;
+        exec('composer --version', $output, $result_code);
+        return $result_code === 0;
+    }
 
-        // Yeni dosyaları taşı
-        rename($extracted_dir, self::$theme_directory . '/vendor/salthareket/theme');
-
-        // composer.lock güncelle
-        self::update_composer_lock($latest_version);
-
-        // Geçici klasörü kaldır
-        self::delete_directory($temp_directory);
-
-        wp_send_json_success(['message' => 'Update successful!']);
+    private static function run_composer_update() {
+        $command = 'composer install --working-dir=' . escapeshellarg(self::$theme_directory);
+        exec($command, $output, $result_code);
+        if ($result_code !== 0) {
+            wp_send_json_error(['message' => 'Composer güncelleme işlemi başarısız oldu.']);
+        }
     }
 
     private static function update_composer_lock($latest_version) {
