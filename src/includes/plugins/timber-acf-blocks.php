@@ -813,16 +813,18 @@ function block_css($block, $fields, $block_column){
         }elseif(isset($block["style"]["color"]["background"]) && !empty($block["style"]["color"]["background"])){
             $code_inner .= "background-color:".$block["style"]["color"]["background"].";";
         }
-
+        
+        
         if(isset($block["gradient"]) && !empty($block["gradient"])){
             $gradient .= "background:var(".$block["gradient"].");";
         }elseif(isset($block["style"]["color"]["gradient"]) && !empty($block["style"]["color"]["gradient"])){
             $gradient .= "background:".$block["style"]["color"]["gradient"].";";
         }
 
-        if(!empty($gradient) && !$background["gradient_mask"]){
+        if(!empty($gradient) && !$background["gradient_mask"] && !$block_column){
             $code_inner .= $gradient;
-        }
+        }            
+
     }
 
 
