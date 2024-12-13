@@ -3,6 +3,7 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.activate-plugin, .deactivate-plugin', function () {
         let $button = $(this);
         let pluginSlug = $button.data('plugin-slug');
+        let local = $button.data('local');
 
         // Slug doğrulama
         if (!pluginSlug || !pluginSlug.includes('/')) {
@@ -18,6 +19,7 @@ jQuery(document).ready(function ($) {
             action: 'plugin_manager_process',
             plugin_slug: pluginSlug,
             action_type: actionType,
+            local: local
         })
             .done(function (response) {
                 if (response.success) {
@@ -46,6 +48,7 @@ jQuery(document).ready(function ($) {
         }
 
         let actionType = $button.hasClass('update-plugin') ? 'update' : 'install';
+        let local = $button.data('local');
 
         $button.prop('disabled', true).text('Processing...');
 
@@ -53,6 +56,7 @@ jQuery(document).ready(function ($) {
             action: 'plugin_manager_process',
             plugin_slug: pluginSlug,
             action_type: actionType,
+            local: local
         })
             .done(function (response) {
                 if (response.success) {

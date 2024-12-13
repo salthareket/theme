@@ -81,7 +81,6 @@ class PluginManager {
                         <?php 
                         // Tam slug oluşturma
                         $full_slug = self::get_full_slug($plugin_slug);
-
                         $plugin_data = self::get_plugin_data($plugin_slug);
                         $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug);
                         $installed_version = $plugin_data['Version'] ?? 'Not Installed';
@@ -93,11 +92,11 @@ class PluginManager {
                             <td><?php echo esc_html($installed_version); ?></td>
                             <td>
                                 <?php if (!$is_installed): ?>
-                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Install</button>
+                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="false">Install</button>
                                 <?php elseif (!$is_active): ?>
-                                    <button class="button button-primary activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Activate</button>
+                                    <button class="button button-primary activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="false">Activate</button>
                                 <?php else: ?>
-                                    <button class="button button-secondary deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Deactivate</button>
+                                    <button class="button button-secondary deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="false">Deactivate</button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -121,13 +120,13 @@ class PluginManager {
                             </td>
                             <td>
                                 <?php if (!$is_installed): ?>
-                                    <button class="button button-primary install-local-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Install</button>
+                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Install</button>
                                 <?php elseif ($update_available): ?>
-                                    <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #111;background-color: orange;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Update</button>
+                                    <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #111;background-color: orange;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Update</button>
                                 <?php elseif (!$is_active): ?>
-                                    <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Activate</button>
+                                    <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Activate</button>
                                 <?php else: ?>
-                                    <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Deactivate</button>
+                                    <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Deactivate</button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -204,14 +203,22 @@ class PluginManager {
         try {
             $plugin_slug = $_POST['plugin_slug'] ?? '';
             $action_type = $_POST['action_type'] ?? '';
-
+            $local = $_POST['local'];
             if (!$plugin_slug || !$action_type) {
                 wp_send_json_error(['message' => 'Eksik parametreler!']);
             }
 
             // İşlem türüne göre ayrım
-            if ($action_type === 'install') {
-                self::install_plugin_from_wp_repo($plugin_slug);
+            if ($action_type === 'install' || $action_type === 'update') {
+                if($local == "true"){
+                    $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
+                    $plugin_dir = __DIR__ . '/plugins';
+                    $plugin_info = current(array_filter($required_plugins_local, fn($plugin) => $plugin['name'] === $plugin_slug));
+                    self::remove_plugin($plugin_info['file']);
+                    self::install_local_plugin($plugin_dir, $plugin_info);
+                }else{
+                    self::install_plugin_from_wp_repo($plugin_slug);
+                }
             } elseif ($action_type === 'activate') {
                 activate_plugin($plugin_slug);
             } elseif ($action_type === 'deactivate') {
@@ -225,6 +232,7 @@ class PluginManager {
                 'install' => $plugin_slug . ' başarıyla yüklendi.',
                 'activate' => $plugin_slug . ' başarıyla aktifleştirildi.',
                 'deactivate' => $plugin_slug . ' başarıyla devre dışı bırakıldı.',
+                'update' => $plugin_slug . ' başarıyla güncellendi.',
                 default => 'İşlem tamamlandı.'
             };
 
@@ -288,10 +296,9 @@ class PluginManager {
 
         foreach ($required_plugins_local as $plugin_info) {
             $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_info['name'];
-
             // Check if the plugin exists and if the version is outdated
             if (!file_exists($plugin_path) || self::is_version_outdated($plugin_info['v'], $plugin_info['name'])) {
-                self::remove_plugin($plugin_info['name']);
+                self::remove_plugin($plugin_info['file']);
                 self::install_local_plugin($plugin_dir, $plugin_info);
             }
 
@@ -314,6 +321,7 @@ class PluginManager {
     }
 
     private static function install_local_plugin($plugin_dir, $plugin_info) {
+        error_log("install_local_plugin");
         $zip_file = $plugin_dir . '/' . $plugin_info['file'] . '.zip';
 
         if (file_exists($zip_file)) {
@@ -333,6 +341,7 @@ class PluginManager {
     }
 
     private static function install_plugin_from_wp_repo($plugin_slug) {
+        error_log("install_plugin_from_wp_repo");
         include_once ABSPATH . 'wp-admin/includes/file.php';
         include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
@@ -384,8 +393,11 @@ class PluginManager {
 
     // Remove an outdated plugin
     private static function remove_plugin($plugin_name) {
-        $plugin_path = WP_PLUGIN_DIR . '/' . dirname($plugin_name);
-
+        if(empty($plugin_name)){
+            return;
+        }
+        $plugin_path = WP_PLUGIN_DIR . '/' . ($plugin_name);
+        error_log($plugin_path);
         if (file_exists($plugin_path)) {
             self::delete_directory($plugin_path);
             error_log("Plugin kaldırıldı: " . $plugin_name);
