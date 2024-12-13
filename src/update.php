@@ -275,56 +275,38 @@ class Update {
             return;
         }
 
-        // GitHub API'den son sürüm bilgilerini al
-        $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
+        $lock_data = json_decode(file_get_contents($composer_lock_path), true);
+
+        // En son commit hash'i al
+        $url = self::$github_api_url . '/' . self::$github_repo . '/commits/' . $latest_version;
         $response = wp_remote_get($url, [
             'headers' => [
+                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN,
                 'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'WordPress/' . get_bloginfo('version'),
-                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN
+                'User-Agent' => 'WordPress/' . get_bloginfo('version')
             ]
         ]);
 
         if (is_wp_error($response)) {
-            error_log('GitHub API error: ' . $response->get_error_message());
+            error_log("Commit hash alınamadı: " . $response->get_error_message());
             return;
         }
 
-        $data = json_decode(wp_remote_retrieve_body($response), true);
-        if (json_last_error() !== JSON_ERROR_NONE || empty($data['tarball_url']) || empty($data['target_commitish'])) {
-            error_log('Invalid GitHub API response or missing fields.');
-            return;
-        }
+        $commit_data = json_decode(wp_remote_retrieve_body($response), true);
+        $commit_hash = $commit_data['sha'] ?? 'main';
 
-        $tarball_url = $data['tarball_url'];
-        $reference = $data['target_commitish'];
-
-        $lock_data = json_decode(file_get_contents($composer_lock_path), true);
-        if (!$lock_data || empty($lock_data['packages'])) {
-            error_log("Invalid composer.lock data.");
-            return;
-        }
-
+        // composer.lock'u güncelle
         foreach ($lock_data['packages'] as &$package) {
             if ($package['name'] === self::$github_repo) {
                 $package['version'] = $latest_version;
-                $package['source'] = [
-                    'type' => 'git',
-                    'url' => 'https://github.com/' . self::$github_repo . '.git',
-                    'reference' => $reference
-                ];
-                $package['dist'] = [
-                    'type' => 'zip',
-                    'url' => $tarball_url,
-                    'reference' => $reference,
-                    'shasum' => ''
-                ];
-                error_log("composer.lock updated for package: " . $package['name']);
+                $package['source']['reference'] = $commit_hash;
+                $package['dist']['reference'] = $commit_hash;
+                $package['dist']['url'] = "https://api.github.com/repos/" . self::$github_repo . "/zipball/" . $commit_hash;
             }
         }
 
         file_put_contents($composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        error_log("composer.lock updated.");
+        error_log("composer.lock updated with commit hash.");
     }
 
 
