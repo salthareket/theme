@@ -12,7 +12,7 @@ class Update {
     public static function init() {
         self::initialize_paths();
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
-        add_action('admin_menu', [__CLASS__, 'add_update_page']);
+        //add_action('admin_menu', [__CLASS__, 'add_update_page']);
         add_action('wp_ajax_update_theme_package', [__CLASS__, 'process_update']);
     }
 
@@ -130,7 +130,7 @@ class Update {
         );
     }
 
-    public static function add_update_page() {
+    /*public static function add_update_page() {
         add_menu_page(
             'Theme Update',
             'Theme Update',
@@ -140,7 +140,7 @@ class Update {
             'dashicons-update',
             90
         );
-    }
+    }*/
 
     public static function render_update_page() {
         $current_version = self::get_current_version();

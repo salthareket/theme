@@ -43,13 +43,13 @@ class PluginManager {
 
     // Yönetim paneli menüsü ve scriptleri başlatmak için kullanılır
     public static function init() {
-        add_action('admin_menu', [__CLASS__, 'add_option_page']); // Yönetim menüsüne bir sayfa ekler
+        //add_action('admin_menu', [__CLASS__, 'add_option_page']); // Yönetim menüsüne bir sayfa ekler
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_scripts']); // Script ve stilleri dahil eder
         add_action('wp_ajax_plugin_manager_process', [__CLASS__, 'process_plugin']); // AJAX işlemleri için callback
     }
 
     // Yönetim paneline bir seçenek sayfası ekler
-    public static function add_option_page() {
+    /*public static function add_option_page() {
         add_menu_page(
             'Plugin Yönetimi',
             'Plugin Yönetimi',
@@ -59,87 +59,100 @@ class PluginManager {
             'dashicons-admin-plugins', // Menü simgesi
             80 // Menü sırası
         );
-    }
+    }*/
 
     // Yönetim sayfası içeriğini oluşturur
-    public static function render_option_page() {
-        $required_plugins = $GLOBALS['plugins'] ?? [];
-        $required_plugins_local = $GLOBALS['plugins_local'] ?? [];
-        ?>
-        <div class="wrap">
-            <h1>Plugin Management</h1>
-            <table id="plugin-manager-table" class="widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>Plugin Name</th>
-                        <th>Version</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($required_plugins as $plugin_slug): ?>
-                        <?php 
-                        $plugin_data = self::get_plugin_data($plugin_slug);
-                        $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug);
-                        $installed_version = $plugin_data['Version'] ?? 'Not Installed';
-                        $is_active = self::is_plugin_active($plugin_slug);
-                        $is_installed = self::is_plugin_installed($plugin_slug);
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($plugin_name); ?></td>
-                            <td><?php echo esc_html($installed_version); ?></td>
-                            <td>
-                                <?php if (!$is_installed): ?>
-                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Install</button>
-                                <?php elseif (!$is_active): ?>
-                                    <button class="button button-primary activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Activate</button>
-                                <?php else: ?>
-                                    <button class="button button-secondary deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($plugin_slug); ?>">Deactivate</button>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+public static function render_option_page() {
+    $required_plugins = $GLOBALS['plugins'] ?? [];
+    $required_plugins_local = $GLOBALS['plugins_local'] ?? [];
+    ?>
+    <div class="wrap">
+        <h1>Plugin Management</h1>
+        <table id="plugin-manager-table" class="widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>Plugin Name</th>
+                    <th>Version</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($required_plugins as $plugin_slug): ?>
+                    <?php 
+                    // Tam slug oluşturma
+                    $full_slug = self::get_full_slug($plugin_slug);
 
-                    <?php foreach ($required_plugins_local as $plugin_info): ?>
-                        <?php 
-                        $plugin_data = self::get_plugin_data($plugin_info['name']);
-                        $installed_version = $plugin_data['Version'] ?? 'Not Installed';
-                        $current_version = $plugin_info['v'];
-                        $plugin_name = $plugin_data['Name'] ?? $plugin_info['name'];
-                        $is_active = self::is_plugin_active($plugin_info['name']);
-                        $is_installed = self::is_plugin_installed($plugin_info['name']);
-                        $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version);
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($plugin_name); ?></td>
-                            <td>
-                                <?php echo esc_html($installed_version !== 'Not Installed' && $update_available ? $installed_version . ' -> ' . $current_version : $installed_version); ?>
-                            </td>
-                            <td>
-                                <?php if (!$is_installed): ?>
-                                    <button class="button button-primary install-local-plugin" style="border:none;border-radius:6px;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Install</button>
-                                <?php elseif ($update_available): ?>
-                                    <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Update</button>
-                                <?php elseif (!$is_active): ?>
-                                    <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Activate</button>
-                                <?php else: ?>
-                                    <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-file="<?php echo esc_attr($plugin_info['file']); ?>">Deactivate</button>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php
+                    $plugin_data = self::get_plugin_data($plugin_slug);
+                    $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug);
+                    $installed_version = $plugin_data['Version'] ?? 'Not Installed';
+                    $is_active = self::is_plugin_active($full_slug);
+                    $is_installed = self::is_plugin_installed($full_slug);
+                    ?>
+                    <tr>
+                        <td><?php echo esc_html($plugin_name); ?></td>
+                        <td><?php echo esc_html($installed_version); ?></td>
+                        <td>
+                            <?php if (!$is_installed): ?>
+                                <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Install</button>
+                            <?php elseif (!$is_active): ?>
+                                <button class="button button-primary activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Activate</button>
+                            <?php else: ?>
+                                <button class="button button-secondary deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Deactivate</button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+
+                <?php foreach ($required_plugins_local as $plugin_info): ?>
+                    <?php 
+                    $plugin_data = self::get_plugin_data($plugin_info['name']);
+                    $full_slug = self::get_full_slug($plugin_info['name']);
+                    $installed_version = $plugin_data['Version'] ?? 'Not Installed';
+                    $current_version = $plugin_info['v'];
+                    $plugin_name = $plugin_data['Name'] ?? $plugin_info['name'];
+                    $is_active = self::is_plugin_active($full_slug);
+                    $is_installed = self::is_plugin_installed($full_slug);
+                    $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version);
+                    ?>
+                    <tr>
+                        <td><?php echo esc_html($plugin_name); ?></td>
+                        <td>
+                            <?php echo esc_html($installed_version !== 'Not Installed' && $update_available ? $installed_version . ' -> ' . $current_version : $installed_version); ?>
+                        </td>
+                        <td>
+                            <?php if (!$is_installed): ?>
+                                <button class="button button-primary install-local-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Install</button>
+                            <?php elseif ($update_available): ?>
+                                <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Update</button>
+                            <?php elseif (!$is_active): ?>
+                                <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Activate</button>
+                            <?php else: ?>
+                                <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>">Deactivate</button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
+// Tam slug oluşturmak için yardımcı fonksiyon
+private static function get_full_slug($plugin_slug) {
+    if (strpos($plugin_slug, '/') === false) {
+        // Eksik slug, tam slug oluştur
+        return $plugin_slug . '/' . $plugin_slug . '.php';
     }
+    return $plugin_slug;
+}
 
 
 
 
     // Scriptleri enqueue et
     public static function enqueue_scripts($hook) {
-        if ($hook === 'toplevel_page_plugin-manager') {
+        if ($hook === 'theme-settings_page_plugin-manager') {
             wp_enqueue_script(
                 'plugin-manager-script',
                   get_template_directory_uri() . '/vendor/salthareket/theme/src/plugin-manager.js',
@@ -223,12 +236,7 @@ class PluginManager {
         }
 
         ob_end_clean(); // Her durumda tamponu temizle
-
     }
-
-
-
-
 
     private static function get_plugin_name($plugin_slug) {
         $parts = explode('/', $plugin_slug);
@@ -353,9 +361,6 @@ class PluginManager {
             }
         }
     }
-
-
-
 
     // Activate a plugin
     private static function activate_plugin($plugin_name) {

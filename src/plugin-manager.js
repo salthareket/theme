@@ -3,6 +3,13 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.activate-plugin, .deactivate-plugin', function () {
         let $button = $(this);
         let pluginSlug = $button.data('plugin-slug');
+
+        // Slug doğrulama
+        if (!pluginSlug || !pluginSlug.includes('/')) {
+            alert('Plugin slug eksik veya hatalı.');
+            return;
+        }
+
         let actionType = $button.hasClass('deactivate-plugin') ? 'deactivate' : 'activate';
 
         $button.prop('disabled', true).text('Processing...');
@@ -15,7 +22,7 @@ jQuery(document).ready(function ($) {
             .done(function (response) {
                 if (response.success) {
                     alert(response.data.message);
-                    location.reload(); // Sayfayı yeniler
+                    location.reload();
                 } else {
                     alert('Error: ' + response.data.message);
                     $button.prop('disabled', false).text(actionType === 'activate' ? 'Activate' : 'Deactivate');
@@ -30,7 +37,14 @@ jQuery(document).ready(function ($) {
     // Install/Update Plugin
     $(document).on('click', '.install-plugin, .update-plugin', function () {
         let $button = $(this);
-        let pluginSlug = $button.data('plugin-slug') || $button.data('plugin-file');
+        let pluginSlug = $button.data('plugin-slug');
+
+        // Slug doğrulama
+        if (!pluginSlug || !pluginSlug.includes('/')) {
+            alert('Plugin slug eksik veya hatalı.');
+            return;
+        }
+
         let actionType = $button.hasClass('update-plugin') ? 'update' : 'install';
 
         $button.prop('disabled', true).text('Processing...');
@@ -43,7 +57,7 @@ jQuery(document).ready(function ($) {
             .done(function (response) {
                 if (response.success) {
                     alert(response.data.message);
-                    location.reload(); // Sayfayı yeniler
+                    location.reload();
                 } else {
                     alert('Error: ' + response.data.message);
                     $button.prop('disabled', false).text(actionType === 'update' ? 'Update' : 'Install');

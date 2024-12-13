@@ -16,6 +16,7 @@ Class Theme{
         add_action("admin_init", "load_admin_files");
         add_action("admin_init", [$this, "remove_comments"]);
         add_filter( 'body_class', [$this, 'body_class'] );
+        add_action('admin_menu', [$this, 'init_theme_settings_menu']);
         if(is_admin()){
             add_action("admin_init", function(){
                 visibility_under_construction();
@@ -26,6 +27,51 @@ Class Theme{
             });    
         }
     }
+
+    public static function init_theme_settings_menu() {
+        // Ana menü oluştur
+        add_menu_page(
+            'Theme Settings',
+            'Theme Settings',
+            'manage_options',
+            'theme-settings',
+            '', // Ana menü için bir sayfa içeriği yok
+            'dashicons-admin-generic', // Menü simgesi
+            90 // Menü sırası
+        );
+
+        // Plugin Yönetimi alt menüsünü ekle
+        add_submenu_page(
+            'theme-settings', // Ana menü slug'ı
+            'Plugin Manager',
+            'Plugin Manager',
+            'manage_options',
+            'plugin-manager',
+            ["PluginManager", 'render_option_page'] // Plugin Yönetimi içeriğini render et
+        );
+
+        // Theme Update alt menüsünü ekle
+        add_submenu_page(
+            'theme-settings', // Ana menü slug'ı
+            'Theme Update',
+            'Theme Update',
+            'manage_options',
+            'update-theme',
+            ['Update', 'render_update_page'] // Theme Update içeriğini render et
+        );
+
+        // Gereksiz alt menüyü kaldır
+        add_action('admin_menu', function () {
+            global $submenu;
+            if (isset($submenu['theme-settings'])) {
+                // İlk alt menü olan "Theme Settings" linkini kaldır
+                unset($submenu['theme-settings'][0]);
+            }
+        }, 999); // Geç bir öncelik ile çalıştır
+    }
+
+
+
     public function after_setup_theme(){
         if (class_exists("WooCommerce")) {
             add_theme_support("woocommerce");
