@@ -80,6 +80,7 @@ class Update {
         return 'Unknown';
     }
 
+
     private static function get_latest_version() {
         $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
         
@@ -161,7 +162,7 @@ class Update {
         self::enqueue_update_script();
     }
 
-public static function process_update() {
+    public static function process_update() {
     try {
         error_log("Update işlemi başlatıldı...");
 
@@ -186,22 +187,29 @@ public static function process_update() {
         // Geçici dizin kontrolü
         $temp_dir = self::$vendor_directory . '/temp';
         if (!file_exists($temp_dir)) {
-            mkdir($temp_dir, 0755, true);
+            if (!mkdir($temp_dir, 0755, true) && !is_dir($temp_dir)) {
+                error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
+                wp_send_json_error(['message' => 'Geçici dizin oluşturulamadı.']);
+            }
             error_log("Geçici dizin oluşturuldu: " . $temp_dir);
         }
 
         // ZIP dosyasını çıkarma
         $unzip_result = unzip_file($tmp_file, $temp_dir);
-        @unlink($tmp_file);
-
         if (is_wp_error($unzip_result)) {
-            error_log("unzip_file başarısız oldu, ZipArchive denenecek. Hata: " . $unzip_result->get_error_message());
+            error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
 
             // Fallback: ZipArchive kullanarak dosyayı çıkar
             $zip = new ZipArchive();
             if ($zip->open($tmp_file) === true) {
-                $zip->extractTo($temp_dir);
+                $extract_result = $zip->extractTo($temp_dir);
                 $zip->close();
+
+                if (!$extract_result) {
+                    error_log("ZipArchive ile çıkarma başarısız oldu.");
+                    self::delete_directory($temp_dir);
+                    wp_send_json_error(['message' => 'ZipArchive ile çıkarma başarısız oldu.']);
+                }
                 error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
             } else {
                 error_log("ZipArchive ile çıkarma başarısız oldu.");
@@ -209,14 +217,20 @@ public static function process_update() {
                 wp_send_json_error(['message' => 'ZIP dosyası çıkarılamadı.']);
             }
         } else {
-            error_log("ZIP dosyası başarıyla çıkarıldı.");
+            error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
         }
+
+        @unlink($tmp_file);
 
         // Çıkarılan klasörü taşıma
         $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
         if ($extracted_dir && is_dir($extracted_dir)) {
             self::delete_directory(self::$repo_directory);
-            rename($extracted_dir, self::$repo_directory);
+            if (!rename($extracted_dir, self::$repo_directory)) {
+                error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . self::$repo_directory);
+                self::delete_directory($temp_dir);
+                wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
+            }
             error_log("Yeni sürüm başarıyla taşındı: " . self::$repo_directory);
 
             // Geçici dizini temizle
@@ -224,7 +238,7 @@ public static function process_update() {
             self::update_composer_lock($latest_version);
             wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
         } else {
-            error_log("Çıkarılan klasör yapısı geçersiz.");
+            error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
             self::delete_directory($temp_dir);
             wp_send_json_error(['message' => 'Çıkarılan klasör yapısı geçersiz.']);
         }
@@ -233,10 +247,6 @@ public static function process_update() {
         wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
     }
 }
-
-
-
-
 
 
     private static function is_composer_available() {
