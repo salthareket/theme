@@ -275,16 +275,58 @@ class Update {
             return;
         }
 
+        // GitHub API'den son sürüm bilgilerini al
+        $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
+        $response = wp_remote_get($url, [
+            'headers' => [
+                'Accept' => 'application/vnd.github.v3+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo('version'),
+                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN
+            ]
+        ]);
+
+        if (is_wp_error($response)) {
+            error_log('GitHub API error: ' . $response->get_error_message());
+            return;
+        }
+
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        if (json_last_error() !== JSON_ERROR_NONE || empty($data['tarball_url']) || empty($data['target_commitish'])) {
+            error_log('Invalid GitHub API response or missing fields.');
+            return;
+        }
+
+        $tarball_url = $data['tarball_url'];
+        $reference = $data['target_commitish'];
+
         $lock_data = json_decode(file_get_contents($composer_lock_path), true);
+        if (!$lock_data || empty($lock_data['packages'])) {
+            error_log("Invalid composer.lock data.");
+            return;
+        }
+
         foreach ($lock_data['packages'] as &$package) {
             if ($package['name'] === self::$github_repo) {
                 $package['version'] = $latest_version;
+                $package['source'] = [
+                    'type' => 'git',
+                    'url' => 'https://github.com/' . self::$github_repo . '.git',
+                    'reference' => $reference
+                ];
+                $package['dist'] = [
+                    'type' => 'zip',
+                    'url' => $tarball_url,
+                    'reference' => $reference,
+                    'shasum' => ''
+                ];
+                error_log("composer.lock updated for package: " . $package['name']);
             }
         }
 
         file_put_contents($composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         error_log("composer.lock updated.");
     }
+
 
     private static function delete_directory($dir) {
         if (!is_dir($dir)) return;
