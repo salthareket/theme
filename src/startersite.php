@@ -256,7 +256,7 @@ class StarterSite extends Timber\Site{
         $context["base_urls"] = isset($GLOBALS["base_urls"])?$GLOBALS["base_urls"]:[];
 
         if (ENABLE_POSTCODE_VALIDATION) {
-            $postcodes = json_decode(file_get_contents(get_stylesheet_directory() ."/static/data/postcodes.json"), true);
+            $postcodes = json_decode(file_get_contents(THEME_STATIC_PATH ."data/postcodes.json"), true);
             $context["postcodes"] = $postcodes;
         }
 

@@ -1340,7 +1340,7 @@ function acf_theme_styles_save_hook($post_id) {
             $action = $theme_styles["theme_styles_action"];
             switch ($action) {
                 case 'revert':
-                    $preset_file = get_template_directory() . '/static/data/theme-styles-default.json';
+                    $preset_file = THEME_STATIC_PATH . 'data/theme-styles-default.json';
                     $json_file = file_get_contents($preset_file);
                     $theme_styles = json_decode($json_file, true);
                     $theme_styles["theme_styles_action"] = "";
