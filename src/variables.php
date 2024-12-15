@@ -2,9 +2,11 @@
 
 define('THEME_INCLUDES_PATH',  __DIR__ . '/includes/');
 define('THEME_CLASSES_PATH', __DIR__ .  '/classes/');
+define('THEME_STATIC_PATH',  __DIR__ . '/static/');
 
 define('THEME_INCLUDES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/includes/");
 define('THEME_CLASSES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/classes/");
+define('THEME_STATIC_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/static/");
 
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
