@@ -528,7 +528,7 @@ echo json_encode($states);
 die();
 break;
 case 'form_modal':
-require_once( dirname(dirname(dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) ) ) . '/wp-load.php' );
+require_once( ABSPATH . 'wp-load.php' );
 if ( function_exists( 'wpcf7_enqueue_scripts' ) ) {
 wpcf7_enqueue_scripts();
 }

@@ -1086,7 +1086,7 @@ function acf_load_offcanvas_template_files( $field ) {
 
 function acf_get_theme_styles(){
 	$theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
-    $theme_styles_defaults = THEME_STATIC_PATH . "data/theme-styles-default.json";
+     $theme_styles_defaults = THEME_STATIC_PATH . "data/theme-styles-default.json";
         
     $theme_styles = [];
     if(file_exists($theme_styles_latest)){
