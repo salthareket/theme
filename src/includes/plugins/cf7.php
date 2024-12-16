@@ -10,10 +10,10 @@ if(class_exists("CF7CF")){
 
 //load js & css if page content contains 'contact-form-7' shortcode
 function cf7_load(){
-    if(!isset($GLOBALS["shortcodes_found"])){
+    if(!defined("SITE_ASSETS")){
         return;
     }
-    if(in_array('contact-form-7', $GLOBALS["shortcodes_found"]) || in_array('contact_form', $GLOBALS["shortcodes_found"])){
+    if(in_array('contact-form-7', SITE_ASSETS["wp_js"]) || in_array('contact_form', SITE_ASSETS["wp_js"])){echo "wwwww";
         if ( function_exists( 'wpcf7_enqueue_scripts' ) ) {
             wpcf7_enqueue_scripts();
         }

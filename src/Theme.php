@@ -562,7 +562,7 @@ Class Theme{
             $user_id = get_queried_object_id();
             $site_assets = get_user_meta($user_id, 'assets', true);
         }
-        $site_assets = !empty($site_assets) ? $site_assets : ["js" => "", "css" => "", "plugins" => ""];
+        $site_assets = !empty($site_assets) ? $site_assets : ["js" => "", "css" => "", "plugins" => "", "wp_js" => ""];
         define("SITE_ASSETS", $site_assets);
     }
     public function remove_comments(){

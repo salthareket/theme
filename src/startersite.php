@@ -8,7 +8,7 @@ class StarterSite extends Timber\Site{
         //define('THEME_CLASSES_PATH', get_template_directory() . '/classes/');
         add_action("after_setup_theme", [$this, "theme_supports"]);
         add_filter("timber/context", [$this, "add_to_context"]);
-        add_filter("timber/loader/render_file", [$this, "check_shortcodes"]);
+        //add_filter("timber/loader/render_file", [$this, "check_shortcodes"]);
         add_filter("timber/twig", [$this, "add_to_twig"]);
         add_filter('timber/twig/filters', [$this, "timber_twig_filters"]);
         add_filter('timber/twig/functions', [$this, "timber_twig_functions"]);
@@ -550,7 +550,7 @@ class StarterSite extends Timber\Site{
         include get_template_directory() . "/theme/includes/register/taxonomy.php";
     }
 
-    function check_shortcodes($file) {
+    /*function check_shortcodes($file) {
         global $post;
         $content = file_get_contents($file);
         $shortcodes = ['contact_form', 'contact-form-7', 'wpsr_share_icons'];
@@ -573,7 +573,7 @@ class StarterSite extends Timber\Site{
         array_unique($shortcodes_found);
         $GLOBALS["shortcodes_found"] = $shortcodes_found;
         return $file;
-    }
+    }*/
 
     function timber_twig_filters($filters) {
         $default = [

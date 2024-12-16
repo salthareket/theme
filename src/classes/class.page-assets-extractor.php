@@ -276,6 +276,22 @@ class PageAssetsExtractor {
 
             }
         }
+        
+        $wp_js = [];
+        $shortcodes = ['contact_form', 'contact-form-7', 'form_modal', 'wpsr_share_icons'];
+        if($shortcodes){
+            foreach($shortcodes as $shortcode){
+                if (strpos($html, $shortcode) !== false) {
+                    if($shortcode == 'form_modal'){
+                       $shortcode = 'contact-form-7';
+                    }
+                    $wp_js[] = $shortcode;
+                    continue;
+                }                
+            }
+            array_unique($wp_js);
+        }
+
 
         $result = array(
             "js" => $js, //on page save
@@ -283,7 +299,8 @@ class PageAssetsExtractor {
             "plugins" => $plugins, //on page save
             "plugin_js" => $plugin_js,
             "plugin_css" => $plugin_css,
-            "plugin_css_rtl" => $plugin_css_rtl
+            "plugin_css_rtl" => $plugin_css_rtl,
+            "wp_js" => $wp_js,
         );
         //error_log(json_encode($result));
         return $this->save_meta($result, $id);
