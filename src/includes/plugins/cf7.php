@@ -13,7 +13,7 @@ function cf7_load(){
     if(!defined("SITE_ASSETS")){
         return;
     }
-    if(in_array('contact-form-7', SITE_ASSETS["wp_js"]) || in_array('contact_form', SITE_ASSETS["wp_js"])){echo "wwwww";
+    if(in_array('contact-form-7', SITE_ASSETS["wp_js"]) || in_array('contact_form', SITE_ASSETS["wp_js"])){
         if ( function_exists( 'wpcf7_enqueue_scripts' ) ) {
             wpcf7_enqueue_scripts();
         }
