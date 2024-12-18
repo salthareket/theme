@@ -125,7 +125,7 @@ function enqueue_admin_sticky_script($hook) {
 global $typenow;
 $post_types = get_sticky_supported_post_types();
 if ('edit.php' === $hook && in_array($typenow, $post_types)) {
-wp_enqueue_script('admin-sticky-script', THEME_INCLUDES_PATH . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
+wp_enqueue_script('admin-sticky-script', THEME_INCLUDES_URL . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
 wp_localize_script('admin-sticky-script', 'stickyAjax', array('ajaxurl' => admin_url('admin-ajax.php')));
 }
 }
@@ -334,6 +334,7 @@ return $buttons;
 add_filter('mce_buttons', 'custom_tinymce_buttons');
 use Timber\Timber;
 use Timber\Loader;
+use SaltHareket\Theme;
 if(class_exists("underConstruction")){
 add_filter( 'option_underConstructionActivationStatus', function( $status ){
 if($status == "1"){
@@ -1083,10 +1084,11 @@ if (!function_exists("compile_files_config")) {
 require THEME_INCLUDES_PATH . "minify-rules.php";
 }
 require THEME_CLASSES_PATH . "class.minify.php";
-if(function_exists("wp_scss_compile")){
-global $wpscss_settings, $wpscss_compiler;
-wp_scss_compile();
-$compile_errors = $wpscss_compiler->get_compile_errors();
+//if(function_exists("wp_scss_compile")){
+if (class_exists('ScssPhp\ScssPhp\Compiler')) {
+//global $wpscss_settings, $wpscss_compiler;
+//wp_scss_compile();
+$compile_errors = SaltHareket\Theme::scss_compile();//$wpscss_compiler->get_compile_errors();
 if($compile_errors){
 $type = "error";
 $message = "<strong style='display:block;color:red;'>Compiling Error</strong>";
@@ -1501,7 +1503,7 @@ if($theme_styles){
 $action = $theme_styles["theme_styles_action"];
 switch ($action) {
 case 'revert':
-$preset_file = THEME_STATIC_PATH. 'data/theme-styles-default.json';
+$preset_file = THEME_STATIC_PATH . 'data/theme-styles-default.json';
 $json_file = file_get_contents($preset_file);
 $theme_styles = json_decode($json_file, true);
 $theme_styles["theme_styles_action"] = "";

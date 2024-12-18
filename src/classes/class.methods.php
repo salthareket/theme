@@ -70,7 +70,9 @@ class MethodClass {
 
         } else {
             // Eğer hata varsa temp dosyasını sil ve hata mesajını görüntüle
-            unlink($tempPhpFilePath);
+            if(file_exists($tempPhpFilePath)){
+                unlink($tempPhpFilePath);
+            }
             //echo "Kod hataları tespit edildi:\n$error";
         }
 
@@ -78,7 +80,7 @@ class MethodClass {
         $indexJsFile = fopen($storeDir . 'index.js', 'w');
         fwrite($indexJsFile, $this->optimizeCode($indexJsContent));
         fclose($indexJsFile);
-        $this->copyToTheme($indexJsFile, $platform);
+        $this->copyToTheme($storeDir . 'index.js', $platform);
         
         return $errors;
     }
@@ -86,14 +88,26 @@ class MethodClass {
     private function copyToTheme($path, $platform) {
         $target_dir = get_template_directory() . '/static/js/min/';
         $target_file = $target_dir . ($platform=="frontend"?"methods":$platform).'.min.js'; // Hedef dosya
-        $source_file = $path; // Kaynak dosya
-        if (!file_exists($target_file)) {
-            if (!is_dir($target_dir)) {
-                mkdir($target_dir, 0755, true); 
+        $source_file = $path;
+        if (!is_dir($target_dir)) {
+            if (!mkdir($target_dir, 0755, true)) {
+                error_log("Hedef klasör oluşturulamadı: $target_dir");
+                return;
             }
-            if (file_exists($source_file)) {
-                copy($source_file, $target_file);
-            }
+            error_log("Hedef klasör oluşturuldu: $target_dir");
+        }
+
+        // Kaynak dosya kontrolü
+        if (!file_exists($source_file)) {
+            error_log("Kaynak dosya bulunamadı: $source_file");
+            return;
+        }
+
+        // Dosya kopyalama (mevcutsa üzerine yazılır)
+        if (!copy($source_file, $target_file)) {
+            error_log("Dosya kopyalama başarısız: $source_file -> $target_file");
+        } else {
+            error_log("Dosya başarıyla kopyalandı (üzerine yazıldı): $target_file");
         }
     }
 
@@ -239,8 +253,8 @@ class MethodClass {
             return "});\n";
         }
     }
-
-    public function checkForSyntaxErrors($file) {
+/*
+   public function checkForSyntaxErrors($file) {
         $fileList = [$file];
         chdir(get_stylesheet_directory()."/vendor/bin/");
         //error_log(get_stylesheet_directory()."/vendor/bin/");
@@ -266,15 +280,82 @@ class MethodClass {
         //error_log($command . ' ' . implode(' ', $arguments));
         exec($command . ' ' . implode(' ', $arguments), $output, $returnCode);
         //$outputContent = implode(PHP_EOL, $output);
-        //error_log(json_encode($output));
+       error_log(json_encode($output));
         $errors = [];
-        if($output){
+        if($output && isset($output[0])){
             $output = json_decode($output[0], true);
             $errors = $output["results"]["errors"];            
         }
-        //error_log(json_encode($errors));
+        error_log(json_encode($output));
         return $errors;
     }
+    */
+    public function checkForSyntaxErrors($file) {
+        $fileList = escapeshellarg($file);
+        $parallelLintPath = get_stylesheet_directory() . '/vendor/bin/parallel-lint';
+
+        if (!file_exists($parallelLintPath)) {
+            error_log("Hata: parallel-lint dosyası bulunamadı: " . $parallelLintPath);
+            return ["Hata: parallel-lint komutu bulunamadı."];
+        }
+
+        // Komut çalıştırma
+        $command = escapeshellcmd("php {$parallelLintPath} --json {$fileList}");
+        error_log("Komut: " . $command); // Komutu logla
+
+        $output = [];
+        $returnCode = 0;
+
+        exec($command, $output, $returnCode);
+
+        // Log sonuçlarını
+        error_log("Çıktı: " . print_r($output, true));
+        error_log("Return Code: " . $returnCode);
+
+        // Hata varsa döndür
+        if ($returnCode !== 0 || empty($output)) {
+            //return ["Syntax hatası algılandı veya komut çalıştırılamadı."];
+        }
+
+        // JSON çözümlemesi
+        //$jsonOutput = json_decode(implode('', $output), true);
+
+        //if (json_last_error() !== JSON_ERROR_NONE) {
+         //   error_log("JSON Hatası: " . json_last_error_msg());
+            //return ["JSON çözümlemesinde hata oluştu."];
+        //}
+
+        return $this->parseParallelLintOutput($output);//$jsonOutput['results']['errors'] ?? [];
+    }
+
+    public function parseParallelLintOutput($output) {
+        $jsonOutput = '';
+
+        // Çıktıdaki JSON formatını ayır
+        foreach ($output as $line) {
+            if (str_starts_with(trim($line), '{') && str_ends_with(trim($line), '}')) {
+                $jsonOutput = $line;
+                break;
+            }
+        }
+
+        if (empty($jsonOutput)) {
+            error_log("Hata: JSON formatlı çıktı bulunamadı.");
+            return [];
+        }
+
+        // JSON'u çözümle
+        $decoded = json_decode($jsonOutput, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("JSON Hatası: " . json_last_error_msg());
+            return [];
+        }
+
+        return $decoded['results']['errors'] ?? [];
+    }
+
+
 
     public function log($functionName, $description){
         $log = new Logger();

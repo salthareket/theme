@@ -271,6 +271,14 @@ Class Theme{
                 $post_pagination["search"] = $search_pagination;
             }
         $GLOBALS["post_pagination"] = $post_pagination;
+
+        //sticky support
+        $sticky_post_types = get_option("options_add_sticky_support");
+        if($sticky_post_types){
+            foreach($sticky_post_types as $post_type){
+                add_post_type_support($post_type, 'sticky');
+            }
+        }
         
         $salt->user = $user;
         $GLOBALS["user"] = $user;
@@ -659,7 +667,18 @@ Class Theme{
         }
         closedir($dir);
     }
-	public  function init(){
+    public static function scss_compile(){
+        global $wpscss_compiler;
+        $wpscss_compiler = new \SCSSCompiler(
+            STATIC_PATH."scss/",
+            STATIC_PATH."css/",
+            'compressed',
+            'SOURCE_MAP_NONE'
+        );
+        $wpscss_compiler->wp_scss_compile();
+        return $wpscss_compiler->get_compile_errors();
+    }
+	public function init(){
 		//echo "Salthareket/Theme::init()<br>";
         //self::copyIncludes();
         //self::copyStatic();

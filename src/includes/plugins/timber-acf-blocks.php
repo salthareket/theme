@@ -198,6 +198,7 @@ function block_classes($block, $fields, $block_column){
         }
     }
 
+    
     $classes = implode(" ", $classes);
     return $classes;
 }
@@ -720,10 +721,6 @@ function block_css($block, $fields, $block_column){
             if(!empty(block_container($fields["block_settings"]["container"]))){
                 $code_inner .= "display:flex;
                     justify-content:center!important;";
-                /*$code_height .= "#".$selector."{
-                    display:flex;
-                    justify-content:center!important;
-                }\n";*/
                 $code_height .= "#".$selector." > .container{
                     left:auto!important;
                     right:auto!important;
@@ -741,17 +738,18 @@ function block_css($block, $fields, $block_column){
             $media_query = [];
             foreach($height_responsive as $breakpoint => $value){
                 $code_height_responsive = "";
+                $container = block_container($fields["block_settings"]["container"]);
 
                 if($value["height"] == "ratio"){
                     $ratio = block_ratio_padding($value["ratio"]);
-                    $code_height_responsive .= "#".$selector." > * {
+                    $code_height_responsive .= "#".$selector.(!empty($container)?" > .".$container:"")." > * {
                          position: absolute!important;
                          top: 0;
                          left: 0;
                          width: 100%;
                          height: 100%;
                     }";
-                    if(!empty(block_container($fields["block_settings"]["container"]))){
+                    if(!empty($container)){
                         $code_inner .= "display:flex;
                             justify-content:center!important;";
                         /*$code_height .= "#".$selector."{
@@ -770,7 +768,8 @@ function block_css($block, $fields, $block_column){
                             padding-top: calc(".$ratio."% - var(--header-height-".$breakpoint."-affix));
                         }";
                     }
-                    $code_height_responsive .= "#".$selector.":before{
+
+                    $code_height_responsive .= "#".$selector.(!empty($container)?" > .".$container:"").":before{
                         content: '';
                         display: block;
                         padding-top: ".$padding_top.";

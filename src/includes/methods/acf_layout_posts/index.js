@@ -5,8 +5,7 @@
         }else if(isset(objs.obj)){
             var obj = $(objs.obj);
         }
-        //debugJS(objs)
-       obj.find(".item-total").html("SEARCHING...");
+        obj.find(".item-total").html("SEARCHING...");
     },
     after: function(response, vars, form, objs) {
         if(isset(objs[0])){

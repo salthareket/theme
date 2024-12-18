@@ -3,10 +3,12 @@
 define('THEME_INCLUDES_PATH',  __DIR__ . '/includes/');
 define('THEME_CLASSES_PATH', __DIR__ .  '/classes/');
 define('THEME_STATIC_PATH',  __DIR__ . '/static/');
+define('STATIC_PATH',  get_template_directory() . '/static/');
 
 define('THEME_INCLUDES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/includes/");
 define('THEME_CLASSES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/classes/");
 define('THEME_STATIC_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/static/");
+define('STATIC_URL', get_template_directory_uri() . "/theme/static/");
 
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
@@ -371,6 +373,8 @@ if (!function_exists("get_home_path")) {
 if (ENABLE_PRODUCTION) {
     include_once THEME_INCLUDES_PATH . "minify-rules.php";
 }
+
+include_once THEME_CLASSES_PATH . "class.scss-compiler.php";
 
 include_once THEME_CLASSES_PATH . "class.image.php";
 include_once THEME_CLASSES_PATH . "class.shortcodes.php";

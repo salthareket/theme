@@ -1,6 +1,7 @@
 <?php
 use Timber\Timber;
 use Timber\Loader;
+use SaltHareket\Theme;
 
 if(class_exists("underConstruction")){
     add_filter( 'option_underConstructionActivationStatus', function( $status ){
@@ -870,10 +871,11 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
             }
             require THEME_CLASSES_PATH . "class.minify.php";
 
-            if(function_exists("wp_scss_compile")){
-                global $wpscss_settings, $wpscss_compiler;
-                wp_scss_compile();
-                $compile_errors = $wpscss_compiler->get_compile_errors();
+            //if(function_exists("wp_scss_compile")){
+           if (class_exists('ScssPhp\ScssPhp\Compiler')) {
+                //global $wpscss_settings, $wpscss_compiler;
+                //wp_scss_compile();
+                $compile_errors = SaltHareket\Theme::scss_compile();//$wpscss_compiler->get_compile_errors();
                 if($compile_errors){
                     $type = "error";
                     $message = "<strong style='display:block;color:red;'>Compiling Error</strong>";

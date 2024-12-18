@@ -502,6 +502,8 @@ function compile_files_config($enable_production=false){
 		"js"     => $js
 	);
 
+	//error_log(json_encode($minify));
+
 	return $minify;
 }
 

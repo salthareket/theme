@@ -13,6 +13,9 @@ function cf7_load(){
     if(!defined("SITE_ASSETS")){
         return;
     }
+    if(!is_array(SITE_ASSETS) || !isset(SITE_ASSETS["wp_js"]) || !is_array(SITE_ASSETS["wp_js"])){
+        return;
+    }
     if(in_array('contact-form-7', SITE_ASSETS["wp_js"]) || in_array('contact_form', SITE_ASSETS["wp_js"])){
         if ( function_exists( 'wpcf7_enqueue_scripts' ) ) {
             wpcf7_enqueue_scripts();
@@ -25,6 +28,10 @@ function cf7_load(){
         }
         if ( function_exists( 'wpcf7cf_enqueue_styles' ) ) {
             wpcf7cf_enqueue_styles();
+        }
+        
+        if ( function_exists( 'dnd_cf7_scripts' ) ) {
+            //dnd_cf7_scripts();
         }
     } 
 }
