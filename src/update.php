@@ -26,7 +26,6 @@ class Update {
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
-        //add_action('wp_ajax_update_theme_package', [__CLASS__, 'process_update']);
         add_action('wp_ajax_update_theme_package', [__CLASS__, 'composer']);
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
