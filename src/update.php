@@ -3,7 +3,6 @@
 use Composer\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Output\StreamOutput;
 
 class Update {
 
@@ -313,7 +312,6 @@ class Update {
             echo 'Composer update işlemi sırasında hata: ' . $e->getMessage();
         }
     }
-
 
     private static function enqueue_update_script() {
         wp_enqueue_script(
