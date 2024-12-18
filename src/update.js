@@ -14,7 +14,7 @@ jQuery(document).ready(function ($) {
                 $class = "alert-success";
                 break;
             case "update" :
-                $class = "alert-info";
+                $class = "alert-success";
                 break;
             case "remove" :
             case "error" :
@@ -52,8 +52,8 @@ jQuery(document).ready(function ($) {
                     composer_message(response.data.message, response.data.action, "update");
                 } else {
                     composer_message(response.data.message, "error", "update");
-                    $button.prop('disabled', false).text('Update');
                 }
+                $button.prop('disabled', false).text('Update');
             },
             error: function () {
                 composer_message('AJAX request failed.', "error", "update");

@@ -140,8 +140,8 @@ class Update {
             printf('<p>Current Version: <strong>%s</strong></p>', esc_html($current_version));
             printf('<p>Latest Version: <strong>%s</strong></p>', esc_html($latest_version));
             if ($latest_version !== 'Unknown' && version_compare($current_version, $latest_version, '<')) {
-                echo '<button id="update-theme-button" class="button button-primary">Update to ' . esc_html($latest_version) . '</button>';
                 echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="update"></div>';
+                echo '<button id="update-theme-button" class="button button-primary">Update to ' . esc_html($latest_version) . '</button>';
             } else {
                 echo '<h3 class="text-success fw-bold">Your theme is up to date.</h3>';
             }
