@@ -1,59 +1,40 @@
 <?php
 
+use Composer\Console\Application;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\StreamOutput;
+
 class Update {
 
     private static $github_repo = 'salthareket/theme'; // GitHub deposu adı
     private static $github_api_url = 'https://api.github.com/repos';
     private static $composer_lock_path;
-    private static $repo_directory;
     private static $vendor_directory;
+    private static $repo_directory;
 
     // Admin notifi ekler
     public static function init() {
-        self::initialize_paths();
-        add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
-        //add_action('admin_menu', [__CLASS__, 'add_update_page']);
-        add_action('wp_ajax_update_theme_package', [__CLASS__, 'process_update']);
-    }
-
-    // Dinamik yolları başlat
-    private static function initialize_paths() {
         $theme_root = get_template_directory();
         self::$composer_lock_path = $theme_root . '/composer.lock';
-        self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
-    }
-
-    private static function get_repo_directory() {
-        $current_theme = wp_get_theme();
-        return ABSPATH . 'wp-content/themes/' . $current_theme->get('TextDomain');
-    }
-
-    private static function get_composer_lock_path() {
-        return get_template_directory() . '/composer.lock';
-    }
-
-    private static function get_vendor_directory() {
-        return self::get_repo_directory() . '/vendor/salthareket';
-    }
-
-    private static function get_repo_directory_path() {
-        return self::get_vendor_directory() . '/theme';
+        self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
+        add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
+        //add_action('wp_ajax_update_theme_package', [__CLASS__, 'process_update']);
+        add_action('wp_ajax_update_theme_package', [__CLASS__, 'run_composer_update']);
     }
 
     private static function get_current_version() {
-        $theme_name = wp_get_theme()->get_stylesheet();
-        $composer_lock_path = ABSPATH . 'wp-content/themes/' . $theme_name . '/composer.lock';
 
-        if (!file_exists($composer_lock_path)) {
-            error_log('composer.lock dosyası bulunamadı: ' . $composer_lock_path);
+        if (!file_exists(self::$composer_lock_path)) {
+            error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
             return 'Unknown';
         }
 
-        $lock_data = file_get_contents($composer_lock_path);
+        $lock_data = file_get_contents(self::$composer_lock_path);
 
         if (!$lock_data) {
-            error_log('composer.lock dosyası okunamadı: ' . $composer_lock_path);
+            error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
             return 'Unknown';
         }
 
@@ -70,7 +51,7 @@ class Update {
         }
 
         foreach ($lock_data['packages'] as $package) {
-            if ($package['name'] === 'salthareket/theme') {
+            if ($package['name'] === self::$github_repo) {
                 error_log('Mevcut sürüm bulundu: ' . $package['version']);
                 return $package['version'];
             }
@@ -79,7 +60,6 @@ class Update {
         error_log('Paket bulunamadı: salthareket/theme');
         return 'Unknown';
     }
-
 
     private static function get_latest_version() {
         $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
@@ -113,7 +93,6 @@ class Update {
         return 'Unknown';
     }
 
-
     public static function check_for_update_notice() {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
@@ -129,18 +108,6 @@ class Update {
             admin_url('admin.php?page=update-theme')
         );
     }
-
-    /*public static function add_update_page() {
-        add_menu_page(
-            'Theme Update',
-            'Theme Update',
-            'manage_options',
-            'update-theme',
-            [__CLASS__, 'render_update_page'],
-            'dashicons-update',
-            90
-        );
-    }*/
 
     public static function render_update_page() {
         $current_version = self::get_current_version();
@@ -163,119 +130,98 @@ class Update {
     }
 
     public static function process_update() {
-    try {
-        error_log("Update işlemi başlatıldı...");
+        try {
+            error_log("Update işlemi başlatıldı...");
 
-        // Geçerli sürüm ve son sürüm bilgisi
-        $latest_version = self::get_latest_version();
-        if ($latest_version === 'Unknown') {
-            error_log("Son sürüm alınamadı.");
-            wp_send_json_error(['message' => 'Son sürüm bilgisi alınamadı.']);
-        }
-        error_log("Son sürüm: " . $latest_version);
-
-        // ZIP dosyasını indirme
-        $url = self::$github_api_url . '/' . self::$github_repo . '/zipball/' . $latest_version;
-        $tmp_file = download_url($url);
-
-        if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
-            error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
-            wp_send_json_error(['message' => 'ZIP dosyası indirilemedi veya bozuk.']);
-        }
-        error_log("ZIP dosyası indirildi: " . $tmp_file);
-
-        // Geçici dizin kontrolü
-        $temp_dir = self::$vendor_directory . '/temp';
-        if (!file_exists($temp_dir)) {
-            if (!mkdir($temp_dir, 0755, true) && !is_dir($temp_dir)) {
-                error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
-                wp_send_json_error(['message' => 'Geçici dizin oluşturulamadı.']);
+            // Geçerli sürüm ve son sürüm bilgisi
+            $latest_version = self::get_latest_version();
+            if ($latest_version === 'Unknown') {
+                error_log("Son sürüm alınamadı.");
+                wp_send_json_error(['message' => 'Son sürüm bilgisi alınamadı.']);
             }
-            error_log("Geçici dizin oluşturuldu: " . $temp_dir);
-        }
+            error_log("Son sürüm: " . $latest_version);
 
-        // ZIP dosyasını çıkarma
-        $unzip_result = unzip_file($tmp_file, $temp_dir);
-        if (is_wp_error($unzip_result)) {
-            error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
+            // ZIP dosyasını indirme
+            $url = self::$github_api_url . '/' . self::$github_repo . '/zipball/' . $latest_version;
+            $tmp_file = download_url($url);
 
-            // Fallback: ZipArchive kullanarak dosyayı çıkar
-            $zip = new ZipArchive();
-            if ($zip->open($tmp_file) === true) {
-                $extract_result = $zip->extractTo($temp_dir);
-                $zip->close();
+            if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
+                error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
+                wp_send_json_error(['message' => 'ZIP dosyası indirilemedi veya bozuk.']);
+            }
+            error_log("ZIP dosyası indirildi: " . $tmp_file);
 
-                if (!$extract_result) {
+            // Geçici dizin kontrolü
+            $temp_dir = self::$vendor_directory . '/temp';
+            if (!file_exists($temp_dir)) {
+                if (!mkdir($temp_dir, 0755, true) && !is_dir($temp_dir)) {
+                    error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
+                    wp_send_json_error(['message' => 'Geçici dizin oluşturulamadı.']);
+                }
+                error_log("Geçici dizin oluşturuldu: " . $temp_dir);
+            }
+
+            // ZIP dosyasını çıkarma
+            $unzip_result = unzip_file($tmp_file, $temp_dir);
+            if (is_wp_error($unzip_result)) {
+                error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
+
+                // Fallback: ZipArchive kullanarak dosyayı çıkar
+                $zip = new ZipArchive();
+                if ($zip->open($tmp_file) === true) {
+                    $extract_result = $zip->extractTo($temp_dir);
+                    $zip->close();
+
+                    if (!$extract_result) {
+                        error_log("ZipArchive ile çıkarma başarısız oldu.");
+                        self::delete_directory($temp_dir);
+                        wp_send_json_error(['message' => 'ZipArchive ile çıkarma başarısız oldu.']);
+                    }
+                    error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
+                } else {
                     error_log("ZipArchive ile çıkarma başarısız oldu.");
                     self::delete_directory($temp_dir);
-                    wp_send_json_error(['message' => 'ZipArchive ile çıkarma başarısız oldu.']);
+                    wp_send_json_error(['message' => 'ZIP dosyası çıkarılamadı.']);
                 }
-                error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
             } else {
-                error_log("ZipArchive ile çıkarma başarısız oldu.");
-                self::delete_directory($temp_dir);
-                wp_send_json_error(['message' => 'ZIP dosyası çıkarılamadı.']);
+                error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
             }
-        } else {
-            error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
-        }
 
-        @unlink($tmp_file);
+            @unlink($tmp_file);
 
-        // Çıkarılan klasörü taşıma
-        $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
-        if ($extracted_dir && is_dir($extracted_dir)) {
-            self::delete_directory(self::$repo_directory);
-            if (!rename($extracted_dir, self::$repo_directory)) {
-                error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . self::$repo_directory);
+            // Çıkarılan klasörü taşıma
+            $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
+            if ($extracted_dir && is_dir($extracted_dir)) {
+                self::delete_directory(self::$repo_directory);
+                if (!rename($extracted_dir, self::$repo_directory)) {
+                    error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . self::$repo_directory);
+                    self::delete_directory($temp_dir);
+                    wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
+                }
+                error_log("Yeni sürüm başarıyla taşındı: " . self::$repo_directory);
+
+                // Geçici dizini temizle
                 self::delete_directory($temp_dir);
-                wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
+                self::update_composer_lock($latest_version);
+                wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
+            } else {
+                error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
+                self::delete_directory($temp_dir);
+                wp_send_json_error(['message' => 'Çıkarılan klasör yapısı geçersiz.']);
             }
-            error_log("Yeni sürüm başarıyla taşındı: " . self::$repo_directory);
-
-            // Geçici dizini temizle
-            self::delete_directory($temp_dir);
-            self::update_composer_lock($latest_version);
-            wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
-        } else {
-            error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
-            self::delete_directory($temp_dir);
-            wp_send_json_error(['message' => 'Çıkarılan klasör yapısı geçersiz.']);
+        } catch (Exception $e) {
+            error_log("Güncelleme sırasında hata: " . $e->getMessage());
+            wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
         }
-    } catch (Exception $e) {
-        error_log("Güncelleme sırasında hata: " . $e->getMessage());
-        wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
-    }
-}
-
-
-    private static function is_composer_available() {
-        $output = null;
-        $result_code = null;
-        exec('composer --version', $output, $result_code);
-        return $result_code === 0;
-    }
-
-    private static function run_composer_update($path) {
-        $command = 'composer update --working-dir=' . escapeshellarg($path);
-        exec($command, $output, $result_code);
-        if ($result_code !== 0) {
-            error_log('Composer update failed: ' . implode("\n", $output));
-            return false;
-        }
-
-        error_log('Composer update completed: ' . implode("\n", $output));
-        return true;
     }
 
     private static function update_composer_lock($latest_version) {
-        $composer_lock_path = self::get_composer_lock_path();
-        if (!file_exists($composer_lock_path)) {
+        if (!file_exists(self::$composer_lock_path)) {
             error_log("composer.lock not found.");
             return;
         }
 
-        $lock_data = json_decode(file_get_contents($composer_lock_path), true);
+        $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
 
         // En son commit hash'i al
         $url = self::$github_api_url . '/' . self::$github_repo . '/commits/' . $latest_version;
@@ -305,21 +251,69 @@ class Update {
             }
         }
 
-        file_put_contents($composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents(self::$composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         error_log("composer.lock updated with commit hash.");
     }
 
-
     private static function delete_directory($dir) {
-        if (!is_dir($dir)) return;
+        /*if (!is_dir($dir)) return;
 
         $files = array_diff(scandir($dir), ['.', '..']);
         foreach ($files as $file) {
             $path = $dir . '/' . $file;
             is_dir($path) ? self::delete_directory($path) : unlink($path);
         }
-        rmdir($dir);
+        rmdir($dir);*/
     }
+
+    public static function run_composer_update() {
+        try {
+            // Aktif temanın kök dizinini al
+            $theme_directory = get_template_directory();
+
+            // composer.json dosyasını kontrol et
+            if (!file_exists($theme_directory . '/composer.json')) {
+
+                return 'composer.json dosyası mevcut değil.';
+            }
+
+            // Composer Application başlat
+            $app = new Application();
+            $app->setAutoExit(false);
+
+            // Composer update komutunu ayarla
+            $input = new ArrayInput([
+                'command' => 'update',
+                '--working-dir' => $theme_directory, // Çalışma dizini olarak tema kökünü ayarla
+            ]);
+
+            $output = new BufferedOutput();
+
+            // Composer işlemini çalıştır
+            $app->run($input, $output);
+
+            // Çıktıyı analiz et
+            $raw_output = $output->fetch();
+            $lines = explode("\n", $raw_output);
+            $result = [];
+
+            foreach ($lines as $line) {
+                if (preg_match('/Updating ([^ ]+) \(([^ ]+) => ([^ ]+)\)/', $line, $matches)) {
+                    $result[] = sprintf('%s: %s -> %s', $matches[1], $matches[2], $matches[3]);
+                } elseif (preg_match('/Installing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
+                    $result[] = sprintf('%s: %s installed', $matches[1], $matches[2]);
+                }
+            }
+
+            echo !empty($result) ? implode("\n", $result) : 'No updates or installations performed.';
+
+        } catch (Exception $e) {
+            // Hata durumunda mesaj döndür
+            error_log('Composer update işlemi sırasında hata: ' . $e->getMessage());
+            echo 'Composer update işlemi sırasında hata: ' . $e->getMessage();
+        }
+    }
+
 
     private static function enqueue_update_script() {
         wp_enqueue_script(
