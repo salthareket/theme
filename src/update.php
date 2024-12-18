@@ -8,6 +8,12 @@ class Update {
 
     private static $github_repo = 'salthareket/theme'; // GitHub deposu adı
     private static $github_api_url = 'https://api.github.com/repos';
+    private static $protected_packages = [
+        'salthareket/theme',
+        "composer/composer",
+        "scssphp/scssphp"
+    ];
+    private static $composer_path;
     private static $composer_lock_path;
     private static $vendor_directory;
     private static $repo_directory;
@@ -15,12 +21,15 @@ class Update {
     // Admin notifi ekler
     public static function init() {
         $theme_root = get_template_directory();
+        self::$composer_path = $theme_root . '/composer.json';
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
         //add_action('wp_ajax_update_theme_package', [__CLASS__, 'process_update']);
-        add_action('wp_ajax_update_theme_package', [__CLASS__, 'run_composer_update']);
+        add_action('wp_ajax_update_theme_package', [__CLASS__, 'composer']);
+        add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
+        add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
     }
 
     private static function get_current_version() {
@@ -92,6 +101,18 @@ class Update {
         return 'Unknown';
     }
 
+    private static function get_installed_packages() {
+        if (!file_exists(self::$composer_path)) {
+            return [];
+        }
+        $json_data = json_decode(file_get_contents(self::$composer_path), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return [];
+        }
+        $installed_packages = array_keys($json_data['require'] ?? []);
+        return $installed_packages;
+    }
+
     public static function check_for_update_notice() {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
@@ -111,21 +132,42 @@ class Update {
     public static function render_update_page() {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
+        $installed_packages = self::get_installed_packages();
 
         echo '<div class="wrap">';
-        echo '<h1>Theme Update</h1>';
-        printf('<p>Current Version: <strong>%s</strong></p>', esc_html($current_version));
-        printf('<p>Latest Version: <strong>%s</strong></p>', esc_html($latest_version));
 
-        if ($latest_version !== 'Unknown' && version_compare($current_version, $latest_version, '<')) {
-            echo '<button id="update-theme-button" class="button button-primary">Update to ' . esc_html($latest_version) . '</button>';
-        } else {
-            echo '<p>Your theme is up to date.</p>';
-        }
+            echo '<h1>Theme Update</h1>';
+            printf('<p>Current Version: <strong>%s</strong></p>', esc_html($current_version));
+            printf('<p>Latest Version: <strong>%s</strong></p>', esc_html($latest_version));
+            if ($latest_version !== 'Unknown' && version_compare($current_version, $latest_version, '<')) {
+                echo '<button id="update-theme-button" class="button button-primary">Update to ' . esc_html($latest_version) . '</button>';
+                echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="update"></div>';
+            } else {
+                echo '<h3 class="text-success fw-bold">Your theme is up to date.</h3>';
+            }
+
+            echo '<hr class="my-5" />';
+
+            echo '<h2>Install or Update Package</h2>';
+            echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="install"></div>';
+            echo '<input type="text" id="install-package-name" name="install-package-name" placeholder="Enter package name (e.g., vendor/package)" style="width: 300px; margin-right: 10px;">';
+            echo '<button id="install-package-button" class="button button-secondary">Install Package</button>';
+
+            echo '<hr class="my-5" />';
+
+            echo '<h2>Remove Package</h2>';
+            echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="remove"></div>';
+            echo '<select id="remove-package-name" name="remove-package-name" style="width: 300px; margin-right: 10px;">';
+            foreach ($installed_packages as $package) {
+                echo '<option value="' . esc_attr($package) . '">' . esc_html($package) . '</option>';
+            }
+            echo '</select>';
+            echo '<button id="remove-package-button" class="button button-secondary">Remove Package</button>';
 
         echo '</div>';
 
         self::enqueue_update_script();
+
     }
 
     public static function process_update() {
@@ -240,7 +282,6 @@ class Update {
         $commit_data = json_decode(wp_remote_retrieve_body($response), true);
         $commit_hash = $commit_data['sha'] ?? 'main';
 
-        // composer.lock'u güncelle
         foreach ($lock_data['packages'] as &$package) {
             if ($package['name'] === self::$github_repo) {
                 $package['version'] = $latest_version;
@@ -249,9 +290,7 @@ class Update {
                 $package['dist']['url'] = "https://api.github.com/repos/" . self::$github_repo . "/zipball/" . $commit_hash;
             }
         }
-
         file_put_contents(self::$composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        error_log("composer.lock updated with commit hash.");
     }
 
     private static function delete_directory($dir) {
@@ -265,52 +304,104 @@ class Update {
         rmdir($dir);*/
     }
 
-    public static function run_composer_update() {
+    public static function composer($package_name="", $remove = false) {
         try {
-            // Aktif temanın kök dizinini al
-            $theme_directory = get_template_directory();
 
-            // composer.json dosyasını kontrol et
-            if (!file_exists($theme_directory . '/composer.json')) {
-
-                return 'composer.json dosyası mevcut değil.';
+            if (!file_exists(self::$composer_path)) {
+                wp_send_json_error(['message' => 'composer.json is not found.']);
             }
 
-            // Composer Application başlat
+            $args = array(
+                'command' => 'update',
+                '--working-dir' => get_template_directory()
+            );
+            if(!empty($package_name)){
+                $args["command"] = $remove?"remove":"require";
+                $args["packages"] = [$package_name];
+            }
+
             $app = new Application();
             $app->setAutoExit(false);
-
-            // Composer update komutunu ayarla
-            $input = new ArrayInput([
-                'command' => 'update',
-                '--working-dir' => $theme_directory, // Çalışma dizini olarak tema kökünü ayarla
-            ]);
-
+            $input = new ArrayInput($args);
             $output = new BufferedOutput();
-
-            // Composer işlemini çalıştır
             $app->run($input, $output);
 
-            // Çıktıyı analiz et
             $raw_output = $output->fetch();
             $lines = explode("\n", $raw_output);
-            $result = [];
+
             foreach ($lines as $line) {
-                // Paket yükseltmelerini yakalamak için
-                if (preg_match('/Upgrading ([^ ]+) \(([^ ]+) => ([^ ]+)\)/', $line, $matches)) {
-                    $result[] = sprintf('%s: %s -> %s', $matches[1], $matches[2], $matches[3]);
-                }
-                // Yeni kurulumları yakalamak için
-                elseif (preg_match('/Installing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
-                    $result[] = sprintf('%s: %s installed', $matches[1], $matches[2]);
+                if (strpos(trim($line), 'Could not find package') !== false) {
+                    wp_send_json_error(['message' => "Could not find package: <strong>$package_name</strong>", "action" => "error" ]);
+                    ecit;
                 }
             }
-            echo !empty($result) ? implode("\n", $result) : 'No updates or installations performed.';
+            $result = [
+                "update" => [],
+                "install" => [],
+                "remove" => []
+            ];
+            $action = "nothing";
+            foreach ($lines as $line) {
+                if (preg_match('/Upgrading ([^ ]+) \(([^ ]+) => ([^ ]+)\)/', $line, $matches)) {
+                    $action = "update";
+                    $result["update"] = sprintf('%s: %s -> %s', $matches[1], $matches[2], $matches[3]);
+                }elseif (preg_match('/Installing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
+                    $action = "install";
+                    $result["install"] = sprintf('%s: %s installed', $matches[1], $matches[2]);
+                }elseif (preg_match('/Removing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
+                    $action = "remove";
+                    $result["remove"] = sprintf('%s: %s removed', $matches[1], $matches[2]);
+                }
+            }
+            $message = [];
+            if($result["update"]){
+                $message[] = $result["update"];
+            }
+            if($result["install"]){
+                $message[] = $result["install"];
+            }
+            if($result["remove"]){
+                $message[] = $result["remove"];
+            }
+            if($message){
+                $message = implode(", ", $message);
+            }else{
+                $message = 'No updates or installations performed.';
+            }
+            
+            wp_send_json_success(['message' => $message, "action" => $action ]);
 
         } catch (Exception $e) {
-            // Hata durumunda mesaj döndür
-            error_log('Composer update işlemi sırasında hata: ' . $e->getMessage());
-            echo 'Composer update işlemi sırasında hata: ' . $e->getMessage();
+            wp_send_json_error(['message' => $e->getMessage(), "action" => $action ]);
+        }
+    }
+    public static function composer_install() {
+        check_ajax_referer('update_theme_nonce', 'nonce');
+        $package_name = isset($_POST['package']) ? sanitize_text_field($_POST['package']) : '';
+        if (empty($package_name)) {
+            wp_send_json_error(['message' => 'Package name is required.']);
+        }
+        try {
+            self::composer($package_name);
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+    public static function composer_remove() {
+        check_ajax_referer('update_theme_nonce', 'nonce');
+        $package_name = isset($_POST['package']) ? sanitize_text_field($_POST['package']) : '';
+        if (empty($package_name)) {
+            wp_send_json_error(['message' => 'Package name is required.']);
+            exit;
+        }
+        if(in_array($package_name, self::$protected_packages)){
+            wp_send_json_error(['message' => 'You can not remove a protected package like: '.$package_name ]);
+            exit;
+        }
+        try {
+            self::composer($package_name, true);
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
 

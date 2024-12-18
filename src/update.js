@@ -1,7 +1,44 @@
 jQuery(document).ready(function ($) {
+    function composer_message($message = "", $action = "", $type = ""){
+        if($message == ""){
+            $(".alert").removeClass("show").addClass("d-none").empty();
+            if($action != "loading"){
+                return;
+            }else{
+                $message = "Please wait...";
+            }
+        }
+        let $class = "";
+        switch($action){
+            case "install" :
+                $class = "alert-success";
+                break;
+            case "update" :
+                $class = "alert-info";
+                break;
+            case "remove" :
+            case "error" :
+                $class = "alert-danger";
+                break;
+            case "nothing" :
+                $class = "alert-secondary";
+                break;
+            case "loading" :
+                $class = "alert-secondary loading loading-xs";
+                break;
+        } 
+        let alert = $(".alert[data-action='" + $type +"']");
+        alert
+        .removeClass("loading alert-success alert-danger alert-secondary alert-info show d-none")
+        .addClass($class)
+        .html($message)
+        .addClass("show");
+    }
     $('#update-theme-button').on('click', function () {
         var $button = $(this);
         $button.prop('disabled', true).text('Updating...');
+
+        composer_message("", "loading", "update");
 
         $.ajax({
             url: updateAjax.ajax_url,
@@ -12,17 +49,88 @@ jQuery(document).ready(function ($) {
             },
             success: function (response) {
                 if (response.success) {
-                    alert(response.data.message);
-                    location.reload(); // Sayfayı güncellemeden sonra yeniler
+                    composer_message(response.data.message, response.data.action, "update");
                 } else {
-                    alert('Update failed: ' + response.data.message);
+                    composer_message(response.data.message, "error", "update");
                     $button.prop('disabled', false).text('Update');
                 }
             },
             error: function () {
-                alert('AJAX request failed.');
+                composer_message('AJAX request failed.', "error", "update");
                 $button.prop('disabled', false).text('Update');
             }
         });
+    });
+
+    $('#install-package-button').on('click', function () {
+        const packageName = $('#install-package-name').val();
+        if (!packageName) {
+            alert('Please enter a package name.');
+            return;
+        }
+
+        var $button = $(this);
+        $button.prop('disabled', true).text('Installing...');
+
+        composer_message("", "loading", "install");
+
+        $.post(
+            updateAjax.ajax_url,
+            {
+                action: 'install_new_package',
+                nonce: updateAjax.nonce,
+                package: packageName
+            },
+            function (response) {
+                if (response.success) {
+                    if ($('#remove-package-name option[value="' + packageName + '"]').length === 0) {
+                        $('#remove-package-name').append(
+                            $('<option>', {
+                                value: packageName,
+                                text: packageName
+                            })
+                        );
+                    }
+                    composer_message(response.data.message, response.data.action, "install");
+                } else {
+                    composer_message(response.data.message, "error", "install");
+                }
+                $button.prop('disabled', false).text('Install Package');
+            }
+        );
+    });
+
+    $('#remove-package-button').on('click', function () {
+        const packageName = $('#remove-package-name').val();
+        if (!packageName) {
+            alert('Please choose a package name.');
+            return;
+        }
+
+        var $button = $(this);
+        $button.prop('disabled', true).text('Removing...');
+
+        composer_message("", "loading", "remove");
+
+        $.post(
+            updateAjax.ajax_url,
+            {
+                action: 'remove_package',
+                nonce: updateAjax.nonce,
+                package: packageName
+            },
+            function (response) {
+                console.log(response)
+                console.log(response.data)
+                console.log(response.data.action)
+                if (response.success) {
+                    $('#remove-package-name option[value="' + packageName + '"]').remove();
+                    composer_message(response.data.message, response.data.action, "remove");
+                } else {
+                    composer_message(response.data.message, "error", "remove");
+                }
+                $button.prop('disabled', false).text('Remove Package');
+            }
+        );
     });
 });

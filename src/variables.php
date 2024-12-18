@@ -10,8 +10,6 @@ define('THEME_CLASSES_URL', get_template_directory_uri() . "/vendor/salthareket/
 define('THEME_STATIC_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/static/");
 define('STATIC_URL', get_template_directory_uri() . "/theme/static/");
 
-
-
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
 
