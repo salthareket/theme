@@ -303,7 +303,7 @@ class Update {
                     $result[] = sprintf('%s: %s installed', $matches[1], $matches[2]);
                 }
             }
-            echo $raw_output;
+            //echo $raw_output;
 
             echo !empty($result) ? implode("\n", $result) : 'No updates or installations performed.';
 
