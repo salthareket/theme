@@ -295,16 +295,16 @@ class Update {
             $raw_output = $output->fetch();
             $lines = explode("\n", $raw_output);
             $result = [];
-
             foreach ($lines as $line) {
-                if (preg_match('/Updating ([^ ]+) \(([^ ]+) => ([^ ]+)\)/', $line, $matches)) {
+                // Paket yükseltmelerini yakalamak için
+                if (preg_match('/Upgrading ([^ ]+) \(([^ ]+) => ([^ ]+)\)/', $line, $matches)) {
                     $result[] = sprintf('%s: %s -> %s', $matches[1], $matches[2], $matches[3]);
-                } elseif (preg_match('/Installing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
+                }
+                // Yeni kurulumları yakalamak için
+                elseif (preg_match('/Installing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
                     $result[] = sprintf('%s: %s installed', $matches[1], $matches[2]);
                 }
             }
-            //echo $raw_output;
-
             echo !empty($result) ? implode("\n", $result) : 'No updates or installations performed.';
 
         } catch (Exception $e) {
