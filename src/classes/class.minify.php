@@ -10,6 +10,7 @@ class SaltMinifier{
 	public $css_folder;
 	public $js_folder;
 	public $min_folder;
+    public $min_uri;
 	public $prod_folder;
 	public $output = [];
 	public $assets_check = [];
@@ -27,6 +28,7 @@ class SaltMinifier{
 		$this->css_folder = $this->rules["config"]["css"];
 		$this->js_folder = $this->rules["config"]["js"];
 		$this->min_folder = $this->rules["config"]["min"];
+        $this->min_uri = $this->rules["config"]["min_uri"];
 		$this->prod_folder = $this->rules["config"]["prod"];
 		$this->output = array(
 			"header.css"           => $this->css_folder . 'header.css',
@@ -35,6 +37,7 @@ class SaltMinifier{
 			"plugins.min.js"       => $this->min_folder . 'plugins.min.js',
 			"plugins"              => $this->min_folder . 'plugins/',
             "plugin_assets"        => $this->min_folder . 'assets/',
+            "plugin_assets_uri"    => $this->min_uri . 'assets/',
             "plugins_init"         => $this->js_folder  . 'production/plugins-init/',
             "plugins-admin.min.js" => $this->min_folder . 'plugins-admin.min.js', 
             'jquery.min.js'        => $this->min_folder . 'jquery.min.js',
@@ -125,9 +128,18 @@ class SaltMinifier{
 	    }
 	}
 
+    public function get_rtl_folder($item){
+        if(in_array($item, ["main", "blocks", "header", "header_admin"])){
+            return $this->css_folder;
+        }else{
+            return $this->output["plugins"];
+        }
+    }
+
 	public function rtl_css(){
 		if($this->rtl_list){
 	        foreach($this->rtl_list as $key => $rtl_item){
+                error_log("rtl convert: ".$rtl_item);
 	            $file_name = $key."-rtl.css";
 	            $css = file_get_contents($rtl_item);
 	            $parser = new Sabberworm\CSS\Parser($css);
@@ -137,7 +149,7 @@ class SaltMinifier{
 	            $output = $tree->render();
 	            // minify
 	            $minify = new Minify\CSS($output);
-	            $minify->minify($this->output["plugins"].$file_name);
+	            $minify->minify( $this->get_rtl_folder($key) . $file_name );
 	            $assets_check[] = $file_name;
 	        }
 	    }
@@ -311,31 +323,33 @@ class SaltMinifier{
                         }else{
                             $minify->add($item_url);
                         }
-                        $this->assets_check[] = $item_url;
-                        $this->rtl_list[$filename] = $item_url;
+                        //$this->assets_check[] = $item_url;
+                        //$this->rtl_list[$filename] = $item_url;
                     }
                 }else{
                     $minify = new Minify\CSS($item);
-                    $this->assets_check[] = $item;
-                    $this->rtl_list[$filename] = $item;
+                    //$this->assets_check[] = $item;
+                    //$this->rtl_list[$filename] = $item;
                 }
             }else{
                 if(is_array($item)){
                     foreach($item as $item_url){
                         $minify->add($item_url);
-                        $this->assets_check[] = $item_url;
-                        $this->rtl_list[$filename] = $item_url;
+                        //$this->assets_check[] = $item_url;
+                        //$this->rtl_list[$filename] = $item_url;
                     }
                 }else{
                     $minify->add($item);
-                    $this->assets_check[] = $item;
-                    $this->rtl_list[$filename] = $item;
+                    //$this->assets_check[] = $item;
+                    //$this->rtl_list[$filename] = $item;
                 }
             }
             $counter++;
         }
         if($files){
             $minify->minify($output);
+            $this->assets_check[] = $output;
+            $this->rtl_list[$filename] = $output;
         }
 	}
 
@@ -440,6 +454,7 @@ class SaltMinifier{
 	}
 
 	public function plugin_assets($css_file = "") {
+        error_log("plugin_assets-----------------------------------");
 	    $enable_publish = get_option("options_enable_publish");
 	    $publish_url = "";
 	    if($enable_publish){
@@ -466,23 +481,37 @@ class SaltMinifier{
 	                );
 	            }
 	        }*/
+
             foreach ($matches[3] as $key => $match) {
                 if (substr($match, 0, 5) != "data:") {
+                    error_log("match:".$match);
                     $relative_path = preg_replace('/\?.*$/', '', $match); // Parametreleri temizle
-                    $absolute_path = realpath($css_dir . DIRECTORY_SEPARATOR . $relative_path);
+                    /*$absolute_path = realpath($css_dir . DIRECTORY_SEPARATOR . $relative_path);
+
+                    
+                    if (preg_match('/^[a-zA-Z]:\\\\|^\//', $relative_path)) { // Windows ve Unix için tam yol kontrolü
+                        $absolute_path = realpath($relative_path);
+                    } else {
+                        $absolute_path = realpath($css_dir . DIRECTORY_SEPARATOR . $relative_path);
+                    }
+
 
                     if ($absolute_path === false) {
                         // Hata günlüğü
                         error_log("Dosya bulunamadı: " . $css_dir . DIRECTORY_SEPARATOR . $relative_path);
                         continue;
-                    }
+                    }*/
 
-                    $file = basename($absolute_path); // Sadece dosya adını al
+                    $relative_path_parts = explode("node_modules", $relative_path);
+                    $relative_path = get_home_path()."node_modules".$relative_path_parts[1];
+
+
+                    $file = basename($relative_path); // Sadece dosya adını al
                     $assets[] = array(
                         "code" => $matches[0][$key],
                         "url" => $match,
                         "file" => $file,
-                        "clean_url" => $absolute_path // Temiz URL
+                        "clean_url" => $relative_path // Temiz URL
                     );
                 }
             }
@@ -491,9 +520,10 @@ class SaltMinifier{
                 foreach ($assets as $key => $asset) {
                     // Dosya mevcutsa kopyala
                     if (file_exists($asset["clean_url"]) && !is_dir($asset["clean_url"])) {
+                        error_log("copy(".$asset["clean_url"].", ".$this->output["plugin_assets"] . $asset["file"].")");
                         copy($asset["clean_url"], $this->output["plugin_assets"] . $asset["file"]);
                         $query = parse_url($asset["url"], PHP_URL_QUERY);
-                        $final_url = $this->output["plugin_assets"] . $asset["file"] . ($query ? '?' . $query : '');
+                        $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
                         if (!empty($publish_url)) {
                             $final_url = str_replace(home_url(), $publish_url, $final_url);
                         }
@@ -501,10 +531,11 @@ class SaltMinifier{
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
                         if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
+                             error_log("copy(".$asset["url"].", ".$this->output["plugin_assets"] . $asset["file"].")");
                             copy($asset["url"], $this->output["plugin_assets"] . $asset["file"]);
                             $clean_url = explode('?', $asset["url"])[0];
                             $query = parse_url($asset["url"], PHP_URL_QUERY);
-                            $final_url = $this->output["plugin_assets"] . $asset["file"] . ($query ? '?' . $query : '');
+                            $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
                             if(!empty($publish_url)){
                                 $final_url = str_replace(home_url(), $publish_url, $final_url);
                             }

@@ -22,32 +22,32 @@ function login_styles() {
     $admin_bg = get_field("admin_bg", "option");
 
     $bg_color = "#111";
-    if(isset($admin_bg["color"])){
+    if(isset($admin_bg["color"]) && !empty($admin_bg["color"])){
         $bg_color = $admin_bg["color"];
     }
 
     $bg_image = get_bloginfo("template_directory") .'/static/img/bg-login-admin.jpg';
-    if(isset($admin_bg["image"])){
+    if(isset($admin_bg["image"]) && !empty($admin_bg["image"])){
         $bg_image = $admin_bg["image"];
     }
 
     $bg_position_hr = "center";
-    if(isset($admin_bg["position_hr"])){
+    if(isset($admin_bg["position_hr"]) && !empty($admin_bg["position_hr"])){
         $bg_position_hr = $admin_bg["position_hr"];
     }
     $bg_position_vr = "center";
-    if(isset($admin_bg["position_vr"])){
+    if(isset($admin_bg["position_vr"]) && !empty($admin_bg["position_vr"])){
         $bg_position_vr = $admin_bg["position_vr"];
     }
     $bg_position = $bg_position_hr." ".$bg_position_vr;
 
     $bg_size = "auto";
-    if(isset($admin_bg["size"])){
+    if(isset($admin_bg["size"]) && !empty($admin_bg["size"])){
         $bg_size = $admin_bg["size"];
     }
 
     $bg_repeat = "no-repeat";
-    if(isset($admin_bg["repeat"])){
+    if(isset($admin_bg["repeat"]) && !empty($admin_bg["repeat"])){
         $bg_repeat = $admin_bg["repeat"];
     }
 
@@ -55,7 +55,7 @@ function login_styles() {
     $admin_text = get_field("admin_text", "option");
 
     $color = "#fff";
-    if(isset($admin_text["color"])){
+    if(isset($admin_text["color"]) && !empty($admin_text["color"])){
         $color = $admin_text["color"];
     }
 
@@ -64,11 +64,11 @@ function login_styles() {
     $admin_link = get_field("admin_link", "option");
 
     $link_color = "#fff";
-    if(isset($admin_link["color"])){
+    if(isset($admin_link["color"]) && !empty($admin_link["color"])){
         $link_color = $admin_link["color"];
     }
     $link_color_hover = "#fff";
-    if(isset($admin_link["color_hover"])){
+    if(isset($admin_link["color_hover"]) && !empty($admin_link["color_hover"])){
         $link_color_hover = $admin_link["color_hover"];
     }
 
@@ -77,29 +77,29 @@ function login_styles() {
     $admin_button = get_field("admin_button", "option");
 
     $button_color = "#111";
-    if(isset($admin_button["color"])){
+    if(isset($admin_button["color"]) && !empty($admin_button["color"])){
         $button_color = $admin_button["color"];
     }
     $button_color_hover = "#111";
-    if(isset($admin_button["color_hover"])){
+    if(isset($admin_button["color_hover"]) && !empty($admin_button["color_hover"])){
         $button_color_hover = $admin_button["color_hover"];
     }
 
     $button_bg = "yellow";
-    if(isset($admin_button["bg"])){
+    if(isset($admin_button["bg"]) && !empty($admin_button["bg"])){
         $button_bg = $admin_button["bg"];
     }
     $button_bg_hover = "yellow";
-    if(isset($admin_button["bg_hover"])){
+    if(isset($admin_button["bg_hover"]) && !empty($admin_button["bg_hover"])){
         $button_bg_hover = $admin_button["bg_hover"];
     }
 
     $button_border = "#111";
-    if(isset($admin_button["border"])){
+    if(isset($admin_button["border"]) && !empty($admin_button["border"])){
         $button_border = $admin_button["border"];
     }
     $button_border_hover = "#111";
-    if(isset($admin_button["border_hover"])){
+    if(isset($admin_button["border_hover"]) && !empty($admin_button["border_hover"])){
         $button_border_hover = $admin_button["border_hover"];
     }
 

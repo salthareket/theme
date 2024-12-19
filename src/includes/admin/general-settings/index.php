@@ -3,6 +3,10 @@ use Timber\Timber;
 use Timber\Loader;
 use SaltHareket\Theme;
 
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+
+
 if(class_exists("underConstruction")){
     add_filter( 'option_underConstructionActivationStatus', function( $status ){
         if($status == "1"){
@@ -871,11 +875,10 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
             }
             require THEME_CLASSES_PATH . "class.minify.php";
 
-            //if(function_exists("wp_scss_compile")){
-           if (class_exists('ScssPhp\ScssPhp\Compiler')) {
-                //global $wpscss_settings, $wpscss_compiler;
-                //wp_scss_compile();
-                $compile_errors = SaltHareket\Theme::scss_compile();//$wpscss_compiler->get_compile_errors();
+            /*if(function_exists("wp_scss_compile")){
+                global $wpscss_settings, $wpscss_compiler;
+                wp_scss_compile();
+                $compile_errors = $wpscss_compiler->get_compile_errors();
                 if($compile_errors){
                     $type = "error";
                     $message = "<strong style='display:block;color:red;'>Compiling Error</strong>";
@@ -889,7 +892,24 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
             }else{
                 $type = "error";
                 $message = "WP-SCSS is not intalled! SCSS is not compiled.";
-            }         
+            }*/ 
+
+            if (class_exists('ScssPhp\ScssPhp\Compiler')) {
+                $compile_errors = SaltHareket\Theme::scss_compile();
+                if($compile_errors){
+                    $type = "error";
+                    $message = "<strong style='display:block;color:red;'>Compiling Error</strong>";
+                    $message .= $compile_errors[0]["message"];
+                    file_put_contents( WP_CONTENT_DIR . '/compiler_error.log', $compile_errors[0]["message"], FILE_APPEND);
+                }else{
+                    $type = "success";
+                    $message = "scss files compiled!...";
+                    $message .= "<br>js files compiled!...";
+                }                
+            }else{
+                $type = "error";
+                $message = "WP-SCSS is not intalled! SCSS is not compiled.";
+            }  
 
             if(function_exists("add_admin_notice")){
                 add_admin_notice($message, $type);
@@ -910,12 +930,13 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
 
             if($is_development){
                 // remove unused css styles
-                $output = [];
+                error_log( "w e b p a c k");
+                /*$output = [];
                 $returnVar = 0;
                 $command = "npx webpack --env enable_ecommerce=false";//.(ENABLE_ECOMMERCE ? 'true' : 'false');
                 chdir(get_stylesheet_directory());
                 exec($command, $output, $returnVar);//exec('npx webpack', $output, $returnVar);
-                //echo implode("\n", $output);
+                error_log( json_encode(implode("\n", $output)));
                 if ($returnVar === 0) {
                     //echo 'Webpack successfully executed.';
                 } else {
@@ -923,6 +944,44 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
                     if(function_exists("add_admin_notice")){
                         add_admin_notice($message, "error");
                     }
+                }
+
+                $workingDir = get_stylesheet_directory();
+                $process = Process::fromShellCommandline('npx webpack --env enable_ecommerce=false', $workingDir);
+
+                try {
+                    $process->mustRun();
+                    error_log($process->getOutput()); 
+                } catch (ProcessFailedException $e) {
+                    $message = 'Webpack execution failed. Error code: ' .  $e->getMessage();
+                    error_log($message);
+                    if(function_exists("add_admin_notice")){
+                        add_admin_notice($message, "error");
+                    }
+                }*/
+
+                /**/
+                $workingDir = get_stylesheet_directory();
+                $command = ['npx', 'webpack', '--env', 'enable_ecommerce=false'];
+                $process = new Process($command, $workingDir);
+                $currentUser = getenv('USERNAME') ?: getenv('USER'); // Windows için USERNAME, diğer sistemlerde USER
+                $nodeJsPath = 'C:\Program Files\nodejs';
+                $npmPath = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
+                $process->setEnv([
+                    'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath,
+                ]);
+
+                //$process->setTimeout(300); // Zaman aşımı (isteğe bağlı)
+                try {
+                    $process->mustRun(); // Komutu çalıştır ve başarısız olursa hata fırlat
+                    error_log($process->getOutput()); // Çıktıyı kaydet
+                    //return true;
+                } catch (ProcessFailedException $exception) {
+                    error_log('Webpack execution failed: ' . $exception->getMessage());
+                    if (function_exists("add_admin_notice")) {
+                        add_admin_notice('Webpack execution failed.', 'error');
+                    }
+                    //return false;
                 }
 
                 // .js dosyalarını filtrele ve sil
