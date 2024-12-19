@@ -20,7 +20,7 @@ if(ENABLE_MEMBERSHIP){
     $required_plugins[] = 'one-user-avatar/one-user-avatar.php';
 }
 if(ENABLE_PUBLISH){
-    $required_plugins[] = 'wp-scss/wp-scss.php';
+    //$required_plugins[] = 'wp-scss/wp-scss.php';
 }
 $GLOBALS["plugins"] = $required_plugins;
 
