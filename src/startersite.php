@@ -4,8 +4,8 @@
 class StarterSite extends Timber\Site{
     function __construct(){
     	//echo "new StarterSite()<br>";
-    	//define('THEME_INCLUDES_PATH', get_template_directory() . '/includes/');
-        //define('THEME_CLASSES_PATH', get_template_directory() . '/classes/');
+    	//define('SH_INCLUDES_PATH', get_template_directory() . '/includes/');
+        //define('SH_CLASSES_PATH', get_template_directory() . '/classes/');
         add_action("after_setup_theme", [$this, "theme_supports"]);
         add_filter("timber/context", [$this, "add_to_context"]);
         //add_filter("timber/loader/render_file", [$this, "check_shortcodes"]);
@@ -256,7 +256,7 @@ class StarterSite extends Timber\Site{
         $context["base_urls"] = isset($GLOBALS["base_urls"])?$GLOBALS["base_urls"]:[];
 
         if (ENABLE_POSTCODE_VALIDATION) {
-            $postcodes = json_decode(file_get_contents(THEME_STATIC_PATH ."data/postcodes.json"), true);
+            $postcodes = json_decode(file_get_contents(SH_STATIC_PATH ."data/postcodes.json"), true);
             $context["postcodes"] = $postcodes;
         }
 
@@ -539,13 +539,13 @@ class StarterSite extends Timber\Site{
 
     function register_post_types(){
         //this is where you can register custom post types
-        include THEME_INCLUDES_PATH . "register/post-type.php";
+        include SH_INCLUDES_PATH . "register/post-type.php";
         include get_template_directory() . "/theme/includes/register/post-type.php";
     }
 
     function register_taxonomies(){
-        include THEME_INCLUDES_PATH . "register/user.php";
-        include THEME_INCLUDES_PATH . "register/taxonomy.php";
+        include SH_INCLUDES_PATH . "register/user.php";
+        include SH_INCLUDES_PATH . "register/taxonomy.php";
         include get_template_directory() . "/theme/includes/register/user.php";
         include get_template_directory() . "/theme/includes/register/taxonomy.php";
     }

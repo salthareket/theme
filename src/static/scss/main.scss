@@ -33,5 +33,5 @@
 
 //// 7 - custom
 /*! purgecss start ignore */
-@import '../../theme/static/scss/index';
+@import '#{$theme_static_path}scss/index';
 /*! purgecss end ignore */

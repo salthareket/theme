@@ -1819,8 +1819,8 @@ class SaltBase{
         }
         $config["required_js"] = $required_js;
 
-        if(defined("THEME_INCLUDES_URL")){
-           $config["theme_includes_url"] = THEME_INCLUDES_URL; 
+        if(defined("SH_INCLUDES_URL")){
+           $config["theme_includes_url"] = SH_INCLUDES_URL; 
         }
 
         return $config;  
@@ -1829,8 +1829,8 @@ class SaltBase{
     public function site_config_js(){
 
             //wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/includes/methods/index.js', array("jquery"), '1.0', false );
-            //wp_register_script( 'site_config_vars', THEME_INCLUDES_URL . 'methods/index.js', array("jquery"), '1.0', false );
-            wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/static/js/min/methods.min.js', array("jquery"), '1.0', false );
+            //wp_register_script( 'site_config_vars', SH_INCLUDES_URL . 'methods/index.js', array("jquery"), '1.0', false );
+            wp_register_script( 'site_config_vars', STATIC_URL . 'js/methods.min.js', array("jquery"), '1.0', false );
             wp_enqueue_script('site_config_vars');
 
             if(isset($GLOBALS["site_config"])){

@@ -575,7 +575,7 @@ Class Theme{
     }
     public function remove_comments(){
         $disable_comments_file = "/remove-comments-absolute.php";
-        $disable_comments_path = THEME_INCLUDES_PATH . $disable_comments_file;
+        $disable_comments_path = SH_INCLUDES_PATH . $disable_comments_file;
         $disable_comments_plugin = WP_PLUGIN_DIR . $disable_comments_file;
         if (DISABLE_COMMENTS) {
             if (!class_exists("Remove_Comments_Absolute")) {
@@ -600,24 +600,22 @@ Class Theme{
         }
     }
 
-    private static function copyStatic()
-    {
-        $srcDir = __DIR__ . '/static';
-        $destDir = get_template_directory() . '/static';
+    private static function copyFonts(){
+        $srcDir = SH_STATIC_PATH . 'fonts';
+        $target_dir = STATIC_PATH . 'fonts';
 
-        // Eğer static klasörü varsa, kopyalamaya başla
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true); 
+        }
         if (is_dir($srcDir)) {
-            self::recurseCopy($srcDir, $destDir);
-            echo " static folder copied to theme root!";
-        } else {
-            echo " static folder not found!";
+            self::recurseCopy($srcDir, $target_dir, ["scss"]);
         }
     }
 
     private static function copyAdmin() {
-        $target_dir = get_template_directory() . '/static/js/min/';
+        $target_dir = STATIC_URL . 'js/';
         $target_file = $target_dir . 'admin.min.js'; // Hedef dosya
-        $source_file = __DIR__ . '/includes/admin/index.js'; // Kaynak dosya
+        $source_file = SH_INCLUDES_PATH . 'admin/index.js'; // Kaynak dosya
         if (!file_exists($target_file)) {
             if (!is_dir($target_dir)) {
                 mkdir($target_dir, 0755, true); 
@@ -628,9 +626,9 @@ Class Theme{
         }
     }
     private static function copyMethods() {
-        $target_dir = get_template_directory() . '/static/js/min/';
+        $target_dir = STATIC_URL . 'js/';
         $target_file = $target_dir . 'methods.min.js'; // Hedef dosya
-        $source_file = __DIR__ . '/includes/methods/index.js'; // Kaynak dosya
+        $source_file = SH_INCLUDES_PATH . 'methods/index.js'; // Kaynak dosya
         if (!file_exists($target_file)) {
             if (!is_dir($target_dir)) {
                 mkdir($target_dir, 0755, true); 
@@ -643,34 +641,41 @@ Class Theme{
 
 
     // Klasörleri ve dosyaları kopyalamak için recursive fonksiyon
-    private static function recurseCopy($src, $dest){
-        // Kaynak klasörü var mı kontrol et
+    private static function recurseCopy($src, $dest, $exclude = []){
         $dir = opendir($src);
-        @mkdir($dest);
 
-        // Dosya/dizinleri kopyala
-        while (($file = readdir($dir)) !== false) {
+        if (!is_dir($dest)) {
+            mkdir($dest, 0755, true);
+        }
+
+        while (false !== ($file = readdir($dir))) {
             if ($file == '.' || $file == '..') {
-                continue;
+                continue; // Geçerli ve üst dizini atla
             }
 
-            $srcPath = $src . '/' . $file;
-            $destPath = $dest . '/' . $file;
+            $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+            $destPath = $dest . DIRECTORY_SEPARATOR . $file;
+
+            // Hariç tutulacak klasör kontrolü
+            if (is_dir($srcPath) && in_array($file, $exclude)) {
+                continue; // Hariç tutulan klasörü atla
+            }
 
             if (is_dir($srcPath)) {
-                // Eğer alt klasörse, rekürsif olarak kopyala
-                self::recurseCopy($srcPath, $destPath);
+                // Alt klasörleri kopyala
+                self::recurseCopy($srcPath, $destPath, $exclude);
             } else {
-                // Dosya ise, kopyala
+                // Dosyayı kopyala
                 copy($srcPath, $destPath);
             }
         }
+
         closedir($dir);
     }
     public static function scss_compile(){
         global $wpscss_compiler;
         $wpscss_compiler = new \SCSSCompiler(
-            STATIC_PATH."scss/",
+            SH_STATIC_PATH."scss/",
             STATIC_PATH."css/",
             'compressed',
             'SOURCE_MAP_NONE'
@@ -680,11 +685,11 @@ Class Theme{
     }
 	public function init(){
 		//echo "Salthareket/Theme::init()<br>";
-        //self::copyIncludes();
+        self::copyFonts();
         //self::copyStatic();
         //self::copyClasses();echo "set salt";
-        self::copyAdmin();
-        self::copyMethods();
+            //self::copyAdmin();
+            //self::copyMethods();
         //$salt = new \Salt();
         //$salt->init();
         //$GLOBALS["salt"] = $salt;

@@ -125,7 +125,7 @@ function enqueue_admin_sticky_script($hook) {
 global $typenow;
 $post_types = get_sticky_supported_post_types();
 if ('edit.php' === $hook && in_array($typenow, $post_types)) {
-wp_enqueue_script('admin-sticky-script', THEME_INCLUDES_URL . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
+wp_enqueue_script('admin-sticky-script', SH_INCLUDES_URL . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
 wp_localize_script('admin-sticky-script', 'stickyAjax', array('ajaxurl' => admin_url('admin-ajax.php')));
 }
 }
@@ -528,7 +528,7 @@ if($field["name"] == "enable_membership" && $value == 1){
 if($value){
 set_my_account_page();
 }
-require THEME_CLASSES_PATH . "class.methods.php";
+require SH_CLASSES_PATH . "class.methods.php";
 $methods = new MethodClass();
 $methods->createFiles(false);
 $methods->createFiles(false, "admin");
@@ -609,15 +609,13 @@ $variables = [
 "enable_filters" => boolval(ENABLE_FILTERS) ? "true" : "false",
 "enable_membership" => boolval(ENABLE_MEMBERSHIP) ? "true" : "false",
 "enable_chat" => boolval(ENABLE_CHAT) ? "true" : "false",
-"enable_notifications" => boolval(ENABLE_NOTIFICATIONS)
-? "true"
-: "false",
-"enable_sms_notifications" => boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_SMS_NOTIFICATIONS)
-? "true"
-: "false",
+"enable_notifications" => boolval(ENABLE_NOTIFICATIONS) ? "true" : "false",
+"enable_sms_notifications" => boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_SMS_NOTIFICATIONS) ? "true" : "false",
 "search_history" => boolval(ENABLE_SEARCH_HISTORY) ? "true" : "false",
 "logo" => "'" . get_field("logo", "option") . "'",
 "dropdown_notification" => boolval(header_has_dropdown()) ? "true" : "false",
+"node_modules_path" =>  '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
+"theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"'
 ];
 $plugins = file_get_contents(get_stylesheet_directory() ."/static/js/js_files_all.json");
 if($plugins){
@@ -1083,9 +1081,9 @@ rocket_clean_minify();
 }
 // compile js files and css files
 if (!function_exists("compile_files_config")) {
-require THEME_INCLUDES_PATH . "minify-rules.php";
+require SH_INCLUDES_PATH . "minify-rules.php";
 }
-require THEME_CLASSES_PATH . "class.minify.php";
+require SH_CLASSES_PATH . "class.minify.php";
 /*if(function_exists("wp_scss_compile")){
 global $wpscss_settings, $wpscss_compiler;
 wp_scss_compile();
@@ -1224,7 +1222,7 @@ if (is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_AD
 if ( function_exists( 'rocket_clean_minify' ) ) {
 rocket_clean_minify();
 }
-require THEME_CLASSES_PATH . "class.methods.php";
+require SH_CLASSES_PATH . "class.methods.php";
 $methods = new MethodClass();
 $frontend = $methods->createFiles(false);
 $admin = $methods->createFiles(false, "admin");
@@ -1293,7 +1291,7 @@ $excludeFilePaths[] = 'templates/author.twig';
 $excludeFilePaths[] = 'templates/partials/modals/login.twig';
 $excludeFilePaths[] = 'templates/partials/modals/fields-localization.twig';
 $excludeFilePaths[] = 'templates/partials/modals/list-languages.twig';
-$excludeFilePaths[] = THEME_INCLUDES_PATH . 'helpers/membership-functions.php';
+$excludeFilePaths[] = SH_INCLUDES_PATH . 'helpers/membership-functions.php';
 }
 if(!ENABLE_ECOMMERCE){
 $excludeFilePaths[] = 'template-shop.php';
@@ -1555,7 +1553,7 @@ if($theme_styles){
 $action = $theme_styles["theme_styles_action"];
 switch ($action) {
 case 'revert':
-$preset_file = THEME_STATIC_PATH . 'data/theme-styles-default.json';
+$preset_file = SH_STATIC_PATH . 'data/theme-styles-default.json';
 $json_file = file_get_contents($preset_file);
 $theme_styles = json_decode($json_file, true);
 $theme_styles["theme_styles_action"] = "";

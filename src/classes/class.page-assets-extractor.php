@@ -201,7 +201,7 @@ class PageAssetsExtractor {
 
         // Plugin konfigürasyonunu kontrol et
         if (!function_exists("compile_files_config")) {
-            require THEME_INCLUDES_PATH . "minify-rules.php";
+            require SH_INCLUDES_PATH . "minify-rules.php";
         }
         $files = compile_files_config(true);
 
@@ -243,12 +243,12 @@ class PageAssetsExtractor {
                 $plugin_files_css_rtl = [];
                 foreach($plugins as $plugin){
                     if($files["js"]["plugins"][$plugin]["css"]){
-                        $plugin_files_css[] = get_stylesheet_directory() . '/static/js/min/plugins/'.$plugin.".css"; 
+                        $plugin_files_css[] = STATIC_PATH . 'js/plugins/'.$plugin.".css"; 
                     }
                 }
                 foreach($plugins as $plugin){
                     if($files["js"]["plugins"][$plugin]["css"]){
-                        $plugin_files_css_rtl[] = get_stylesheet_directory() . '/static/js/min/plugins/'.$plugin."-rtl.css"; 
+                        $plugin_files_css_rtl[] = STATIC_PATH . 'js/plugins/'.$plugin."-rtl.css"; 
                     }
                 }
                 if($plugin_files_css){
@@ -263,10 +263,10 @@ class PageAssetsExtractor {
                 //plugin js
                 $plugin_files_js = [];
                 foreach($plugins as $plugin){
-                    $plugin_files_js[] = get_stylesheet_directory() . '/static/js/min/plugins/'.$plugin.".js";
+                    $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin.".js";
                 }
                 foreach($plugins as $plugin){
-                    $plugin_files_js[] = get_stylesheet_directory() . '/static/js/min/plugins/'.$plugin."-init.js";
+                    $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js";
                 }
                 if($plugin_files_js){
                     //error_log(json_encode($plugin_files_js));
@@ -335,11 +335,11 @@ class PageAssetsExtractor {
 
         $file_names = implode(',', $files);
         $hash = md5($file_names);
-        $cache_dir = get_stylesheet_directory() . '/static/' . $type . '/cache/';
+        $cache_dir = STATIC_PATH . $type . '/cache/';
         $cache_file = $cache_dir . $hash . '.' . $type;
 
         if (file_exists($cache_file)) {
-            return get_stylesheet_directory_uri() . '/static/' . $type . '/cache/' . $hash . '.' . $type;
+            return STATIC_URL . $type . '/cache/' . $hash . '.' . $type;
         } else {
             if (!file_exists($cache_dir)) {
                 mkdir($cache_dir, 0755, true);
@@ -349,7 +349,7 @@ class PageAssetsExtractor {
         $combined_content = '';
         foreach ($files as $file) {
             // Dosyanın tam yolunu kullan
-            $file_system_path = get_stylesheet_directory() . '/static/js/min/plugins/' . basename($file);
+            $file_system_path = STATIC_PATH . 'js/plugins/' . basename($file);
             
             if (file_exists($file_system_path)) {
                 $content = file_get_contents($file_system_path);
@@ -371,7 +371,8 @@ class PageAssetsExtractor {
         $combined_content = str_replace("}(jQuery))", "", $combined_content);
         file_put_contents($cache_file, trim($combined_content)); // Boş satırları önlemek için trim kullan
         //return get_stylesheet_directory_uri() . '/static/' . $type . '/cache/' . $hash . '.' . $type;
-        return '/static/' . $type . '/cache/' . $hash . '.' . $type;
+        //return '/static/' . $type . '/cache/' . $hash . '.' . $type;
+        return $type . '/cache/' . $hash . '.' . $type;
     }
 
     public function save_meta($result, $id) {
@@ -650,7 +651,6 @@ class PageAssetsExtractor {
             }
         }
     }
-
 
     function get_roles() {
         global $wp_roles;

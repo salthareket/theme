@@ -519,7 +519,7 @@ class SaltStarter{
     }
     public function remove_comments(){
         $disable_comments_file = "remove-comments-absolute.php";
-        $disable_comments_path = THEME_INCLUDES_PATH . $disable_comments_file;
+        $disable_comments_path = SH_INCLUDES_PATH . $disable_comments_file;
         $disable_comments_plugin = WP_PLUGIN_DIR . $disable_comments_file;
         if (DISABLE_COMMENTS) {
             if (!class_exists("Remove_Comments_Absolute")) {

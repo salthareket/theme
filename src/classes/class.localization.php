@@ -38,7 +38,7 @@ Class Localization{
 	    	$this->woocommerce_support = $value;
 	    }
 	    Private function create_table($table) {
-			$filename = THEME_STATIC_PATH . "data/".$table.".sql";
+			$filename = SH_STATIC_PATH . "data/".$table.".sql";
 			$mysql_host = DB_HOST;
 			$mysql_username = DB_USER;
 			$mysql_password = DB_PASSWORD;

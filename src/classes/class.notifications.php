@@ -664,7 +664,7 @@ function notifications_save_events() {
 	    }
 	}
 	$data = $grouped_data;
-    $json_file_path = get_template_directory() . '/static/data/notifications.json';
+    $json_file_path = get_template_directory() . '/theme/static/data/notifications.json';
     $json_data = json_encode($data, JSON_PRETTY_PRINT);
     file_put_contents($json_file_path, $json_data);
 }

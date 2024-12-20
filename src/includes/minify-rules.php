@@ -3,7 +3,7 @@
 function compile_files_config($enable_production=false){
 
 	if (!function_exists("compile_files_plugins")) {
-        require get_stylesheet_directory() . "/theme/includes/minify-rules.php";
+        require THEME_INCLUDES_PATH ."minify-rules.php";
     }
 
 	//setting languages
@@ -19,26 +19,28 @@ function compile_files_config($enable_production=false){
 	}
 
 	//setting paths
-	$css_path = get_stylesheet_directory() . '/static/css/';
-	$css_path_uri = get_stylesheet_directory_uri() . '/static/css/';
-	$js_path = get_stylesheet_directory() . '/static/js/';
-	$js_path_uri = get_stylesheet_directory_uri() . '/static/js/';
+	$css_path = STATIC_PATH . 'css/';
+	$css_path_uri = STATIC_URL . '/css/';
 
-	$js_theme_path = get_stylesheet_directory() . '/theme/static/js/';
-	$js_theme_path_uri = get_stylesheet_directory_uri() . '/theme/static/js/';
+	$js_path = STATIC_PATH. 'js/';
+	$js_path_uri = STATIC_URL . 'js/';
+
+	$js_theme_path = THEME_STATIC_PATH . 'js/';
+	$js_theme_path_uri = THEME_STATIC_URL . 'js/';
+
+	$js_sh_path = SH_STATIC_PATH . 'js/';
+	$js_sh_path_uri = SH_STATIC_URL . 'js/';
 
 	$plugin_path = $js_path . 'plugins/';
 	$plugin_path_uri = $js_path_uri . 'plugins/';
 
-	$node_path = get_home_path() .'node_modules/';
+	$node_path = NODE_MODULES_PATH;
 	$node_path_uri = site_url() .'/node_modules/';
 
-	$min_path = $js_path.'min/';
-	$min_path_uri = $js_path_uri.'min/';
-	$prod_path = $js_path.'production/';
-	$prod_path_uri = $js_path_uri.'production/';
+	$prod_path = $js_sh_path.'production/';
+	$prod_path_uri = $js_sh_path_uri.'production/';
 
-	$locale_path = $min_path.'locale/';
+	$locale_path = $js_path.'locale/';
 
 	$config = array(
 		"js" => $js_path,
@@ -47,8 +49,6 @@ function compile_files_config($enable_production=false){
 		"js_theme_uri" => $js_theme_path_uri,
 		"css" => $css_path,
 		"css_uri" => $css_path_uri,
-		"min" => $min_path,
-		"min_uri" => $min_path_uri,
 		"prod" => $prod_path,
 		"prod_uri" => $prod_path_uri,
 		"plugin" => $plugin_path,

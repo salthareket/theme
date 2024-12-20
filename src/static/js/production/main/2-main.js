@@ -8,6 +8,8 @@
 	var hash = root.hash;
 	var is_home = root.is_home;
 
+
+
 if(isLoadedJS("lenis")){
 	lenis = new Lenis()
 	/*lenis.on('scroll', (e) => {

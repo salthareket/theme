@@ -7,11 +7,11 @@ class SaltMinifier{
     public $enable_production = false;
     public $is_development = true; // in localhost
 	public $rules = [];
+
 	public $css_folder;
 	public $js_folder;
-	public $min_folder;
-    public $min_uri;
 	public $prod_folder;
+
 	public $output = [];
 	public $assets_check = [];
 	public $plugins_update = "";
@@ -27,23 +27,22 @@ class SaltMinifier{
 		$this->rules = compile_files_config();
 		$this->css_folder = $this->rules["config"]["css"];
 		$this->js_folder = $this->rules["config"]["js"];
-		$this->min_folder = $this->rules["config"]["min"];
-        $this->min_uri = $this->rules["config"]["min_uri"];
+        $this->js_uri = $this->rules["config"]["js_uri"];
 		$this->prod_folder = $this->rules["config"]["prod"];
 		$this->output = array(
 			"header.css"           => $this->css_folder . 'header.css',
 			"header_admin.css"     => $this->css_folder . 'header-admin.css',
 			"main.css"             => $this->css_folder . 'main.css',
-			"plugins.min.js"       => $this->min_folder . 'plugins.min.js',
-			"plugins"              => $this->min_folder . 'plugins/',
-            "plugin_assets"        => $this->min_folder . 'assets/',
-            "plugin_assets_uri"    => $this->min_uri . 'assets/',
-            "plugins_init"         => $this->js_folder  . 'production/plugins-init/',
-            "plugins-admin.min.js" => $this->min_folder . 'plugins-admin.min.js', 
-            'jquery.min.js'        => $this->min_folder . 'jquery.min.js',
-            "header.min.js"        => $this->min_folder . 'header.min.js',
-            "functions.min.js"     => $this->min_folder . 'functions.min.js',
-            "main.min.js"          => $this->min_folder . 'main.min.js',
+			"plugins.min.js"       => $this->js_folder . 'plugins.min.js',
+			"plugins"              => $this->js_folder . 'plugins/',
+            "plugin_assets"        => $this->js_folder . 'assets/',
+            "plugin_assets_uri"    => $this->js_uri . 'assets/',
+            "plugins_init"         => $this->prod_folder  . 'plugins-init/',
+            "plugins-admin.min.js" => $this->js_folder . 'plugins-admin.min.js', 
+            'jquery.min.js'        => $this->js_folder . 'jquery.min.js',
+            "header.min.js"        => $this->js_folder . 'header.min.js',
+            "functions.min.js"     => $this->js_folder . 'functions.min.js',
+            "main.min.js"          => $this->js_folder . 'main.min.js',
 
 		);
 	    if(file_exists($this->output["plugins"])){
@@ -54,9 +53,6 @@ class SaltMinifier{
 	    $this->rtl_list["main"] = $this->rules["config"]["css"] . 'main.css';
 	    $this->rtl_list["blocks"] = $this->rules["config"]["css"] . 'blocks.css';
 
-        if (!file_exists($this->rules["config"]["min"])){
-	        mkdir($this->rules["config"]["min"], 0777, true);
-	    }
 
 	    if (!file_exists($this->rules["config"]["locale"])){
             mkdir($this->rules["config"]["locale"], 0777, true);
@@ -276,6 +272,16 @@ class SaltMinifier{
                 }
             }
         }else{
+            if ($this->main_js_files){
+                foreach($this->main_js_files as $key => $filename){
+                    $total_files[] = $this->prod_folder . 'main/' . $filename;
+                }
+            }
+            if ($this->theme_js_files){
+                foreach($this->theme_js_files as $key => $filename){
+                    $total_files[] = $this->rules["config"]["js_theme"] . $filename;
+                }
+            }
             $minify = true;
         }
         if($total_files && $minify){
@@ -561,7 +567,7 @@ class SaltMinifier{
 	                        copy($source_path, $this->output["plugin_assets"] . $asset["file"]);
 	                        $clean_url = explode('?', $asset["url"])[0];
 	                        $query = parse_url($asset["url"], PHP_URL_QUERY);
-	                        $final_url = $this->rules["config"]["min_uri"] . "assets/" . $asset["file"] . ($query ? '?' . $query : '');
+	                        $final_url = $this->rules["config"]["js_uri"] . "assets/" . $asset["file"] . ($query ? '?' . $query : '');
 	                        if(!empty($publish_url)){
 	                            $final_url = str_replace(home_url(), $publish_url, $final_url);
 	                        }
@@ -573,7 +579,7 @@ class SaltMinifier{
 	                        copy($asset["url"], $this->output["plugin_assets"] . $asset["file"]);
 	                        $clean_url = explode('?', $asset["url"])[0];
 	                        $query = parse_url($asset["url"], PHP_URL_QUERY);
-	                        $final_url = $this->rules["config"]["min_uri"] . "assets/" . $asset["file"] . ($query ? '?' . $query : '');
+	                        $final_url = $this->rules["config"]["js_uri"] . "assets/" . $asset["file"] . ($query ? '?' . $query : '');
 	                        if(!empty($publish_url)){
 	                            $final_url = str_replace(home_url(), $publish_url, $final_url);
 	                        }

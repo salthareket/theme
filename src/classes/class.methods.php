@@ -12,11 +12,11 @@ class MethodClass {
         $methodsDirs = [];
 
         if ($platform == "frontend") {
-            $storeDir = THEME_INCLUDES_PATH . 'methods/';
-            $methodsDirs[] = THEME_INCLUDES_PATH . 'methods/';
+            $storeDir = SH_INCLUDES_PATH . 'methods/';
+            $methodsDirs[] = SH_INCLUDES_PATH . 'methods/';
         } elseif ($platform == "admin") {
-            $storeDir = THEME_INCLUDES_PATH . 'admin/';
-            $methodsDirs[] = THEME_INCLUDES_PATH . 'admin/';
+            $storeDir = SH_INCLUDES_PATH . 'admin/';
+            $methodsDirs[] = SH_INCLUDES_PATH . 'admin/';
         }
 
         // Ek klasörleri buraya ekleyebilirsiniz.
@@ -86,7 +86,7 @@ class MethodClass {
     }
 
     private function copyToTheme($path, $platform) {
-        $target_dir = get_template_directory() . '/static/js/min/';
+        $target_dir = STATIC_URL . 'js/';
         $target_file = $target_dir . ($platform=="frontend"?"methods":$platform).'.min.js'; // Hedef dosya
         $source_file = $path;
         if (!is_dir($target_dir)) {
@@ -215,9 +215,9 @@ class MethodClass {
     private function getExtraDirs($platform) {
         $extraDirs = [];
         if ($platform == "frontend") {
-            $extraDirs[] = get_stylesheet_directory() . '/theme/includes/methods/';
+            $extraDirs[] = THEME_INCLUDES_PATH . 'methods/';
         } elseif ($platform == "admin") {
-            $extraDirs[] = get_stylesheet_directory() . '/theme/includes/admin/';
+            $extraDirs[] = THEME_INCLUDES_PATH . 'admin/';
         }
         return $extraDirs;
     }

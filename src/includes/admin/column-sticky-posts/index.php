@@ -37,7 +37,7 @@ function enqueue_admin_sticky_script($hook) {
     global $typenow;
     $post_types = get_sticky_supported_post_types();
     if ('edit.php' === $hook && in_array($typenow, $post_types)) {
-        wp_enqueue_script('admin-sticky-script', THEME_INCLUDES_URL . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
+        wp_enqueue_script('admin-sticky-script', SH_INCLUDES_URL . 'admin/column-sticky-posts/ajax.js', array('jquery'), null, true);
         wp_localize_script('admin-sticky-script', 'stickyAjax', array('ajaxurl' => admin_url('admin-ajax.php')));
     }
 }
