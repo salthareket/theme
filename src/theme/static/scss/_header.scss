@@ -1,0 +1,428 @@
+.nav-toggler-custom{
+	  $width:40px;
+	  $weight:2px;
+	  $top:-9px;
+	  $bottom:-9px;
+	  position:relative;
+	  display:flex;
+	  align-items:center;
+	  justify-content:center;
+	  width:$width;
+	  height:$width;
+	  background-color:transparent;
+	  span{
+	  	  background-color:#fff;
+	  	  position: absolute;
+		        left: 0px;
+				right: 9px;
+				height: $weight;
+				z-index:0;
+				border-radius:4px;
+				@include transition(all .3s ease-out);
+				&:before{
+					    content: "";
+					 	bottom: $bottom;
+						background-color: #fff;
+						height: $weight;
+						left: 16px;
+						right: 0px;
+						position: absolute;
+						border-radius:4px;
+						@include transition(all .3s ease-out);
+				}
+				&:after{
+					  content: "";
+						top: $top;
+						background-color: #fff;
+						height: $weight;
+						left: 8px;
+						right: 0px;
+						position: absolute;
+						border-radius:4px;
+						@include transition(all .3s ease-out);
+				}
+	  }
+	  &.has-notification{
+	  	  &:before{
+	  	  	  content:"";
+	  	  	  position:absolute;
+	  	  	  top:-3px;
+	  	  	  left:-3px;
+	  	  	  background-color:var(--bs-primary);
+	  	  	  width:12px;
+	  	  	  height:12px;
+	  	  	  border-radius:50%;
+	  	  	  z-index:1;
+	  	  	  @include transition(all .3s ease-out);
+	  	  }
+	  	  &:hover{
+	  	  	  &:before{
+               //transform:scale(1.4);
+		  	  }
+	  	  }
+	  }
+	  &:hover{
+	  	  span{
+	  	  	  &:before{
+	  	  	  	left:8px;
+	  	  	  }
+	  	  	  &:after{
+	  	  	  	left:16px;
+	  	  	  }
+	  	  }
+	  }
+}
+
+@mixin headerTheme($color:null, $colorActive:null, $bgColor:null, $logo:null, $colorAffix:null, $colorAffixActive:null, $bgColorAffix:null, $logoAffix:null, $z_index:null, $btnAffixReverse:false){
+	header#header{
+		@if $z_index != null {
+			z-index:$z_index;
+		}
+		@if $bgColor != null {
+			background-color:$bgColor;
+		}
+		&:not(.affix){
+
+					.navbar-brand{
+						.logo-svg{
+							@if $logo != null {
+			                   @include svgColor($logo);
+			               }
+						}
+					}
+					@if $color != null {
+
+						.header-tools{
+							>.nav{
+								>.nav-item{
+									a:not(.btn){
+										color:$color!important;
+										&:hover{
+											color:$color!important;
+											>i{
+												color:$color!important;
+											}
+										}
+										>i{
+											color:$color!important;
+										}
+									}
+									.nav-toggler-custom{
+										span{
+											background-color:$color;
+											&:before{
+								                background-color:$color;
+											}
+											&:after{
+												background-color:$color;
+											}
+										}
+									}
+								}
+							}
+						}
+						.navbar-container{
+							.navbar-nav-main{
+								>.nav-item{
+									>a{
+						            color:$color;
+						            &:hover{
+						             	color:$color;
+						            }
+				                    .sub-arrow,
+						            .caret{
+										&:after {
+						                  color:rgba($color, .6);
+						               }
+									}
+						            &.dropdown-toggle {
+						               &:after {
+						                  color:rgba($color, .6);
+						               }
+						            }
+									}
+									&.active{
+										>a{
+											color:$color;
+										}
+									}
+								}
+							}
+						}
+
+					}		
+		}
+		&.affix{
+			@if $bgColorAffix != null {
+			    background-color:$bgColorAffix;
+		    }
+					.navbar-brand{
+						.logo-svg{
+							@if $logoAffix != null {
+			                  @include svgColor($logoAffix);
+			               }
+						}
+					}
+					@if $colorAffix != null {
+
+						.header-tools{
+							>.nav{
+								>.nav-item{
+									a:not(.btn){
+										color:$colorAffix!important;
+										&:hover{
+											color:$colorAffix!important;
+											>i{
+												color:$colorAffix!important;
+											}
+										}
+										>i{
+											color:$colorAffix!important;
+										}
+									}
+									@if $bgColor != $bgColorAffix and $btnAffixReverse == true {
+										a.btn{
+                                            @extend .btn-reverse;
+										}
+									}
+
+									@if $bgColor != $bgColorAffix and $btnAffixReverse != true {
+										a.btn{
+											&[class*=" btn-outline-"] {
+												@include button-outline-variant($colorAffix);
+                                            }
+										    &:not([class*=" btn-outline-"]) {
+										        @include button-variant($colorAffix, $colorAffix);
+										    }
+										}
+									}
+
+									.nav-toggler-custom{
+										span{
+											background-color:$colorAffix;
+											&:before{
+								                background-color:$colorAffix;
+											}
+											&:after{
+												background-color:$colorAffix;
+											}
+										}
+									}
+								}
+							}
+						}
+
+						.navbar-container{
+							.navbar-nav-main{
+								>.nav-item{
+									>a{
+						                color:$colorAffix;
+						                &:hover{
+						                	color:$colorAffix;
+						                }
+						                .sub-arrow,
+						                .caret{
+											&:after {
+						                        color:rgba($colorAffix, .6);
+						                    }
+										}
+						                &.dropdown-toggle {
+						                    &:after {
+						                        color:rgba($colorAffix, .6);
+						                    }
+						                }
+									}
+									&.active{
+										>a{
+											color:$colorAffix;
+										}
+									}
+								}
+							}
+						}
+						
+					}
+		}
+	}
+}
+@import 'header-themes';
+
+body{
+	&.menu-open{
+	   @include headerTheme(#fff, #fff, transparent, #fff, #fff, #fff, transparent, #fff, 1046);
+	   &.loading:not(.loaded){
+			&:before{
+				z-index:1047;
+			}
+			&:after{
+				z-index:1048;
+			}
+		}
+		&.header-hide{
+			header#header{
+				top:0px!important;
+			}
+		}
+		header#header{
+			&:after{
+				display:none;
+			}
+		}
+		.nav-toggler-custom{
+			span{
+				background-color: rgba(#fff, 0)!important;
+				&:before{
+					bottom:0;
+					left:0;
+					transform:rotate(45deg);
+				}
+				&:after{
+					top:0;
+					left:0;
+					transform:rotate(-45deg);
+				}
+			}
+			&:hover{
+				span{
+			  	  	&:before{
+			  	  	  	left:8px;
+			  	  	  	right:8px;
+			  	  	}
+			  	  	&:after{
+			  	  	  	left:8px;
+			  	  	  	right:8px;
+			  	  	}
+			  	 }
+			}
+		}
+	}	
+}
+
+.dropdown{
+	&.dropdown-notifications{
+      &[data-type='account']{
+			>a{
+				img{
+					border:2px solid #fff;
+				}
+			}
+		}
+	}
+}
+
+.nav-search{
+	.closed{
+		display:flex!important;
+	}
+	.opened{
+		display:none!important;
+	}
+}
+.menu-open{
+	.nav-search{
+		.closed{
+			display:none!important;;
+		}
+		.opened{
+			display:flex!important;
+		}
+	}
+}
+
+.nav-equal,
+.nav-equal + div{
+	opacity:0;
+	@include transition(opacity .3s ease-out);
+	&.nav-equalized,
+	&.nav-equalized + div{
+		opacity:1;
+	}
+}
+
+
+
+header#header{
+	.logo,
+	.logo-svg{
+		filter: drop-shadow(0px 2px 20px rgba(#000,.3));
+	}
+	.navbar-nav-main{
+		>li{
+			&.active{
+				>a{
+					> span:not(.sub-arrow){
+						position:relative;
+						&:after{
+							content:"";
+							position:absolute;
+							left:0;
+							right:0;
+							bottom:-4px;
+							height:2px;
+							background-color:var(--bs-turkis);
+							border-radius:3px;
+						}
+					}
+				}
+			}
+			&:not(.active){
+				>a{
+					> span:not(.sub-arrow){
+						position:relative;
+						&:after{
+							content:"";
+							position:absolute;
+							left:0;
+							right:0;
+							bottom:-4px;
+							height:2px;
+							background-color:#fff;
+							border-radius:3px;
+							opacity: 0;
+							@include transition(opacity .3s ease-out);
+						}
+					}
+					&:hover{
+						> span:not(.sub-arrow){
+							&:after{
+								opacity:.6;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	&.affix{
+		.navbar-nav-main{
+			>li{
+				>a{
+					> span:not(.sub-arrow){
+						position:relative;
+						&:after{
+							background-color:var(--bs-turkis);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+body:not(.has-hero){
+	header#header{
+		&:not(.affix){
+			.navbar-nav-main{
+				>li{
+					>a{
+						> span:not(.sub-arrow){
+							position:relative;
+							&:after{
+								background-color:var(--bs-turkis);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

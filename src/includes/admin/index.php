@@ -635,6 +635,10 @@ return $val;
 function get_theme_styles($variables = array()){
 $theme_styles = get_field("theme_styles", "option");
 if($theme_styles){
+$path = THEME_STATIC_PATH . 'data/theme-styles';
+if(!is_dir($path)){
+mkdir($path, 0755, true);
+}
 // Typography
 $headings_font = $theme_styles["typography"]["font_family"];
 $variables["header_font"] = $headings_font;
@@ -676,9 +680,9 @@ $variables["text_mobile_sizes"] = implode(",", $text_mobile_sizes);
 $variables["text_line_heights"] = "(".implode(",", $text_line_heights).");";
 // Colors
 $colors_list_default = ["primary", "secondary", "tertiary","quaternary", "gray", "danger", "info", "success", "warning", "light", "dark"];
-$colors_list_file = get_template_directory() . '/theme/static/data/colors.json';
-$colors_mce_file = get_template_directory() . '/theme/static/data/colors_mce.json';
-$colors_file = get_template_directory() . '/theme/static/scss/_colors.scss';
+$colors_list_file = THEME_STATIC_PATH . 'data/colors.json';
+$colors_mce_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+$colors_file = THEME_STATIC_PATH . 'scss/_colors.scss';
 file_put_contents($colors_file, "");
 $colors_code = "";
 $colors_mce = [];
@@ -850,7 +854,7 @@ foreach($header_logo["padding_affix"] as $key => $breakpoint){
 $variables["header-navbar-logo-padding-".$key."-affix"] = $breakpoint;
 }
 // Header Themes
-$header_themes_file = get_template_directory() . '/theme/static/scss/_header-themes.scss';
+$header_themes_file = THEME_STATIC_PATH . 'scss/_header-themes.scss';
 file_put_contents($header_themes_file, "");
 $header_themes = $header["themes"];
 if($header_themes){
@@ -1070,217 +1074,6 @@ update_dynamic_css_whitelist($classes);
 return $variables;
 }
 // on development settings changed
-function acf_development_extract_translations( $value=0, $post_id=0, $field="", $original="" ) {
-if( $value ) {
-if (is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1")) {
-if ( function_exists( 'rocket_clean_minify' ) ) {
-rocket_clean_minify();
-}
-// Get the text domain of the active theme
-$theme = wp_get_theme();
-$textDomain = $theme->get('TextDomain');
-// Get the path to the current theme's folder
-$themeFolderPath = get_template_directory();
-// Define the name and path of the output file
-$outputDir = $themeFolderPath . '/theme/static/data';
-$outputFile = $outputDir . '/translates.php';
-// Create the output directory if it doesn't exist
-if (!file_exists($outputDir)) {
-mkdir($outputDir, 0755, true);
-}
-// Define folders to exclude
-$excludeFolders = ['assets', 'node_modules', 'vendor', 'static', 'languages', 'acf-json'];
-if(!ENABLE_ECOMMERCE){
-$excludeFolders[] = "woo";
-$excludeFolders[] = "woocommerce";
-}
-if(!ENABLE_MEMBERSHIP){
-$excludeFolders[] = "user";
-$excludeFolders[] = "my-account'";
-}
-$excludeFilePaths = [];
-if(!ENABLE_MEMBERSHIP){
-$excludeFilePaths[] = 'template-my-account.php';
-$excludeFilePaths[] = 'templates/partials/base/menu-login.twig';
-$excludeFilePaths[] = 'templates/partials/base/menu-user-menu.twig';
-$excludeFilePaths[] = 'templates/partials/base/offcanvas-user-menu.twig';
-$excludeFilePaths[] = 'templates/partials/base/user-completion.twig';
-$excludeFilePaths[] = 'templates/author.twig';
-$excludeFilePaths[] = 'templates/partials/modals/login.twig';
-$excludeFilePaths[] = 'templates/partials/modals/fields-localization.twig';
-$excludeFilePaths[] = 'templates/partials/modals/list-languages.twig';
-$excludeFilePaths[] = SH_INCLUDES_PATH . 'helpers/membership-functions.php';
-}
-if(!ENABLE_ECOMMERCE){
-$excludeFilePaths[] = 'template-shop.php';
-$excludeFilePaths[] = 'template-checkout.php';
-$excludeFilePaths[] = 'templates/partials/base/menu-cart.twig';
-$excludeFilePaths[] = 'templates/partials/base/offcanvas-cart.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/cart.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/cart-empty.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/cart-footer.twig';
-}
-if(!ENABLE_CHAT){
-$excludeFilePaths[] = 'templates/partials/base/offcanvas-messages.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/messages.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/messages-empty.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/messages-footer.twig';
-}
-if(!ENABLE_FAVORITES){
-$excludeFilePaths[] = 'templates/partials/base/menu-favorites.twig';
-$excludeFilePaths[] = 'templates/partials/base/offcanvas-favorites.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/favorites.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/favorites-empty.twig';
-$excludeFilePaths[] = 'templates/partials/dropdown/favorites-footer.twig';
-}
-if(!ENABLE_NOTIFICATIONS){
-$excludeFilePaths[] = 'templates/partials/base/menu-notifications.twig';
-$excludeFilePaths[] = 'templates/partials/base/offcanvas-notifications.twig';
-}
-if (!class_exists("Newsletter")) {
-$excludeFilePaths[] = 'template-newsletter.php';
-$excludeFilePaths[] = 'templates/page-newsletter.twig';
-}
-function scanFolder($folderPath, $excludeFolders, $excludeFilePaths) {
-$files = [];
-$dir = new RecursiveDirectoryIterator($folderPath, RecursiveDirectoryIterator::SKIP_DOTS);
-$iterator = new RecursiveIteratorIterator($dir);
-$regex = new RegexIterator($iterator, '/^.+\.(php|twig)$/i', RecursiveRegexIterator::GET_MATCH);
-foreach ($regex as $file) {
-$path = str_replace('\\', '/', $file[0]);
-$exclude = false;
-foreach ($excludeFolders as $excludeFolder) {
-if (strpos($path, "/$excludeFolder/") !== false) {
-$exclude = true;
-break;
-}
-}
-foreach ($excludeFilePaths as $excludeFilePath) {
-if (strpos($path, $excludeFilePath) !== false) {
-$exclude = true;
-break;
-}
-}
-if (!$exclude) {
-$files[] = $path;
-}
-}
-return $files;
-}
-function extractTranslations($filePath) {
-$content = file_get_contents($filePath);
-// Regex for translate with 1 argument
-preg_match_all('/translate\(([^)]+)\)/', $content, $translateMatches);
-// Regex for translate_n_noop with 2 arguments
-preg_match_all('/translate_n_noop\(([^)]+)\)/', $content, $noopMatches);
-return [
-'translate' => $translateMatches,
-'translate_n_noop' => $noopMatches
-];
-}
-// Scan the folder and get all PHP and Twig files
-$files = scanFolder($themeFolderPath, $excludeFolders, $excludeFilePaths);
-$translations = [
-'translate' => [],
-'translate_n_noop' => []
-];
-/*if (is_plugin_active('multilingual-contact-form-7-with-polylang/plugin.php')) {
-global $wpdb;
-$posts = $wpdb->get_results("
-SELECT ID, post_content
-FROM {$wpdb->posts}
-WHERE post_type = 'wpcf7_contact_form'
-");
-$placeholders = [];
-foreach ($posts as $post) {
-preg_match_all('/\{([^}]*)\}/', $post->post_content, $matches);
-if (!empty($matches[1])) {
-$placeholders[] = $matches[1];
-}
-}
-$translations["translate"] = $placeholders;
-}*/
-// Extract translations from each file
-foreach ($files as $file) {
-$matches = extractTranslations($file);
-foreach ($matches['translate'][0] as $index => $match) {
-// Split arguments by comma
-$arguments = array_map('trim', explode(',', $matches['translate'][1][$index]));
-if (count($arguments) === 1) {
-// translate case
-$translations['translate'][] = $arguments[0];
-}
-}
-foreach ($matches['translate_n_noop'][0] as $index => $match) {
-// Split arguments by comma
-$arguments = array_map('trim', explode(',', $matches['translate_n_noop'][1][$index]));
-if (count($arguments) === 2) {
-// translate_n_noop case
-$translations['translate_n_noop'][] = $arguments;
-}
-}
-}
-// Remove duplicates
-$translations['translate'] = array_unique($translations['translate']);
-$translations['translate_n_noop'] = array_unique($translations['translate_n_noop'], SORT_REGULAR);
-// Create or overwrite the output file
-$output = fopen($outputFile, 'w');
-fwrite($output, "<"."?"."php\n");
-foreach ($translations['translate'] as $translation) {
-fwrite($output, "__($translation, \"$textDomain\");\n");
-}
-foreach ($translations['translate_n_noop'] as $translationPair) {
-fwrite($output, "_n_noop($translationPair[0], $translationPair[1], \"$textDomain\");\n");
-}
-fwrite($output, "?".">");
-fclose($output);
-$outputLangFile = $outputDir . '/translates.json';
-file_put_contents($outputLangFile, "[]");
-$output = fopen($outputLangFile, 'w');
-if($translations['translate']){
-$translations_new = [];
-foreach ($translations['translate'] as $translation) {
-$translations_new[] = trim($translation, "\"'");
-}
-$translation_lang = json_encode(array_values($translations_new), JSON_UNESCAPED_UNICODE);
-fwrite($output, $translation_lang);
-}
-fclose($output);
-$total = count($translations['translate']) + count($translations['translate_n_noop']);
-$message = "Translations file have been updated with ".$total." translations";
-$type = "success";
-if(function_exists("add_admin_notice")){
-add_admin_notice($message, $type);
-}
-}
-}
-return 0;
-}
-add_filter('acf/update_value/name=enable_extract_translations', 'acf_development_extract_translations', 10, 4);
-/*function acf_development_extract_js_css( $value=0, $post_id=0, $field="", $original="" ) {
-if( $value ) {
-if (is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1")) {
-if ( function_exists( 'rocket_clean_minify' ) ) {
-rocket_clean_minify();
-}
-$extractor = new PageAssetsExtractor();
-$urls = $extractor->fetch_all();
-if($urls){
-$total = count($urls);
-$message = "JS & CSS Extraction process competed with <strong>".$total." pages.</strong>";
-$type = "success";
-}else{
-$message = "Not found any pages to extract process.";
-$type = "error";
-}
-if(function_exists("add_admin_notice")){
-add_admin_notice($message, $type);
-}
-}
-}
-return 0;
-}
-add_filter('acf/update_value/name=enable_extract_js_css', 'acf_development_extract_js_css', 10, 4);*/
 // ACF alanları kaydedildiğinde çalışacak fonksiyon
 function acf_save_menu_safelist_classes($post_id) {
 if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
@@ -1357,7 +1150,7 @@ $json_data = array_values($merged_menu_classes);
 update_dynamic_css_whitelist($json_data);
 /*$merged_menu_classes = array_map('trim', array_filter(array_unique(array_merge(...$menu_classes))));
 $json_data = json_encode(['dynamicSafelist' => array_values($merged_menu_classes)], JSON_PRETTY_PRINT);
-$file_path = get_template_directory() . '/theme/static/data/css_safelist.json';
+$file_path = HEME_STATIC_PATH . 'data/css_safelist.json';
 file_put_contents($file_path, $json_data);*/
 }
 }
@@ -1369,6 +1162,10 @@ $theme_styles = get_field('theme_styles', 'option');
 //die;
 if($theme_styles){
 $action = $theme_styles["theme_styles_action"];
+$path = THEME_STATIC_PATH . 'data/theme-styles';
+if(!is_dir($path)){
+mkdir($path, 0755, true);
+}
 switch ($action) {
 case 'revert':
 $preset_file = SH_STATIC_PATH . 'data/theme-styles-default.json';
@@ -1381,7 +1178,7 @@ break;
 case 'save':
 $timestamp = time();
 $filename = sanitize_title($theme_styles["theme_styles_filename"]);//.".".$timestamp;
-$preset_file = get_template_directory() . '/theme/static/data/theme-styles/'.$filename.'.json';
+$preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
 //$theme_styles["theme_styles_action"] = "";
 //$theme_styles["theme_styles_filename"] = "";
 //update_field('theme_styles', $theme_styles, $post_id);
@@ -1392,7 +1189,7 @@ break;
 case 'load':
 $filename = $theme_styles["theme_styles_presets"];
 if(!empty($filename)){
-$preset_file = get_template_directory() . '/theme/static/data/theme-styles/'.$filename.'.json';
+$preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
 $json_file = file_get_contents($preset_file);
 $theme_styles = json_decode($json_file, true);
 $theme_styles["theme_styles_action"] = "save";
@@ -1403,7 +1200,7 @@ update_field('theme_styles', $theme_styles, $post_id);
 break;
 }
 // save latest
-$preset_file = get_template_directory() . '/theme/static/data/theme-styles/latest.json';
+$preset_file = THEME_STATIC_PATH . 'data/theme-styles/latest.json';
 $json_data = json_encode($theme_styles);
 file_put_contents($preset_file, $json_data);
 }
@@ -1411,7 +1208,8 @@ file_put_contents($preset_file, $json_data);
 }
 add_action('acf/save_post', 'acf_theme_styles_save_hook', 10);
 function acf_theme_styles_load_presets( $field ) {
-$path = get_stylesheet_directory() . '/theme/static/data/theme-styles/';
+$path = THEME_STATIC_PATH . 'data/theme-styles/';
+if(is_dir($path)){
 $handle = $path;
 $templates = array();// scandir($handle);
 if ($handle = opendir($handle)) {
@@ -1422,11 +1220,14 @@ $templates[] = $entry;
 }
 closedir($handle);
 }
+}else{
+$path = SH_STATIC_PATH . 'data/';
+$templates = ["theme-styles-default.json"];
+}
 $field['choices'] = array();
 if( is_array($templates) ) {
 foreach( $templates as $template ) {
 $filepath = $path . $template;
-//print_r($filepath);
 if (file_exists($filepath)) {
 $save_date = date("d.m.Y H:i", filemtime($filepath));
 $template = str_replace(".json", "", $template);

@@ -222,7 +222,9 @@ add_action('after_setup_theme', function () {
         Timber::$cache = false;
         include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
         include_once SH_INCLUDES_PATH . 'twig-extends.php';
-        include_once THEME_INCLUDES_PATH . "twig-extends.php";
+        if(\Update::is_task_completed("copy_theme")){
+            include_once THEME_INCLUDES_PATH . "twig-extends.php";
+        }
         if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
             include_once SH_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
         }
@@ -237,7 +239,9 @@ add_action('after_setup_theme', function () {
 });
 
 include_once SH_INCLUDES_PATH . "helpers/index.php";
-include_once THEME_INCLUDES_PATH . "globals.php";
+if(\Update::is_task_completed("copy_theme")){
+    include_once THEME_INCLUDES_PATH . "globals.php";
+}
 include_once SH_INCLUDES_PATH . "blocks.php";
 include_once SH_INCLUDES_PATH . "styles-scripts.php";
 //include_once SH_INCLUDES_PATH . "install-plugins.php";
@@ -423,7 +427,9 @@ if (ENABLE_ECOMMERCE) {
 }
 
 // extend with theme files
-include_once get_template_directory() . "/theme/index.php";
+if(\Update::is_task_completed("copy_theme")){
+    include_once get_template_directory() . "/theme/index.php";
+}
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 /*
 $GLOBALS["base_urls"] = array();
@@ -437,7 +443,10 @@ $GLOBALS["base_urls"] = array();
 */
 
 
-
-$salt = new \Salt();
+if(\Update::is_task_completed("copy_theme")){
+    $salt = new \Salt();
+}else{
+    $salt = new \SaltBase();
+}
 //$salt->init();
 $GLOBALS["salt"] = $salt;

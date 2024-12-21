@@ -540,14 +540,18 @@ class StarterSite extends Timber\Site{
     function register_post_types(){
         //this is where you can register custom post types
         include SH_INCLUDES_PATH . "register/post-type.php";
-        include get_template_directory() . "/theme/includes/register/post-type.php";
+        if(\Update::is_task_completed("copy_theme")){
+            include THEME_INCLUDES_PATH . "register/post-type.php";
+        }
     }
 
     function register_taxonomies(){
         include SH_INCLUDES_PATH . "register/user.php";
         include SH_INCLUDES_PATH . "register/taxonomy.php";
-        include get_template_directory() . "/theme/includes/register/user.php";
-        include get_template_directory() . "/theme/includes/register/taxonomy.php";
+        if(\Update::is_task_completed("copy_theme")){
+            include THEME_INCLUDES_PATH . "register/user.php";
+            include THEME_INCLUDES_PATH . "register/taxonomy.php";
+        }
     }
 
     /*function check_shortcodes($file) {

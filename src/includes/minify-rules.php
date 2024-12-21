@@ -2,8 +2,8 @@
 
 function compile_files_config($enable_production=false){
 
-	if (!function_exists("compile_files_plugins")) {
-        require THEME_INCLUDES_PATH ."minify-rules.php";
+	if (!function_exists("compile_files_plugins") && \Update::is_task_completed("copy_theme")) {
+        require THEME_INCLUDES_PATH . "minify-rules.php";
     }
 
 	//setting languages
@@ -363,11 +363,13 @@ function compile_files_config($enable_production=false){
 			"init"     => ""
 		];
 	}
-
-	$theme_plugins = compile_files_plugins($enable_production);
-	if($theme_plugins){
-		$plugins = array_merge($plugins, $theme_plugins);
-	}
+    
+    if(function_exists("compile_files_plugins")){
+		$theme_plugins = compile_files_plugins($enable_production);
+		if($theme_plugins){
+			$plugins = array_merge($plugins, $theme_plugins);
+		}    	
+    }
 
 
    $header_css = array();
@@ -490,10 +492,13 @@ function compile_files_config($enable_production=false){
 			$js["main"][] = $prod_path_uri.'main/'.$file;
 		}
 
-		$theme_js =  array_slice(scandir($config["js_theme"]), 2);
-		foreach($theme_js as $file){
-			$js["main"][] = $config["js_theme_uri"].$file;
-		}
+        if(is_dir($config["js_theme"])){
+			$theme_js =  array_slice(scandir($config["js_theme"]), 2);
+			foreach($theme_js as $file){
+				$js["main"][] = $config["js_theme_uri"].$file;
+			}        	
+        }
+
 	}
 
 	$minify = array(

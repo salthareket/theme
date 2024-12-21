@@ -36,6 +36,7 @@ jQuery(document).ready(function ($) {
             },
             success: function (response) {
                 if (response.success) {
+                    installationStatus.html(response.data.message);
                     const progress = Math.round(((taskIndex + 1) / tasks.length) * 100);
                     progressBar
                         .css('width', progress + '%')

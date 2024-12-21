@@ -408,7 +408,7 @@ $shortcodes_list = [
 
 ];
 
-if($GLOBALS["custom_shortcodes"]){
+if(isset($GLOBALS["custom_shortcodes"]) && $GLOBALS["custom_shortcodes"]){
    $shortcodes_list = array_merge($shortcodes_list, $GLOBALS["custom_shortcodes"]);
 }
 

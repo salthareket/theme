@@ -18,10 +18,11 @@ class Update {
     private static $vendor_directory;
     private static $repo_directory;
 
-    private static $status;
-    private static $tasks_status;
+    public static $status;
+    public static $tasks_status;
     public static $installation_tasks = [
-        ["id" => "copy_fonts", "name" => "Copy Fonts"],
+        ["id" => "copy_theme", "name" => "Copying Theme Files"],
+        ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
@@ -38,6 +39,10 @@ class Update {
         self::$status = get_option('sh_theme_status', false);
         self::$tasks_status = get_option('sh_theme_tasks_status', []);
         self::$tasks_status = empty(self::$tasks_status)?[]:self::$tasks_status;
+        if(!is_dir(get_template_directory() . '/theme/')){
+           self::$status = "pending";
+           self::$tasks_status = [];
+        }
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
         add_action('wp_ajax_update_theme_package', [__CLASS__, 'composer']);
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
@@ -83,7 +88,6 @@ class Update {
             }
         }
     }
-
 
 
     private static function get_current_version() {
@@ -486,8 +490,14 @@ class Update {
         }
     }
 
-
-
+    private static function copy_theme(){
+        $srcDir = SH_PATH . 'theme';
+        $target_dir = get_template_directory() . '/theme';
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true); 
+            self::recurseCopy($srcDir, $target_dir);
+        }
+    }
     private static function copy_fonts(){
         $srcDir = SH_STATIC_PATH . 'fonts';
         $target_dir = STATIC_PATH . 'fonts';
@@ -548,6 +558,11 @@ class Update {
         $task_id = isset($_POST['task_id']) ? sanitize_text_field($_POST['task_id']) : '';
         try {
             switch ($task_id) {
+                case 'copy_theme':
+                    self::copy_theme();
+                    self::update_task_status('copy_theme', true);
+                    wp_send_json_success(['message' => 'Theme files copied successfully']);
+                    break;
                 case 'copy_fonts':
                     self::copy_fonts();
                     self::update_task_status('copy_fonts', true);
@@ -586,11 +601,19 @@ class Update {
         $tasks_status[$task_id] = $status;
         self::$tasks_status = $tasks_status;
         update_option('sh_theme_tasks_status', $tasks_status);
+        error_log($task_id." yuklendi");
         if (self::tasks_completed()) {
             update_option('sh_theme_status', true);
             self::$status = true;
             error_log("Tüm görevler tamamlandı. sh_theme_status true yapıldı.");
         }
+    }
+    public static function is_task_completed($task=""){
+        $tasks_status = get_option('sh_theme_tasks_status', []);
+        if(is_array($tasks_status) && in_array($task, array_keys($tasks_status))){
+           return true;
+        }
+        return false;
     }
     public static function tasks_completed() {
         $tasks_status = get_option('sh_theme_tasks_status', []);

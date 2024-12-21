@@ -63,7 +63,7 @@ function frontend_header_styles(){
     	}
     }
 
-    if($GLOBALS["remove_classic_theme_styles"]){
+    if(isset($GLOBALS["remove_classic_theme_styles"]) && $GLOBALS["remove_classic_theme_styles"]){
     	//wp_deregister_style('classic-theme-styles-inline');
     	//wp_deregister_style('classic-theme-styles');
         wp_dequeue_style('classic-theme-styles-inline');
@@ -71,7 +71,7 @@ function frontend_header_styles(){
     	
     }
    
-	if($GLOBALS["remove_woocommerce_styles"]){
+	if(isset($GLOBALS["remove_woocommerce_styles"]) && $GLOBALS["remove_woocommerce_styles"]){
 		wp_dequeue_style('woocommerce-smallscreen');
 	    wp_dequeue_style('woocommerce-inline');
 	    wp_dequeue_style('woocommerce-layout');

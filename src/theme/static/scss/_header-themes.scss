@@ -1,0 +1,6 @@
+body:not(.menu-open){
+@include headerTheme(#293a44,#293a44,null,#293a44,#293a44,#293a44,#ffffff,#293a44,5,false);
+}
+.light-theme:not(.menu-open){
+@include headerTheme(#ffffff,#ffffff,null,#ffffff,#293a44,#293a44,#ffffff,#293a44,5,false);
+}

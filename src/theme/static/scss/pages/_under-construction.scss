@@ -1,0 +1,31 @@
+.page-under-construction{
+	.card{
+		.card-header{
+			.logo{
+				max-width: 100%;
+		  		height: auto;
+		 		min-width: 300px;
+			}			
+		}
+		.card-body{
+			h3{
+				color:#333;
+				font-weight:400;
+			}
+			a{
+				color: #333;
+			}	
+		}
+		.card-footer{
+			a{
+				background-color:rgba(#000, .4)!important;
+				color:#fff;
+				letter-spacing: 1px;
+                font-size: 11px;
+                &:hover{
+                	background-color:rgba(#000, .6)!important;
+                }
+			}
+		}
+	}
+}
