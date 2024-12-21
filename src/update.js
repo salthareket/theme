@@ -1,11 +1,11 @@
 jQuery(document).ready(function ($) {
 
     const tasks = updateAjax.tasks || [];
-    console.log(tasks);
-    let currentTaskIndex = 0;
 
+    let currentTaskIndex = 0;
+    const progress = $('.progress');
     const progressBar = $('#installation-progress');
-    const taskElements = tasks.map(task => $(`#task-${task.id}`));
+    const installationStatus = $(".installation-status");
 
     $('#start-installation-button').on('click', function () {
         $(this).prop('disabled', true); // Butonu devre dışı bırak
@@ -13,6 +13,7 @@ jQuery(document).ready(function ($) {
     });
 
     function runTask(taskIndex) {
+
         if (taskIndex >= tasks.length) {
             completeInstallation();
             return;
@@ -29,10 +30,9 @@ jQuery(document).ready(function ($) {
                 nonce: updateAjax.nonce
             },
             beforeSend: function () {
-                taskElements[taskIndex]
-                    .removeClass('bg-secondary')
-                    .addClass('bg-warning')
-                    .text('In Progress');
+                progress.css("display", "block");
+                installationStatus.css("display", "block");
+                installationStatus.html(task["name"]);
             },
             success: function (response) {
                 if (response.success) {
@@ -41,33 +41,21 @@ jQuery(document).ready(function ($) {
                         .css('width', progress + '%')
                         .attr('aria-valuenow', progress)
                         .text(progress + '%');
-
-                    taskElements[taskIndex]
-                        .removeClass('bg-warning')
-                        .addClass('bg-success')
-                        .text('Completed');
-
                     runTask(taskIndex + 1);
                 } else {
-                    taskElements[taskIndex]
-                        .removeClass('bg-warning')
-                        .addClass('bg-danger')
-                        .text('Failed');
+                    installationStatus.html(task["name"]+"<br><div style='color:red;'>"+response.data.message+"</div>");
                     alert('Error: ' + response.data.message);
                 }
             },
             error: function () {
-                taskElements[taskIndex]
-                    .removeClass('bg-warning')
-                    .addClass('bg-danger')
-                    .text('Error');
+                installationStatus.html(task["name"]+"<br><div style='color:red;'>An unexpected error occurred</div>");
                 alert('An unexpected error occurred.');
             }
         });
     }
 
     function completeInstallation() {
-        alert('Installation completed successfully!');
+        installationStatus.html("<div style='color:green;'>Installation completed successfully!</div>");
         location.reload(); // Sayfayı yenile
     }
 

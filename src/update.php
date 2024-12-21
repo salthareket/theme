@@ -19,9 +19,12 @@ class Update {
     private static $repo_directory;
 
     private static $status;
+    private static $tasks_status;
     public static $installation_tasks = [
         ["id" => "copy_fonts", "name" => "Copy Fonts"],
-        ["id" => "compile_methods", "name" => "Compile ACF Methods"],
+        ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
+        ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
+        ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
         ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
     ];
 
@@ -32,12 +35,53 @@ class Update {
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
-        self::$status = get_option('sh_theme_status', 'pending');
+        self::$status = get_option('sh_theme_status', false);
+        self::$tasks_status = get_option('sh_theme_tasks_status', []);
+        self::$tasks_status = empty(self::$tasks_status)?[]:self::$tasks_status;
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
         add_action('wp_ajax_update_theme_package', [__CLASS__, 'composer']);
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
         add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
+        self::check_installation();
+    }
+
+    private static function check_installation(){
+        if (!(defined('DOING_AJAX') && DOING_AJAX)) {
+            $status = self::$status;
+            $tasks_status = self::$tasks_status;
+            if(empty($status)){
+                $status = "pending";
+                $tasks_status = [];
+                add_option('sh_theme_status', $status);
+                add_option('sh_theme_tasks_status', $tasks_status);
+            }else{
+                if(count(self::$installation_tasks) > count($tasks_status)){
+                    $status = "pending";
+                    $tasks_status = [];
+                    update_option('sh_theme_status', $status);
+                    update_option('sh_theme_tasks_status', $tasks_status);
+                }            
+            }
+            self::$status = $status;
+            self::$tasks_status = $tasks_status;
+            if ($status == 'pending' || !$status) {
+                if (is_admin()) {
+                    $current_page = $_GET['page'] ?? '';
+                    if ($current_page !== 'update-theme') {
+                        wp_safe_redirect(admin_url('admin.php?page=update-theme'));
+                        exit;
+                    }
+                } else {
+                    wp_die(
+                        sprintf(
+                            '<h2 class="text-danger">Warning</h2>The theme setup is not complete. Please complete the installation from the <a href="%s">update page</a>.',
+                            esc_url(admin_url('admin.php?page=update-theme'))
+                        )
+                    );
+                }
+            }
+        }
     }
 
 
@@ -142,28 +186,18 @@ class Update {
         ?>
         <div class="wrap">
             <h1>Installation Required</h1>
-            <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
-            
-            <div class="progress my-4" style="height: 30px;">
-                <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-            </div>
 
-            <div id="installation-tasks">
-                <ul class="list-group mb-4">
-                <?php 
-                    foreach(self::$installation_tasks as $task){
-                    ?>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><?php echo $task["name"];?></span>
-                        <span id="task-<?php echo $task["id"];?>" class="badge bg-secondary">Pending</span>
-                    </li>
-                    <?php 
-                    }
-                    ?>
-                </ul>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content: center;height:100vh; text-align:center;">
+                <div style="width:60%;">
+                    <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;">Install Requirements</h2>
+                    <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
+                    <div class="progress my-4 " style="height: 30px;display:none;">
+                        <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;height:100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <div class="installation-status" style="text-align:center;font-size: 22px;font-weight:bold;margin-top:20px;display:none;"></div>
+                    <button id="start-installation-button" class="button button-primary" style="margin-top:40px;font-size: 18px;border-radius: 22px;border: none;padding: 6px 28px;">Start Installation</button>
+                </div>
             </div>
-
-            <button id="start-installation-button" class="button button-primary">Start Installation</button>
         </div>
 
         <?php
@@ -496,6 +530,13 @@ class Update {
 
         closedir($dir);
     }
+
+    private static function install_wp_plugins(){
+        \PluginManager::check_and_install_required_plugins();
+    }
+    private static function install_local_plugins(){
+        \PluginManager::check_and_update_local_plugins();
+    }
     private static function compile_methods(){
         acf_methods_settings();
     }
@@ -511,6 +552,16 @@ class Update {
                     self::copy_fonts();
                     self::update_task_status('copy_fonts', true);
                     wp_send_json_success(['message' => 'Fonts copied successfully']);
+                    break;
+                case 'install_wp_plugins':
+                    self::install_wp_plugins();
+                    self::update_task_status('install_wp_plugins', true);
+                    wp_send_json_success(['message' => 'WP plugins installed successfully']);
+                    break;
+                case 'install_local_plugins':
+                    self::install_local_plugins();
+                    self::update_task_status('install_local_plugins', true);
+                    wp_send_json_success(['message' => 'Local plugins installed successfully']);
                     break;
                 case 'compile_methods':
                     self::compile_methods();
@@ -531,8 +582,10 @@ class Update {
         }
     }
     private static function update_task_status($task_id, $status) {
-        $tasks_status = get_option('sh_theme_tasks_status') ?? [];
+        $tasks_status = get_option('sh_theme_tasks_status', []);
         $tasks_status[$task_id] = $status;
+        self::$tasks_status = $tasks_status;
+        update_option('sh_theme_tasks_status', $tasks_status);
         if (self::tasks_completed()) {
             update_option('sh_theme_status', true);
             self::$status = true;
@@ -540,7 +593,7 @@ class Update {
         }
     }
     public static function tasks_completed() {
-        $tasks_status = get_option('sh_theme_tasks_status') ?? [];
+        $tasks_status = get_option('sh_theme_tasks_status', []);
         foreach (self::$installation_tasks as $task) {
             if (empty($tasks_status[$task['id']]) || $tasks_status[$task['id']] !== true) {
                 return false;

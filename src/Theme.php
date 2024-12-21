@@ -613,39 +613,44 @@ Class Theme{
     }
 	public function init(){
 
-        $status = get_option('sh_theme_status');
-        if(empty($status)){
-            $status = 0;
-            add_option('sh_theme_status', "pending");
-        }
         add_action("init", function(){
             \PluginManager::init();
             \Update::init();
         });
         new \starterSite(); 
 
-        if ($status == 'pending' || !$status) {
+        /*if (!(defined('DOING_AJAX') && DOING_AJAX)) {
+            $status = get_option('sh_theme_status');
+            if(empty($status)){
+                $status = "pending";
+                add_option('sh_theme_status', $status);
+                add_option('sh_theme_tasks_status', []);
+            }else{
+                $task_status = get_option('sh_theme_tasks_status') ?? [];
+                if(count(\Update::$installation_tasks) > count($task_status)){
+                    $status = "pending";
+                    update_option('sh_theme_status', $status);
+                    update_option('sh_theme_tasks_status', []);
+                }            
+            }
+            if ($status == 'pending' || !$status) {
 
-            if (!(defined('DOING_AJAX') && DOING_AJAX)) {
-                // Sadece admin panelindeyken yönlendir
-                if (is_admin() && !isset($_GET['page'])) {
-                    wp_safe_redirect(admin_url('admin.php?page=update-theme'));
-                    exit; // Döngüyü önlemek için yönlendirme sonrası çık
-                }
-
-                // Eğer admin paneli dışında bir yerdeyse ve kurulum eksikse
-                if (!is_admin()) {
+                if (is_admin()) {
+                    $current_page = $_GET['page'] ?? '';
+                    if ($current_page !== 'update-theme') {
+                        wp_safe_redirect(admin_url('admin.php?page=update-theme'));
+                        exit;
+                    }
+                } else {
                     wp_die(
-                        'The theme setup is not complete. Please complete the installation from the <a href="' . admin_url('admin.php?page=update-theme') . '">update page</a>.'
+                        sprintf(
+                            'The theme setup is not complete. Please complete the installation from the <a href="%s">update page</a>.',
+                            esc_url(admin_url('admin.php?page=update-theme'))
+                        )
                     );
                 }
             }
-
-        }else{
-
-            update_option('sh_theme_tasks_status', []);
-
-        }
+        }*/
 
 	}
 }
