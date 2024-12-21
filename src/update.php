@@ -18,6 +18,13 @@ class Update {
     private static $vendor_directory;
     private static $repo_directory;
 
+    private static $status;
+    public static $installation_tasks = [
+        ["id" => "copy_fonts", "name" => "Copy Fonts"],
+        ["id" => "compile_methods", "name" => "Compile ACF Methods"],
+        ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
+    ];
+
     // Admin notifi ekler
     public static function init() {
         $theme_root = get_template_directory();
@@ -25,11 +32,15 @@ class Update {
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
+        self::$status = get_option('sh_theme_status', 'pending');
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
         add_action('wp_ajax_update_theme_package', [__CLASS__, 'composer']);
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
+        add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
     }
+
+
 
     private static function get_current_version() {
 
@@ -67,7 +78,6 @@ class Update {
         error_log('Paket bulunamadı: salthareket/theme');
         return 'Unknown';
     }
-
     private static function get_latest_version() {
         $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
         
@@ -99,7 +109,6 @@ class Update {
         error_log('GitHub API response: ' . $body);
         return 'Unknown';
     }
-
     private static function get_installed_packages() {
         if (!file_exists(self::$composer_path)) {
             return [];
@@ -111,7 +120,6 @@ class Update {
         $installed_packages = array_keys($json_data['require'] ?? []);
         return $installed_packages;
     }
-
     public static function check_for_update_notice() {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
@@ -128,6 +136,38 @@ class Update {
         );
     }
 
+
+
+    public static function render_installation_page() {
+        ?>
+        <div class="wrap">
+            <h1>Installation Required</h1>
+            <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
+            
+            <div class="progress my-4" style="height: 30px;">
+                <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+
+            <div id="installation-tasks">
+                <ul class="list-group mb-4">
+                <?php 
+                    foreach(self::$installation_tasks as $task){
+                    ?>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><?php echo $task["name"];?></span>
+                        <span id="task-<?php echo $task["id"];?>" class="badge bg-secondary">Pending</span>
+                    </li>
+                    <?php 
+                    }
+                    ?>
+                </ul>
+            </div>
+
+            <button id="start-installation-button" class="button button-primary">Start Installation</button>
+        </div>
+
+        <?php
+    }
     public static function render_update_page() {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
@@ -164,10 +204,18 @@ class Update {
             echo '<button id="remove-package-button" class="button button-secondary">Remove Package</button>';
 
         echo '</div>';
-
-        self::enqueue_update_script();
-
     }
+    public static function render_page() {
+        if (self::$status === 'pending') {
+            self::render_installation_page();
+        } else {
+            self::render_update_page();
+        }
+        self::enqueue_update_script();
+    }
+
+
+
 
     public static function process_update() {
         try {
@@ -254,7 +302,6 @@ class Update {
             wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
         }
     }
-
     private static function update_composer_lock($latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
             error_log("composer.lock not found.");
@@ -291,7 +338,6 @@ class Update {
         }
         file_put_contents(self::$composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
-
     private static function delete_directory($dir) {
         /*if (!is_dir($dir)) return;
 
@@ -302,6 +348,8 @@ class Update {
         }
         rmdir($dir);*/
     }
+
+
 
     public static function composer($package_name="", $remove = false) {
         try {
@@ -331,7 +379,7 @@ class Update {
             foreach ($lines as $line) {
                 if (strpos(trim($line), 'Could not find package') !== false) {
                     wp_send_json_error(['message' => "Could not find package: <strong>$package_name</strong>", "action" => "error" ]);
-                    ecit;
+                    exit;
                 }
             }
             $result = [
@@ -404,6 +452,104 @@ class Update {
         }
     }
 
+
+
+    private static function copy_fonts(){
+        $srcDir = SH_STATIC_PATH . 'fonts';
+        $target_dir = STATIC_PATH . 'fonts';
+
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true); 
+        }
+        if (is_dir($srcDir)) {
+            self::recurseCopy($srcDir, $target_dir, ["scss"]);
+        }
+    }
+    private static function recurseCopy($src, $dest, $exclude = []){
+        $dir = opendir($src);
+
+        if (!is_dir($dest)) {
+            mkdir($dest, 0755, true);
+        }
+
+        while (false !== ($file = readdir($dir))) {
+            if ($file == '.' || $file == '..') {
+                continue; // Geçerli ve üst dizini atla
+            }
+
+            $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+            $destPath = $dest . DIRECTORY_SEPARATOR . $file;
+
+            // Hariç tutulacak klasör kontrolü
+            if (is_dir($srcPath) && in_array($file, $exclude)) {
+                continue; // Hariç tutulan klasörü atla
+            }
+
+            if (is_dir($srcPath)) {
+                // Alt klasörleri kopyala
+                self::recurseCopy($srcPath, $destPath, $exclude);
+            } else {
+                // Dosyayı kopyala
+                copy($srcPath, $destPath);
+            }
+        }
+
+        closedir($dir);
+    }
+    private static function compile_methods(){
+        acf_methods_settings();
+    }
+    private static function compile_js_css(){
+        acf_compile_js_css();
+    }
+    public static function run_task() {
+        check_ajax_referer('update_theme_nonce', 'nonce');
+        $task_id = isset($_POST['task_id']) ? sanitize_text_field($_POST['task_id']) : '';
+        try {
+            switch ($task_id) {
+                case 'copy_fonts':
+                    self::copy_fonts();
+                    self::update_task_status('copy_fonts', true);
+                    wp_send_json_success(['message' => 'Fonts copied successfully']);
+                    break;
+                case 'compile_methods':
+                    self::compile_methods();
+                    self::update_task_status('compile_methods', true);
+                    wp_send_json_success(['message' => 'ACF Methods compiled successfully']);
+                    break;
+                case 'compile_js_css':
+                    self::compile_js_css();
+                    self::update_task_status('compile_js_css', true);
+                    wp_send_json_success(['message' => 'JS/CSS compiled successfully']);
+                    break;
+                default:
+                    wp_send_json_error(['message' => 'Invalid task ID']);
+            }
+
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => 'Error during task execution: ' . $e->getMessage()]);
+        }
+    }
+    private static function update_task_status($task_id, $status) {
+        $tasks_status = get_option('sh_theme_tasks_status') ?? [];
+        $tasks_status[$task_id] = $status;
+        if (self::tasks_completed()) {
+            update_option('sh_theme_status', true);
+            self::$status = true;
+            error_log("Tüm görevler tamamlandı. sh_theme_status true yapıldı.");
+        }
+    }
+    public static function tasks_completed() {
+        $tasks_status = get_option('sh_theme_tasks_status') ?? [];
+        foreach (self::$installation_tasks as $task) {
+            if (empty($tasks_status[$task['id']]) || $tasks_status[$task['id']] !== true) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
     private static function enqueue_update_script() {
         wp_enqueue_script(
             'theme-update-script',
@@ -413,9 +559,13 @@ class Update {
             true
         );
 
-        wp_localize_script('theme-update-script', 'updateAjax', [
+        $args = [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('update_theme_nonce')
-        ]);
+        ];
+        if (self::$status === 'pending') {
+            $args["tasks"] = self::$installation_tasks;
+        }
+        wp_localize_script('theme-update-script', 'updateAjax', $args);
     }
 }

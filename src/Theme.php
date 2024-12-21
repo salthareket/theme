@@ -57,7 +57,7 @@ Class Theme{
             'Theme Update',
             'manage_options',
             'update-theme',
-            ['Update', 'render_update_page'] // Theme Update içeriğini render et
+            ['Update', 'render_page'] // Theme Update içeriğini render et
         );
 
         // Gereksiz alt menüyü kaldır
@@ -600,78 +600,6 @@ Class Theme{
         }
     }
 
-    private static function copyFonts(){
-        $srcDir = SH_STATIC_PATH . 'fonts';
-        $target_dir = STATIC_PATH . 'fonts';
-
-        if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0755, true); 
-        }
-        if (is_dir($srcDir)) {
-            self::recurseCopy($srcDir, $target_dir, ["scss"]);
-        }
-    }
-
-    private static function copyAdmin() {
-        $target_dir = STATIC_URL . 'js/';
-        $target_file = $target_dir . 'admin.min.js'; // Hedef dosya
-        $source_file = SH_INCLUDES_PATH . 'admin/index.js'; // Kaynak dosya
-        if (!file_exists($target_file)) {
-            if (!is_dir($target_dir)) {
-                mkdir($target_dir, 0755, true); 
-            }
-            if (file_exists($source_file)) {
-                copy($source_file, $target_file);
-            }
-        }
-    }
-    private static function copyMethods() {
-        $target_dir = STATIC_URL . 'js/';
-        $target_file = $target_dir . 'methods.min.js'; // Hedef dosya
-        $source_file = SH_INCLUDES_PATH . 'methods/index.js'; // Kaynak dosya
-        if (!file_exists($target_file)) {
-            if (!is_dir($target_dir)) {
-                mkdir($target_dir, 0755, true); 
-            }
-            if (file_exists($source_file)) {
-                copy($source_file, $target_file);
-            }
-        }
-    }
-
-
-    // Klasörleri ve dosyaları kopyalamak için recursive fonksiyon
-    private static function recurseCopy($src, $dest, $exclude = []){
-        $dir = opendir($src);
-
-        if (!is_dir($dest)) {
-            mkdir($dest, 0755, true);
-        }
-
-        while (false !== ($file = readdir($dir))) {
-            if ($file == '.' || $file == '..') {
-                continue; // Geçerli ve üst dizini atla
-            }
-
-            $srcPath = $src . DIRECTORY_SEPARATOR . $file;
-            $destPath = $dest . DIRECTORY_SEPARATOR . $file;
-
-            // Hariç tutulacak klasör kontrolü
-            if (is_dir($srcPath) && in_array($file, $exclude)) {
-                continue; // Hariç tutulan klasörü atla
-            }
-
-            if (is_dir($srcPath)) {
-                // Alt klasörleri kopyala
-                self::recurseCopy($srcPath, $destPath, $exclude);
-            } else {
-                // Dosyayı kopyala
-                copy($srcPath, $destPath);
-            }
-        }
-
-        closedir($dir);
-    }
     public static function scss_compile(){
         global $wpscss_compiler;
         $wpscss_compiler = new \SCSSCompiler(
@@ -684,19 +612,40 @@ Class Theme{
         return $wpscss_compiler->get_compile_errors();
     }
 	public function init(){
-		//echo "Salthareket/Theme::init()<br>";
-        self::copyFonts();
-        //self::copyStatic();
-        //self::copyClasses();echo "set salt";
-            //self::copyAdmin();
-            //self::copyMethods();
-        //$salt = new \Salt();
-        //$salt->init();
-        //$GLOBALS["salt"] = $salt;
+
+        $status = get_option('sh_theme_status');
+        if(empty($status)){
+            $status = 0;
+            add_option('sh_theme_status', "pending");
+        }
         add_action("init", function(){
-           \PluginManager::init();
-           \Update::init();
+            \PluginManager::init();
+            \Update::init();
         });
-        new \starterSite();
+        new \starterSite(); 
+
+        if ($status == 'pending' || !$status) {
+
+            if (!(defined('DOING_AJAX') && DOING_AJAX)) {
+                // Sadece admin panelindeyken yönlendir
+                if (is_admin() && !isset($_GET['page'])) {
+                    wp_safe_redirect(admin_url('admin.php?page=update-theme'));
+                    exit; // Döngüyü önlemek için yönlendirme sonrası çık
+                }
+
+                // Eğer admin paneli dışında bir yerdeyse ve kurulum eksikse
+                if (!is_admin()) {
+                    wp_die(
+                        'The theme setup is not complete. Please complete the installation from the <a href="' . admin_url('admin.php?page=update-theme') . '">update page</a>.'
+                    );
+                }
+            }
+
+        }else{
+
+            update_option('sh_theme_tasks_status', []);
+
+        }
+
 	}
 }

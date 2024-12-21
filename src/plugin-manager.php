@@ -279,7 +279,6 @@ class PluginManager {
     // Check and install required plugins from the $GLOBALS["plugins"] array
     public static function check_and_install_required_plugins() {
         $required_plugins = $GLOBALS["plugins"] ?? [];
-
         foreach ($required_plugins as $plugin_slug) {
             // Plugin zaten yüklü mü?
             if (!self::is_plugin_installed($plugin_slug)) {

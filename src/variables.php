@@ -213,7 +213,7 @@ add_action('after_setup_theme', function () {
                 "</a></p></div>";
         });
         add_filter("template_include", function ($template) {
-            return get_stylesheet_directory() . "/static/no-timber.html";
+            return STATIC_PATH . "no-timber.html";
         });
         return;
     } else {
@@ -222,7 +222,7 @@ add_action('after_setup_theme', function () {
         Timber::$cache = false;
         include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
         include_once SH_INCLUDES_PATH . 'twig-extends.php';
-        include_once get_template_directory() . "/theme/includes/twig-extends.php";
+        include_once THEME_INCLUDES_PATH . "twig-extends.php";
         if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
             include_once SH_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
         }
@@ -230,14 +230,14 @@ add_action('after_setup_theme', function () {
 
     if (!class_exists("ACF")) {
         add_filter("template_include", function ($template) {
-            return get_stylesheet_directory() . "/static/no-acf.html";
+            return STATIC_PATH . "no-acf.html";
         });
         return;
     }
 });
 
 include_once SH_INCLUDES_PATH . "helpers/index.php";
-include_once get_template_directory() . "/theme/includes/globals.php";
+include_once THEME_INCLUDES_PATH . "globals.php";
 include_once SH_INCLUDES_PATH . "blocks.php";
 include_once SH_INCLUDES_PATH . "styles-scripts.php";
 //include_once SH_INCLUDES_PATH . "install-plugins.php";

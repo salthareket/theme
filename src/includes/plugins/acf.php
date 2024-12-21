@@ -1,5 +1,10 @@
 <?php
 
+use SaltHareket\Theme;
+
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+
 /*acf Google Maps key*/
 if($GLOBALS["google_maps_api_key"]){
 	acf_update_setting('google_api_key', $GLOBALS['google_maps_api_key']);
@@ -2784,3 +2789,201 @@ function page_assets_update(){
 }
 add_action('wp_ajax_page_assets_update', 'page_assets_update');
 add_action('wp_ajax_nopriv_page_assets_update', 'page_assets_update');
+
+
+
+function acf_compile_js_css($value=0){
+	       if ( function_exists( 'rocket_clean_minify' ) ) {
+                rocket_clean_minify();
+            }
+
+            $is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
+    
+            
+            // compile js files and css files
+            if (!function_exists("compile_files_config")) {
+                require SH_INCLUDES_PATH . "minify-rules.php";
+            }
+            require SH_CLASSES_PATH . "class.minify.php";
+
+            if (class_exists('ScssPhp\ScssPhp\Compiler')) {
+                $compile_errors = SaltHareket\Theme::scss_compile();
+                if($compile_errors){
+                    $type = "error";
+                    $message = "<strong style='display:block;color:red;'>Compiling Error</strong>";
+                    $message .= $compile_errors[0]["message"];
+                    file_put_contents( WP_CONTENT_DIR . '/compiler_error.log', $compile_errors[0]["message"], FILE_APPEND);
+                }else{
+                    $type = "success";
+                    $message = "scss files compiled!...";
+                    $message .= "<br>js files compiled!...";
+                }                
+            }else{
+                $type = "error";
+                $message = "WP-SCSS is not intalled! SCSS is not compiled.";
+            }  
+
+            if(function_exists("add_admin_notice") && $value){
+                add_admin_notice($message, $type);
+            }
+            
+            // version update or plugin's custom init file update
+            $minifier = new SaltMinifier(false, $is_development);
+            $updated_plugins = $minifier->init();//compile_files(false, $is_development);
+            error_log("updates_plugins: ".json_encode($updated_plugins));
+
+            if($updated_plugins){
+                if(function_exists("add_admin_notice") && $value){
+                    $message = "Updated plugins or plugin init files: ".implode(",", $updated_plugins);
+                    $type = "warning";
+                    add_admin_notice($message, $type);
+                }
+            }
+
+            if($is_development){
+                // remove unused css styles
+                error_log( "w e b p a c k");
+                /*$output = [];
+                $returnVar = 0;
+                $command = "npx webpack --env enable_ecommerce=false";//.(ENABLE_ECOMMERCE ? 'true' : 'false');
+                chdir(get_stylesheet_directory());
+                exec($command, $output, $returnVar);//exec('npx webpack', $output, $returnVar);
+                error_log( json_encode(implode("\n", $output)));
+                if ($returnVar === 0) {
+                    //echo 'Webpack successfully executed.';
+                } else {
+                    $message = 'Webpack execution failed. Error code: ' . $returnVar;
+                    if(function_exists("add_admin_notice")){
+                        add_admin_notice($message, "error");
+                    }
+                }
+
+                $workingDir = get_stylesheet_directory();
+                $process = Process::fromShellCommandline('npx webpack --env enable_ecommerce=false', $workingDir);
+
+                try {
+                    $process->mustRun();
+                    error_log($process->getOutput()); 
+                } catch (ProcessFailedException $e) {
+                    $message = 'Webpack execution failed. Error code: ' .  $e->getMessage();
+                    error_log($message);
+                    if(function_exists("add_admin_notice")){
+                        add_admin_notice($message, "error");
+                    }
+                }*/
+
+                /**/
+                $workingDir = get_stylesheet_directory();
+                $command = ['npx', 'webpack', '--env', 'enable_ecommerce=false'];
+                $process = new Process($command, $workingDir);
+                $currentUser = getenv('USERNAME') ?: getenv('USER'); // Windows için USERNAME, diğer sistemlerde USER
+                $nodeJsPath = 'C:\Program Files\nodejs';
+                $npmPath = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
+                $process->setEnv([
+                    'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath,
+                ]);
+
+                //$process->setTimeout(300); // Zaman aşımı (isteğe bağlı)
+                try {
+                    $process->mustRun(); // Komutu çalıştır ve başarısız olursa hata fırlat
+                    error_log($process->getOutput()); // Çıktıyı kaydet
+                    //return true;
+                } catch (ProcessFailedException $exception) {
+                    error_log('Webpack execution failed: ' . $exception->getMessage());
+                    if (function_exists("add_admin_notice")) {
+                        add_admin_notice('Webpack execution failed.', 'error');
+                    }
+                    //return false;
+                }
+
+                // .js dosyalarını filtrele ve sil
+                $js_files = glob(get_stylesheet_directory() . "/static/css/" . "*.js");
+                foreach ($js_files as $js_file) {
+                    try {
+                        unlink($js_file);
+                        //echo "Dosya silindi: $js_file <br>";
+                    } catch (Exception $e) {
+                        //echo "Dosya silinirken bir hata oluştu: " . $e->getMessage() . "<br>";
+                    }
+                }
+
+                // TXT dosyalarını sil
+                $txt_files = glob(get_stylesheet_directory() . "/static/css/" . "*.txt");
+                foreach ($txt_files as $txt_file) {
+                    try {
+                        unlink($txt_file);
+                        //echo "TXT dosyası silindi: $txt_file <br>";
+                    } catch (Exception $e) {
+                        //echo "TXT dosyası silinirken bir hata oluştu: " . $e->getMessage() . "<br>";
+                    }
+                }
+            }
+
+            if($updated_plugins){
+                $pages = get_pages_need_updates($updated_plugins);
+                if(function_exists("add_admin_notice") && $pages && $value){
+                    $message = count($pages)." pages fetched for plugin updates";
+                    $type = "success";
+                    add_admin_notice($message, $type);
+                }
+            }
+            if(!$value){
+            	//return true;
+            }
+}
+function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
+    $is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
+    if( $value ) {
+    	acf_compile_js_css($value);
+    }
+    return 0;
+}
+add_filter('acf/update_value/name=enable_compile_js_css', 'acf_development_compile_js_css', 10, 4);
+
+
+function acf_methods_settings($value=0){
+	error_log("acf_methods_settings");
+	        if ( function_exists( 'rocket_clean_minify' ) ) {
+                rocket_clean_minify();
+            }
+            require SH_CLASSES_PATH . "class.methods.php";
+            $methods = new MethodClass();
+            $frontend = $methods->createFiles(false); 
+            error_log(json_encode($frontend));
+            $admin = $methods->createFiles(false, "admin");
+            error_log(json_encode($admin));
+            if(function_exists("add_admin_notice") && $value){
+                if($frontend || $admin){
+                    if($frontend){
+                        foreach($frontend as $error){
+                           add_admin_notice($error["message"], "error");
+                        }
+                    }
+                    if($admin){
+                        foreach($admin as $error){
+                           add_admin_notice($error["message"], "error");
+                        }
+                    }
+                    $message = "Only JS Frontend/Backend methods compiled!";
+                    $type = "success";
+                    add_admin_notice($message, $type);
+                }else{
+                  $message = "PHP & JS Frontend/Backend methods compiled!";
+                  $type = "success";
+                  add_admin_notice($message, $type);
+                }
+            }
+            if(!$value){
+            	//return true;
+            }
+}
+function acf_development_methods_settings( $value=0, $post_id=0, $field="", $original="" ) {
+    if( $value ) {
+    	$is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
+        if ($is_development) {
+           acf_methods_settings($value); 
+        }
+    }
+    return 0;
+}
+add_filter('acf/update_value/name=enable_compile_methods', 'acf_development_methods_settings', 10, 4);

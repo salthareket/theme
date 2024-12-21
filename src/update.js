@@ -1,4 +1,77 @@
 jQuery(document).ready(function ($) {
+
+    const tasks = updateAjax.tasks || [];
+    console.log(tasks);
+    let currentTaskIndex = 0;
+
+    const progressBar = $('#installation-progress');
+    const taskElements = tasks.map(task => $(`#task-${task.id}`));
+
+    $('#start-installation-button').on('click', function () {
+        $(this).prop('disabled', true); // Butonu devre dışı bırak
+        runTask(currentTaskIndex); // İlk görevi çalıştır
+    });
+
+    function runTask(taskIndex) {
+        if (taskIndex >= tasks.length) {
+            completeInstallation();
+            return;
+        }
+
+        const task = tasks[taskIndex];
+
+        $.ajax({
+            url: updateAjax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'run_task',
+                task_id: task.id,
+                nonce: updateAjax.nonce
+            },
+            beforeSend: function () {
+                taskElements[taskIndex]
+                    .removeClass('bg-secondary')
+                    .addClass('bg-warning')
+                    .text('In Progress');
+            },
+            success: function (response) {
+                if (response.success) {
+                    const progress = Math.round(((taskIndex + 1) / tasks.length) * 100);
+                    progressBar
+                        .css('width', progress + '%')
+                        .attr('aria-valuenow', progress)
+                        .text(progress + '%');
+
+                    taskElements[taskIndex]
+                        .removeClass('bg-warning')
+                        .addClass('bg-success')
+                        .text('Completed');
+
+                    runTask(taskIndex + 1);
+                } else {
+                    taskElements[taskIndex]
+                        .removeClass('bg-warning')
+                        .addClass('bg-danger')
+                        .text('Failed');
+                    alert('Error: ' + response.data.message);
+                }
+            },
+            error: function () {
+                taskElements[taskIndex]
+                    .removeClass('bg-warning')
+                    .addClass('bg-danger')
+                    .text('Error');
+                alert('An unexpected error occurred.');
+            }
+        });
+    }
+
+    function completeInstallation() {
+        alert('Installation completed successfully!');
+        location.reload(); // Sayfayı yenile
+    }
+
+
     function composer_message($message = "", $action = "", $type = ""){
         if($message == ""){
             $(".alert").removeClass("show").addClass("d-none").empty();
@@ -133,4 +206,6 @@ jQuery(document).ready(function ($) {
             }
         );
     });
+
+
 });

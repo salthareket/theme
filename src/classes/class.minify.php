@@ -10,6 +10,7 @@ class SaltMinifier{
 
 	public $css_folder;
 	public $js_folder;
+    public $js_uri;
 	public $prod_folder;
 
 	public $output = [];
@@ -522,6 +523,9 @@ class SaltMinifier{
                 }
             }
             if ($assets) {
+                if (!is_dir($this->output["plugin_assets"])) {
+                    mkdir($this->output["plugin_assets"], 0755, true); 
+                }
                 error_log(json_encode($assets));
                 foreach ($assets as $key => $asset) {
                     // Dosya mevcutsa kopyala
