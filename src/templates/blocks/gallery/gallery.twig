@@ -1,0 +1,193 @@
+{#
+    Title: Gallery
+    Description: Fotoğraf galerisi
+    Category: saltblocks
+    Icon: format-gallery
+    Keywords: image görsel text metin gallery
+    Mode: auto
+    Align: center
+    PostTypes: 
+    SupportsAlign: left right center wide full
+    SupportsAlignfields: true
+    SupportsMode: true
+    SupportsMultiple: true
+    SupportsAnchor: true
+    SupportsCustomClassName: true
+    SupportsReusable: true
+    SupportsFullHeight: true
+#}
+{% set block_main_field = ["gallery", "videos"] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% set block_required_js = [ "lightgallery" ] %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% set gallery = fields.gallery %}
+    {% set videos = fields.videos %}
+
+    {% set gallery_id = "gallery-" ~ block_meta.id %}
+    {% set gallery_type = fields.settings.type %}
+    {% set gallery_view = gallery_type=="dynamic"?fields.settings.view:"" %}
+    
+    {% set gallery_attrs = " data-gallery-type='" ~ gallery_type ~ "' " %}
+    {% set gallery_class = not is_preview?"loading-hide ":"" %}
+    {% set href_class = "" %}
+    {% set image_class = "" %}
+    {% set ratio_class = "" %}
+    {% set item_class = fields.settings.item_class %}
+    {% set item_class = item_class ~ (gallery_type != "justified"?" col ":"") %}
+
+    {% if gallery_type == "justified" %}
+        {% set gallery_class = gallery_class ~ "justified-gallery " ~ block_meta.row.class %}
+        {% set href_class = item_class %}
+    {% else %}
+        {% set gallery_attrs = gallery_attrs ~ block_meta.row.attrs %}
+        {% set gallery_class = gallery_class ~ "row " ~ block_meta.row.class %}
+        {% set image_class = item_class ~ " object-fit-cover h-100 w-100" %}
+        {% if not fields.column_breakpoints.masonry and fields.settings.ratio %}
+            {% set ratio_class = "ratio ratio-" ~ fields.settings.ratio|default("1x1") %}
+        {% endif %}
+    {% endif %}
+
+    <div id="{{gallery_id}}" class="lightgallery init-me position-relative p-0 w-100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="left" data-item-captions="false">
+
+        {% set source = lightGallerySource(fields) %}
+        
+        {% if gallery_type != "dynamic" %}
+            {% for item in source %}
+                {% if item.type == "embed" %}
+
+                    <div
+                        data-lg-size="{{item["lg-size"]}}"
+                        data-src="{{item.src}}"
+                        data-poster="{{item.poster}}"
+                        data-sub-html="{{item["sub-html"]}}"
+                        class="{{href_class}} cursor-hand"
+                    >
+                        {% if ratio_class %}
+                            <div class="{{ratio_class}}">
+                        {% endif %}
+                        <img
+                            class="img-fluid {{image_class}}"
+                            src="{{item["img-src"]}}"
+                            alt="{{post.title}}"
+                            loading="lazy"
+                        />
+                        {% if ratio_class %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                {% elseif item.type == "file" %}
+
+                    <div
+                        data-lg-size="{{item["lg-size"]}}"
+                        data-video='{{item.video|json_encode|replace({"{upload_url}" : site.upload_url})}}'
+                        data-poster="{{item.poster|replace({"{upload_url}" : site.upload_url})}}"
+                        data-sub-html="{{item["sub-html"]}}"
+                        class="{{href_class}} cursor-hand"
+                    >
+                        {% if ratio_class %}
+                        <div class="{{ratio_class}}">
+                        {% endif %}
+                        <img
+                            class="img-fluid {{image_class}}"
+                            src="{{item.poster|replace({"{upload_url}" : site.upload_url})}}"
+                            alt="{{post.title}}"
+                            loading="lazy"
+                        />
+                        {% if ratio_class %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                {% else %}
+
+                    <a 
+                        href="{{item.href|replace({"{upload_url}" : site.upload_url})}}" 
+                        title="{{item.title}}" 
+                        class="{{href_class}}"
+                    >
+                        {% if ratio_class %}
+                        <div class="{{ratio_class}}">
+                        {% endif %}
+                        <img src="{{item.src|replace({"{upload_url}" : site.upload_url})}}"
+                            alt="{{item.title}}" 
+                            loading="lazy"
+                            class="img-fluid {{image_class}}"
+                            width="{{item.width}}" height="{{item.height}}"
+                        />
+                        {% if ratio_class %}
+                        </div>
+                        {% endif %}
+                    </a>
+
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            {% if gallery_view == "button" %}
+                {% set item = fields.settings.button %}
+
+                {% set btn_class = "" %}
+                {% if item.link_only %}
+                    {% set btn_class = btn_class ~ "btn-link " %}
+                    {% if item.type != "custom" %}
+                        {% set btn_class = btn_class ~ "text-" ~ item.type ~ " " %}
+                    {% endif %}
+                {% else %}
+                    {% set btn_class = btn_class ~ "btn " %}
+                    {% if item.type != "custom" %}
+                       {% set btn_class = btn_class ~ "btn" ~ (item.outline?"-outline":"") ~ "-" ~ item.type ~ " " %}
+                    {% endif %}
+                    {% if item.size != "default" %}
+                        {% set btn_class = btn_class ~ "btn-" ~ item.size ~ " " %}
+                    {% endif %}
+                {% endif %}
+                {% set btn_class = btn_class ~ item.class %}
+
+                {% if item.type == "custom" %}
+                    {% if item.outline %}
+                        {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg:transparent; --bs-btn-border-color: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg:' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-hover-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-active-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
+                    {% else %}
+                        {% if item.link_only %}
+                            {% set attrs = attrs ~ ' style="--bs-link-color-rgb: ' ~ item.custom.default.color|hex2rgbValues|default("transparent") ~ ';--bs-link-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';"' %}
+                        {% else %}
+                            {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+
+                {% endif %}
+
+                <div class="" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                    {% set url = "#" %}
+                    {% set title = item.link_text %}
+                    <a href="{{url}}" class="{{btn_class}}" {{attrs}} title="{{title}}">{{title}}</a>
+                </div>
+
+            {% else %}
+                {% set thumb = source[0] %}
+                <div class="col cursor-hand">
+                    {% if ratio_class %}
+                    <div class="{{ratio_class}}">
+                    {% endif %}
+                        <img src="{{(thumb.poster?thumb.poster:thumb.src)|replace({"{upload_url}" : site.upload_url})}}"
+                            alt="{{thumb.title}}" 
+                            loading="lazy"
+                            class="img-fluid {{image_class}}"
+                        />
+                    {% if ratio_class %}
+                    </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+    </div>
+    <script type="text/javascript" data-inline="true">
+        {{gallery_id|replace({"-": "_"})}} = {{source|json_encode}};
+    </script>
+
+{% endblock %}
+

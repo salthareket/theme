@@ -1,0 +1,136 @@
+{#
+  Title: Accordion
+  Description: Show posts or custom items as accordion UI with optional categories.
+  Category: saltblocks
+  Icon: menu-alt3
+  Keywords: accordion akordiyon collapse collapsible post link posts
+  Mode: auto
+  Align: left
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [] %}
+{% set block_iterable = ["column_active"] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% if fields.post_type != "" %}
+        {% if fields.categories %}
+            {% set posts = function("get_posts_by_taxonomy_terms", fields.post_type) %}
+        {% else %}
+            {% set posts = get_posts({ "post_type" : fields.post_type, "post__not_in" : [post_id], "posts_per_page" : fields.max_posts}) %}
+            {% set posts = [{term:{}, posts:posts}] %}
+        {% endif %}
+    {% else %}
+        {% if fields.posts %}
+            {% if fields.custom %}
+               {% set posts = fields.posts %} 
+            {% else %}
+                {% set post_ids = {} %}
+                {% for id in fields.posts %}
+                    {% if id != post_id %}
+                        {% set post_ids = post_ids|merge([id]) %}
+                    {% endif %}
+                {% endfor %}
+                {% set posts = get_posts(post_ids) %}
+            {% endif %}
+            {% set posts = [{term:{}, posts:posts}] %}
+        {% endif %}
+    {% endif %}
+
+    {% if label == "Posts" %}
+        {% set label = "Blog" %}
+    {% endif %}
+
+    {% if posts %}
+
+        {% if fields.text %}
+           <div class="text mb-4 w-100">{{ fields.text }}</div>
+        {% endif %}
+
+        {% set accordion_id = blockData.id ~ "-accordion" %}
+        <div class="accordion-custom accordion-seperated- w-100 my-auto-- {% if not fields.collapsible and not fields.collapsible_categories %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1  %}mt-5{% endif %}" id="{{accordion_id}}">
+
+            {% for term in posts %}
+                {% if term.posts %}
+
+                    {% set label = term.posts[0].type.labels.name %}
+
+                    {% if label == "Posts" %}
+                        {% set label = "Blog" %}
+                    {% endif %}
+
+                    {% if fields.categories %}
+                        {% if fields.collapsible_categories %}
+
+                            {% set id = "category-" ~ term.id|default(random(999999)) %}
+                            {% set parent = accordion_id %}
+                            <div class="accordion-item">
+                                <{{fields.heading_category}} class="accordion-header accordion-header-category" id="heading-{{id}}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{id}}" aria-expanded="false" aria-controls="collapse-{{id}}">
+                                        {{term.term.name}}
+                                    </button>
+                                </{{fields.heading_category}}>
+                                <div id="collapse-{{id}}" class="accordion-collapse collapse" aria-labelledby="heading-{{id}}" data-bs-parent="#{{parent}}" data-scroll="{{fields.collapsible_scroll}}" data-scroll-hidden="parent">
+                                    <div class="accordion-body pb-0">
+                                         <div class="accordion-custom accordion-seperated- w-100 my-auto {% if not fields.collapsible %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1 and not fields.collapsible_categories %}mt-7{% else %}mb-5{% endif %}" id="{{parent}}-{{term.term.id}}">
+
+                        {% else %}
+
+                            <{{fields.heading_category}} class="title mb-4">{{ term.term.name }}</{{fields.heading_category}}>
+                          
+                        {% endif %}
+                    {% endif %}
+
+                        {% for item in term.posts %}
+                            {% if item.id != post_id %}
+                                {% set id = "posts-" ~ term.id ~ "-" ~ item.id|default(random(999999)) %}
+                                <div class="accordion-item {% if not fields.collapsible %}active{% endif %} {% if loop.index > 1 %}pt-3{% endif %}">
+                                    <{{fields.heading}} class="accordion-header" id="heading-post-{{id}}">
+                                        {% set target = "collapse-post-" ~ id %}
+                                        {% set parent = accordion_id ~ (fields.categories?"-"~term.term.id:"") %}
+                                        {% if fields.collapsible %}
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{target}}" aria-expanded="false" aria-controls="{{target}}">
+                                                {{item.post_title}}
+                                            </button>
+                                        {% else %}
+                                            <div class="accordion-button" aria-controls="{{target}}">
+                                                {{item.post_title}}
+                                            </div>
+                                        {% endif %}
+                                    </{{fields.heading}}>
+                                    <div id="collapse-post-{{id}}" class="accordion-collapse collapse {% if not fields.collapsible %}show{% endif %}" aria-labelledby="heading-post-{{id}}" data-bs-parent="#{{parent}}" data-scroll="{{fields.collapsible_scroll}}" data-scroll-hidden="parent">
+                                        <div class="accordion-body pb-0">
+                                            {{item.content}}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                       
+                    {% if fields.categories and fields.collapsible_categories %}
+                             </div>
+                           </div>
+                        </div>
+                    {% endif %}
+                    
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if fields.archive_url %}
+            <a href="{{ fields.archive_url }}" class="btn btn-link text-secondary text-underline btn-loading-page mt-5 align-self-center align-self-lg-start px-0" title="More About the {{label}}">Visit the {{label}} Page</a>
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}

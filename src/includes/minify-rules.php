@@ -2,7 +2,7 @@
 
 function compile_files_config($enable_production=false){
 
-	if (!function_exists("compile_files_plugins") && \Update::is_task_completed("copy_theme")) {
+	if (!function_exists("compile_files_plugins") && SH_THEME_EXISTS) {
         require THEME_INCLUDES_PATH . "minify-rules.php";
     }
 

@@ -1,0 +1,74 @@
+{#
+  Title: Tablo
+  Description: Düzenlenebilir tablo
+  Category: saltblocks
+  Icon: editor-table
+  Keywords: table tablo satır sütun
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = ["table"] %}
+{% set block_iterable = [] %}
+{% set block_extras = { classes : "position-relative mb-5", container : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+        {% set table_class = "" %}
+        {% if fields.table_striped %}
+            {% set table_class = table_class ~ " table-striped" %}
+        {% endif %}
+        {% if fields.table_striped_columns %}
+            {% set table_class = table_class ~ " table-striped-columns" %}
+        {% endif %}
+        {% if fields.table_hover %}
+            {% set table_class = table_class ~ " table-hover" %}
+        {% endif %}
+
+        {% set module_class = "" %}
+        {% if fields.table_minimal %}
+            {% set module_class = module_class ~ " table-minimal" %}
+        {% endif %}
+
+        {% set table = fields.table %}
+        <div class="card-module table-responsive-md m-0  {{module_class}}">
+            <table class="table table-sm {{table_class}}">
+            {% if table.header %}
+                {% set header_check = 0 %}
+                {% for header_item in table.header %}
+                    {% if header_item.c != "" %}
+                       {% set header_check = header_check + 1 %}
+                    {% endif %}
+                {% endfor %}
+                <thead class="">
+                    <tr>
+                    {% for header_item in table.header %}
+                        <th {% if loop.index == 1 and header_check <= 1 %}colspan="{{table.header|length}}"{% endif %}>{{header_item.c}}</th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+            {% endif %}
+            {% if table.body %}
+                <tbody>
+                {% for body_row in table.body %}
+                    <tr>
+                    {% for body_column in body_row %}
+                        <td class="align-top">{{function("convertToLink", body_column.c)|nl2br}}</td>
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            {% endif %}
+            </table>
+        </div>
+
+{% endblock %}

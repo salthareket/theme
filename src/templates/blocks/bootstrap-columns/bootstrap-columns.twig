@@ -1,0 +1,39 @@
+{#
+	Title: Bootstrap Columns
+	Description: Metin içeriği
+	Category: saltblocks
+	Icon: editor-ul
+	Keywords: dosya file list
+	Mode: auto
+	Align: 
+	PostTypes: 
+	SupportsAlign: left right center wide full
+	SupportsAlignfields: true
+	SupportsMode: true
+	SupportsMultiple: true
+	SupportsAnchor: true
+	SupportsCustomClassName: true
+	SupportsReusable: true
+	SupportsFullHeight: true
+#}
+
+{% set block_main_field = [] %}
+{% set block_extras = {} %}
+{% set block_column = block_column|default("") %}
+{% set block_column_index = -1 %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+	{% if fields.acf_block_columns %}
+		{% set row_cols = function("block_bs_columns_rowcols_classes", fields) %}
+		<div class="row {{row_cols}} {{fields.row_classes}} {% if not block_meta.container and (block_column and nested) %}w-100{% endif %}">
+		{% for column in fields.acf_block_columns %}
+			{% set block_extras = {} %}
+			{% set block_column = column.acf_fc_layout|replace({"block-" : ""}) %}
+			{% set block_column_index = loop.index0 %}
+			{% include "blocks/" ~ block_column ~ "/" ~ block_column ~ ".twig" ignore missing with { fields : column, is_column : block_meta.classes, row_cols : fields.row_cols, block_column: block_column, block_column_index: block_column_index }  %}
+
+		{% endfor %}
+		</div>
+	{% endif %}
+{% endblock %}

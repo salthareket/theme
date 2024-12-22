@@ -1,0 +1,80 @@
+{#
+	Title: Text
+	Description: Metin içeriği
+	Category: saltblocks
+	Icon: editor-ul
+	Keywords: dosya file list
+	Mode: auto
+	Align: 
+	PostTypes: 
+	SupportsAlign: left right center wide full
+	SupportsAlignfields: true
+	SupportsMode: true
+	SupportsMultiple: true
+	SupportsAnchor: true
+	SupportsCustomClassName: true
+	SupportsReusable: true
+	SupportsFullHeight: true
+#}
+
+{% set block_main_field = ["text"] %}
+{% set block_extras = {} %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+	{{ fields.text }}
+
+	{% if fields.collapsible %}
+	    <div class="collapse {% if fields.collapsed %}show{% endif %}" id="{{block_meta.id}}-collapse">
+			{{ fields.text_collapsed }}
+		</div>
+		<div class="d-flex collapse-button-container justify-content-{{fields.button.position}} {% if fields.collapsed and fields.button_hide %}d-none{% endif %} {{fields.button.pt}}">
+			{% set attrs = "" %}
+			{% set classes = "btn " %}
+			{% set item = fields.button %}
+			{% if item.type == "custom" %}
+
+                {% if item.outline %}
+
+                    {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg:transparent; --bs-btn-border-color: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg:' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-hover-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-active-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
+
+                {% else %}
+
+                    {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
+
+                {% endif %}
+
+            {% else %}
+
+                {% set classes = "btn btn-" %}
+                {% if item.outline %}
+                   {% set classes = classes ~ "outline-" %}
+                {% endif %}
+                {% set classes = classes ~ item.type ~ " btn-"  ~ item.size  ~ " " ~ item.class %}
+
+            {% endif %}
+			<a class="{{classes}}" data-bs-toggle="collapse" href="#{{block_meta.id}}-collapse" role="button" aria-expanded="{% if fields.collapsed %}true{% else %}false{% endif %}" aria-controls="{{block_meta.id}}-collapse" {{attrs}}>{% if fields.collapsed %}{{fields.button.text_collapsed}}{% else %}{{fields.button.text}}{% endif %}</a>
+		</div>
+	    
+	    {% if fields.text_collapsed %}
+		<script>
+		    document.addEventListener('DOMContentLoaded', function() {
+				document.getElementById('{{block_meta.id}}-collapse')
+				.addEventListener('show.bs.collapse', event => {
+					{% if fields.button_hide %}
+				    document.querySelector(`#{{block_meta.id}} .collapse-button-container`).classList.add('d-none');
+				    {% endif %}
+				    document.querySelector(`#{{block_meta.id}} .collapse-button-container .btn`).textContent = "{{fields.button.text_collapsed}}";
+				});
+				document.getElementById('{{block_meta.id}}-collapse')
+				.addEventListener('hide.bs.collapse', event => {
+					document.querySelector(`#{{block_meta.id}} .collapse-button-container .btn`).textContent = "{{fields.button.text}}";
+				});
+			});
+		</script>
+	    {% endif %}
+
+    {% endif %}
+
+{% endblock %}

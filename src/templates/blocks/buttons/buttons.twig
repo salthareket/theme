@@ -1,0 +1,111 @@
+{#
+  Title: Buttons
+  Description: Button Ekleme
+  Category: saltblocks
+  Icon: button
+  Keywords: button link
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = "buttons" %}
+{% set block_extras = {} %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+    <ul class="list-inline m-0">
+
+        {% for item in fields.buttons %}
+
+            {% if item.modal %}
+
+                {% set attrs = " data-ajax-method='" ~ item.modal_settings.type ~ "' " ~ (item.modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ item.modal_settings.size ~ "' ") %}
+                {% set attrs = attrs ~ " data-close='" ~ item.modal_settings.close ~ "' " %}
+                {% set attrs = attrs ~ " data-scrollable='" ~ item.modal_settings.scrollable ~ "' " %}
+                {% set attrs = attrs ~ " data-class='" ~ item.modal_settings.class ~ "' " %}
+                {% set attrs = attrs ~ (item.modal_settings.title != "" ? " data-title='" ~ item.modal_settings.title ~ "' ":"") %}
+
+                {% if item.modal_settings.type in ["page_modal", "form_modal"] %}
+                    {% set attrs = attrs ~ " data-id='" ~ item.modal_settings.id ~ "' " %}
+                {% endif %}
+
+                {% if item.modal_settings.type in ["iframe_modal"] %}
+                    {% set attrs = attrs ~ " data-height='" ~ item.modal_settings.height ~ "' " %}
+                {% endif %}
+
+                {% if item.modal_settings.type in ["map_modal"] %}
+                    {% set modal_args = [{"modal-body": "ratio ratio-" ~ item.modal_settings.ratio ~ " overflow-hidden"}]|json_attr %}
+                    {% set attrs = attrs ~ " data-modal='" ~ modal_args ~ "' " %}
+                    {% if item.modal_settings.location_type == "static" %}
+                        {% set attrs = attrs ~ " data-lat='" ~ item.modal_settings.lat ~ "' data-lng='" ~ item.modal_settings.lng ~ "' " %}
+                    {% endif %}
+                    {% if item.modal_settings.location_type == "dynamic" %}
+                        {% set attrs = attrs ~ " data-ids='" ~ item.modal_settings.posts|json_attr ~ "' " %}
+                    {% endif %}
+                    {% if item.modal_settings.marker_popup %}
+                        {% set popup_args = {"type": item.modal_settings.marker_popup_type, "title": item.modal_settings.marker_popup_title }|json_attr %}
+                        {% set attrs = attrs ~ " data-popup='" ~ popup_args ~ "' " %}
+                    {% endif %}
+                {% endif %}
+
+            {% else %}
+                {% set attrs = item.outside?"target='_blank' rel='nofollow'":"" %}
+            {% endif %}
+
+            {% set btn_class = "" %}
+            {% if item.link_only %}
+                {% set btn_class = btn_class ~ "btn-link " %}
+                {% if item.type != "custom" %}
+                    {% set btn_class = btn_class ~ "text-" ~ item.type ~ " " %}
+                {% endif %}
+            {% else %}
+                {% set btn_class = btn_class ~ "btn " %}
+                {% if item.type != "custom" %}
+                   {% set btn_class = btn_class ~ "btn" ~ (item.outline?"-outline":"") ~ "-" ~ item.type ~ " " %}
+                {% endif %}
+                {% if item.size != "default" %}
+                    {% set btn_class = btn_class ~ "btn-" ~ item.size ~ " " %}
+                {% endif %}
+            {% endif %}
+            {% if not item.link_outside and not item.modal %}
+                {% set btn_class = btn_class ~ "btn-loading-page" %}
+            {% endif %}
+            {% set btn_class = btn_class ~ " " ~ item.class %}
+            
+            {% if item.type == "custom" %}
+                {% if item.outline %}
+                    {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg:transparent; --bs-btn-border-color: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg:' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-hover-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-active-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
+                {% else %}
+                    {% if item.link_only %}
+                        {% set attrs = attrs ~ ' style="--bs-link-color-rgb: ' ~ item.custom.default.color|hex2rgbValues|default("transparent") ~ ';--bs-link-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';"' %}
+                    {% else %}
+                        {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+
+            <li class="list-inline-item mb-2" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                {% if item.modal and item.modal_settings.type in ["page_modal", "form_modal"] %}
+                    {% set url = "#" %}
+                {% elseif item.modal and item.modal_settings.type in ["iframe_modal"]  %}
+                   {% set url   = item.modal_settings.content_type == "file" ? item.modal_settings.file : item.modal_settings.url %}
+                {% else %}
+                    {% set url   = item.outside?item.link_outside:item.link_inside %}
+                    {% set url   = url ~ (item.anchor?"#"~item.anchor:"") %}
+                {% endif %}
+                {% set title = item.link_text is empty and not item.outside ? get_title_from_url(item.link_inside) : item.link_text  %}
+                <a href="{{url}}" class="{{btn_class}}" {{attrs}} title="{{title}}">{{title}}</a>
+            </li>
+
+        {% endfor %}
+    </ul>
+
+{% endblock %}

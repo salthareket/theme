@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Timber is not installed</title>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	</head>
+
+	<body class="d-flex vh-100 align-items-center bg-light">
+		<div class="container">
+			<div class="alert alert-danger rounded-4 shadow p-5">
+				<h1 class="fw-bold fs-2 text-danger">Timber is not installed</h1>
+				<hr>
+				<p>This theme requires the <strong>Timber</strong> plugin to function properly. Timber provides powerful tools for developing WordPress themes using the Twig templating engine.</p>
+		        <p>To install Timber, please follow these steps:</p>
+		        <ol style="text-align: left; display: inline-block;">
+		            <li>Ensure that <strong>Composer</strong> is installed on your server. You can download it from <a href="https://getcomposer.org" target="_blank">getcomposer.org</a>.</li>
+		            <li>Navigate to your theme's directory using your terminal or command prompt.</li>
+		            <li>Run the following command:</li>
+		        </ol>
+		        <code class="d-block p-4 bg-light border rounded-3 shadow-sm mb-4">composer require timber/timber</code>
+		        <p>Once the installation is complete, refresh this page to continue using the theme.</p>
+		        <button onclick="window.location.reload()" class="btn btn-sm btn-danger text-uppercase fw-bold rounded-5 py-3 px-4">Refresh Page</button> 
+			</div>
+		</div>
+	</body>
+</html>

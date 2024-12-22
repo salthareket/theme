@@ -1,0 +1,41 @@
+{#
+  Title: Application Buttons
+  Description: Application Button Ekleme
+  Category: saltblocks
+  Icon: smartphone
+  Keywords: app application mobile button link
+  Mode: auto
+  Align:
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = "buttons" %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% set images = {} %}
+    {% for item in function("_get_option", "application_buttons") %}
+        {% set platform = item.platform %}
+        {% set images = images|merge({ (platform): { "dark": item.dark, "light": item.light } }) %}
+    {% endfor %}
+
+    <ul class="list-inline m-0">
+        {% for item in fields.buttons %}
+            <li class="list-inline-item">
+                <a href="{{item.url}}" title="{{item.link_text}}">
+                    <img src="{{images[item.platform][fields.scheme]}}" class="img-fluid" alt="">
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}

@@ -1,0 +1,129 @@
+{#
+  Title: Hero
+  Description: Hero
+  Category: saltblocks
+  Icon: table-row-before
+  Keywords: slider gallery image görsel video hero
+  Mode: auto
+  Align: 
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignContent: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+  SupportsCustomClassName: true
+#}
+{% set block_main_field = "" %}
+{% set block_extras = { "classes" : "position-relative", "container" : "z-1 position-relative" } %}
+{% set block_required_js = [ "swiper" ] %}
+{% extends "blocks/_block-container.twig" %}
+
+{% set slider = fields.slider %}
+
+{% block block_content %}
+
+    {% if fields.show_breadcrumb or fields.page_title or fields.description %}
+
+        {% if not block_meta.settings.column.active %}
+        <div class="content justify-content-lg-start--justify-content-center--text-lg-start--text-center z-2">
+        {% endif %}
+
+            {% if fields.show_breadcrumb %}
+                {{ breadcrumb|default(block_meta.data.breadcrumb)|replace({"{{class}}" : "justify-content-center justify-content-lg-start"}) }}
+            {% endif %}
+            {% if fields.page_title %}
+                <h1 class="title">{{ is_preview?function("get_the_title", block_meta.data.post_id):post.title|default(block_meta.data.title) }}</h1>
+            {% endif %}
+            {% if fields.description %}
+            <div class="description">
+                {{ fields.description }}
+            </div>
+            {% endif %}
+
+        {% if not block_meta.settings.column.active %}
+        </div>
+        {% endif %}
+
+    {% endif %}
+    
+{% endblock %}
+
+{% block block_content_outer %}
+
+    {% if slider %}
+        
+        {% if fields.slider_parallax %}
+        <div class="bg-cover position-absolute-fill jarallax" data-jarallax>
+        {% endif %}
+
+        {% set duration = (fields.slider_settings.delay|default(4000)/1000) + 2 %}
+        <div class="swiper-slider swiper position-absolute-fill z-0 {% if fields.slider_parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not block_meta.settings.hero %} fade loading{% endif %} {% endif %} {% if fields.slider_settings.autoheight %}position-relative h-auto{% endif %} {% if block_meta.data.fullHeight %}h-100v-min{% endif %}" {{block_meta.row.attrs}}>
+            <div class="swiper-wrapper h-100">
+                {% for slide in slider %}
+
+                    {% set lazy = (not is_preview and (not block_meta.settings.hero and loop.index != 1) and not fields.slider_settings.lazy) %}
+                    {% set lcp = ( (block_meta.index == 0 and loop.index0 == 0) or (block_meta.settings.hero and block_meta.index == 0 and loop.index0 == 0) )?true:false %}
+                    {% set lazy_native = not lazy and fields.slider_settings.lazy %}
+
+                    <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{loop.index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.control %}overlay{% endif %} overflow-hidden h-100">
+                        
+                        {% if slide.media_type == "image" %}
+                            {% if not fields.slider_settings.autoheight or (fields.slider_settings.autoheight and block_meta.settings.height == "ratio") %}
+                                <div class="swiper-bg h-100" data-duration="{{duration}}s">
+                                    {{img({src: slide.image, class : "object-fit-cover w-100 h-100", lazy: lazy, lazy_native: lazy_native, lcp: lcp})}}
+                                    {% if not lcp and fields.slider_settings.lazy and slider|length > 1 %}
+                                        <div class="swiper-lazy-preloader"></div>
+                                    {% endif %}
+                                </div>
+                                {{ slide.image.image }}
+                                <noscript class="loading-lazy">
+                                    <div class="swiper-bg bg-cover" style="background-image:url({{slide.image.url}});"></div>
+                                </noscript>
+                            {% else %}
+                                <div class="swiper-bg h-100" data-duration="{{duration}}s">
+                                    {{img({src: slide.image, class : "object-fit-cover w-100 h-100", lazy: lazy, lazy_native: lazy_native, lcp: lcp })}}
+                                    {% if not lcp and fields.slider_settings.lazy and slider|length > 1 %}
+                                        <div class="swiper-lazy-preloader"></div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if slide.media_type == "video" %}
+                            <div class="swiper-bg bg-cover swiper-video swiper-video-{% if slide.video.video_type == "file" %}file{% else %}url{% endif %} position-absolute-fill loading-hide-loading-light">
+                                {{  video({
+                                        src: slide.video,
+                                        class: "", 
+                                        init: false, 
+                                        lazy: (not is_preview)
+                                    })
+                                }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="swiper-pagination" data-bg-check="#{{block_meta.id}} .swiper-bg img"></div>
+        </div>
+        <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const swiperBgs = document.querySelectorAll('.swiper-bg');
+            swiperBgs.forEach(swiperBg => {
+                const duration = swiperBg.getAttribute('data-duration');
+                swiperBg.style.transition = `all ${duration} ease-out`;
+            });
+        });
+        </script>
+        
+        {% if fields.slider_parallax %}
+        </div>
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}

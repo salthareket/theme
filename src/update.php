@@ -22,6 +22,7 @@ class Update {
     public static $tasks_status;
     public static $installation_tasks = [
         ["id" => "copy_theme", "name" => "Copying Theme Files"],
+        ["id" => "copy_templates", "name" => "Copying Template Files"],
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
@@ -498,10 +499,16 @@ class Update {
             self::recurseCopy($srcDir, $target_dir);
         }
     }
+    private static function copy_templates(){
+        $srcDir = SH_PATH . 'templates';
+        $target_dir = get_template_directory() . '/';
+        if (is_dir($srcDir)) {
+            self::recurseCopy($srcDir, $target_dir);
+        }
+    }
     private static function copy_fonts(){
         $srcDir = SH_STATIC_PATH . 'fonts';
         $target_dir = STATIC_PATH . 'fonts';
-
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true); 
         }
@@ -562,6 +569,11 @@ class Update {
                     self::copy_theme();
                     self::update_task_status('copy_theme', true);
                     wp_send_json_success(['message' => 'Theme files copied successfully']);
+                    break;
+                case 'copy_templates':
+                    self::copy_theme();
+                    self::update_task_status('copy_templates', true);
+                    wp_send_json_success(['message' => 'Template filess copied successfully']);
                     break;
                 case 'copy_fonts':
                     self::copy_fonts();

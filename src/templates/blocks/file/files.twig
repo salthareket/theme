@@ -1,0 +1,36 @@
+{#
+  Title: Dosyalar
+  Description: İndirilebilir dosya listesi
+  Category: saltblocks
+  Icon: download
+  Keywords: dosya file list
+  Mode: auto
+  Align: center
+  PostTypes: 
+  EnqueueStyle: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = "files" %}
+{% set block_extras = {} %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% set files = fields.files %}
+    {% if fields.show_date and fields.seperate_by_year %}
+        {% set files = function("seperate_by_year", files) %}
+        {% for key, file in files %}     
+            {% include "blocks/file/file.twig" with { files : file, title : key, show_date : fields.show_date  } %}
+        {% endfor %}
+    {% else %}
+        {% include "blocks/file/file.twig" with { files : files, title : fields.title, show_date : fields.show_date } %}
+    {% endif %}
+
+{% endblock %}

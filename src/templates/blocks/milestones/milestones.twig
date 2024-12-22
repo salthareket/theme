@@ -1,0 +1,58 @@
+{#
+  Title: Milestones
+  Description: Milestones
+  Category: saltblocks
+  Icon: editor-ul
+  Keywords: timeline
+  Mode: auto
+  Align: 
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignContent: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = ["timeline"] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% set timeline = fields.timeline %}
+    {% if fields.reverse_order %}{
+        {% set timeline = timeline|reverse %}
+    {% endif %}
+
+    <ul class="list-timeline">
+        {% for key, item in timeline  %}
+            <li>
+                <{{fields.heading|default("h2")}} class="title title-sm fw-700" {{block_meta.aos}}>{{item.title}}</{{fields.heading|default("h2")}}>
+                {% if item.events %}
+                    <ul class="events">
+                    {% for event in item.events %}
+                        <li {{block_meta.aos}}>
+                            <p class="text-sm">{{event.description}}</p>
+                            {% if event.gallery %}
+                                <ul class="list-gallery list-inline">
+                                {% for image_key, image in event.gallery %}
+                                    <li class="list-inline-item pb-2 pt-4">
+                                        {#<a href="{{image.src}}" data-fancybox="timeline-{{key}}">#}
+                                        <img src="{{image.sizes.thumbnail}}" class="img-fluid rounded-3 border" alt="{{image.alt}}"/>
+                                        {#</a>#}
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+{% endblock %}

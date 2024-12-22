@@ -1,0 +1,71 @@
+{% set slider_settings = fields.block_settings.background.slider_settings?fields.block_settings.background.slider_settings:fields.slider_settings %}
+{% set hero = fields.block_settings.hero|default(0) %}
+{% set height = fields.block_settings.height %}
+
+{% if slider_position == "background" %}
+    {% set media_position = "object-fit-" ~ fields.block_settings.background.size ~ " object-position-" ~ (fields.block_settings.background.position_hr == fields.block_settings.background.position_vr ? fields.block_settings.background.position_vr : fields.block_settings.background.position_hr ~ "-" ~ fields.block_settings.background.position_vr) %}
+    {% set parallax = fields.block_settings.background.parallax %}
+{% else %}
+    {% set media_position = "object-fit-cover" %}
+    {% set parallax = fields.slider_parallax %}
+{% endif %}
+
+{% set duration = (slider_settings.delay|default(4000)/1000) + 2 %}
+<div class="swiper-slider swiper {% if slider_position != "background" %}position-absolute-fill{% else %}{% if not parallax %}h-100{% endif %}{% endif %} z-0 {% if parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not hero %} fade loading{% endif %} {% endif %} {% if slider_settings.autoheight %}position-relative h-auto{% endif %} {% if block.fullHeight %}h-100v-min{% endif %}" {{row.attrs}}>
+    <div class="swiper-wrapper h-100">
+        {% for slide in slider %}
+
+            {% set lazy = (not is_preview and (not hero and loop.index != 1) and not slider_settings.lazy) %}
+            {% set lcp = ( (block_meta.index == 0 and loop.index0 == 0) or (hero and block_meta.index == 0 and loop.index0 == 0) )?true:false %}
+            {% set lazy_native = not lazy and slider_settings.lazy %}
+
+            <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{loop.index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.control %}overlay{% endif %} overflow-hidden h-100">
+                        
+                {% if slide.media_type == "image" %}
+                    {% if not slider_settings.autoheight or (slider_settings.autoheight and height == "ratio") %}
+                        <div class="swiper-bg h-100" data-duration="{{duration}}s">
+                            {{img({src: slide.image, class : media_position ~ " w-100 h-100", lazy: lazy, lazy_native: lazy_native, lcp: lcp})}}
+                            {% if not lcp and slider_settings.lazy and slider|length > 1 %}
+                            <div class="swiper-lazy-preloader"></div>
+                            {% endif %}
+                        </div>
+                        {{ slide.image.image }}
+                        <noscript class="loading-lazy">
+                            <div class="swiper-bg bg-cover" style="background-image:url({{slide.image.url}});"></div>
+                        </noscript>
+                    {% else %}
+                        <div class="swiper-bg h-100" data-duration="{{duration}}s">
+                            {{img({src: slide.image, class : media_position ~ " w-100 h-100", lazy: lazy, lazy_native: lazy_native, lcp: lcp })}}
+                            {% if not lcp and slider_settings.lazy and slider|length > 1 %}
+                            <div class="swiper-lazy-preloader"></div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                {% if slide.media_type == "video" %}
+                    <div class="swiper-bg bg-cover swiper-video swiper-video-{% if slide.video.video_type == "file" %}file{% else %}url{% endif %} position-absolute-fill loading-hide-loading-light">
+                    {{  video({
+                            src: slide.video,
+                            class: "", 
+                            init: false, 
+                            lazy: (not is_preview)
+                        })
+                    }}
+                    </div>
+                {% endif %}
+            </div>
+
+        {% endfor %}
+    </div>
+    <div class="swiper-pagination" data-bg-check="#{{block.id}} .swiper-bg img"></div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const swiperBgs = document.querySelectorAll('.swiper-bg');
+        swiperBgs.forEach(swiperBg => {
+            const duration = swiperBg.getAttribute('data-duration');
+            swiperBg.style.transition = `all ${duration} ease-out`;
+        });
+    });
+</script>

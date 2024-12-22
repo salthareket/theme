@@ -1,0 +1,127 @@
+{#
+  Title: Tease List
+  Description: Tease listesi
+  Category: saltblocks
+  Icon: editor-ul
+  Keywords: post link posts
+  Mode: auto
+  Align: 
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = ["table"] %}
+{% set block_iterable = [] %}
+{% set block_extras = { classes : "position-relative mb-5", container : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% if fields.post_type != "" %}
+        {% if fields.categories %}
+            {% set posts = function("get_posts_by_taxonomy_terms", fields.post_type) %}
+        {% else %}
+            {% set posts = get_posts({ "post_type" : fields.post_type, "post__not_in" : [post.id], "posts_per_page" : fields.max_posts}) %}
+            {% set posts = [{term:{}, posts:posts}] %}
+        {% endif %}
+        {% set label = function("get_post_type_object", fields.post_type).labels.name %}
+    {% else %}
+        {% if fields.posts %}
+            {% set posts = get_posts(fields.posts) %}
+            {% set posts = [{term:{}, posts:posts}] %}
+            {% set label = function("get_post_type_object", posts.posts[0].post_type).labels.name %}
+        {% endif %}
+    {% endif %}
+
+    {% if posts %}
+        
+        {% if fields.text %}
+           <div class="text mb-4 w-100">{{ fields.text }}</div>
+        {% endif %}
+
+        {% if fields.slider %}
+            {% if not fields.categories %}
+                <div class="swiper-slider swiper my-auto {{block_meta.data.align ? " justify-content-lg-#{block_meta.data.align}"}}" {{block_meta.row.class}}  {{block_meta.row.attrs}}>
+                    <div class="swiper-wrapper">
+            {% endif %}
+        {% else %}
+            {% if not fields.categories %}
+                <div class="row {{block_meta.row.class}} my-auto {{block_meta.data.align ? " justify-content-lg-#{block_meta.data.align}"}} w-100" {{block_meta.row.attrs}}>
+            {% endif %}
+        {% endif %}
+
+        {% for term in posts %}
+
+            {% if term.posts %}
+
+                {% if fields.categories %}
+                    <div class="card card-reset">
+                        <div class="card-header">
+                            <{{fields.heading_category}} class="card-title">{{ term.term.name }}</{{fields.heading_category}}>
+                        </div>
+                        <div class="card-body">
+                {% endif %}
+
+                            {% if fields.slider %}
+                                {% if fields.categories %}
+                                    <div class="swiper-slider swiper {{block_meta.data.align ? " justify-content-lg-#{block_meta.data.align}"}}" {{block_meta.row.class}} data-slider-pagination="bullets" {{block_meta.row.attrs}}>
+                                        <div class="swiper-wrapper">
+                                {% endif %}
+                            {% else %}
+                                {% if fields.categories %}
+                                    <div class="row {{block_meta.row.class}} {{block_meta.data.align ? " justify-content-lg-#{block_meta.data.align}"}}">
+                                {% endif %}
+                            {% endif %}
+
+
+                               {% for item in term.posts %}
+                                    <div class="{% if fields.slider %}swiper-slide{% else %}col{% endif %}">
+                                        {% include [item.post_type ~ "/tease.twig", "tease.twig"] with { post : item, heading : fields.heading, ratio : fields.ratio } %}
+                                    </div>
+                               {% endfor %}
+                    
+                            {% if fields.slider %}
+                                {% if fields.categories %}
+                                        </div>
+                                    </div>
+                                    <div class="swiper-pagination mt-5"></div>
+                                {% endif %}
+                            {% else %}
+                                {% if fields.categories %}
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+
+                {% if fields.categories %}
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% endif %}
+        {% endfor %}
+
+        {% if fields.slider %}
+            {% if not fields.categories %}
+                    </div>
+                </div>
+                <div class="swiper-pagination mt-5"></div>
+            {% endif %}
+        {% else %}
+            {% if not fields.categories %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {% if fields.archive_url %}
+            <a href="{{ fields.archive_url }}" class="btn btn-link text-secondary text-underline btn-loading-page mt-5 align-self-center align-self-lg-start px-0" title="More {{label}}">Go to {{label}} page</a>
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}

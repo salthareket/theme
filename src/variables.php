@@ -22,6 +22,8 @@ define('THEME_STATIC_URL',     get_template_directory_uri() . "/theme/static/");
 
 define('NODE_MODULES_PATH', get_home_path() .'node_modules/');
 
+define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
+
 
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
@@ -213,7 +215,7 @@ add_action('after_setup_theme', function () {
                 "</a></p></div>";
         });
         add_filter("template_include", function ($template) {
-            return STATIC_PATH . "no-timber.html";
+            return SH_STATIC_PATH . "no-timber.html";
         });
         return;
     } else {
@@ -222,7 +224,7 @@ add_action('after_setup_theme', function () {
         Timber::$cache = false;
         include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
         include_once SH_INCLUDES_PATH . 'twig-extends.php';
-        if(\Update::is_task_completed("copy_theme")){
+        if(SH_THEME_EXISTS){
             include_once THEME_INCLUDES_PATH . "twig-extends.php";
         }
         if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
@@ -232,14 +234,14 @@ add_action('after_setup_theme', function () {
 
     if (!class_exists("ACF")) {
         add_filter("template_include", function ($template) {
-            return STATIC_PATH . "no-acf.html";
+            return SH_STATIC_PATH . "no-acf.html";
         });
         return;
     }
 });
 
 include_once SH_INCLUDES_PATH . "helpers/index.php";
-if(\Update::is_task_completed("copy_theme")){
+if(SH_THEME_EXISTS){
     include_once THEME_INCLUDES_PATH . "globals.php";
 }
 include_once SH_INCLUDES_PATH . "blocks.php";
@@ -293,12 +295,13 @@ if (is_admin()) {
 }
 
 if (class_exists("ACF")) {
+    include_once SH_INCLUDES_PATH . "acf-field-groups.php";
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
     if(class_exists('ACFE')){
        include_once SH_INCLUDES_PATH . "plugins/acfe.php";
     }
     if(class_exists("OpenStreetMap")){
-        die;
+        //die;
         include_once SH_INCLUDES_PATH . "plugins/acf-osm.php";
     }
 }else{
@@ -427,7 +430,7 @@ if (ENABLE_ECOMMERCE) {
 }
 
 // extend with theme files
-if(\Update::is_task_completed("copy_theme")){
+if(SH_THEME_EXISTS){
     include_once get_template_directory() . "/theme/index.php";
 }
 include_once SH_INCLUDES_PATH . "shortcodes.php";
@@ -443,7 +446,7 @@ $GLOBALS["base_urls"] = array();
 */
 
 
-if(\Update::is_task_completed("copy_theme")){
+if(SH_THEME_EXISTS){
     $salt = new \Salt();
 }else{
     $salt = new \SaltBase();

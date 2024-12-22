@@ -1,0 +1,45 @@
+{#
+  Title: Audio
+  Description: Audio PLayer
+  Category: saltblocks
+  Icon: audio-alt3
+  Keywords: audio sound music player media mp3
+  Mode: auto
+  Align: 
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignContent: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [] %}
+{% set block_iterable = [] %}
+{% set block_extras = { classes : "position-relative", container : "z-1 position-relative" } %}
+{% set block_required_js = [ "plyr" ] %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% if fields.wrapper_class %}
+        <div class="{{fields.wrapper_class}} w-100">
+    {% endif %}
+
+    {% if fields.template_block %}
+        {% include fields.template_block with { fields: fields } %}
+    {% else %}
+        {{  video({
+                src: fields,
+                init: true
+            })
+        }}
+    {% endif %}
+
+    {% if fields.wrapper_class %}
+        </div>
+    {% endif %}
+
+{% endblock %}

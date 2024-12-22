@@ -1,0 +1,89 @@
+{#
+  Title: Icons
+  Description: İcon listesi
+  Category: saltblocks
+  Icon: images-alt
+  Keywords: button link
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = ["icons"] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% if fields.slider %}
+        <div class="swiper-slider swiper {{block_meta.row.class}}" {{block_meta.row.attrs}}>
+             <div class="swiper-wrapper">
+    {% else %}
+        <div class="row {{block_meta.row.class}}" {{block_meta.row.attrs}}>
+    {% endif %}
+
+        {% for key, item in fields.icons %} 
+
+            <div class="{% if fields.slider %}swiper-slide{% else %}col{% endif %}">
+
+                {% set is_external = item.content.url.target == "_blank" ? true : false %}
+
+                {% set link_start = "" %}
+                {% if item.content.url %}
+                    {% set attrs = is_external?"target='_blank' rel='nofollow'":"" %}
+                    {% set link_start = "<a href='" ~ item.content.url.url ~ "' class='" ~ (not is_external?"btn-loading-page":"") ~" d-flex flex-column" ~ (fields.reverse?"-reverse":"") ~ "' "  ~ attrs ~ " title='" ~ (button.link_text|default(item.title)) ~"'>" %}
+                {% endif %}
+
+                <article {% if fields.reverse and not link_start %}class="d-flex flex-column-reverse"{% endif %} data-mh="icon-list-{{block_meta.id}}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                    
+                    {% if link_start  %}
+                        {{ link_start }}
+                    {% endif %}
+
+                        {% if fields.template and fields.template != "default" %}
+                            {% include fields.template ~ ".twig" with { post: item } %}
+                        {% else %}
+
+                            {% if item.image %}
+                            <div class="icon">
+                                {% if function('get_extension', item.image.url) == "svg" %}
+                                    {{item.image.url|inline_svg("image img-fluid")}}
+                                {% else %}
+                                    <img {% if not is_preview %}data-{% endif %}src="{{item.image.sizes.medium}}" class="image img-fluid shadow-sm {% if not is_preview %}lazy{% endif %}" alt="{{ item.title }}" width="{{item.image.width}}" height="{{item.image.height}}"/>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% if item.content.title %}
+                                <h3 class="title">{{ item.content.title }}</h3>
+                            {% endif %}
+                            {% if item.content.description %}
+                                <div class="description">{{ item.content.description }}</div>
+                            {% endif %}
+
+                        {% endif %}
+                        
+                    {% if link_start %}
+                        </a>
+                    {% endif %}
+                </article>
+
+            </div>
+
+        {% endfor %}
+
+    {% if fields.slider %}
+        </div>
+    </div>
+    <div class="swiper-pagination mt-5"></div>
+    {% else %}
+        </div>
+    {% endif %}
+
+{% endblock%}

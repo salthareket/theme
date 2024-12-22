@@ -1,0 +1,54 @@
+{#
+	Title: Sosyal Medya
+	Description: Sosyal medya Lİnkleri
+	Category: saltblocks
+	Icon: instagram
+	Keywords: sosyal social media link icon
+	Mode: auto
+	Align: 
+	PostTypes: 
+	SupportsAlign: left right center wide full
+	SupportsAlignfields: true
+	SupportsMode: true
+	SupportsMultiple: true
+	SupportsAnchor: true
+	SupportsCustomClassName: true
+	SupportsReusable: true
+	SupportsFullHeight: true
+#}
+
+{% set block_main_field = ["accounts"] %}
+{% set block_iterable = [] %}
+{% set block_extras = { classes : "position-relative", container : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+	{% if fields.add_accounts_from == "contacts" and fields.social_accounts_contacts %}
+		{% set account_post = get_post(fields.social_accounts_contacts) %}
+		{% if account_post %}
+			{% set accounts = account_post.contact.accounts %}
+		{% endif %}
+	{% endif %}
+
+	{% if fields.add_accounts_from == "custom" and fields.social_accounts_custom %}
+		{% set accounts = fields.social_accounts_custom %}
+	{% endif %}
+
+	{{ accounts|list_social_accounts(fields.settings.font_size, true) }}
+
+	{% if fields.settings.color %}
+	<style>
+	{% if fields.settings.color or fields.settings.color_hover %}
+	#{{ block_meta.id }} .list-social li a{
+		color:{{fields.settings.color}};
+	}
+	{% endif %}
+	{% if fields.settings.color_hover %}
+	#{{ block_meta.id }} .list-social li a:hover{
+		color:{{fields.settings.color_hover}};
+	}
+	{% endif %}
+	</style>
+    {% endif %}
+{% endblock %}

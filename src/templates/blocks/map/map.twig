@@ -1,0 +1,34 @@
+{#
+  Title: Map
+  Description: Open Street map 
+  Category: saltblocks
+  Icon: location-alt
+  Keywords: map harita leaflet openstreetmap
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [] %}
+{% set block_extras = { "classes": "overflow-hidden", "container" : "z-1 position-relative" } %}
+{% set block_required_js = [] %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% if not is_preview %}
+        {{get_map_config(fields, block_meta)}}
+    {% else %}
+        <div class="bg-light text-center d-flex align-items-center justify-content-center text-muted w-100" style="min-height:inherit;">
+            Please view page for map locations.
+        </div>
+    {% endif %}
+
+{% endblock %}

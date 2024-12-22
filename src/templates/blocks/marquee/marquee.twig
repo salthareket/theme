@@ -1,0 +1,54 @@
+{#
+	Title: Marquee
+	Description: Scrolling text
+	Category: saltblocks
+	Icon: editor-ul
+	Keywords: text scroll string ticker
+	Mode: auto
+	Align: 
+	PostTypes: 
+	SupportsAlign: left right center wide full
+	SupportsAlignfields: true
+	SupportsMode: true
+	SupportsMultiple: true
+	SupportsAnchor: true
+	SupportsCustomClassName: true
+	SupportsReusable: true
+	SupportsFullHeight: true
+#}
+
+{% set block_main_field = [] %}
+{% set block_extras = {} %}
+{% set block_required_js = [ "smarquee" ] %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+	<div class='smarquee {% if not is_preview %}fade{% else %} overflow-hidden{% endif %} text-nowrap w-100' data-velocity="{{fields.settings.velocity}}" data-pause-on-hover="{{fields.settings.pause_on_hover|default(false)}}">
+	{% if fields.source == "static" %}
+		<span class="d-inline-block px-4 lh-base{{fields.settings.font_size}}" style="font-family:{{fields.settings.font_family|replace({'|':''}) }};color:{{fields.settings.color}}">{{ fields.text|striptags }}</span>
+	{% else %}
+		<span class="{{fields.settings.font_size}} lh-base" style="font-family:{{fields.settings.font_family|replace({'|':''}) }};color:{{fields.settings.color}}">
+		{% if fields.query %}
+			{% for item in fields.query %}
+				<span class="d-inline-block px-4">
+				    {% if fields.settings.template and fields.settings.template != "default" %}
+				    	{% include fields.settings.template ~ ".twig" with { post: item } %}
+				    {% else %}
+						{% if fields.settings.add_links %}
+							<a href="{{item.link}}" title="{{item.title}}" style="color:{{fields.settings.color}}">
+						{% endif %}
+							{{ item.title }}
+							<img src="{{ item.thumbnail.src }}" class="img-fluid">
+						{% if fields.settings.add_links %}
+							</a>
+						{% endif %}
+					{% endif %}
+				</span>
+			{% endfor %}
+		{% else %}
+            No results...
+		{% endif %}
+		</span>
+	{% endif %}
+	</div>
+{% endblock %}

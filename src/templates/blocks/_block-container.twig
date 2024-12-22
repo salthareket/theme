@@ -1,0 +1,129 @@
+{% set show_block = true %}
+{% if block_main_field != "" %}
+	{% if block_main_field is iterable %}
+		{% if block_main_field|length > 1 %}
+			{% set show_block = false %}
+			{% for item in block_main_field %}
+				{% if fields[item] %}
+					{% set show_block = true %}
+				{% endif %}
+			{% endfor %}
+		{% endif %}
+	{% else %}
+		{% if not fields[block_main_field] %}
+			{% set show_block = false %}
+		{% endif %}
+	{% endif %}
+{% endif %}
+
+
+{% if block_required_js %}
+	{% set not_found_js = {} %}
+	{% for item in block_required_js %}
+		{% if item not in all_js %}
+			{% set not_found_js = not_found_js|merge({item}) %}
+		{% endif %}
+	{% endfor %}
+	{% if not_found_js %}
+		{% set show_block = false %}
+		{% if is_preview %}
+			{% block block_error_content %}
+				<div class="alert alert-danger my-5 rounded-0 text-center">
+					Please install plugins:<br><strong>{{ not_found_js|join(", ") }}</strong>
+				</div>
+			{% endblock %}
+		{% endif %}
+	{% endif %}
+{% endif %}
+
+
+{% if show_block %}
+
+	{% if fields.block_settings.hero %}
+		{% if not block_extras %}
+			{% set block_extras = {} %}
+		{% endif %}
+		{% if block_extras.classes %}
+			{% set classes = block_extras.classes %}
+		{% endif %}
+		{% set block_extras = block_extras|merge({ "classes": classes }) %}
+	{% endif %}
+
+	{% if block_column %}
+		{% if fields.query.values %}
+			{% set fields = fields|merge({slider : fields.query.values.slider|default(0) }) %}
+		{% endif %}
+	{% endif %}
+
+	{% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
+	
+	{% set nested = false %}
+	{% if not block_column and is_column %}
+		{% set nested = true %}
+	{% endif %}
+
+	{% set block_meta_classes = block_meta.classes %}
+	{% if block_column or nested %}
+		{% set block_meta_classes = block_meta_classes|replace({"block-bootstrap-columns" : ""}) %}
+		{% if row_cols %}
+			<div class="col">
+		{% else %}
+			{# set block_meta_classes = block_meta_classes ~ " " ~ function("block_bs_columns_col_classes", fields) #}
+			<div class="{{function("block_bs_columns_col_classes", fields)}}">
+		{% endif %}
+	{% endif %}
+
+	<div class="{{block_meta_classes}}" {{block_meta.attrs}} {% if block.name == "acf/bootstrap-columns" and not block_column %}data-scroll-container{% else %} {% if block.name == "acf/bootstrap-columns" and block_column %}data-scroll data-scroll-speed="{{random(-5, 5)}}" data-scroll-direction="vertical" data-scroll-duration="5" data-scroll-target="#{{block_meta.parent}}" data-scroll-call="toggleVisibility"{% endif %}{% endif %}>
+
+	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
+		<div class="sticky-top">
+	{% endif %}
+        
+        {% if block('block_content_outer')|trim == "" %}
+	    {{ block_meta.bg_image }}
+	    {% endif %}
+
+		{% if block_meta.container and (not block_column and not nested) %}
+			<div class="{{block_meta.container}} {% if block_meta.bg_image %}z-3{% endif %} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %} px-4 px-lg-3">
+		{% endif %}
+
+		    {% if fields.block_settings.wrapper_class %}
+		    <div class="{{fields.block_settings.wrapper_class}} h-100 m-h-inherit position-relative">
+		    {% endif %}
+
+			{% if block_meta.settings.column.active and "column_active" not in block_iterable %}
+			<div class="row justify-content-{{block_meta.settings.column.align}}">
+				<div class="col-{{block_meta.settings.column.breakpoint}}-{{block_meta.settings.column.width}}">
+			{% endif %}
+
+				{% block block_content %}{% endblock %}
+
+			{% if block_meta.settings.column.active and "column_active" not in block_iterable %}
+				</div>
+			</div>
+			{% endif %}
+
+			{% if fields.block_settings.wrapper_class %}
+		    </div>
+		    {% endif %}
+
+		{% if block_meta.container and not block_column %}
+		    </div>
+		{% endif %}
+
+		{% block block_content_outer %}{% endblock %}
+
+	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
+		</div>
+	{% endif %}
+
+	{% if block_meta.css and (fetch or enable_production or is_preview) %}
+       {{ block_meta.css }}
+    {% endif %}
+		
+	</div>
+
+	{% if block_column %}
+		</div>
+	{% endif %}
+{% endif %}

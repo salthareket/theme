@@ -1,0 +1,65 @@
+{#
+  Title: Post Archive
+  Description: Post Archive
+  Category: saltblocks
+  Icon: grid-view
+  Keywords: post link posts
+  Mode: auto
+  Align: 
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+
+
+{% block block_content %}
+
+    {% if fields.post_type != "" %}
+        {% if fields.categories %}
+            {% set posts = function("get_posts_by_taxonomy_terms", fields.post_type) %}
+        {% else %}
+            {{ function("set_query_var", "post_type", fields.post_type ) }}
+            {% set args = {"post_type" : fields.post_type, "post__not_in" : [post.id]} %}
+            {% if fields.post_type in post_pagination|keys %}
+                {% set args = args|merge({"paged" : paged ,"posts_per_page" : (post_pagination[fields.post_type].paged ? post_pagination[fields.post_type].posts_per_page : -1)}) %}
+                {% set pagination_query = function("pagination_query") %}
+                {% set query_pagination_vars = pagination_query.vars %}
+                {% set query_pagination_request = pagination_query.request %}
+            {% else %}
+                {% set args = args|merge({"paged" : paged ,"posts_per_page" : -1, "suppress_filters": true}) %}
+            {% endif %}
+            {% set posts = get_posts(args) %}
+        {% endif %}
+    {% endif %}
+
+    {% set container = "#" ~ block_meta.id ~ " .posts" %}
+
+    <div class="card card-reset mw-100">
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : container, post_type : fields.post_type, direction : "prev"} %}
+
+        <div class="card-body">
+            <div class="posts row {{block_meta.row.class}}" {{block_meta.row.attrs}}>
+                {% for post in posts %}
+                    <div class="col">
+                        {% include [ fields.post_type ~ "/tease.twig", "tease.twig" ] with { index : loop.index, heading : fields.heading, color: block_meta.settings.text_color } %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : container, post_type : fields.post_type, direction : "next"} %}
+
+    </div>
+
+{% endblock %}

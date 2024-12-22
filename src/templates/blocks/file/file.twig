@@ -1,0 +1,53 @@
+
+                    {% if files %}
+                        <div class="list-files {{class}}">
+                            <div class="list-files-item">
+                                <h2 class="title ps-3 mb-3">{{ title }}</h2>
+                                <ul class="list-group rounded-4">
+                                    {% for key, file in files %}
+                                        {% set title = file.title %}
+                                        {% if show_date %}
+                                            {% set description_text =  file.meta("date") %}
+                                        {% endif %}
+                                        {% set dosya = file.file %}
+                                        <li class="list-group-item">
+                                            <a href="{{dosya.url}}" class="" target="_blank">
+                                                <div class="row align-items-center g-0">
+                                                    <div class="col-auto p-3 d-sm-block d-none">
+                                                        {% set font = "fal" %}
+                                                        {% set extension = function("get_extension", dosya.url) %}
+                                                        {% if extension in ["jpg", "jpeg", "png", "gif"] %}
+                                                            {% set file_type = "file-image" %}
+                                                        {% elseif extension in ["doc", "docx", "ppt", "pptx", "rtf", "vnd.openxmlformats-officedocument.presentationml.presentation", "vnd.openxmlformats-officedocument.wordprocessingml.document"] %}
+                                                            {% set file_type = "file" %}
+                                                        {% elseif extension in ["apk", "vnd.android.package-archive"] %}
+                                                            {% set file_type = "android" %}
+                                                            {% set font = "fa-brands" %}
+                                                        {% else %}
+                                                            {% set file_type = "file-"~extension %}
+                                                        {% endif %}
+                                                        <i class="icon {{font}} fa-{{file_type}} fa-3x me-3"></i>
+                                                    </div>
+                                                    <div class="col-sm-8">
+                                                        <h3 class="title text-truncate-">
+                                                            {{title}}
+                                                            {% if description %}
+                                                                <small>
+                                                                    {{description}}
+                                                                    {#<p class="card-text"><small class="text-muted">{{translate("Eklenme Tarihi")}} {{file.file.date|time_ago}}</small></p>#}
+                                                                </small>
+                                                            {% endif %}
+                                                        </h3>
+                                                    </div>
+                                                    <div class="col-download col text-end">
+                                                        <div>{{ function("convert_filesize", dosya.filesize, 2) }}</div>
+                                                        <i class="icon fa-thin fa-angle-right ms-lg-4 ms-auto"></i>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    {% endif %}

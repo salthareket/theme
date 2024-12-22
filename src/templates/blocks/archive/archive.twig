@@ -1,0 +1,38 @@
+{#
+  Title: Archive
+  Description: Post, Taxonomy, Term, Comment ve User Listeleme
+  Category: saltblocks
+  Icon: grid-view
+  Keywords: list
+  Mode: auto
+  Align: 
+  PostTypes:
+  SupportsAlign: left right center wide full
+  SupportsAlignContent: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [] %}
+{% set block_iterable = [] %}
+{% set block_extras = { "container" : "z-1 position-relative min-h-inherit" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% if column %}
+        {{fields.query.html|replace({ "[block_meta.row.class]": block_meta.row.class, "[block_meta.row.attrs]": block_meta.row.attrs })|replace({ "[block_meta.row.class]": "", "[block_meta.row.attrs]": "" })}}
+    {% else %}
+        {{fields.query.html}}
+    {% endif %}
+
+    {#<script>
+    $(document).ready(function(){
+        //ajax_paginate($("#{{block_meta.id}}").find(".ajax-paginate"));
+    });
+    </script>#}
+
+{% endblock %}

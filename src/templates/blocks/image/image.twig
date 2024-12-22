@@ -1,0 +1,27 @@
+{#
+	Title: Image
+	Description: Görsel
+	Category: saltblocks
+	Icon: format-image
+	Keywords: image görsel foto photo
+	Mode: auto
+	Align: 
+	PostTypes: 
+	SupportsAlign: left right center wide full
+	SupportsAlignfields: true
+	SupportsMode: true
+	SupportsMultiple: true
+	SupportsAnchor: true
+	SupportsCustomClassName: true
+	SupportsReusable: true
+	SupportsFullHeight: true
+#}
+
+{% set block_main_field = [] %}
+{% set block_extras = {"classes" : "position-relative"} %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+    {% set parallax_attrs = {"data-scroll": true, "data-scroll-speed": -5} %}
+	{{img({src: fields.image, class : fields.image_class, lazy: true, lazy_native: true, lcp: true, attrs: parallax_attrs})}}
+{% endblock %}
