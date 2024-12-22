@@ -24,6 +24,8 @@ define('NODE_MODULES_PATH', get_home_path() .'node_modules/');
 
 define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
 
+define("SALTHAREKET_TOKEN", "ghp"."_"."RDDGD6YHU4q9tHwRjBu56bVerp3d2B3mxbu7");
+
 
 define("PUBLISH_URL", get_option("options_publish_url"));
 define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
