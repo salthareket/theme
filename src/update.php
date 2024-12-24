@@ -26,6 +26,7 @@ class Update {
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
+        ["id" => "npm_install", "name" => "npm packeges installing"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
         ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
     ];
@@ -558,6 +559,27 @@ class Update {
         closedir($dir);
     }
 
+    private static function npm_install(): string{
+        $dir = site_url();
+        if (!is_dir($dir)) {
+            wp_send_json_error(['message' => 'npm path not found: '.$dir]);
+        }
+        if (!file_exists($dir .'/package.json')) {
+            self::recurseCopy(SH_URL . "src/package.json", $dir .'/package.json');
+        }
+        $process = new Process(['npm', 'install'], $path);
+        $process->setTimeout(120);
+        try {
+            $process->mustRun();
+            wp_send_json_success(['message' => 'npm packeges installed!']);
+            //return $process->getOutput();
+        } catch (ProcessFailedException $e) {
+            // Hata durumunda istisna fırlat
+            wp_send_json_error(['message' => 'npm packeges not installed: ' . $e->getMessage()]);
+            //throw new \Exception("npm install işlemi başarısız oldu: " . $e->getMessage());
+        }
+    }
+
     private static function install_wp_plugins(){
         \PluginManager::check_and_install_required_plugins();
     }
@@ -601,6 +623,11 @@ class Update {
                     self::install_local_plugins();
                     self::update_task_status('install_local_plugins', true);
                     wp_send_json_success(['message' => 'Local plugins installed successfully']);
+                    break;
+                case 'npm_install':
+                    self::npm_install();
+                    self::update_task_status('npm_install', true);
+                    //wp_send_json_success(['message' => 'ACF Methods compiled successfully']);
                     break;
                 case 'compile_methods':
                     self::compile_methods();
