@@ -192,9 +192,9 @@ class Update {
         add_action('admin_enqueue_scripts', function () {
             wp_enqueue_style(
                 'bootstrap-css',
-                'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css',
+                'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css',
                 [],
-                '4.5.2'
+                '5.3.3'
             );
         });
 
@@ -206,8 +206,8 @@ class Update {
                 <div style="width:60%;">
                     <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;">Install Requirements</h2>
                     <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
-                    <div class="progress my-4 " style="height: 30px;display:none;">
-                        <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;height:100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    <div class="progress my-4" style="height: 30px;display:none;">
+                        <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated text-end pe-3" role="progressbar" style="width: 0%;height:100%;background-color:#fff;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                     </div>
                     <div class="installation-status" style="text-align:center;font-size: 22px;font-weight:bold;margin-top:20px;display:none;"></div>
                     <button id="start-installation-button" class="button button-primary" style="margin-top:40px;font-size: 18px;border-radius: 22px;border: none;padding: 6px 28px;">Start Installation</button>
