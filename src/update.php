@@ -38,6 +38,16 @@ class Update {
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
+
+        //Composer pre install
+        if (!file_exists($theme_root . '/vendor/autoload.php')) {
+            $composer_load = self::$repo_directory . '/src/composer/bootstrap.php';
+            if (file_exists($composer_load)) {
+                require_once $composer_load;
+            }
+        }
+
+        // Tasks
         self::$status = get_option('sh_theme_status', false);
         self::$tasks_status = get_option('sh_theme_tasks_status', []);
         self::$tasks_status = empty(self::$tasks_status)?[]:self::$tasks_status;
