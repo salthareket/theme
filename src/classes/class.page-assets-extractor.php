@@ -91,7 +91,10 @@ class PageAssetsExtractor {
         }
 
         error_log("fetch->".$url." : ".$id." type:".$this->type);
-        $fetch_url = $url. (strpos($url, '?') === false ? '?fetch&nocache=true' : '&fetch&nocache=true');
+        $fetch_url = (!empty($url) && is_string($url))
+        ? $url . (strpos($url, '?') === false ? '?fetch&nocache=true' : '&fetch&nocache=true')
+        : '?fetch&nocache=true';
+
 
         if(get_page_status($fetch_url) != 200){
             return false;
