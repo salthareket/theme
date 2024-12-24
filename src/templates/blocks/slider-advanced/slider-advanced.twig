@@ -1,0 +1,162 @@
+{#
+  Title: Slider Advanced
+  Description: Video & Image Slider
+  Category: saltblocks
+  Icon: slides
+  Keywords: slider gallery image görsel video hero
+  Mode: auto
+  Align: 
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignContent: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+
+{% set block_main_field = "" %}
+{% set block_extras = {"classes" : "block-slider position-relative", "container" : "position-relative min-h-inherit h-100"} %}
+{% set block_required_js = [ "swiper" ] %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+    
+    {% set slide_index = 1 %}
+    {% set slide_overlays = [] %}
+
+    {% set theme_styles = function("_get_option", "theme_styles") %}
+
+    {% if fields.slider_parallax %}
+        <div class="bg-cover position-absolute-fill jarallax" data-jarallax>
+    {% endif %}
+
+    <div class="swiper-slider swiper {% if fields.slider_parallax %}jarallax-img{% else %}position-absolute-fill{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not block_meta.settings.hero %} fade loading{% endif %} {% endif %} {% if fields.slider_settings.autoheight and not settings.height == "ratio" %}position-relative h-100{% endif %}" {{block_meta.row.attrs}}>
+        <div class="swiper-wrapper">
+            {% for slide in fields.slider %}
+
+                {% set lazy = (not is_preview and (not block_meta.settings.hero and loop.index != 1) and not fields.slider_settings.lazy) %}
+                {% set lcp = ( (block_meta.index == 0 and loop.index0 == 0) or (block_meta.settings.hero and block_meta.index == 0 and loop.index0 == 0) )?true:false %}
+                {% set lazy_native = not lazy and fields.slider_settings.lazy %}
+
+                {% if slide.acf_fc_layout == "static" %}
+
+                    <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
+                    {% if slide.add_content %}
+                        {% set content = slide.content %}
+                        {% if content.title or content.description %}
+                            <div class="content {{block_meta.container_slider}} py-3 {% if fields.slider_settings.autoheight %}position-absolute{% endif %} {% if block_meta.settings.stretch_height %}h-100{% endif %}" data-bg-check="#{{block_meta.id}} .swiper-bg img">
+                                <div class="row justify-content-{{content.align}} {% if fields.block_settings.stretch_height %}h-100{% endif %}">
+                                    <div class="col-lg-{{content.column}} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
+                                    {% if content.title %}
+                                        <{% if loop.index == 1 %}{{fields.slider_settings.heading}}{% else %}div{% endif %} class="title">{{ content.title }}</{% if loop.index == 1 %}{{fields.slider_settings.heading}}{% else %}div{% endif %}>
+                                    {% endif %}
+                                    {% if content.description %}
+                                        <div class="description  my-auto">
+                                            {{ content.description }}
+                                        </div>
+                                    {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    {% if slide.add_media %}
+
+                        {% if slide.media_type == "image" and slide.image %}
+                            {% if not fields.slider_settings.autoheight or (fields.slider_settings.autoheight and block_meta.settings.height == "ratio") %}
+                                <div class="swiper-bg position-absolute-fill w-100 h-100">
+                                    {{img({src: slide.image, class : "object-fit-cover w-100 h-100", lazy: (not is_preview and (not block_meta.settings.hero and loop.index != 1)), lcp: (loop.index == 1?true:false)})}}
+                                    {% if not lcp and fields.slider_settings.lazy and slider|length > 1 %}
+                                        <div class="swiper-lazy-preloader"></div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="swiper-bg w-100">
+                                    {{img({src: slide.image, class : "", lazy: (not is_preview and (not block_meta.settings.hero and loop.index != 1)), lcp: (loop.index == 1?true:false)})}}
+                                    {% if not lcp and fields.slider_settings.lazy and slider|length > 1 %}
+                                        <div class="swiper-lazy-preloader"></div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            <noscript class="loading-lazy">
+                                <div class="swiper-bg bg-cover" style="background-image:url({{get_image(slide.image.xxxl)}});"></div>
+                            </noscript>
+                        {% endif %}
+
+                        {% if slide.media_type == "video" and slide.video %}
+                            <div class="swiper-bg bg-cover swiper-video swiper-video-{% if slide.video.video_type == "file" %}file{% else %}url{% endif %} position-absolute-fill loading-hide-loading-light" style="background-image: url({{slide.video.video_settings.video_image}});">
+                                {{  video({
+                                        src: slide.video,
+                                        class: "", 
+                                        init: false, 
+                                        lazy: (not is_preview)
+                                    })
+                                }}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    </div>
+                    {% if slide.overlay and not slide.video.video_settings.controls %}
+                        {% set slide_overlays = slide_overlays|merge([{index: slide_index, overlay_position:slide.overlay_position, overlay_color: slide.overlay_color, overlay_color_alpha: slide.overlay_color_alpha}]) %}
+                    {% endif %}
+                    {% set slide_index = slide_index + 1 %}
+
+                {% elseif slide.acf_fc_layout == "dynamic" %}
+
+                    {% for post in slide["posts_" ~ slide.type] %}
+                    <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
+                        {% include slide.template ~ ".twig" with { post : post, container : block_meta.container_slider } %}
+                        {% if slide.overlay and not slide.video.video_settings.controls %}
+                            {% set slide_overlays = slide_overlays|merge([{index: slide_index, overlay_position:slide.overlay_position, overlay_color: slide.overlay_color, overlay_color_alpha: slide.overlay_color_alpha}]) %}
+                        {% endif %}
+                        {% set slide_index = slide_index + 1 %}
+                    </div>
+                    {% endfor %}
+
+                {% endif %}
+            {% endfor %}    
+        </div>
+        <div class="swiper-pagination" data-bg-check="#{{block_meta.id}} .swiper-bg img"></div>
+    </div>
+
+    <style type="text/css">
+    {% if slide_overlays %}
+        {% for slide in slide_overlays %}
+
+            #{{block_meta.id}} .slide-{{slide.index}}:before{
+                {% if slide.overlay_position == "top" %}
+                    background: linear-gradient(to bottom,  {{slide.overlay_color}} 0%, {{slide.overlay_color_alpha}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "bottom" %}
+                    background: linear-gradient(to bottom,  {{slide.overlay_color_alpha}} 0%, {{slide.overlay_color}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "left" %}
+                    background: linear-gradient(to right,  {{slide.overlay_color}} 0%, {{slide.overlay_color_alpha}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "right" %}
+                    background: linear-gradient(to right,  {{slide.overlay_color_alpha}} 0%, {{slide.overlay_color}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "full" %}
+                     background-color: {{slide.overlay_color}};
+                {% endif %}
+            }
+
+            {% if slide.media_type == "image" %}
+                {% set image = get_post(slide.image.desktop) %}
+                #{{block_meta.id}} .slide-{{loop.index}}{
+                    color:{{image.meta("contrast_color")}};
+                    background-color:{{image.meta("average_color")}};
+                }
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    </style>
+    
+    {% if fields.slider_parallax %}
+        </div>
+    {% endif %}
+
+{% endblock %}
