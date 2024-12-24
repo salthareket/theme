@@ -188,6 +188,16 @@ class Update {
 
 
     public static function render_installation_page() {
+        // Bootstrap CSS'yi sadece bu sayfa için yükle
+        add_action('admin_enqueue_scripts', function () {
+            wp_enqueue_style(
+                'bootstrap-css',
+                'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css',
+                [],
+                '4.5.2'
+            );
+        });
+
         ?>
         <div class="wrap">
             <h1>Installation Required</h1>
@@ -581,7 +591,9 @@ class Update {
                     wp_send_json_success(['message' => 'Fonts copied successfully']);
                     break;
                 case 'install_wp_plugins':
+                    ob_start();
                     self::install_wp_plugins();
+                    ob_end_clean();
                     self::update_task_status('install_wp_plugins', true);
                     wp_send_json_success(['message' => 'WP plugins installed successfully']);
                     break;
