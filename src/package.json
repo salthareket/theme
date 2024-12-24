@@ -1,5 +1,5 @@
 {
-  "name": "arf",
+  "name": "salthareket",
   "version": "1.0.0",
   "main": "jquery",
   "dependencies": {
@@ -36,7 +36,7 @@
   },
   "author": "info@salt-istanbul.com",
   "license": "ISC",
-  "description": "MDMCO Scripts",
+  "description": "salthareket Scripts",
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^7.0.2",
     "clean-css": "^5.3.3",
