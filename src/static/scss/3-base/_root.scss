@@ -56,6 +56,15 @@
 		    --title-#{$size}-lh:#{$line-height};
 	    }
 	}
+	@if variable-exists(title_mobile_line_heights) {
+	    @each $title in $title_mobile_line_heights {
+	        $size: map-get($title, size);
+	        $line-height: map-get($title, line-height);
+	        @media (max-width: 576px) {
+		        --title-#{$size}-lh:#{$line-height};
+		    }
+	    }
+	}
 
 	// Text Sizes
 	@if variable-exists(text_sizes) {
@@ -79,6 +88,15 @@
 	        $size: map-get($text, size);
 	        $line-height: map-get($text, line-height);
 		    --text-#{$size}-lh:#{$line-height};
+	    }
+	}
+	@if variable-exists(text_mobile_line_heights) {
+	    @each $text in $text_mobile_line_heights {
+	        $size: map-get($text, size);
+	        $line-height: map-get($text, line-height);
+	        @media (max-width: 576px) {
+		        --text-#{$size}-lh:#{$line-height};
+		    }
 	    }
 	}
 }

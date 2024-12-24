@@ -284,4 +284,3 @@ if(!class_exists('mlcf7pll\\')){
         return $form;
     }
 }
-

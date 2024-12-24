@@ -113,3 +113,24 @@ body{
         }
     }
 }
+
+/*! purgecss start ignore */
+[class^="sticky-"], [class*=" sticky-"] {
+    &.sticked{
+        .d-sticked{
+            display:block;
+        }
+        .d-sticked-none{
+            display:none;
+        }
+    }
+    &:not(.sticked){
+        .d-sticked{
+            display:none;
+        }
+        .d-sticked-none{
+            display:block;
+        }
+    }
+}
+/*! purgecss end ignore */

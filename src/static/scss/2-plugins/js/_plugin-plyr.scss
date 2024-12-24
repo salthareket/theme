@@ -1,6 +1,7 @@
 .plyr{
 	width: 100%;
 	min-height:100%;
+	height:100%;
 	iframe{
 		position: absolute;
 		top: 50%;
@@ -15,6 +16,7 @@
 		&.video-bg{
 			object-fit:cover;
 			width:100%;
+			height:100%;
 		}
 		height:100%;
 	}

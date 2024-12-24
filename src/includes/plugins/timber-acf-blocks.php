@@ -66,13 +66,14 @@ function block_responsive_classes($field=[], $type="", $block_column=""){
     }
     return $classes;
 }
-
+/*
 function block_responsive_column_classes($field=[], $type="col-", $field_name=""){
     $tempClasses = [];
     $lastValue = null;
     $lastKey = null;
+
     foreach ($field as $key => $value) {
-        if (($value)) {
+        if ($value) {
             if(!empty($field_name) && isset($value[$field_name])){
                 $value = $value[$field_name];
             }
@@ -90,6 +91,34 @@ function block_responsive_column_classes($field=[], $type="col-", $field_name=""
         }
     }
     return $tempClasses;
+}*/
+function block_responsive_column_classes($field = [], $type = "col-", $field_name = "") {
+    $tempClasses = [];
+    $lastValue = null;
+
+    //$field = remove_empty_items($field);
+
+    foreach ($field as $key => $value) {
+
+        if ($value) {
+            // Eğer $field_name doluysa, içindeki değeri kullan
+            if (!empty($field_name) && isset($value[$field_name])) {
+                $value = $value[$field_name];
+            }
+
+            if ($value !== $lastValue) {
+                $col = ($key === "xs") ? "" : $key . "-";
+                $tempClasses[] = $type . $col . $value;
+                $lastValue = $value; // Son değeri güncelle
+                $lastKey = $key;     // Son breakpoint güncelle
+            } else {
+                // Aynı değerde olanları sonuncuya göre düzenliyoruz
+                $tempClasses[count($tempClasses) - 1] = $type . (($key === "xs") ? "" : $key . "-") . $value;
+            }
+        }
+    }
+
+    return $tempClasses; // Sınıfları birleştir ve döndür
 }
 
 
@@ -780,6 +809,20 @@ function block_css($block, $fields, $block_column){
                         $code_height_responsive .= "#".$selector."{
                             ".($value["height"]=="full"?"":"min-")."height: calc(var(--hero-height-".$value["height"].") - 1px);
                         }";
+                        if($block["name"] == "acf/slider" || $block["name"] == "acf/slider-advanced" || $block["name"] == "acf/archive"){
+                            $code_height_responsive .= "#".$selector."{
+                                .swiper{
+                                    min-height:inherit;
+                                }
+                                .swiper-wrapper{
+                                     min-height:100%!important;
+                                }
+                                .swiper-slide{
+                                    min-height: inherit!important;
+                                    height:auto;
+                                }
+                            }";
+                        }
                     }
                 }
                 if(!empty($code_height_responsive)){
@@ -902,7 +945,7 @@ function block_css($block, $fields, $block_column){
     }
 
     $slide_css_code = "";
-    if(isset($fields["slider"]) && $fields["slider"] && is_array($fields["slider"])){
+    if(isset($fields["slider___"]) && $fields["slider"] && is_array($fields["slider"])){
         if(count($fields["slider"]) > 0){
             foreach($fields["slider"] as $key => $slide){
 

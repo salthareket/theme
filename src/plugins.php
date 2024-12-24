@@ -57,7 +57,7 @@ $required_plugins_local[] = array(
     "file" => "polylang-pro"
 );
 $required_plugins_local[] = array(
-    "v" => "3.17.3.1",
+    "v" => "3.17.0.2",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );

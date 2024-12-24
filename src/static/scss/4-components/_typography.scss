@@ -60,8 +60,13 @@ h6{
         $size: map-get($title, size);
         $font-size: map-get($title, font-size);
         .title-#{$size} {
-            //@include font-size($font-size);
-            font-size: var(--title-#{$size});
+            @include media-breakpoint-up(sm) {
+            	@include font-size($font-size);
+            }
+            @include media-breakpoint-down(sm) {
+            	font-size: var(--text-#{$size});
+            }
+            //font-size: var(--title-#{$size});
         }
     }
 }
@@ -71,7 +76,12 @@ h6{
         $line-height: map-get($title, line-height);
         @if $line-height != 0 {
 	        .title-#{$size} {
-	            @include rfs($line-height, line-height);
+	           @include media-breakpoint-up(sm) {
+	               @include rfs($line-height, line-height);
+	           }
+	           @include media-breakpoint-down(sm) {
+	           	   line-height: var(--title-#{$size}-lh);
+	           }
 	        }
         }
     }
@@ -85,8 +95,13 @@ h6{
         $size: map-get($text, size);
         $font-size: map-get($text, font-size);
         .text-#{$size} {
-            //@include font-size($font-size);
-            font-size: var(--text-#{$size});
+        	@include media-breakpoint-up(sm) {
+            	@include font-size($font-size);
+            }
+            @include media-breakpoint-down(sm) {
+            	font-size: var(--text-#{$size});
+            }
+            //font-size: var(--text-#{$size});
         }
     }
 }
@@ -96,7 +111,12 @@ h6{
         $line-height: map-get($text, line-height);
         @if $line-height != 0 {
 	        .text-#{$size} {
-	            @include rfs($line-height, line-height);
+	           @include media-breakpoint-up(sm) {
+	               @include rfs($line-height, line-height);
+	           }
+	           @include media-breakpoint-down(sm) {
+	           	   line-height: var(--text-#{$size}-lh);
+	           }
 	        }
         }
     }

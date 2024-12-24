@@ -30,6 +30,7 @@ Class Image{
     private $id = 0;
     private $url = "";
     private $queries = [];
+    private $invalid = false;
 
     public function __construct($args = array()) {
 
@@ -49,14 +50,20 @@ Class Image{
 
         $this->prefix = $this->args["lazy"]?"data-":"";
 
+    
         if(is_array($this->args["src"]) && in_array(array_keys($this->args["src"])[0], array_keys($this->breakpoints))){
+
+            $values = remove_empty_items(array_values($this->args["src"]));
+            $values = array_unique($values);
+            if(empty($values)){
+                $this->invalid = true;
+                return;
+            }
             $this->id  = $this->args["src"]["id"];
             $this->url = $this->args["src"]["url"];
             unset($this->args["src"]["id"]);
             unset($this->args["src"]["url"]);
-			$values = remove_empty_items(array_values($this->args["src"]));
-            $values = array_unique($values);
-
+			
 			if(count($values) == 1){
                 if(!post_is_exist($values[0])){
                     $this->not_found();
@@ -81,7 +88,7 @@ Class Image{
 
     public function init(){
         
-        if (empty($this->args['src'])) {
+        if (empty($this->args['src']) || $this->invalid) {
             return $this->not_found();
         }
 

@@ -1,8 +1,31 @@
 /*! purgecss start ignore */
 .block-slider{
+	.container{
+		min-height:inherit;
+		>*{
+			min-height:inherit;
+		}
+		.swiper{
+			min-height:inherit;
+			.swiper-wrapper{
+				min-height:inherit;
+				.swiper-slide{
+					min-height: inherit;
+				}
+			}
+		}
+	}
 	.swiper-slide{
 		.description{
 			line-height: 1;
+		}
+		.swiper-bg{
+			.pyr{
+				height:100%;
+				.plyr__video-wrapper{
+					height:100%;
+				}
+			}			
 		}
 		&.overlay{
 			 &:before{

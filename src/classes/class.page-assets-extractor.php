@@ -243,21 +243,21 @@ class PageAssetsExtractor {
                 $plugin_files_css_rtl = [];
                 foreach($plugins as $plugin){
                     if($files["js"]["plugins"][$plugin]["css"]){
-                        $plugin_files_css[] = STATIC_PATH . 'js/plugins/'.$plugin.".css"; 
+                        $plugin_files_css[] = STATIC_URL . 'js/plugins/'.$plugin.".css"; 
                     }
                 }
                 foreach($plugins as $plugin){
                     if($files["js"]["plugins"][$plugin]["css"]){
-                        $plugin_files_css_rtl[] = STATIC_PATH . 'js/plugins/'.$plugin."-rtl.css"; 
+                        $plugin_files_css_rtl[] = STATIC_URL . 'js/plugins/'.$plugin."-rtl.css"; 
                     }
                 }
                 if($plugin_files_css){
                     $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css);
-                    $plugin_css = str_replace(get_stylesheet_directory_uri(), '', $plugin_css);
+                    $plugin_css = str_replace(STATIC_URL, '', $plugin_css);
                 }
                 if($plugin_files_css_rtl){
                     $plugin_css_rtl = $this->combine_and_cache_files("css", $plugin_files_css_rtl);
-                    $plugin_css_rtl = str_replace(get_stylesheet_directory_uri(), '', $plugin_css_rtl);
+                    $plugin_css_rtl = str_replace(STATIC_URL, '', $plugin_css_rtl);
                 }
 
                 //plugin js
@@ -269,9 +269,8 @@ class PageAssetsExtractor {
                     $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js";
                 }
                 if($plugin_files_js){
-                    //error_log(json_encode($plugin_files_js));
                     $plugin_js = $this->combine_and_cache_files("js", $plugin_files_js);
-                    $plugin_js = str_replace(get_stylesheet_directory_uri(), '', $plugin_js);
+                    $plugin_js = str_replace(STATIC_URL, '', $plugin_js);
                 }
 
             }

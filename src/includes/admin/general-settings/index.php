@@ -359,6 +359,7 @@ function get_theme_styles($variables = array()){
         $title_sizes = array();
         $title_mobile_sizes = array();
         $title_line_heights = array();
+        $title_mobile_line_heights = array();
         foreach($theme_styles["typography"]["title"] as $key => $breakpoint){
             $title_sizes[] =  "(size : ".$key.", font-size: ".acf_units_field_value($breakpoint).")";
         }
@@ -367,15 +368,25 @@ function get_theme_styles($variables = array()){
         }
         foreach($theme_styles["typography"]["title_line_height"] as $key => $breakpoint){
             $title_line_heights[] = "(size : ".$key.", line-height: ".acf_units_field_value($breakpoint).")";
+
+            $fs = ($theme_styles["typography"]["title"][$key]["value"]);
+            $lh = ($breakpoint["value"]);
+            $mobile_fs = ($theme_styles["typography"]["title_mobile"][$key]["value"]);
+            if(!empty($fs) && !empty($mobile_fs) && !empty($lh)){
+                $mobile_lh = ($mobile_fs * $lh) / $fs;
+                $title_mobile_line_heights[] = "(size : ".$key.", line-height: ".($mobile_lh)."px)";
+            }
         }
         $variables["title_sizes"] = implode(",", $title_sizes);
         $variables["title_mobile_sizes"] = implode(",", $title_mobile_sizes);
         $variables["title_line_heights"] = "(".implode(",", $title_line_heights).");";
+        $variables["title_mobile_line_heights"] = "(".implode(",", $title_mobile_line_heights).");";
 
 
         $text_sizes = array();
         $text_mobile_sizes = array();
         $text_line_heights = array();
+        $text_mobile_line_heights = array();
         foreach($theme_styles["typography"]["text"] as $key => $breakpoint){
             $text_sizes[] =  "(size : ".$key.", font-size: ".acf_units_field_value($breakpoint).")";
         }
@@ -384,10 +395,19 @@ function get_theme_styles($variables = array()){
         }
         foreach($theme_styles["typography"]["text_line_height"] as $key => $breakpoint){
             $text_line_heights[] = "(size : ".$key.", line-height: ".acf_units_field_value($breakpoint).")";
+
+            $fs = ($theme_styles["typography"]["text"][$key]["value"]);
+            $lh = ($breakpoint["value"]);
+            $mobile_fs = ($theme_styles["typography"]["text_mobile"][$key]["value"]);
+            if(!empty($fs) && !empty($mobile_fs) && !empty($lh)){
+                $mobile_lh = ($mobile_fs * $lh) / $fs;
+                $text_mobile_line_heights[] = "(size : ".$key.", line-height: ".($mobile_lh)."px)";
+            }
         }
         $variables["text_sizes"] = implode(",", $text_sizes);
         $variables["text_mobile_sizes"] = implode(",", $text_mobile_sizes);
         $variables["text_line_heights"] = "(".implode(",", $text_line_heights).");";
+        $variables["text_mobile_line_heights"] = "(".implode(",", $text_mobile_line_heights).");";
 
 
 
