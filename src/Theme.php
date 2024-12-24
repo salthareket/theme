@@ -283,7 +283,6 @@ Class Theme{
         $salt->user = $user;
         $GLOBALS["user"] = $user;
         $GLOBALS["salt"] = $salt;
-
     }
     public function language_settings(){
 
