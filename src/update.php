@@ -627,7 +627,7 @@ class Update {
                     wp_send_json_success(['message' => 'Theme files copied successfully']);
                     break;
                 case 'copy_templates':
-                    self::copy_theme();
+                    self::copy_templates();
                     self::update_task_status('copy_templates', true);
                     wp_send_json_success(['message' => 'Template filess copied successfully']);
                     break;
