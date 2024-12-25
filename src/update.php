@@ -206,7 +206,7 @@ class Update {
 
             <div style="display:flex;flex-direction:column;align-items:center;justify-content: center;height:100vh; text-align:center;">
                 <div style="width:60%;">
-                    <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;">Install Requirements</h2>
+                    <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;"><small style="display:block;font-size:12px;font-weight:bold;margin-bottom:10px;background-color:#111;color:#ddd;padding:8px 12px;border-radius:22px;display:inline-block;">STEP 2</small><br>Install Requirements</h2>
                     <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
                     <div class="progress my-4" style="height: 30px;display:none;">
                         <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated text-end pe-3" role="progressbar" style="width: 0%;height:100%;background-color:#fff;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
@@ -695,5 +695,5 @@ class Update {
         }
         wp_localize_script('theme-update-script', 'updateAjax', $args);
     }
-    
+
 }
