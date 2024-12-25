@@ -11,6 +11,7 @@ Class Theme{
         add_action("wp", [$this, "language_settings"]);
         add_action("wp", [$this, "site_assets"]);
         add_action("init", [$this, "language_settings"], 1);
+        add_action("init", [$this, "increase_memory_limit"]);
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
         if(SH_THEME_EXISTS){
             add_action("wp_enqueue_scripts", "load_frontend_files", 20);
@@ -27,6 +28,21 @@ Class Theme{
             add_action("wp", function(){
                 visibility_under_construction();
             });    
+        }
+    }
+
+    function increase_memory_limit() {
+        // Bellek limitini artır
+        @ini_set('memory_limit', '1536M');
+
+        // Eğer WP_MEMORY_LIMIT sabiti tanımlı değilse, tanımla
+        if (!defined('WP_MEMORY_LIMIT')) {
+            define('WP_MEMORY_LIMIT', '1536M');
+        }
+
+        // Eğer admin tarafı için limit gerekiyorsa (isteğe bağlı)
+        if (!defined('WP_MAX_MEMORY_LIMIT')) {
+            define('WP_MAX_MEMORY_LIMIT', '2048M');
         }
     }
 
@@ -71,7 +87,6 @@ Class Theme{
             }
         }, 999); // Geç bir öncelik ile çalıştır
     }
-
 
 
     public function after_setup_theme(){

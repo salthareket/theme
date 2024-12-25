@@ -51,6 +51,8 @@ jQuery(document).ready(function ($) {
             error: function () {
                 installationStatus.html(task["name"]+"<br><div style='color:red;'>An unexpected error occurred</div>");
                 alert('An unexpected error occurred.');
+                currentTaskIndex = taskIndex;
+                $('#start-installation-button').prop('disabled', false).html("Try Again")
             }
         });
     }

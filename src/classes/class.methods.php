@@ -86,7 +86,7 @@ class MethodClass {
     }
 
     private function copyToTheme($path, $platform) {
-        $target_dir = STATIC_URL . 'js/';
+        $target_dir = STATIC_PATH . 'js/';
         $target_file = $target_dir . ($platform=="frontend"?"methods":$platform).'.min.js'; // Hedef dosya
         $source_file = $path;
         if (!is_dir($target_dir)) {
