@@ -191,16 +191,7 @@ class Update {
 
 
     public static function render_installation_page() {
-        // Bootstrap CSS'yi sadece bu sayfa için yükle
-        add_action('admin_enqueue_scripts', function () {
-            wp_enqueue_style(
-                'bootstrap-css',
-                'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css',
-                [],
-                '5.3.3'
-            );
-        });
-
+        echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" type="text/css" media="all" />';
         ?>
         <div class="wrap">
             <h1>Installation Required</h1>
