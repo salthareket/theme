@@ -18,8 +18,6 @@ class Update {
     private static $vendor_directory;
     private static $repo_directory;
 
-    private static $fixes;
-
     public static $status;
     public static $tasks_status;
     public static $installation_tasks = [
@@ -28,21 +26,18 @@ class Update {
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
-        ["id" => "npm_install", "name" => "npm packeges installing"],
+        ["id" => "npm_install", "name" => "npm packages installing"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
         ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
     ];
 
     // Admin notifi ekler
     public static function init() {
-        
         $theme_root = get_template_directory();
         self::$composer_path = $theme_root . '/composer.json';
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
-        self::$fixes = include "fix/index.php";
-        // Tasks
         self::$status = get_option('sh_theme_status', false);
         self::$tasks_status = get_option('sh_theme_tasks_status', []);
         self::$tasks_status = empty(self::$tasks_status)?[]:self::$tasks_status;
@@ -91,18 +86,6 @@ class Update {
                             esc_url(admin_url('admin.php?page=update-theme'))
                         )
                     );
-                }
-            }
-        }
-    }
-
-    public static function fix(){
-        if(self::$fixes){
-            foreach(self::$fixes as $fix){
-                $file = self::$repo_directory."/src/fix/".$fix["file"];
-                $target_file = get_template_directory()."/vendor/".$fix["target"].$fix["file"];
-                if($fix["status"] && file_exists($file)){
-                    self::fileCopy($file, $target_file);
                 }
             }
         }
@@ -222,7 +205,7 @@ class Update {
 
             <div style="display:flex;flex-direction:column;align-items:center;justify-content: center;height:100vh; text-align:center;">
                 <div style="width:60%;">
-                    <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;"><small style="display:block;font-size:12px;font-weight:bold;margin-bottom:10px;background-color:#111;color:#ddd;padding:8px 12px;border-radius:22px;display:inline-block;">STEP 2</small><br>Install Requirements</h2>
+                    <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;">Install Requirements</h2>
                     <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
                     <div class="progress my-4" style="height: 30px;display:none;">
                         <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated text-end pe-3" role="progressbar" style="width: 0%;height:100%;background-color:#fff;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
@@ -482,7 +465,7 @@ class Update {
             }else{
                 $message = 'No updates or installations performed.';
             }
-            self::fix();
+            
             wp_send_json_success(['message' => $message, "action" => $action ]);
 
         } catch (Exception $e) {
@@ -576,30 +559,8 @@ class Update {
         closedir($dir);
     }
 
-    private static function fileCopy($source, $destination) {
-        // Kaynak dosya kontrolü
-        if (!file_exists($source)) {
-            return;
-        }
-
-        // Hedef dizin kontrolü ve oluşturma
-        $destinationDir = dirname($destination);
-        if (!file_exists($destinationDir)) {
-            if (!mkdir($destinationDir, 0777, true)) {
-                return;
-            }
-        }
-
-        // Dosyayı kopyala
-        if (copy($source, $destination)) {
-
-        } else {
-            return;
-        }
-    }
-
     private static function npm_install(): string{
-        $dir = site_url();
+        $dir = ABSPATH;
         if (!is_dir($dir)) {
             wp_send_json_error(['message' => 'npm path not found: '.$dir]);
         }
@@ -715,6 +676,7 @@ class Update {
         return true;
     }
 
+
     private static function enqueue_update_script() {
         wp_enqueue_script(
             'theme-update-script',
@@ -733,5 +695,4 @@ class Update {
         }
         wp_localize_script('theme-update-script', 'updateAjax', $args);
     }
-
 }
