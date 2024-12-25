@@ -1,6 +1,7 @@
 <?php
 
 use Composer\Console\Application;
+use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
@@ -559,23 +560,54 @@ class Update {
         closedir($dir);
     }
 
+    private static function fileCopy($source, $destination) {
+        if (!file_exists($source)) {
+            return;
+        }
+        $destinationDir = dirname($destination);
+        if (!file_exists($destinationDir)) {
+            if (!mkdir($destinationDir, 0777, true)) {
+                return;
+            }
+        }
+        if (copy($source, $destination)) {
+
+        } else {
+            return;
+        }
+    }
+
     private static function npm_install(): string{
-        $dir = ABSPATH;
-        if (!is_dir($dir)) {
+        $workingDir = ABSPATH;
+        if (!is_dir($workingDir)) {
             wp_send_json_error(['message' => 'npm path not found: '.$dir]);
         }
-        if (!file_exists($dir .'/package.json')) {
-            self::recurseCopy(SH_URL . "src/package.json", $dir .'/package.json');
+
+        error_log(SH_PATH . "package.json -> ".$workingDir .'package.json');
+        if (!file_exists($workingDir .'package.json')) {
+            self::fileCopy(SH_PATH . "package.json", $workingDir .'package.json');
         }
-        $process = new Process(['npm', 'install'], $path);
+        $command = ['npm', 'install'];
+        $process = new Process($command, $workingDir);
+        $currentUser = getenv('USERNAME') ?: getenv('USER'); // Windows için USERNAME, diğer sistemlerde USER
+        $nodeJsPath = 'C:\Program Files\nodejs';
+        $npmPath = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
+        $process->setEnv([
+            'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath,
+        ]);
+        //print_r(getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath);
         $process->setTimeout(120);
         try {
             $process->mustRun();
-            wp_send_json_success(['message' => 'npm packeges installed!']);
+            error_log($process->getOutput()); // Çıktıyı kaydet
+            return true;
+            //wp_send_json_success(['message' => 'npm packages installed!']);
             //return $process->getOutput();
         } catch (ProcessFailedException $e) {
             // Hata durumunda istisna fırlat
-            wp_send_json_error(['message' => 'npm packeges not installed: ' . $e->getMessage()]);
+            error_log('Webpack execution failed: ' . $exception->getMessage());
+            return false;
+            //wp_send_json_error(['message' => 'npm packeges not installed: ' . $e->getMessage()]);
             //throw new \Exception("npm install işlemi başarısız oldu: " . $e->getMessage());
         }
     }
@@ -627,7 +659,7 @@ class Update {
                 case 'npm_install':
                     self::npm_install();
                     self::update_task_status('npm_install', true);
-                    //wp_send_json_success(['message' => 'ACF Methods compiled successfully']);
+                    wp_send_json_success(['message' => 'NPM Packages installed successfully']);
                     break;
                 case 'compile_methods':
                     self::compile_methods();
@@ -653,6 +685,8 @@ class Update {
         self::$tasks_status = $tasks_status;
         update_option('sh_theme_tasks_status', $tasks_status);
         error_log($task_id." yuklendi");
+        error_log(self::tasks_completed());
+        error_log(json_encode(get_option('sh_theme_tasks_status')));
         if (self::tasks_completed()) {
             update_option('sh_theme_status', true);
             self::$status = true;

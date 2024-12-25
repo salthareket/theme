@@ -273,7 +273,7 @@ function header_has_dropdown(){
     $header_contents = ["header_start", "header_center", "header_end"];
     foreach($header_contents as $header_content){
         $header_item = get_field($header_content, "options");
-        if($header_item["type"] == "tools" && !$header_tools_dropdown){
+        if(isset($header_item["type"]) && $header_item["type"] == "tools" && !$header_tools_dropdown){
             $header_tools = $header_item["header_tools"];
             $header_tools = $header_tools["header_tools"];
             if($header_tools){

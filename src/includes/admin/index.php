@@ -633,7 +633,12 @@ $val = $value["value"].$value["unit"];
 return $val;
 }
 function get_theme_styles($variables = array()){
-$theme_styles = get_field("theme_styles", "option");
+$theme_styles = acf_get_theme_styles();//get_field("theme_styles", "option");
+/*$theme_styles_default = THEME_STATIC_PATH ."data/theme-styles/theme-styles-default.json"
+if(!$theme_styles && file_exists($theme_styles_default)){
+$theme_styles = file_get_contents($theme_styles_default);
+$theme_styles = json_decode($theme_styles, true);
+}*/
 if($theme_styles){
 $path = THEME_STATIC_PATH . 'data/theme-styles';
 if(!is_dir($path)){

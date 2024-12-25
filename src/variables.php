@@ -248,6 +248,7 @@ if(SH_THEME_EXISTS){
 }
 include_once SH_INCLUDES_PATH . "blocks.php";
 include_once SH_INCLUDES_PATH . "styles-scripts.php";
+
 //include_once SH_INCLUDES_PATH . "install-plugins.php";
 
 if (ENABLE_MEMBERSHIP) {

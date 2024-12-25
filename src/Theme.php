@@ -12,8 +12,10 @@ Class Theme{
         add_action("wp", [$this, "site_assets"]);
         add_action("init", [$this, "language_settings"], 1);
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
-        add_action("wp_enqueue_scripts", "load_frontend_files", 20);
-        add_action("admin_init", "load_admin_files");
+        if(SH_THEME_EXISTS){
+            add_action("wp_enqueue_scripts", "load_frontend_files", 20);
+            add_action("admin_init", "load_admin_files");
+        }
         add_action("admin_init", [$this, "remove_comments"]);
         add_filter( 'body_class', [$this, 'body_class'] );
         add_action('admin_menu', [$this, 'init_theme_settings_menu']);
