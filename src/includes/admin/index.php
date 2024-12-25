@@ -615,9 +615,11 @@ $variables = [
 "node_modules_path" =>  '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
 "theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"'
 ];
+if(file_exists(get_stylesheet_directory() ."/static/js/js_files_all.json")){
 $plugins = file_get_contents(get_stylesheet_directory() ."/static/js/js_files_all.json");
 if($plugins){
 $variables["plugins"] = str_replace(array("[", "]"), "", $plugins);
+}
 }
 $variables = get_theme_styles($variables);
 return $variables;
