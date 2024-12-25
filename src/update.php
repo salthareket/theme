@@ -505,7 +505,7 @@ class Update {
     }
     private static function copy_templates(){
         $srcDir = SH_PATH . 'templates';
-        $target_dir = get_template_directory() . '/';
+        $target_dir = get_template_directory() . '/templates';
         if (is_dir($srcDir)) {
             self::recurseCopy($srcDir, $target_dir);
         }
