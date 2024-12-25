@@ -18,6 +18,8 @@ class Update {
     private static $vendor_directory;
     private static $repo_directory;
 
+    private static $fixes;
+
     public static $status;
     public static $tasks_status;
     public static $installation_tasks = [
@@ -33,11 +35,13 @@ class Update {
 
     // Admin notifi ekler
     public static function init() {
+        
         $theme_root = get_template_directory();
         self::$composer_path = $theme_root . '/composer.json';
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
         self::$repo_directory = $theme_root . '/vendor/salthareket/theme';
+        self::$fixes = include "fix/index.php";
         // Tasks
         self::$status = get_option('sh_theme_status', false);
         self::$tasks_status = get_option('sh_theme_tasks_status', []);
@@ -87,6 +91,18 @@ class Update {
                             esc_url(admin_url('admin.php?page=update-theme'))
                         )
                     );
+                }
+            }
+        }
+    }
+
+    public static function fix(){
+        if(self::$fixes){
+            foreach(self::$fixes as $fix){
+                $file = self::$repo_directory."/src/fix/".$fix["file"];
+                $target_file = get_template_directory()."/vendor/".$fix["target"].$fix["file"];
+                if($fix["status"] && file_exists($file)){
+                    self::fileCopy($file, $target_file);
                 }
             }
         }
@@ -466,7 +482,7 @@ class Update {
             }else{
                 $message = 'No updates or installations performed.';
             }
-            
+            self::fix();
             wp_send_json_success(['message' => $message, "action" => $action ]);
 
         } catch (Exception $e) {
@@ -558,6 +574,28 @@ class Update {
         }
 
         closedir($dir);
+    }
+
+    private static function fileCopy($source, $destination) {
+        // Kaynak dosya kontrolü
+        if (!file_exists($source)) {
+            return;
+        }
+
+        // Hedef dizin kontrolü ve oluşturma
+        $destinationDir = dirname($destination);
+        if (!file_exists($destinationDir)) {
+            if (!mkdir($destinationDir, 0777, true)) {
+                return;
+            }
+        }
+
+        // Dosyayı kopyala
+        if (copy($source, $destination)) {
+
+        } else {
+            return;
+        }
     }
 
     private static function npm_install(): string{
