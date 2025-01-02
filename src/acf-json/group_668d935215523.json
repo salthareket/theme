@@ -1,0 +1,317 @@
+{
+    "key": "group_668d935215523",
+    "title": "Theme Styles - Body",
+    "fields": [
+        {
+            "key": "field_660e6f026b5c7",
+            "label": "",
+            "name": "body",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
+            "sub_fields": [
+                {
+                    "key": "field_660d9d6b34e3c",
+                    "label": "Primary Font",
+                    "name": "primary_font",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "16.6",
+                        "class": "acf-font-family",
+                        "id": ""
+                    },
+                    "choices": {
+                        "##Defaults": "##Defaults",
+                        "initial": "initial",
+                        "inherit": "inherit",
+                        "##Custom Fonts": "##Custom Fonts",
+                        "pantheon, Arial, Helvetica, sans-serif": "Pantheon",
+                        "##Icon Fonts": "##Icon Fonts",
+                        "Font Awesome 6 Pro": "Font Awesome 6 Pro",
+                        "Font Awesome 6 Brands": "Font Awesome 6 Brands",
+                        "##System Fonts": "##System Fonts",
+                        "Arial, Helvetica, sans-serif": "Arial, Helvetica, sans-serif",
+                        "\"Arial Black\", Gadget, sans-serif": "\"Arial Black\", Gadget, sans-serif",
+                        "\"Bookman Old Style\", serif": "\"Bookman Old Style\", serif",
+                        "\"Comic Sans MS\", cursive": "\"Comic Sans MS\", cursive",
+                        "Courier, monospace": "Courier, monospace",
+                        "Garamond, serif": "Garamond, serif",
+                        "Georgia, serif": "Georgia, serif",
+                        "Impact, Charcoal, sans-serif": "Impact, Charcoal, sans-serif",
+                        "\"Lucida Console\", Monaco, monospace": "\"Lucida Console\", Monaco, monospace",
+                        "\"Lucida Sans Unicode\", \"Lucida Grande\", sans-serif": "\"Lucida Sans Unicode\", \"Lucida Grande\", sans-serif",
+                        "\"MS Sans Serif\", Geneva, sans-serif": "\"MS Sans Serif\", Geneva, sans-serif",
+                        "\"MS Serif\", \"New York\", sans-serif": "\"MS Serif\", \"New York\", sans-serif",
+                        "\"Palatino Linotype\", \"Book Antiqua\", Palatino, serif": "\"Palatino Linotype\", \"Book Antiqua\", Palatino, serif",
+                        "Tahoma,Geneva, sans-serif": "Tahoma, Geneva, sans-serif",
+                        "\"Times New Roman\", Times,serif": "\"Times New Roman\", Times, serif",
+                        "\"Trebuchet MS\", Helvetica, sans-serif": "\"Trebuchet MS\", Helvetica, sans-serif",
+                        "Verdana, Geneva, sans-serif": "Verdana, Geneva, sans-serif"
+                    },
+                    "default_value": "none",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_660d9fc134e3d",
+                    "label": "Secondary Font",
+                    "name": "secondary_font",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "16.6",
+                        "class": "acf-font-family",
+                        "id": ""
+                    },
+                    "choices": {
+                        "##Defaults": "##Defaults",
+                        "initial": "initial",
+                        "inherit": "inherit",
+                        "##Custom Fonts": "##Custom Fonts",
+                        "pantheon, Arial, Helvetica, sans-serif": "Pantheon",
+                        "##Icon Fonts": "##Icon Fonts",
+                        "Font Awesome 6 Pro": "Font Awesome 6 Pro",
+                        "Font Awesome 6 Brands": "Font Awesome 6 Brands",
+                        "##System Fonts": "##System Fonts",
+                        "Arial, Helvetica, sans-serif": "Arial, Helvetica, sans-serif",
+                        "\"Arial Black\", Gadget, sans-serif": "\"Arial Black\", Gadget, sans-serif",
+                        "\"Bookman Old Style\", serif": "\"Bookman Old Style\", serif",
+                        "\"Comic Sans MS\", cursive": "\"Comic Sans MS\", cursive",
+                        "Courier, monospace": "Courier, monospace",
+                        "Garamond, serif": "Garamond, serif",
+                        "Georgia, serif": "Georgia, serif",
+                        "Impact, Charcoal, sans-serif": "Impact, Charcoal, sans-serif",
+                        "\"Lucida Console\", Monaco, monospace": "\"Lucida Console\", Monaco, monospace",
+                        "\"Lucida Sans Unicode\", \"Lucida Grande\", sans-serif": "\"Lucida Sans Unicode\", \"Lucida Grande\", sans-serif",
+                        "\"MS Sans Serif\", Geneva, sans-serif": "\"MS Sans Serif\", Geneva, sans-serif",
+                        "\"MS Serif\", \"New York\", sans-serif": "\"MS Serif\", \"New York\", sans-serif",
+                        "\"Palatino Linotype\", \"Book Antiqua\", Palatino, serif": "\"Palatino Linotype\", \"Book Antiqua\", Palatino, serif",
+                        "Tahoma,Geneva, sans-serif": "Tahoma, Geneva, sans-serif",
+                        "\"Times New Roman\", Times,serif": "\"Times New Roman\", Times, serif",
+                        "\"Trebuchet MS\", Helvetica, sans-serif": "\"Trebuchet MS\", Helvetica, sans-serif",
+                        "Verdana, Geneva, sans-serif": "Verdana, Geneva, sans-serif"
+                    },
+                    "default_value": "none",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_660e75636b5c8",
+                    "label": "Font Size",
+                    "name": "font_size",
+                    "aria-label": "",
+                    "type": "units",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "16.6",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": 16,
+                    "units": [
+                        "px",
+                        "%",
+                        "em",
+                        "rem",
+                        "vw",
+                        "vh",
+                        "vmin",
+                        "vmax",
+                        "pt",
+                        "cm",
+                        "mm",
+                        "in",
+                        "ex",
+                        "ch",
+                        "fr"
+                    ]
+                },
+                {
+                    "key": "field_660e75a46b5c9",
+                    "label": "Font Weight",
+                    "name": "font_weight",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "16.6",
+                        "class": "acf-font-weight",
+                        "id": ""
+                    },
+                    "choices": {
+                        "100": "100",
+                        "200": "200",
+                        "300": "300",
+                        "400": "400",
+                        "500": "500",
+                        "600": "600",
+                        "700": "700",
+                        "800": "800",
+                        "900": "900"
+                    },
+                    "default_value": "400",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_664d6c4f078a0",
+                    "label": "Letter Spacing",
+                    "name": "letter_spacing",
+                    "aria-label": "",
+                    "type": "units",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "16.6",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": 0,
+                    "units": [
+                        "px",
+                        "%",
+                        "em",
+                        "rem",
+                        "vw",
+                        "vh",
+                        "vmin",
+                        "vmax",
+                        "pt",
+                        "cm",
+                        "mm",
+                        "in",
+                        "ex",
+                        "ch",
+                        "fr"
+                    ]
+                },
+                {
+                    "key": "field_660e7e5c6b5ca",
+                    "label": "Color",
+                    "name": "color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "16.6",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "#111",
+                    "enable_opacity": 0,
+                    "return_format": "string"
+                },
+                {
+                    "key": "field_660e7f6b9ee6f",
+                    "label": "Bg Color",
+                    "name": "bg_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "#fff",
+                    "enable_opacity": 0,
+                    "return_format": "string"
+                },
+                {
+                    "key": "field_660e7f819ee70",
+                    "label": "Backdrop Color",
+                    "name": "backdrop_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "#000",
+                    "enable_opacity": 0,
+                    "return_format": "string"
+                }
+            ]
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "post"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": false,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1735858493,
+    "acfe_categories": {
+        "general": "General"
+    }
+}

@@ -1,0 +1,52 @@
+{
+    "key": "group_673c9aa6d6416",
+    "title": "Page Assets Update",
+    "fields": [
+        {
+            "key": "field_673cc3b8dc858",
+            "label": "Page Assets",
+            "name": "page_assets",
+            "aria-label": "",
+            "type": "acfe_dynamic_render",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "allow_in_bindings": 0,
+            "render": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "page-assets-update"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "acfe_categories": {
+        "general": "General"
+    },
+    "modified": 1735858491
+}

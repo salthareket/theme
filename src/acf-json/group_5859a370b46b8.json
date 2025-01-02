@@ -1,0 +1,196 @@
+{
+    "key": "group_5859a370b46b8",
+    "title": "Map Settings",
+    "fields": [
+        {
+            "key": "field_673390e2ccdbb",
+            "label": "Map Service on frontend",
+            "name": "map_service",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "acf-map-service",
+                "id": ""
+            },
+            "choices": {
+                "leaflet": "Leaflet (OpenSteetMap)",
+                "google": "Google Maps"
+            },
+            "default_value": "",
+            "return_format": "value",
+            "multiple": 0,
+            "translations": "sync",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "allow_custom": 0,
+            "search_placeholder": ""
+        },
+        {
+            "key": "field_6735b65411079",
+            "label": "Map View",
+            "name": "map_view",
+            "aria-label": "",
+            "type": "radio",
+            "instructions": "\"Embed Iframe\" doesn't support multiple locations.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "js": "Custom JS Map",
+                "embed": "Embed Iframe"
+            },
+            "default_value": "js",
+            "return_format": "value",
+            "translations": "sync",
+            "allow_null": 0,
+            "other_choice": 0,
+            "allow_in_bindings": 0,
+            "layout": "horizontal",
+            "save_other_choice": 0
+        },
+        {
+            "key": "field_5859a37e174ae",
+            "label": "Google Maps Api Key",
+            "name": "google_maps_api_key",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_673390e2ccdbb",
+                        "operator": "==",
+                        "value": "google"
+                    },
+                    {
+                        "field": "field_6735b65411079",
+                        "operator": "==",
+                        "value": "js"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "translations": "sync",
+            "maxlength": "",
+            "allow_in_bindings": 1,
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_58932151bce9b",
+            "label": "Google Maps Style (Optional)",
+            "name": "google_maps_style",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "You may find any style on https:\/\/snazzymaps.com\/",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_5859a37e174ae",
+                        "operator": "!=empty"
+                    },
+                    {
+                        "field": "field_673390e2ccdbb",
+                        "operator": "==",
+                        "value": "google"
+                    },
+                    {
+                        "field": "field_6735b65411079",
+                        "operator": "==",
+                        "value": "js"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "acfe_textarea_code": 0,
+            "translations": "sync",
+            "maxlength": "",
+            "allow_in_bindings": 1,
+            "rows": "",
+            "placeholder": "",
+            "new_lines": ""
+        },
+        {
+            "key": "field_59d6b6fb44b0d",
+            "label": "Map Marker",
+            "name": "map_marker",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "uploader": "wp",
+            "return_format": "array",
+            "library": "uploadedTo",
+            "translations": "sync",
+            "acfe_thumbnail": 0,
+            "min_width": "",
+            "min_height": "",
+            "min_size": "",
+            "max_width": "",
+            "max_height": "",
+            "max_size": "",
+            "mime_types": "png",
+            "allow_in_bindings": 1,
+            "preview_size": "thumbnail"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "ayarlar"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "acfe_categories": {
+        "general": "General"
+    },
+    "modified": 1735858491
+}

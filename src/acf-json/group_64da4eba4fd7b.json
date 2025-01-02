@@ -1,0 +1,709 @@
+{
+    "key": "group_64da4eba4fd7b",
+    "title": "Notifications",
+    "fields": [
+        {
+            "key": "field_64dbc8a39fd6d",
+            "label": "Notifications Filter",
+            "name": "notifications_filter",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
+            "sub_fields": [
+                {
+                    "key": "field_64dbc8cd9fd6e",
+                    "label": "Roles",
+                    "name": "notification_role_filter",
+                    "aria-label": "",
+                    "type": "acfe_user_roles",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "30",
+                        "class": "",
+                        "id": ""
+                    },
+                    "user_role": [
+                        "administrator",
+                        "expert",
+                        "client"
+                    ],
+                    "field_type": "select",
+                    "default_value": [],
+                    "allow_null": 1,
+                    "multiple": 0,
+                    "ui": 0,
+                    "placeholder": "",
+                    "choices": [],
+                    "ajax": 0,
+                    "search_placeholder": "",
+                    "layout": "",
+                    "toggle": 0,
+                    "allow_custom": 0
+                },
+                {
+                    "key": "field_64dbc96f9fd6f",
+                    "label": "Events",
+                    "name": "notification_event_filter",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "30",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "new-account": "New Account",
+                        "new-application": "New Application",
+                        "approved-application": "Approved Application",
+                        "cancel-application": "Cancel Application",
+                        "expired-application": "Expired Application",
+                        "declined-application": "Declined Application",
+                        "new-request": "New Request",
+                        "new-review": "New Review",
+                        "review-approved": "Review Approved",
+                        "payment-completed": "Payment Completed",
+                        "new-session": "New Session",
+                        "favorite-new-session": "Favorite New Session",
+                        "expired-session": "Expired Session",
+                        "started-session": "Started Session",
+                        "new-follower": "New Follower",
+                        "new-message": "New Message"
+                    },
+                    "default_value": false,
+                    "return_format": "value",
+                    "multiple": 0,
+                    "placeholder": "",
+                    "allow_null": 1,
+                    "ui": 0,
+                    "ajax": 0,
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                }
+            ]
+        },
+        {
+            "key": "field_64da4eba97890",
+            "label": "Notifications",
+            "name": "notifications",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_64da4efd97891",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "acfe_repeater_stylised_button": 1,
+            "layout": "block",
+            "pagination": 0,
+            "min": 0,
+            "max": 0,
+            "collapsed": "field_64dad715f5861",
+            "button_label": "Add Notification",
+            "rows_per_page": 20,
+            "sub_fields": [
+                {
+                    "key": "field_64dad715f5861",
+                    "label": "",
+                    "name": "notification_settings",
+                    "aria-label": "",
+                    "type": "group",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "layout": "block",
+                    "acfe_seamless_style": 1,
+                    "acfe_group_modal": 0,
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large",
+                    "parent_repeater": "field_64da4eba97890",
+                    "sub_fields": [
+                        {
+                            "key": "field_64dad7ab6f2fd",
+                            "label": "Role",
+                            "name": "notification_role",
+                            "aria-label": "",
+                            "type": "acfe_user_roles",
+                            "instructions": "",
+                            "required": 1,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "user_role": [
+                                "administrator",
+                                "expert",
+                                "client"
+                            ],
+                            "field_type": "select",
+                            "default_value": [],
+                            "allow_null": 0,
+                            "multiple": 0,
+                            "ui": 0,
+                            "choices": [],
+                            "ajax": 0,
+                            "placeholder": "",
+                            "search_placeholder": "",
+                            "layout": "",
+                            "toggle": 0,
+                            "allow_custom": 0
+                        },
+                        {
+                            "key": "field_64da4f4597892",
+                            "label": "Event",
+                            "name": "notification_event",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 1,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "choices": {
+                                "new-account": "New Account|Yeni bir kullanıcı hesabı oluşturulduğunda gönderilir.",
+                                "new-application": "New Application|Bir session'a yeni bir application yapıldığında gönderilir.",
+                                "approved-application": "Approved Application|Bir application onaylandığında gönderilir.",
+                                "cancel-application": "Cancel Application|Bir application iptal edildiğinde gönderilir.",
+                                "expired-application": "Expired Application|Bir application'ın zamansal olarak süresi dolduğunda gönderilir.",
+                                "declined-application": "Declined Application|Bir application onaylanmadığında gönderilir.",
+                                "new-request": "New Request|Bir expert'e session request yapıldığında gönderilir.",
+                                "new-review": "New Review|Bir session sonrası yorum yapıldığında gönderilir.",
+                                "review-approved": "Review Approved|Yorum, yorum yapılan kişi tarafından onaylandığında gönderilir.",
+                                "payment-completed": "Payment Completed|Bir ödeme tamamlandığında gönderilir.",
+                                "new-session": "New Session|Yeni bir session post oluşturulduğunda gönderilir.",
+                                "favorite-new-session": "Favorite New Session|Yeni bir session oluşturulduğunda session sahibinin takipçilerine gönderilir.",
+                                "expired-session": "Expired Session|Bir session'ın zamansal olarak süresi dolduğunda gönderilir.",
+                                "started-session": "Started Session|Session'ın başlama bilgisi session katılımcılarına gönderilir.",
+                                "new-follower": "New Follower|Kullanıcıyı yeni\tbir kullanıcı takip ettiğinde gönderilir.",
+                                "new-message": "New Message|Kullanıcıya ueni bir mesaj iletildiğinde gönderilir."
+                            },
+                            "default_value": false,
+                            "return_format": "value",
+                            "multiple": 0,
+                            "allow_custom": 0,
+                            "search_placeholder": "",
+                            "allow_null": 0,
+                            "ui": 1,
+                            "ajax": 0,
+                            "placeholder": ""
+                        },
+                        {
+                            "key": "field_64da4efd97891",
+                            "label": "Type",
+                            "name": "notification_type",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "33.333",
+                                "class": "",
+                                "id": ""
+                            },
+                            "choices": {
+                                "default": "Default",
+                                "danger": "Danger",
+                                "success": "Success"
+                            },
+                            "default_value": "default",
+                            "return_format": "value",
+                            "multiple": 0,
+                            "allow_custom": 0,
+                            "search_placeholder": "",
+                            "allow_null": 0,
+                            "ui": 1,
+                            "ajax": 0,
+                            "placeholder": ""
+                        },
+                        {
+                            "key": "field_64da685f221c7",
+                            "label": "Sender",
+                            "name": "notification_sender",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "33.333",
+                                "class": "",
+                                "id": ""
+                            },
+                            "choices": {
+                                "{{me}}": "Me",
+                                "{{administrator}}": "Administrator",
+                                "{{user}}": "User"
+                            },
+                            "default_value": "{{me}}",
+                            "return_format": "value",
+                            "multiple": 0,
+                            "allow_null": 0,
+                            "ui": 0,
+                            "ajax": 0,
+                            "placeholder": "",
+                            "allow_custom": 0,
+                            "search_placeholder": ""
+                        },
+                        {
+                            "key": "field_64da68c6221c8",
+                            "label": "Recipient",
+                            "name": "notification_recipient",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "33.333",
+                                "class": "",
+                                "id": ""
+                            },
+                            "choices": {
+                                "{{me}}": "Me",
+                                "{{administrator}}": "Administrator",
+                                "{{user}}": "User",
+                                "{{users}}": "Users"
+                            },
+                            "default_value": "{{me}}",
+                            "return_format": "value",
+                            "multiple": 0,
+                            "allow_null": 0,
+                            "ui": 0,
+                            "ajax": 0,
+                            "placeholder": "",
+                            "allow_custom": 0,
+                            "search_placeholder": ""
+                        }
+                    ]
+                },
+                {
+                    "key": "field_64dad8386f2fe",
+                    "label": "Carriers",
+                    "name": "notification_carriers",
+                    "aria-label": "",
+                    "type": "group",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "layout": "block",
+                    "acfe_seamless_style": 0,
+                    "acfe_group_modal": 0,
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large",
+                    "parent_repeater": "field_64da4eba97890",
+                    "sub_fields": [
+                        {
+                            "key": "field_64dad8a96f2ff",
+                            "label": "Email",
+                            "name": "",
+                            "aria-label": "",
+                            "type": "accordion",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "open": 0,
+                            "multi_expand": 0,
+                            "endpoint": 0
+                        },
+                        {
+                            "key": "field_64da4f6e97893",
+                            "label": "Activate",
+                            "name": "notification_email",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1
+                        },
+                        {
+                            "key": "field_64da669faee36",
+                            "label": "",
+                            "name": "notification_email_content",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "acfe_seamless_style": 1,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_64da66feaee37",
+                                    "label": "Subject",
+                                    "name": "subject",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 1,
+                                    "conditional_logic": [
+                                        [
+                                            {
+                                                "field": "field_64da4f6e97893",
+                                                "operator": "==",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    ],
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "placeholder": "",
+                                    "prepend": "",
+                                    "append": ""
+                                },
+                                {
+                                    "key": "field_64da6711aee38",
+                                    "label": "Template",
+                                    "name": "template",
+                                    "aria-label": "",
+                                    "type": "true_false",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": [
+                                        [
+                                            {
+                                                "field": "field_64da4f6e97893",
+                                                "operator": "==",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    ],
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "message": "",
+                                    "default_value": 0,
+                                    "ui_on_text": "",
+                                    "ui_off_text": "",
+                                    "ui": 1
+                                },
+                                {
+                                    "key": "field_64da672faee39",
+                                    "label": "Body",
+                                    "name": "body",
+                                    "aria-label": "",
+                                    "type": "acfe_code_editor",
+                                    "instructions": "",
+                                    "required": 1,
+                                    "conditional_logic": [
+                                        [
+                                            {
+                                                "field": "field_64da4f6e97893",
+                                                "operator": "==",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    ],
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "default_value": "",
+                                    "placeholder": "",
+                                    "mode": "text\/html",
+                                    "lines": 1,
+                                    "indent_unit": 4,
+                                    "maxlength": "",
+                                    "rows": 4,
+                                    "max_rows": "",
+                                    "return_format": []
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_64dad8db6f300",
+                            "label": "Alert",
+                            "name": "",
+                            "aria-label": "",
+                            "type": "accordion",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "open": 0,
+                            "multi_expand": 0,
+                            "endpoint": 0
+                        },
+                        {
+                            "key": "field_64da4f9c97894",
+                            "label": "Activate",
+                            "name": "notification_alert",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1
+                        },
+                        {
+                            "key": "field_64da6906221c9",
+                            "label": "",
+                            "name": "notification_alert_content",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "acfe_seamless_style": 1,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_64da6906221cc",
+                                    "label": "Body",
+                                    "name": "body",
+                                    "aria-label": "",
+                                    "type": "acfe_code_editor",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": [
+                                        [
+                                            {
+                                                "field": "field_64da4f9c97894",
+                                                "operator": "==",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    ],
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "default_value": "",
+                                    "placeholder": "",
+                                    "mode": "text\/html",
+                                    "lines": 1,
+                                    "indent_unit": 4,
+                                    "maxlength": "",
+                                    "rows": 4,
+                                    "max_rows": "",
+                                    "return_format": []
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_64dad9026f301",
+                            "label": "SMS",
+                            "name": "",
+                            "aria-label": "",
+                            "type": "accordion",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "open": 0,
+                            "multi_expand": 0,
+                            "endpoint": 0
+                        },
+                        {
+                            "key": "field_64da4fd297896",
+                            "label": "Activate",
+                            "name": "notification_sms",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1
+                        },
+                        {
+                            "key": "field_64da6936221cd",
+                            "label": "",
+                            "name": "notification_sms_content",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "acfe_seamless_style": 1,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_64da6936221ce",
+                                    "label": "Body",
+                                    "name": "body",
+                                    "aria-label": "",
+                                    "type": "acfe_code_editor",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": [
+                                        [
+                                            {
+                                                "field": "field_64da4fd297896",
+                                                "operator": "==",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    ],
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "default_value": "",
+                                    "placeholder": "",
+                                    "mode": "text\/html",
+                                    "lines": 1,
+                                    "indent_unit": 4,
+                                    "maxlength": "",
+                                    "rows": 4,
+                                    "max_rows": "",
+                                    "return_format": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "anasayfa"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "acf_after_title",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": false,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1735858491,
+    "acfe_categories": {
+        "general": "General"
+    }
+}

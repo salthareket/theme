@@ -1,0 +1,1016 @@
+{
+    "key": "group_63e6945ee6760",
+    "title": "Contact Details",
+    "fields": [
+        {
+            "key": "field_63e69449f63a6",
+            "label": "",
+            "name": "contact",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "acfe_seamless_style": 1,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
+            "sub_fields": [
+                {
+                    "key": "field_63e69449f63a8",
+                    "label": "Category",
+                    "name": "category",
+                    "aria-label": "",
+                    "type": "acfe_taxonomy_terms",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "taxonomy": [
+                        "contact-type"
+                    ],
+                    "allow_terms": "",
+                    "allow_level": "",
+                    "field_type": "radio",
+                    "default_value": false,
+                    "return_format": "id",
+                    "allow_null": 0,
+                    "layout": "horizontal",
+                    "save_terms": 1,
+                    "load_terms": 1,
+                    "allow_in_bindings": 1,
+                    "choices": [],
+                    "ui": 0,
+                    "multiple": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "search_placeholder": "",
+                    "toggle": 0,
+                    "allow_custom": 0,
+                    "other_choice": 0
+                },
+                {
+                    "key": "field_670ee1a9a515f",
+                    "label": "Contact Details",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "tab",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placement": "top",
+                    "endpoint": 0,
+                    "selected": 0
+                },
+                {
+                    "key": "field_63e69449f63ac",
+                    "label": "Address",
+                    "name": "address",
+                    "aria-label": "",
+                    "type": "textarea",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "acfe_textarea_code": 0,
+                    "maxlength": "",
+                    "allow_in_bindings": 1,
+                    "rows": "",
+                    "placeholder": "",
+                    "new_lines": "br"
+                },
+                {
+                    "key": "field_63e69449f63ad",
+                    "label": "Phone",
+                    "name": "phone",
+                    "aria-label": "",
+                    "type": "repeater",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "acfe_repeater_stylised_button": 1,
+                    "layout": "block",
+                    "pagination": 0,
+                    "min": 0,
+                    "max": 0,
+                    "collapsed": "",
+                    "button_label": "Ekle",
+                    "rows_per_page": 20,
+                    "sub_fields": [
+                        {
+                            "key": "field_63e69449f63ae",
+                            "label": "Number",
+                            "name": "number",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "maxlength": "",
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "parent_repeater": "field_63e69449f63ad"
+                        }
+                    ]
+                },
+                {
+                    "key": "field_65b726c3d0052",
+                    "label": "Fax",
+                    "name": "fax",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "allow_in_bindings": 1,
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_63e69449f63af",
+                    "label": "E-mail",
+                    "name": "email",
+                    "aria-label": "",
+                    "type": "email",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_652f68513349a",
+                    "label": "Customer Support Line",
+                    "name": "phone_support",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "allow_in_bindings": 1,
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_670ee2dda5160",
+                    "label": "Working Hours",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "tab",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placement": "top",
+                    "endpoint": 0,
+                    "selected": 0
+                },
+                {
+                    "key": "field_65b6fcc7154f2",
+                    "label": "",
+                    "name": "opening_hours",
+                    "aria-label": "",
+                    "type": "group",
+                    "instructions": "Eastern Standard Time",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "layout": "row",
+                    "acfe_seamless_style": 0,
+                    "acfe_group_modal": 0,
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large",
+                    "sub_fields": [
+                        {
+                            "key": "field_65b6fcc7154f3",
+                            "label": "Monday",
+                            "name": "monday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc7154f4",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc7154f5",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_65b6fcc7154f6",
+                            "label": "Tuesday",
+                            "name": "tuesday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc7154f7",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc7154f8",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_65b6fcc7154f9",
+                            "label": "Wednesday",
+                            "name": "wednesday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc7154fa",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc7154fb",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_65b6fcc7154fc",
+                            "label": "Thursday",
+                            "name": "thursday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc7154fd",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc7154fe",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_65b6fcc7154ff",
+                            "label": "Friday",
+                            "name": "friday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc715500",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc715501",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_65b6fcc715502",
+                            "label": "Saturday",
+                            "name": "saturday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc715503",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc715504",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_65b6fcc715505",
+                            "label": "Sunday",
+                            "name": "sunday",
+                            "aria-label": "",
+                            "type": "group",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "table",
+                            "acfe_seamless_style": 0,
+                            "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
+                            "sub_fields": [
+                                {
+                                    "key": "field_65b6fcc715506",
+                                    "label": "Start",
+                                    "name": "start",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                },
+                                {
+                                    "key": "field_65b6fcc715507",
+                                    "label": "End",
+                                    "name": "end",
+                                    "aria-label": "",
+                                    "type": "time_picker",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": 0,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "display_format": "H:i",
+                                    "return_format": "H:i"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "key": "field_670ee313a5161",
+                    "label": "Social Media",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "tab",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placement": "top",
+                    "endpoint": 0,
+                    "selected": 0
+                },
+                {
+                    "key": "field_63e69449f63b8",
+                    "label": "",
+                    "name": "accounts",
+                    "aria-label": "",
+                    "type": "repeater",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "acfe_repeater_stylised_button": 1,
+                    "layout": "block",
+                    "pagination": 0,
+                    "min": 0,
+                    "max": 0,
+                    "collapsed": "",
+                    "button_label": "Add Account",
+                    "rows_per_page": 20,
+                    "sub_fields": [
+                        {
+                            "key": "field_63e69449f63b9",
+                            "label": "Service",
+                            "name": "name",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "unique",
+                                "id": ""
+                            },
+                            "choices": {
+                                "facebook": "Facebook",
+                                "x-twitter": "Twitter",
+                                "instagram": "Instagram",
+                                "threads": "Threads",
+                                "pinterest": "Pinterest",
+                                "vimeo": "Vimeo",
+                                "youtube": "Youtube",
+                                "foursquare": "Foursquare",
+                                "myspace": "Myspace",
+                                "lastfm": "Last.fm",
+                                "soundcloud": "Soundcloud",
+                                "spotify": "Spotify",
+                                "linkedin": "Linkedin",
+                                "behance": "Behance",
+                                "dribbble": "Dribbble",
+                                "stack-overflow": "Stack Overflow",
+                                "github": "Github",
+                                "quizup": "Quizup",
+                                "tripadvisor": "Tripadvisor",
+                                "tiktok": "TikTok",
+                                "zomato": "Zomato",
+                                "vk": "VKontakte",
+                                "whatsapp": "WhatsApp"
+                            },
+                            "default_value": false,
+                            "return_format": "value",
+                            "multiple": 0,
+                            "allow_null": 0,
+                            "ui": 0,
+                            "ajax": 0,
+                            "placeholder": "",
+                            "allow_custom": 0,
+                            "search_placeholder": "",
+                            "parent_repeater": "field_63e69449f63b8"
+                        },
+                        {
+                            "key": "field_63e69449f63ba",
+                            "label": "Url",
+                            "name": "url",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "maxlength": "",
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "parent_repeater": "field_63e69449f63b8"
+                        }
+                    ]
+                },
+                {
+                    "key": "field_670ee34da5162",
+                    "label": "Map (Leaflet)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "tab",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placement": "top",
+                    "endpoint": 0,
+                    "selected": 0
+                },
+                {
+                    "key": "field_63e69449f63b0",
+                    "label": "(Column 8\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "8\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 1
+                },
+                {
+                    "center_lat": 53.55071120000000206573531613685190677642822265625,
+                    "center_lng": 10.000648500000000495901986141689121723175048828125,
+                    "zoom": 12,
+                    "height": 400,
+                    "return_format": "raw",
+                    "allow_map_layers": 0,
+                    "max_markers": 1,
+                    "layers": [
+                        "OpenStreetMap.Mapnik"
+                    ],
+                    "key": "field_64ed6386c0c5c",
+                    "label": "Map (OpenStreetMap)",
+                    "name": "map_leaflet",
+                    "aria-label": "",
+                    "type": "open_street_map",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "translations": "sync",
+                    "allow_in_bindings": 1,
+                    "leaflet_map": "{\"lat\":53.5507112,\"lng\":10.0006485,\"zoom\":12,\"layers\":[\"OpenStreetMap.Mapnik\"],\"markers\":[]}"
+                },
+                {
+                    "key": "field_670eed7bf436c",
+                    "label": "Map Marker",
+                    "name": "map_marker",
+                    "aria-label": "",
+                    "type": "image",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "40",
+                        "class": "",
+                        "id": ""
+                    },
+                    "uploader": "",
+                    "return_format": "array",
+                    "library": "all",
+                    "acfe_thumbnail": 0,
+                    "min_width": "",
+                    "min_height": "",
+                    "min_size": "",
+                    "max_width": "",
+                    "max_height": "",
+                    "max_size": "",
+                    "mime_types": "",
+                    "allow_in_bindings": 1,
+                    "preview_size": "medium"
+                },
+                {
+                    "key": "field_64f561f5989a4",
+                    "label": "(Column 4\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "4\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 1
+                },
+                {
+                    "key": "field_63e69449f63b7",
+                    "label": "(Column 6\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "6\/12",
+                    "endpoint": 0
+                },
+                {
+                    "key": "field_63e69449f63bb",
+                    "label": "(Column Endpoint)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "6\/12",
+                    "endpoint": 1
+                },
+                {
+                    "key": "field_6731e1f9669aa",
+                    "label": "Map (Google Maps)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "tab",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placement": "top",
+                    "endpoint": 0,
+                    "selected": 0
+                },
+                {
+                    "key": "field_673386f1d3129",
+                    "label": "",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "message",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "Google Maps Api Key not found.\nPlease set an api key on Settings page.\nYou may only use only Google Maps Embed Url.",
+                    "new_lines": "br",
+                    "esc_html": 0
+                },
+                {
+                    "key": "field_6731e211669ab",
+                    "label": "Map",
+                    "name": "map_google",
+                    "aria-label": "",
+                    "type": "google_map",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "center_lat": "",
+                    "center_lng": "",
+                    "zoom": "",
+                    "height": "",
+                    "translations": "sync",
+                    "allow_in_bindings": 1
+                },
+                {
+                    "key": "field_63e69449f63b5",
+                    "label": "Embed Url",
+                    "name": "map_url",
+                    "aria-label": "",
+                    "type": "url",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "translations": "sync",
+                    "allow_in_bindings": 1,
+                    "placeholder": ""
+                }
+            ]
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "contact"
+            }
+        ]
+    ],
+    "menu_order": 2,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1735858490,
+    "acfe_categories": {
+        "general": "General"
+    }
+}

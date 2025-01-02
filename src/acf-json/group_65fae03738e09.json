@@ -1,0 +1,230 @@
+{
+    "key": "group_65fae03738e09",
+    "title": "Settings AOS",
+    "fields": [
+        {
+            "key": "field_65fae1987f166",
+            "label": "Animation",
+            "name": "animation",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "no": "No Animation",
+                "fade": "fade",
+                "fade-up": "fade-up",
+                "fade-down": "fade-down",
+                "fade-left": "fade-left",
+                "fade-right": "fade-right",
+                "fade-up-right": "fade-up-right",
+                "fade-up-left": "fade-up-left",
+                "fade-down-right": "fade-down-right",
+                "fade-down-left": "fade-down-left",
+                "flip-up": "flip-up",
+                "flip-down": "flip-down",
+                "flip-left": "flip-left",
+                "flip-right": "flip-right",
+                "slide-up": "slide-up",
+                "slide-down": "slide-down",
+                "slide-left": "slide-left",
+                "slide-right": "slide-right",
+                "zoom-in": "zoom-in",
+                "zoom-in-up": "zoom-in-up",
+                "zoom-in-down": "zoom-in-down",
+                "zoom-in-left": "zoom-in-left",
+                "zoom-in-right": "zoom-in-right",
+                "zoom-out": "zoom-out",
+                "zoom-out-up": "zoom-out-up",
+                "zoom-out-down": "zoom-out-down",
+                "zoom-out-left": "zoom-out-left",
+                "zoom-out-right": "zoom-out-right"
+            },
+            "default_value": "fade",
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "allow_custom": 0,
+            "search_placeholder": ""
+        },
+        {
+            "key": "field_65fae2047f167",
+            "label": "Anchor",
+            "name": "anchor",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_65fae1987f166",
+                        "operator": "!=",
+                        "value": "no"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "top-bottom": "top-bottom",
+                "top-center": "top-center",
+                "top-top": "top-top",
+                "center-bottom": "center-bottom",
+                "center-center": "center-center",
+                "center-top": "center-top",
+                "bottom-bottom": "bottom-bottom",
+                "bottom-center": "bottom-center",
+                "bottom-top": "bottom-top"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "allow_custom": 0,
+            "search_placeholder": ""
+        },
+        {
+            "key": "field_65fae24948b08",
+            "label": "Easing",
+            "name": "easing",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_65fae1987f166",
+                        "operator": "!=",
+                        "value": "no"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "linear": "linear",
+                "ease": "ease",
+                "ease-in": "ease-in",
+                "ease-out": "ease-out",
+                "ease-in-out": "ease-in-out",
+                "ease-in-back": "ease-in-back",
+                "ease-out-back": "ease-out-back",
+                "ease-in-out-back": "ease-in-out-back",
+                "ease-in-sine": "ease-in-sine",
+                "ease-out-sine": "ease-out-sine",
+                "ease-in-out-sine": "ease-in-out-sine",
+                "ease-in-quad": "ease-in-quad",
+                "ease-out-quad": "ease-out-quad",
+                "ease-in-out-quad": "ease-in-out-quad",
+                "ease-in-cubic": "ease-in-cubic",
+                "ease-out-cubic": "ease-out-cubic",
+                "ease-in-out-cubic": "ease-in-out-cubic",
+                "ease-in-quart": "ease-in-quart",
+                "ease-out-quart": "ease-out-quart",
+                "ease-in-out-quart": "ease-in-out-quart"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "allow_custom": 0,
+            "search_placeholder": ""
+        },
+        {
+            "key": "field_662aa0740cedf",
+            "label": "Delay",
+            "name": "delay",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "min": "",
+            "max": "",
+            "placeholder": "",
+            "step": "",
+            "prepend": "",
+            "append": "ms"
+        },
+        {
+            "key": "field_662aa0980cee0",
+            "label": "Duration",
+            "name": "duration",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 500,
+            "min": "",
+            "max": "",
+            "placeholder": "",
+            "step": "",
+            "prepend": "",
+            "append": "ms"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "post"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": false,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1735858492,
+    "acfe_categories": {
+        "common": "Common"
+    }
+}

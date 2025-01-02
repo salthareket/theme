@@ -1,0 +1,80 @@
+{
+    "key": "group_662244d6f37a7",
+    "title": "Blacklist Domains",
+    "fields": [
+        {
+            "key": "field_662244d749288",
+            "label": "Domains",
+            "name": "blacklist_domains",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": [],
+            "default_value": [],
+            "return_format": "value",
+            "multiple": 1,
+            "allow_custom": 1,
+            "placeholder": "",
+            "allow_null": 0,
+            "ui": 1,
+            "ajax": 0,
+            "search_placeholder": ""
+        },
+        {
+            "key": "field_66224694d3807",
+            "label": "Error Message",
+            "name": "blacklist_error_message",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "formlar"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1735858487,
+    "acfe_categories": {
+        "general": "General"
+    }
+}

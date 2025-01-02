@@ -25,6 +25,7 @@ class Update {
         ["id" => "copy_theme", "name" => "Copying Theme Files"],
         ["id" => "copy_templates", "name" => "Copying Template Files"],
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
+        ["id" => "copy_fields", "name" => "Copying ACF Fields"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
         ["id" => "npm_install", "name" => "npm packages installing"],
@@ -520,6 +521,16 @@ class Update {
             self::recurseCopy($srcDir, $target_dir, ["scss"]);
         }
     }
+    private static function copy_fields(){
+        $srcDir = SH_STATIC_PATH . 'acf-json';
+        $target_dir = STATIC_PATH . 'acf-json';
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true); 
+        }
+        if (is_dir($srcDir)) {
+            self::recurseCopy($srcDir, $target_dir);
+        }
+    }
     private static function recurseCopy($src, $dest, $exclude = []){
         $dir = opendir($src);
 
@@ -635,6 +646,11 @@ class Update {
                     self::copy_fonts();
                     self::update_task_status('copy_fonts', true);
                     wp_send_json_success(['message' => 'Fonts copied successfully']);
+                    break;
+                case 'copy_fields':
+                    self::copy_fonts();
+                    self::update_task_status('copy_fields', true);
+                    wp_send_json_success(['message' => 'ACF fields copied successfully']);
                     break;
                 case 'install_wp_plugins':
                     ob_start();

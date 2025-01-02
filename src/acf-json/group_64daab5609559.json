@@ -1,0 +1,107 @@
+{
+    "key": "group_64daab5609559",
+    "title": "Notification Shortcodes",
+    "fields": [
+        {
+            "key": "field_64dab23623e78",
+            "label": "User",
+            "name": "",
+            "aria-label": "",
+            "type": "accordion",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "open": 0,
+            "multi_expand": 0,
+            "endpoint": 0
+        },
+        {
+            "key": "field_64daab56e0936",
+            "label": "",
+            "name": "",
+            "aria-label": "",
+            "type": "message",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "<strong>Current User Title<\/strong>\n<div class=\"clipboard\">{{data.user.get_title}}<\/div>\n\n<strong>User Title<\/strong>\n<div class=\"clipboard\">{{user.get_title}}<\/div>",
+            "new_lines": "br",
+            "esc_html": 0
+        },
+        {
+            "key": "field_64dab280fe31f",
+            "label": "Post",
+            "name": "",
+            "aria-label": "",
+            "type": "accordion",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "open": 0,
+            "multi_expand": 0,
+            "endpoint": 0
+        },
+        {
+            "key": "field_64dab29bfe320",
+            "label": "",
+            "name": "",
+            "aria-label": "",
+            "type": "message",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "<strong>Post Title<\/strong>\n<div class=\"clipboard\">{{data.post.title}}<\/div>\n\n<strong>Post Title (decoded)<\/strong>\n<div class=\"clipboard\">{{data.post.title|html_entity_decode}}<\/div>\n\n<strong>Post Link(decoded)<\/strong>\n<div class=\"clipboard\">{{data.post.link}}<\/div>\n\n<strong>Post Author<\/strong>\n<div class=\"clipboard\">{{data.post.author.get_title}}<\/div>\n\n<strong>Post Rating<\/strong>\n<div class=\"clipboard\">{{data.post.rating}}<\/div>",
+            "new_lines": "br",
+            "esc_html": 0
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "anasayfa"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "side",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": false,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1735858491,
+    "acfe_categories": {
+        "general": "General"
+    }
+}
