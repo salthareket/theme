@@ -31,7 +31,19 @@
 	.offcanvas-body{
 		display:flex;
 		align-items: $offcanvas-align-vr;
+		text-align: $offcanvas-align-hr;
 		justify-content:$offcanvas-align-hr;
+		@if $offcanvas-item-align-hr == "start" {
+			text-align: "left";
+		}
+		@if $offcanvas-item-align-hr == "end" {
+			text-align: "right";
+		}
+		@media (min-width: 768px){
+			@if $offcanvas-item-align-hr == "center" {
+				text-align: "center";
+			}
+		}
 	}
 
 	&.offcanvas-menu{
@@ -42,9 +54,6 @@
 		color:$offcanvas-item-color;
 		//text-transform:uppercase;
 		border:none;
-		@media (min-width: 768px){
- 
-		}
 		.offcanvas-body{
 			.nav-menu{
 				width:100%;
@@ -52,9 +61,12 @@
 					li{
 						display: flex;
 						flex-direction: column;
-						align-items: $offcanvas-item-align-hr;
+						@media (min-width: 768px){
+							align-items: $offcanvas-item-align-hr;
+						}
 						&.header{
 							.back{
+								display: flex;
 								font-family:$offcanvas-header-font;
 								@include font-size($offcanvas-header-font-size);
 								font-weight:$offcanvas-header-font-weight;
@@ -80,6 +92,7 @@
 							color:$offcanvas-item-color;
 							padding:$offcanvas-item-padding;
 							background-color:$offcanvas-item-bg;
+						    text-align: left;
 							&:hover{
 								color:$offcanvas-item-color-hover;
 								background-color:$offcanvas-item-bg-hover;
@@ -96,10 +109,32 @@
 					                opacity:.8;
 					                font-weight:400;
 					            }
+					            @media (min-width: 768px){
+						            @if $offcanvas-item-align-hr == "center" {
+						            	&:after{
+						            		top:0;
+						            		bottom:0;
+						            		height:auto;
+						            		display: flex;
+	 										align-items: center;
+	 										justify-content: end;
+						            	}
+						            }
+						        }
 					            @include media-breakpoint-down(lg) {
 					            	width:100%;
 					            }
 						    }
+						    &:not(.next){
+						    	padding-right:0px;
+						    }
+						    @media (min-width: 768px){
+						        @if $offcanvas-item-align-hr == "center" {
+						            display: inline-block;
+									width: auto!important;
+									position: relative;
+								}
+							}
 						} 
 					}					
 				}

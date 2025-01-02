@@ -4,10 +4,10 @@
 	>li{
 		a{
 			display:inline-block;
-			color:#999;
+			color:#fff;
 			@include transition(all .2s ease-out);
 			&:hover{
-				color:#666;
+				color:#fff;
 			}
 		}
 		&:not(:first-child){

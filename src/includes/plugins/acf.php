@@ -830,7 +830,13 @@ add_filter('acf_osm_marker_icon', function( $icon ) {
     if(empty($img)){
         return $icon;
     }
-    $dims = get_attachment_dimensions_by_url($img);
+    if(isset($img["width"]) && isset($img["height"])){
+    	$dims = array();
+    	$dims["width"] = $img["width"];
+    	$dims["height"] = $img["height"];
+    }else{
+    	$dims = get_attachment_dimensions_by_url($img);
+    }
     return array(
         'iconUrl'     => $img,
         'iconSize'    => [ $dims["width"], $dims["height"] ],

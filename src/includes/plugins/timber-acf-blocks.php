@@ -285,16 +285,16 @@ function block_container($container=""){
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default);
     switch($container){
         case "" :
-            $container = "container";
+            $container = "container"." px-4 px-lg-3";
         break;
         case "default" :
-            $container = $default;
+            $container = $default." px-4 px-lg-3";
         break;
         case "no" :
             $container = "";
         break;
         default :
-            $container = "container-".$container;
+            $container = "container-".$container." px-4 px-lg-3";
         break;
     }
     return $container;
@@ -947,15 +947,17 @@ function block_css($block, $fields, $block_column){
         }elseif ($height == "responsive"){
 
             $height_responsive = isset($fields["block_settings"]["height_responsive"]) ? $fields["block_settings"]["height_responsive"] : [];
-
+            //$height_responsive = array_reverse($height_responsive);
             $media_query = [];
+            $last_css = "";
+            $css = "";
             foreach($height_responsive as $breakpoint => $value){
                 $code_height_responsive = "";
                 $container = block_container($fields["block_settings"]["container"]);
 
                 if($value["height"] == "ratio"){
                     $ratio = block_ratio_padding($value["ratio"]);
-                    $code_height_responsive .= "#".$selector.(!empty($container)?" > .".$container:"")." > * {
+                    $css = "#".$selector.(!empty($container)?" > .".$container:"")." > * {
                          position: absolute!important;
                          top: 0;
                          left: 0;
@@ -965,36 +967,35 @@ function block_css($block, $fields, $block_column){
                     if(!empty($container)){
                         $code_inner .= "display:flex;
                             justify-content:center!important;";
-                        /*$code_height .= "#".$selector."{
-                            display:flex;
-                            justify-content:center!important;
-                        }\n";*/
-                        $code_height_responsive .= "#".$selector." > .container{
+                        $css .= "#".$selector." > .container{
                             left:auto!important;
                             right:auto!important;
                         }";
                     }
                     $padding_top = $ratio."%";
-                    if($fields["block_settings"]["hero"]){
-                        $padding_top = "calc(".$ratio."% - var(--header-height-".$breakpoint."))";
-                        $code_height_responsive .= ".affix #".$selector.":before{
-                            padding-top: calc(".$ratio."% - var(--header-height-".$breakpoint."-affix));
+                    /*if($fields["block_settings"]["hero"]){
+                        $padding_top = "calc(".$ratio."% - var(--header-height-{breakpoint}))";
+                        $css .= ".affix #".$selector.":before{
+                            padding-top: calc(".$ratio."% - var(--header-height-{breakpoint}-affix));
                         }";
-                    }
+                    }*/
 
-                    $code_height_responsive .= "#".$selector.(!empty($container)?" > .".$container:"").":before{
+                    $css .= "#".$selector.(!empty($container)?" > .".$container:"").":before{
                         content: '';
                         display: block;
                         padding-top: ".$padding_top.";
                     }";
+                    
+                    $last_css = $css;
+                    $code_height_responsive .= $css;
+
                 }else{
                     if($value["height"] != "auto"){
-                        /*$code_height .= "min-height: var(--hero-height-".$value["height"].");";*/
-                        $code_height_responsive .= "#".$selector."{
-                            ".($value["height"]=="full"?"":"min-")."height: calc(var(--hero-height-".$value["height"].") - 1px);
+                        $css = "#".$selector."{
+                            ".($value["height"]=="full" || $block["name"] == "acf/video"?"":"min-")."height: calc(var(--hero-height-".$value["height"].") - 1px);
                         }";
                         if($block["name"] == "acf/slider" || $block["name"] == "acf/slider-advanced" || $block["name"] == "acf/archive"){
-                            $code_height_responsive .= "#".$selector."{
+                            $css .= "#".$selector."{
                                 .swiper{
                                     min-height:inherit;
                                 }
@@ -1007,13 +1008,21 @@ function block_css($block, $fields, $block_column){
                                 }
                             }";
                         }
+                        $last_css = $css; 
+                        $code_height_responsive .= $css;
                     }else{
-                        $code_height_responsive .= "#".$selector."{
-                            height: auto;
-                        }";
-
+                        if(!empty($last_css)){
+                            $css = $last_css;
+                            //$last_css = "";
+                        }else{
+                            $css .= "#".$selector."{
+                                height: auto;
+                            }";                            
+                        }
+                        $code_height_responsive .= $css;
                     }
                 }
+                $code_height_responsive = str_replace("{breakpoint}", $breakpoint, $code_height_responsive);
                 if(!empty($code_height_responsive)){
                     $media_query[$breakpoint] = $code_height_responsive;
                 }
@@ -1024,7 +1033,7 @@ function block_css($block, $fields, $block_column){
             
 
         }elseif ($height != "auto"){
-            $code_inner .= ($height=="full"?"":"min-")."height: calc(var(--hero-height-".$height.") - 1px);";
+            $code_inner .= ($height=="full" || $block["name"] == "acf/video"?"":"min-")."height: calc(var(--hero-height-".$height.") - 1px);";
             /*$code_height .= "#".$selector." {
                 min-height: var(--hero-height-".$height.");
             }";*/
