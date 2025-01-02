@@ -9,11 +9,12 @@ function my_mce_buttons_2( $buttons ) {
 add_filter('mce_buttons_2', 'my_mce_buttons_2');
 
 // Callback function to filter the MCE settings
-function my_mce_before_init_insert_formats( $init_array ) {  
-    // Define the style_formats array
-    $buttons = array();
+function my_mce_before_init_insert_formats( $init_array ) {
+   
+    $new_styles = []; 
 
     // Buttons from costom colors
+    $buttons = array();
     if(isset($GLOBALS["mce_text_colors"])){
         foreach ($GLOBALS["mce_text_colors"] as $value) {
             $slug = strtolower($value);
@@ -24,9 +25,15 @@ function my_mce_before_init_insert_formats( $init_array ) {
             );
         }
     }
+    $new_styles[] = [
+       "title" => "Button",
+       "items" => $buttons
+    ];
+
+
     $style_formats = array(
         array(  
-            'title' => 'List Unstyled',  
+            'title' => 'List Unstyled 22',  
             'selector' => 'ul, ol',  
             'classes' => 'list-unstyled ms-4'             
         ),
@@ -50,7 +57,11 @@ function my_mce_before_init_insert_formats( $init_array ) {
             'inline' => 'small'
         ),
     );
-    $style_formats = array_merge($buttons, $style_formats);
+    $new_styles[] = [
+       "title" => "Styles",
+       "items" => $style_formats
+    ];
+
     
     if($GLOBALS["breakpoints"]){
         $typography = [];
@@ -80,8 +91,16 @@ function my_mce_before_init_insert_formats( $init_array ) {
                 'classes' => 'text-'.$key             
             );
         }
-        $style_formats = array_merge($title_classes, $style_formats);
-        $style_formats = array_merge($text_classes, $style_formats);
+        $new_styles[] = [
+           "title" => "Title",
+           "items" => $title_classes
+        ];
+        $new_styles[] = [
+           "title" => "Text",
+           "items" => $text_classes
+        ];
+        //$style_formats = array_merge($title_classes, $style_formats);
+        //$style_formats = array_merge($text_classes, $style_formats);
     }
     
     $font_weights = [];
@@ -92,7 +111,11 @@ function my_mce_before_init_insert_formats( $init_array ) {
             'classes' => 'fw-'.$fw             
         );
     }
-    $style_formats = array_merge($font_weights, $style_formats);
+    $new_styles[] = [
+        "title" => "Font Weight",
+        "items" => $font_weights
+    ];
+    //$style_formats = array_merge($font_weights, $style_formats);
 
     $line_heights = [];
     foreach(["1", "base", "sm", "lg"] as $lh){
@@ -102,13 +125,21 @@ function my_mce_before_init_insert_formats( $init_array ) {
             'classes' => 'lh-'.$lh             
         );
     }
-    $style_formats = array_merge($line_heights, $style_formats);
+    $new_styles[] = [
+        "title" => "Line Height",
+        "items" => $line_heights
+    ];
+    //$style_formats = array_merge($line_heights, $style_formats);
     
-    if(isset($GLOBALS["mce_styles"])){
+    if(isset($GLOBALS["mce_styles"]) && is_array($GLOBALS["mce_styles"])){
         $style_formats = array_merge($GLOBALS["mce_styles"], $style_formats);
+        $new_styles[] = [
+            "title" => "Extras",
+            "items" => $GLOBALS["mce_styles"]
+        ];
     }  
     // Insert the array, JSON ENCODED, into 'style_formats'
-    $init_array['style_formats'] = json_encode( $style_formats );  
+    //$init_array['style_formats'] = json_encode( $style_formats );  
 
 
     //colors
@@ -122,11 +153,21 @@ function my_mce_before_init_insert_formats( $init_array ) {
         $init_array['textcolor_rows'] = 1;
     }
 
+    // Yeni stilleri JSON formatına çevir
+    $new_styles_json = json_encode($new_styles);
+
+    // Mevcut style_formats'ı korumak için style_formats_merge ayarını aktif et
+    $init_array['style_formats_merge'] = true;
+
+    // Yeni stilleri init_array'ye ekle
+    $init_array['style_formats'] = $new_styles_json;
+
     return $init_array;  
 
 } 
 // Attach callback to 'tiny_mce_before_init' 
 add_filter( 'tiny_mce_before_init', 'my_mce_before_init_insert_formats' );
+
 
 
 // add letter spacing button

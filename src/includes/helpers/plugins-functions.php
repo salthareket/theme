@@ -657,8 +657,8 @@ function lightGallerySource($fields) {
     $upload_url = $upload_dir['baseurl'];
 
     $sources = [];
-    $gallery = isset($fields["gallery"])?$fields["gallery"]:[];
-    $videos  = isset($fields["videos"])?$fields["videos"]:[];
+    $gallery = isset($fields["gallery"]) && $fields["gallery"]?$fields["gallery"]:[];
+    $videos  = isset($fields["videos"])  && $fields["videos"]?$fields["videos"]:[];
 
     if ($gallery && $videos && $fields["add_videos"] && $fields["add_type"] == "mixed") {
         $gallery = array_merge($gallery, $videos);
@@ -684,6 +684,7 @@ function lightGallerySource($fields) {
                     "lg-size"   => "1280-720",
                     "src"       => $item["file"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]),
                     "poster"    => $item["image"]["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
+                    "img-src"    => $item["image"]["url"],
                     "sub-html"  => "",
                     "video"     => ["source" => [["src" => $item["file"], "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
                     /*"video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]*/
@@ -711,6 +712,7 @@ function lightGallerySource($fields) {
                     "lg-size"   => "1280-720",
                     "src"       => $item["file"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]),
                     "poster"    => $item["image"]["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
+                    "img-src"    => $item["image"]["url"],
                     "sub-html"  => "",
                     "video"     => ["source" => [["src" => $item["file"], "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]
                     /*"video"     => ["source" => [["src" => uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]), "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]*/
@@ -723,6 +725,7 @@ function lightGallerySource($fields) {
                 "href"      => $item["url"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["url"]),
                 "title"     => $item["alt"],
                 "src"       => $item["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["sizes"]["medium_large"]),
+                "img-src"   => $item["url"],
                 "width"     => $item["width"],
                 "height"    => $item["height"]
             ];
@@ -747,6 +750,7 @@ function lightGallerySource($fields) {
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
                     "src"       => $item["file"]["source"][0],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["file"]["source"][0]),
+                    "img-src"   => $item["image"]["url"],
                     "poster"    => $item["image"]["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["image"]["sizes"]["medium_large"]),
                     "sub-html"  => "",
                     "video"     => ["source" => [["src" => $item["file"], "type" => "video/mp4"]], "attributes" => ["preload" => false, "controls" => true]]                    
@@ -777,7 +781,7 @@ function lightGallerySource($fields) {
 	            case 'image':
 	                // 'image' türü için sadece belirttiğiniz alanları döndür
 	                return [
-	                    'src' => $item['src'] ?? null,//uploadUrlMigration($fields["upload_url"], $upload_url, $item['src']) ?? null,
+	                    'src' => $item['img-src'] ?? null,//uploadUrlMigration($fields["upload_url"], $upload_url, $item['src']) ?? null,
 	                    'sub-html' => $item['sub-html'] ?? null
 	                ];
 	            default:

@@ -295,12 +295,12 @@
 @mixin aspect-ratio-bs-responsive {
   @each $ratio-name, $ratio-value in $aspect-ratios {
     .ratio-#{$ratio-name}::before {
-      padding-top: $ratio-value;
+      padding-top: #{$ratio-value};
     }
     @each $breakpoint-name, $breakpoint-value in $grid-breakpoints {
       @include media-breakpoint-up($breakpoint-name) {
         .ratio-#{$breakpoint-name}-#{$ratio-name}::before {
-          --bs-aspect-ratio: $ratio-value;
+          --bs-aspect-ratio: #{$ratio-value};
         }
       }
     }

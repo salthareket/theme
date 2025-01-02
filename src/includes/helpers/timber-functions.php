@@ -38,6 +38,10 @@ function _get_option_cpt($field, $post_type){
 function _get_widgets($widget){
 	return Timber::get_widgets( $widget );
 }
+function _get_page($slug=""){
+	$page = get_page_by_path($slug);
+	return Timber::get_post($page->ID);
+}
 function _get_meta($key, $posts){
 	$keys = array();
 	$post_ids = array();

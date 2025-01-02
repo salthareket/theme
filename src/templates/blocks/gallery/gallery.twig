@@ -23,8 +23,6 @@
 
 {% block block_content %}
 
-    {% set lightbox = not fields.settings.no_lightbox|boolval %}
-
     {% set gallery = fields.gallery %}
     {% set videos = fields.videos %}
 
@@ -33,20 +31,17 @@
     {% set gallery_view = gallery_type=="dynamic"?fields.settings.view:"" %}
     
     {% set gallery_attrs = " data-gallery-type='" ~ gallery_type ~ "' " %}
-    {% set gallery_class = not is_preview and lightbox?"loading-hide ":"" %}
+    {% set gallery_class = not is_preview?"loading-hide ":"" %}
     {% set href_class = "" %}
     {% set image_class = "" %}
     {% set ratio_class = "" %}
     {% set item_class = fields.settings.item_class %}
     {% set item_class = item_class ~ (gallery_type != "justified"?" col ":"") %}
 
-    
-
     {% if gallery_type == "justified" %}
         {% set gallery_class = gallery_class ~ "justified-gallery " ~ block_meta.row.class %}
         {% set href_class = item_class %}
     {% else %}
-        {% set href_class = item_class %}
         {% set gallery_attrs = gallery_attrs ~ block_meta.row.attrs %}
         {% set gallery_class = gallery_class ~ "row " ~ block_meta.row.class %}
         {% set image_class = item_class ~ " object-fit-cover h-100 w-100" %}
@@ -55,7 +50,7 @@
         {% endif %}
     {% endif %}
 
-    <div id="{{gallery_id}}" class="{% if lightbox %}lightgallery init-me{% endif %} position-relative p-0 w---100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="left" data-item-captions="false">
+    <div id="{{gallery_id}}" class="lightgallery init-me position-relative p-0 w-100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="left" data-item-captions="false">
 
         {% set source = lightGallerySource(fields) %}
         
@@ -64,15 +59,11 @@
                 {% if item.type == "embed" %}
 
                     <div
-                        {% if lightbox %}
                         data-lg-size="{{item["lg-size"]}}"
                         data-src="{{item.src}}"
                         data-poster="{{item.poster}}"
                         data-sub-html="{{item["sub-html"]}}"
                         class="{{href_class}} cursor-hand"
-                        {% else %}
-                        class="{{href_class}}"
-                        {% endif %}
                     >
                         {% if ratio_class %}
                             <div class="{{ratio_class}}">
@@ -91,15 +82,11 @@
                 {% elseif item.type == "file" %}
 
                     <div
-                        {% if lightbox %}
                         data-lg-size="{{item["lg-size"]}}"
                         data-video='{{item.video|json_encode|replace({"{upload_url}" : site.upload_url})}}'
                         data-poster="{{item.poster|replace({"{upload_url}" : site.upload_url})}}"
                         data-sub-html="{{item["sub-html"]}}"
                         class="{{href_class}} cursor-hand"
-                        {% else %}
-                        class="{{href_class}}"
-                        {% endif %}
                     >
                         {% if ratio_class %}
                         <div class="{{ratio_class}}">
@@ -117,15 +104,11 @@
 
                 {% else %}
 
-                    {% if lightbox %}
                     <a 
                         href="{{item.href|replace({"{upload_url}" : site.upload_url})}}" 
                         title="{{item.title}}" 
                         class="{{href_class}}"
                     >
-                    {% else %}
-                    <div class="{{href_class}}">
-                    {% endif %}
                         {% if ratio_class %}
                         <div class="{{ratio_class}}">
                         {% endif %}
@@ -138,11 +121,7 @@
                         {% if ratio_class %}
                         </div>
                         {% endif %}
-                    {% if lightbox %}
                     </a>
-                    {% else %}
-                    </div>
-                    {% endif %}
 
                 {% endif %}
             {% endfor %}

@@ -101,6 +101,7 @@ if(file_exists($colors_mce_file)){
     $colors_mce = file_get_contents($colors_mce_file);
     $colors_mce = json_decode($colors_mce, true);    
 }
+
 $GLOBALS["mce_text_colors"] = $colors_mce;
 /*array(
   //'#fff' => 'Color Name'

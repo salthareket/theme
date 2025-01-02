@@ -10,17 +10,6 @@ if($GLOBALS["google_maps_api_key"]){
 	acf_update_setting('google_api_key', $GLOBALS['google_maps_api_key']);
 }
 
-if(isset($GLOBALS["acf_featured_image_fields"])){
-	if(is_array($GLOBALS["acf_featured_image_fields"])){
-		if(count($GLOBALS["acf_featured_image_fields"]) > 0){
-			$fields = $GLOBALS["acf_featured_image_fields"];
-			foreach($fields as $field){
-				add_filter('acf/update_value/name='.$field, 'acf_set_featured_image', 10, 3);
-			}
-		}
-	}
-}
-
 
 //acf json save & load folders
 add_filter('acf/settings/save_json', 'my_acf_json_save_point');
@@ -197,17 +186,24 @@ function acf_set_video_image( $value, $post_id, $field ){
 }
 
 function acf_set_thumbnail_condition($post_id){
-	$excluded_post_types = array();
+	$post_types = get_post_types(); // Tüm kayıtlı post tiplerini al
+    $supported_post_types = []; // Thumbnail desteği olanları burada tut
+    foreach ($post_types as $post_type) {
+        if (post_type_supports($post_type, 'thumbnail')) {
+            $supported_post_types[] = $post_type; // Thumbnail desteği varsa listeye ekle
+        }
+    }
 	$post_type = get_post_type( $post_id );
-	if(in_array($post_type, $excluded_post_types)){
-	    return false;
-	}else{
+	if(in_array($post_type, $supported_post_types)){
 	    return true;
+	}else{
+	    return false;
 	}
 }
 
 /*Set as featured image custom image fields value*/
-function acf_set_featured_image( $value, $post_id, $field  ){
+function acf_set_featured_image( $value, $post_id, $field ){
+	error_log("hobeeeen");
 		if(acf_set_thumbnail_condition($post_id)){
 			if($field['type'] == "qtranslate_image"){
 			   $languages = qtranxf_getSortedLanguages();
@@ -291,12 +287,18 @@ function acf_set_featured_image( $value, $post_id, $field  ){
 				 	    }
 
 	                 }else{
-                         
-						 if(is_array($value)){
-							$meta_id =add_post_meta($post_id, '_thumbnail_id', $value[0]);
-						 }else{
-					        $meta_id = add_post_meta($post_id, '_thumbnail_id', $value);
-						 }
+
+	                 	error_log(json_encode($value));
+                        if(!empty($value)){
+							if(is_array($value)){
+							 	error_log("array valu:".$value[0]);
+								$meta_id = add_post_meta($post_id, '_thumbnail_id', $value[0]);
+							}else{
+						        $meta_id = add_post_meta($post_id, '_thumbnail_id', $value);
+							}
+							error_log("meta id:".$meta_id);                        	
+                        }
+
 					}
 				}
 		    }else{
@@ -304,6 +306,12 @@ function acf_set_featured_image( $value, $post_id, $field  ){
 			};
 		};
 	    return $value;
+}
+if(isset($GLOBALS["acf_featured_image_fields"]) && is_array($GLOBALS["acf_featured_image_fields"]) && count($GLOBALS["acf_featured_image_fields"]) > 0){
+	$fields = $GLOBALS["acf_featured_image_fields"];
+	foreach($fields as $field){
+		add_filter('acf/update_value/name='.$field, 'acf_set_featured_image', 10, 3);
+	}
 }
 
 
@@ -477,7 +485,7 @@ if(class_exists('ACFE')){
 	}*/
 }else{
 	//set featured image
-	add_filter('acf/update_value/name=image', 'acf_set_featured_image', 10, 3);            	
+	//add_filter('acf/update_value/name=image', 'acf_set_featured_image', 10, 3);            	
 }
 
 
@@ -499,19 +507,39 @@ if (ENABLE_MULTILANGUAGE){
 
 
 
-function acf_admin_colors_footer() { ?>
+function acf_admin_colors_footer() { 
+	$colors = [];
+	$colors_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+	if(file_exists($colors_file)){
+	    $colors = file_get_contents($colors_file);
+	    $colors = json_decode($colors, true);
+	    if($colors){
+	    	$colors = array_keys($colors);
+	    }
+	}
+	?>
 	<script type="text/javascript">
 	(function($) {
 		acf.add_filter('color_picker_args', function( args, $field ){
-			let colors = [];
-	        let obj = getComputedStyle(document.documentElement);
-	        let custom_colors = obj.getPropertyValue('--salt-colors').trim();
-	        if(!IsBlank(custom_colors)){
-	        	custom_colors = custom_colors.split(",");
-	        	custom_colors.forEach(color => {
-				    colors.push(obj.getPropertyValue('--bs-'+color.trim()).trim());
-				});
+			<?php 
+			if($colors){
+			?>
+				let colors = <?php echo json_encode($colors);?>;
+            <?
+			}else{
+			?>
+				let colors = [];
+		        let obj = getComputedStyle(document.documentElement);
+		        let custom_colors = obj.getPropertyValue('--salt-colors').trim();
+		        if(!IsBlank(custom_colors)){
+		        	custom_colors = custom_colors.split(",");
+		        	custom_colors.forEach(color => {
+					    colors.push(obj.getPropertyValue('--bs-'+color.trim()).trim());
+					});
+		        }
+	        <?php 
 	        }
+	        ?>
 			args.palettes = colors
 			return args;
 		});
@@ -677,6 +705,27 @@ function acf_general_option_enable_woo_api($field) {
 	}
 	return $field;
 }
+
+add_filter('acf/load_field/name=breadcrumb_add_product_brand', 'acf_general_option_breadcrumb_add_product_brand');
+function acf_general_option_breadcrumb_add_product_brand($field) {
+	if (!ENABLE_ECOMMERCE) {
+		$field['wrapper']['class'] = 'hidden';
+	}else{
+		$field['wrapper']['class'] = '';
+	}
+	return $field;
+}
+
+add_filter('acf/load_field/name=breadcrumb_add_product_taxonomy', 'acf_general_option_breadcrumb_add_product_taxonomy');
+function acf_general_option_breadcrumb_add_product_taxonomy($field) {
+	if (!ENABLE_ECOMMERCE) {
+		$field['wrapper']['class'] = 'hidden';
+	}else{
+		$field['wrapper']['class'] = '';
+	}
+	return $field;
+}
+
 
 
 
@@ -1137,6 +1186,66 @@ function acf_add_field_options($field) {
 	acf-menu-locations
 	*/
 
+	if(in_array("acf-breakpoints", $class)){
+		$field["allow_custom"] = 0;
+		$field["default_value"] = "xl";
+		$field["type"] = "select";
+		$field["multiple"] = 0;
+		$field["allow_null"] = 0;
+		$field["ajax"] = 0;
+		$field["ui"] = 0;
+		$field["search_placeholder"] = "";
+		$field["return_format"] = "value";
+		$options = array();
+		foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+			$options[$key] = $key;
+		}
+		$field['choices'] = array();
+		foreach($options as $label) {
+		    $field['choices'][$label] = $label;
+		}
+	}
+
+	if(in_array("acf-columns", $class)){
+		$field["allow_custom"] = 0;
+	    $field["default_value"] = 1;
+		$field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
+		$field["multiple"] = 0;
+		$field["allow_null"] = 0;
+		$field["ajax"] = 0;
+		$field["ui"] = 0;
+		$field["search_placeholder"] = "";
+		$field["return_format"] = "value";
+		foreach (range(1, 12) as $number) {
+			$options[$number] = $number;
+		}
+		$field['choices'] = array();
+		foreach ($options as $label) {
+			$field['choices'][$label] = $label;
+		}
+    }
+
+	if(in_array("acf-gaps", $class)){
+		$field["allow_custom"] = 0;
+	    $field["default_value"] = 0;
+		$field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
+		$field["multiple"] = 0;
+		$field["allow_null"] = 0;
+		$field["ajax"] = 0;
+		$field["ui"] = 0;
+		$field["search_placeholder"] = "";
+		$field["return_format"] = "value";
+		foreach (range(0, 10) as $number) {
+			$options[$number] = $number;
+		}
+		$field['choices'] = array();
+		$field['choices'][0] = "None";
+		$field['choices']["auto"] = "Auto";
+		foreach ($options as $label) {
+			$field['choices'][$label] = $label;
+		}
+    }
+
 	if(in_array("acf-margin-padding", $class) || in_array("acf-margin-padding-responsive", $class)){
 		if(!empty($field["parent"]) && $field["parent"] != 0){
             global $wpdb;
@@ -1153,7 +1262,7 @@ function acf_add_field_options($field) {
 						$field["search_placeholder"] = "";
 						$field["return_format"] = "value";
 						$options = array("auto" => "auto");
-						foreach (range(0, 10) as $number) {
+						foreach (range(0, 12) as $number) {
 							$options[$number] = $number;
 						}
 						$field['choices'] = array();
@@ -1603,7 +1712,8 @@ function acf_add_field_options($field) {
 		$templates = array();// scandir($handle);
 		if ($handle = opendir($handle)) {
 		    while (false !== ($entry = readdir($handle))) {
-		        if ($entry != "." && $entry != "..") {
+		        // Sadece `.twig` uzantılı dosyaları kontrol et
+		        if ($entry != "." && $entry != ".." && pathinfo($entry, PATHINFO_EXTENSION) === 'twig') {
 		            $templates[] = $entry;
 		        }
 		    }
@@ -1938,11 +2048,24 @@ function acf_add_field_options($field) {
 	    }
     }
 
+    if($field["type"] == "select"){
+    	if(in_array("multiple", $class)){
+    	    $field["multiple"] = 1;
+        }
+        if(in_array("ui", $class)){
+    	    $field["ui"] = 1;
+        }
+    }
+
 	return $field;
 }
+
+
 if(is_admin()){
 	add_filter('acf/load_field', 'acf_add_field_options');
 }
+
+
 
 class UpdateFlexibleFieldLayouts {
 
@@ -3211,3 +3334,4 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
     return 0;
 }
 add_filter('acf/update_value/name=enable_extract_translations', 'acf_development_extract_translations', 10, 4);
+

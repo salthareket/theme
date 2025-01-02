@@ -298,7 +298,9 @@ if (is_admin()) {
 }
 
 if (class_exists("ACF")) {
-    include_once SH_INCLUDES_PATH . "acf-field-groups.php";
+
+    
+
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
     if(class_exists('ACFE')){
        include_once SH_INCLUDES_PATH . "plugins/acfe.php";
@@ -306,7 +308,8 @@ if (class_exists("ACF")) {
     if(class_exists("OpenStreetMap")){
         //die;
         include_once SH_INCLUDES_PATH . "plugins/acf-osm.php";
-    }
+    }include_once SH_INCLUDES_PATH . "acf-field-groups.php";
+    
 }else{
     //include_once SH_INCLUDES_PATH . "plugins/acf-fallback.php";
 }

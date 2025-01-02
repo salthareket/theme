@@ -7,10 +7,10 @@
 		top: 50%;
 	    left: 50%;
 		transform: translate(-50%, -50%);
-		width: 100vw;
-		height: 56.25vw; /* 9/16*100 = 56.25 */
-		min-height: 100vh;
-		min-width: 177.77vh; /* 16/9*100 = 177.77 */		
+		width: 100%;//100vw;
+		height: 56.25%;//56.25vw; /* 9/16*100 = 56.25 */
+		min-height: 100%;//100vh;
+		min-width: 177.77%;//177.77vh; /* 16/9*100 = 177.77 */		
 	}
 	video{
 		&.video-bg{

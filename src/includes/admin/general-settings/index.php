@@ -336,6 +336,86 @@ function acf_units_field_value($value){
     return $val;
 }
 
+function save_theme_styles_colors($theme_styles){
+        // Colors
+        $colors_list_default = ["primary", "secondary", "tertiary","quaternary", "gray", "danger", "info", "success", "warning", "light", "dark"];
+        $colors_list_file = THEME_STATIC_PATH . 'data/colors.json';
+        $colors_mce_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+        $colors_file = THEME_STATIC_PATH . 'scss/_colors.scss';
+        file_put_contents($colors_file, "");
+        $colors_code = "";
+        $colors_mce = [];
+        $custom_colors = "$"."custom-colors: (\n";
+        $colors_list = "$"."custom-colors-list: ";
+        $colors = $theme_styles["colors"];
+        foreach(["primary", "secondary","tertiary", "quaternary"] as $color){
+            if(!empty($colors[$color])){
+                $colors_code .= "$".$color.": ".scss_variables_color($colors[$color]).";\n";
+                $custom_colors .= "\t".$color.": ".scss_variables_color($colors[$color]).",\n";
+                $colors_list .= $color.",";
+                $colors_mce[scss_variables_color($colors[$color])] = $color;
+            }
+        }
+        if($colors["custom"]){
+            foreach($colors["custom"] as $key => $color){
+                $colors_code .= "$".$color["title"].": ".scss_variables_color($color["color"]).";\n";
+                $custom_colors .= "\t".$color["title"].": ".scss_variables_color($color["color"]).",\n";
+                $colors_list .= $color["title"].($key<count($colors["custom"])-1?",":"");
+                $colors_list_default[] = $color["title"];
+                $colors_mce[scss_variables_color($color["color"])] = $color["title"];
+            }
+        }
+        $custom_colors .= ");\n";
+        $colors_list .= ";\n";
+        file_put_contents($colors_file, $colors_code.$custom_colors.$colors_list);
+        file_put_contents($colors_list_file, json_encode($colors_list_default)); 
+        file_put_contents($colors_mce_file, json_encode($colors_mce)); 
+}
+
+function save_theme_styles_header_themes($header){
+    // Header Themes
+        $header_themes_file = THEME_STATIC_PATH . 'scss/_header-themes.scss';
+        file_put_contents($header_themes_file, ""); 
+        $header_themes = $header["themes"];
+        if($header_themes){
+            $dom_elements = ["body", "header"];
+            $code = "";
+            foreach($header["themes"] as $theme){
+                $theme["class"] = in_array($theme["class"], $dom_elements)?$theme["class"]:".".$theme["class"];
+                $z_index = empty($theme["z-index"])?"null":$theme["z-index"];
+
+                $default = $theme["default"];
+                $color = empty($default["color"])?"null":$default["color"];
+                $color_active = empty($default["color_active"])?"null":$default["color_active"];
+                $bg_color = empty($default["bg_color"])?"null":$default["bg_color"];
+                $logo = empty($default["logo"])?"null":$default["logo"];
+                
+                $affix = $theme["affix"];
+                $color_affix = empty($affix["color"])?"null":$affix["color"];
+                $color_active_affix = empty($affix["color_active"])?"null":$affix["color_active"];
+                $bg_color_affix = empty($affix["bg_color"])?"null":$affix["bg_color"];
+                $logo_affix = empty($affix["logo"])?"null":$affix["logo"];
+                $btn_reverse = scss_variables_boolean($affix["btn_reverse"]);
+
+                $code .= $theme["class"].":not(.menu-open){\n";
+                    $code .= "@include headerTheme(";
+                        $code .= $color.",";
+                        $code .= $color_active.",";
+                        $code .= $bg_color.",";
+                        $code .= $logo.",";
+                        $code .= $color_affix.",";
+                        $code .= $color_active_affix.",";
+                        $code .= $bg_color_affix.",";
+                        $code .= $logo_affix.",";
+                        $code .= $z_index.",";
+                        $code .= $btn_reverse;
+                    $code .= ");\n";
+                $code .= "}\n";
+            }
+            file_put_contents($header_themes_file, $code); 
+        }
+}
+
 function get_theme_styles($variables = array()){
     $theme_styles = acf_get_theme_styles();//get_field("theme_styles", "option");
     /*$theme_styles_default = THEME_STATIC_PATH ."data/theme-styles/theme-styles-default.json"
@@ -417,6 +497,7 @@ function get_theme_styles($variables = array()){
 
 
         // Colors
+        /*
         $colors_list_default = ["primary", "secondary", "tertiary","quaternary", "gray", "danger", "info", "success", "warning", "light", "dark"];
         $colors_list_file = THEME_STATIC_PATH . 'data/colors.json';
         $colors_mce_file = THEME_STATIC_PATH . 'data/colors_mce.json';
@@ -448,7 +529,8 @@ function get_theme_styles($variables = array()){
         $colors_list .= ";\n";
         file_put_contents($colors_file, $colors_code.$custom_colors.$colors_list);
         file_put_contents($colors_list_file, json_encode($colors_list_default)); 
-        file_put_contents($colors_mce_file, json_encode($colors_mce)); 
+        file_put_contents($colors_mce_file, json_encode($colors_mce));
+        */
 
 
         // Body
@@ -624,6 +706,7 @@ function get_theme_styles($variables = array()){
         }
 
         // Header Themes
+        /*
         $header_themes_file = THEME_STATIC_PATH . 'scss/_header-themes.scss';
         file_put_contents($header_themes_file, ""); 
         $header_themes = $header["themes"];
@@ -664,6 +747,7 @@ function get_theme_styles($variables = array()){
             }
             file_put_contents($header_themes_file, $code); 
         }
+        */
 
         // Footer
         $footer = $theme_styles["footer"];
@@ -1020,6 +1104,9 @@ function acf_theme_styles_save_hook($post_id) {
             $preset_file = THEME_STATIC_PATH . 'data/theme-styles/latest.json';
             $json_data = json_encode($theme_styles);
             file_put_contents($preset_file, $json_data); 
+            //save colors
+            save_theme_styles_colors($theme_styles);
+            save_theme_styles_header_themes($theme_styles["header"]);
         }
     }
 }

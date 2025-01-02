@@ -7,7 +7,7 @@ function yabe_get_fonts(){
 	$query = "
 	    SELECT title, family, metadata, font_faces
 	    FROM $table_name
-	    WHERE status = 1
+	    WHERE status = 1 AND deleted_at IS NULL
 	";
     $results = $wpdb->get_results($query);
 	if ($results) {

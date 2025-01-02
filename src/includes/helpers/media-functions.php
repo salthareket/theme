@@ -1303,6 +1303,10 @@ function get_video($video_args=array()){
 	}
 	$code = str_replace("{{class}}", $class, $code);
 
+	if($args["video_settings"]["videoReact"]){
+		$config["clickToPlay"] = true;
+	}
+
 	if(isset($settings["controls"]) && $settings["controls"]){
 		$config["controls"] = $settings["controls_options"];
 		if($settings["controls_options_settings"]){
@@ -1317,7 +1321,7 @@ function get_video($video_args=array()){
 	}
 	if(isset($settings["autoplay"]) && $settings["autoplay"]){
 		$code = str_replace("{{autoplay}}", "autoplay", $code);
-		$config["autoplay"] = $settings["autoplay"];
+		$config["autoplay"] = 0;//$settings["autoplay"];
 	}else{
         $code = str_replace("{{autoplay}}", "", $code);
 	}

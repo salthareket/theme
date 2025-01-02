@@ -10,7 +10,7 @@ function custom_login_logo_url_title() {
     if($admin_logo){
         $admin_logo = '<img src="'.$admin_logo.'" class="img-fluid"">';
     }else{
-        $admin_logo = '<img src="'.get_bloginfo("template_directory") .'/static/img/logo-login.png" class="img-fluid">';
+        $admin_logo = '<img src="'. SH_STATIC_URL .'img/logo-login.png" class="img-fluid">';
     }
     return $admin_logo;
 }
@@ -26,7 +26,7 @@ function login_styles() {
         $bg_color = $admin_bg["color"];
     }
 
-    $bg_image = get_bloginfo("template_directory") .'/static/img/bg-login-admin.jpg';
+    $bg_image = SH_STATIC_URL .'img/bg-login-admin.jpg';
     if(isset($admin_bg["image"]) && !empty($admin_bg["image"])){
         $bg_image = $admin_bg["image"];
     }

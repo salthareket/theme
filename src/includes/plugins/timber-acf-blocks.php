@@ -30,6 +30,163 @@ add_filter( 'timber/acf-gutenberg-blocks-preview-identifier', function( $sufix )
     return $sufix;
 });
 
+function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4x3"], $gap=3, $class="") {
+
+    $htmlOutput = '';
+    $index = 0;
+    $totalImages = count($images);
+
+    while ($index < $totalImages) {
+        // Random number between 1 and maxCol, ensuring it doesn't exceed remaining images
+        $randomCol = min(rand(1, $maxCol), $totalImages - $index);
+        $randomRatio = min(rand(0, count($ratios)-1), count($ratios));
+        $ratioClass = "ratio ratio-".$ratios[$randomRatio];
+        $gapClass = 'gx-' . $gap . ' gy-' . $gap . ' mb-'.$gap;
+
+        // Check if the row will contain only one image
+        if ($randomCol === 1) {
+            $htmlOutput .= '<div class="row ' . $gapClass . '">';
+        } else {
+            $htmlOutput .= '<div class="row row-cols-' . $breakpoint . '-' . $randomCol . ' row-cols-1 ' . $gapClass . '">';
+        }
+
+        for ($i = 0; $i < $randomCol; $i++) {
+            switch($images[$index]["type"]){
+                case "image":
+                    if(isset($images[$index]["img-src"])){
+                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';
+                        $index++;                
+                    }
+                break;
+                case "file" :
+                case "embed" :
+                    $args = array(
+                        "video_type" => $images[$index]["type"],
+                        "video_settings" => array(
+                            "videoBg" => 1,
+                            "autoplay" => 0,
+                            "loop" => 0,
+                            "muted" => 0,
+                            "videoReact" => 1,
+                            "controls" => 1,
+                            "controls_options" => array(
+                                 "play-large"
+                            ),
+                            "controls_options_settings" => array(),
+                            "controls_hide" => 0,
+                            "ratio" => "",
+                            "custom_video_image" => "",
+                            "video_image" => $images[$index]["poster"],
+                            "vtt" => ""
+                        )
+                    );
+                    if($images[$index]["type"] == "file"){
+                        $args["video_file"] = array(
+                            "desktop" => $images[$index]["src"]
+                        );
+                    }else{
+                        $args["video_url"] = $images[$index]["src"];
+                    }
+                    $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">';
+                    $htmlOutput .= get_video([
+                        "src" => $args,
+                        "class" => $class,
+                        "init" => true,
+                        "lazy" => true,
+                        "attrs" => []
+                    ]);
+                    $htmlOutput .= '</div></div>';
+                    $index++; 
+                break;
+            }
+        }
+
+        $htmlOutput .= '</div>';
+    }
+
+    return $htmlOutput;
+}
+
+function block_gallery_pattern($images, $patterns, $gap=3, $class="") {
+    if(!$patterns){
+        return;
+    }
+
+    $htmlOutput = '';
+    $index = 0;
+    $totalImages = count($images);
+
+    foreach($patterns as $key => $pattern){
+        $col = $pattern["columns"];
+        $ratio = $pattern["ratio"];
+        $breakpoint = $pattern["breakpoint"];
+        $ratioClass = "ratio ratio-".$ratio;
+        $gapClass = 'gx-' . $gap . ' gy-' . $gap . ' mb-'.$gap;
+
+        // Check if the row will contain only one image
+        if ($col === 1) {
+            $htmlOutput .= '<div class="row ' . $gapClass . '">';
+        } else {
+            $htmlOutput .= '<div class="row row-cols-' . $breakpoint . '-' . $col . ' row-cols-1 ' . $gapClass . '">';
+        }
+
+        for ($i = 0; $i < $col; $i++) {
+            switch($images[$index]["type"]){
+                case "image":
+                    if(isset($images[$index]["img-src"])){
+                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';
+                        $index++;                
+                    }
+                break;
+                case "file" :
+                case "embed" :
+                    $args = array(
+                        "video_type" => $images[$index]["type"],
+                        "video_settings" => array(
+                            "videoBg" => 1,
+                            "autoplay" => 0,
+                            "loop" => 0,
+                            "muted" => 0,
+                            "videoReact" => 1,
+                            "controls" => 1,
+                            "controls_options" => array(
+                                 "play-large"
+                            ),
+                            "controls_options_settings" => array(),
+                            "controls_hide" => 0,
+                            "ratio" => "",
+                            "custom_video_image" => "",
+                            "video_image" => $images[$index]["poster"],
+                            "vtt" => ""
+                        )
+                    );
+                    if($images[$index]["type"] == "file"){
+                        $args["video_file"] = array(
+                            "desktop" => $images[$index]["src"]
+                        );
+                    }else{
+                        $args["video_url"] = $images[$index]["src"];
+                    }
+                    $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">';
+                    $htmlOutput .= get_video([
+                        "src" => $args,
+                        "class" => $class,
+                        "init" => true,
+                        "lazy" => true,
+                        "attrs" => []
+                    ]);
+                    $htmlOutput .= '</div></div>';
+                    $index++; 
+                break;
+            }
+        }
+        $htmlOutput .= '</div>';
+    }
+    return $htmlOutput;
+}
+
+
+
 function block_responsive_classes($field=[], $type="", $block_column=""){
     $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $tempClasses = [];
@@ -372,6 +529,14 @@ function block_columns($args=array(), $block = []){
 
         if(isset($args["slider"]) || isset($args["column_breakpoints"]) ) {
             if((isset($args["slider"]) && $args["slider"]) || (isset($block["name"]) && in_array($block["name"], ["acf/archive"])) ){
+                
+                $slide_half = 0;
+                if(isset($args["slider_settings"]) && $args["slider_settings"]){
+                    foreach($args["slider_settings"] as $key => $item){
+                        $attrs["data-slider-".$key] = $item;
+                    }
+                    $slide_half = $args["slider_settings"]["half_view"]?0.5:0;
+                }
 
                 if(isset($args["column_breakpoints"])){
                     $breakpoints = new ArrayObject();
@@ -379,7 +544,7 @@ function block_columns($args=array(), $block = []){
                     foreach($args["column_breakpoints"] as $key => $item){
                         if(in_array($key, $sizes)){
                             if(isset($item["columns"])){
-                                $breakpoints[$key] = intval($item["columns"]);
+                                $breakpoints[$key] = intval($item["columns"]) + $slide_half;
                             }
                             if(isset($item["gx"])){
                                 $gaps[$key] = $gap_sizes[$item["gx"]];
@@ -389,11 +554,11 @@ function block_columns($args=array(), $block = []){
                     $attrs["data-slider-breakpoints"] = json_encode($breakpoints);
                     $attrs["data-slider-gaps"] = json_encode($gaps);                
                 }
-                if(isset($args["slider_settings"]) && $args["slider_settings"]){
+                /*if(isset($args["slider_settings"]) && $args["slider_settings"]){
                     foreach($args["slider_settings"] as $key => $item){
                         $attrs["data-slider-".$key] = $item;
                     }
-                }
+                }*/
                 if(isset($args["block_settings"]) && $args["block_settings"]["height"] == "ratio"){
                     $attrs["data-slider-autoheight"] = false;
                 }
@@ -482,6 +647,18 @@ function block_bg_position_val($pos=""){
     }
     return $pos;
 }
+
+function block_object_position($vr, $hr){
+    $pos = "center";
+    if(!empty($vr) && !empty($hr)){
+        if($vr == "center" && $hr == "center"){
+            $pos = "center";
+        }else{
+            $pos = $vr."-".$hr;
+        }
+    }
+    return "object-position-".$pos;
+}
 function block_bg_image($block, $fields, $block_column){
     $image = "";
     $image_class = " w-100 h-100 ";
@@ -528,18 +705,24 @@ function block_bg_image($block, $fields, $block_column){
 
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
-            $image = '<div class="bg-cover position-absolute-fill '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';
+            if($fields["block_settings"]["height"] != "auto"){
+               $classes .= "position-absolute-fill";
+            }
+
+            $image = '<div class="bg-cover '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';
             if($background["repeat"] != "no-repeat" || $background["size"] == "fixed"){
                 $image .= 'style="'.$image_style.'"';
             }
 
             if($background["parallax"]){
-                $image_class = " jarallax-img "; 
+                $image_class = " jarallax-img ";
                 $image .= ' data-jarallax data-speed="'.$background["parallax_settings"]["speed"].'" data-type="'.$background["parallax_settings"]["type"].'" data-img-size="'. $background["size"] .'" data-img-repeat="'. $background["repeat"] .'" data-img-position="'. block_bg_position_val($background["position_vr"]) ." " . block_bg_position_val($background["position_hr"]) .'" ';
                 if(!empty($background_color)){
                    $image .= "style='background-color:".$background_color.";'";
                 }
             }
+
+            $image_class .= " ".block_object_position($background["position_vr"], $background["position_hr"]);
 
             $image .= '>';
             if($background["repeat"] == "no-repeat" && $background["size"] != "fixed"){
@@ -764,6 +947,7 @@ function block_css($block, $fields, $block_column){
         }elseif ($height == "responsive"){
 
             $height_responsive = isset($fields["block_settings"]["height_responsive"]) ? $fields["block_settings"]["height_responsive"] : [];
+
             $media_query = [];
             foreach($height_responsive as $breakpoint => $value){
                 $code_height_responsive = "";
@@ -823,6 +1007,11 @@ function block_css($block, $fields, $block_column){
                                 }
                             }";
                         }
+                    }else{
+                        $code_height_responsive .= "#".$selector."{
+                            height: auto;
+                        }";
+
                     }
                 }
                 if(!empty($code_height_responsive)){

@@ -254,6 +254,7 @@ class StarterSite extends Timber\Site{
         $context["endpoint"] = getUrlEndpoint();
         $context["url_parts"] = getUrlParts();
         $context["base_urls"] = isset($GLOBALS["base_urls"])?$GLOBALS["base_urls"]:[];
+        $context["breakpoints"] = array_keys($GLOBALS["breakpoints"]);
 
         if (ENABLE_POSTCODE_VALIDATION) {
             $postcodes = json_decode(file_get_contents(SH_STATIC_PATH ."data/postcodes.json"), true);
@@ -669,6 +670,9 @@ class StarterSite extends Timber\Site{
         ];
         $functions['lightGallerySource'] = [
             'callable' => 'lightGallerySource',
+        ];
+        $functions['get_page'] = [
+            'callable' => '_get_page',
         ];
         
         if(isset($GLOBALS["twig_functions"])){

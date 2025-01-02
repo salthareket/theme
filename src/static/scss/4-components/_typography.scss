@@ -64,7 +64,7 @@ h6{
             	@include font-size($font-size);
             }
             @include media-breakpoint-down(sm) {
-            	font-size: var(--text-#{$size});
+            	font-size: var(--title-#{$size});
             }
             //font-size: var(--title-#{$size});
         }
