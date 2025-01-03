@@ -120,7 +120,7 @@
             },
             "acf_bs_breakpoints_type": "number",
             "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
+            "acf_bs_breakpoints_choices": "1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n10\r\n11\r\n12",
             "xxxl": 1,
             "xxl": 1,
             "xl": 1,
@@ -193,14 +193,14 @@
                 "acfe_flexible_modal_categories": "1"
             },
             "layouts": {
-                "layout_67771958164ce": {
-                    "key": "layout_67771958164ce",
+                "layout_6777202e607e0": {
+                    "key": "layout_6777202e607e0",
                     "name": "block-accordion",
                     "label": "Block Accordion",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_67771958164d0",
+                            "key": "field_6777202e607e2",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -216,11 +216,18 @@
                             "acf_bs_breakpoints_type": "number",
                             "show_description": 1,
                             "acf_bs_breakpoints_choices": "",
+                            "xxxl": "",
+                            "xxl": "",
+                            "xl": "",
+                            "lg": "",
+                            "md": "",
+                            "sm": "",
+                            "xs": "",
                             "allow_in_bindings": 0,
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195818983",
+                            "key": "field_6777202e631f1",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -247,7 +254,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195819b2d",
+                            "key": "field_6777202e66894",
                             "label": "",
                             "name": "accordion",
                             "aria-label": "",
@@ -286,14 +293,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719581b3f4": {
-                    "key": "layout_677719581b3f4",
+                "layout_6777202e6b7ec": {
+                    "key": "layout_6777202e6b7ec",
                     "name": "block-application-buttons",
                     "label": "Block Application Buttons",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719581b3f6",
+                            "key": "field_6777202e6b7ee",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -313,7 +320,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719581c606",
+                            "key": "field_6777202e6ec50",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -340,7 +347,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719581d72b",
+                            "key": "field_6777202e72511",
                             "label": "",
                             "name": "application-buttons",
                             "aria-label": "",
@@ -379,14 +386,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719581f0dc": {
-                    "key": "layout_677719581f0dc",
+                "layout_6777202e76815": {
+                    "key": "layout_6777202e76815",
                     "name": "block-archive",
                     "label": "Block Archive",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719581f0dd",
+                            "key": "field_6777202e76818",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -406,7 +413,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_67771958201d2",
+                            "key": "field_6777202e79ca3",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -433,7 +440,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195821244",
+                            "key": "field_6777202e7d335",
                             "label": "",
                             "name": "archive",
                             "aria-label": "",
@@ -472,14 +479,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195822994": {
-                    "key": "layout_6777195822994",
+                "layout_6777202e81739": {
+                    "key": "layout_6777202e81739",
                     "name": "block-audio",
                     "label": "Block Audio",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_6777195822996",
+                            "key": "field_6777202e8173b",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -499,7 +506,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_67771958238a6",
+                            "key": "field_6777202e84b50",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -526,7 +533,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719582483f",
+                            "key": "field_6777202e8835a",
                             "label": "",
                             "name": "audio",
                             "aria-label": "",
@@ -565,14 +572,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719582609f": {
-                    "key": "layout_677719582609f",
+                "layout_6777202e8c73f": {
+                    "key": "layout_6777202e8c73f",
                     "name": "block-bootstrap-columns",
                     "label": "Block Bootstrap Columns",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_67771958260a1",
+                            "key": "field_6777202e8c740",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -592,7 +599,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195826fdb",
+                            "key": "field_6777202e904c6",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -619,7 +626,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195827e3c",
+                            "key": "field_6777202e939c4",
                             "label": "",
                             "name": "bootstrap-columns",
                             "aria-label": "",
@@ -658,14 +665,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195829809": {
-                    "key": "layout_6777195829809",
+                "layout_6777202e9795a": {
+                    "key": "layout_6777202e9795a",
                     "name": "block-buttons",
                     "label": "Block Buttons",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719582980a",
+                            "key": "field_6777202e9795c",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -685,7 +692,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719582a847",
+                            "key": "field_6777202e9abc3",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -712,7 +719,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719582b706",
+                            "key": "field_6777202e9dfcc",
                             "label": "",
                             "name": "buttons",
                             "aria-label": "",
@@ -751,14 +758,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719582d164": {
-                    "key": "layout_677719582d164",
+                "layout_6777202ea31f1": {
+                    "key": "layout_6777202ea31f1",
                     "name": "block-gallery",
                     "label": "Block Gallery",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719582d166",
+                            "key": "field_6777202ea31f3",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -778,7 +785,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719582e147",
+                            "key": "field_6777202ea6430",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -805,7 +812,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719582ef82",
+                            "key": "field_6777202ea9a5b",
                             "label": "",
                             "name": "gallery",
                             "aria-label": "",
@@ -844,14 +851,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719583091b": {
-                    "key": "layout_677719583091b",
+                "layout_6777202eadf29": {
+                    "key": "layout_6777202eadf29",
                     "name": "block-hero",
                     "label": "Block Hero",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719583091d",
+                            "key": "field_6777202eadf2b",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -871,7 +878,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195831809",
+                            "key": "field_6777202eb1206",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -898,7 +905,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_67771958326a7",
+                            "key": "field_6777202eb49ad",
                             "label": "",
                             "name": "hero",
                             "aria-label": "",
@@ -937,14 +944,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195833eed": {
-                    "key": "layout_6777195833eed",
+                "layout_6777202eb8aea": {
+                    "key": "layout_6777202eb8aea",
                     "name": "block-icons",
                     "label": "Block Icons",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_6777195833eee",
+                            "key": "field_6777202eb8aeb",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -964,7 +971,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195834fdc",
+                            "key": "field_6777202ebbf1f",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -991,7 +998,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195835f39",
+                            "key": "field_6777202ebf53f",
                             "label": "",
                             "name": "icons",
                             "aria-label": "",
@@ -1030,14 +1037,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719583784e": {
-                    "key": "layout_677719583784e",
+                "layout_6777202ec3849": {
+                    "key": "layout_6777202ec3849",
                     "name": "block-image",
                     "label": "Block Image",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_6777195837850",
+                            "key": "field_6777202ec384b",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1057,7 +1064,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719583880d",
+                            "key": "field_6777202ec6a01",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1084,7 +1091,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195839801",
+                            "key": "field_6777202ecac54",
                             "label": "",
                             "name": "image",
                             "aria-label": "",
@@ -1123,14 +1130,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719583b2ae": {
-                    "key": "layout_677719583b2ae",
+                "layout_6777202ecf0ee": {
+                    "key": "layout_6777202ecf0ee",
                     "name": "block-map",
                     "label": "Block Map",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719583b2af",
+                            "key": "field_6777202ecf0f0",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1150,7 +1157,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719583c1d0",
+                            "key": "field_6777202ed235d",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1177,7 +1184,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719583d212",
+                            "key": "field_6777202ed5757",
                             "label": "",
                             "name": "map",
                             "aria-label": "",
@@ -1216,14 +1223,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719583ec74": {
-                    "key": "layout_677719583ec74",
+                "layout_6777202ed9c89": {
+                    "key": "layout_6777202ed9c89",
                     "name": "block-marquee",
                     "label": "Block Marquee",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719583ec76",
+                            "key": "field_6777202ed9c8b",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1243,7 +1250,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719583fb58",
+                            "key": "field_6777202edd30c",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1270,7 +1277,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195840b78",
+                            "key": "field_6777202ee0c0e",
                             "label": "",
                             "name": "marquee",
                             "aria-label": "",
@@ -1309,14 +1316,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719584269d": {
-                    "key": "layout_677719584269d",
+                "layout_6777202ee540f": {
+                    "key": "layout_6777202ee540f",
                     "name": "block-milestones",
                     "label": "Block Milestones",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719584269f",
+                            "key": "field_6777202ee5411",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1336,7 +1343,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195843620",
+                            "key": "field_6777202ee8a4e",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1363,7 +1370,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_67771958444e3",
+                            "key": "field_6777202eec23b",
                             "label": "",
                             "name": "milestones",
                             "aria-label": "",
@@ -1402,14 +1409,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195846228": {
-                    "key": "layout_6777195846228",
+                "layout_6777202ef0914": {
+                    "key": "layout_6777202ef0914",
                     "name": "block-post-archive",
                     "label": "Block Post Archive",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719584622a",
+                            "key": "field_6777202ef0916",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1429,7 +1436,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_67771958470d9",
+                            "key": "field_6777202ef3e48",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1456,7 +1463,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195848001",
+                            "key": "field_6777202f03ecb",
                             "label": "",
                             "name": "post-archive",
                             "aria-label": "",
@@ -1495,107 +1502,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195849bf8": {
-                    "key": "layout_6777195849bf8",
-                    "name": "block-product-details",
-                    "label": "Block Product Details",
-                    "display": "block",
-                    "sub_fields": [
-                        {
-                            "key": "field_6777195849bfa",
-                            "label": "Breakpoints",
-                            "name": "breakpoints",
-                            "aria-label": "",
-                            "type": "acf_bs_breakpoints",
-                            "instructions": "",
-                            "required": 0,
-                            "conditional_logic": 0,
-                            "wrapper": {
-                                "width": "",
-                                "class": "",
-                                "id": ""
-                            },
-                            "acf_bs_breakpoints_type": "number",
-                            "show_description": 1,
-                            "acf_bs_breakpoints_choices": "",
-                            "allow_in_bindings": 0,
-                            "font_size": 14
-                        },
-                        {
-                            "key": "field_677719584accd",
-                            "label": "Parallax",
-                            "name": "parallax",
-                            "aria-label": "",
-                            "type": "clone",
-                            "instructions": "",
-                            "required": 0,
-                            "conditional_logic": 0,
-                            "wrapper": {
-                                "width": "",
-                                "class": "",
-                                "id": ""
-                            },
-                            "clone": [
-                                "group_673e9a4739ec9"
-                            ],
-                            "prefix_label": 0,
-                            "prefix_name": 0,
-                            "display": "seamless",
-                            "layout": "block",
-                            "acfe_seamless_style": 0,
-                            "acfe_clone_modal": 0,
-                            "acfe_clone_modal_close": 0,
-                            "acfe_clone_modal_button": "",
-                            "acfe_clone_modal_size": "large"
-                        },
-                        {
-                            "key": "field_677719584bcdf",
-                            "label": "",
-                            "name": "product-details",
-                            "aria-label": "",
-                            "type": "clone",
-                            "instructions": "",
-                            "required": 0,
-                            "conditional_logic": 0,
-                            "wrapper": {
-                                "width": "",
-                                "class": "",
-                                "id": ""
-                            },
-                            "clone": [
-                                "group_6723e1a2240ca"
-                            ],
-                            "display": "seamless",
-                            "layout": "block",
-                            "prefix_label": 0,
-                            "prefix_name": 0,
-                            "acfe_seamless_style": 0,
-                            "acfe_clone_modal": 0,
-                            "acfe_clone_modal_close": 0,
-                            "acfe_clone_modal_button": "",
-                            "acfe_clone_modal_size": "large",
-                            "parent_id": "599"
-                        }
-                    ],
-                    "min": "",
-                    "max": "",
-                    "acfe_flexible_category": "",
-                    "acfe_flexible_modal_edit_size": "",
-                    "acfe_flexible_render_template": false,
-                    "acfe_flexible_render_style": false,
-                    "acfe_flexible_render_script": false,
-                    "acfe_flexible_thumbnail": false,
-                    "acfe_flexible_settings": false,
-                    "acfe_flexible_settings_size": "medium"
-                },
-                "layout_677719584d8e0": {
-                    "key": "layout_677719584d8e0",
+                "layout_6777202f0859f": {
+                    "key": "layout_6777202f0859f",
                     "name": "block-search-results",
                     "label": "Block Search Results",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719584d8e2",
+                            "key": "field_6777202f085a2",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1615,7 +1529,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719584e85b",
+                            "key": "field_6777202f0b9a1",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1642,7 +1556,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719584f643",
+                            "key": "field_6777202f0f178",
                             "label": "",
                             "name": "search-results",
                             "aria-label": "",
@@ -1681,14 +1595,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_67771958512a3": {
-                    "key": "layout_67771958512a3",
+                "layout_6777202f13738": {
+                    "key": "layout_6777202f13738",
                     "name": "block-slider",
                     "label": "Block Slider",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_67771958512a5",
+                            "key": "field_6777202f1373b",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1708,7 +1622,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719585231d",
+                            "key": "field_6777202f16c82",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1735,7 +1649,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719585324f",
+                            "key": "field_6777202f1a53b",
                             "label": "",
                             "name": "slider",
                             "aria-label": "",
@@ -1774,14 +1688,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195854e19": {
-                    "key": "layout_6777195854e19",
+                "layout_6777202f1ecf7": {
+                    "key": "layout_6777202f1ecf7",
                     "name": "block-slider-advanced",
                     "label": "Block Slider Advanced",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_6777195854e1b",
+                            "key": "field_6777202f1ecf9",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1801,7 +1715,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195855ec2",
+                            "key": "field_6777202f2216f",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1828,7 +1742,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195856e21",
+                            "key": "field_6777202f258f5",
                             "label": "",
                             "name": "slider-advanced",
                             "aria-label": "",
@@ -1867,14 +1781,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719585897e": {
-                    "key": "layout_677719585897e",
+                "layout_6777202f2a30a": {
+                    "key": "layout_6777202f2a30a",
                     "name": "block-social-media",
                     "label": "Block Social Media",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_6777195858980",
+                            "key": "field_6777202f2a30d",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1894,7 +1808,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_67771958599b8",
+                            "key": "field_6777202f2d875",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -1921,7 +1835,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719585a871",
+                            "key": "field_6777202f31060",
                             "label": "",
                             "name": "social-media",
                             "aria-label": "",
@@ -1960,14 +1874,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719585c299": {
-                    "key": "layout_677719585c299",
+                "layout_6777202f355d0": {
+                    "key": "layout_6777202f355d0",
                     "name": "block-tease-list",
                     "label": "Block Tease List",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719585c29b",
+                            "key": "field_6777202f355d2",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -1987,7 +1901,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_677719585d2ad",
+                            "key": "field_6777202f38ab3",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -2014,7 +1928,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719585e315",
+                            "key": "field_6777202f3cee3",
                             "label": "",
                             "name": "tease-list",
                             "aria-label": "",
@@ -2053,14 +1967,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_677719585fe95": {
-                    "key": "layout_677719585fe95",
+                "layout_6777202f4179d": {
+                    "key": "layout_6777202f4179d",
                     "name": "block-text",
                     "label": "Block Text",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_677719585fe97",
+                            "key": "field_6777202f4179f",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -2080,7 +1994,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195860db4",
+                            "key": "field_6777202f44baa",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -2107,7 +2021,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_6777195861d33",
+                            "key": "field_6777202f482dd",
                             "label": "",
                             "name": "text",
                             "aria-label": "",
@@ -2146,14 +2060,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_67771958638c2": {
-                    "key": "layout_67771958638c2",
+                "layout_6777202f4c9b2": {
+                    "key": "layout_6777202f4c9b2",
                     "name": "block-text-image",
                     "label": "Block Text & Image",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_67771958638c4",
+                            "key": "field_6777202f4c9b4",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -2173,7 +2087,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_67771958653e0",
+                            "key": "field_6777202f50b4a",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -2200,7 +2114,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_67771958664c5",
+                            "key": "field_6777202f543bd",
                             "label": "",
                             "name": "text-image",
                             "aria-label": "",
@@ -2239,14 +2153,14 @@
                     "acfe_flexible_settings": false,
                     "acfe_flexible_settings_size": "medium"
                 },
-                "layout_6777195868b06": {
-                    "key": "layout_6777195868b06",
+                "layout_6777202f58b2d": {
+                    "key": "layout_6777202f58b2d",
                     "name": "block-video",
                     "label": "Block Video",
                     "display": "block",
                     "sub_fields": [
                         {
-                            "key": "field_6777195868b08",
+                            "key": "field_6777202f58b2f",
                             "label": "Breakpoints",
                             "name": "breakpoints",
                             "aria-label": "",
@@ -2266,7 +2180,7 @@
                             "font_size": 14
                         },
                         {
-                            "key": "field_6777195869b96",
+                            "key": "field_6777202f5c021",
                             "label": "Parallax",
                             "name": "parallax",
                             "aria-label": "",
@@ -2293,7 +2207,7 @@
                             "acfe_clone_modal_size": "large"
                         },
                         {
-                            "key": "field_677719586ab5d",
+                            "key": "field_6777202f5f78e",
                             "label": "",
                             "name": "video",
                             "aria-label": "",
@@ -2308,6 +2222,285 @@
                             },
                             "clone": [
                                 "group_66512c7576189"
+                            ],
+                            "display": "seamless",
+                            "layout": "block",
+                            "prefix_label": 0,
+                            "prefix_name": 0,
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large",
+                            "parent_id": "599"
+                        }
+                    ],
+                    "min": "",
+                    "max": "",
+                    "acfe_flexible_category": "",
+                    "acfe_flexible_modal_edit_size": "",
+                    "acfe_flexible_render_template": false,
+                    "acfe_flexible_render_style": false,
+                    "acfe_flexible_render_script": false,
+                    "acfe_flexible_thumbnail": false,
+                    "acfe_flexible_settings": false,
+                    "acfe_flexible_settings_size": "medium"
+                },
+                "layout_6777202f64195": {
+                    "key": "layout_6777202f64195",
+                    "name": "event-list",
+                    "label": "Event List",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_6777202f64198",
+                            "label": "Breakpoints",
+                            "name": "breakpoints",
+                            "aria-label": "",
+                            "type": "acf_bs_breakpoints",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "acf_bs_breakpoints_type": "number",
+                            "show_description": 1,
+                            "acf_bs_breakpoints_choices": "",
+                            "allow_in_bindings": 0,
+                            "font_size": 14
+                        },
+                        {
+                            "key": "field_6777202f67701",
+                            "label": "Parallax",
+                            "name": "parallax",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_673e9a4739ec9"
+                            ],
+                            "prefix_label": 0,
+                            "prefix_name": 0,
+                            "display": "seamless",
+                            "layout": "block",
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large"
+                        },
+                        {
+                            "key": "field_6777202f6afd7",
+                            "label": "",
+                            "name": "event-list",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_676ea627512cf"
+                            ],
+                            "display": "seamless",
+                            "layout": "block",
+                            "prefix_label": 0,
+                            "prefix_name": 0,
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large",
+                            "parent_id": "599"
+                        }
+                    ],
+                    "min": "",
+                    "max": "",
+                    "acfe_flexible_category": "",
+                    "acfe_flexible_modal_edit_size": "",
+                    "acfe_flexible_render_template": false,
+                    "acfe_flexible_render_style": false,
+                    "acfe_flexible_render_script": false,
+                    "acfe_flexible_thumbnail": false,
+                    "acfe_flexible_settings": false,
+                    "acfe_flexible_settings_size": "medium"
+                },
+                "layout_6777202f7021e": {
+                    "key": "layout_6777202f7021e",
+                    "name": "our-services",
+                    "label": "Our Services",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_6777202f70221",
+                            "label": "Breakpoints",
+                            "name": "breakpoints",
+                            "aria-label": "",
+                            "type": "acf_bs_breakpoints",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "acf_bs_breakpoints_type": "number",
+                            "show_description": 1,
+                            "acf_bs_breakpoints_choices": "",
+                            "allow_in_bindings": 0,
+                            "font_size": 14
+                        },
+                        {
+                            "key": "field_6777202f7385b",
+                            "label": "Parallax",
+                            "name": "parallax",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_673e9a4739ec9"
+                            ],
+                            "prefix_label": 0,
+                            "prefix_name": 0,
+                            "display": "seamless",
+                            "layout": "block",
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large"
+                        },
+                        {
+                            "key": "field_6777202f779ec",
+                            "label": "",
+                            "name": "our-services",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_676dfa765dee4"
+                            ],
+                            "display": "seamless",
+                            "layout": "block",
+                            "prefix_label": 0,
+                            "prefix_name": 0,
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large",
+                            "parent_id": "599"
+                        }
+                    ],
+                    "min": "",
+                    "max": "",
+                    "acfe_flexible_category": "",
+                    "acfe_flexible_modal_edit_size": "",
+                    "acfe_flexible_render_template": false,
+                    "acfe_flexible_render_style": false,
+                    "acfe_flexible_render_script": false,
+                    "acfe_flexible_thumbnail": false,
+                    "acfe_flexible_settings": false,
+                    "acfe_flexible_settings_size": "medium"
+                },
+                "layout_6777202f7ccc1": {
+                    "key": "layout_6777202f7ccc1",
+                    "name": "page-hero",
+                    "label": "Page Hero",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_6777202f7ccc4",
+                            "label": "Breakpoints",
+                            "name": "breakpoints",
+                            "aria-label": "",
+                            "type": "acf_bs_breakpoints",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "acf_bs_breakpoints_type": "number",
+                            "show_description": 1,
+                            "acf_bs_breakpoints_choices": "",
+                            "allow_in_bindings": 0,
+                            "font_size": 14
+                        },
+                        {
+                            "key": "field_6777202f80074",
+                            "label": "Parallax",
+                            "name": "parallax",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_673e9a4739ec9"
+                            ],
+                            "prefix_label": 0,
+                            "prefix_name": 0,
+                            "display": "seamless",
+                            "layout": "block",
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large"
+                        },
+                        {
+                            "key": "field_6777202f83590",
+                            "label": "",
+                            "name": "page-hero",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_676c2347e96a8"
                             ],
                             "display": "seamless",
                             "layout": "block",
@@ -2367,7 +2560,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735858908,
+    "modified": 1735905334,
     "acfe_categories": {
         "block": "Block"
     }

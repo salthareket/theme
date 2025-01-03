@@ -2172,22 +2172,31 @@
                     ],
                     "wrapper": {
                         "width": "25",
-                        "class": "acf-width-height",
+                        "class": "acf-columns",
                         "id": ""
                     },
                     "choices": {
-                        "auto": "auto",
-                        "100%": "100%"
+                        "1": 1,
+                        "2": 2,
+                        "3": 3,
+                        "4": 4,
+                        "5": 5,
+                        "6": 6,
+                        "7": 7,
+                        "8": 8,
+                        "9": 9,
+                        "10": 10,
+                        "11": 11,
+                        "12": 12
                     },
-                    "default_value": "auto",
+                    "default_value": 1,
                     "return_format": "value",
                     "multiple": 0,
-                    "allow_custom": 1,
+                    "allow_custom": 0,
                     "search_placeholder": "",
-                    "translations": "sync",
                     "allow_null": 0,
                     "allow_in_bindings": 1,
-                    "ui": 1,
+                    "ui": 0,
                     "ajax": 0,
                     "placeholder": ""
                 },
@@ -2249,22 +2258,21 @@
                     ],
                     "wrapper": {
                         "width": "25",
-                        "class": "",
+                        "class": "acf-breakpoints",
                         "id": ""
                     },
                     "choices": {
-                        "xxxl": "xxxl",
-                        "xxl": "xxl",
-                        "xl": "xl",
-                        "lg": "lg",
-                        "md": "md",
+                        "xs": "xs",
                         "sm": "sm",
-                        "xs": "xs"
+                        "md": "md",
+                        "lg": "lg",
+                        "xl": "xl",
+                        "xxl": "xxl",
+                        "xxxl": "xxxl"
                     },
-                    "default_value": "lg",
+                    "default_value": "xl",
                     "return_format": "value",
                     "multiple": 0,
-                    "translations": "sync",
                     "allow_null": 0,
                     "allow_in_bindings": 1,
                     "ui": 0,
@@ -2382,7 +2390,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735128528,
+    "modified": 1735898490,
     "acfe_categories": {
         "common": "Common"
     }
