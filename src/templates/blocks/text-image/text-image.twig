@@ -17,11 +17,11 @@
 	SupportsFullHeight: true
 #}
 
-{% set breakpoint = fields.breakpoint|default("xl") %}
+{% set column_breakpoint = fields.column_breakpoint|default("xl") %}
 
 {% set row_class = fields.reversible ? "flex-lg-row flex-column" : "" %}
-{% set row_class = row_class ~ " gx-" ~ breakpoint ~ "-" ~ fields.gap_x  %}
-{% set row_class = row_class ~ " gx-" ~ breakpoint ~ "-" ~ fields.gap_x  %}
+{# set row_class = row_class ~ " gx-" ~ breakpoint ~ "-" ~ fields.gap_x  %}
+{% set row_class = row_class ~ " gx-" ~ breakpoint ~ "-" ~ fields.gap_x  #}
 
 {% set ratio_class = fields.ratio?"ratio ratio-" ~ function("block_ratio", fields.ratio):"" %}
 
@@ -33,9 +33,20 @@
 
 	{% for item in fields.text_image %}
 
-		{% set row_item_class = " gx-" ~ breakpoint ~ "-" ~ fields.gap_x %}
-		{% set row_item_class = row_item_class ~ (loop.index is even and fields.reversible ? " flex-" ~ breakpoint ~ "-row-reverse is-even" : " is-odd") %}
-		{% set row_item_class = row_item_class ~ (loop.index != 1 ? " mt-" ~ fields.gap_y : "") %}
+	    {% set item_index = loop.index %}
+	    {% set row_item_class = "" %}
+
+	    {% for key, breakpoint in fields.column_breakpoints %}
+		    {% if key != "masonry" %}
+		       {% set key = key == "xs"?"":key ~ "-" %}
+		       {% set row_item_class = row_item_class ~ " gx-" ~ key ~ breakpoint.gx|default(0) %}
+		       {% set row_item_class = row_item_class ~ (item_index != 1 ? " mt-" ~ key ~ breakpoint.gy|default(0) : "") %}
+		    {% endif %}
+	    {% endfor %}
+
+		{# set row_item_class = " gx-" ~ breakpoint ~ "-" ~ fields.gap_x #}
+		{% set row_item_class = row_item_class ~ (item_index is even and fields.reversible ? " flex-" ~ column_breakpoint ~ "-row-reverse is-even" : " is-odd") %}
+		{# set row_item_class = row_item_class ~ (loop.index != 1 ? " mt-" ~ fields.gap_y : "") #}
 		{% set row_item_class = row_item_class ~ (fields.sync_image_height and not fields.ratio ? " flex-wrap" : " align-items-" ~ fields.block_settings.vertical_align) %}
 		{% set row_item_class = row_item_class ~ (block_meta.container == "" ? " w-100" : "") %}
 
@@ -43,7 +54,7 @@
 		{% set content_width = 12 - media_width %}
                 
         {% if fields.reversible and block_meta.aos %}
-	        {% if loop.index is odd %}
+	        {% if item_index is odd %}
 				{% set aos_left  = block_meta.aos|replace({"left":"right", "up":"down"}) %}
 				{% set aos_right = block_meta.aos|replace({"right":"left", "down":"up"}) %}
 			{% else %}
@@ -54,7 +65,7 @@
 
 		<div class="row {{row_class}} {{row_item_class}}">
 
-			<div class="col-media col-{{breakpoint}}-{{media_width}}" {{aos_right}}>
+			<div class="col-media col-{{column_breakpoint}}-{{media_width}}" {{aos_right}}>
 
 				{% if item.media.media_type == "image" %}
 					{% if item.media.image|length > 1 %}
@@ -93,7 +104,7 @@
 			    {% endif %}
 			</div>
 
-			<div class="col-content col-{{breakpoint}}-{{content_width}} mt-{{breakpoint}}-0 mt-4" {{aos_left}}>
+			<div class="col-content col-{{column_breakpoint}}-{{content_width}} mt-{{column_breakpoint}}-0 mt-4" {{aos_left}}>
 				<div class="content h-100 d-flex flex-column justify-content-center">
 					{{ item.content }}
 					{% if item.buttons %}
