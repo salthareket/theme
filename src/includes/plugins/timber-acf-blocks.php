@@ -705,9 +705,9 @@ function block_bg_image($block, $fields, $block_column){
 
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
-            if($fields["block_settings"]["height"] != "auto"){
+            //if($fields["block_settings"]["height"] != "auto"){
                $classes .= "position-absolute-fill";
-            }
+            //}
 
             $image = '<div class="bg-cover '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';
             if($background["repeat"] != "no-repeat" || $background["size"] == "fixed"){
