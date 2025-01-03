@@ -401,7 +401,7 @@ class PageAssetsExtractor {
             }
         }
         if($this->type == "post" && !$this->mass){
-            $this->save_post_terms( $id );
+            //$this->save_post_terms( $id ); //causes wprocket error
         }
         $this->disable_hooks = false;
         return $result;
@@ -645,10 +645,13 @@ class PageAssetsExtractor {
             if ( $terms && ! is_wp_error( $terms ) ) {
                 foreach ( $terms as $term ) {
                     $args = array(
-                        'name' => $term->name,
-                        'slug' => $term->slug
+                        'name' => $term->name ?? '',
+                        'slug' => $term->slug ?? ''
                     );
-                    wp_update_term( $term->term_id, $taxonomy, $args );
+
+                    if ( isset( $term->term_id, $taxonomy ) && ! empty( $args['name'] ) ) {
+                        wp_update_term( $term->term_id, $taxonomy, $args );
+                    }
                 }
             }
         }
