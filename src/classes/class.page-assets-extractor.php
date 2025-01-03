@@ -553,9 +553,14 @@ class PageAssetsExtractor {
                                         "url" => $url_string
                                     ];
                                 }else{
-                                    $lang = $this->get_url_language($url_string);
-                                    $term = get_term_by('slug', $term_slug, $sitemap_file_name);
-                                    $term_id = pll_get_term( $term->term_id, $lang);
+                                    if(function_exists('pll_get_post')){
+                                        $lang = $this->get_url_language($url_string);
+                                        $term = get_term_by('slug', $term_slug, $sitemap_file_name);
+                                        $term_id = pll_get_term( $term->term_id, $lang);                                        
+                                    }else{
+                                        $term = get_term_by('slug', $term_slug, $sitemap_file_name);
+                                        $term_id = $term->term_id;
+                                    }
                                     if ($term_id) {
                                         $urls[$term_id] = [
                                             "type" => "term",

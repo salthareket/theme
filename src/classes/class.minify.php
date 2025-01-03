@@ -231,13 +231,13 @@ class SaltMinifier{
 	public function functions_js(){
 		$minify = false;
 		if (file_exists($this->output["functions.min.js"])){
-            $min_date = filemtime($this->output["functions.min.js"]);
+            //$min_date = filemtime($this->output["functions.min.js"]);
             if ($this->functions){
                 foreach ($this->functions as $key => $filename){
-                    if (filemtime($this->prod_folder . 'functions/' . $filename) > $min_date){
+                    //if (filemtime($this->prod_folder . 'functions/' . $filename) > $min_date){
                         $minify = true;
-                        break;
-                    }
+                        //break;
+                    //}
                 }
             }
         }else{
@@ -252,24 +252,24 @@ class SaltMinifier{
 		$minify = false;
 		$total_files = [];
 		if (file_exists($this->output["main.min.js"])){
-            $min_date = filemtime($this->output["main.min.js"]);
+            //$min_date = filemtime($this->output["main.min.js"]);
             
             if ($this->main_js_files){
                 foreach($this->main_js_files as $key => $filename){
                 	$total_files[] = $this->prod_folder . 'main/' . $filename;
-                    if (filemtime($this->prod_folder . 'main/' . $filename) > $min_date){
+                    //if (filemtime($this->prod_folder . 'main/' . $filename) > $min_date){
                         $minify = true;
-                        break;
-                    }
+                        //break;
+                    //}
                 }
             }
             if ($this->theme_js_files){
                 foreach($this->theme_js_files as $key => $filename){
                 	$total_files[] = $this->rules["config"]["js_theme"] . $filename;
-                    if (filemtime($this->rules["config"]["js_theme"] . $filename) > $min_date){
+                    //if (filemtime($this->rules["config"]["js_theme"] . $filename) > $min_date){
                         $minify = true;
-                        break;
-                    }
+                        //break;
+                    //}
                 }
             }
         }else{

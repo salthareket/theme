@@ -269,35 +269,7 @@ function frontend_footer_scripts(){
 	    wp_register_script('plugins', STATIC_URL . 'js/plugins.min.js', array(), null, true);
 	    wp_enqueue_script('plugins');
 
-	    $plugins = $files["js"]["plugins"];
-    	foreach($plugins as $key => $file){
-    		if(!$file["c"]){
-			    if(!empty($file["init"])){
-			    	$init_functions[$plugin] = $file["init"];
-			    }
-    		}
-		}
-
-		$plugins_conditional = [];
-	    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["plugins"])){
-	    	$plugins_conditional = SITE_ASSETS["plugins"];//apply_filters("salt_conditional_plugins", []);
-	    }
-	    if($plugins_conditional){
-	    	foreach($plugins_conditional as $plugin){
-	            if(!empty($plugins[$plugin]["init"])){
-			    	$init_functions[$plugin] = $plugins[$plugin]["init"];
-			    }
-	    	}
-	    }
-
-	    $inline_script = 'function init_plugins() {';
-		foreach ($init_functions as $plugin => $func) {
-		    $inline_script .= 'function_secure("' . esc_js($plugin) . '", "' . esc_js($func) . '");';
-		}
-		$inline_script .= '}';
-		wp_add_inline_script('plugins', $inline_script);    
-
-
+	    
 	    $plugin_js = "";
 	    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["plugin_js"]) && !isset($_GET['fetch'])){
 	    	$plugin_js = SITE_ASSETS["plugin_js"];//apply_filters("salt_conditional_plugins", []);
@@ -310,6 +282,33 @@ function frontend_footer_scripts(){
 
 	    wp_register_script('main', STATIC_URL . 'js/main.min.js', array( ), null, true);
 	    wp_enqueue_script('main');
+
+	    $plugins = $files["js"]["plugins"];
+    	foreach($plugins as $key => $file){
+    		if(!$file["c"]){
+			    if(!empty($file["init"])){
+			    	$init_functions[$plugin] = $file["init"];
+			    }
+    		}
+		}
+
+	    $plugins_conditional = [];
+	    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["plugins"])){
+	    	$plugins_conditional = SITE_ASSETS["plugins"];//apply_filters("salt_conditional_plugins", []);
+	    }
+	    if($plugins_conditional){
+	    	foreach($plugins_conditional as $plugin){
+	            if(!empty($plugins[$plugin]["init"])){
+			    	$init_functions[$plugin] = $plugins[$plugin]["init"];
+			    }
+	    	}
+	    }
+	    $inline_script = 'function init_plugins() {';
+		foreach ($init_functions as $plugin => $func) {
+		    $inline_script .= 'function_secure("' . esc_js($plugin) . '", "' . esc_js($func) . '");';
+		}
+		$inline_script .= '}';
+		wp_add_inline_script('main', $inline_script);  
 
     }
 
