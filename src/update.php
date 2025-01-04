@@ -441,7 +441,7 @@ class Update {
                 }
             }
 
-            if ($temp_dir && $package_name === 'salthareket/theme') {
+            if ($package_name === 'salthareket/theme') {
                 $target_dir = self::$repo_directory;
 
                 // Mevcut hedef klasörü sil
@@ -566,8 +566,8 @@ class Update {
         }
     }
     private static function copy_fields(){
-        $srcDir = SH_STATIC_PATH . 'acf-json';
-        $target_dir = STATIC_PATH . 'acf-json';
+        $srcDir = SH_PATH . 'acf-json';
+        $target_dir = get_template_directory() . '/acf-json';
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true); 
         }
@@ -576,7 +576,7 @@ class Update {
         }
     }
     private static function register_fields(){
-        acf_json_to_db(STATIC_PATH . 'acf-json');
+        acf_json_to_db(get_template_directory() . '/acf-json');
     }
     private static function update_fields(){
         global $wpdb;
