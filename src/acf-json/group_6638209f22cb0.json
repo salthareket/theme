@@ -104,8 +104,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "hdprotek": "hdprotek [02.01.2025 22:19]",
-                        "latest": "latest [02.01.2025 22:19]",
+                        "hdprotek": "hdprotek [04.01.2025 10:29]",
+                        "latest": "latest [04.01.2025 10:29]",
                         "theme-styles-default": "theme-styles-default [25.12.2024 13:25]"
                     },
                     "default_value": false,
@@ -686,7 +686,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735858493,
+    "modified": 1735990337,
     "acfe_categories": {
         "general": "General"
     }

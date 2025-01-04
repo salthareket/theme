@@ -222,6 +222,29 @@
             "ui_on_text": "",
             "ui_off_text": "",
             "ui": 1
+        },
+        {
+            "key": "field_67790be0d6c34",
+            "label": "Export ACF Field Groups",
+            "name": "export_acf_field_groups",
+            "aria-label": "",
+            "type": "acfe_button",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "acf-export-button",
+                "id": ""
+            },
+            "button_value": "Export",
+            "button_type": "button",
+            "button_class": "button button-secondary",
+            "button_id": "",
+            "button_before": "",
+            "button_after": "",
+            "button_ajax": 0,
+            "allow_in_bindings": 0
         }
     ],
     "location": [
@@ -249,8 +272,8 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
+    "modified": 1735990326,
     "acfe_categories": {
         "general": "General"
-    },
-    "modified": 1735858490
+    }
 }

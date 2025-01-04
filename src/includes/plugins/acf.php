@@ -2474,6 +2474,31 @@ class UpdateFlexibleFieldLayouts {
 		}
 	}
 }
+function acf_save_post_block_columns_action( $post_id ){
+	if(has_term("block", 'acf-field-group-category', $post_id)){ // is block
+    	$block = get_post($post_id);
+    	remove_action( 'save_post', 'acf_save_post_block_columns', 20 );
+    	if($block->post_excerpt != "block-bootstrap-columns"){
+	    	$layouts = new UpdateFlexibleFieldLayouts("acf_block_columns", $block->post_excerpt);
+	    	$layouts->update();
+    	}elseif($block->post_excerpt == "block-bootstrap-columns"){
+    		$layouts_check = new UpdateFlexibleFieldLayouts();
+    		$blocks = $layouts_check->get_block_fields();
+    		if($blocks){
+    			$group_field_data = $layouts_check->get_block_field_data($block);
+    			//error_log(json_encode($group_field_data));
+    			error_log("block-bootstrap-columns s a v i n g . . . . . . . . . . . . ");
+    			error_log(json_encode(($layouts_check->field_layouts())));
+    			foreach($blocks as $item){
+    				error_log("adding:".$item->post_excerpt);
+    				$layouts = new UpdateFlexibleFieldLayouts("acf_block_columns", $item->post_excerpt, $group_field_data);
+    				$layouts->update();
+    			}
+    		}
+    	}
+    	add_action( 'save_post', 'acf_save_post_block_columns', 20 );
+    }
+}
 function acf_save_post_block_columns( $post_id ) {
 	if (defined('DOING_AJAX') && DOING_AJAX) {
 		return;
@@ -2497,29 +2522,8 @@ function acf_save_post_block_columns( $post_id ) {
     }
     $has_run = true;
 
-    if(has_term("block", 'acf-field-group-category', $post_id)){ // is block
-    	$block = get_post($post_id);
-    	remove_action( 'save_post', 'acf_save_post_block_columns', 20 );
-    	if($block->post_excerpt != "block-bootstrap-columns"){
-	    	$layouts = new UpdateFlexibleFieldLayouts("acf_block_columns", $block->post_excerpt);
-	    	$layouts->update();
-    	}elseif($block->post_excerpt == "block-bootstrap-columns"){
-    		$layouts_check = new UpdateFlexibleFieldLayouts();
-    		$blocks = $layouts_check->get_block_fields();
-    		if($blocks){
-    			$group_field_data = $layouts_check->get_block_field_data($block);
-    			//error_log(json_encode($group_field_data));
-    			error_log("block-bootstrap-columns s a v i n g . . . . . . . . . . . . ");
-    			error_log(json_encode(($layouts_check->field_layouts())));
-    			foreach($blocks as $item){
-    				error_log("adding:".$item->post_excerpt);
-    				$layouts = new UpdateFlexibleFieldLayouts("acf_block_columns", $item->post_excerpt, $group_field_data);
-    				$layouts->update();
-    			}
-    		}
-    	}
-    	add_action( 'save_post', 'acf_save_post_block_columns', 20 );
-    }
+    acf_save_post_block_columns_action( $post_id );
+
 }
 add_action( 'save_post', 'acf_save_post_block_columns', 20 );
 
@@ -2711,11 +2715,7 @@ if( ENABLE_MULTILANGUAGE == "qtranslate-xt"){
                     $value = get_option($default_alt_option);
                 }*/
             }
-
-            
-
         }
-
         add_filter('acf/load_value', 'load_acf_option_value', 10, 3);
         return $value;
     }
@@ -3340,4 +3340,183 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
     return 0;
 }
 add_filter('acf/update_value/name=enable_extract_translations', 'acf_development_extract_translations', 10, 4);
+
+
+
+
+
+
+add_action('wp_ajax_acf_export_field_groups', 'acf_export_field_groups_to_json');
+add_action('wp_ajax_nopriv_acf_export_field_groups', 'acf_export_field_groups_to_json');
+
+function acf_export_field_groups_to_json() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Unauthorized']);
+        exit;
+    }
+
+    // ACF field group'ları al ve filtrele
+    $theme = wp_get_theme();
+    $textDomain = $theme->get('TextDomain');
+    $groups = acf_get_field_groups();
+    $filtered_groups = array_filter($groups, function ($group) use ($textDomain) {
+        if (isset($group['acfe_categories'])) {
+            $categories = array_keys($group['acfe_categories']);
+            if(in_array($textDomain, $categories)){
+            	return false;
+            }
+            return array_intersect($categories, ['block', 'common', 'general']);
+        }
+        return false;
+    });
+
+    if (!$filtered_groups) {
+        wp_send_json_error(['message' => 'No matching field groups found']);
+        exit;
+    }
+
+    // JSON'ları bir diziye kaydet
+	$json_files = [];
+	foreach ($filtered_groups as $group) {
+	    if (isset($group['local_file']) && file_exists($group['local_file'])) {
+	        $json_data = json_decode(file_get_contents($group['local_file']), true);
+
+	        if (!$json_data) {
+	            continue; // JSON verisi geçerli değilse atla
+	        }
+
+	        // Belirli bir grup için özel düzenleme
+	        if ($group['key'] === "group_66e309dc049c4") {
+	            if (isset($json_data['fields']) && is_array($json_data['fields'])) {
+	                foreach ($json_data['fields'] as &$field) {
+	                    if (isset($field['name']) && $field['name'] === 'acf_block_columns') {
+	                        if (isset($field['layouts'])) {
+	                            $field['layouts'] = (object)[]; // layouts alanını boş bir nesne yap
+	                        }
+	                    }
+	                }
+	            }
+	        }
+
+	        $file_name = sanitize_title($group['key']) . '.json';
+	        $json_path = wp_upload_dir()['basedir'] . '/' . $file_name;
+
+	        // JSON verisini temizle ve yaz
+	        file_put_contents($json_path, json_encode($json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+	        $json_files[] = $json_path;
+	    }
+	}
+
+
+    // ZIP dosyası oluştur
+    $zip_file = wp_upload_dir()['basedir'] . '/acf-field-groups.zip';
+    $zip = new ZipArchive();
+    if ($zip->open($zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+        foreach ($json_files as $file) {
+            $zip->addFile($file, basename($file));
+        }
+        $zip->close();
+    } else {
+        wp_send_json_error(['message' => 'Failed to create ZIP file']);
+        exit;
+    }
+
+    // JSON dosyalarını sil
+    foreach ($json_files as $file) {
+        unlink($file);
+    }
+
+    // ZIP dosyasını indir
+    wp_send_json_success(['zip_url' => wp_upload_dir()['baseurl'] . '/acf-field-groups.zip']);
+}
+add_action('admin_footer', function () {
+    if (!is_admin()) {
+        return;
+    }
+
+    ?>
+    <script>
+        jQuery(document).ready(function ($) {
+            $('.acf-export-button button').on('click', function (e) {
+                e.preventDefault();
+                var $button = $(this);
+                $button.prop('disabled', true).text('Exporting...');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'acf_export_field_groups'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.href = response.data.zip_url;
+                        } else {
+                            alert('Error: ' + response.data.message);
+                        }
+                        $button.prop('disabled', false).text('Export');
+                    },
+                    error: function () {
+                        alert('An unexpected error occurred.');
+                        $button.prop('disabled', false).text('Export');
+                    }
+                });
+            });
+        });
+    </script>
+    <?php
+});
+
+
+
+
+function acf_json_to_db($acf_json_path = "") {
+    // ACF JSON klasör yolu
+    if(empty($acf_json_path)){
+    	$acf_json_path = get_template_directory() . '/acf-json';
+    }
+  
+    // Klasör kontrolü
+    if (!is_dir($acf_json_path)) {
+        return ['success' => false, 'message' => 'acf-json directory not found'];
+    }
+
+    // JSON dosyalarını al
+    $json_files = glob($acf_json_path . '/*.json');
+
+    if (empty($json_files)) {
+        return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
+    }
+
+    $imported_groups = [];
+    foreach ($json_files as $file) {
+        // Dosyayı oku ve JSON verisini çözümle
+        $json_content = file_get_contents($file);
+        $field_group = json_decode($json_content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || empty($field_group)) {
+            continue; // Geçersiz JSON dosyalarını atla
+        }
+
+        if (isset($field_group['key'])) {
+            // Var olan grup kontrolü
+            $existing_group = acf_get_field_group($field_group['key']);
+
+            if ($existing_group) {
+                // Mevcut grup varsa sil
+                acf_delete_field_group($existing_group['ID']);
+            }
+
+            // Yeni grubu veritabanına ekle
+            acf_import_field_group($field_group);
+            $imported_groups[] = $field_group['title'];
+        }
+    }
+
+    if (!empty($imported_groups)) {
+        return ['success' => true, 'message' => 'Registered ACF field groups: ' . implode(', ', $imported_groups)];
+    } else {
+        return ['success' => false, 'message' => 'No field groups were register.'];
+    }
+}
 

@@ -7,7 +7,7 @@ add_action("init", function(){
 	);
     $theme = wp_get_theme();
     if($theme){
-       $terms_default[$theme->TextDomain] = $theme->Name;
+       $terms_default[$theme->get('TextDomain')] = $theme->get('Name');
     }
 	foreach($terms_default as $key => $term_default){
         if (empty(term_exists($key, 'acf-field-group-category'))) {

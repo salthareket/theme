@@ -26,6 +26,8 @@ class Update {
         ["id" => "copy_templates", "name" => "Copying Template Files"],
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "copy_fields", "name" => "Copying ACF Fields"],
+        ["id" => "register_fields", "name" => "Registering ACF Fields"],
+        ["id" => "update_fields", "name" => "Updating ACF Fields"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
         ["id" => "npm_install", "name" => "npm packages installing"],
@@ -531,6 +533,18 @@ class Update {
             self::recurseCopy($srcDir, $target_dir);
         }
     }
+    private static function register_fields(){
+        acf_json_to_db(STATIC_PATH . 'acf-json');
+    }
+    private static function update_fields(){
+        global $wpdb;
+        $post_name = "group_66e309dc049c4";
+        $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s", $post_name);
+        $post_id = $wpdb->get_var($query);
+        if($post_id){
+            acf_save_post_block_columns_action( $post_id );
+        }
+    }
     private static function recurseCopy($src, $dest, $exclude = []){
         $dir = opendir($src);
 
@@ -648,9 +662,19 @@ class Update {
                     wp_send_json_success(['message' => 'Fonts copied successfully']);
                     break;
                 case 'copy_fields':
-                    self::copy_fonts();
+                    self::copy_fields();
                     self::update_task_status('copy_fields', true);
                     wp_send_json_success(['message' => 'ACF fields copied successfully']);
+                    break;
+                case 'register_fields':
+                    self::register_fields();
+                    self::update_task_status('register_fields', true);
+                    wp_send_json_success(['message' => 'ACF fields registered successfully']);
+                    break;
+                case "update_fields":
+                    self::update_fields();
+                    self::update_task_status('update_fields', true);
+                    wp_send_json_success(['message' => 'ACF fields updated successfully']);
                     break;
                 case 'install_wp_plugins':
                     ob_start();

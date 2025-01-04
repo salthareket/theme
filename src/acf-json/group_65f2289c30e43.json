@@ -160,6 +160,7 @@
             "acfe_group_modal_close": 1,
             "acfe_group_modal_button": "",
             "acfe_group_modal_size": "large",
+            "acfe_seamless_style": 0,
             "sub_fields": [
                 {
                     "key": "field_6696a3f74f25d",
@@ -188,8 +189,7 @@
                     "acfe_clone_modal_button": "",
                     "acfe_clone_modal_size": "large"
                 }
-            ],
-            "acfe_seamless_style": 0
+            ]
         },
         {
             "key": "field_66268d995984c",
@@ -525,7 +525,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735569692,
+    "modified": 1735990329,
     "acfe_categories": {
         "block": "Block"
     }
