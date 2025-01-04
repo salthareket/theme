@@ -38,6 +38,7 @@ class Update {
     // Admin notifi ekler
     public static function init() {
         $theme_root = get_template_directory();
+        self::$theme_root = $theme_root
         self::$composer_path = $theme_root . '/composer.json';
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
@@ -397,7 +398,7 @@ class Update {
 
 
 
-    /*public static function composer($package_name="", $remove = false) {
+    public static function composer($package_name="", $remove = false) {
         try {
 
             if (!file_exists(self::$composer_path)) {
@@ -411,6 +412,16 @@ class Update {
             if(!empty($package_name)){
                 $args["command"] = $remove?"remove":"require";
                 $args["packages"] = [$package_name];
+
+                if ($package_name === 'salthareket/theme') {
+                    // Geçici klasör oluştur
+                    $temp_dir = wp_upload_dir()['basedir'] . '/temp_' . uniqid();
+                    if (!mkdir($temp_dir, 0755, true)) {
+                        wp_send_json_error(['message' => 'Failed to create temporary directory.']);
+                    }
+
+                    $args['--working-dir'] = $temp_dir;
+                }
             }
 
             $app = new Application();
@@ -428,6 +439,24 @@ class Update {
                     exit;
                 }
             }
+
+            if ($temp_dir && $package_name === 'salthareket/theme') {
+                $target_dir = self::$repo_directory;
+
+                // Mevcut hedef klasörü sil
+                if (is_dir($target_dir)) {
+                    self::recurseDelete($target_dir);
+                }
+
+                // Geçici klasörden içeriği taşı
+                if (!rename($temp_dir . '/vendor/salthareket/theme', $target_dir)) {
+                    wp_send_json_error(['message' => 'Failed to move updated files to target directory.']);
+                }
+
+                // Geçici klasörü sil
+                self::recurseDelete($temp_dir);
+            }
+
             $result = [
                 "update" => [],
                 "install" => [],
@@ -466,99 +495,6 @@ class Update {
 
         } catch (Exception $e) {
             wp_send_json_error(['message' => $e->getMessage(), "action" => $action ]);
-        }
-    }*/
-    public static function composer($package_name = "", $remove = false) {
-        try {
-            if (!file_exists(self::$composer_path)) {
-                wp_send_json_error(['message' => 'composer.json is not found.']);
-            }
-
-            $temp_dir = null;
-            $args = array(
-                'command' => 'update',
-                '--working-dir' => $theme_root
-            );
-
-            if (!empty($package_name)) {
-                $args['command'] = $remove ? 'remove' : 'require';
-                $args['packages'] = [$package_name];
-
-                if ($package_name === 'salthareket/theme') {
-                    // Geçici klasör oluştur
-                    $temp_dir = wp_upload_dir()['basedir'] . '/temp_' . uniqid();
-                    if (!mkdir($temp_dir, 0755, true)) {
-                        wp_send_json_error(['message' => 'Failed to create temporary directory.']);
-                    }
-
-                    $args['--working-dir'] = $temp_dir;
-                }
-            }
-
-            // Composer işlemini çalıştır
-            $app = new Application();
-            $app->setAutoExit(false);
-            $input = new ArrayInput($args);
-            $output = new BufferedOutput();
-            $app->run($input, $output);
-
-            $raw_output = $output->fetch();
-            $lines = explode("\n", $raw_output);
-
-            // Eğer temp_dir kullanıldıysa içeriği taşı
-            if ($temp_dir && $package_name === 'salthareket/theme') {
-                $target_dir = $theme_root . '/vendor/salthareket/theme';
-
-                // Mevcut hedef klasörü sil
-                if (is_dir($target_dir)) {
-                    self::recurseDelete($target_dir);
-                }
-
-                // Geçici klasörden içeriği taşı
-                if (!rename($temp_dir . '/vendor/salthareket/theme', $target_dir)) {
-                    wp_send_json_error(['message' => 'Failed to move updated files to target directory.']);
-                }
-
-                // Geçici klasörü sil
-                self::recurseDelete($temp_dir);
-            }
-
-            // Çıktıyı işle
-            $result = [
-                "update" => [],
-                "install" => [],
-                "remove" => []
-            ];
-            $action = "nothing";
-
-            foreach ($lines as $line) {
-                if (preg_match('/Upgrading ([^ ]+) \(([^ ]+) => ([^ ]+)\)/', $line, $matches)) {
-                    $action = "update";
-                    $result["update"][] = sprintf('%s: %s -> %s', $matches[1], $matches[2], $matches[3]);
-                } elseif (preg_match('/Installing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
-                    $action = "install";
-                    $result["install"][] = sprintf('%s: %s installed', $matches[1], $matches[2]);
-                } elseif (preg_match('/Removing ([^ ]+) \(([^ ]+)\)/', $line, $matches)) {
-                    $action = "remove";
-                    $result["remove"][] = sprintf('%s: %s removed', $matches[1], $matches[2]);
-                }
-            }
-
-            $message = [];
-            if ($result["update"]) {
-                $message[] = implode(", ", $result["update"]);
-            }
-            if ($result["install"]) {
-                $message[] = implode(", ", $result["install"]);
-            }
-            if ($result["remove"]) {
-                $message[] = implode(", ", $result["remove"]);
-            }
-
-            $message = $message ? implode(", ", $message) : 'No updates or installations performed.';
-            wp_send_json_success(['message' => $message, "action" => $action]);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
 
