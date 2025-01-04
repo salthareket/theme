@@ -268,7 +268,7 @@ $GLOBALS["my_account_links"] = $my_account_links;
 
 if (defined("WPSEO_FILE")) {
     /*remove "home page" from breadcrumb*/
-    add_filter('wpseo_breadcrumb_links', 'remove_home_from_breadcrumb', 10, 1 ); 
+    //add_filter('wpseo_breadcrumb_links', 'remove_home_from_breadcrumb', 10, 1 ); 
 
     /*fix & add taxonomy hierarch breadcrumb*/
     //add_filter('wpseo_breadcrumb_links', 'fix_tax_hierarchy_on_breadcrumb', 10, 1 ); 
