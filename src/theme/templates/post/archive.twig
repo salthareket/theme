@@ -1,0 +1,136 @@
+{% extends "base.twig" %}
+
+{% set page_settings_default = {
+                full : false,
+                classes : {
+                    body : "",
+                    main : "py-5",
+                    container : function("block_container", "default"),
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : ""
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block before_container %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+        {{ block("before_container", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+{% set categories = function('get_blog_categories') %}
+{% set tags = function('get_blog_tags') %}
+
+{% block content %}
+
+    {{ page.get_blocks }}
+
+    <div class="card card-reset">
+    
+        {% if url_query_vars["q"] or page_type in ["tag", "category"] %}
+        <div class="card-header d-flex pb-5 text-start z-1">
+            <h2 class="card-title">
+                {{title}}
+                <small class="d-block fs-5 opacity-50 mt-2">
+                    {% if posts.found_posts %}
+                        {{ translate_nooped_plural( translate_n_noop('%s sonuç bulundu.', '%s sonuç bulundu.'), posts.found_posts)|format(posts.found_posts) }}
+                    {% endif %}
+                </small>
+            </h2>
+            <div class="action">
+               <a href="#blog-filters" class="btn btn-outline-dark" data-bs-toggle="offcanvas" role="button" aria-controls="blog-filters">Filters</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : "post", direction : "prev"} %}
+
+        <div class="card-body">
+            <div class="posts row row-cols-xxl-3 row-cols-xl-3 row-cols-lg-2 row-cols-md-1 row-cols-sm-1 row-cols-1 gy-9">
+                {% for post in posts %}
+                    {% include 'post/tease.twig' %}
+                {% endfor %}
+            </div>
+        </div>
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : "post", direction : "next"} %}
+
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="blog-filters" aria-labelledby="blog-filters-label">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="blog-filters-label">Blog Filters</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-block">
+            {% if categories %}
+                <ul class="list-group list-group-flush">
+                    {% for category in categories %}
+                    {% if category.count > 0 %}
+                    <li class="list-group-item">
+                        <a href="{{category.link}}" class="btn-loading-page" title="{{category.name}}">{{ category.name }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if tags %}
+                <ul class="list-group list-group-flush">
+                    {% for tag in tags %}
+                    {% if tag.count > 0 %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="ms-2 me-auto">
+                            <a href="{{tag.link}}" class="btn-loading-page" title="{{tag.name}}">{{ tag.name }}</a>
+                        </div>
+                        <span class="badge text-bg-light rounded-pill px-2" style="font-size:12px;">{{tag.count}}</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends "base.twig" %}
+
+{% set page_settings_default = {
+                full : false,
+                classes : {
+                    body : "affix",
+                    main : "py-5",
+                    container : "container",
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : "",
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block before_container %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+        {{ block("before_container", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+
+{% block hero %}
+{% endblock %}
+
+
+{% set categories = function('get_blog_categories') %}
+{% set tags = function('get_blog_tags') %}
+{% set post_tags = post.terms("post_tag") %}
+
+{% set prev = post.prev() %}
+{% set next = post.next() %}
+
+{% block content %}
+
+    <article class="card-post card card-reset">
+
+        <div class="card-header mb-6">
+            <h1 class="card-title text-lg-start text-center text-primary title-xxl fw-700 font-header lh-1">
+                {{ breadcrumb|replace({"{{class}}" : "justify-content-center justify-content-lg-start"}) }}
+                {{post.title}}
+                {#<small class="mt-3">
+                    <date title="{{post.post_date|time_ago}}">{{post.date}}</date> | <span>{{ post.get_read_time(post.content) }} read</span>
+                </small>#}
+            </h1>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row row-cols-xl-2 row-cols-1 gx-xl-5 gx-0">
+                <div class="col">
+                    <div class="sticky-top">
+                        <div class="title-md text-primary fw-700 font-header lh-1 d-sticked py-3">{{post.title}}</div>
+                        <div class="img-placeholder d-block rounded-4 overflow-hidden {% if post.thumbnail %}loading-{% else %}img-not-found{% endif %}"   {% if post.thumbnail %}style="background-color:{{post.thumbnail.average_color}}"{% endif %}>
+
+                            {% if post.thumbnail %}
+                                {{img({src: post.thumbnail, lazy: false })}}
+                            {% endif %} 
+                        </div>
+                    </div>
+                </div>
+                <div class="col col-content pt-4">
+                    <date title="{{post.post_date|time_ago}}" class="mb-2">{{post.date}}</date>
+
+                    {{ post.content }}
+
+                    {% if post_tags %}
+                    {% apply spaceless %}
+                        <ul class="list-tags list-label list-label-sm list-inline my-5">
+                        {% for tag in post_tags %}
+                            <li class="list-inline-item">
+                                <a href="{{tag.link}}" class="label">#{{tag.title}}</a>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% endapply %}
+                    {% endif %}
+
+                    {% if prev or next %}
+                    <div class="nav-ancestory mt-6">
+                        <div class="row align-items-center gy-3 gy-lg-0">
+                            <div class="col-6">
+                            {% if prev %}
+                                <a href="{{ prev.link }}" class="btn btn-outline-primary btn-loading-page w-100 d-flex align-items-center justify-content-start" title="{{prev.title}}">
+                                    <i class="fal fa-angle-left fa-2x"></i>
+                                    <div class="ancestory ms-3 d-none d-md-block">
+                                        <strong class="d-block">{{translate("Previous Article")}}</strong>
+                                    </div>
+                                </a>
+                            {% endif %}
+                            </div>
+                            <div class="col-6">
+                            {% if next %}
+                                <a href="{{ next.link }}" class="btn btn-outline-primary btn-loading-page w-100 d-flex align-items-center justify-content-end" title="{{next.title}}">
+                                    <div class="ancestory me-3 d-none d-md-block">
+                                        <strong class="d-block">{{translate("Next Article")}}</strong>
+                                    </div>
+                                    <i class="fal fa-angle-right fa-2x"></i>
+                                </a>
+                            {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+        </div>
+        <div class="card-footer overflow-hidden mt-8">
+
+            <div class="row gy-5">
+
+                {#<div class="col-12">
+                    <div class="author row border-top border-bottom py-4">
+                            <div class="col-auto">
+                                <img data-src="{{post.author.get_avatar_url}}" class="img-fluid rounded-circle lazy" alt="{{post.author.get_title}}">
+                            </div>
+                            <div class="col col-lg-6">
+                                <div class="title mt-2">
+                                    {{post.author.get_title}}
+                                    <small>{{post.author.meta("title")}}</small>
+                                </div>
+                                <div class="post-count mt-2">
+                                    {{ translate_nooped_plural( translate_n_noop('%s sonuç bulundu.', '%s sonuç bulundu.'), post.author.get_post_count())|format(post.author.get_post_count) }}
+                                </div>
+                                <div class="description pt-3">
+                                     {{ post.author.description }}
+                                </div>
+                            </div>
+                    </div>
+                </div>#}
+                        
+
+
+
+                {% set posts_related = function("get_related_posts", post.id, 6) %}
+                {% if posts_related %}
+                <div class="col-12">
+                    {% set slider_args = { 
+                                            title : translate("You May Also Like"), 
+                                            description: "", 
+                                            url: "", 
+                                            class : "justify-content-start",
+                                            size : "lg",
+                                            breakpoints : {'xxl' : 4, 'xl' : 4, 'lg': 3, 'md' : 2, 'sm' : 2, 'xs':1 },
+                                            gaps : {'xxl' : 30, 'xl' : 30, 'lg': 20, 'md' : 15, 'sm' : 15, 'xs' : 15 },  
+                                            container : "", 
+                                            template : 'post/tease.twig', 
+                                            posts :  posts_related,
+                                            item : {
+                                                class : "tease-light",
+                                                heading : "h3",
+                                            },
+                                            slider : {
+                                                pagination : "bullets",
+                                                loop : false,
+                                                delay : 0,
+                                                autoplay: false,
+                                                effect : "slide"                
+                                            }
+                                        }
+                    %}
+                    {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+                </div>
+                {% endif %}
+
+
+            </div>
+        </div>
+    </article>
+
+    {#<div class="container">
+        <div class="row">
+            <div class="col-lg-4">
+                <img data-src="{{ post.thumbnail.src }}" class="img-fluid rounded-3 lazy" alt="{{post.title}}"/>
+                {{breadcrumb}}
+                <h1 class="title title-md no-shadow">{{post.title}}</h1>
+                <time>{{post.post_date_gmt|time_ago}}</time>
+            </div>
+            <div class="col-lg-8">
+                <article class="card-post-single card-layout card post-type-{{post.post_type}}" id="post-{{post.ID}}">
+                    
+                        {{post.content}}
+
+                        <div class="card-post-tags card card-layout mt-5">
+                            <div class="card-header">
+                                <h5 class="card-title">
+                                    {{'Paylaş'|trans}}
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% apply spaceless %}
+                                        {{"[apss_share networks='facebook, twitter, pinterest, email']"|shortcodes}}
+                                {% endapply %}
+                            </div>
+                        </div>
+                        
+                        {% if post_tags %}
+                        <div class="card-post-tags card card-layout mt-5">
+                            <div class="card-header">
+                                <h5 class="card-title">
+                                    {{'Etiketler'|trans}}
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% apply spaceless %}
+                                <ul class="list-post-tags list-label list-label-sm list-inline">
+                                {% for tag in post_tags %}
+                                    <li class="list-inline-item">
+                                        <a href="{{tag.link}}" class="label">{{tag.title}}</a>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                                {% endapply %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                </article>
+
+            </div>
+            <div class="col-12">
+                <div class="nav-ancestory">
+                        
+                        <div class="row gx-0 align-items-center gy-3 gy-lg-0">
+                            <div class="col-lg-6">
+                                {% if prev %}
+                                <a href="{{ prev.link }}" class="btn-ancestory btn-loading-page d-flex align-items-center rounded-5 p-3 px-4" title="{{prev.title}}">
+                                    <i class="fal fa-angle-left fa-3x"></i>
+                                    <div class="ancestory ms-3 text-truncate">
+                                        <strong class="d-block">{{translate("Önceki Haber")}}</strong>
+                                        {{ prev.title }}
+                                    </div>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="col-lg-6 text-end">
+                                {% if next %}
+                                <a href="{{ next.link }}" class="btn-ancestory btn-loading-page d-flex align-items-center justify-content-end rounded-5 p-3 px-4" title="{{next.title}}">
+                                    <div class="ancestory me-3 text-truncate">
+                                        <strong class="d-block">{{translate("Sonraki Haber")}}</strong>
+                                        {{ next.title }}
+                                    </div>
+                                    <i class="fal fa-angle-right fa-3x"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        <hr class="mt-5 mb-5">
+
+                    {% set posts_related = function("get_related_posts", post.id, 6) %}
+                    {% if posts_related %}
+                    {% set slider_args = { 
+                                              title : 'İlginizi çekebilir'|trans, 
+                                              description: "", 
+                                              url: "", 
+                                              class : "justify-content-start", 
+                                              size : "lg", 
+                                              breakpoints : {'xl' : 2, 'lg': 2, 'md' : 2, 'sm' : 2, 'xs':1 }|json_encode, 
+                                              container : "xl", 
+                                              template : 'post/tease.twig', 
+                                              posts :  posts_related  
+                                         }
+                    %}
+                    {% include 'partials/sliders/slider-posts-vr.twig' with slider_args %}
+                    {% endif %}
+
+    </div>#}
+
+{% endblock %}
+
+{% block appendix %}
+{% endblock %}

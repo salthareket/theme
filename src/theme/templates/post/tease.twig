@@ -1,0 +1,27 @@
+<article class="tease-{{post.post_type}} card card-reset {{class}}" data-mh="tease-blog">
+	<div class="card-header mb-3" data-mh="tease-blog-header">
+	
+		<a href="{{post.link}}" title="{{ post.title }}" class="img-placeholder ratio ratio-16x9 mb-3 d-block rounded-4 overflow-hidden {% if post.thumbnail and not is_preview %}loading{% else %}img-not-found{% endif %} btn-loading-page" {% if post.thumbnail %}style="background-color:{{post.thumbnail.average_color}}"{% endif %}>
+		    {% if post.thumbnail %}
+		    	{{img({src: post.thumbnail, class : "object-fit-cover w-100 h-100", lazy: not is_preview })}}
+			{% endif %}
+		</a>
+
+		<{{heading|default("h2")}} class="card-title">
+			<a href="{{post.link}}" title="{{ post.title }}" class="btn-loading-page text-dark font-header fw-600 title-xs">{{ post.title }}</a>
+			{#<small class="small d-block mt-3">by {{post.author.get_title}} | {{ post.get_read_time() }} read</small>#}
+		</{{heading|default("h2")}}>
+
+	</div>
+    {% if "tease-light" not in class %}
+	<div class="card-body mb-4 text-gray text-sm">
+	    <div data-mh="tease-blog-text">
+			{{ post.excerpt({ words: 30, read_more: '' }) }}
+		</div>
+	</div>
+	<div class="card-footer mt-auto text-gray text-sm">
+		<date>{{post.date}}</date>
+	</div>
+	{% endif %}
+
+</article>
