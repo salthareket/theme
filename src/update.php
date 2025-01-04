@@ -14,6 +14,7 @@ class Update {
         "composer/composer",
         "scssphp/scssphp"
     ];
+    private static $theme_root;
     private static $composer_path;
     private static $composer_lock_path;
     private static $vendor_directory;
