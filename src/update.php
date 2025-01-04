@@ -38,7 +38,7 @@ class Update {
     // Admin notifi ekler
     public static function init() {
         $theme_root = get_template_directory();
-        self::$theme_root = $theme_root
+        self::$theme_root = $theme_root;
         self::$composer_path = $theme_root . '/composer.json';
         self::$composer_lock_path = $theme_root . '/composer.lock';
         self::$vendor_directory = $theme_root . '/vendor/salthareket';
