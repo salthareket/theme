@@ -414,7 +414,7 @@ class Update {
                 $args["command"] = $remove?"remove":"require";
                 $args["packages"] = [$package_name];
 
-                if ($package_name === 'salthareket/theme') {
+                if ($package_name === 'salthareket/theme' && !$remove) {
                     // Geçici klasör oluştur
                     $temp_dir = wp_upload_dir()['basedir'] . '/temp_' . uniqid();
                     if (!mkdir($temp_dir, 0755, true)) {
@@ -441,7 +441,7 @@ class Update {
                 }
             }
 
-            if ($package_name === 'salthareket/theme') {
+            if ($package_name === 'salthareket/theme' && !$remove) {
                 $target_dir = self::$repo_directory;
 
                 // Mevcut hedef klasörü sil
