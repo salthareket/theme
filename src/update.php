@@ -33,6 +33,7 @@ class Update {
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
         ["id" => "npm_install", "name" => "npm packages installing"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
+        ["id" => "generate_files", "name" => "Generating Files"],
         ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
     ];
 
@@ -680,6 +681,11 @@ class Update {
     private static function compile_methods(){
         acf_methods_settings();
     }
+    private static function generate_files(){
+        $theme_styles = acf_get_theme_styles();
+        save_theme_styles_colors($theme_styles);
+        save_theme_styles_header_themes($theme_styles["header"]);
+    }
     private static function compile_js_css(){
         acf_compile_js_css();
     }
@@ -739,6 +745,11 @@ class Update {
                     self::compile_methods();
                     self::update_task_status('compile_methods', true);
                     wp_send_json_success(['message' => 'ACF Methods compiled successfully']);
+                    break;
+                case 'generate_files':
+                    self::generate_files();
+                    self::update_task_status('generate_files', true);
+                    wp_send_json_success(['message' => 'Files generated successfully']);
                     break;
                 case 'compile_js_css':
                     self::compile_js_css();

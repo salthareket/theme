@@ -22,8 +22,8 @@ define('THEME_STATIC_URL',     get_template_directory_uri() . "/theme/static/");
 
 define('NODE_MODULES_PATH', get_home_path() .'node_modules/');
 
-//define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
-define('SH_THEME_EXISTS', in_array("copy_theme", array_keys(get_option('sh_theme_tasks_status', []))));
+define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
+//define('SH_THEME_EXISTS', in_array("copy_theme", array_keys(get_option('sh_theme_tasks_status', []))));
 
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
 
