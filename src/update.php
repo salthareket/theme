@@ -725,14 +725,14 @@ class Update {
 
             // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
             if (!in_array($package_name, $composerDependencies, true)) {
-                return false;
+                return false; // Bağımlılık değil
             }
 
             // Sürüm kontrolü yap
             if (isset($composerRequirements[$package_name])) {
                 $requiredVersion = $composerRequirements[$package_name];
 
-                // Sürüm uyumluluğunu kontrol et
+                // Sürüm uyumluluğunu Composer SemVer formatına göre kontrol et
                 if (!self::is_version_compatible($latest_version, $requiredVersion)) {
                     return false; // Yeni sürüm mevcut gereksinimlere uygun değil
                 }
@@ -741,28 +741,42 @@ class Update {
             return true; // Paket composer/composer bağımlılığı ve sürümü uyumlu
         } catch (Exception $e) {
             // Hata durumunda false döner
+            error_log('Hata: ' . $e->getMessage());
             return false;
         }
     }
+
     private static function is_version_compatible($version, $constraint) {
-        // Composer'ın SemVer kontrolü için Composer kütüphanesi veya bir kütüphane kullanmayı düşünebilirsin.
-        // Burada temel bir kontrol yapılır:
-        if (preg_match('/^\^([0-9]+)\.([0-9]+)/', $constraint, $matches)) {
-            $major = (int)$matches[1];
-            $minor = (int)$matches[2];
+        // "||" ile ayrılmış sürüm kısıtlamalarını destekler
+        $constraints = explode('||', $constraint);
 
-            // Başlangıç sürüm sınırı
-            $minVersion = "{$major}.{$minor}.0";
-            // Maksimum sürüm (bir sonraki major sürüm)
-            $maxVersion = ($major + 1) . ".0.0";
+        foreach ($constraints as $individualConstraint) {
+            $individualConstraint = trim($individualConstraint);
 
-            return version_compare($version, $minVersion, '>=') &&
-                   version_compare($version, $maxVersion, '<');
+            if (preg_match('/^\^([0-9]+)\.([0-9]+)\.([0-9]+)/', $individualConstraint, $matches)) {
+                $major = (int)$matches[1];
+                $minor = (int)$matches[2];
+                $patch = (int)$matches[3];
+
+                // Başlangıç sürüm sınırı
+                $minVersion = "{$major}.{$minor}.{$patch}";
+                // Maksimum sürüm (bir sonraki major sürüm)
+                $maxVersion = ($major + 1) . ".0.0";
+
+                if (version_compare($version, $minVersion, '>=') && version_compare($version, $maxVersion, '<')) {
+                    return true; // Uygun bir sürüm bulundu
+                }
+            } elseif (preg_match('/^([0-9]+\.[0-9]+\.[0-9]+)$/', $individualConstraint, $exactMatch)) {
+                // Tam eşleşme için kontrol (örneğin "7.2.2")
+                if (version_compare($version, $exactMatch[1], '==')) {
+                    return true;
+                }
+            }
         }
 
-        // Diğer durumlar için false döner
-        return false;
+        return false; // Hiçbir kısıtlamaya uymadı
     }
+
 
 
 
