@@ -516,6 +516,8 @@ class Update {
         $input = new ArrayInput([
             'command' => 'outdated',
             '--format' => 'json',
+            '--quiet' => true,
+            '--no-ansi' => true,
             '--working-dir' => get_template_directory()
         ]);
         $output = new BufferedOutput();
@@ -550,7 +552,6 @@ class Update {
             return [];
         }
     }
-
     public static function is_composer_dependency($package_name) {
         if (!file_exists(self::$composer_lock_path)) {
             return false; // composer.lock dosyası yoksa bağımlılık kontrolü yapılamaz
@@ -571,19 +572,23 @@ class Update {
                 return false; // Gerekli alanlar yoksa bağımlılık kontrolü yapılamaz
             }
 
-            // Bağımlılıkları birleştir
-            $dependencies = array_merge(
-                array_column($composerLockData['packages'] ?? [], 'name'),
-                array_column($composerLockData['packages-dev'] ?? [], 'name')
-            );
+            // composer/composer bağımlılıklarını al
+            $composerDependencies = [];
+            foreach ($composerLockData['packages'] ?? [] as $package) {
+                if ($package['name'] === 'composer/composer' && isset($package['require'])) {
+                    $composerDependencies = array_keys($package['require']);
+                    break;
+                }
+            }
 
-            // Paketin bağımlılık olup olmadığını kontrol et
-            return in_array($package_name, $dependencies, true);
+            // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
+            return in_array($package_name, $composerDependencies, true);
         } catch (Exception $e) {
             // Hata durumunda false döner
             return false;
         }
     }
+
 
 
     private static function copy_theme(){
