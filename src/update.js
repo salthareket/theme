@@ -90,6 +90,10 @@ jQuery(document).ready(function ($) {
             case "loading" :
                 $class = "alert-secondary loading loading-xs";
                 break;
+            case "refresh" :
+                $class = "alert-secondary loading loading-xs";
+                location.reload(true);
+                break;
         } 
         let alert = $(".alert[data-action='" + $type +"']");
         alert

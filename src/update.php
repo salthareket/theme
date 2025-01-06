@@ -206,10 +206,35 @@ class Update {
                 <div style="width:60%;">
                     <h2 style="font-weight:600;font-size:42px;line-height:1;margin-bottom:20px;"><small style="display:block;font-size:12px;font-weight:bold;margin-bottom:10px;background-color:#111;color:#ddd;padding:8px 12px;border-radius:22px;display:inline-block;">STEP 2</small><br>Install Requirements</h2>
                     <p>This theme requires some initial setup before you can start using it. Please complete the installation process below.</p>
+                    
+                    <div class="alert alert-primary d-inline-block ms-auto me-auto py-3 px-5 mt-3 rounded-4 shadow">
+                        <h5 class="fw-bold">Your theme's requirements</h5>
+                        <hr>
+                        <div class="d-flex justify-content-center">
+                            <div class="form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" id="multilanguageSwitch">
+                                <label class="form-check-label ms-2" for="multilanguageSwitch">Multilanguage</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" id="ecommerceSwitch">
+                                <label class="form-check-label ms-2" for="ecommerceSwitch">E-commerce</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" id="membershipSwitch">
+                                <label class="form-check-label ms-2" for="membershipSwitch">Membership</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" id="contactFormsSwitch">
+                                <label class="form-check-label ms-2" for="contactFormsSwitch">Contact Forms</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="progress my-4" style="height: 30px;display:none;">
                         <div id="installation-progress" class="progress-bar progress-bar-striped progress-bar-animated text-end pe-3" role="progressbar" style="width: 0%;height:100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                     </div>
                     <div class="installation-status" style="text-align:center;font-size: 22px;font-weight:bold;margin-top:20px;display:none;"></div>
+                    <hr class="invisible m-0 p-0"/>
                     <button id="start-installation-button" class="button button-primary" style="margin-top:40px;font-size: 18px;border-radius: 22px;border: none;padding: 6px 28px;">Start Installation</button>
                 </div>
             </div>
@@ -267,7 +292,7 @@ class Update {
 
 
 
-    public static function composer_manuel_install($package_name, $latest_version="") {
+    public static function composer_manuel_install($package_name, $latest_version="", $silent = false) {
         try {
             error_log("composer_manuel_install işlemi başlatıldı...");
 
@@ -304,7 +329,6 @@ class Update {
                 if ($zip->open($tmp_file) === true) {
                     $extract_result = $zip->extractTo($temp_dir);
                     $zip->close();
-
                     if (!$extract_result) {
                         error_log("ZipArchive ile çıkarma başarısız oldu.");
                         self::delete_directory($temp_dir);
@@ -336,7 +360,9 @@ class Update {
                 // Geçici dizini temizle
                 self::delete_directory($temp_dir);
                 self::update_composer_lock($package_name, $latest_version);
-                wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
+                if(!$silent){
+                    wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);                    
+                }
             } else {
                 error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
                 self::delete_directory($temp_dir);
@@ -374,17 +400,18 @@ class Update {
             wp_die('Could not retrieve the zipball URL from the latest release.');
         }
     }
-
-
-    private static function update_composer_lock($package_name, $latest_version) {
+    public static function update_composer_lock($package_name, $latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
             error_log("composer.lock not found.");
             return;
         }
 
         $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
+        if (!$lock_data) {
+            error_log("composer.lock dosyası okunamadı.");
+            return;
+        }
 
-        // En son commit hash'i al
         $url = self::$github_api_url . '/' . $package_name . '/commits/' . $latest_version;
         $response = wp_remote_get($url, [
             'headers' => [
@@ -402,16 +429,76 @@ class Update {
         $commit_data = json_decode(wp_remote_retrieve_body($response), true);
         $commit_hash = $commit_data['sha'] ?? 'main';
 
-        foreach ($lock_data['packages'] as &$package) {
-            if ($package['name'] === $package_name) {
-                $package['version'] = $latest_version;
-                $package['source']['reference'] = $commit_hash;
-                $package['dist']['reference'] = $commit_hash;
-                $package['dist']['url'] = "https://api.github.com/repos/" . $package_name . "/zipball/" . $commit_hash;
+        $packages_sections = ['packages', 'packages-dev'];
+        $updated = false;
+
+        foreach ($packages_sections as $section) {
+            if (!isset($lock_data[$section])) {
+                continue;
+            }
+            foreach ($lock_data[$section] as &$package) {
+                if ($package['name'] === $package_name) {
+                    $package['version'] = $latest_version;
+                    $package['source']['reference'] = $commit_hash;
+                    $package['dist']['reference'] = $commit_hash;
+                    $package['dist']['url'] = "https://api.github.com/repos/" . $package_name . "/zipball/" . $commit_hash;
+
+                    // Eğer support.source alanı yoksa ekle
+                    if (!isset($package['support']['source'])) {
+                        $package['support']['source'] = "https://github.com/" . $package_name;
+                    }
+
+                    error_log("Paket güncellendi: $package_name - $latest_version");
+                    $updated = true;
+                }
             }
         }
-        file_put_contents(self::$composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        if ($updated) {
+            // content-hash'i güncelle
+            $composer_json_content = file_get_contents(self::$composer_path);
+            if ($composer_json_content === false) {
+                error_log("composer.json dosyası okunamadı: " . self::$composer_path);
+                return;
+            }
+
+            // JSON içeriğini normalize et
+            $normalized_content = json_encode(json_decode($composer_json_content, true), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($normalized_content === false) {
+                error_log("composer.json normalize edilemedi: " . json_last_error_msg());
+                return;
+            }
+
+            // Hash oluştur
+            $new_content_hash = hash('sha256', $normalized_content);
+            $lock_data['content-hash'] = $new_content_hash;
+
+            // composer.lock'u güncelle
+            $json_data = json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if ($json_data === false) {
+                error_log("JSON encode başarısız: " . json_last_error_msg());
+                return;
+            }
+
+            if (file_put_contents(self::$composer_lock_path, $json_data) === false) {
+                error_log("Dosya yazılamadı: " . self::$composer_lock_path);
+                return;
+            }
+
+            clearstatcache(true, self::$composer_lock_path);
+
+            if (function_exists('opcache_invalidate')) {
+                opcache_invalidate(self::$composer_lock_path, true);
+            }
+
+            error_log("composer.lock ve content-hash güncellendi.");
+        } else {
+            error_log("Güncellenecek paket bulunamadı: $package_name.");
+        }
     }
+
+
+
     private static function delete_directory($dir) {
         /*if (!is_dir($dir)) return;
 
@@ -439,11 +526,13 @@ class Update {
                 });
                 if($dependencies){
                     foreach($dependencies as $package){
-                        self::composer_manuel_install($package["package"], $package["latest"]);
+                        self::composer_manuel_install($package["package"], $package["latest"], true);
                     }
+                    update_option('composer_dependencies', $dependencies);
+                    wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
                 }                
             }else{
-                wp_send_json_success(['message' => $message, "action" => "nothing" ]);
+                wp_send_json_success(['message' => 'No updates or installations performed. 2', "action" => "nothing" ]);
             }
 
             $args = array(
@@ -455,6 +544,8 @@ class Update {
                 $args["packages"] = [$package_name];
             }
 
+            error_log(json_encode($args));
+
             $app = new Application();
             $app->setAutoExit(false);
             $input = new ArrayInput($args);
@@ -463,6 +554,8 @@ class Update {
 
             $raw_output = $output->fetch();
             $lines = explode("\n", $raw_output);
+
+            error_log(json_encode($lines));
 
             foreach ($lines as $line) {
                 if (strpos(trim($line), 'Could not find package') !== false) {
@@ -556,7 +649,7 @@ class Update {
         try {
             $app->run($input, $output);
             $rawOutput = $output->fetch();
-            error_log($rawOutput);
+            //error_log($rawOutput);
 
             $jsonStart = strpos($rawOutput, '{');
             if ($jsonStart === false) {
@@ -578,7 +671,7 @@ class Update {
                     'current' => $package['version'],
                     'latest' => $package['latest'],
                     'description' => $package['description'] ?? '',
-                    'dependency' => self::is_composer_dependency($package['name'])
+                    'dependency' => self::is_composer_dependency($package['name'], $package['latest'])
                 ];
             }
 
@@ -591,7 +684,7 @@ class Update {
             return [];
         }
     }
-    public static function is_composer_dependency($package_name) {
+    public static function is_composer_dependency($package_name, $latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
             return false; // composer.lock dosyası yoksa bağımlılık kontrolü yapılamaz
         }
@@ -613,20 +706,58 @@ class Update {
 
             // composer/composer bağımlılıklarını al
             $composerDependencies = [];
+            $composerRequirements = [];
             foreach ($composerLockData['packages'] ?? [] as $package) {
                 if ($package['name'] === 'composer/composer' && isset($package['require'])) {
                     $composerDependencies = array_keys($package['require']);
+                    $composerRequirements = $package['require'];
                     break;
                 }
             }
 
             // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
-            return in_array($package_name, $composerDependencies, true);
+            if (!in_array($package_name, $composerDependencies, true)) {
+                return false;
+            }
+
+            // Sürüm kontrolü yap
+            if (isset($composerRequirements[$package_name])) {
+                $requiredVersion = $composerRequirements[$package_name];
+
+                // Sürüm uyumluluğunu kontrol et
+                if (!self::is_version_compatible($latest_version, $requiredVersion)) {
+                    return false; // Yeni sürüm mevcut gereksinimlere uygun değil
+                }
+            }
+
+            return true; // Paket composer/composer bağımlılığı ve sürümü uyumlu
         } catch (Exception $e) {
             // Hata durumunda false döner
             return false;
         }
     }
+    private static function is_version_compatible($version, $constraint) {
+        // Composer'ın SemVer kontrolü için Composer kütüphanesi veya bir kütüphane kullanmayı düşünebilirsin.
+        // Burada temel bir kontrol yapılır:
+        if (preg_match('/^\^([0-9]+)\.([0-9]+)/', $constraint, $matches)) {
+            $major = (int)$matches[1];
+            $minor = (int)$matches[2];
+
+            // Başlangıç sürüm sınırı
+            $minVersion = "{$major}.{$minor}.0";
+            // Maksimum sürüm (bir sonraki major sürüm)
+            $maxVersion = ($major + 1) . ".0.0";
+
+            return version_compare($version, $minVersion, '>=') &&
+                   version_compare($version, $maxVersion, '<');
+        }
+
+        // Diğer durumlar için false döner
+        return false;
+    }
+
+
+
 
 
 
