@@ -266,17 +266,10 @@ class Update {
 
 
 
-    public static function process_update() {
-        try {
-            error_log("Update işlemi başlatıldı...");
 
-            // Geçerli sürüm ve son sürüm bilgisi
-            $latest_version = self::get_latest_version();
-            if ($latest_version === 'Unknown') {
-                error_log("Son sürüm alınamadı.");
-                wp_send_json_error(['message' => 'Son sürüm bilgisi alınamadı.']);
-            }
-            error_log("Son sürüm: " . $latest_version);
+    public static function composer_manuel_install($package_name) {
+        try {
+            error_log("composer_manuel_install işlemi başlatıldı...");
 
             // ZIP dosyasını indirme
             $url = self::$github_api_url . '/' . self::$github_repo . '/zipball/' . $latest_version;
@@ -407,6 +400,20 @@ class Update {
                 wp_send_json_error(['message' => 'composer.json is not found.']);
             }
 
+            $updates = self::get_composer_updates();
+            if($updates){
+                $dependencies = array_filter($updates, function ($package) {
+                    return isset($package['dependency']) && $package['dependency'] === true;
+                });
+                if($dependencies){
+                    foreach($dependencies as $package){
+                        self::composer_manuel_install($package["package"]);
+                    }
+                }                
+            }else{
+                wp_send_json_success(['message' => $message, "action" => "nothing" ]);
+            }
+
             $args = array(
                 'command' => 'update',
                 '--working-dir' => get_template_directory()
@@ -414,16 +421,6 @@ class Update {
             if(!empty($package_name)){
                 $args["command"] = $remove?"remove":"require";
                 $args["packages"] = [$package_name];
-
-                if ($package_name === 'salthareket/theme' && !$remove) {
-                    // Geçici klasör oluştur
-                    $temp_dir = wp_upload_dir()['basedir'] . '/temp_' . uniqid();
-                    if (!mkdir($temp_dir, 0755, true)) {
-                        wp_send_json_error(['message' => 'Failed to create temporary directory.']);
-                    }
-
-                    $args['--working-dir'] = $temp_dir;
-                }
             }
 
             $app = new Application();
@@ -440,23 +437,6 @@ class Update {
                     wp_send_json_error(['message' => "Could not find package: <strong>$package_name</strong>", "action" => "error" ]);
                     exit;
                 }
-            }
-
-            if ($package_name === 'salthareket/theme' && !$remove) {
-                $target_dir = self::$repo_directory;
-
-                // Mevcut hedef klasörü sil
-                if (is_dir($target_dir)) {
-                    self::recurseDelete($target_dir);
-                }
-
-                // Geçici klasörden içeriği taşı
-                if (!rename($temp_dir . '/vendor/salthareket/theme', $target_dir)) {
-                    wp_send_json_error(['message' => 'Failed to move updated files to target directory.']);
-                }
-
-                // Geçici klasörü sil
-                self::recurseDelete($temp_dir);
             }
 
             $result = [
@@ -499,18 +479,6 @@ class Update {
             wp_send_json_error(['message' => $e->getMessage(), "action" => $action ]);
         }
     }
-
-    // Geçici klasörleri silmek için yardımcı fonksiyon
-    private static function recurseDelete($dir) {
-        if (!is_dir($dir)) return;
-        $items = array_diff(scandir($dir), ['.', '..']);
-        foreach ($items as $item) {
-            $path = $dir . DIRECTORY_SEPARATOR . $item;
-            is_dir($path) ? self::recurseDelete($path) : unlink($path);
-        }
-        rmdir($dir);
-    }
-
     public static function composer_install() {
         check_ajax_referer('update_theme_nonce', 'nonce');
         $package_name = isset($_POST['package']) ? sanitize_text_field($_POST['package']) : '';
@@ -540,6 +508,85 @@ class Update {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
+
+
+    public static function get_composer_updates() {
+        $app = new Application();
+        $app->setAutoExit(false);
+        $input = new ArrayInput([
+            'command' => 'outdated',
+            '--working-dir' => get_template_directory()
+        ]);
+        $output = new BufferedOutput();
+
+        try {
+            $app->run($input, $output);
+            $rawOutput = $output->fetch();
+            $lines = explode("\n", trim($rawOutput));
+            $packages = [];
+
+            foreach ($lines as $line) {
+                // Uyarıları ve hatalı satırları atla
+                if (strpos($line, '<warning>') !== false || strpos($line, 'Package') !== false || strpos($line, 'dependencies') !== false) {
+                    continue;
+                }
+
+                // Doğru formatı yakala
+                if (preg_match('/^(\S+)\s+(\S+)\s+(\S+)(?:\s+(.*))?$/', $line, $matches)) {
+                    $packages[] = [
+                        'package' => $matches[1],
+                        'current' => $matches[2],
+                        'latest' => $matches[3],
+                        'description' => $matches[4] ?? '',
+                        'dependency' => self::is_composer_dependency($matches[1])
+                    ];
+                }
+            }
+
+            error_log(" - FILTERED UPDATES:");
+            error_log(json_encode($packages));
+            return $packages;
+
+        } catch (Exception $e) {
+            error_log('Error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public static function is_composer_dependency($package_name) {
+        if (!file_exists(self::$composer_lock_path)) {
+            return false; // composer.lock dosyası yoksa bağımlılık kontrolü yapılamaz
+        }
+
+        try {
+            // composer.lock dosyasını oku
+            $composerLockContent = file_get_contents(self::$composer_lock_path);
+
+            if ($composerLockContent === false) {
+                return false; // Dosya okunamıyorsa false döner
+            }
+
+            // JSON'u ayrıştır
+            $composerLockData = json_decode($composerLockContent, true);
+
+            if (!isset($composerLockData['packages']) && !isset($composerLockData['packages-dev'])) {
+                return false; // Gerekli alanlar yoksa bağımlılık kontrolü yapılamaz
+            }
+
+            // Bağımlılıkları birleştir
+            $dependencies = array_merge(
+                array_column($composerLockData['packages'] ?? [], 'name'),
+                array_column($composerLockData['packages-dev'] ?? [], 'name')
+            );
+
+            // Paketin bağımlılık olup olmadığını kontrol et
+            return in_array($package_name, $dependencies, true);
+        } catch (Exception $e) {
+            // Hata durumunda false döner
+            return false;
+        }
+    }
+
 
     private static function copy_theme(){
         $srcDir = SH_PATH . 'theme';
@@ -588,55 +635,6 @@ class Update {
             acf_save_post_block_columns_action( $post_id );
         }
     }
-    private static function recurseCopy($src, $dest, $exclude = []){
-        $dir = opendir($src);
-
-        if (!is_dir($dest)) {
-            mkdir($dest, 0755, true);
-        }
-
-        while (false !== ($file = readdir($dir))) {
-            if ($file == '.' || $file == '..') {
-                continue; // Geçerli ve üst dizini atla
-            }
-
-            $srcPath = $src . DIRECTORY_SEPARATOR . $file;
-            $destPath = $dest . DIRECTORY_SEPARATOR . $file;
-
-            // Hariç tutulacak klasör kontrolü
-            if (is_dir($srcPath) && in_array($file, $exclude)) {
-                continue; // Hariç tutulan klasörü atla
-            }
-
-            if (is_dir($srcPath)) {
-                // Alt klasörleri kopyala
-                self::recurseCopy($srcPath, $destPath, $exclude);
-            } else {
-                // Dosyayı kopyala
-                copy($srcPath, $destPath);
-            }
-        }
-
-        closedir($dir);
-    }
-
-    private static function fileCopy($source, $destination) {
-        if (!file_exists($source)) {
-            return;
-        }
-        $destinationDir = dirname($destination);
-        if (!file_exists($destinationDir)) {
-            if (!mkdir($destinationDir, 0777, true)) {
-                return;
-            }
-        }
-        if (copy($source, $destination)) {
-
-        } else {
-            return;
-        }
-    }
-
     private static function npm_install(): string{
         $workingDir = ABSPATH;
         if (!is_dir($workingDir)) {
@@ -671,7 +669,6 @@ class Update {
             //throw new \Exception("npm install işlemi başarısız oldu: " . $e->getMessage());
         }
     }
-
     private static function install_wp_plugins(){
         \PluginManager::check_and_install_required_plugins();
     }
@@ -689,6 +686,9 @@ class Update {
     private static function compile_js_css(){
         acf_compile_js_css();
     }
+
+
+
     public static function run_task() {
         check_ajax_referer('update_theme_nonce', 'nonce');
         $task_id = isset($_POST['task_id']) ? sanitize_text_field($_POST['task_id']) : '';
@@ -795,6 +795,9 @@ class Update {
         return true;
     }
 
+
+
+
     private static function fix(){
         $fixes = include get_template_directory() . "/vendor/salthareket/theme/src/fix/index.php";
         error_log(json_encode($fixes));
@@ -809,6 +812,62 @@ class Update {
          }
     }
 
+    private static function recurseCopy($src, $dest, $exclude = []){
+        $dir = opendir($src);
+
+        if (!is_dir($dest)) {
+            mkdir($dest, 0755, true);
+        }
+
+        while (false !== ($file = readdir($dir))) {
+            if ($file == '.' || $file == '..') {
+                continue; // Geçerli ve üst dizini atla
+            }
+
+            $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+            $destPath = $dest . DIRECTORY_SEPARATOR . $file;
+
+            // Hariç tutulacak klasör kontrolü
+            if (is_dir($srcPath) && in_array($file, $exclude)) {
+                continue; // Hariç tutulan klasörü atla
+            }
+
+            if (is_dir($srcPath)) {
+                // Alt klasörleri kopyala
+                self::recurseCopy($srcPath, $destPath, $exclude);
+            } else {
+                // Dosyayı kopyala
+                copy($srcPath, $destPath);
+            }
+        }
+
+        closedir($dir);
+    }
+    private static function fileCopy($source, $destination) {
+        if (!file_exists($source)) {
+            return;
+        }
+        $destinationDir = dirname($destination);
+        if (!file_exists($destinationDir)) {
+            if (!mkdir($destinationDir, 0777, true)) {
+                return;
+            }
+        }
+        if (copy($source, $destination)) {
+
+        } else {
+            return;
+        }
+    }
+    private static function recurseDelete($dir) {
+        if (!is_dir($dir)) return;
+        $items = array_diff(scandir($dir), ['.', '..']);
+        foreach ($items as $item) {
+            $path = $dir . DIRECTORY_SEPARATOR . $item;
+            is_dir($path) ? self::recurseDelete($path) : unlink($path);
+        }
+        rmdir($dir);
+    }
 
     private static function enqueue_update_script() {
         wp_enqueue_script(
