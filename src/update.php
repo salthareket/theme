@@ -272,7 +272,7 @@ class Update {
             error_log("composer_manuel_install işlemi başlatıldı...");
 
             // ZIP dosyasını indirme
-            $url = self::$github_api_url . '/' . self::$github_repo . '/zipball/' . $latest_version;
+            $url = self::composer_get_latest_version_url($package_name);
             $tmp_file = download_url($url);
 
             if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
@@ -344,6 +344,34 @@ class Update {
             wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
         }
     }
+    public static function composer_get_latest_version_url($package_name) {
+
+        $apiUrl = "https://api.github.com/repos/{$package_name}/releases/latest";
+
+        $args [
+            'headers' => [
+                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN,
+                'Accept' => 'application/vnd.github.v3+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo('version')
+            ]
+        ];
+
+        // GitHub API'den son sürüm bilgilerini al
+        $response = wp_remote_get($apiUrl, $args);
+
+        if (is_wp_error($response)) {
+            wp_die('Failed to fetch the latest release: ' . $response->get_error_message());
+        }
+
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (isset($data['zipball_url'])) {
+            return $data['zipball_url'];
+        } else {
+            wp_die('Could not retrieve the zipball URL from the latest release.');
+        }
+    }
+
     private static function update_composer_lock($latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
             error_log("composer.lock not found.");
