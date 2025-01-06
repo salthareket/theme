@@ -348,7 +348,7 @@ class Update {
 
         $apiUrl = "https://api.github.com/repos/{$package_name}/releases/latest";
 
-        $args [
+        $args = [
             'headers' => [
                 'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN,
                 'Accept' => 'application/vnd.github.v3+json',
