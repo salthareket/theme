@@ -525,6 +525,7 @@ class Update {
         try {
             $app->run($input, $output);
             $rawOutput = $output->fetch();
+            error_log($rawOutput);
             $data = json_decode($rawOutput, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
