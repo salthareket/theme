@@ -516,7 +516,6 @@ class Update {
         $input = new ArrayInput([
             'command' => 'outdated',
             '--format' => 'json',
-            '--quiet' => true,
             '--no-ansi' => true,
             '--working-dir' => get_template_directory()
         ]);
@@ -526,7 +525,14 @@ class Update {
             $app->run($input, $output);
             $rawOutput = $output->fetch();
             error_log($rawOutput);
-            $data = json_decode($rawOutput, true);
+
+            $jsonStart = strpos($rawOutput, '{');
+            if ($jsonStart === false) {
+                error_log('Error: No valid JSON output found.');
+                return [];
+            }
+            $cleanedJson = substr($rawOutput, $jsonStart);
+            $data = json_decode($cleanedJson, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 error_log('JSON decode error: ' . json_last_error_msg());
