@@ -267,12 +267,15 @@ class Update {
 
 
 
-    public static function composer_manuel_install($package_name) {
+    public static function composer_manuel_install($package_name, $latest_version="") {
         try {
             error_log("composer_manuel_install işlemi başlatıldı...");
 
+            $package_folder = self::$theme_root . "/vendor/".$package_name;
+
             // ZIP dosyasını indirme
-            $url = self::composer_get_latest_version_url($package_name);
+            //$url = self::composer_get_latest_version_url($package_name);
+            $url = self::$github_api_url . '/' . $package_name . '/zipball/' . $latest_version;
             $tmp_file = download_url($url);
 
             if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
@@ -322,17 +325,17 @@ class Update {
             // Çıkarılan klasörü taşıma
             $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
             if ($extracted_dir && is_dir($extracted_dir)) {
-                self::delete_directory(self::$repo_directory);
-                if (!self::moveFolderForce($extracted_dir, self::$repo_directory)) {
-                    error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . self::$repo_directory);
-                    self::delete_directory($temp_dir);
+                //self::delete_directory(self::$repo_directory);
+                if (!self::moveFolderForce($extracted_dir, $package_folder)) {
+                    error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . $package_folder);
+                    //self::delete_directory($temp_dir);
                     wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
                 }
-                error_log("Yeni sürüm başarıyla taşındı: " . self::$repo_directory);
+                error_log("Yeni sürüm başarıyla taşındı: " . $package_folder);
 
                 // Geçici dizini temizle
                 self::delete_directory($temp_dir);
-                self::update_composer_lock($latest_version);
+                self::update_composer_lock($package_name, $latest_version);
                 wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
             } else {
                 error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
@@ -371,27 +374,9 @@ class Update {
             wp_die('Could not retrieve the zipball URL from the latest release.');
         }
     }
-    public static function moveFolderForce($src, $dst) {
-        if (!is_dir($src)) {
-            error_log("Kaynak klasör bulunamadı: $src");
-            return false;
-        }
 
-        try {
-            // Kopyala
-            self::recurseCopy($src, $dst);
 
-            // Kopyalama başarılı ise kaynak klasörü sil
-            self::recurseDelete($src);
-
-            return true;
-        } catch (Exception $e) {
-            error_log("Taşıma işlemi başarısız: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    private static function update_composer_lock($latest_version) {
+    private static function update_composer_lock($package_name, $latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
             error_log("composer.lock not found.");
             return;
@@ -400,7 +385,7 @@ class Update {
         $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
 
         // En son commit hash'i al
-        $url = self::$github_api_url . '/' . self::$github_repo . '/commits/' . $latest_version;
+        $url = self::$github_api_url . '/' . $package_name . '/commits/' . $latest_version;
         $response = wp_remote_get($url, [
             'headers' => [
                 'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN,
@@ -418,11 +403,11 @@ class Update {
         $commit_hash = $commit_data['sha'] ?? 'main';
 
         foreach ($lock_data['packages'] as &$package) {
-            if ($package['name'] === self::$github_repo) {
+            if ($package['name'] === $package_name) {
                 $package['version'] = $latest_version;
                 $package['source']['reference'] = $commit_hash;
                 $package['dist']['reference'] = $commit_hash;
-                $package['dist']['url'] = "https://api.github.com/repos/" . self::$github_repo . "/zipball/" . $commit_hash;
+                $package['dist']['url'] = "https://api.github.com/repos/" . $package_name . "/zipball/" . $commit_hash;
             }
         }
         file_put_contents(self::$composer_lock_path, json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -454,7 +439,7 @@ class Update {
                 });
                 if($dependencies){
                     foreach($dependencies as $package){
-                        self::composer_manuel_install($package["package"]);
+                        self::composer_manuel_install($package["package"], $package["latest"]);
                     }
                 }                
             }else{
@@ -914,6 +899,25 @@ class Update {
 
         } else {
             return;
+        }
+    }
+    public static function moveFolderForce($src, $dst) {
+        if (!is_dir($src)) {
+            error_log("Kaynak klasör bulunamadı: $src");
+            return false;
+        }
+
+        try {
+            // Kopyala
+            self::recurseCopy($src, $dst);
+
+            // Kopyalama başarılı ise kaynak klasörü sil
+            self::recurseDelete($src);
+
+            return true;
+        } catch (Exception $e) {
+            error_log("Taşıma işlemi başarısız: " . $e->getMessage());
+            return false;
         }
     }
     private static function recurseDelete($dir) {
