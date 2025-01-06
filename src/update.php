@@ -515,6 +515,7 @@ class Update {
         $app->setAutoExit(false);
         $input = new ArrayInput([
             'command' => 'outdated',
+            '--format' => 'json',
             '--working-dir' => get_template_directory()
         ]);
         $output = new BufferedOutput();
@@ -522,28 +523,25 @@ class Update {
         try {
             $app->run($input, $output);
             $rawOutput = $output->fetch();
-            $lines = explode("\n", trim($rawOutput));
-            $packages = [];
+            $data = json_decode($rawOutput, true);
 
-            foreach ($lines as $line) {
-                // Uyarıları ve hatalı satırları atla
-                if (strpos($line, '<warning>') !== false || strpos($line, 'Package') !== false || strpos($line, 'dependencies') !== false) {
-                    continue;
-                }
-
-                // Doğru formatı yakala
-                if (preg_match('/^(\S+)\s+(\S+)\s+(\S+)(?:\s+(.*))?$/', $line, $matches)) {
-                    $packages[] = [
-                        'package' => $matches[1],
-                        'current' => $matches[2],
-                        'latest' => $matches[3],
-                        'description' => $matches[4] ?? '',
-                        'dependency' => self::is_composer_dependency($matches[1])
-                    ];
-                }
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log('JSON decode error: ' . json_last_error_msg());
+                return [];
             }
 
-            error_log(" - FILTERED UPDATES:");
+            $packages = [];
+            foreach ($data['installed'] as $package) {
+                $packages[] = [
+                    'package' => $package['name'],
+                    'current' => $package['version'],
+                    'latest' => $package['latest'],
+                    'description' => $package['description'] ?? '',
+                    'dependency' => self::is_composer_dependency($package['name'])
+                ];
+            }
+
+            error_log(" - UPDATES:");
             error_log(json_encode($packages));
             return $packages;
 
