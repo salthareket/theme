@@ -129,6 +129,9 @@ jQuery(document).ready(function ($) {
             }
         });
     });
+    if($('#update-theme-button').hasClass("init")){
+       $('#update-theme-button').trigger("click");
+    }
 
     $('#install-package-button').on('click', function () {
         const packageName = $('#install-package-name').val();

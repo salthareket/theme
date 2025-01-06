@@ -246,6 +246,12 @@ class Update {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
         $installed_packages = self::get_installed_packages();
+        
+        $init_class = "";
+        $dependencies = get_option('composer_dependencies');
+        if($dependencies){
+            $init_class = "init";
+        }
 
         echo '<div class="wrap">';
 
@@ -254,7 +260,7 @@ class Update {
             printf('<p>Latest Version: <strong>%s</strong></p>', esc_html($latest_version));
             if ($latest_version !== 'Unknown' && version_compare($current_version, $latest_version, '<')) {
                 echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="update"></div>';
-                echo '<button id="update-theme-button" class="button button-primary">Update to ' . esc_html($latest_version) . '</button>';
+                echo '<button id="update-theme-button" class="button button-primary '.$init_class.'">Update to ' . esc_html($latest_version) . '</button>';
             } else {
                 echo '<h3 class="text-success fw-bold">Your theme is up to date.</h3>';
             }
@@ -529,7 +535,9 @@ class Update {
                         self::composer_manuel_install($package["package"], $package["latest"], true);
                     }
                     update_option('composer_dependencies', $dependencies);
-                    wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
+                    header("Refresh: 0");
+                    exit;
+                    //wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
                 }                
             }else{
                 wp_send_json_success(['message' => 'No updates or installations performed. 2', "action" => "nothing" ]);
