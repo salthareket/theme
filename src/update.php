@@ -323,7 +323,7 @@ class Update {
             $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
             if ($extracted_dir && is_dir($extracted_dir)) {
                 self::delete_directory(self::$repo_directory);
-                if (!rename($extracted_dir, self::$repo_directory)) {
+                if (!self::moveFolderForce($extracted_dir, self::$repo_directory)) {
                     error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . self::$repo_directory);
                     self::delete_directory($temp_dir);
                     wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
@@ -369,6 +369,25 @@ class Update {
             return $data['zipball_url'];
         } else {
             wp_die('Could not retrieve the zipball URL from the latest release.');
+        }
+    }
+    public static function moveFolderForce($src, $dst) {
+        if (!is_dir($src)) {
+            error_log("Kaynak klasör bulunamadı: $src");
+            return false;
+        }
+
+        try {
+            // Kopyala
+            self::recurseCopy($src, $dst);
+
+            // Kopyalama başarılı ise kaynak klasörü sil
+            self::recurseDelete($src);
+
+            return true;
+        } catch (Exception $e) {
+            error_log("Taşıma işlemi başarısız: " . $e->getMessage());
+            return false;
         }
     }
 
