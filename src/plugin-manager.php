@@ -77,12 +77,12 @@ class PluginManager {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($required_plugins as $plugin_slug): ?>
+                    <?php foreach ($required_plugins as $plugin): ?>
                         <?php 
                         // Tam slug oluşturma
-                        $full_slug = self::get_full_slug($plugin_slug);
-                        $plugin_data = self::get_plugin_data($plugin_slug);
-                        $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug);
+                        $full_slug = self::get_full_slug($plugin["name"]);
+                        $plugin_data = self::get_plugin_data($full_slug);
+                        $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($full_slug);
                         $installed_version = $plugin_data['Version'] ?? 'Not Installed';
                         $is_active = self::is_plugin_active($full_slug);
                         $is_installed = self::is_plugin_installed($full_slug);
@@ -162,14 +162,14 @@ class PluginManager {
 
             // Tüm plugin bilgilerini JS'ye aktar
             $plugins = [];
-            foreach ($GLOBALS['plugins'] as $plugin_slug) {
-                $plugin_data = self::get_plugin_data($plugin_slug);
+            foreach ($GLOBALS['plugins'] as $plugin) {
+                $plugin_data = self::get_plugin_data($plugin["name"]);
                 $plugins[] = [
-                    'slug' => $plugin_slug,
-                    'name' => $plugin_data['Name'] ?? self::get_plugin_name($plugin_slug),
+                    'slug' => $plugin["name"],
+                    'name' => $plugin_data['Name'] ?? self::get_plugin_name($plugin["name"]),
                     'version' => $plugin_data['Version'] ?? 'Not Installed',
-                    'active' => self::is_plugin_active($plugin_slug),
-                    'installed' => self::is_plugin_installed($plugin_slug),
+                    'active' => self::is_plugin_active($plugin["name"]),
+                    'installed' => self::is_plugin_installed($plugin["name"]),
                 ];
             }
 
@@ -277,19 +277,23 @@ class PluginManager {
     }
 
     // Check and install required plugins from the $GLOBALS["plugins"] array
-    public static function check_and_install_required_plugins() {
+    public static function check_and_install_required_plugins($plugin_types) {
         $required_plugins = $GLOBALS["plugins"] ?? [];
-        foreach ($required_plugins as $plugin_slug) {
+        foreach ($required_plugins as $plugin) {
             // Plugin zaten yüklü mü?
-            if (!self::is_plugin_installed($plugin_slug)) {
+            if (!self::is_plugin_installed($plugin["name"])) {
                 // WordPress repository'den yükleme
-                self::install_plugin_from_wp_repo($plugin_slug);
+                if (
+                    (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))
+                ) {
+                    self::install_plugin_from_wp_repo($plugin["name"]);
+                }
             }
         }
     }
 
     // Check and update local plugins from the $GLOBALS["plugins_local"] array
-    public static function check_and_update_local_plugins() {
+    public static function check_and_update_local_plugins($plugin_types) {
         $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
         $plugin_dir = __DIR__ . '/plugins';
 
@@ -301,7 +305,7 @@ class PluginManager {
                 self::install_local_plugin($plugin_dir, $plugin_info);
             }
 
-            if (!self::is_plugin_active($plugin_info['name'])) {
+            if (!self::is_plugin_active($plugin_info['name']) && (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))) {
                 self::activate_plugin($plugin_info['name']);
             }
         }

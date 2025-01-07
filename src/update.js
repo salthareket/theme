@@ -12,6 +12,14 @@ jQuery(document).ready(function ($) {
         runTask(currentTaskIndex); // İlk görevi çalıştır
     });
 
+    function plugin_types() {
+        const checkedValues = [];
+        document.querySelectorAll('input[name="plugin_types"]:checked').forEach(checkbox => {
+            checkedValues.push(checkbox.value);
+        });
+        return checkedValues;
+    }
+
     function runTask(taskIndex) {
 
         if (taskIndex >= tasks.length) {
@@ -27,6 +35,7 @@ jQuery(document).ready(function ($) {
             data: {
                 action: 'run_task',
                 task_id: task.id,
+                plugin_types: plugin_types(),
                 nonce: updateAjax.nonce
             },
             beforeSend: function () {
@@ -116,6 +125,7 @@ jQuery(document).ready(function ($) {
                 _ajax_nonce: updateAjax.nonce
             },
             success: function (response) {
+                console.log(response);
                 if (response.success) {
                     composer_message(response.data.message, response.data.action, "update");
                 } else {

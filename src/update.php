@@ -213,20 +213,24 @@ class Update {
                         <hr>
                         <div class="d-flex justify-content-center">
                             <div class="form-check d-flex align-items-center">
-                                <input class="form-check-input" type="checkbox" name="plugin_types" id="multilanguageSwitch">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="multilanuage" id="multilanguageSwitch">
                                 <label class="form-check-label ms-2" for="multilanguageSwitch">Multilanguage</label>
                             </div>
                             <div class="ms-4 form-check d-flex align-items-center">
-                                <input class="form-check-input" type="checkbox" name="plugin_types" id="ecommerceSwitch">
-                                <label class="form-check-label ms-2" for="ecommerceSwitch">E-commerce</label>
-                            </div>
-                            <div class="ms-4 form-check d-flex align-items-center">
-                                <input class="form-check-input" type="checkbox" name="plugin_types" id="membershipSwitch">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="membership" id="membershipSwitch">
                                 <label class="form-check-label ms-2" for="membershipSwitch">Membership</label>
                             </div>
                             <div class="ms-4 form-check d-flex align-items-center">
-                                <input class="form-check-input" type="checkbox" name="plugin_types" id="contactFormsSwitch">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="contact-forms" id="contactFormsSwitch">
                                 <label class="form-check-label ms-2" for="contactFormsSwitch">Contact Forms</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="social-share" id="social-shareSwitch">
+                                <label class="form-check-label ms-2" for="social-shareSwitch">Social Share</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="ecommerce" id="ecommerceSwitch">
+                                <label class="form-check-label ms-2" for="ecommerceSwitch">E-commerce</label>
                             </div>
                         </div>
                     </div>
@@ -252,6 +256,7 @@ class Update {
         $dependencies = get_option('composer_dependencies');
         if($dependencies){
             $init_class = "init";
+            update_option('composer_dependencies', []);
         }
 
         echo '<div class="wrap">';
@@ -854,11 +859,11 @@ class Update {
             //throw new \Exception("npm install işlemi başarısız oldu: " . $e->getMessage());
         }
     }
-    private static function install_wp_plugins(){
-        \PluginManager::check_and_install_required_plugins();
+    private static function install_wp_plugins($plugin_types){
+        \PluginManager::check_and_install_required_plugins($plugin_types);
     }
-    private static function install_local_plugins(){
-        \PluginManager::check_and_update_local_plugins();
+    private static function install_local_plugins($plugin_types){
+        \PluginManager::check_and_update_local_plugins($plugin_types);
     }
     private static function compile_methods(){
         acf_methods_settings();
@@ -877,6 +882,9 @@ class Update {
     public static function run_task() {
         check_ajax_referer('update_theme_nonce', 'nonce');
         $task_id = isset($_POST['task_id']) ? sanitize_text_field($_POST['task_id']) : '';
+        $plugin_types = isset($_POST['plugin_types']) && is_array($_POST['plugin_types'])
+        ? array_map('sanitize_text_field', $_POST['plugin_types'])
+        : [];
         try {
             switch ($task_id) {
                 case 'copy_theme':
@@ -911,13 +919,13 @@ class Update {
                     break;
                 case 'install_wp_plugins':
                     ob_start();
-                    self::install_wp_plugins();
+                    self::install_wp_plugins($plugin_types);
                     ob_end_clean();
                     self::update_task_status('install_wp_plugins', true);
                     wp_send_json_success(['message' => 'WP plugins installed successfully']);
                     break;
                 case 'install_local_plugins':
-                    self::install_local_plugins();
+                    self::install_local_plugins($plugin_types);
                     self::update_task_status('install_local_plugins', true);
                     wp_send_json_success(['message' => 'Local plugins installed successfully']);
                     break;

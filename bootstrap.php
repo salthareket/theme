@@ -15,5 +15,5 @@ if($dependencies){
 	foreach($dependencies as $package){
 		Update::update_composer_lock($package["package"], $package["latest"]);
     }
-    update_option('composer_dependencies', []);
+    //update_option('composer_dependencies', []);
 }
