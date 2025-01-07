@@ -646,8 +646,7 @@ $variables = [
 "logo" => "'" . get_field("logo", "option") . "'",
 "dropdown_notification" => boolval(header_has_dropdown()) ? "true" : "false",
 "node_modules_path" =>  '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
-//"theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"'
-"theme_static_path" => '"' . rtrim(str_replace('\\', '/', THEME_STATIC_PATH), '/') . '/"'
+"theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"'
 ];
 error_log(print_r($variables['theme_static_path'], true));
 if(file_exists(get_stylesheet_directory() ."/static/js/js_files_all.json")){

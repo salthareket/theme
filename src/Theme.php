@@ -627,7 +627,7 @@ Class Theme{
             ],
             STATIC_PATH."css/",
             'SOURCE_MAP_NONE',
-            OutputStyle::COMPRESSED
+            "compressed"
         );
         $wpscss_compiler->wp_scss_compile();
         return $wpscss_compiler->get_compile_errors();
