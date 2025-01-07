@@ -622,7 +622,9 @@ Class Theme{
     public static function scss_compile(){
         global $wpscss_compiler;
         $wpscss_compiler = new \SCSSCompiler(
-            SH_STATIC_PATH."scss/",
+            [
+                SH_STATIC_PATH."scss/"
+            ],
             STATIC_PATH."css/",
             'SOURCE_MAP_NONE',
             OutputStyle::COMPRESSED
