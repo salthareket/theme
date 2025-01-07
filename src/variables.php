@@ -248,7 +248,7 @@ add_action('after_setup_theme', function () {
 });
 
 include_once SH_INCLUDES_PATH . "helpers/index.php";
-if(SH_THEME_EXISTS){
+if(SH_THEME_EXISTS || file_exists(THEME_INCLUDES_PATH . "globals.php")){
     include_once THEME_INCLUDES_PATH . "globals.php";
 }
 include_once SH_INCLUDES_PATH . "blocks.php";
@@ -411,7 +411,7 @@ include_once SH_CLASSES_PATH . "class.localization.php";
 include_once SH_CLASSES_PATH . "class.page-assets-extractor.php"; 
 //include 'classes/class.geolocation.query.php';
 
-include_once SH_INCLUDES_PATH . "actions.php";
+
 include_once SH_INCLUDES_PATH . "notices.php";
 include_once SH_INCLUDES_PATH . "rewrite.php";
 include_once SH_INCLUDES_PATH . "ajax.php";
@@ -436,16 +436,17 @@ if (ENABLE_ECOMMERCE) {
 }
 
 // extend with theme files
-if(SH_THEME_EXISTS){
+if(SH_THEME_EXISTS || file_exists(get_template_directory() . "/theme/index.php")){
     include_once get_template_directory() . "/theme/index.php";
-    if (is_admin()) {
+}
+if (is_admin()) {
         include_once SH_INCLUDES_PATH . "admin/index.php";
         if(!function_exists("acf_general_settings_rewrite")){
             include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
         }
-    }
 }
 include_once SH_INCLUDES_PATH . "shortcodes.php";
+include_once SH_INCLUDES_PATH . "actions.php";
 /*
 $GLOBALS["base_urls"] = array();
 //if (ENABLE_MEMBERSHIP) {
