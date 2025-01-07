@@ -1,5 +1,9 @@
 <?php
 
+if (!function_exists("get_home_path")) {
+    include_once ABSPATH . "/wp-admin/includes/file.php";
+}
+
 // SaltHareket/Theme paths
 define('SH_PATH',  __DIR__ . '/');
 define('SH_INCLUDES_PATH',  __DIR__ . '/includes/');
@@ -390,10 +394,6 @@ if(ENABLE_SOCIAL_LOGIN){
 
 if (class_exists("YABE_WEBFONT")) {
     include_once SH_INCLUDES_PATH . "plugins/yabe-font.php";
-}
-
-if (!function_exists("get_home_path")) {
-    include_once ABSPATH . "/wp-admin/includes/file.php";
 }
 
 if (ENABLE_PRODUCTION) {

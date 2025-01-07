@@ -31,6 +31,7 @@ class Update {
         ["id" => "copy_fields", "name" => "Copying ACF Fields"],
         ["id" => "register_fields", "name" => "Registering ACF Fields"],
         ["id" => "update_fields", "name" => "Updating ACF Fields"],
+        ["id" => "npm_packages", "name" => "npm packages copying"],
         ["id" => "npm_install", "name" => "npm packages installing"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
         ["id" => "generate_files", "name" => "Generating Files"],
@@ -825,6 +826,11 @@ class Update {
             acf_save_post_block_columns_action( $post_id );
         }
     }
+    private static function npm_packages(){
+        $source = SH_PATH . 'package.json';
+        $destination = get_home_path();
+        fileCopy($source, $destination);
+    }
     private static function npm_install(): string{
         $workingDir = ABSPATH;
         if (!is_dir($workingDir)) {
@@ -928,6 +934,11 @@ class Update {
                     self::install_local_plugins($plugin_types);
                     self::update_task_status('install_local_plugins', true);
                     wp_send_json_success(['message' => 'Local plugins installed successfully']);
+                    break;
+                case 'npm_packages':
+                    self::npm_packages();
+                    self::update_task_status('npm_packages', true);
+                    wp_send_json_success(['message' => 'NPM Packages copied successfully']);
                     break;
                 case 'npm_install':
                     self::npm_install();
