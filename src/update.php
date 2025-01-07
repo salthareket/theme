@@ -59,6 +59,7 @@ class Update {
         add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
         self::fix();
         self::check_installation();
+        //print_r(self::get_composer_updates());
     }
 
     private static function check_installation(){
@@ -718,11 +719,14 @@ class Update {
             // composer/composer bağımlılıklarını al
             $composerDependencies = [];
             $composerRequirements = [];
-            foreach ($composerLockData['packages'] ?? [] as $package) {
-                if ($package['name'] === 'composer/composer' && isset($package['require'])) {
-                    $composerDependencies = array_keys($package['require']);
-                    $composerRequirements = $package['require'];
-                    break;
+
+            foreach (['packages', 'packages-dev'] as $key) {
+                foreach ($composerLockData[$key] ?? [] as $package) {
+                    if ($package['name'] === 'composer/composer' && isset($package['require'])) {
+                        $composerDependencies = array_keys($package['require']);
+                        $composerRequirements = $package['require'];
+                        break 2; // Her iki alanı da kontrol ettiğimiz için dış döngüyü de kırıyoruz
+                    }
                 }
             }
 
@@ -750,37 +754,17 @@ class Update {
             return false;
         }
     }
+
     private static function is_version_compatible($version, $constraint) {
-        // "||" ile ayrılmış sürüm kısıtlamalarını destekler
-        $constraints = explode('||', $constraint);
-
-        foreach ($constraints as $individualConstraint) {
-            $individualConstraint = trim($individualConstraint);
-
-            if (preg_match('/^\^([0-9]+)\.([0-9]+)\.([0-9]+)/', $individualConstraint, $matches)) {
-                $major = (int)$matches[1];
-                $minor = (int)$matches[2];
-                $patch = (int)$matches[3];
-
-                // Başlangıç sürüm sınırı
-                $minVersion = "{$major}.{$minor}.{$patch}";
-                // Maksimum sürüm (bir sonraki major sürüm)
-                $maxVersion = ($major + 1) . ".0.0";
-
-                if (version_compare($version, $minVersion, '>=') && version_compare($version, $maxVersion, '<')) {
-                    return true; // Uygun bir sürüm bulundu
-                }
-            } elseif (preg_match('/^([0-9]+\.[0-9]+\.[0-9]+)$/', $individualConstraint, $exactMatch)) {
-                // Tam eşleşme için kontrol (örneğin "7.2.2")
-                if (version_compare($version, $exactMatch[1], '==')) {
-                    return true;
-                }
-            }
+        // Composer'ın semver kütüphanesi ile uyumluluğu kontrol et
+        if (!class_exists('Composer\Semver\Semver')) {
+            error_log('Composer Semver kütüphanesi yüklenmedi.');
+            return false;
         }
 
-        error_log("{$version} sürümü, '{$constraint}' kısıtlamasına uymuyor.");
-        return false; // Hiçbir kısıtlamaya uymadı
+        return \Composer\Semver\Semver::satisfies($version, $constraint);
     }
+
 
 
 
