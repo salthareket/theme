@@ -453,8 +453,6 @@ class Update {
 
         // composer.lock içeriğini güncelle
         $packages_sections = ['packages', 'packages-dev'];
-        $updated = false;
-
         foreach ($packages_sections as $section) {
             if (!isset($lock_data[$section])) {
                 continue;
@@ -462,7 +460,7 @@ class Update {
 
             foreach ($lock_data[$section] as &$package) {
                 if ($package['name'] === $package_name) {
-                    $package = array_merge($package, [
+                    $package = [
                         'name' => $package_name,
                         'version' => $latest_version,
                         'source' => [
@@ -476,11 +474,11 @@ class Update {
                             'reference' => $package_version_data['dist']['reference'] ?? '',
                             'shasum' => $package_version_data['dist']['shasum'] ?? '',
                         ],
+                        'notification-url' => 'https://packagist.org/downloads/',
                         'require' => $package_version_data['require'] ?? [],
                         'require-dev' => $package_version_data['require-dev'] ?? [],
-                        'type' => $package_version_data['type'] ?? 'library',
+                        'type' => 'library',
                         'autoload' => $package_version_data['autoload'] ?? [],
-                        'notification-url' => $package_version_data['notification-url'] ?? 'https://packagist.org/downloads/',
                         'license' => $package_version_data['license'] ?? [],
                         'authors' => $package_version_data['authors'] ?? [],
                         'description' => $package_version_data['description'] ?? '',
@@ -488,64 +486,18 @@ class Update {
                         'support' => $package_version_data['support'] ?? [],
                         'funding' => $package_version_data['funding'] ?? [],
                         'time' => $package_version_data['time'] ?? '',
-                    ]);
+                    ];
                     error_log("Paket güncellendi: $package_name - $latest_version");
-                    $updated = true;
                     break;
                 }
             }
         }
 
-        // Yeni bir paket ekle
-        if (!$updated && isset($lock_data['packages'])) {
-            $lock_data['packages'][] = [
-                'name' => $package_name,
-                'version' => $latest_version,
-                'source' => [
-                    'type' => 'git',
-                    'url' => $package_version_data['source']['url'] ?? '',
-                    'reference' => $package_version_data['source']['reference'] ?? '',
-                ],
-                'dist' => [
-                    'type' => 'zip',
-                    'url' => $package_version_data['dist']['url'] ?? '',
-                    'reference' => $package_version_data['dist']['reference'] ?? '',
-                    'shasum' => $package_version_data['dist']['shasum'] ?? '',
-                ],
-                'require' => $package_version_data['require'] ?? [],
-                'require-dev' => $package_version_data['require-dev'] ?? [],
-                'type' => $package_version_data['type'] ?? 'library',
-                'autoload' => $package_version_data['autoload'] ?? [],
-                'notification-url' => 'https://packagist.org/downloads/',
-                'license' => $package_version_data['license'] ?? [],
-                'authors' => $package_version_data['authors'] ?? [],
-                'description' => $package_version_data['description'] ?? '',
-                'homepage' => $package_version_data['homepage'] ?? '',
-                'support' => $package_version_data['support'] ?? [],
-                'funding' => $package_version_data['funding'] ?? [],
-                'time' => $package_version_data['time'] ?? '',
-            ];
-            error_log("Yeni paket eklendi: $package_name - $latest_version");
-        }
-
-        // `aliases`, `platform` gibi alanları düzenle
-        $lock_data['aliases'] = (object) ($lock_data['aliases'] ?? []);
+        // composer.lock genel alanları düzenle
+        $lock_data['aliases'] = $lock_data['aliases'] ?? [];
+        $lock_data['stability-flags'] = (object) ($lock_data['stability-flags'] ?? []);
         $lock_data['platform'] = (object) ($lock_data['platform'] ?? []);
         $lock_data['platform-dev'] = (object) ($lock_data['platform-dev'] ?? []);
-
-        // content-hash hesaplama
-        try {
-            $composer_json_content = file_get_contents(self::$composer_path);
-            $normalized_content = \Composer\Json\JsonFile::encode(
-                json_decode($composer_json_content, true),
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-            );
-            $new_content_hash = hash('sha256', $normalized_content);
-            $lock_data['content-hash'] = $new_content_hash;
-        } catch (Exception $e) {
-            error_log("content-hash hesaplama hatası: " . $e->getMessage());
-            return;
-        }
 
         // composer.lock dosyasını yaz
         $json_data = json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -554,8 +506,32 @@ class Update {
             return;
         }
 
-        error_log("composer.lock ve content-hash güncellendi.");
+        // Composer uygulamasını çalıştırarak content-hash'i güncelle
+        try {
+            $application = new Application();
+            $application->setAutoExit(false);
+
+            $input = new ArrayInput([
+                'command' => 'update',
+                '--lock' => true,
+                '--no-install' => true,
+                '--working-dir' => dirname(self::$composer_path)
+            ]);
+
+            $output = new BufferedOutput();
+            $application->run($input, $output);
+
+            error_log("composer.lock ve content-hash başarıyla güncellendi.");
+            error_log($output->fetch());
+        } catch (Exception $e) {
+            error_log("Composer uygulaması çalıştırılamadı: " . $e->getMessage());
+        }
+
+        error_log("composer.lock güncellemesi tamamlandı.");
     }
+
+
+
 
 
 
