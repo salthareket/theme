@@ -863,7 +863,7 @@ class Update {
     private static function npm_packages(){
         $source = SH_PATH . 'package.json';
         $destination = get_home_path();
-        fileCopy($source, $destination);
+        self::fileCopy($source, $destination);
     }
     private static function npm_install(): string{
         $workingDir = ABSPATH;
