@@ -1,6 +1,7 @@
 <?php
 
 use Composer\Console\Application;
+use Composer\Json\JsonFile;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -425,7 +426,7 @@ class Update {
             return;
         }
 
-        // API'den gerekli bilgileri al
+        // Packagist API'den gerekli bilgileri al
         $url = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
         $response = wp_remote_get($url);
         if (is_wp_error($response)) {
@@ -479,7 +480,7 @@ class Update {
                         'require-dev' => $package_version_data['require-dev'] ?? [],
                         'type' => $package_version_data['type'] ?? 'library',
                         'autoload' => $package_version_data['autoload'] ?? [],
-                        'notification-url' => $package_version_data['notification-url'] ?? '',
+                        'notification-url' => $package_version_data['notification-url'] ?? 'https://packagist.org/downloads/',
                         'license' => $package_version_data['license'] ?? [],
                         'authors' => $package_version_data['authors'] ?? [],
                         'description' => $package_version_data['description'] ?? '',
@@ -495,7 +496,7 @@ class Update {
             }
         }
 
-        // Eğer güncelleme yapılmadıysa yeni bir paket ekle
+        // Yeni bir paket ekle
         if (!$updated && isset($lock_data['packages'])) {
             $lock_data['packages'][] = [
                 'name' => $package_name,
@@ -515,7 +516,7 @@ class Update {
                 'require-dev' => $package_version_data['require-dev'] ?? [],
                 'type' => $package_version_data['type'] ?? 'library',
                 'autoload' => $package_version_data['autoload'] ?? [],
-                'notification-url' => $package_version_data['notification-url'] ?? '',
+                'notification-url' => 'https://packagist.org/downloads/',
                 'license' => $package_version_data['license'] ?? [],
                 'authors' => $package_version_data['authors'] ?? [],
                 'description' => $package_version_data['description'] ?? '',
@@ -527,13 +528,26 @@ class Update {
             error_log("Yeni paket eklendi: $package_name - $latest_version");
         }
 
-        // content-hash'i güncelle
-        $composer_json_content = file_get_contents(self::$composer_path);
-        $normalized_content = json_encode(json_decode($composer_json_content, true), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $new_content_hash = hash('sha256', $normalized_content);
-        $lock_data['content-hash'] = $new_content_hash;
+        // `aliases`, `platform` gibi alanları düzenle
+        $lock_data['aliases'] = (object) ($lock_data['aliases'] ?? []);
+        $lock_data['platform'] = (object) ($lock_data['platform'] ?? []);
+        $lock_data['platform-dev'] = (object) ($lock_data['platform-dev'] ?? []);
 
-        // Güncellenmiş composer.lock'u yaz
+        // content-hash hesaplama
+        try {
+            $composer_json_content = file_get_contents(self::$composer_path);
+            $normalized_content = \Composer\Json\JsonFile::encode(
+                json_decode($composer_json_content, true),
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+            $new_content_hash = hash('sha256', $normalized_content);
+            $lock_data['content-hash'] = $new_content_hash;
+        } catch (Exception $e) {
+            error_log("content-hash hesaplama hatası: " . $e->getMessage());
+            return;
+        }
+
+        // composer.lock dosyasını yaz
         $json_data = json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if (file_put_contents(self::$composer_lock_path, $json_data) === false) {
             error_log("composer.lock yazılamadı: " . self::$composer_lock_path);
@@ -542,6 +556,7 @@ class Update {
 
         error_log("composer.lock ve content-hash güncellendi.");
     }
+
 
 
 
@@ -794,7 +809,6 @@ class Update {
             return false;
         }
     }
-
     private static function is_version_compatible($version, $constraint) {
         // Composer'ın semver kütüphanesi ile uyumluluğu kontrol et
         if (!class_exists('Composer\Semver\Semver')) {
