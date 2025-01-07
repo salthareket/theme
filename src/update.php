@@ -28,13 +28,13 @@ class Update {
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
+        ["id" => "generate_files", "name" => "Generating Files"],
         ["id" => "copy_fields", "name" => "Copying ACF Fields"],
         ["id" => "register_fields", "name" => "Registering ACF Fields"],
         ["id" => "update_fields", "name" => "Updating ACF Fields"],
         //["id" => "npm_packages", "name" => "npm packages copying"],
         ["id" => "npm_install", "name" => "npm packages installing"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
-        ["id" => "generate_files", "name" => "Generating Files"],
         ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
     ];
 
