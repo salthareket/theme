@@ -694,7 +694,8 @@ class Update {
     }
     public static function is_composer_dependency($package_name, $latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
-            return false; // composer.lock dosyası yoksa bağımlılık kontrolü yapılamaz
+            error_log("composer.lock dosyası bulunamadı.");
+            return false;
         }
 
         try {
@@ -702,14 +703,16 @@ class Update {
             $composerLockContent = file_get_contents(self::$composer_lock_path);
 
             if ($composerLockContent === false) {
-                return false; // Dosya okunamıyorsa false döner
+                error_log("composer.lock dosyası okunamadı.");
+                return false;
             }
 
             // JSON'u ayrıştır
             $composerLockData = json_decode($composerLockContent, true);
 
             if (!isset($composerLockData['packages']) && !isset($composerLockData['packages-dev'])) {
-                return false; // Gerekli alanlar yoksa bağımlılık kontrolü yapılamaz
+                error_log("composer.lock dosyasında 'packages' veya 'packages-dev' bulunamadı.");
+                return false;
             }
 
             // composer/composer bağımlılıklarını al
@@ -725,16 +728,18 @@ class Update {
 
             // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
             if (!in_array($package_name, $composerDependencies, true)) {
-                return false; // Bağımlılık değil
+                error_log("{$package_name} bağımlılık listesinde bulunamadı.");
+                return false;
             }
 
             // Sürüm kontrolü yap
             if (isset($composerRequirements[$package_name])) {
                 $requiredVersion = $composerRequirements[$package_name];
 
-                // Sürüm uyumluluğunu Composer SemVer formatına göre kontrol et
+                // Sürüm uyumluluğunu kontrol et
                 if (!self::is_version_compatible($latest_version, $requiredVersion)) {
-                    return false; // Yeni sürüm mevcut gereksinimlere uygun değil
+                    error_log("{$package_name}: {$latest_version} mevcut gereksinimlere uygun değil ({$requiredVersion}).");
+                    return false;
                 }
             }
 
@@ -745,7 +750,6 @@ class Update {
             return false;
         }
     }
-
     private static function is_version_compatible($version, $constraint) {
         // "||" ile ayrılmış sürüm kısıtlamalarını destekler
         $constraints = explode('||', $constraint);
@@ -774,8 +778,10 @@ class Update {
             }
         }
 
+        error_log("{$version} sürümü, '{$constraint}' kısıtlamasına uymuyor.");
         return false; // Hiçbir kısıtlamaya uymadı
     }
+
 
 
 
