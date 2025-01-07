@@ -257,9 +257,9 @@ class Update {
         $init_class = "";
         $dependencies = get_option('composer_dependencies');
         if($dependencies){
-            $init_class = "init";
-            update_option('composer_dependencies', []);
+            $init_class = "init";    
         }
+        update_option('composer_dependencies', []);
 
         echo '<div class="wrap">';
 
@@ -300,6 +300,36 @@ class Update {
             self::render_update_page();
         }
         self::enqueue_update_script();
+    }
+
+
+
+    public static function update_specific_package($package_name) {
+        try {
+            // Composer uygulamasını başlat
+            $application = new Application();
+            $application->setAutoExit(false);
+
+            // Composer komutunu yapılandır
+            $input = new ArrayInput([
+                'command' => 'update',
+                'packages' => [$package_name], // Belirtilen paketi günceller
+                '--with-dependencies' => true,
+                '--no-dev' => true, // İstersen --dev bağımlılıklarını devre dışı bırakabilirsin
+                '--working-dir' => dirname(self::$composer_path),
+            ]);
+
+            $output = new BufferedOutput();
+
+            // Komutu çalıştır
+            $application->run($input, $output);
+
+            // Çıktıyı logla
+            error_log("Composer güncelleme tamamlandı: $package_name");
+            error_log($output->fetch());
+        } catch (Exception $e) {
+            error_log("Composer güncelleme hatası: " . $e->getMessage());
+        }
     }
 
 
