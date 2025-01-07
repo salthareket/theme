@@ -20,6 +20,28 @@ jQuery(document).ready(function ($) {
         return checkedValues;
     }
 
+    function parseAjaxResponse(response) {
+        // JSON içerip içermediğini kontrol et
+        const jsonRegex = /{"success":.*}}/;
+
+        // JSON kısmını bul
+        const match = response.match(jsonRegex);
+        if (match) {
+            try {
+                // JSON kısmını ayıkla ve parse et
+                const jsonData = JSON.parse(match[0]);
+                console.log("JSON Data:", jsonData);
+                return jsonData;
+            } catch (error) {
+                console.error("JSON parse hatası:", error);
+                return null;
+            }
+        } else {
+            console.error("JSON verisi bulunamadı.");
+            return null;
+        }
+    }
+
     function runTask(taskIndex) {
 
         if (taskIndex >= tasks.length) {
@@ -44,6 +66,7 @@ jQuery(document).ready(function ($) {
                 installationStatus.html(task["name"]);
             },
             success: function (response) {
+                response = parseAjaxResponse(response);
                 if (response.success) {
                     installationStatus.html(response.data.message);
                     const progress = Math.round(((taskIndex + 1) / tasks.length) * 100);
