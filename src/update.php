@@ -1038,6 +1038,7 @@ class Update {
 
     private static function fix(){
         $fixes = include get_template_directory() . "/vendor/salthareket/theme/src/fix/index.php";
+        error_log("fixes");
         error_log(json_encode($fixes));
         if($fixes){
             foreach($fixes as $fix){
