@@ -297,16 +297,16 @@ class PluginManager {
         $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
         $plugin_dir = __DIR__ . '/plugins';
 
-        foreach ($required_plugins_local as $plugin_info) {
-            $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_info['name'];
+        foreach ($required_plugins_local as $plugin) {
+            $plugin_path = WP_PLUGIN_DIR . '/' . $plugin['name'];
             // Check if the plugin exists and if the version is outdated
-            if (!file_exists($plugin_path) || self::is_version_outdated($plugin_info['v'], $plugin_info['name'])) {
-                self::remove_plugin($plugin_info['file']);
-                self::install_local_plugin($plugin_dir, $plugin_info);
+            if (!file_exists($plugin_path) || self::is_version_outdated($plugin['v'], $plugin['name'])) {
+                self::remove_plugin($plugin['file']);
+                self::install_local_plugin($plugin_dir, $plugin);
             }
 
-            if (!self::is_plugin_active($plugin_info['name']) && (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))) {
-                self::activate_plugin($plugin_info['name']);
+            if (!self::is_plugin_active($plugin['name']) && (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))) {
+                self::activate_plugin($plugin['name']);
             }
         }
     }

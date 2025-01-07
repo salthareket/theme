@@ -21,6 +21,12 @@ jQuery(document).ready(function ($) {
     }
 
     function parseAjaxResponse(response) {
+        // Eğer response zaten bir nesne ise direkt dön
+        if (typeof response === "object") {
+            console.log("JSON Data:", response);
+            return response;
+        }
+
         // JSON içerip içermediğini kontrol et
         const jsonRegex = /{"success":.*}}/;
 
@@ -41,6 +47,7 @@ jQuery(document).ready(function ($) {
             return null;
         }
     }
+
 
     function runTask(taskIndex) {
 

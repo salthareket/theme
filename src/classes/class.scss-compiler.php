@@ -2,6 +2,7 @@
 
 use ScssPhp\ScssPhp\Compiler;
 use ScssPhp\ScssPhp\ValueConverter;
+use ScssPhp\ScssPhp\OutputStyle;
 
 class SCSSCompiler {
 
@@ -12,7 +13,7 @@ class SCSSCompiler {
   private Compiler $scssc;
   private string $sourcemaps;
 
-  public function __construct(string $scss_dir, string $css_dir, string $compile_method, string $sourcemaps) {
+  public function __construct(string $scss_dir, string $css_dir, string $sourcemaps, OutputStyle $compile_method = OutputStyle::COMPRESSED) {
 
     $this->scss_dir = $scss_dir;
     $this->css_dir = $css_dir;
@@ -21,6 +22,7 @@ class SCSSCompiler {
 
     $this->cache = STATIC_PATH . '/cache/';
 
+    //$this->scssc->setOutputStyle($compile_method);
     $this->scssc->setOutputStyle($compile_method);
     $this->scssc->setImportPaths($this->scss_dir);
 
@@ -215,6 +217,7 @@ class SCSSCompiler {
           unset($variables[$variable_key]);
         }
       }
+      //print_r($variables);
       $wpscss_compiler->set_variables($variables);
       $wpscss_compiler->compile();
     }

@@ -1,6 +1,9 @@
 <?php
 namespace SaltHareket;
 
+use ScssPhp\SCSSPhp\SCSSCompiler;
+use ScssPhp\ScssPhp\OutputStyle;
+
 Class Theme{
 
     function __construct(){
@@ -621,8 +624,8 @@ Class Theme{
         $wpscss_compiler = new \SCSSCompiler(
             SH_STATIC_PATH."scss/",
             STATIC_PATH."css/",
-            'compressed',
-            'SOURCE_MAP_NONE'
+            'SOURCE_MAP_NONE',
+            OutputStyle::COMPRESSED
         );
         $wpscss_compiler->wp_scss_compile();
         return $wpscss_compiler->get_compile_errors();

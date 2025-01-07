@@ -658,6 +658,12 @@ $variables = get_theme_styles($variables);
 return $variables;
 }
 add_filter("wp_scss_variables", "wp_scss_set_variables");
+function variable_font($font = ""){
+if(!empty($font)){
+$font = str_replace("|", "", $font);
+}
+return $font;
+}
 function get_theme_styles($variables = array()){
 $theme_styles = acf_get_theme_styles();
 if($theme_styles){
@@ -666,7 +672,7 @@ if(!is_dir($path)){
 mkdir($path, 0755, true);
 }
 // Typography
-$headings_font = $theme_styles["typography"]["font_family"];
+$headings_font = variable_font($theme_styles["typography"]["font_family"]);
 $variables["header_font"] = $headings_font;
 $headings = $theme_styles["typography"]["headings"];
 foreach($headings as $key => $heading){
@@ -674,58 +680,35 @@ $variables["typography_".$key."_font"] = $headings_font;
 $variables["typography_".$key."_size"] = acf_units_field_value($heading["font_size"]);
 $variables["typography_".$key."_weight"] = $heading["font_weight"];
 }
-$title_sizes = array();
-$title_mobile_sizes = array();
-$title_line_heights = array();
-$title_mobile_line_heights = array();
-foreach($theme_styles["typography"]["title"] as $key => $breakpoint){
-$title_sizes[] =  "(size : ".$key.", font-size: ".acf_units_field_value($breakpoint).")";
+$title_sizes = [];
+$title_mobile_sizes = [];
+$title_line_heights = [];
+$title_mobile_line_heights = [];
+foreach ($theme_styles["typography"]["title"] as $key => $breakpoint) {
+$title_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
 }
-foreach($theme_styles["typography"]["title_mobile"] as $key => $breakpoint){
-$title_mobile_sizes[] =  "(size : ".$key.", font-size: ".acf_units_field_value($breakpoint).")";
+foreach ($theme_styles["typography"]["title_mobile"] as $key => $breakpoint) {
+$title_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
 }
-foreach($theme_styles["typography"]["title_line_height"] as $key => $breakpoint){
-$title_line_heights[] = "(size : ".$key.", line-height: ".acf_units_field_value($breakpoint).")";
-$fs = ($theme_styles["typography"]["title"][$key]["value"]);
-$lh = ($breakpoint["value"]);
-$mobile_fs = ($theme_styles["typography"]["title_mobile"][$key]["value"]);
-if(!empty($fs) && !empty($mobile_fs) && !empty($lh)){
+foreach ($theme_styles["typography"]["title_line_height"] as $key => $breakpoint) {
+$line_height = acf_units_field_value($breakpoint);
+$title_line_heights[] = "size: $key, line-height: $line_height";
+$fs = $theme_styles["typography"]["title"][$key]["value"];
+$lh = $breakpoint["value"];
+$mobile_fs = $theme_styles["typography"]["title_mobile"][$key]["value"];
+if (!empty($fs) && !empty($mobile_fs) && !empty($lh)) {
 $mobile_lh = ($mobile_fs * $lh) / $fs;
-$title_mobile_line_heights[] = "(size : ".$key.", line-height: ".($mobile_lh)."px)";
+$title_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
 }
 }
-$variables["title_sizes"] = implode(",", $title_sizes);
-$variables["title_mobile_sizes"] = implode(",", $title_mobile_sizes);
-$variables["title_line_heights"] = "(".implode(",", $title_line_heights).");";
-$variables["title_mobile_line_heights"] = "(".implode(",", $title_mobile_line_heights).");";
-$text_sizes = array();
-$text_mobile_sizes = array();
-$text_line_heights = array();
-$text_mobile_line_heights = array();
-foreach($theme_styles["typography"]["text"] as $key => $breakpoint){
-$text_sizes[] =  "(size : ".$key.", font-size: ".acf_units_field_value($breakpoint).")";
-}
-foreach($theme_styles["typography"]["text_mobile"] as $key => $breakpoint){
-$text_mobile_sizes[] =  "(size : ".$key.", font-size: ".acf_units_field_value($breakpoint).")";
-}
-foreach($theme_styles["typography"]["text_line_height"] as $key => $breakpoint){
-$text_line_heights[] = "(size : ".$key.", line-height: ".acf_units_field_value($breakpoint).")";
-$fs = ($theme_styles["typography"]["text"][$key]["value"]);
-$lh = ($breakpoint["value"]);
-$mobile_fs = ($theme_styles["typography"]["text_mobile"][$key]["value"]);
-if(!empty($fs) && !empty($mobile_fs) && !empty($lh)){
-$mobile_lh = ($mobile_fs * $lh) / $fs;
-$text_mobile_line_heights[] = "(size : ".$key.", line-height: ".($mobile_lh)."px)";
-}
-}
-$variables["text_sizes"] = implode(",", $text_sizes);
-$variables["text_mobile_sizes"] = implode(",", $text_mobile_sizes);
-$variables["text_line_heights"] = "(".implode(",", $text_line_heights).");";
-$variables["text_mobile_line_heights"] = "(".implode(",", $text_mobile_line_heights).");";
+$variables["title_sizes"] = "(".implode("), (", $title_sizes).")";
+$variables["title_mobile_sizes"] = "(".implode("), (", $title_mobile_sizes).")";
+$variables["title_line_heights"] = "(".implode("), (", $title_line_heights).")";
+$variables["title_mobile_line_heights"] = "(".implode("), (", $title_mobile_line_heights).")";
 // Body
 $body = $theme_styles["body"];
-$variables["font-primary"] = $body["primary_font"];
-$variables["font-secondary"] = $body["secondary_font"];
+$variables["font-primary"] = variable_font($body["primary_font"]);
+$variables["font-secondary"] = variable_font($body["secondary_font"]);
 $variables["base-font-size"] = acf_units_field_value($body["font_size"]);
 $variables["base-font-weight"] = $body["font_weight"];
 $variables["base-letter-spacing"] = acf_units_field_value($body["letter_spacing"]);
@@ -734,12 +717,16 @@ $variables["body-bg-color"] = scss_variables_color($body["bg_color"]);
 $variables["body-bg-backdrop"] = scss_variables_color($body["backdrop_color"]);
 // Button Sizes
 $buttons = $theme_styles["buttons"];
-if($buttons["custom"]){
+if ($buttons["custom"]) {
 $button_sizes = [];
-foreach($buttons["custom"] as $key => $size){
-$button_sizes[] = "(size : ".$size['size'].", padding_x: ".acf_units_field_value($size['padding_x']).", padding_y: ".acf_units_field_value($size['padding_y']).", font-size: ".acf_units_field_value($size['font_size']).", border-radius: ".acf_units_field_value($size['border_radius']).")";
+foreach ($buttons["custom"] as $key => $size) {
+$button_sizes[] = "size: ".$size['size'].
+", padding_x: ".acf_units_field_value($size['padding_x']).
+", padding_y: ".acf_units_field_value($size['padding_y']).
+", font-size: ".acf_units_field_value($size['font_size']).
+", border-radius: ".acf_units_field_value($size['border_radius']);
 }
-$variables["button-sizes"] = "(".implode(",", $button_sizes).");";
+$variables["button-sizes"] = "(".implode("), (", $button_sizes).")";
 }
 // Header
 $header = $theme_styles["header"];
@@ -804,8 +791,8 @@ $variables["header-navbar-nav-height-".$key."-affix"] = acf_units_field_value($b
 }
 // Nav Item
 $header_nav_item = $header["nav_item"];
-$variables["header-navbar-nav-font"] = $header_nav_item["font_family"];
-$variables["nav_font"] = $header_nav_item["font_family"];
+$variables["header-navbar-nav-font"] = variable_font($header_nav_item["font_family"]);
+$variables["nav_font"] = variable_font($header_nav_item["font_family"]);
 $variables["header-navbar-nav-font-weight"] = $header_nav_item["font_weight"];
 $variables["header-navbar-nav-font-weight-active"] = $header_nav_item["font_weight_active"];
 $variables["header-navbar-nav-font-text-transform"] = $header_nav_item["text_transform"];
@@ -875,7 +862,7 @@ $variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]);
 $variables["footer-bg-image"] = scss_variables_image($footer["bg_image"]);
 // Breadcrumb
 $breadcrumb = $theme_styles["breadcrumb"];
-$variables["breadcrumb-item-font-family"] = $breadcrumb["font_family"];
+$variables["breadcrumb-item-font-family"] = variable_font($breadcrumb["font_family"]);
 $variables["breadcrumb-item-font-size"] = acf_units_field_value($breadcrumb["font_size"]);
 $variables["breadcrumb-item-font-weight"] = $breadcrumb["font_weight"];
 $variables["breadcrumb-item-line-height"] = $breadcrumb["line_height"];
@@ -889,7 +876,7 @@ $pagination = $theme_styles["pagination"];
 $pagination_general = $pagination["pagination"];
 $variables["pagination-align"] = $pagination_general["align_vr"];
 $pagination_item = $pagination["item"];
-$variables["pagination-font-family"] = $pagination_item["font_family"];
+$variables["pagination-font-family"] = variable_font($pagination_item["font_family"]);
 $variables["pagination-font-size"] = acf_units_field_value($pagination_item["font_size"]);
 $variables["pagination-font-weight"] = $pagination_item["font_weight"];
 $variables["pagination-font-weight-active"] = $pagination_item["font_weight_active"];
@@ -904,7 +891,7 @@ $variables["pagination-item-border-hover"] = $pagination_item["border_hover"];
 $variables["pagination-item-border-active"] = $pagination_item["border_active"];
 $variables["pagination-item-border-radius"] = $pagination_item["border_radius"];
 $pagination_nav= $pagination["nav"];
-$variables["pagination-nav-font-family"] = $pagination_nav["font_family"];
+$variables["pagination-nav-font-family"] = variable_font($pagination_nav["font_family"]);
 $variables["pagination-nav-font-size"] = acf_units_field_value($pagination_nav["font_size"]);
 $variables["pagination-nav-color"] = scss_variables_color($pagination_nav["color"]);
 $variables["pagination-nav-color-hover"] = scss_variables_color($pagination_nav["color_hover"]);
@@ -932,7 +919,7 @@ $variables["offcanvas-padding"] = $offcanvas_general["padding"];
 $variables["offcanvas-align-hr"] = $offcanvas_general["align_hr"];
 $variables["offcanvas-align-vr"] = $offcanvas_general["align_vr"];
 $offcanvas_header = $offcanvas["header"];
-$variables["offcanvas-header-font"] = $offcanvas_header["font_family"];
+$variables["offcanvas-header-font"] = variable_font($offcanvas_header["font_family"]);
 $variables["offcanvas-header-font-size"] = acf_units_field_value($offcanvas_header["font_size"]);
 $variables["offcanvas-header-font-weight"] = $offcanvas_header["font_weight"];
 $variables["offcanvas-header-color"] = scss_variables_color($offcanvas_header["color"]);
@@ -940,7 +927,7 @@ $variables["offcanvas-header-padding"] = $offcanvas_header["padding"];
 $variables["offcanvas-header-icon-font-size"] = acf_units_field_value($offcanvas_header["icon_font_size"]);
 $variables["offcanvas-header-icon-color"] = scss_variables_color($offcanvas_header["icon_color"]);
 $offcanvas_nav_item = $offcanvas["nav_item"];
-$variables["offcanvas-item-font"] = $offcanvas_nav_item["font_family"];
+$variables["offcanvas-item-font"] = variable_font($offcanvas_nav_item["font_family"]);
 $variables["offcanvas-item-font-size"] = acf_units_field_value($offcanvas_nav_item["font_size"]);
 $variables["offcanvas-item-font-weight"] = $offcanvas_nav_item["font_weight"];
 $variables["offcanvas-item-color"] = scss_variables_color($offcanvas_nav_item["color"]);
@@ -979,30 +966,30 @@ foreach($header_tools_general["gap"] as $key => $breakpoint){
 $variables["header-tools-item-gap-".$key] = acf_units_field_value($breakpoint);
 }
 $header_tools_social = $header_tools["social"];
-$variables["header-social-font"] = $header_tools_social["font_family"];
+$variables["header-social-font"] = variable_font($header_tools_social["font_family"]);
 $variables["header-social-font-size"] = acf_units_field_value($header_tools_social["font_size"]);
 $variables["header-social-color"] = scss_variables_color($header_tools_social["color"]);
 $variables["header-social-color-hover"] = scss_variables_color($header_tools_social["color_hover"]);
 $variables["header-social-gap"] = acf_units_field_value($header_tools_social["gap"]);
 $header_tools_icons = $header_tools["icons"];
-$variables["header-icon-font"] = $header_tools_icons["font_family"];
+$variables["header-icon-font"] = variable_font($header_tools_icons["font_family"]);
 $variables["header-icon-font-size"] = acf_units_field_value($header_tools_icons["font_size"]);
 $variables["header-icon-color"] = scss_variables_color($header_tools_icons["color"]);
 $variables["header-icon-color-hover"] = scss_variables_color($header_tools_icons["color_hover"]);
 $variables["header-icon-dot-color"] = scss_variables_color($header_tools_icons["dot_color"]);
 $header_tools_link = $header_tools["link"];
-$variables["header-link-font"] = $header_tools_link["font_family"];
+$variables["header-link-font"] = variable_font($header_tools_link["font_family"]);
 $variables["header-link-font-size"] = acf_units_field_value($header_tools_link["font_size"]);
 $variables["header-link-font-weight"] = $header_tools_link["font_weight"];
 $variables["header-link-color"] = scss_variables_color($header_tools_link["color"]);
 $variables["header-link-color-hover"] = scss_variables_color($header_tools_link["color_hover"]);
 $variables["header-link-color-active"] = scss_variables_color($header_tools_link["color_active"]);
 $header_tools_button = $header_tools["button"];
-$variables["header-btn-font"] = $header_tools_button["font_family"];
+$variables["header-btn-font"] = variable_font($header_tools_button["font_family"]);
 $variables["header-btn-font-size"] = acf_units_field_value($header_tools_button["font_size"]);
 $variables["header-btn-font-weight"] = $header_tools_button["font_weight"];
 $header_tools_language = $header_tools["language"];
-$variables["header-language-font"] = $header_tools_language["font_family"];
+$variables["header-language-font"] = variable_font($header_tools_language["font_family"]);
 $variables["header-language-font-size"] = acf_units_field_value($header_tools_language["font_size"]);
 $variables["header-language-font-weight"] = $header_tools_language["font_weight"];
 $variables["header-language-color"] = scss_variables_color($header_tools_language["color"]);

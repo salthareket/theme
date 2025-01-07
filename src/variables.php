@@ -291,12 +291,12 @@ if ($GLOBALS["pagenow"] === "wp-login.php") {
     include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 }
 
-if (is_admin()) {
+/*if (is_admin()) {
     include_once SH_INCLUDES_PATH . "admin/index.php";
     if(!function_exists("acf_general_settings_rewrite")){
         include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
     }
-}
+}*/
 
 if (class_exists("ACF")) {
 
@@ -438,6 +438,12 @@ if (ENABLE_ECOMMERCE) {
 // extend with theme files
 if(SH_THEME_EXISTS){
     include_once get_template_directory() . "/theme/index.php";
+    if (is_admin()) {
+        include_once SH_INCLUDES_PATH . "admin/index.php";
+        if(!function_exists("acf_general_settings_rewrite")){
+            include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
+        }
+    }
 }
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 /*
