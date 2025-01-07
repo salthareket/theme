@@ -537,8 +537,8 @@ class Update {
                     }
                     update_option('composer_dependencies', $dependencies);
                     header("Refresh: 0");
+                    wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
                     exit;
-                    //wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
                 }                
             }else{
                 wp_send_json_success(['message' => 'No updates or installations performed. 2', "action" => "nothing" ]);
