@@ -425,23 +425,32 @@ class Update {
             return;
         }
 
-        $url = self::$github_api_url . '/' . $package_name . '/commits/' . $latest_version;
-        $response = wp_remote_get($url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN,
-                'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'WordPress/' . get_bloginfo('version')
-            ]
-        ]);
-
+        // API'den gerekli bilgileri al
+        $url = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
+        $response = wp_remote_get($url);
         if (is_wp_error($response)) {
-            error_log("Commit hash alınamadı: " . $response->get_error_message());
+            error_log("Packagist API'den bilgi alınamadı: " . $response->get_error_message());
             return;
         }
 
-        $commit_data = json_decode(wp_remote_retrieve_body($response), true);
-        $commit_hash = $commit_data['sha'] ?? 'main';
+        $package_data = json_decode(wp_remote_retrieve_body($response), true);
+        $package_versions = $package_data['packages'][$package_name] ?? [];
 
+        // Doğru sürüm bilgilerini bul
+        $package_version_data = null;
+        foreach ($package_versions as $version) {
+            if ($version['version'] === $latest_version) {
+                $package_version_data = $version;
+                break;
+            }
+        }
+
+        if (!$package_version_data) {
+            error_log("İstenilen sürüm bulunamadı: $package_name - $latest_version");
+            return;
+        }
+
+        // composer.lock içeriğini güncelle
         $packages_sections = ['packages', 'packages-dev'];
         $updated = false;
 
@@ -449,66 +458,91 @@ class Update {
             if (!isset($lock_data[$section])) {
                 continue;
             }
+
             foreach ($lock_data[$section] as &$package) {
                 if ($package['name'] === $package_name) {
-                    $package['version'] = $latest_version;
-                    $package['source']['reference'] = $commit_hash;
-                    $package['dist']['reference'] = $commit_hash;
-                    $package['dist']['url'] = "https://api.github.com/repos/" . $package_name . "/zipball/" . $commit_hash;
-
-                    // Eğer support.source alanı yoksa ekle
-                    if (!isset($package['support']['source'])) {
-                        $package['support']['source'] = "https://github.com/" . $package_name;
-                    }
-
+                    $package = array_merge($package, [
+                        'name' => $package_name,
+                        'version' => $latest_version,
+                        'source' => [
+                            'type' => 'git',
+                            'url' => $package_version_data['source']['url'] ?? '',
+                            'reference' => $package_version_data['source']['reference'] ?? '',
+                        ],
+                        'dist' => [
+                            'type' => 'zip',
+                            'url' => $package_version_data['dist']['url'] ?? '',
+                            'reference' => $package_version_data['dist']['reference'] ?? '',
+                            'shasum' => $package_version_data['dist']['shasum'] ?? '',
+                        ],
+                        'require' => $package_version_data['require'] ?? [],
+                        'require-dev' => $package_version_data['require-dev'] ?? [],
+                        'type' => $package_version_data['type'] ?? 'library',
+                        'autoload' => $package_version_data['autoload'] ?? [],
+                        'notification-url' => $package_version_data['notification-url'] ?? '',
+                        'license' => $package_version_data['license'] ?? [],
+                        'authors' => $package_version_data['authors'] ?? [],
+                        'description' => $package_version_data['description'] ?? '',
+                        'homepage' => $package_version_data['homepage'] ?? '',
+                        'support' => $package_version_data['support'] ?? [],
+                        'funding' => $package_version_data['funding'] ?? [],
+                        'time' => $package_version_data['time'] ?? '',
+                    ]);
                     error_log("Paket güncellendi: $package_name - $latest_version");
                     $updated = true;
+                    break;
                 }
             }
         }
 
-        if ($updated) {
-            // content-hash'i güncelle
-            $composer_json_content = file_get_contents(self::$composer_path);
-            if ($composer_json_content === false) {
-                error_log("composer.json dosyası okunamadı: " . self::$composer_path);
-                return;
-            }
-
-            // JSON içeriğini normalize et
-            $normalized_content = json_encode(json_decode($composer_json_content, true), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            if ($normalized_content === false) {
-                error_log("composer.json normalize edilemedi: " . json_last_error_msg());
-                return;
-            }
-
-            // Hash oluştur
-            $new_content_hash = hash('sha256', $normalized_content);
-            $lock_data['content-hash'] = $new_content_hash;
-
-            // composer.lock'u güncelle
-            $json_data = json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-            if ($json_data === false) {
-                error_log("JSON encode başarısız: " . json_last_error_msg());
-                return;
-            }
-
-            if (file_put_contents(self::$composer_lock_path, $json_data) === false) {
-                error_log("Dosya yazılamadı: " . self::$composer_lock_path);
-                return;
-            }
-
-            clearstatcache(true, self::$composer_lock_path);
-
-            if (function_exists('opcache_invalidate')) {
-                opcache_invalidate(self::$composer_lock_path, true);
-            }
-
-            error_log("composer.lock ve content-hash güncellendi.");
-        } else {
-            error_log("Güncellenecek paket bulunamadı: $package_name.");
+        // Eğer güncelleme yapılmadıysa yeni bir paket ekle
+        if (!$updated && isset($lock_data['packages'])) {
+            $lock_data['packages'][] = [
+                'name' => $package_name,
+                'version' => $latest_version,
+                'source' => [
+                    'type' => 'git',
+                    'url' => $package_version_data['source']['url'] ?? '',
+                    'reference' => $package_version_data['source']['reference'] ?? '',
+                ],
+                'dist' => [
+                    'type' => 'zip',
+                    'url' => $package_version_data['dist']['url'] ?? '',
+                    'reference' => $package_version_data['dist']['reference'] ?? '',
+                    'shasum' => $package_version_data['dist']['shasum'] ?? '',
+                ],
+                'require' => $package_version_data['require'] ?? [],
+                'require-dev' => $package_version_data['require-dev'] ?? [],
+                'type' => $package_version_data['type'] ?? 'library',
+                'autoload' => $package_version_data['autoload'] ?? [],
+                'notification-url' => $package_version_data['notification-url'] ?? '',
+                'license' => $package_version_data['license'] ?? [],
+                'authors' => $package_version_data['authors'] ?? [],
+                'description' => $package_version_data['description'] ?? '',
+                'homepage' => $package_version_data['homepage'] ?? '',
+                'support' => $package_version_data['support'] ?? [],
+                'funding' => $package_version_data['funding'] ?? [],
+                'time' => $package_version_data['time'] ?? '',
+            ];
+            error_log("Yeni paket eklendi: $package_name - $latest_version");
         }
+
+        // content-hash'i güncelle
+        $composer_json_content = file_get_contents(self::$composer_path);
+        $normalized_content = json_encode(json_decode($composer_json_content, true), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $new_content_hash = hash('sha256', $normalized_content);
+        $lock_data['content-hash'] = $new_content_hash;
+
+        // Güncellenmiş composer.lock'u yaz
+        $json_data = json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if (file_put_contents(self::$composer_lock_path, $json_data) === false) {
+            error_log("composer.lock yazılamadı: " . self::$composer_lock_path);
+            return;
+        }
+
+        error_log("composer.lock ve content-hash güncellendi.");
     }
+
 
 
 

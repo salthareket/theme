@@ -287,6 +287,7 @@ class PluginManager {
                     (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))
                 ) {
                     self::install_plugin_from_wp_repo($plugin["name"]);
+                    self::activate_plugin($plugin['name']);
                 }
             }
         }
