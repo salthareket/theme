@@ -493,7 +493,7 @@ class Update {
             $output = new BufferedOutput();
             $application->run($input, $output);
 
-            self::update_installed_package($package_name, $package_data);
+            self::update_installed_package($package_name, $package_version_data);
 
             error_log("composer.lock ve content-hash başarıyla güncellendi.");
             error_log($output->fetch());
@@ -503,88 +503,13 @@ class Update {
 
         error_log("composer.lock güncellemesi tamamlandı.");
     }
-    public static function update_installed_package_old($package_name, $package_data) {
-        $vendor_composer_dir = self::$theme_root . '/vendor/composer';
-
-        // 1. installed.json dosyasını kontrol et
-        $installed_json_path = $vendor_composer_dir . '/installed.json';
-        if (!file_exists($installed_json_path)) {
-            error_log("installed.json dosyası bulunamadı.");
-            return;
-        }
-
-        // installed.json içeriğini oku
-        $installed_data = json_decode(file_get_contents($installed_json_path), true);
-
-        // Sadece packages anahtarındaki paketi güncelle
-        $updated = false;
-        foreach ($installed_data['packages'] as &$package) {
-            if ($package['name'] === $package_name) {
-                // Güncelleme işlemi
-                $package['version'] = $package_data['version'] ?? 'dev-master';
-                $package['version_normalized'] = $package_data['version_normalized'] ?? preg_replace('/^v/', '', $package['version'] ?? '0.0.0') . '.0';
-                $package['source'] = $package_data['source'] ?? [];
-                $package['dist'] = $package_data['dist'] ?? [];
-                $updated = true;
-                break;
-            }
-        }
-
-        if (!$updated) {
-            error_log("installed.json içinde paket bulunamadı: $package_name");
-            return;
-        }
-
-        // Güncellenmiş installed.json'u yaz
-        file_put_contents($installed_json_path, json_encode($installed_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        error_log("installed.json başarıyla güncellendi.");
-
-        // 2. installed.php dosyasını güncelle
-        $installed_php_path = $vendor_composer_dir . '/installed.php';
-        if (!file_exists($installed_php_path)) {
-            error_log("installed.php dosyası bulunamadı.");
-            return;
-        }
-
-        // installed.php'yi include ederek oku
-        $installed_php_data = include $installed_php_path;
-
-        if (!isset($installed_php_data['versions'][$package_name])) {
-            error_log("installed.php içinde paket bulunamadı: $package_name");
-            return;
-        }
-
-        // Doğru değerleri ayarla
-        $pretty_version = $package_data['version'] ?? 'dev-master'; // Varsayılan değer: dev-master
-        $version = $package_data['version_normalized'] ?? preg_replace('/^v/', '', $pretty_version) . '.0';
-        $reference = $package_data['source']['reference'] ?? '';
-
-        if (empty($reference)) {
-            error_log("reference bilgisi eksik: $package_name");
-        }
-
-        // Sadece hedef paketi güncelle
-        $installed_php_data['versions'][$package_name] = array_merge(
-            $installed_php_data['versions'][$package_name],
-            [
-                'pretty_version' => $pretty_version,
-                'version' => $version,
-                'reference' => $reference,
-                'install_path' => "__DIR__ . '/../" . str_replace('/', '/', $package_name) . "'",
-            ]
-        );
-
-        // installed.php'yi doğru formatta yaz
-        $php_content = '<?php return ' . var_export($installed_php_data, true) . ';';
-
-        // __DIR__ düzeltmesi yap
-        $php_content = str_replace("'__DIR__", '__DIR__', $php_content);
-
-        file_put_contents($installed_php_path, $php_content);
-        error_log("installed.php başarıyla güncellendi.");
-    }
     public static function update_installed_package($package_name, $package_data) {
         $vendor_composer_dir = self::$theme_root . '/vendor/composer';
+
+        error_log("update_installed_package();");
+        error_log("package name: ".$package_name);
+        error_log("package data: ");
+        error_log(json_encode($package_data));
 
         //$vendor_composer_dir_encoded = str_replace('\\', '\\\\', $vendor_composer_dir);
         $vendor_composer_dir_encoded = str_replace('/', '\\', $vendor_composer_dir);
@@ -622,6 +547,8 @@ class Update {
         // Güncellenmiş installed.json'u yaz
         file_put_contents($installed_json_path, json_encode($installed_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         error_log("installed.json başarıyla güncellendi.");
+
+
 
 
         // 2. installed.php dosyasını güncelle
