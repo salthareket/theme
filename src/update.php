@@ -33,7 +33,6 @@ class Update {
         ["id" => "copy_fields", "name" => "Copying ACF Fields"],
         ["id" => "register_fields", "name" => "Registering ACF Fields"],
         ["id" => "update_fields", "name" => "Updating ACF Fields"],
-        //["id" => "npm_packages", "name" => "npm packages copying"],
         ["id" => "npm_install", "name" => "npm packages installing"],
         ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
         ["id" => "compile_js_css", "name" => "Compile JS/CSS"]
@@ -307,9 +306,9 @@ class Update {
 
 
     public static function composer_manuel_install($package_name, $latest_version="", $silent = false) {
+        error_log("composer_manuel_install işlemi başlatıldı...");
         try {
-            error_log("composer_manuel_install işlemi başlatıldı...");
-
+        
             $package_folder = self::$theme_root . "/vendor/".$package_name;
 
             // ZIP dosyasını indirme
@@ -385,33 +384,6 @@ class Update {
         } catch (Exception $e) {
             error_log("Güncelleme sırasında hata: " . $e->getMessage());
             wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
-        }
-    }
-    public static function composer_get_latest_version_url($package_name) {
-
-        $apiUrl = "https://api.github.com/repos/{$package_name}/releases/latest";
-
-        $args = [
-            'headers' => [
-                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN,
-                'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'WordPress/' . get_bloginfo('version')
-            ]
-        ];
-
-        // GitHub API'den son sürüm bilgilerini al
-        $response = wp_remote_get($apiUrl, $args);
-
-        if (is_wp_error($response)) {
-            wp_die('Failed to fetch the latest release: ' . $response->get_error_message());
-        }
-
-        $data = json_decode(wp_remote_retrieve_body($response), true);
-
-        if (isset($data['zipball_url'])) {
-            return $data['zipball_url'];
-        } else {
-            wp_die('Could not retrieve the zipball URL from the latest release.');
         }
     }
     public static function update_composer_lock($package_name, $latest_version) {
@@ -617,46 +589,32 @@ class Update {
 
 
 
-
-
-
-
-    private static function delete_directory($dir) {
-        /*if (!is_dir($dir)) return;
-
-        $files = array_diff(scandir($dir), ['.', '..']);
-        foreach ($files as $file) {
-            $path = $dir . '/' . $file;
-            is_dir($path) ? self::delete_directory($path) : unlink($path);
-        }
-        rmdir($dir);*/
-    }
-
-
-
-    public static function composer($package_name="", $remove = false) {
+    public static function composer($package_name="", $remove = false, $manually = false) {
+        error_log("composer calıstıııııı -> ".$package_name);
         try {
 
             if (!file_exists(self::$composer_path)) {
                 wp_send_json_error(['message' => 'composer.json is not found.']);
             }
-
-            $updates = self::get_composer_updates();
-            if($updates){
-                $dependencies = array_filter($updates, function ($package) {
-                    return isset($package['dependency']) && $package['dependency'] === true;
-                });
-                if($dependencies){
-                    foreach($dependencies as $package){
-                        self::composer_manuel_install($package["package"], $package["latest"], true);
-                    }
-                    update_option('composer_dependencies', $dependencies);
-                    header("Refresh: 0");
-                    wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
-                    exit;
+            
+            if($manually){
+                $updates = self::get_composer_updates();
+                if($updates){
+                    $dependencies = array_filter($updates, function ($package) {
+                        return isset($package['dependency']) && $package['dependency'] === true;
+                    });
+                    if($dependencies){
+                        foreach($dependencies as $package){
+                            self::composer_manuel_install($package["package"], $package["latest"], true);
+                        }
+                        update_option('composer_dependencies', $dependencies);
+                        header("Refresh: 0");
+                        wp_send_json_success(['message' => "Refreshing page...", "action" => "refresh" ]);
+                        exit;
+                    }                
+                }else{
+                    wp_send_json_success(['message' => 'No updates or installations performed. 2', "action" => "nothing" ]);
                 }                
-            }else{
-                wp_send_json_success(['message' => 'No updates or installations performed. 2', "action" => "nothing" ]);
             }
 
             $args = array(
@@ -934,11 +892,6 @@ class Update {
             acf_save_post_block_columns_action( $post_id );
         }
     }
-    /*private static function npm_packages(){
-        $source = SH_PATH . 'package.json';
-        $destination = get_home_path();
-        self::fileCopy($source, $destination);
-    }*/
     private static function npm_install(): string{
         $workingDir = ABSPATH;
         if (!is_dir($workingDir)) {
@@ -1043,11 +996,6 @@ class Update {
                     self::update_task_status('install_local_plugins', true);
                     wp_send_json_success(['message' => 'Local plugins installed successfully']);
                     break;
-                /*case 'npm_packages':
-                    self::npm_packages();
-                    self::update_task_status('npm_packages', true);
-                    wp_send_json_success(['message' => 'NPM Packages copied successfully']);
-                    break;*/
                 case 'npm_install':
                     self::npm_install();
                     self::update_task_status('npm_install', true);
@@ -1199,6 +1147,16 @@ class Update {
             is_dir($path) ? self::recurseDelete($path) : unlink($path);
         }
         rmdir($dir);
+    }
+    private static function delete_directory($dir) {
+        /*if (!is_dir($dir)) return;
+
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            is_dir($path) ? self::delete_directory($path) : unlink($path);
+        }
+        rmdir($dir);*/
     }
 
     private static function enqueue_update_script() {
