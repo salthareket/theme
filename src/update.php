@@ -534,20 +534,25 @@ class Update {
     public static function update_installed_package($package_name, $package_data) {
         $vendor_composer_dir = self::$theme_root . '/vendor/composer';
 
-        // 1. installed.json dosyasını güncelle
+        // 1. installed.json dosyasını kontrol et
         $installed_json_path = $vendor_composer_dir . '/installed.json';
         if (!file_exists($installed_json_path)) {
             error_log("installed.json dosyası bulunamadı.");
             return;
         }
 
+        // installed.json içeriğini oku
         $installed_data = json_decode(file_get_contents($installed_json_path), true);
 
         // Sadece packages anahtarındaki paketi güncelle
         $updated = false;
         foreach ($installed_data['packages'] as &$package) {
             if ($package['name'] === $package_name) {
-                $package = array_merge($package, $package_data);
+                // Güncelleme işlemi
+                $package['version'] = $package_data['version'] ?? 'dev-master';
+                $package['version_normalized'] = $package_data['version_normalized'] ?? preg_replace('/^v/', '', $package['version'] ?? '0.0.0') . '.0';
+                $package['source'] = $package_data['source'] ?? [];
+                $package['dist'] = $package_data['dist'] ?? [];
                 $updated = true;
                 break;
             }
@@ -569,7 +574,7 @@ class Update {
             return;
         }
 
-        // installed.php dosyasını include ederek al
+        // installed.php'yi include ederek oku
         $installed_php_data = include $installed_php_path;
 
         if (!isset($installed_php_data['versions'][$package_name])) {
@@ -577,21 +582,36 @@ class Update {
             return;
         }
 
-        // Hedef paketi güncelle
+        // Doğru değerleri ayarla
+        $pretty_version = $package_data['version'] ?? 'dev-master'; // Varsayılan değer: dev-master
+        $version = $package_data['version_normalized'] ?? preg_replace('/^v/', '', $pretty_version) . '.0';
+        $reference = $package_data['source']['reference'] ?? '';
+
+        if (empty($reference)) {
+            error_log("reference bilgisi eksik: $package_name");
+        }
+
+        // Sadece hedef paketi güncelle
         $installed_php_data['versions'][$package_name] = array_merge(
             $installed_php_data['versions'][$package_name],
             [
-                'pretty_version' => $package_data['version'],
-                'version' => $package_data['version_normalized'] ?? $package_data['version'],
-                'reference' => $package_data['source']['reference'] ?? '',
+                'pretty_version' => $pretty_version,
+                'version' => $version,
+                'reference' => $reference,
+                'install_path' => "__DIR__ . '/../" . str_replace('/', '/', $package_name) . "'",
             ]
         );
 
-        // installed.php'yi yaz
+        // installed.php'yi doğru formatta yaz
         $php_content = '<?php return ' . var_export($installed_php_data, true) . ';';
+
+        // __DIR__ düzeltmesi yap
+        $php_content = str_replace("'__DIR__", '__DIR__', $php_content);
+
         file_put_contents($installed_php_path, $php_content);
         error_log("installed.php başarıyla güncellendi.");
     }
+
 
 
 
