@@ -48,7 +48,6 @@ jQuery(document).ready(function ($) {
         }
     }
 
-
     function runTask(taskIndex) {
 
         if (taskIndex >= tasks.length) {

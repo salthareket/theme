@@ -1,4 +1,33 @@
 jQuery(document).ready(function ($) {
+
+    function parseAjaxResponse(response) {
+        // Eğer response zaten bir nesne ise direkt dön
+        if (typeof response === "object") {
+            console.log("JSON Data:", response);
+            return response;
+        }
+
+        // JSON içerip içermediğini kontrol et
+        const jsonRegex = /{"success":.*}}/;
+
+        // JSON kısmını bul
+        const match = response.match(jsonRegex);
+        if (match) {
+            try {
+                // JSON kısmını ayıkla ve parse et
+                const jsonData = JSON.parse(match[0]);
+                console.log("JSON Data:", jsonData);
+                return jsonData;
+            } catch (error) {
+                console.error("JSON parse hatası:", error);
+                return null;
+            }
+        } else {
+            console.error("JSON verisi bulunamadı.");
+            return null;
+        }
+    }
+
     // Activate/Deactivate Plugin
     $(document).on('click', '.activate-plugin, .deactivate-plugin', function () {
         let $button = $(this);
@@ -21,19 +50,20 @@ jQuery(document).ready(function ($) {
             action_type: actionType,
             local: local
         })
-            .done(function (response) {
-                if (response.success) {
-                    alert(response.data.message);
-                    location.reload();
-                } else {
-                    alert('Error: ' + response.data.message);
-                    $button.prop('disabled', false).text(actionType === 'activate' ? 'Activate' : 'Deactivate');
-                }
-            })
-            .fail(function () {
-                alert('AJAX request failed.');
+        .done(function (response) {
+            response = parseAjaxResponse(response);
+            if (response.success) {
+                alert(response.data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + response.data.message);
                 $button.prop('disabled', false).text(actionType === 'activate' ? 'Activate' : 'Deactivate');
-            });
+            }
+        })
+        .fail(function () {
+            alert('AJAX request failed.');
+            $button.prop('disabled', false).text(actionType === 'activate' ? 'Activate' : 'Deactivate');
+        });
     });
 
     // Install/Update Plugin
@@ -58,18 +88,19 @@ jQuery(document).ready(function ($) {
             action_type: actionType,
             local: local
         })
-            .done(function (response) {
-                if (response.success) {
-                    alert(response.data.message);
-                    location.reload();
-                } else {
-                    alert('Error: ' + response.data.message);
-                    $button.prop('disabled', false).text(actionType === 'update' ? 'Update' : 'Install');
-                }
-            })
-            .fail(function () {
-                alert('AJAX request failed.');
+        .done(function (response) {
+            response = parseAjaxResponse(response);
+            if (response.success) {
+                alert(response.data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + response.data.message);
                 $button.prop('disabled', false).text(actionType === 'update' ? 'Update' : 'Install');
-            });
+            }
+        })
+        .fail(function () {
+            alert('AJAX request failed.');
+            $button.prop('disabled', false).text(actionType === 'update' ? 'Update' : 'Install');
+        });
     });
 });
