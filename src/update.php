@@ -561,6 +561,9 @@ class Update {
         // installed.php'yi include ederek oku
         $installed_php_data = include $installed_php_path;
 
+        error_log("installed_php_data:");
+        error_log(print_r($installed_php_data, true));
+
         if (!isset($installed_php_data['versions'][$package_name])) {
             error_log("installed.php içinde paket bulunamadı: $package_name");
             return;
@@ -569,8 +572,10 @@ class Update {
         $installed_php_data['root']["install_path"] = str_replace($vendor_composer_dir_encoded , "{__DIR__} . {quote}", $installed_php_data['root']["install_path"]);
 
         foreach($installed_php_data['versions'] as &$version){
-            $install_path = str_replace($vendor_composer_dir_encoded , "{__DIR__} . {quote}", $version["install_path"]);
-            $version["install_path"] = $install_path;
+            if(isset($version["install_path"])){
+                $install_path = str_replace($vendor_composer_dir_encoded , "{__DIR__} . {quote}", $version["install_path"]);
+                $version["install_path"] = $install_path;                
+            }
         }
 
         // Doğru değerleri ayarla
@@ -600,24 +605,24 @@ class Update {
         $php_content = str_replace("'{__DIR__}", '__DIR__', $php_content);
         $php_content = str_replace("{quote}", "'", $php_content);
 
-        /*$php_content = preg_replace([
-            '/\n\s+array \(/',        // "array (" öncesindeki boşluk ve alt satırı kaldır
-            '/array \(/',             // "array ("'ı "array(" yap
-            '/,\s+\)/',               // Kapanış parantez öncesindeki fazladan virgülü kaldır
-            '/\),/',                  // '),' satırlarını alt satıra taşı
-            "/\n\s*\n/",              // Çift satır aralığını kaldır
-            '/(\'dev\' => true),/',   // 'dev' => true) alt satıra inmesi için
+        $php_content = preg_replace([
+            '/\n\s+array \(/',       // "array (" öncesindeki boşluk ve alt satırı kaldır
+            '/array \(/',            // "array ("'ı "array(" yap
+            '/,\s+\)/',              // Kapanış parantez öncesindeki fazladan virgülü kaldır
+            '/\),/',                 // '),' satırlarını alt satıra taşı
+            "/\n\s*\n/",             // Çift satır aralığını kaldır
+            '/(\s+\'dev\' => true),/', // 'dev' => true) alt satıra taşınmasını sağla
         ], [
-            ' array(',                // Tek satırda "array("
-            'array(',                 // Daha kompakt "array("
-            ')',                      // Fazladan virgülleri kaldır
-            "),\n",                   // Kapanış parantezi alt satıra taşı
-            "\n",                     // Çift satır aralığını teke indir
-            "\$1\n    )",             // 'dev' => true), alt satıra taşı
+            ' array(',               // Tek satırda "array("
+            'array(',                // Daha kompakt "array("
+            ')',                     // Fazladan virgülleri kaldır
+            "),\n",                  // Kapanış parantezi alt satıra taşı
+            "\n",                    // Çift satır aralığını teke indir
+            "$1\n)",                 // 'dev' => true'yi alt satıra taşı
         ], $php_content);
 
         // 3. Boş array'lerin düzgün görünmesi
-        $php_content = preg_replace('/array\(\s*\)/', 'array()', $php_content);*/
+        $php_content = preg_replace('/array\(\s*\)/', 'array()', $php_content);
 
         file_put_contents($installed_php_path, $php_content);
         error_log("installed.php başarıyla güncellendi."); 
