@@ -521,6 +521,8 @@ class Update {
             $output = new BufferedOutput();
             $application->run($input, $output);
 
+            self::update_installed_package($package_name, $package_data);
+
             error_log("composer.lock ve content-hash başarıyla güncellendi.");
             error_log($output->fetch());
         } catch (Exception $e) {
@@ -529,6 +531,68 @@ class Update {
 
         error_log("composer.lock güncellemesi tamamlandı.");
     }
+    public static function update_installed_package($package_name, $package_data) {
+        $vendor_composer_dir = self::$theme_root . '/vendor/composer';
+
+        // 1. installed.json dosyasını güncelle
+        $installed_json_path = $vendor_composer_dir . '/installed.json';
+        if (!file_exists($installed_json_path)) {
+            error_log("installed.json dosyası bulunamadı.");
+            return;
+        }
+
+        $installed_data = json_decode(file_get_contents($installed_json_path), true);
+
+        // Sadece packages anahtarındaki paketi güncelle
+        $updated = false;
+        foreach ($installed_data['packages'] as &$package) {
+            if ($package['name'] === $package_name) {
+                $package = array_merge($package, $package_data);
+                $updated = true;
+                break;
+            }
+        }
+
+        if (!$updated) {
+            error_log("installed.json içinde paket bulunamadı: $package_name");
+            return;
+        }
+
+        // Güncellenmiş installed.json'u yaz
+        file_put_contents($installed_json_path, json_encode($installed_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        error_log("installed.json başarıyla güncellendi.");
+
+        // 2. installed.php dosyasını güncelle
+        $installed_php_path = $vendor_composer_dir . '/installed.php';
+        if (!file_exists($installed_php_path)) {
+            error_log("installed.php dosyası bulunamadı.");
+            return;
+        }
+
+        // installed.php dosyasını include ederek al
+        $installed_php_data = include $installed_php_path;
+
+        if (!isset($installed_php_data['versions'][$package_name])) {
+            error_log("installed.php içinde paket bulunamadı: $package_name");
+            return;
+        }
+
+        // Hedef paketi güncelle
+        $installed_php_data['versions'][$package_name] = array_merge(
+            $installed_php_data['versions'][$package_name],
+            [
+                'pretty_version' => $package_data['version'],
+                'version' => $package_data['version_normalized'] ?? $package_data['version'],
+                'reference' => $package_data['source']['reference'] ?? '',
+            ]
+        );
+
+        // installed.php'yi yaz
+        $php_content = '<?php return ' . var_export($installed_php_data, true) . ';';
+        file_put_contents($installed_php_path, $php_content);
+        error_log("installed.php başarıyla güncellendi.");
+    }
+
 
 
 
