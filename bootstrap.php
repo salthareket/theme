@@ -9,6 +9,7 @@ require_once "src/plugins.php";
 require_once 'src/Theme.php';
 require_once 'src/startersite.php';
 
+/*
 $dependencies = get_option('composer_dependencies');
 if($dependencies){
 	Update::init();
@@ -16,4 +17,4 @@ if($dependencies){
 		Update::update_composer_lock($package["package"], $package["latest"]);
     }
     //update_option('composer_dependencies', []);
-}
+}*/
