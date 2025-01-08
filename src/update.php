@@ -553,6 +553,7 @@ class Update {
 
         // 2. installed.php dosyasını güncelle
         $installed_php_path = $vendor_composer_dir . '/installed.php';
+        $installed_php_save_path = $vendor_composer_dir . '/installed-test.php';
         if (!file_exists($installed_php_path)) {
             error_log("installed.php dosyası bulunamadı.");
             return;
@@ -588,15 +589,25 @@ class Update {
         }
 
         // Sadece hedef paketi güncelle
-        $installed_php_data['versions'][$package_name] = array_merge(
+        /*$installed_php_data['versions'][$package_name] = array_merge(
             $installed_php_data['versions'][$package_name],
             [
-                'pretty_version' => $pretty_version,
                 'version' => $version,
+                'pretty_version' => $pretty_version,
                 'reference' => $reference,
                 //'install_path' => "__DIR__ . '/../" . str_replace('/', '/', $package_name) . "'",
             ]
-        );
+        );*/
+
+        foreach ($installed_php_data['versions'] as $key => &$version_data) {
+            if ($key === $package_name) {
+                // Hedef paketi güncelle
+                $version_data['version'] = $version;
+                $version_data['pretty_version'] = $pretty_version;
+                $version_data['reference'] = $reference;
+                //$version_data['install_path'] = "__DIR__ . '/../" . str_replace('/', '/', $package_name) . "'";
+            }
+        }
 
         // installed.php'yi doğru formatta yaz
         $php_content = '<?php return ' . var_export($installed_php_data, true) . ';';
