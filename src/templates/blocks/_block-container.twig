@@ -84,7 +84,7 @@
 	    {% endif %}
 
 		{% if block_meta.container and (not block_column and not nested) %}
-			<div class="{{block_meta.container}} {% if block_meta.bg_image %}z-3{% endif %} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %} px-4 px-lg-3">
+			<div class="{{block_meta.container}} {% if block_meta.bg_image %}z-3{% endif %} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
 		{% endif %}
 
 		    {% if fields.block_settings.wrapper_class %}
