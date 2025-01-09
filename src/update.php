@@ -101,7 +101,7 @@ class Update {
     }
 
 
-    private static function get_current_version() {
+    private static function get_package_version($package_name) {
 
         if (!file_exists(self::$composer_lock_path)) {
             error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
@@ -128,14 +128,17 @@ class Update {
         }
 
         foreach ($lock_data['packages'] as $package) {
-            if ($package['name'] === self::$github_repo) {
-                error_log('Mevcut sürüm bulundu: ' . $package['version']);
+            if ($package['name'] === $package_name) {
+                error_log('Mevcut sürüm bulundu: '.$package_name . ":" . $package['version']);
                 return $package['version'];
             }
         }
 
-        error_log('Paket bulunamadı: salthareket/theme');
+        error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
+    }
+    private static function get_current_version() {
+        return self::get_package_version(self::$github_repo);
     }
     private static function get_latest_version() {
         $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
@@ -899,22 +902,22 @@ class Update {
 
 
     private static function fix_packages(){
-        if (class_exists('SaltHareket\Theme')) {
-            $fixes_file = get_template_directory() . "/vendor/salthareket/theme/src/fix/index.php";
-            if(file_exists($fixes_file)){
-                $fixes = include $fixes_file;
-                error_log(json_encode($fixes));
-                if($fixes){
-                    foreach($fixes as $fix){
+        $fixes_file = get_template_directory() . "/vendor/salthareket/theme/src/fix/index.php";
+        if(file_exists($fixes_file)){
+            $fixes = include $fixes_file;
+            if($fixes){
+                foreach($fixes as $fix){
+                    if($fix["version"] == self::get_package_version($fix["package"])){
                         $file = get_template_directory() . "/vendor/salthareket/theme/src/fix/".$fix["file"];
-                        $target_file = get_template_directory()."/vendor/".$fix["target"].$fix["file"];
+                        $target_file = get_template_directory()."/vendor/".$fix["package"]."/".$fix["file"];
                         if($fix["status"] && file_exists($file) && file_exists($target_file)){
                             self::fileCopy($file, $target_file);
-                        }
+                            error_log($fix["package"].":".$fix["version"]." fixed...");
+                        }                            
                     }
                 }
             }
-        }        
+        }
     }
     private static function copy_theme(){
         $srcDir = SH_PATH . 'theme';

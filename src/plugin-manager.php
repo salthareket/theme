@@ -61,10 +61,69 @@ class PluginManager {
         );
     }*/
 
-    // Yönetim sayfası içeriğini oluşturur
     public static function render_option_page() {
         $required_plugins = $GLOBALS['plugins'] ?? [];
         $required_plugins_local = $GLOBALS['plugins_local'] ?? [];
+        
+        // Tüm pluginlerin verilerini işlemek için birleştirilmiş bir dizi oluşturuyoruz
+        $plugins_data = [];
+
+        // Repo'dan yüklenen pluginler
+        foreach ($required_plugins as $plugin) {
+            $full_slug = self::get_full_slug($plugin['name']);
+            $plugin_data = self::get_plugin_data($full_slug);
+
+            $plugins_data[] = [
+                'name' => $plugin_data['Name'] ?? self::get_plugin_name($full_slug),
+                'slug' => $full_slug,
+                'type' => $plugin['type'],
+                'installed_version' => $plugin_data['Version'] ?? 'Not Installed',
+                'current_version' => '', // Repo'dan gelenlerin current_version'ı boş
+                'is_active' => self::is_plugin_active($full_slug),
+                'is_installed' => self::is_plugin_installed($full_slug),
+                'update_available' => false, // Repo için update kontrolü yapılmıyor
+                'is_local' => false,
+            ];
+        }
+
+        // Local pluginler
+        foreach ($required_plugins_local as $plugin_info) {
+            $full_slug = self::get_full_slug($plugin_info['name']);
+            $plugin_data = self::get_plugin_data($full_slug);
+
+            $installed_version = $plugin_data['Version'] ?? 'Not Installed';
+            $current_version = $plugin_info['v'];
+            $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version);
+
+            $plugins_data[] = [
+                'name' => $plugin_data['Name'] ?? $plugin_info['file'],
+                'slug' => $full_slug,
+                'type' => $plugin_info['type'],
+                'installed_version' => $installed_version,
+                'current_version' => $current_version,
+                'is_active' => self::is_plugin_active($full_slug),
+                'is_installed' => self::is_plugin_installed($full_slug),
+                'update_available' => $update_available,
+                'is_local' => true,
+            ];
+        }
+
+        // Kategorilere göre gruplama ve sıralama
+        $grouped_plugins = [];
+        foreach ($plugins_data as $plugin) {
+            foreach ($plugin['type'] as $type) {
+                $grouped_plugins[$type][] = $plugin;
+            }
+        }
+
+        // Main'i al, diğerlerini alfabetik sıraya göre hazırla
+        $main_plugins = $grouped_plugins['main'] ?? [];
+        unset($grouped_plugins['main']);
+        usort($main_plugins, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
+        ksort($grouped_plugins); // Diğer kategorileri alfabetik sırala
+
         ?>
         <div class="wrap">
             <h1>Plugin Management</h1>
@@ -77,67 +136,58 @@ class PluginManager {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($required_plugins as $plugin): ?>
-                        <?php 
-                        // Tam slug oluşturma
-                        $full_slug = self::get_full_slug($plugin["name"]);
-                        $plugin_data = self::get_plugin_data($full_slug);
-                        $plugin_name = $plugin_data['Name'] ?? self::get_plugin_name($full_slug);
-                        $installed_version = $plugin_data['Version'] ?? 'Not Installed';
-                        $is_active = self::is_plugin_active($full_slug);
-                        $is_installed = self::is_plugin_installed($full_slug);
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($plugin_name); ?></td>
-                            <td><?php echo esc_html($installed_version); ?></td>
-                            <td>
-                                <?php if (!$is_installed): ?>
-                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="false">Install</button>
-                                <?php elseif (!$is_active): ?>
-                                    <button class="button button-primary activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="false">Activate</button>
-                                <?php else: ?>
-                                    <button class="button button-secondary deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="false">Deactivate</button>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
+                    <!-- Main Kategorisi -->
+                    <?php foreach ($main_plugins as $plugin): ?>
+                        <?php self::render_plugin_row($plugin); ?>
                     <?php endforeach; ?>
 
-                    <?php foreach ($required_plugins_local as $plugin_info): ?>
-                        <?php 
-                        $plugin_data = self::get_plugin_data($plugin_info['name']);
-                        $full_slug = self::get_full_slug($plugin_info['name']);
-                        $installed_version = $plugin_data['Version'] ?? 'Not Installed';
-                        $current_version = $plugin_info['v'];
-                        $plugin_name = $plugin_data['Name'] ?? $plugin_info['name'];
-                        $is_active = self::is_plugin_active($full_slug);
-                        $is_installed = self::is_plugin_installed($full_slug);
-                        $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version);
-                        ?>
+                    <!-- Diğer Kategoriler -->
+                    <?php foreach ($grouped_plugins as $category => $plugins): ?>
                         <tr>
-                            <td><?php echo esc_html($plugin_name); ?></td>
-                            <td>
-                                <?php echo esc_html($installed_version !== 'Not Installed' && $update_available ? $installed_version . ' -> ' . $current_version : $installed_version); ?>
-                            </td>
-                            <td>
-                                <?php if (!$is_installed): ?>
-                                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Install</button>
-                                <?php elseif ($update_available): ?>
-                                    <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #111;background-color: orange;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Update</button>
-                                <?php elseif (!$is_active): ?>
-                                    <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Activate</button>
-                                <?php else: ?>
-                                    <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($full_slug); ?>" data-local="true">Deactivate</button>
-                                <?php endif; ?>
+                            <td colspan="3" style="font-weight: bold; background-color: #f1f1f1;">
+                                <?php echo ucfirst($category); ?>
                             </td>
                         </tr>
+                        <?php
+                        usort($plugins, function ($a, $b) {
+                            return strcmp($a['name'], $b['name']);
+                        });
+                        foreach ($plugins as $plugin): ?>
+                            <?php self::render_plugin_row($plugin); ?>
+                        <?php endforeach; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
         <?php
     }
-
-    // Tam slug oluşturmak için yardımcı fonksiyon
+    private static function render_plugin_row($plugin) {
+        ?>
+        <tr>
+            <td><?php echo esc_html($plugin['name']); ?></td>
+            <td>
+                <?php
+                if ($plugin['is_local'] && $plugin['update_available']) {
+                    echo esc_html($plugin['installed_version'] . ' -> ' . $plugin['current_version']);
+                } else {
+                    echo esc_html($plugin['installed_version']);
+                }
+                ?>
+            </td>
+            <td>
+                <?php if (!$plugin['is_installed']): ?>
+                    <button class="button button-primary install-plugin" style="border:none;border-radius:6px;" data-plugin-slug="<?php echo esc_attr($plugin['slug']); ?>" data-local="<?php echo esc_attr($plugin['is_local'] ? 'true' : 'false'); ?>">Install</button>
+                <?php elseif ($plugin['update_available']): ?>
+                    <button class="button button-warning update-plugin" style="border:none;border-radius:6px;color: #111;background-color: orange;" data-plugin-slug="<?php echo esc_attr($plugin['slug']); ?>" data-local="true">Update</button>
+                <?php elseif (!$plugin['is_active']): ?>
+                    <button class="button button-success activate-plugin" style="border:none;border-radius:6px;color: #fff;background-color: green;font-weight:600;" data-plugin-slug="<?php echo esc_attr($plugin['slug']); ?>" data-local="<?php echo esc_attr($plugin['is_local'] ? 'true' : 'false'); ?>">Activate</button>
+                <?php else: ?>
+                    <button class="button button-danger deactivate-plugin" style="border:none;border-radius:6px;color:#fff;background-color:red;" data-plugin-slug="<?php echo esc_attr($plugin['slug']); ?>" data-local="<?php echo esc_attr($plugin['is_local'] ? 'true' : 'false'); ?>">Deactivate</button>
+                <?php endif; ?>
+            </td>
+        </tr>
+        <?php
+    }
     private static function get_full_slug($plugin_slug) {
         if (strpos($plugin_slug, '/') === false) {
             // Eksik slug, tam slug oluştur

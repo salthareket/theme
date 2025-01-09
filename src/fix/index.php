@@ -2,8 +2,9 @@
 
 return array(
 	array(
+        "version" => "1.15",
         "status" => class_exists( 'Timber_Acf_Wp_Blocks' ),
         "file"   => "timber-acf-wp-blocks.php",
-        "target" => "palmiak/timber-acf-wp-blocks/"
+        "package" => "palmiak/timber-acf-wp-blocks"
 	)
 );

@@ -39,7 +39,7 @@ $required_plugins = array(
     ),
     array(
         "type" => ["multilanguage"],
-        "name" => "bea-acf-options-for-polylang.php",
+        "name" => "acf-options-for-polylang/bea-acf-options-for-polylang.php",
     ),
     array(
         "type" => ["multilanguage"],
