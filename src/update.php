@@ -58,7 +58,6 @@ class Update {
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
         add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
-        //self::fix();
         self::check_installation();
         //print_r(self::get_composer_updates());
     }
@@ -1109,24 +1108,6 @@ class Update {
         }
         return true;
     }
-
-
-
-
-    /*private static function fix(){
-        $fixes = include get_template_directory() . "/vendor/salthareket/theme/src/fix/index.php";
-        error_log("fixes");
-        error_log(json_encode($fixes));
-        if($fixes){
-            foreach($fixes as $fix){
-                $file = get_template_directory() . "/vendor/salthareket/theme/src/fix/".$fix["file"];
-                $target_file = get_template_directory()."/vendor/".$fix["target"].$fix["file"];
-                if($fix["status"] && file_exists($file)){
-                    self::fileCopy($file, $target_file);
-                }
-            }
-         }
-    }*/
 
     private static function recurseCopy($src, $dest, $exclude = []){
         $dir = opendir($src);
