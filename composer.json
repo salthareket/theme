@@ -1,7 +1,6 @@
 {
     "name": "salthareket/theme",
-    "version": "1.8.4",
-    "description": "Projenin açıklaması",
+    "description": "Automated Bootstrap Package for Salt Hareket web sites",
     "license": "MIT",
     "type": "library",
     "autoload": {
