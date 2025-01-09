@@ -24,6 +24,7 @@ class Update {
     public static $status;
     public static $tasks_status;
     public static $installation_tasks = [
+        ["id" => "fix_packages", "name" => "Fixing Composer Packages"],
         ["id" => "copy_theme", "name" => "Copying Theme Files"],
         ["id" => "copy_templates", "name" => "Copying Template Files"],
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
@@ -59,7 +60,6 @@ class Update {
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
         add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
         self::check_installation();
-        //print_r(self::get_composer_updates());
     }
 
     private static function check_installation(){
@@ -898,7 +898,24 @@ class Update {
 
 
 
-
+    private static function fix_packages(){
+        if (class_exists('SaltHareket\Theme')) {
+            $fixes_file = get_template_directory() . "/vendor/salthareket/theme/src/fix/index.php";
+            if(file_exists($fixes_file)){
+                $fixes = include $fixes_file;
+                error_log(json_encode($fixes));
+                if($fixes){
+                    foreach($fixes as $fix){
+                        $file = get_template_directory() . "/vendor/salthareket/theme/src/fix/".$fix["file"];
+                        $target_file = get_template_directory()."/vendor/".$fix["target"].$fix["file"];
+                        if($fix["status"] && file_exists($file) && file_exists($target_file)){
+                            self::fileCopy($file, $target_file);
+                        }
+                    }
+                }
+            }
+        }        
+    }
     private static function copy_theme(){
         $srcDir = SH_PATH . 'theme';
         $target_dir = get_template_directory() . '/theme';
@@ -1008,6 +1025,11 @@ class Update {
         : [];
         try {
             switch ($task_id) {
+                case 'fix_packages':
+                    self::fix_packages();
+                    self::update_task_status('fix_packages', true);
+                    wp_send_json_success(['message' => 'Composer packages fixed successfully']);
+                    break;
                 case 'copy_theme':
                     self::copy_theme();
                     self::update_task_status('copy_theme', true);
