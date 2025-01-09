@@ -1020,8 +1020,9 @@ class Update {
     }
     private static function defaults(){
         self::update_site_logo(SH_PATH ."content/logo-salt-hareket.png");
-        self::set_default_header_acf_values();
+        self::set_default_acf_values();
         self::create_home_page();
+        self::create_menu();
     }
 
 
@@ -1255,6 +1256,7 @@ class Update {
         if ($attachment_id) {
             // "logo" adlı ACF alanını güncelle
             update_field('logo', $attachment_id, 'option'); // 'option' global ayar sayfası için
+            update_field('logo_footer', $attachment_id, 'option');
             error_log("Logo successfully updated to ACF field.");
         } else {
             error_log("Failed to upload logo or update ACF field.");
@@ -1297,7 +1299,7 @@ class Update {
 
         return $attachment_id;
     }
-    private static function set_default_header_acf_values() {
+    private static function set_default_acf_values() {
         $default_values = [
             "header_container" => "default",
             "header_fixed" => "top",
@@ -1328,7 +1330,18 @@ class Update {
                         ],
                     ],
                 ],
-            ]
+            ],
+            "footer_menu" => [
+                [
+                    "name" => "main",
+                    "menu" => "header-menu"
+                ]
+            ],
+            "default_container" => "",
+            "default_ratio" => "16x9",
+            "seperate_css" => 1,
+            "seperate_js" => 1,
+            "enable_production" => 1
         ];
         foreach ($default_values as $field_key => $value) {
             update_field($field_key, $value, 'option');
@@ -1337,7 +1350,7 @@ class Update {
     }
     private static function create_home_page() {
         // Sayfa içerik bloğu
-        $block_content = '<!-- wp:acf/text {"name":"acf/text","data":{"block_settings_hero":"0","_block_settings_hero":"field_66968c7c1b738_field_65f2ed0554105","block_settings_sticky_top":"0","_block_settings_sticky_top":"field_66968c7c1b738_field_66e8f7e0f1824","block_settings_stretch_height":"0","_block_settings_stretch_height":"field_66968c7c1b738_field_66429a3093974","block_settings_wrapper_class":"","_block_settings_wrapper_class":"field_66968c7c1b738_field_670e7b1be0435","block_settings_container":"lg","_block_settings_container":"field_66968c7c1b738_field_65f2ed055f287","block_settings_height":"auto","_block_settings_height":"field_66968c7c1b738_field_65f2ed0557b77","block_settings_margin_top":"","_block_settings_margin_top":"field_65f9d3527ed2f","block_settings_margin_left":"","_block_settings_margin_left":"field_65f9d3a07ed31","block_settings_margin_right":"","_block_settings_margin_right":"field_65f9d3b87ed32","block_settings_margin_bottom":"","_block_settings_margin_bottom":"field_65f9d3c47ed33","block_settings_margin":"","_block_settings_margin":"field_66968c7c1b738_field_65f9d3207ed2e","block_settings_padding_top":"5","_block_settings_padding_top":"field_673d11dd7a128","block_settings_padding_left":"","_block_settings_padding_left":"field_673d11dd7a12c","block_settings_padding_right":"","_block_settings_padding_right":"field_673d11dd7a130","block_settings_padding_bottom":"5","_block_settings_padding_bottom":"field_673d11dd7a134","block_settings_padding":"","_block_settings_padding":"field_66968c7c1b738_field_673d11dd7a126","block_settings_text_color":"","_block_settings_text_color":"field_66968c7c1b738_field_661a7d9ea0310","block_settings_vertical_align":"center","_block_settings_vertical_align":"field_66968c7c1b738_field_661c91c58dc73","block_settings_text_align":{"xxxl":"center","xxl":"center","xl":"center","lg":"center","md":"center","sm":"center","xs":"center"},"_block_settings_text_align":"field_66968c7c1b738_field_6642297e21c44","block_settings_horizontal_align":{"xxxl":"center","xxl":"center","xl":"center","lg":"center","md":"center","sm":"center","xs":"center"},"_block_settings_horizontal_align":"field_66968c7c1b738_field_673d17c8afeca","block_settings_column_active":"0","_block_settings_column_active":"field_66216f8939b9d","block_settings_column":"","_block_settings_column":"field_66968c7c1b738_field_66216f5d39b9c","block_settings_color":"","_block_settings_color":"field_66565b8dc73a1","block_settings_type":"none","_block_settings_type":"field_66d876dc1d556","block_settings_image_mask":"","_block_settings_image_mask":"field_671e529d3a857","block_settings_background":"","_block_settings_background":"field_66968c7c1b738_field_669675502a8a6","block_settings_custom_id":"","_block_settings_custom_id":"field_66968c7c1b738_field_674d65b2e1dd0","block_settings_column_id":"jtmbu","_block_settings_column_id":"field_66968c7c1b738_field_67213addcfaf3","block_settings":"","_block_settings":"field_65f9e036320a5","collapsible":"0","_collapsible":"field_671badf2b06b5","text":"<h1 class=\"title-xxl fw-600\" style=\"text-align: center;\"><span style=\"color: #168ec9;\">Welcome to Salthareket!</span></h1><p class=\"text-lg\" style=\"text-align: center;\"><span style=\"color: #666666;\">Salthareket is a lightweight and modular WordPress theme designed to bring speed, flexibility, and ease of customization to your website. Built with modern development practices, it seamlessly integrates with popular tools like ACF and Timber, offering a developer-friendly structure and a user-friendly experience. Whether you are building a blog, an e-commerce site, or a corporate platform, Salthareket adapts to your needs, empowering you to create without limits.</span></p","_text":"field_65f1b3a9958b2"},"mode":"auto"} /-->';
+        $block_content = wp_slash('<!-- wp:acf/text {"name":"acf/text","data":{"block_settings_hero":"0","_block_settings_hero":"field_66968c7c1b738_field_65f2ed0554105","block_settings_sticky_top":"0","_block_settings_sticky_top":"field_66968c7c1b738_field_66e8f7e0f1824","block_settings_stretch_height":"0","_block_settings_stretch_height":"field_66968c7c1b738_field_66429a3093974","block_settings_wrapper_class":"","_block_settings_wrapper_class":"field_66968c7c1b738_field_670e7b1be0435","block_settings_container":"lg","_block_settings_container":"field_66968c7c1b738_field_65f2ed055f287","block_settings_height":"auto","_block_settings_height":"field_66968c7c1b738_field_65f2ed0557b77","block_settings_margin_top":"","_block_settings_margin_top":"field_65f9d3527ed2f","block_settings_margin_left":"","_block_settings_margin_left":"field_65f9d3a07ed31","block_settings_margin_right":"","_block_settings_margin_right":"field_65f9d3b87ed32","block_settings_margin_bottom":"","_block_settings_margin_bottom":"field_65f9d3c47ed33","block_settings_margin":"","_block_settings_margin":"field_66968c7c1b738_field_65f9d3207ed2e","block_settings_padding_top":"5","_block_settings_padding_top":"field_673d11dd7a128","block_settings_padding_left":"","_block_settings_padding_left":"field_673d11dd7a12c","block_settings_padding_right":"","_block_settings_padding_right":"field_673d11dd7a130","block_settings_padding_bottom":"5","_block_settings_padding_bottom":"field_673d11dd7a134","block_settings_padding":"","_block_settings_padding":"field_66968c7c1b738_field_673d11dd7a126","block_settings_text_color":"","_block_settings_text_color":"field_66968c7c1b738_field_661a7d9ea0310","block_settings_vertical_align":"center","_block_settings_vertical_align":"field_66968c7c1b738_field_661c91c58dc73","block_settings_text_align":{"xxxl":"center","xxl":"center","xl":"center","lg":"center","md":"center","sm":"center","xs":"center"},"_block_settings_text_align":"field_66968c7c1b738_field_6642297e21c44","block_settings_horizontal_align":{"xxxl":"center","xxl":"center","xl":"center","lg":"center","md":"center","sm":"center","xs":"center"},"_block_settings_horizontal_align":"field_66968c7c1b738_field_673d17c8afeca","block_settings_column_active":"0","_block_settings_column_active":"field_66216f8939b9d","block_settings_column":"","_block_settings_column":"field_66968c7c1b738_field_66216f5d39b9c","block_settings_color":"","_block_settings_color":"field_66565b8dc73a1","block_settings_type":"none","_block_settings_type":"field_66d876dc1d556","block_settings_image_mask":"","_block_settings_image_mask":"field_671e529d3a857","block_settings_background":"","_block_settings_background":"field_66968c7c1b738_field_669675502a8a6","block_settings_custom_id":"","_block_settings_custom_id":"field_66968c7c1b738_field_674d65b2e1dd0","block_settings_column_id":"jtmbu","_block_settings_column_id":"field_66968c7c1b738_field_67213addcfaf3","block_settings":"","_block_settings":"field_65f9e036320a5","collapsible":"0","_collapsible":"field_671badf2b06b5","text":"<h1 class=\"title-xxl fw-600\" style=\"text-align: center;\"><span style=\"color: #168ec9;\">Welcome to Salthareket!</span></h1><p class=\"text-lg\" style=\"text-align: center;\"><span style=\"color: #666666;\">Salthareket is a lightweight and modular WordPress theme designed to bring speed, flexibility, and ease of customization to your website. Built with modern development practices, it seamlessly integrates with popular tools like ACF and Timber, offering a developer-friendly structure and a user-friendly experience. Whether you are building a blog, an e-commerce site, or a corporate platform, Salthareket adapts to your needs, empowering you to create without limits.</span></p","_text":"field_65f1b3a9958b2"},"mode":"auto"} /-->');
 
         // Sayfanın var olup olmadığını kontrol et
          $query = new WP_Query([
@@ -1369,6 +1382,40 @@ class Update {
             error_log("Home page created and set as front page.");
         } else {
             error_log("Failed to create Home page.");
+        }
+    }
+    private static function create_menu() {
+        // Menü adını ve konumunu tanımla
+        $menu_name = 'header';
+        $menu_location = 'header-menu';
+
+        // Menü var mı kontrol et
+        $menu_exists = wp_get_nav_menu_object($menu_name);
+
+        if (!$menu_exists) {
+            // Menü oluştur
+            $menu_id = wp_create_nav_menu($menu_name);
+
+            // Menü konumunu kaydet
+            $locations = get_theme_mod('nav_menu_locations');
+            $locations[$menu_location] = $menu_id;
+            set_theme_mod('nav_menu_locations', $locations);
+
+            // "Home" sayfasını menüye ekle
+            $home_page = get_page_by_title('Home');
+            if ($home_page) {
+                wp_update_nav_menu_item($menu_id, 0, [
+                    'menu-item-title' => $home_page->post_title,
+                    'menu-item-object' => 'page',
+                    'menu-item-object-id' => $home_page->ID,
+                    'menu-item-type' => 'post_type',
+                    'menu-item-status' => 'publish',
+                ]);
+            }
+
+            error_log("Menu '$menu_name' created and 'Home' page added.");
+        } else {
+            error_log("Menu '$menu_name' already exists.");
         }
     }
 
