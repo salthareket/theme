@@ -66,6 +66,7 @@ function rudr_term_permalink( $url, $term, $taxonomy ){
             return $url;
         }
     }
+    return $url;
 }
 
 add_action('template_redirect', 'rudr_old_term_redirect');

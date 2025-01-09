@@ -297,16 +297,14 @@ class PluginManager {
     public static function check_and_update_local_plugins($plugin_types) {
         $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
         $plugin_dir = __DIR__ . '/plugins';
-
         foreach ($required_plugins_local as $plugin) {
             $plugin_path = WP_PLUGIN_DIR . '/' . $plugin['name'];
             // Check if the plugin exists and if the version is outdated
             if (!file_exists($plugin_path) || self::is_version_outdated($plugin['v'], $plugin['name'])) {
                 self::remove_plugin($plugin['file']);
-                self::install_local_plugin($plugin_dir, $plugin);
             }
-
             if (!self::is_plugin_active($plugin['name']) && (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))) {
+                self::install_local_plugin($plugin_dir, $plugin);
                 self::activate_plugin($plugin['name']);
             }
         }
