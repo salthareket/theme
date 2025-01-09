@@ -1232,6 +1232,9 @@ class Update {
     }
 
 
+    
+
+
     // Default Contents
     private static function update_site_logo($logo_path) {
         // ACF'deki mevcut logo ID'sini kontrol et
@@ -1247,7 +1250,7 @@ class Update {
         }
 
         // Logo dosyasını WordPress medya kütüphanesine yükle
-        $attachment_id = upload_image($logo_path);
+        $attachment_id = self::upload_image($logo_path);
 
         if ($attachment_id) {
             // "logo" adlı ACF alanını güncelle
@@ -1337,9 +1340,15 @@ class Update {
         $block_content = '<!-- wp:acf/text {"name":"acf/text","data":{"block_settings_hero":"0","_block_settings_hero":"field_66968c7c1b738_field_65f2ed0554105","block_settings_sticky_top":"0","_block_settings_sticky_top":"field_66968c7c1b738_field_66e8f7e0f1824","block_settings_stretch_height":"0","_block_settings_stretch_height":"field_66968c7c1b738_field_66429a3093974","block_settings_wrapper_class":"","_block_settings_wrapper_class":"field_66968c7c1b738_field_670e7b1be0435","block_settings_container":"lg","_block_settings_container":"field_66968c7c1b738_field_65f2ed055f287","block_settings_height":"auto","_block_settings_height":"field_66968c7c1b738_field_65f2ed0557b77","block_settings_margin_top":"","_block_settings_margin_top":"field_65f9d3527ed2f","block_settings_margin_left":"","_block_settings_margin_left":"field_65f9d3a07ed31","block_settings_margin_right":"","_block_settings_margin_right":"field_65f9d3b87ed32","block_settings_margin_bottom":"","_block_settings_margin_bottom":"field_65f9d3c47ed33","block_settings_margin":"","_block_settings_margin":"field_66968c7c1b738_field_65f9d3207ed2e","block_settings_padding_top":"5","_block_settings_padding_top":"field_673d11dd7a128","block_settings_padding_left":"","_block_settings_padding_left":"field_673d11dd7a12c","block_settings_padding_right":"","_block_settings_padding_right":"field_673d11dd7a130","block_settings_padding_bottom":"5","_block_settings_padding_bottom":"field_673d11dd7a134","block_settings_padding":"","_block_settings_padding":"field_66968c7c1b738_field_673d11dd7a126","block_settings_text_color":"","_block_settings_text_color":"field_66968c7c1b738_field_661a7d9ea0310","block_settings_vertical_align":"center","_block_settings_vertical_align":"field_66968c7c1b738_field_661c91c58dc73","block_settings_text_align":{"xxxl":"center","xxl":"center","xl":"center","lg":"center","md":"center","sm":"center","xs":"center"},"_block_settings_text_align":"field_66968c7c1b738_field_6642297e21c44","block_settings_horizontal_align":{"xxxl":"center","xxl":"center","xl":"center","lg":"center","md":"center","sm":"center","xs":"center"},"_block_settings_horizontal_align":"field_66968c7c1b738_field_673d17c8afeca","block_settings_column_active":"0","_block_settings_column_active":"field_66216f8939b9d","block_settings_column":"","_block_settings_column":"field_66968c7c1b738_field_66216f5d39b9c","block_settings_color":"","_block_settings_color":"field_66565b8dc73a1","block_settings_type":"none","_block_settings_type":"field_66d876dc1d556","block_settings_image_mask":"","_block_settings_image_mask":"field_671e529d3a857","block_settings_background":"","_block_settings_background":"field_66968c7c1b738_field_669675502a8a6","block_settings_custom_id":"","_block_settings_custom_id":"field_66968c7c1b738_field_674d65b2e1dd0","block_settings_column_id":"jtmbu","_block_settings_column_id":"field_66968c7c1b738_field_67213addcfaf3","block_settings":"","_block_settings":"field_65f9e036320a5","collapsible":"0","_collapsible":"field_671badf2b06b5","text":"<h1 class=\"title-xxl fw-600\" style=\"text-align: center;\"><span style=\"color: #168ec9;\">Welcome to Salthareket!</span></h1><p class=\"text-lg\" style=\"text-align: center;\"><span style=\"color: #666666;\">Salthareket is a lightweight and modular WordPress theme designed to bring speed, flexibility, and ease of customization to your website. Built with modern development practices, it seamlessly integrates with popular tools like ACF and Timber, offering a developer-friendly structure and a user-friendly experience. Whether you are building a blog, an e-commerce site, or a corporate platform, Salthareket adapts to your needs, empowering you to create without limits.</span></p","_text":"field_65f1b3a9958b2"},"mode":"auto"} /-->';
 
         // Sayfanın var olup olmadığını kontrol et
-        $existing_page = get_page_by_title('Home', OBJECT, 'page');
-        if ($existing_page) {
+         $query = new WP_Query([
+            'post_type' => 'page',
+            'title' => 'Home',
+            'post_status' => 'publish',
+        ]);
+
+        if ($query->have_posts()) {
             // Sayfa zaten varsa, onu ana sayfa olarak ayarla
+            $existing_page = $query->posts[0];
             update_option('page_on_front', $existing_page->ID);
             update_option('show_on_front', 'page');
             return;
