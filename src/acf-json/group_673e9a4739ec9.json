@@ -135,7 +135,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "\"\"": "Default",
+                        "none": "None",
                         "opacity": "Opacity",
                         "scale": "Scale",
                         "rotate": "Rotate",
@@ -156,7 +156,7 @@
                         "letter-spacing": "Letter Spacing",
                         "padding": "Padding"
                     },
-                    "default_value": "default",
+                    "default_value": "none",
                     "return_format": "value",
                     "multiple": 0,
                     "allow_null": 0,
@@ -195,7 +195,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1736474827,
+    "modified": 1736480085,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

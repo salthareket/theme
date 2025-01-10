@@ -411,7 +411,7 @@ function block_attrs($block, $fields, $block_column){
         $attrs["data-scroll"] = "";
         $attrs["data-scroll-speed"] = $fields["block_settings"]["block_parallax"]["scroll_speed"];
         $attrs["data-scroll-direction"] = $fields["block_settings"]["block_parallax"]["scroll_direction"];
-        if(!empty($fields["block_settings"]["block_parallax"]["scroll_progress"])){
+        if($fields["block_settings"]["block_parallax"]["scroll_progress"] != "none"){
             $attrs["data-scroll-event-progress"] = "progressEvent";
             $attrs["data-scroll-event-property"] = $fields["block_settings"]["block_parallax"]["scroll_progress"];
         }
