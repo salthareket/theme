@@ -67,6 +67,7 @@ class MethodClass {
             $indexPhpFile = fopen($storeDir . 'index.php', 'w');
             fwrite($indexPhpFile, $this->optimizeCode($indexPhpContent));
             fclose($indexPhpFile);
+            $this->copyToTheme($storeDir . 'index.php', THEME_INCLUDES_PATH . ($platform=="frontend"?"methods":$platform) ."/index.php");
 
         } else {
             // Eğer hata varsa temp dosyasını sil ve hata mesajını görüntüle
@@ -80,22 +81,13 @@ class MethodClass {
         $indexJsFile = fopen($storeDir . 'index.js', 'w');
         fwrite($indexJsFile, $this->optimizeCode($indexJsContent));
         fclose($indexJsFile);
-        $this->copyToTheme($storeDir . 'index.js', $platform);
+        $this->copyToTheme($storeDir . 'index.js', STATIC_PATH . 'js/'.($platform=="frontend"?"methods":$platform).'.min.js');
         
         return $errors;
     }
 
-    private function copyToTheme($path, $platform) {
-        $target_dir = STATIC_PATH . 'js/';
-        $target_file = $target_dir . ($platform=="frontend"?"methods":$platform).'.min.js'; // Hedef dosya
-        $source_file = $path;
-        if (!is_dir($target_dir)) {
-            if (!mkdir($target_dir, 0755, true)) {
-                error_log("Hedef klasör oluşturulamadı: $target_dir");
-                return;
-            }
-            error_log("Hedef klasör oluşturuldu: $target_dir");
-        }
+    //private function copyToTheme($path, $platform) {
+    private function copyToTheme($source_file, $target_file) {
 
         // Kaynak dosya kontrolü
         if (!file_exists($source_file)) {
@@ -253,8 +245,8 @@ class MethodClass {
             return "});\n";
         }
     }
-/*
-   public function checkForSyntaxErrors($file) {
+    /*
+    public function checkForSyntaxErrors($file) {
         $fileList = [$file];
         chdir(get_stylesheet_directory()."/vendor/bin/");
         //error_log(get_stylesheet_directory()."/vendor/bin/");
@@ -354,7 +346,6 @@ class MethodClass {
 
         return $decoded['results']['errors'] ?? [];
     }
-
 
 
     public function log($functionName, $description){

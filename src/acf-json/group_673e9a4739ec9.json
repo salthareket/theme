@@ -113,6 +113,43 @@
                     "search_placeholder": ""
                 },
                 {
+                    "key": "field_678103992496a",
+                    "label": "Scroll Position",
+                    "name": "scroll_position",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_67804dc9c0685",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "start, end": "start, end",
+                        "end, start": "end, start"
+                    },
+                    "default_value": "start, end",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "allow_in_bindings": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
                     "key": "field_6780639ac9c16",
                     "label": "Scroll Event Property",
                     "name": "scroll_progress",
@@ -166,6 +203,64 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": ""
+                },
+                {
+                    "key": "field_678117d84acea",
+                    "label": "Scroll Ignore Fold",
+                    "name": "scroll_ignore_fold",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_67804dc9c0685",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                },
+                {
+                    "key": "field_6781180f4aceb",
+                    "label": "Enable on Mobile",
+                    "name": "scroll_enable_touch_speed",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_67804dc9c0685",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
                 }
             ]
         }
@@ -195,7 +290,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1736480431,
+    "modified": 1736513743,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

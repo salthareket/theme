@@ -1299,7 +1299,7 @@ function get_video($video_args=array()){
 		$settings["videoReact"] = false;
 		$config["clickToPlay"] = false;
 		//$settings["controls"] = false;
-		$code = str_replace("{{class}}", "video-bg ".$class, $code);    
+		$code = str_replace("{{class}}", "video-bg ".$class, $code);  
 	}
 	$code = str_replace("{{class}}", $class, $code);
 

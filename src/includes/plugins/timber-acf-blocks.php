@@ -410,6 +410,14 @@ function block_attrs($block, $fields, $block_column){
     if(isset($fields["block_settings"]["block_parallax"]) && $fields["block_settings"]["block_parallax"]["active"]){
         $attrs["data-scroll"] = "";
         $attrs["data-scroll-speed"] = $fields["block_settings"]["block_parallax"]["scroll_speed"];
+        $attrs["data-scroll-position"] = $fields["block_settings"]["block_parallax"]["scroll_position"];
+        $attrs["data-scroll-repeat"] = "";
+        if($fields["block_settings"]["block_parallax"]["scroll_ignore_fold"]){
+            $attrs["data-scroll-ignore-fold"] = "";
+        }
+        if($fields["block_settings"]["block_parallax"]["scroll_enable_touch_speed"]){
+            $attrs["data-enable-touch-speed"] = "";
+        }
         $attrs["data-scroll-direction"] = $fields["block_settings"]["block_parallax"]["scroll_direction"];
         if($fields["block_settings"]["block_parallax"]["scroll_progress"] != "none"){
             $attrs["data-scroll-event-progress"] = "progressEvent";
@@ -784,13 +792,15 @@ function block_bg_video($block, $fields, $block_column){
             }
             $args = [];
             $args["video_type"] = $background["type"];
+
+            $video_class .= " object-fit-cover h-100 w-100 ";
             
             $args["video_settings"] = array(
                 "videoBg"  => true,
                 "autoplay" => true,
                 "loop"     => true,
                 "muted"    => true,
-                "ratio"    => "16:9",
+                //"ratio"    => "16:9",
                 "controls" => true,
                 "controls_options" => ["settings"],
                 "controls_options_settings" => ["quality"],
@@ -809,7 +819,7 @@ function block_bg_video($block, $fields, $block_column){
 
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
-            $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover '.$classes.' position-absolute-fill hide-controls" style="'.$image_style.'">';
+            $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover '.$classes.' position-absolute-fill hide-controls overflow-hidden" style="'.$image_style.'">';
             //$image .= get_video($background["type"], $args, $video_class, true);
             $image .= get_video(["src" => $args, "class" => $video_class, "init" => true]);
             $image .= "</div>";

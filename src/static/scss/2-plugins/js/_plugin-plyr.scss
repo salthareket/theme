@@ -21,7 +21,11 @@
 		height:100%;
 	}
 }
-
+.bg-cover{
+	.plyr{
+		height:100%;
+	}
+}
 .plyr__poster{
 	@include bg-cover();
 }
