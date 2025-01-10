@@ -2517,7 +2517,6 @@ function acf_save_post_block_columns( $post_id ) {
     if ( get_post_type( $post_id ) !== 'acf-field-group' ) {
         return;
     }
-
     static $has_run = false; // Hook'un iki kere çalışmasını önlemek için flag kullan
     if ($has_run) {
         return;
@@ -3458,17 +3457,20 @@ function acf_json_to_db($acf_json_path = "") {
         }
 
         if (isset($field_group['key'])) {
-            // Var olan grup kontrolü
-            $existing_group = acf_get_field_group($field_group['key']);
+        	if(!in_array($field_group['title'], $imported_groups)){
+	            // Var olan grup kontrolü
+	            $existing_group = acf_get_field_group($field_group['key']);
 
-            if ($existing_group) {
-                // Mevcut grup varsa sil
-                acf_delete_field_group($existing_group['ID']);
-            }
+	            if ($existing_group) {
+	                // Mevcut grup varsa sil
+	                acf_delete_field_group($existing_group['ID']);
+	            }
 
-            // Yeni grubu veritabanına ekle
-            acf_import_field_group($field_group);
-            $imported_groups[] = $field_group['title'];
+	            // Yeni grubu veritabanına ekle
+	            acf_import_field_group($field_group);
+	            $imported_groups[] = $field_group['title'];        		
+        	}
+
         }
     }
 
