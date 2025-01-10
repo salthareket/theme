@@ -41,8 +41,6 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
-                        "##Custom Fonts": "##Custom Fonts",
-                        "pantheon, Arial, Helvetica, sans-serif": "Pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -807,7 +805,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735990341,
+    "modified": 1736436644,
     "acfe_categories": {
         "general": "General"
     }

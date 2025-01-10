@@ -444,9 +444,7 @@
                                 "class": "acf-location-posts",
                                 "id": ""
                             },
-                            "choices": {
-                                "426": "HD Protek (contact)"
-                            },
+                            "choices": [],
                             "default_value": "",
                             "return_format": "value",
                             "multiple": 1,
@@ -1044,7 +1042,6 @@
                         "warning": "warning",
                         "light": "light",
                         "dark": "dark",
-                        "gray-light": "gray-light",
                         "custom": "Custom"
                     },
                     "default_value": "",
@@ -1082,11 +1079,7 @@
                         "class": "acf-button-size",
                         "id": ""
                     },
-                    "choices": {
-                        "default": "default",
-                        "sm": "sm",
-                        "lg": "lg"
-                    },
+                    "choices": [],
                     "default_value": "",
                     "return_format": "value",
                     "multiple": 0,
@@ -1351,5 +1344,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1735990354
+    "modified": 1736436655
 }

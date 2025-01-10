@@ -2086,7 +2086,7 @@ class UpdateFlexibleFieldLayouts {
 
 	private $clone; 
 	private $breakpoints; 
-	private $parallax; 
+	//private $parallax; 
 
 	public function __construct($field_name="", $block_name="", $migration = []) {
         $this->field_name = $field_name;
@@ -2134,7 +2134,7 @@ class UpdateFlexibleFieldLayouts {
 		    'allow_in_bindings' => 0,
 		    'font_size' => 14,
 		);
-		$this->parallax = array(
+		/*$this->parallax = array(
 			"aria-label" =>  "",
 			"type" => "clone",
 			"instructions" =>  "",
@@ -2148,7 +2148,7 @@ class UpdateFlexibleFieldLayouts {
 			"clone"=> array(
 				"group_673e9a4739ec9"
 			),
-		);
+		);*/
     }
 
     public function get_block_field_data($block){
@@ -2399,11 +2399,11 @@ class UpdateFlexibleFieldLayouts {
 				}
 
 				$breakpoints = $this->create_field($block, $post_parent, $layout_name, $this->breakpoints, "Breakpoints", "breakpoints", $layout_data);
-				$parallax = $this->create_field($block, $post_parent, $layout_name, $this->parallax, "Parallax", "parallax", $layout_data);
+				//$parallax = $this->create_field($block, $post_parent, $layout_name, $this->parallax, "Parallax", "parallax", $layout_data);
 
 				$clone = $this->create_clone($block, $post_parent, $layout_name, $layout_data);
 
-				if ($clone && $breakpoints && $parallax) {
+				if ($clone && $breakpoints){// && $parallax) {
 
 					$clone["parent_id"] = $post_parent;
 
@@ -2525,52 +2525,9 @@ function acf_save_post_block_columns( $post_id ) {
     $has_run = true;
 
     acf_save_post_block_columns_action( $post_id );
-
 }
 add_action( 'save_post', 'acf_save_post_block_columns', 20 );
 
-
-
-/*
-function my_acf_load_option_value_qtranslate($value, $post_id, $field) {
-    if ($post_id === 'options') {
-        remove_filter('acf/load_value', 'my_acf_load_option_value_qtranslate', 10, 3);
-
-        global $q_config;
-
-        // Geçerli dil kodunu al
-        $current_lang = get_bloginfo('language');
-        // Varsayılan dil kodunu al (qTranslate X için varsayılan dilin nasıl alınacağına göre ayarlayabilirsiniz)
-        $default_lang = isset($q_config['default_language']) ? $q_config['default_language'] : '';
-
-        error_log("Current Language: " . $current_lang);
-    
-        // Alan adını oluştur
-        $field_name_with_lang = $field['name'] . '_' . $current_lang;
-        error_log("Field Name with Current Lang: " . $field_name_with_lang);
-        
-        // Geçerli dildeki değeri al
-        $value = get_field($field_name_with_lang, 'option');
-        error_log("Value for Current Lang: " . $value);
-
-        // Eğer değer yoksa varsayılan dildeki değeri al
-        if (empty($value) && !empty($default_lang)) {
-            $field_name_with_default = $field['name'] . '_' . $default_lang;
-            error_log("Field Name with Default Lang: " . $field_name_with_default);
-            $value = get_field($field_name_with_default, 'option');
-            error_log("Value for Default Lang: " . $value);
-        }
-        error_log($field['name']);
-        $value = get_field($field['name'], 'options');
-        error_log(json_encode($value));
-
-        add_filter('acf/load_value', 'my_acf_load_option_value_qtranslate', 10, 3);
-    }
-    
-    return $value;
-}
-add_filter('acf/load_value', 'my_acf_load_option_value_qtranslate', 10, 3);
-*/
 
 
 function unit_value($val=array()){

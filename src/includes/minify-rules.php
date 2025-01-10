@@ -331,9 +331,9 @@ function compile_files_config($enable_production=false){
 	$plugins['locomotive-scroll'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'locomotive-scroll/dist/locomotive-scroll.min.js',
+		"url" => $node_path . 'locomotive-scroll/dist/locomotive-scroll.umd.js',
 		"css" => [
-			$node_path . 'locomotive-scroll/dist/locomotive-scroll.min.css',
+			$node_path . 'locomotive-scroll/dist/locomotive-scroll.css',
 		],
 		"class" => [],
 		"attrs" => ["data-scroll"],

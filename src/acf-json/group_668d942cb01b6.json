@@ -150,8 +150,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "pantheon, Arial, Helvetica, sans-serif": "Pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -534,8 +532,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "pantheon, Arial, Helvetica, sans-serif": "Pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -887,7 +883,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735990345,
+    "modified": 1736436648,
     "acfe_categories": {
         "general": "General"
     }

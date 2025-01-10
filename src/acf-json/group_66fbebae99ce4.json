@@ -94,9 +94,7 @@
                 "id": ""
             },
             "choices": {
-                "default": "Default",
-                "theme\/templates\/_custom\/map-marker-popup": "map-marker-popup",
-                "theme\/templates\/_custom\/team-member": "team-member"
+                "default": "Default"
             },
             "default_value": false,
             "return_format": "value",
@@ -155,7 +153,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735990352,
+    "modified": 1736436654,
     "acfe_categories": {
         "block": "Block"
     }

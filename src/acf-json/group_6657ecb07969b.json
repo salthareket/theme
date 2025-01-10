@@ -205,9 +205,7 @@
                 "class": "acf-contact-accounts",
                 "id": ""
             },
-            "choices": {
-                "426": "HD Protek"
-            },
+            "choices": [],
             "default_value": "",
             "return_format": "value",
             "multiple": 0,
@@ -256,20 +254,20 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs - 20px",
-                        "title-sm": "title-sm - 24px",
-                        "title-md": "title-md - 28px",
-                        "title-lg": "title-lg - 36px",
-                        "title-xl": "title-xl - 48px",
-                        "title-xxl": "title-xxl - 60px",
-                        "title-xxxl": "title-xxxl - 72px",
-                        "text-xs": "text-xs - 16px",
-                        "text-sm": "text-sm - 18px",
-                        "text-md": "text-md - 20px",
-                        "text-lg": "text-lg - 22px",
-                        "text-xl": "text-xl - 24px",
-                        "text-xxl": "text-xxl - 28px",
-                        "text-xxxl": "text-xxxl - 32px"
+                        "title-xs": "title-xs",
+                        "title-sm": "title-sm",
+                        "title-md": "title-md",
+                        "title-lg": "title-lg",
+                        "title-xl": "title-xl",
+                        "title-xxl": "title-xxl",
+                        "title-xxxl": "title-xxxl",
+                        "text-xs": "text-xs",
+                        "text-sm": "text-sm",
+                        "text-md": "text-md",
+                        "text-lg": "text-lg",
+                        "text-xl": "text-xl",
+                        "text-xxl": "text-xxl",
+                        "text-xxxl": "text-xxxl"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -351,7 +349,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735990340,
+    "modified": 1736436644,
     "acfe_categories": {
         "block": "Block"
     }

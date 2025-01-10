@@ -20,7 +20,7 @@
     "leaflet.markercluster": "^1.5.3",
     "lenis": "^1.1.18",
     "lightgallery": "^2.8.2",
-    "locomotive-scroll": "^4.1.4",
+    "locomotive-scroll": "^5.0.0-beta.21",
     "masonry-layout": "^4.2.2",
     "plyr": "^3.7.8",
     "scrollpos-styler": "^0.7.1",

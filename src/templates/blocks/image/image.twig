@@ -22,6 +22,6 @@
 {% extends "blocks/_block-container.twig" %}
 
 {% block block_content %}
-    {% set parallax_attrs = {"data-scroll": true, "data-scroll-speed": -5} %}
+    {% set parallax_attrs = {} %}
 	{{img({src: fields.image, class : fields.image_class, lazy: true, lazy_native: true, lcp: true, attrs: parallax_attrs})}}
 {% endblock %}

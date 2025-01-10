@@ -1271,7 +1271,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "hdprotek": "HD Protek",
+                        "dummy": "Dummy",
                         "twentytwentyfive": "Twenty Twenty-Five"
                     },
                     "default_value": "",
@@ -1363,10 +1363,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
-                "event": "Events",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -1638,7 +1637,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735990324,
+    "modified": 1736436629,
     "acfe_categories": {
         "general": "General"
     }

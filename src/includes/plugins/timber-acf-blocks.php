@@ -406,6 +406,17 @@ function block_attrs($block, $fields, $block_column){
         $attrs["id"] = $block["id"];
     }
     $attrs["data-index"] = isset($block["index"])?$block["index"]:0;
+
+    if(isset($fields["block_settings"]["block_parallax"]) && $fields["block_settings"]["block_parallax"]["active"]){
+        $attrs["data-scroll"] = "";
+        $attrs["data-scroll-speed"] = $fields["block_settings"]["block_parallax"]["scroll_speed"];
+        $attrs["data-scroll-direction"] = $fields["block_settings"]["block_parallax"]["scroll_direction"];
+        if(!empty($fields["block_settings"]["block_parallax"]["scroll_progress"])){
+            $attrs["data-scroll-event-progress"] = "progressEvent";
+            $attrs["data-scroll-event-property"] = $fields["block_settings"]["block_parallax"]["scroll_progress"];
+        }
+    }
+
     $attrs = array2Attrs($attrs);
     return $attrs;
 }
@@ -706,7 +717,7 @@ function block_bg_image($block, $fields, $block_column){
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
             //if($fields["block_settings"]["height"] != "auto"){
-               $classes .= "position-absolute-fill";
+               $classes .= " position-absolute-fill ";
             //}
 
             $image = '<div class="bg-cover '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';

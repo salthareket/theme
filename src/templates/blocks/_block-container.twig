@@ -73,7 +73,7 @@
 		{% endif %}
 	{% endif %}
 
-	<div class="{{block_meta_classes}}" {{block_meta.attrs}} {% if block.name == "acf/bootstrap-columns" and not block_column %}data-scroll-container{% else %} {% if block.name == "acf/bootstrap-columns" and block_column %}data-scroll data-scroll-speed="{{random(-5, 5)}}" data-scroll-direction="vertical" data-scroll-duration="5" data-scroll-target="#{{block_meta.parent}}" data-scroll-call="toggleVisibility"{% endif %}{% endif %}>
+	<div class="{{block_meta_classes}}" {{block_meta.attrs}}>
 
 	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
 		<div class="sticky-top">

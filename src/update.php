@@ -965,6 +965,10 @@ class Update {
         $post_id = $wpdb->get_var($query);
         if($post_id){
             acf_save_post_block_columns_action( $post_id );
+            wp_update_post([
+                'ID' => $post_id,
+                'post_content' => get_post_field('post_content', $post_id), // Mevcut içeriği koru
+            ]);
         }
     }
     private static function npm_install(): string{

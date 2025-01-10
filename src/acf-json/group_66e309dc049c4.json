@@ -75,30 +75,8 @@
             "ui": 1
         },
         {
-            "key": "field_673e9ff972820",
-            "label": "Parallax",
-            "name": "parallax",
-            "aria-label": "",
-            "type": "true_false",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "20",
-                "class": "",
-                "id": ""
-            },
-            "message": "",
-            "default_value": 0,
-            "translations": "sync",
-            "allow_in_bindings": 0,
-            "ui_on_text": "",
-            "ui_off_text": "",
-            "ui": 1
-        },
-        {
             "key": "field_66e33aaff19f3",
-            "label": "Row Column Breakpoints",
+            "label": "Row Column Breakpoints (Equal width columns)",
             "name": "column_breakpoints",
             "aria-label": "",
             "type": "acf_bs_breakpoints",
@@ -227,7 +205,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1735994813,
+    "modified": 1736472932,
     "acfe_categories": {
         "block": "Block"
     }

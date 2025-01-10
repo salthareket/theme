@@ -5,7 +5,7 @@
         {
             "key": "field_673ea45535547",
             "label": "Parallax",
-            "name": "parallax_settings",
+            "name": "block_parallax",
             "aria-label": "",
             "type": "group",
             "instructions": "",
@@ -19,10 +19,28 @@
             "layout": "block",
             "acfe_seamless_style": 0,
             "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large",
             "sub_fields": [
+                {
+                    "key": "field_67804dc9c0685",
+                    "label": "Active",
+                    "name": "active",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 1,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                },
                 {
                     "key": "field_673e9a4741746",
                     "label": "Scroll Speed",
@@ -31,19 +49,26 @@
                     "type": "number",
                     "instructions": "",
                     "required": 0,
-                    "conditional_logic": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_67804dc9c0685",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
                     "wrapper": {
                         "width": "20",
                         "class": "",
                         "id": ""
                     },
-                    "default_value": 2,
-                    "translations": "sync",
+                    "default_value": "0.2",
                     "min": "",
                     "max": "",
                     "allow_in_bindings": 0,
                     "placeholder": "",
-                    "step": 1,
+                    "step": "0.1",
                     "prepend": "",
                     "append": ""
                 },
@@ -55,7 +80,15 @@
                     "type": "select",
                     "instructions": "",
                     "required": 0,
-                    "conditional_logic": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_67804dc9c0685",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
                     "wrapper": {
                         "width": "20",
                         "class": "",
@@ -68,16 +101,73 @@
                     "default_value": "vertical",
                     "return_format": "value",
                     "multiple": 0,
-                    "allow_custom": 0,
-                    "placeholder": "",
-                    "search_placeholder": "",
-                    "translations": "sync",
                     "allow_null": 0,
                     "allow_in_bindings": 0,
                     "ui": 0,
-                    "ajax": 0
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_6780639ac9c16",
+                    "label": "Scroll Event Property",
+                    "name": "scroll_progress",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_67804dc9c0685",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "\"\"": "Default",
+                        "opacity": "Opacity",
+                        "scale": "Scale",
+                        "rotate": "Rotate",
+                        "translateX": "Translate X",
+                        "translateY": "Translate Y",
+                        "skew": "Skew",
+                        "blur": "Blur",
+                        "brightness": "Brightness",
+                        "grayscale": "Grayscale",
+                        "invert": "Invert",
+                        "border-radius": "Border Radius",
+                        "clippath-circle": "Clip Path (Circle)",
+                        "clippath-ellipse": "Clip Path (Ellipse)",
+                        "clippath-polygon": "Clip Path (Polygon)",
+                        "clippath-star": "Clip Path (Star)",
+                        "background-color": "Background Color",
+                        "font-size": "Font Size",
+                        "letter-spacing": "Letter Spacing",
+                        "padding": "Padding"
+                    },
+                    "default_value": "default",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "allow_in_bindings": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
                 }
-            ]
+            ],
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         }
     ],
     "location": [
@@ -105,9 +195,9 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
+    "modified": 1736469585,
     "acfe_categories": {
         "common": "Common",
         "general": "General"
-    },
-    "modified": 1735990355
+    }
 }

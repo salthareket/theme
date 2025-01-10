@@ -24,10 +24,8 @@
 
 {% block block_content %}
 
-    {% set parallax_attrs = {"data-scroll": true, "data-scroll-speed": -5} %}
-
     {% if fields.wrapper_class %}
-        <div class="{{fields.wrapper_class}} w-100" {{parallax_attrs|array2Attrs}}>
+        <div class="{{fields.wrapper_class}} w-100">
     {% endif %}
 
     {% if fields.template_block %}
