@@ -1027,6 +1027,7 @@ class Update {
         self::set_default_acf_values();
         self::create_home_page();
         self::create_menu();
+        self::update_image_sizes();
     }
 
 
@@ -1420,6 +1421,35 @@ class Update {
             error_log("Menu '$menu_name' created and 'Home' page added.");
         } else {
             error_log("Menu '$menu_name' already exists.");
+        }
+    }
+    private static function update_image_sizes() {
+        // Mevcut Medium boyutlarını kontrol et
+        $current_medium_width = get_option('medium_size_w');
+        $current_medium_height = get_option('medium_size_h');
+
+        // Mevcut Large boyutlarını kontrol et
+        $current_large_width = get_option('large_size_w');
+        $current_large_height = get_option('large_size_h');
+
+        // Eğer boyutlar 300x300 (medium) ve 1024x1024 (large) ise güncelle
+        if ($current_medium_width == 300 && $current_medium_height == 300 &&
+            $current_large_width == 1024 && $current_large_height == 1024) {
+            
+            // Medium boyutlarını güncelle
+            update_option('medium_size_w', 1200); // Yeni genişlik
+            update_option('medium_size_h', 0);    // Yükseklik sınırsız
+            update_option('medium_crop', 0);     // Kırpma yok
+
+            // Large boyutlarını güncelle
+            update_option('large_size_w', 1920); // Yeni genişlik
+            update_option('large_size_h', 0);    // Yükseklik sınırsız
+            update_option('large_crop', 0);     // Kırpma yok
+
+            // Log mesajı
+            error_log("Medium ve Large image sizes güncellendi.");
+        } else {
+            error_log("Boyutlar uygun değil, güncelleme yapılmadı.");
         }
     }
 
