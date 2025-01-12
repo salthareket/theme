@@ -784,7 +784,9 @@ function block_bg_video($block, $fields, $block_column){
             if($background["parallax"]){
                 $container_attr = "data-jarallax data-speed='".$background["parallax_settings"]["speed"]."' data-type='".$background["parallax_settings"]["type"]."' ";
                 $container_class = "jarallax";
-                $video_class = "jarallax-img";
+                if($background["type"] == "file"){
+                    $video_class = "jarallax-img";
+                }
                 if($background_color){
                     $image_style[] = "background-color:".$background_color;
                 }
@@ -793,7 +795,7 @@ function block_bg_video($block, $fields, $block_column){
             $args = [];
             $args["video_type"] = $background["type"];
 
-            $video_class .= " object-fit-cover h-100 w-100 ";
+            //$video_class .= " object-fit-cover h-100 w-100 ";
             
             $args["video_settings"] = array(
                 "videoBg"  => true,
@@ -820,8 +822,13 @@ function block_bg_video($block, $fields, $block_column){
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
             $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover '.$classes.' position-absolute-fill hide-controls overflow-hidden" style="'.$image_style.'">';
-            //$image .= get_video($background["type"], $args, $video_class, true);
+            if($background["type"] == "embed"){
+                $image .= '<div class="jarallax-img">';
+            }
             $image .= get_video(["src" => $args, "class" => $video_class, "init" => true]);
+            if($background["type"] == "embed"){
+                $image .= '</div>';
+            }
             $image .= "</div>";
         }
     }

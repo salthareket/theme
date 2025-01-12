@@ -27,6 +27,8 @@ function plyr_init($obj){
 			config_data = {};
 		}
 
+		var class_data = $obj.attr("data-class");
+
 		function set_quality(video){
 			let devices = {phone: {size: 360, max: 767}, "tablet": {size: 480, min: 768, max: 1024}, "desktop" : {size: 720, min: 1025} };
 			let quality = "";
@@ -67,8 +69,15 @@ function plyr_init($obj){
 		}
 
 	    const video = new Plyr($obj);//);, config_data
+	    /*if(!IsBlank(class_data)){
+           $obj.addClass(class_data);
+           console.log($obj)
+           if(class_data.includes("jarallax-img") && $obj.find(".plyr__video-embed").length > 0){
+              $obj.closest(".jarallax").jarallax();
+           }
+	    }*/
 	    set_quality(video);
-	    plyr_bg_embed($obj);
+	    //plyr_bg_embed($obj);
 	    if(video.elements.container){
 	    	video.elements.container.plyr = video;
 	    }
@@ -99,7 +108,7 @@ function plyr_init($obj){
 				   video.play();
 			    }
 			}
-			plyr_bg_embed($obj);
+			//plyr_bg_embed($obj);
         	$(window).trigger("resize");
 		})
 		.on("play", (e) => {
@@ -186,7 +195,7 @@ function plyr_init($obj){
 			clearTimeout(resizeTimeout);
 			resizeTimeout = setTimeout(function() {
 	            set_quality(video);
-			    plyr_bg_embed($obj);
+			    //plyr_bg_embed($obj);
 	        }, 100);
 		});
 
@@ -241,7 +250,7 @@ function plyr_bg_embed($obj) {
             $obj.css({
             	'max-height': "none",
                 'width': newObjWidth + 'px',
-                'height': newObjHeight + 'px',
+                'min-height': newObjHeight + 'px',
                 'left': '0',
                 'top': offsetY
             });
@@ -254,7 +263,7 @@ function plyr_bg_embed($obj) {
             $obj.css({
             	'max-width': "none",
                 'width': newObjWidth + 'px',
-                'height': newObjHeight + 'px',
+                'min-height': newObjHeight + 'px',
                 'left': offsetX + 'px',
                 'top': '0'
             });
