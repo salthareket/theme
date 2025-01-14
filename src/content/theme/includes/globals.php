@@ -59,11 +59,10 @@ $GLOBALS["notification_post_types"] = array();
 
 
 // Yeni block kategorilerinin tanımlanması
-
 $GLOBALS['block_categories'] = array(
     array(
         'slug'  => TEXT_DOMAIN,
-        'title' => esc_html( get_bloginfo( 'name' ) ) . ' Blocks',
+        'title' => esc_html( ucwords(str_replace('-', ' ', TEXT_DOMAIN)) ) . ' Blocks',
         'icon'  => 'dashicons-admin-site' // Dashicon simgesi
     )
 );

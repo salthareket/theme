@@ -9,7 +9,6 @@ function wp_block_category( $categories, $post ) {
         )
     );
     $new_categories = array_merge( $GLOBALS['block_categories'], $main_category);
-    //error_log(json_encode($new_categories));
     $new_categories = array_reverse( $new_categories );
     foreach ( $new_categories as $new_category ) {
         array_unshift( $categories, $new_category );
