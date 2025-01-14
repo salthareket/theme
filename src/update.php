@@ -934,13 +934,15 @@ class Update {
             self::recurseCopy($srcDir, $target_dir);
         }
     }
-    private static function update_theme_apperance(){
+    public static function update_theme_apperance(){
         $style_file = self::$theme_root . '/style.css';
+        $text_domain = basename(get_template_directory());
+        $theme_name = ucwords(str_replace('-', ' ', $text_domain));
         if (file_exists($style_file)) {
-            $style_content = file_get_contents($style_file);
-            $theme_name = ucwords(str_replace('-', ' ', TEXT_DOMAIN));
-            $style_content = preg_replace('/(Theme Name:\s*).*/i', "\\1$theme_name", $style_content);
-            $style_content = preg_replace('/(Text Domain:\s*).*/i', "\\1$text_domain", $style_content);
+            echo "text_domain:" . $text_domain;
+            $style_content = file_get_contents($style_file);    
+            $style_content = preg_replace('/(Theme Name:\\s*).*$/m', "Theme Name: $theme_name", $style_content);
+            $style_content = preg_replace('/(Text Domain:\\s*).*$/m', "Text Domain: $text_domain", $style_content);
             file_put_contents($style_file, $style_content);
         } else {
             error_log("style.css dosyası bulunamadı.");
@@ -966,12 +968,13 @@ class Update {
         $bbox = imagettfbbox($font_size, 0, $font_path, $theme_name);
         $text_width = $bbox[2] - $bbox[0];
         $text_height = $bbox[1] - $bbox[7];
-        $x = ($image_width - $text_width) / 2;
-        $y = ($image_height + $text_height) / 2;
+        $x = (int)(($image_width - $text_width) / 2); // Açıkça int dönüşümü
+        $y = (int)(($image_height + $text_height) / 2); // Açıkça int dönüşümü
         imagettftext($image, $font_size, 0, $x, $y, $text_color_alloc, $font_path, $theme_name);
         imagepng($image, $screenshot_file);
         imagedestroy($image);
     }
+
     /*private static function copy_templates(){
         $srcDir = SH_PATH . 'templates';
         $target_dir = get_template_directory() . '/templates';
