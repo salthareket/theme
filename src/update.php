@@ -1528,12 +1528,12 @@ class Update {
                 if (function_exists('rocket_generate_config_file')) {
                     rocket_generate_config_file();
                 }
-                echo 'WP Rocket ayarları başarıyla yüklendi!';
+                error_log('WP Rocket ayarları başarıyla yüklendi!');
             } else {
-                echo 'JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.';
+                error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
             }
         } else {
-            echo 'Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.';
+            error_log('Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
         }
     }
 
