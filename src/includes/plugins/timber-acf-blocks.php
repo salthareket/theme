@@ -1,7 +1,7 @@
 <?php
 
 add_filter( 'timber/acf-gutenberg-blocks-templates', function () {
-    return ['theme/templates/blocks', 'templates/blocks'];
+    return ['vendor/salthareket/theme/src/templates/blocks', 'theme/templates/blocks', 'templates/blocks'];
 });
 
 add_filter( 'timber/acf-gutenberg-blocks-data', function( $context ){

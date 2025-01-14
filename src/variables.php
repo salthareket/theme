@@ -226,6 +226,7 @@ add_action('after_setup_theme', function () {
         });
         return;
     } else {
+
         Timber::$dirname = array( 'vendor/salthareket/theme/src/templates', 'theme/templates', 'templates' );
         Timber::$autoescape = false;
         Timber::$cache = false;
