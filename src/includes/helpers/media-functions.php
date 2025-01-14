@@ -224,7 +224,7 @@ function upload_image($url="", $post_id=0, $featured=false) {
 	}
     return $attachmentId;
 }
-function featured_image_from_url($image_url="", $post_id=0, $featured=false, $name="", $name_addition=true){
+function featured_image_from_url($image_url="", $post_id=0, $featured=false, $name="", $name_addition=false){
 	      if(empty($image_url)){
 	      	  return;
 	      }
@@ -649,9 +649,8 @@ add_filter('image_size_names_choose', 'upload_sizes_names');
 
 function get_image_set($args=array()){
 	$image = new \Image($args);
-	return $image->init();/**/
-/*
-	
+	return $image->init();
+    /*
 	$defaults = array(
 		'src' => '',
 		'id' => null,
@@ -670,498 +669,25 @@ function get_image_set($args=array()){
         'preview' => false,
         'attrs' => []
     );
-    $args = array_merge($defaults, $args);
-
-    $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
-
-    if(empty($args["src"])){
-    	if($args["placeholder"]){
-			return '<div class="img-placeholder '.$args["placeholder_class"].' img-not-found"></div>';
-		}else{
-			return;
-		}
-    }
-
-    if($args["lcp"]){
-    	$args["lazy"] = false;
-    	$args["lazy_native"] = false;
-    }
-
-    $attrs = array();
-	$prefix = $args["lazy"]?"data-":"";
-
-	if($args["lcp"]){
-		$attrs["fetchpriority"] = "high";
-	}
-
-	$has_breakpoints = false;
-	$is_single = false;
-
-	if(is_array($args["src"]) && in_array(array_keys($args["src"])[0], $sizes)){
-		$values = remove_empty_items(array_values($args["src"]));
-	
-		if(count($values) == 1){
-			$args["src"] = $values;
-			$has_breakpoints = true;
-		    $is_single = true;
-		}
-	}
-
-	if(is_array($args["src"])){ // mobile ve desktop için ayrı görsel içeriyorsa
-
-		// start new
-		$lastValue = null;
-		$empties = [];
-		$counter = 0;
-		foreach ($args["src"] as $key => $value) {
-
-			if ($value !== "") {
-		        $lastValue = $value;
-		        if($empties){
-		        	foreach ($empties as $empty) {
-		        		$args["src"][$empty] = $value;
-		        	}
-		        	$empties = [];
-		        }
-		    } else {
-		    	if ($lastValue) {
-		    		$args["src"][$key] = $lastValue;
-		    		$empties = [];
-		    	}else{
-			    	$empties[] = $key;
-			        if($counter == count($args["src"])-1){
-			        	if($empties){
-				        	foreach ($empties as $empty) {
-				        		$args["src"][$empty] = $lastValue;
-				        	}
-				        }
-			        }		    		
-		    	}
-			}
-			$counter++;
-		}
-
-		$args["src"] = remove_empty_items($args["src"]);
-
-		if(isset($args["src"]->sizes)){
-			$args["src"] = Timber::image($args["src"]);
-		}
-
-		//$has_breakpoints = false;
-		//$is_single = false;
-		if(isset(array_keys($args["src"])[0]) && in_array(array_keys($args["src"])[0], $sizes)){
-
-			foreach($args["src"] as $key => $item){
-				if(!empty($item)){
-					if(!post_is_exist($item)){
-						$args["src"][$key] = "";
-					}					
-				}
-			}
-			$args["src"] = remove_empty_items($args["src"]);
-			if(!$args["src"]){
-				return;
-			}
-			$has_breakpoints = true;
-
-		}
-
-		if(count($args["src"]) == 1 || isset($args["src"]["ID"])){
-			$is_single = true;
-		}
-
-		if(count($args["src"]) > 1 || $has_breakpoints){
-
-			$args_responsive = array();
-			foreach($args["src"] as $key => $item){
-				$args_temp = $args;
-				$args_temp["src"] = $item;
-				$args_temp = get_image_set_post($args_temp);
-				if($args_temp["post"]){
-					$args_responsive[] = array(
-						"post"   => $args_temp["post"],
-		                "meta"   => wp_get_attachment_metadata($args_temp["id"]),
-						"srcset" => $args_temp["post"]->srcset(),
-						"prefix" => $prefix,
-						"breakpoint" => $key
-					);
-				}
-			}
-		
-			$args["src"]    = $args_responsive[0]["post"];
-			$args["post"]    = $args_responsive[0]["post"];
-			$args = get_image_set_post($args);
-			$args["srcset"] = get_image_set_multiple($args_responsive, $has_breakpoints);
-			$args["type"]   = $is_single?"img":"picture";
-
-		}elseif (count($args["src"]) == 1 ){
-
-			$args["src"] = $args["src"][0]; // sadece tekini içeriyorsa
-			$args = get_image_set_post($args);
-
-
-		}elseif (count($args["src"]) == 0){
-			
-			if($args["placeholder"]){
-				return '<div class="img-placeholder '.$args["placeholder_class"].' img-not-found"></div>';
-			}else{
-				return;
-			}
-
-		}
-
-	}elseif (is_string($args["src"]) || is_numeric($args["src"]) || is_object($args["src"]) ){
-
-		$args = get_image_set_post($args);
-
-	}else{
-
-		if($args["placeholder"]){
-			return '<div class="img-placeholder '.$args["placeholder_class"].' img-not-found"></div>';
-		}else{
-			return;
-		}
-
-	}
-
-	if(!$args["post"]){
-		if($args["placeholder"]){
-			return '<div class="img-placeholder '.$args["placeholder_class"].' img-not-found"></div>';
-		}else{
-			return;
-		}
-	}
-
-	$attrs["width"] = $args["width"];
-	$attrs["height"] = $args["height"];
-	$attrs["alt"] = $args["alt"];
-
-	$html = "";
-
-	if(!$args["lazy"] && $args["lazy_native"]){
-		$attrs["loading"] = "lazy";
-	}
-
-	//error_log(json_encode($args));
-
-	if($args["type"] == "img"){
-
-		if($has_breakpoints && $is_single){
-			$attrs[$prefix."src"] = $args["post"]->src();
-		}else{
-			
-			$srcset = $args["post"]->srcset();
-			if(!empty($srcset)){
-				$srcset = reorder_srcset($srcset);
-				$attrs[$prefix."srcset"] = $srcset;
-				$attrs[$prefix."sizes"] = "auto";//create_sizes_attribute($srcset);//$args["post"]->img_sizes();
-				$attrs[$prefix."src"] = $args["post"]->src("thumbnail");
-			}else{
-				$attrs[$prefix."src"] = $args["post"]->src();
-			}        
-			
-		}
-		
-		if($args["post"]->post_mime_type == "image/svg+xml"){
-			$args["class"] = str_replace("-cover", "-contain", $args["class"]);
-		}
-        
-		$attrs["class"] = "img-fluid".($args["lazy"]?" lazy":"") . (!empty($args["class"])?" ".$args["class"]:"");
-
-		if(!$args["lazy"] && $args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
-			//$urls = $attrs[$prefix."srcset"];
-			//if(!empty($urls)){
-			    add_action('wp_head', function() use ($attrs) {
-			        add_preload_image($attrs);
-			    });				
-			//}
-		}
-        
-        $attrs = array_merge($attrs, $args["attrs"]);
-		$attrs = array2Attrs($attrs);
-		$html .= "<img $attrs />";
-
-	}elseif($args["type"] == "picture"){
-
-        if($is_single){
-        	$attrs[$prefix."src"] = $args["post"]->src();
-        }else{
-        	$attrs[$prefix."src"] = $args["post"]->src("thumbnail");
-        }
-        
-		$attrs["class"] = "img-fluid".($args["lazy"]?" lazy":"") . (!empty($args["class"])?" ".$args["class"]:"");
-        
-        if(!$args["lazy"] && $args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
-			add_action('wp_head', function() use ($attrs) {
-			    add_preload_image($attrs);
-			});
-        }
-        $attrs = array_merge($attrs, $args["attrs"]);
-        $attrs = array2Attrs($attrs);
-		$html .= "<picture ".(!empty($args["class"])?"class='".$args["class"]."'":"").">".$args["srcset"]."<img $attrs /></picture>";
-
-	}
-
-	if($args["placeholder"]){
-		$html = '<div class="img-placeholder '.$args["placeholder_class"].' '. ($args["lazy"] && !$args["preview"]?"loading":"").'"  style="background-color:'.$args["post"]->meta("average_color").';">' . $html . '</div>';
-	}
-
-	return $html;*/
+    */
 }
-/*
-function get_image_set_post($args=array()){
 
-	if (is_numeric($args["src"])) {
-		//echo $args["src"]." numeric";
-
-		$args["id"] = intval($args["src"]);
-	    $args["post"] = Timber::get_image($args["id"]);
-
-	} elseif (is_string($args["src"])) {
-
-		//echo $args["src"]." string";
-        
-	    $args["id"] = get_attachment_id_by_url($args["src"]);
-	    $args["post"] = Timber::get_image($args["id"]);
-
-	} elseif (is_object($args["src"])) {
-		//echo $args["src"]." object";
-
-	    if($args["src"]->post_type == "attachment"){
-	       $args["id"] = $args["src"]->ID;
-           $args["post"] = $args["src"];
-	    }else{
-	    	if($args["src"]->thumbnail){
-		       $args["id"] = $args["src"]->id;
-		       $args["post"] = $args["src"]->thumbnail;	
-		    }else{
-		    	return;
-		    }
-	    }
-
-	}
-
-	if(empty($args["width"]) && isset($args["post"])){
-        $args["width"] = $args["post"]->width();
-	}
-	if(empty($args["height"]) && isset($args["post"])){
-	    $args["height"] = $args["post"]->height();
-	}
-
-	if(empty($args["alt"])){
-		if (isset($args["post"]) && !empty($args["post"]->alt())){
-			$args["alt"] = $args["post"]->alt();
-		}else{
-			global $post;
-			$args["alt"] = $post->post_title;
-		}
-	}
-
-	return $args;
-}
-function get_image_set_multiple($args=array(), $has_breakpoints = false){
-	if(!$has_breakpoints){
-		$src = array();
-		if(isset($args[1]["meta"]["width"])){
-			$mobile_start = $args[1]["meta"]["width"];
-			foreach($args as $key => $set){
-				$set =  explode(",", $set["srcset"]);
-				foreach($set as $item){
-				    $a = explode(" ", trim($item));
-				    $width = str_replace('w', '', $a[1]);
-				    if($width < 576){
-		               continue;
-				    }
-				    if($key == 0 && $width > $mobile_start){
-				    	$src[$width] = $a[0]; 
-				    }elseif ($key == 1 && $width <= $mobile_start){
-				    	$src[$width] = $a[0]; 
-				    }
-				}
-			}			
-		}
-
-	    $srcset = "";
-		if($src){
-			uksort($src, function($a, $b) {
-			    return $b - $a;
-			});
-			$counter = 0;
-			$keys = array_keys($src);
-			$last_key = end($keys);
-		    foreach ($src as $width => $item) {
-		    	$query_w = "max";
-		    	$w = $width;
-		    	if($width != $last_key){
-		    	    $query_w = "min";
-					$w = $keys[$counter+1] + 1;
-		    	}
-		        $srcset .= '<source media="('.$query_w.'-width: '.$w.'px)" '.$args[0]["prefix"].'srcset="'.$item.'">';
-		        $counter++;
-		    }
-		}
-
-	}else{
-
-		$breakpoints = array_reverse($GLOBALS["breakpoints"]);
-		$html = "";
-		$last_image = [];
-
-        $values = array_values($breakpoints);
-        $length = count($breakpoints);
-        $breakpoint_index = 0;
-
-	    foreach ($breakpoints as $breakpoint => $min_width) {
-		    $value = $values[$breakpoint_index];
-	    	$query_w = $breakpoint == "xs" ? "max": "min";
-	    	//$query_w = $breakpoint == "xxxl" ? "min": "max";
-	    	if($breakpoint_index < $length-1){
-	    		$min_width = $values[$breakpoint_index+1];
-	    	}
-	    	$breakpoint = $breakpoint == "xs"?"sm":$breakpoint;
-	        $best_image = find_best_image_for_breakpoint($args, $breakpoint, array_keys($breakpoints));
-	        if ($best_image) {
-	        	//print_r("best image for ".$breakpoint." = ".$best_image["image"]."\n");
-	            $html .= '<source media="('.$query_w.'-width: '.$min_width.'px)" '.$args[0]["prefix"].'srcset="'.$best_image["image"].'">' . "\n";
-	            $last_image = $best_image;
-	        }else{
-	        	if($last_image){
-	        		//print_r("last image for ".$breakpoint." = ".$last_image["image"]."\n");
-	        		$html .= '<source media="('.$query_w.'-width: '.$min_width.'px)" '.$args[0]["prefix"].'srcset="'.$last_image["src"]->src($breakpoint).'">' . "\n";
-	        	}
-	        }
-	        $breakpoint_index++;
-	    }
-	    $srcset = $html;
-	}
-
-    return $srcset;
-}
-function find_best_image_for_breakpoint($images, $breakpoint, $breakpoints) {
-    $current_index = array_search($breakpoint, $breakpoints);
-    $index = array_search2d_by_field($breakpoint, $images, "breakpoint");
-
-    //echo $breakpoint." indexi : ".$current_index."\n";
-    //echo $index." = image ın bu breakpoint\n";
-
-    if($index>-1){
-
-    	$item = $images[$index]["post"];
-
-	    return array(
-	    	"src" => $item,
-		    "image" => $item->src(),//$breakpoint == "xxxl" ? $item->src() : $item->src($breakpoints[$index-1]),
-		    "sizes" => $item->img_sizes()
-		);
-
-    }else{
-
-	    for ($i = $current_index; $i >= 0; $i--) {
-		    $current_breakpoint = $breakpoints[$i];
-		    $index = array_search2d_by_field($current_breakpoint, $images, "breakpoint");
-			if($index){
-			  	$item = $images[$index]["post"];
-			   	return array(
-			   		"src" => $item,
-			    	"image" => $item->src(),//$breakpoint == "xxxl" ? $item->src() : $item->src($breakpoints[$i-1]),
-			    	"sizes" => $item->img_sizes()
-			    );
-			}
-    	}
-
-	}
-    return [];
-}
-function reorder_srcset($srcset) {// img için
-    // Her bir kaynağı virgülle ayır
-    $sources = explode(', ', $srcset);
-    
-    // Her bir kaynağı genişlik değeri ile birlikte bir diziye dönüştür
-    $sources_array = [];
-    foreach ($sources as $source) {
-        // Kaynağı boşlukla ayır ve genişlik değerini al
-        $parts = explode(' ', $source);
-        $url = $parts[0];
-        $width = intval($parts[1]);
-        
-        // Diziyi genişlik değeri ile birleştir
-        $sources_array[] = ['url' => $url, 'width' => $width];
-    }
-    
-    // Genişlik değerine göre sıralama yap
-    usort($sources_array, function($a, $b) {
-        return $a['width'] - $b['width'];
-    });
-    
-    // Sıralanmış kaynakları yeniden stringe dönüştür
-    $sorted_srcset = '';
-    foreach ($sources_array as $source) {
-        $sorted_srcset .= $source['url'] . ' ' . $source['width'] . 'w, ';
-    }
-    
-    // Son virgülü kaldır
-    return rtrim($sorted_srcset, ', ');
-}
-function create_sizes_attribute($srcset) {
-    // Her bir kaynağı virgülle ayır
-    $sources = explode(', ', $srcset);
-    
-    // Her bir kaynağı genişlik değeri ile birlikte bir diziye dönüştür
-    $sources_array = [];
-    foreach ($sources as $source) {
-        // Kaynağı boşlukla ayır ve genişlik değerini al
-        $parts = explode(' ', $source);
-        $width = intval($parts[1]);
-        
-        // Diziyi genişlik değeri ile birleştir
-        $sources_array[] = ['width' => $width];
-    }
-    
-    // Genişlik değerine göre sıralama yap
-    usort($sources_array, function($a, $b) {
-        return $a['width'] - $b['width'];
-    });
-    
-    // `sizes` attribute'unu oluştur
-    $sizes = '';
-    foreach ($sources_array as $source) {
-        $sizes .= '(max-width: ' . $source['width'] . 'px) ' . $source['width'] . 'px, ';
-    }
-    
-    // Son virgülü kaldır
-    return rtrim($sizes, ', ');
-}
-function add_preload_image($attrs){
-	error_log("add_preload_image ".json_encode($attrs));
-	if(empty($attrs)){
-		return;
-	}
-	if(is_array($attrs)){
-		if(isset($attrs["srcset"])){
-			echo '<link rel="preload" as="image" href="'.$attrs["src"].'" imagesrcset="'.$attrs["srcset"].'" imagesizes="'.$attrs["sizes"].'">'."\n";
-		}else{
-			error_log(json_encode($attrs["src"]));
-			echo '<link rel="preload" href="'.$attrs["src"].'" as="image">'."\n";
-		}		
-	}else{
-		echo '<link rel="preload" href="'.$attrs.'" as="image">'."\n";
-	}
-}*/
 
 function get_video($video_args=array()){
 
 	$args  = $video_args["src"];
-	$type  = $video_args["src"]["video_type"] ?? "file";
+	$type  = $args["video_type"] ?? "file";
 	$class = isset($video_args["class"])?$video_args["class"]:"";
 	$init  = $video_args["init"] ?? false;
 	$lazy  = $video_args["lazy"] ?? false;
+
 	
 	$embed = '<div class="player plyr__video-embed {{class}}" {{config}} {{controls}} {{autoplay}} {{poster}} {{muted}} {{attrs}}><iframe
 	    class="video"
 	    src="{{src}}"
 	    allowfullscreen
 	    allowtransparency
-	    allow="autoplay"
+	    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 	  ></iframe></div>';
 	$audio = '<audio class="player video {{class}}" {{controls}} {{autoplay}} {{muted}} {{config}}>
 	  <source src="{{src}}" type="audio/mp3" />
@@ -1294,7 +820,7 @@ function get_video($video_args=array()){
     if($init){
     	$class .= " init-me "; 
     }
-	if(isset($settings["videoBg"]) && $settings["videoBg"]){
+	if($type != "audio" &&isset($settings["videoBg"]) && $settings["videoBg"]){
 		$config["fullscreen"] = [ "enabled" => false, "fallback" => false, "iosNative" => false, "container" => null ];
 		$settings["videoReact"] = false;
 		$config["clickToPlay"] = false;
@@ -1321,7 +847,7 @@ function get_video($video_args=array()){
 	}
 	if(isset($settings["autoplay"]) && $settings["autoplay"]){
 		$code = str_replace("{{autoplay}}", "autoplay", $code);
-		$config["autoplay"] = 0;//$settings["autoplay"];
+		$config["autoplay"] = $settings["autoplay"];
 	}else{
         $code = str_replace("{{autoplay}}", "", $code);
 	}
@@ -1338,7 +864,7 @@ function get_video($video_args=array()){
     }
 	$config["loop"] = [ "active" => $settings["loop"] ];
 
-	if(isset($settings["ratio"]) && $settings["ratio"]){
+	if($type != "audio" && isset($settings["ratio"]) && $settings["ratio"]){
 		$config["ratio"] = str_replace("235", "2.35", $settings["ratio"]);
 		$config["ratio"] = str_replace("185", "1.85", $config["ratio"]);
     	$config["ratio"] = str_replace("x", ":", $config["ratio"]);

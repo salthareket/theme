@@ -224,11 +224,3 @@ function check_my_account_page( $value, $post_id, $field, $original ){
     return $value;
 }
 add_filter('acf/update_value/name=enable_membership', 'check_my_account_page', 10, 4);
-
-
-
-
-
-
-
-

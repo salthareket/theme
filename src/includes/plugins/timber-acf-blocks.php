@@ -285,13 +285,16 @@ function block_container($container=""){
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default);
     switch($container){
         case "" :
-            $container = "container"." px-4 px-lg-3";
+            $container = "container px-4 px-lg-3";
         break;
         case "default" :
             $container = $default." px-4 px-lg-3";
         break;
         case "no" :
             $container = "";
+        break;
+        case "auto" :
+            $container = "w-auto px-4 px-lg-3";
         break;
         default :
             $container = "container-".$container." px-4 px-lg-3";

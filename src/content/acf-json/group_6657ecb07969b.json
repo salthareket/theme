@@ -1,0 +1,355 @@
+{
+    "key": "group_6657ecb07969b",
+    "title": "Block Social Media",
+    "fields": [
+        {
+            "key": "field_6696a671fa24c",
+            "label": "Block Settings",
+            "name": "block_settings",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "acfe_group_modal": 1,
+            "acfe_group_modal_close": 1,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
+            "acfe_seamless_style": 0,
+            "sub_fields": [
+                {
+                    "key": "field_6696a671fa24e",
+                    "label": "",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "clone",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "clone": [
+                        "group_65f2ed05497f6"
+                    ],
+                    "display": "seamless",
+                    "layout": "block",
+                    "prefix_label": 0,
+                    "prefix_name": 0,
+                    "acfe_seamless_style": 0,
+                    "acfe_clone_modal": 0,
+                    "acfe_clone_modal_close": 0,
+                    "acfe_clone_modal_button": "",
+                    "acfe_clone_modal_size": "large"
+                }
+            ]
+        },
+        {
+            "key": "field_66dfb910473da",
+            "label": "Add accounts from",
+            "name": "add_accounts_from",
+            "aria-label": "",
+            "type": "radio",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "contacts": "Contacts",
+                "custom": "Custom"
+            },
+            "default_value": "contacts",
+            "return_format": "value",
+            "translations": "sync",
+            "allow_null": 0,
+            "other_choice": 0,
+            "allow_in_bindings": 0,
+            "layout": "horizontal",
+            "save_other_choice": 0
+        },
+        {
+            "key": "field_6657ecc208ad5",
+            "label": "Sosyal Medya Hesapları",
+            "name": "social_accounts_custom",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_66dfb910473da",
+                        "operator": "==",
+                        "value": "custom"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "acfe_repeater_stylised_button": 1,
+            "layout": "block",
+            "pagination": 0,
+            "min": 0,
+            "max": 0,
+            "collapsed": "",
+            "button_label": "Add Account",
+            "rows_per_page": 20,
+            "sub_fields": [
+                {
+                    "key": "field_6657ecc208ad6",
+                    "label": "Service",
+                    "name": "name",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "unique",
+                        "id": ""
+                    },
+                    "choices": {
+                        "facebook": "Facebook",
+                        "x-twitter": "Twitter",
+                        "instagram": "Instagram",
+                        "threads": "Threads",
+                        "pinterest": "Pinterest",
+                        "vimeo": "Vimeo",
+                        "youtube": "Youtube",
+                        "foursquare": "Foursquare",
+                        "myspace": "Myspace",
+                        "lastfm": "Last.fm",
+                        "soundcloud": "Soundcloud",
+                        "spotify": "Spotify",
+                        "linkedin": "Linkedin",
+                        "behance": "Behance",
+                        "dribbble": "Dribbble",
+                        "stack-overflow": "Stack Overflow",
+                        "github": "Github",
+                        "quizup": "Quizup",
+                        "tripadvisor": "Tripadvisor",
+                        "tiktok": "TikTok",
+                        "zomato": "Zomato",
+                        "vk": "VKontakte",
+                        "whatsapp": "WhatsApp"
+                    },
+                    "default_value": false,
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": "",
+                    "parent_repeater": "field_6657ecc208ad5"
+                },
+                {
+                    "key": "field_6657ecc208ad7",
+                    "label": "Url",
+                    "name": "url",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_6657ecc208ad5"
+                }
+            ]
+        },
+        {
+            "key": "field_66dfb88e473d9",
+            "label": "Post Accounts",
+            "name": "social_accounts_contacts",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_66dfb910473da",
+                        "operator": "==",
+                        "value": "contacts"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "50",
+                "class": "acf-contact-accounts",
+                "id": ""
+            },
+            "choices": [],
+            "default_value": "",
+            "return_format": "value",
+            "multiple": 0,
+            "placeholder": "",
+            "allow_null": 1,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "allow_custom": 0,
+            "search_placeholder": ""
+        },
+        {
+            "key": "field_66dd8b2c4b441",
+            "label": "Settings",
+            "name": "settings",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
+            "sub_fields": [
+                {
+                    "key": "field_66dd8b4d4b442",
+                    "label": "Font Size",
+                    "name": "font_size",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-font-size",
+                        "id": ""
+                    },
+                    "choices": {
+                        "title-xs": "title-xs - 22px",
+                        "title-sm": "title-sm - 32px",
+                        "title-md": "title-md - 42px",
+                        "title-lg": "title-lg - 52px",
+                        "title-xl": "title-xl - 62px",
+                        "title-xxl": "title-xxl - 72px",
+                        "title-xxxl": "title-xxxl - 82px",
+                        "text-xs": "text-xs - 14px",
+                        "text-sm": "text-sm - 16px",
+                        "text-md": "text-md - 18px",
+                        "text-lg": "text-lg - 24px",
+                        "text-xl": "text-xl - 32px",
+                        "text-xxl": "text-xxl - 36px",
+                        "text-xxxl": "text-xxxl - 42px"
+                    },
+                    "default_value": "",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "translations": "sync",
+                    "allow_null": 1,
+                    "allow_in_bindings": 1,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_66dd8b6e4b443",
+                    "label": "Color",
+                    "name": "color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "enable_opacity": 0,
+                    "return_format": "string",
+                    "translations": "sync",
+                    "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_66dd8b894b444",
+                    "label": "Color Hover",
+                    "name": "color_hover",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "enable_opacity": 0,
+                    "return_format": "string",
+                    "translations": "sync",
+                    "allow_in_bindings": 0
+                }
+            ]
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/social-media"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "acfe_display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1736736002,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

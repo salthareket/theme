@@ -769,6 +769,26 @@ function getDayName($gunRakami, $format = "EEEE") {
     }
 }
 
+function convertToLink($inputString) {
+    // Dosya linkini bulmak için düzenli ifade kullanılır
+    $pattern = '/\b(?:https?|ftp):\/\/\S+\.(jpg|jpeg|png|gif|pdf|docx|xlsx)\b/i';
+    preg_match($pattern, $inputString, $matches);
+
+    // Eğer dosya linki bulunduysa
+    if (!empty($matches)) {
+        $link = $matches[0];
+        $extension = $matches[1];
+
+        // Bağlantıyı oluştur
+        $outputString = '<a href="' . $link . '" target="_blank" class="text-primary"><i class="icon fal fa-file-' . $extension . ' fa-2x"></i></a>';
+        
+        return $outputString;
+    } else {
+        // Dosya linki bulunamazsa orijinal metni döndür
+        return $inputString;
+    }
+}
+
 function get_post_read_time($icerik = "", $birim = "min") {
     $kelime_sayisi = str_word_count(strip_tags($icerik));
     $okuma_hizi = 250; // Ortalama dakikada okunan kelime sayısı

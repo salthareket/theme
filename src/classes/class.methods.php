@@ -177,10 +177,21 @@ class MethodClass {
         }
     }
 
-    private function removeEchoTags($content) {
+    /*private function removeEchoTags($content) {
         $content = preg_replace('/<\?(php)?|\?>/i', '', $content);
         return $content;
+    }*/
+    private function removeEchoTags($content) {
+        $trimmedContent = trim($content);
+        if (strpos($trimmedContent, '<?php') === 0) {
+            $trimmedContent = substr($trimmedContent, 5);
+        }
+        if (substr($trimmedContent, -2) === '?>') {
+            $trimmedContent = substr($trimmedContent, 0, -2);
+        }
+        return $trimmedContent;
     }
+
 
     private function optimizeCode($code) {
         $lines = explode("\n", $code);

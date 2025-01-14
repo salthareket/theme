@@ -180,7 +180,7 @@ define("ENABLE_WOO_API", get_option("options_enable_woo_api"));
 define("ENABLE_CART", ENABLE_ECOMMERCE && get_option("options_enable_cart"));
 define("PAYMENT_EXPIRE_HOURS", get_option("options_payment_expire_hours"));
 define("ENABLE_FILTERS", defined( 'YITH_WCAN' ));
-define("DISABLE_DEFAULT_CAT", true);
+define("DISABLE_DEFAULT_CAT", get_option("options_disable_default_cat"));
 define("ENABLE_POSTCODE_VALIDATION", get_option("options_enable_postcode_validation"));
 
 $multilanguage = false;
@@ -226,7 +226,7 @@ add_action('after_setup_theme', function () {
         });
         return;
     } else {
-        Timber::$dirname = array( 'theme/templates', 'templates' );
+        Timber::$dirname = array( 'vendor/salthareket/theme/src/templates', 'theme/templates', 'templates' );
         Timber::$autoescape = false;
         Timber::$cache = false;
         include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
@@ -408,7 +408,8 @@ include_once SH_CLASSES_PATH . "class.logger.php";
 include_once SH_CLASSES_PATH . "class.encrypt.php";
 include_once SH_CLASSES_PATH . "class.paginate.php";
 include_once SH_CLASSES_PATH . "class.localization.php";
-include_once SH_CLASSES_PATH . "class.page-assets-extractor.php"; 
+include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
+include_once SH_CLASSES_PATH . "class.featured-image.php";
 //include 'classes/class.geolocation.query.php';
 
 

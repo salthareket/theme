@@ -53,24 +53,23 @@
 
     {% if posts %}
 
-        {% if fields.text %}
-           <div class="text mb-4 w-100">{{ fields.text }}</div>
-        {% endif %}
-
         {% set accordion_id = blockData.id ~ "-accordion" %}
         <div class="accordion-custom accordion-seperated- w-100 my-auto-- {% if not fields.collapsible and not fields.collapsible_categories %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1  %}mt-5{% endif %}" id="{{accordion_id}}">
-
             {% for term in posts %}
+
                 {% if term.posts %}
+                   {% set items = term.posts %}
+                   {% set label = term.posts[0].type.labels.name %}
+                {% else %}
+                   {% set items = posts.posts %}
+                {% endif %}
 
-                    {% set label = term.posts[0].type.labels.name %}
+                {% if label == "Posts" %}
+                    {% set label = "Blog" %}
+                {% endif %}
 
-                    {% if label == "Posts" %}
-                        {% set label = "Blog" %}
-                    {% endif %}
-
-                    {% if fields.categories %}
-                        {% if fields.collapsible_categories %}
+                {% if fields.categories %}
+                    {% if fields.collapsible_categories %}
 
                             {% set id = "category-" ~ term.id|default(random(999999)) %}
                             {% set parent = accordion_id %}
@@ -84,27 +83,35 @@
                                     <div class="accordion-body pb-0">
                                          <div class="accordion-custom accordion-seperated- w-100 my-auto {% if not fields.collapsible %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1 and not fields.collapsible_categories %}mt-7{% else %}mb-5{% endif %}" id="{{parent}}-{{term.term.id}}">
 
-                        {% else %}
+                    {% else %}
 
                             <{{fields.heading_category}} class="title mb-4">{{ term.term.name }}</{{fields.heading_category}}>
                           
-                        {% endif %}
                     {% endif %}
+                {% endif %}
 
-                        {% for item in term.posts %}
-                            {% if item.id != post_id %}
-                                {% set id = "posts-" ~ term.id ~ "-" ~ item.id|default(random(999999)) %}
+                        {% for item in items %}
+                            {% set add_item = true %}
+                            {% if item.id %}
+                               {% set item_id = item.id %}
+                               {% set add_item = item.id != post_id?true:false %}
+                            {% else %}
+                               {% set item_id = loop.index %}
+                            {% endif %}
+
+                            {% if add_item %}
+                                {% set id = "posts-" ~ item_id ~ "-" ~ item_id|default(random(999999)) %}
                                 <div class="accordion-item {% if not fields.collapsible %}active{% endif %} {% if loop.index > 1 %}pt-3{% endif %}">
                                     <{{fields.heading}} class="accordion-header" id="heading-post-{{id}}">
                                         {% set target = "collapse-post-" ~ id %}
                                         {% set parent = accordion_id ~ (fields.categories?"-"~term.term.id:"") %}
                                         {% if fields.collapsible %}
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{target}}" aria-expanded="false" aria-controls="{{target}}">
-                                                {{item.post_title}}
+                                                {{item.title}}
                                             </button>
                                         {% else %}
                                             <div class="accordion-button" aria-controls="{{target}}">
-                                                {{item.post_title}}
+                                                {{item.title}}
                                             </div>
                                         {% endif %}
                                     </{{fields.heading}}>
@@ -117,12 +124,10 @@
                             {% endif %}
                         {% endfor %}
                        
-                    {% if fields.categories and fields.collapsible_categories %}
-                             </div>
-                           </div>
+                {% if fields.categories and fields.collapsible_categories %}
                         </div>
-                    {% endif %}
-                    
+                    </div>
+                </div>
                 {% endif %}
             {% endfor %}
         </div>
@@ -132,5 +137,4 @@
         {% endif %}
 
     {% endif %}
-
 {% endblock %}

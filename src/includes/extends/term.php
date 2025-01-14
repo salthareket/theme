@@ -3,11 +3,25 @@ class Term extends Timber\Term{
     protected $post_count;
 
     public function thumbnail(){
-        return Timber::get_image($this->meta("image"));
+        return Timber::get_image(get_term_meta($this->term_id, '_thumbnail_id', true));
     }
-
-    public function get_image($field){
-        return Timber::get_image($this->meta($field));
+    public function get_thumbnail($args=array()){
+        $media = $this->meta("media");
+        if($media->media_type == "image"){
+            if($media->use_responsive_image){
+                $args["src"] = $media->image_responsive;
+                $image = new \Image($args);
+                return $image->init();
+            }else{
+                $args["src"] = $this->thumbnail();
+                $image = new \Image($args);
+                return $image->init();
+            }
+        }else{
+            $args["src"] = $this->thumbnail();
+            $image = new \Image($args);
+            return $image->init();
+        }
     }
 
     public function get_field_lang($field="", $lang=""){

@@ -620,7 +620,7 @@ function combine_and_cache_files($type, $files) {
     $combined_content = '';
     foreach ($files as $file) {
         // Dosyanın tam yolunu kullan
-        $file_system_path = get_stylesheet_directory() . '/static/js/min/plugins/' . basename($file);
+        $file_system_path = get_stylesheet_directory() . '/static/js/plugins/' . basename($file);
         
         if (file_exists($file_system_path)) {
             $content = file_get_contents($file_system_path);

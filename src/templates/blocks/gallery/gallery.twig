@@ -40,16 +40,14 @@
     {% set item_class = fields.settings.item_class %}
     {% set item_class = item_class ~ (gallery_type != "justified"?" col ":"") %}
 
-    
-
     {% if gallery_type == "justified" %}
         {% set gallery_class = gallery_class ~ "justified-gallery " ~ block_meta.row.class %}
         {% set href_class = item_class %}
     {% else %}
-        {% set href_class = item_class %}
+        {% set href_class = (gallery_type == "columns"?" col ":item_class) %}
         {% set gallery_attrs = gallery_attrs ~ block_meta.row.attrs %}
         {% set gallery_class = gallery_class ~ "row " ~ block_meta.row.class %}
-        {% set image_class = item_class ~ " object-fit-cover h-100 w-100" %}
+        {% set image_class = (gallery_type != "columns" and (gallery_type != "dynamic" and gallery_view != "button")?"":item_class) ~ " object-fit-cover h-100 w-100" %}
         {% if not fields.column_breakpoints.masonry and fields.settings.ratio %}
             {% set ratio_class = "ratio ratio-" ~ fields.settings.ratio|default("1x1") %}
         {% endif %}

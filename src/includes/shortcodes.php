@@ -67,9 +67,9 @@ function render_shortcode_ajax() {
     wp_die(); // AJAX isteği sona erdir
 }
 
-$shortcodes_list = [
+$shortcodes_list = array();
 
-    [
+$shortcodes_list[] = [
         'name' => 'Search Field',
         'shortcode' => 'search_field',
         'support_content' => false,
@@ -173,27 +173,9 @@ $shortcodes_list = [
                 ]
             ],
         ]
-    ],
+];
 
-    [
-        'name' => 'CF7 Form',
-        'shortcode' => 'contact_form',
-        'support_content' => false,
-        'callback' => function($atts) {
-            $shortcode = '[contact-form-7 id="' . esc_attr($atts["id"]) . '"]';
-            return do_shortcode($shortcode);
-        },
-        'atts' => [
-            'id' => [
-                'label' => 'Forms',
-                'ui' => 'select',
-                'value' => [],
-                'func' => 'cf7_forms'
-            ],
-        ]
-    ],
-
-    [
+$shortcodes_list[] = [
         'name' => 'Text Rotator',
         'shortcode' => 'text_rotator',
         'support_content' => false,
@@ -243,9 +225,9 @@ $shortcodes_list = [
                 'func' => ''
             ]
         ]
-    ],
+];
 
-    [
+$shortcodes_list[] = [
         'name' => 'Text Effect',
         'shortcode' => 'textillate',
         'support_content' => true,
@@ -404,9 +386,28 @@ $shortcodes_list = [
             ],
             
         ]
-    ],
-
 ];
+
+if (class_exists("WPCF7")) {
+    $shortcodes_list[] = [
+            'name' => 'CF7 Form',
+            'shortcode' => 'contact_form',
+            'support_content' => false,
+            'callback' => function($atts) {
+                $shortcode = '[contact-form-7 id="' . esc_attr($atts["id"]) . '"]';
+                return do_shortcode($shortcode);
+            },
+            'atts' => [
+                'id' => [
+                    'label' => 'Forms',
+                    'ui' => 'select',
+                    'value' => [],
+                    'func' => 'cf7_forms'
+                ],
+            ]
+    ];    
+}
+
 
 if(isset($GLOBALS["custom_shortcodes"]) && $GLOBALS["custom_shortcodes"]){
    $shortcodes_list = array_merge($shortcodes_list, $GLOBALS["custom_shortcodes"]);

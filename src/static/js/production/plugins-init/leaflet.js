@@ -1,4 +1,4 @@
-const leaflet_images = template_uri+'/static/js/min/assets/';
+const leaflet_images = template_uri+'/static/js/assets/';
 
 // Mevcut URL'leri alıp prefix ekleyerek güncelleriz
 L.Icon.Default.mergeOptions({

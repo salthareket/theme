@@ -203,7 +203,7 @@ function acf_set_thumbnail_condition($post_id){
 	}
 }
 
-/*Set as featured image custom image fields value*/
+/*Set as featured image custom image fields value
 function acf_set_featured_image( $value, $post_id, $field ){
 	error_log("hobeeeen");
 		if(acf_set_thumbnail_condition($post_id)){
@@ -212,97 +212,17 @@ function acf_set_featured_image( $value, $post_id, $field ){
 			   $value = qtranxf_use($languages[0], $value, false, false);
 			}
 		    if($value != '' && $value != null && !empty($value)){
-				 delete_post_thumbnail( $post_id);
-				 if($field['type'] == 'flexible_content'){
-				 	$feature_saved = false;
-				 	foreach ($value as $row_index => $row){
-						$layout = $row;
-					 	if($layout=='images' && !$feature_saved){
-				           $field_name = 'image';
-				           $field_image_name = $field['name'].'_'.$row_index.'_'.$field_name;
-	                       $field_attach_id = get_post_meta( $post_id, $field_image_name, true );
-	                       if(empty($field_attach_id)){
-	                         $field_value = get_sub_field($field_name);
-		                     $attach_id = featured_image_from_url($field_value, $post_id);
-	                       }
-	                       add_post_meta($post_id, '_thumbnail_id', $field_attach_id);
-		                   $feature_saved = true;
-					 	}
-					 	if($layout=='videos'){
-					 	   $field_name = 'video';
-					 	   $field_video_name = $field['name'].'_'.$row_index.'_'.$field_name;
-					 	   $field_image_name = $field['name'].'_'.$row_index.'_'.$field_name.'_image';
-					 	   $field_locked_name = $field['name'].'_'.$row_index.'_locked';
-					 	   $image_size = 1600;
-					 	   $is_featured = $row_index>0?false:true;
-
-					 	   $is_locked = get_post_meta( $post_id, $field_locked_name, true );
-					 	   if(empty($is_locked)){
-					 	   	  $is_locked = false;
-					 	   }else{
-					 	   	  $is_locked = true;
-					 	   }
-					 	   if(!$is_locked){
-		                       $field_attach_id = get_post_meta( $post_id, $field_image_name, true );
-		                       if($field_attach_id){
-		                          wp_delete_attachment( $field_attach_id, true );
-		                       }
-		                       $field_value = get_post_meta( $post_id, $field_video_name, true );
-		                       $thumbnail_uri = get_video_thumbnail_uri($field_value, $image_size );
-							   $attach_id = featured_image_from_url($thumbnail_uri, $post_id, $is_featured);
-							   update_post_meta($post_id, $field_image_name, $attach_id);
-			               }
-		                   $feature_saved = true;
-					 	}
-				 	}
-				 }else{
-
-	                 if($field['type'] == 'repeater'){
-	                 	$feature_saved = false;
-				 	    foreach ($value as $row_index => $row){
-				 	    	    if($field['name']=='video'){
-							 	   $field_name = 'video';
-							 	   $field_video_name = $field['name'].'_'.$row_index.'_'.$field_name;
-							 	   $field_image_name = $field['name'].'_'.$row_index.'_'.$field_name.'_image';
-							 	   $field_locked_name = $field['name'].'_'.$row_index.'_locked';
-							 	   $image_size = 1600;
-							 	   $is_featured = $row_index>0?false:true;
-
-							 	   $is_locked = get_post_meta( $post_id, $field_locked_name, true );
-							 	   if(empty($is_locked)){
-							 	   	  $is_locked = false;
-							 	   }else{
-							 	   	  $is_locked = true;
-							 	   }
-							 	   if(!$is_locked){
-				                       $field_attach_id = get_post_meta( $post_id, $field_image_name, true );
-				                       if($field_attach_id){
-				                          wp_delete_attachment( $field_attach_id, true );
-				                       }
-				                       $field_value = get_post_meta( $post_id, $field_video_name, true );
-				                       $thumbnail_uri = get_video_thumbnail_uri($field_value, $image_size );
-									   $attach_id = featured_image_from_url($thumbnail_uri, $post_id, $is_featured);
-									   update_post_meta($post_id, $field_image_name, $attach_id);
-					               }
-				                   $feature_saved = true;
-					 	         }
-				 	    }
-
-	                 }else{
-
-	                 	error_log(json_encode($value));
-                        if(!empty($value)){
-							if(is_array($value)){
-							 	error_log("array valu:".$value[0]);
-								$meta_id = add_post_meta($post_id, '_thumbnail_id', $value[0]);
-							}else{
-						        $meta_id = add_post_meta($post_id, '_thumbnail_id', $value);
-							}
-							error_log("meta id:".$meta_id);                        	
-                        }
-
+				delete_post_thumbnail( $post_id);
+	            error_log(json_encode($value));
+                if(!empty($value)){
+					if(is_array($value)){
+					 	error_log("array valu:".$value[0]);
+						$meta_id = add_post_meta($post_id, '_thumbnail_id', $value[0]);
+					}else{
+				        $meta_id = add_post_meta($post_id, '_thumbnail_id', $value);
 					}
-				}
+					error_log("meta id:".$meta_id);                        	
+                }
 		    }else{
 				delete_post_thumbnail( $post_id );
 			};
@@ -315,9 +235,7 @@ if(isset($GLOBALS["acf_featured_image_fields"]) && is_array($GLOBALS["acf_featur
 		add_filter('acf/update_value/name='.$field, 'acf_set_featured_image', 10, 3);
 	}
 }
-
-
-
+*/
 
 
 
@@ -376,7 +294,7 @@ function create_options_menu_children($menu_title, $options){
 }
 
 
-function acf_oembed_data($data, $image_size=0){
+function acf_oembed_data($data, $image_size=0, $attrs="" ){
 	if(!empty($data)){
 		$url=extract_url($data);
 		$data_parse=parse_video_uri( $url );
@@ -385,7 +303,7 @@ function acf_oembed_data($data, $image_size=0){
 			   'id' => str_replace('video/','',$data_parse['id']),
 			   'url' => $url."&controls=0",
 			   'embed' => $data,
-			   'embed_url' => "https://www.youtube.com/embed/". $data_parse['id'] ."?rel=0&showinfo=0&autoplay=1&mute=0",
+			   'embed_url' => "https://www.youtube.com/embed/". $data_parse['id'] ."?rel=0&showinfo=0&autoplay=0&mute=0",
 			   'watch' => "https://www.".($data_parse['type']=="vimeo"?"vimeo.com/":"youtube.com/watch?v=").$data_parse['id']
 	    );
 	    if($arr["type"] == "vimeo"){
@@ -727,6 +645,17 @@ function acf_general_option_breadcrumb_add_product_taxonomy($field) {
 	}
 	return $field;
 }
+
+add_filter('acf/load_field/name=remove_woocommerce_styles', 'acf_general_option_remove_woocommerce_styles');
+function acf_general_option_remove_woocommerce_styles($field) {
+	if (!ENABLE_ECOMMERCE) {
+		$field['wrapper']['class'] = 'hidden';
+	}else{
+		$field['wrapper']['class'] = '';
+	}
+	return $field;
+}
+
 
 
 
@@ -1731,11 +1660,13 @@ function acf_add_field_options($field) {
 	    if(in_array("acf-template-custom-default", $class)){
 	    	$field['choices'][ 'default' ] = "Default";
 	    }
-	    if( is_array($templates) ) {
+	    if( is_array($templates) && count($templates) > 0 ) {
 	        foreach( $templates as $template ) {
 	        	$template = str_replace(".twig", "", $template);
 	            $field['choices'][ 'theme/templates/_custom/'.$template ] = $template;
 	        }        
+	    }else{
+	    	$field['choices'][ 'templates/post/tease' ] = "Post Tease";
 	    }
 	}
 
@@ -3758,3 +3689,17 @@ function acf_theme_styles_load_presets( $field ) {
     return $field;
 }
 add_filter('acf/load_field/name=theme_styles_presets', 'acf_theme_styles_load_presets');
+
+
+
+
+
+add_filter('acf/update_value/name=modal_home', function ($value, $post_id, $field) {
+    $home_id = get_option('page_on_front');
+    if ($home_id) {
+        wp_update_post([
+            'ID' => $home_id,
+        ]);
+    }
+    return $value;
+}, 10, 3);

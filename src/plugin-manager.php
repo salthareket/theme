@@ -204,7 +204,7 @@ class PluginManager {
         if ($hook === 'theme-settings_page_plugin-manager') {
             wp_enqueue_script(
                 'plugin-manager-script',
-                  get_template_directory_uri() . '/vendor/salthareket/theme/src/plugin-manager.js',
+                  get_template_directory_uri() . '/vendor/salthareket/theme/src/js/plugin-manager.js',
                 ['jquery'],
                 '1.0',
                 true
@@ -262,7 +262,7 @@ class PluginManager {
             if ($action_type === 'install' || $action_type === 'update') {
                 if($local == "true"){
                     $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
-                    $plugin_dir = __DIR__ . '/plugins';
+                    $plugin_dir = __DIR__ . '/content/plugins';
                     $plugin_info = current(array_filter($required_plugins_local, fn($plugin) => $plugin['name'] === $plugin_slug));
                     self::remove_plugin($plugin_info['file']);
                     self::install_local_plugin($plugin_dir, $plugin_info);
@@ -346,7 +346,7 @@ class PluginManager {
     // Check and update local plugins from the $GLOBALS["plugins_local"] array
     public static function check_and_update_local_plugins($plugin_types) {
         $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
-        $plugin_dir = __DIR__ . '/plugins';
+        $plugin_dir = __DIR__ . '/content/plugins';
         foreach ($required_plugins_local as $plugin) {
             $plugin_path = WP_PLUGIN_DIR . '/' . $plugin['name'];
             // Check if the plugin exists and if the version is outdated

@@ -2,7 +2,7 @@
 
 Class Image{
 
-	 private $defaults = array(
+	private $defaults = array(
         'src' => '',
         'id' => null,
         'class' => '',
@@ -64,7 +64,7 @@ Class Image{
             unset($this->args["src"]["id"]);
             unset($this->args["src"]["url"]);
 			
-			if(count($values) == 1){
+			if(count($values) == 2){
                 if(!post_is_exist($values[0])){
                     $this->not_found();
                 }else{
@@ -202,7 +202,6 @@ Class Image{
         }
 
         return $html;
-
     }
 
     public function get_image_set_post($args=array()){

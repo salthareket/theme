@@ -21,7 +21,7 @@ Class Theme{
             add_action("admin_init", "load_admin_files");
         }
         add_action("admin_init", [$this, "remove_comments"]);
-        add_filter( 'body_class', [$this, 'body_class'] );
+        add_filter('body_class', [$this, 'body_class'] );
         add_action('admin_menu', [$this, 'init_theme_settings_menu']);
         if(is_admin()){
             add_action("admin_init", function(){

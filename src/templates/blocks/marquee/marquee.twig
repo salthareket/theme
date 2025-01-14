@@ -25,9 +25,9 @@
 {% block block_content %}
 	<div class='smarquee {% if not is_preview %}fade{% else %} overflow-hidden{% endif %} text-nowrap w-100' data-velocity="{{fields.settings.velocity}}" data-pause-on-hover="{{fields.settings.pause_on_hover|default(false)}}">
 	{% if fields.source == "static" %}
-		<span class="d-inline-block px-4 lh-base{{fields.settings.font_size}}" style="font-family:{{fields.settings.font_family|replace({'|':''}) }};color:{{fields.settings.color}}">{{ fields.text|striptags }}</span>
+		<span class="d-inline-block px-4 lh-base {{fields.settings.font_size}}" style="font-family:{{fields.settings.font_family|replace({'|':'','"': "'"}) }};color:{{fields.settings.color}}">{{ fields.text|striptags }}</span>
 	{% else %}
-		<span class="{{fields.settings.font_size}} lh-base" style="font-family:{{fields.settings.font_family|replace({'|':''}) }};color:{{fields.settings.color}}">
+		<span class="{{fields.settings.font_size}} lh-base" style="font-family:{{fields.settings.font_family|replace({'|':'','"': "'"}) }};color:{{fields.settings.color}}">
 		{% if fields.query %}
 			{% for item in fields.query %}
 				<span class="d-inline-block px-4">

@@ -535,6 +535,7 @@ class StarterSite extends Timber\Site{
     }
 
     function add_to_twig($twig){
+        $twig->addExtension(new  \App\Twig\AppExtension());
         return $twig;
     } 
 

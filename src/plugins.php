@@ -38,6 +38,10 @@ $required_plugins = array(
         "name" => 'acf-openstreetmap-field/index.php',
     ),
     array(
+        "type" => ["main"],
+        "name" => "advanced-custom-fields-table-field/acf-table.php"
+    ),
+    array(
         "type" => ["multilanguage"],
         "name" => "acf-options-for-polylang/bea-acf-options-for-polylang.php",
     ),
@@ -63,7 +67,7 @@ $required_plugins = array(
     ),
     array(
         "type" => ["contact-forms"],
-        "name" => 'post-smtp/postman-smtp.php'
+        "name" => 'fluent-smtp/fluent-smtp.php'
     ),
     array(
         "type" => ["ecommerce"],
@@ -72,6 +76,10 @@ $required_plugins = array(
     array(
         "type" => ["social-share"],
         "name" => 'wp-socializer/wpsr.php'
+    ),
+    array(
+        "type" => ["newsletter"],
+        "name" => 'newsletter/plugin.php'
     ),
     //'featured-image-admin-thumb-fiat/featured-image-admin-thumb.php',
 );
@@ -132,5 +140,17 @@ $required_plugins_local[] = array(
     "v" => "3.6.5",
     "name" => "polylang-pro/polylang.php",
     "file" => "polylang-pro"
+);
+$required_plugins_local[] = array(
+    "type" => ["membership"],
+    "v" => "2.4",
+    "name" => "yobro/yobro.php",
+    "file" => "yobro"
+);
+$required_plugins_local[] = array(
+    "type" => ["ecommerce", "multilanguage"],
+    "v" => "2.1",
+    "name" => "polylang-wc/polylang-wc.php",
+    "file" => "polylang-wc"
 );
 $GLOBALS["plugins_local"] = $required_plugins_local;

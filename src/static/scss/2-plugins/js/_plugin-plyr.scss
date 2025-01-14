@@ -43,3 +43,8 @@ video{
 		display:none;
 	}	
 }
+.block-video{
+	>*:not(.plyr){
+		max-height:100%;
+	}
+}

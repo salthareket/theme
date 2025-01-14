@@ -27,8 +27,6 @@ function plyr_init($obj){
 			config_data = {};
 		}
 
-		var class_data = $obj.attr("data-class");
-
 		function set_quality(video){
 			let devices = {phone: {size: 360, max: 767}, "tablet": {size: 480, min: 768, max: 1024}, "desktop" : {size: 720, min: 1025} };
 			let quality = "";
@@ -68,7 +66,7 @@ function plyr_init($obj){
 		    return bestSize;
 		}
 
-	    const video = new Plyr($obj);//);, config_data
+	    const video = new Plyr($obj);
 	    /*if(!IsBlank(class_data)){
            $obj.addClass(class_data);
            console.log($obj)
@@ -81,8 +79,14 @@ function plyr_init($obj){
 	    if(video.elements.container){
 	    	video.elements.container.plyr = video;
 	    }
-	    
-  
+
+	    var poster = $obj.attr("data-poster");
+        if(!IsBlank(poster) && ($obj.hasClass("plyr--youtube") || $obj.hasClass("plyr--vimeo"))){
+		    setTimeout(() => {
+				video.poster = poster;
+			}, 500);
+		}
+
 	    var swiper = $obj.closest(".swiper").length>0?$obj.closest(".swiper")[0].swiper:false;
 		var video_container = swiper?$obj.closest(".swiper-slide"):$obj.parent();
 
@@ -321,4 +325,3 @@ function plyr_bg_embed_old($obj) {
         }
     }
 }
-

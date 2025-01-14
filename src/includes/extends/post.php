@@ -296,4 +296,23 @@ class Post extends Timber\Post{
         return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
+    public function get_thumbnail($args=array()){
+        $media = $this->meta("media");
+        if($media->media_type == "image"){
+            if($media->use_responsive_image){
+                $args["src"] = $media->image_responsive;
+                $image = new \Image($args);
+                return $image->init();
+            }else{
+                $args["src"] = $this->thumbnail();
+                $image = new \Image($args);
+                return $image->init();
+            }
+        }else{
+            $args["src"] = $this->thumbnail();
+            $image = new \Image($args);
+            return $image->init();
+        }
+    }
+
 }

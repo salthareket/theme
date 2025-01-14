@@ -25,8 +25,9 @@ class Update {
     public static $tasks_status;
     public static $installation_tasks = [
         ["id" => "fix_packages", "name" => "Fixing Composer Packages"],
+        ["id" => "update_theme_apperance", "name" => "Updating '".TEXT_DOMAIN."' Theme Apperance"],
         ["id" => "copy_theme", "name" => "Copying Theme Files"],
-        ["id" => "copy_templates", "name" => "Copying Template Files"],
+        //["id" => "copy_templates", "name" => "Copying Template Files"],
         ["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
@@ -221,6 +222,10 @@ class Update {
                                 <label class="form-check-label ms-2" for="multilanguageSwitch">Multilanguage</label>
                             </div>
                             <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="ecommerce" id="ecommerceSwitch">
+                                <label class="form-check-label ms-2" for="ecommerceSwitch">E-commerce</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
                                 <input class="form-check-input" type="checkbox" name="plugin_types" value="membership" id="membershipSwitch">
                                 <label class="form-check-label ms-2" for="membershipSwitch">Membership</label>
                             </div>
@@ -233,9 +238,10 @@ class Update {
                                 <label class="form-check-label ms-2" for="social-shareSwitch">Social Share</label>
                             </div>
                             <div class="ms-4 form-check d-flex align-items-center">
-                                <input class="form-check-input" type="checkbox" name="plugin_types" value="ecommerce" id="ecommerceSwitch">
-                                <label class="form-check-label ms-2" for="ecommerceSwitch">E-commerce</label>
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="newsletter" id="newsletterSwitch">
+                                <label class="form-check-label ms-2" for="newsletterSwitch">Newsletter</label>
                             </div>
+                            
                         </div>
                     </div>
 
@@ -921,20 +927,58 @@ class Update {
         }
     }
     private static function copy_theme(){
-        $srcDir = SH_PATH . 'theme';
+        $srcDir = SH_PATH . 'content/theme';
         $target_dir = get_template_directory() . '/theme';
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true); 
             self::recurseCopy($srcDir, $target_dir);
         }
     }
-    private static function copy_templates(){
+    private static function update_theme_apperance(){
+        $style_file = self::$theme_root . '/style.css';
+        if (file_exists($style_file)) {
+            $style_content = file_get_contents($style_file);
+            $theme_name = ucwords(str_replace('-', ' ', TEXT_DOMAIN));
+            $style_content = preg_replace('/(Theme Name:\s*).*/i', "\\1$theme_name", $style_content);
+            $style_content = preg_replace('/(Text Domain:\s*).*/i', "\\1$text_domain", $style_content);
+            file_put_contents($style_file, $style_content);
+        } else {
+            error_log("style.css dosyası bulunamadı.");
+            return;
+        }
+
+        $screenshot_file = self::$theme_root . '/screenshot.png';
+        $bg_color = [214, 223, 39]; // #d6df27
+        $text_color = [17, 17, 17]; // #111
+        $font_size = 120;
+        $image_width = 1200;
+        $image_height = 900;
+        $image = imagecreatetruecolor($image_width, $image_height);
+        $bg_color_alloc = imagecolorallocate($image, $bg_color[0], $bg_color[1], $bg_color[2]);
+        imagefill($image, 0, 0, $bg_color_alloc);
+        $text_color_alloc = imagecolorallocate($image, $text_color[0], $text_color[1], $text_color[2]);
+        $font_path = self::$repo_directory . '/src/content/fonts/Lexend_Deca/static/LexendDeca-Bold.ttf';
+        if (!file_exists($font_path)) {
+            error_log("Font dosyası bulunamadı: $font_path");
+            imagedestroy($image);
+            return;
+        }
+        $bbox = imagettfbbox($font_size, 0, $font_path, $theme_name);
+        $text_width = $bbox[2] - $bbox[0];
+        $text_height = $bbox[1] - $bbox[7];
+        $x = ($image_width - $text_width) / 2;
+        $y = ($image_height + $text_height) / 2;
+        imagettftext($image, $font_size, 0, $x, $y, $text_color_alloc, $font_path, $theme_name);
+        imagepng($image, $screenshot_file);
+        imagedestroy($image);
+    }
+    /*private static function copy_templates(){
         $srcDir = SH_PATH . 'templates';
         $target_dir = get_template_directory() . '/templates';
         if (is_dir($srcDir)) {
             self::recurseCopy($srcDir, $target_dir);
         }
-    }
+    }*/
     private static function copy_fonts(){
         $srcDir = SH_STATIC_PATH . 'fonts';
         $target_dir = STATIC_PATH . 'fonts';
@@ -946,7 +990,7 @@ class Update {
         }
     }
     private static function copy_fields(){
-        $srcDir = SH_PATH . 'acf-json';
+        $srcDir = SH_PATH . 'content/acf-json';
         $target_dir = get_template_directory() . '/acf-json';
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true); 
@@ -977,9 +1021,9 @@ class Update {
             wp_send_json_error(['message' => 'npm path not found: '.$dir]);
         }
 
-        error_log(SH_PATH . "package.json -> ".$workingDir .'package.json');
+        error_log(SH_PATH . "content/package.json -> ".$workingDir .'package.json');
         if (!file_exists($workingDir .'package.json')) {
-            self::fileCopy(SH_PATH . "package.json", $workingDir .'package.json');
+            self::fileCopy(SH_PATH . "content/package.json", $workingDir .'package.json');
         }
         $command = ['npm', 'install'];
         $process = new Process($command, $workingDir);
@@ -1023,11 +1067,19 @@ class Update {
         acf_compile_js_css();
     }
     private static function defaults(){
+        self::disable_yearmonth_folders();
         self::update_site_logo(SH_PATH ."content/logo-salt-hareket.png");
         self::set_default_acf_values();
         self::create_home_page();
         self::create_menu();
         self::update_image_sizes();
+        self::set_permalink_to_post_name();
+        if(in_array("membership", $plugin_types)){
+            update_option("enable_membership", true);
+        }
+        if (defined("WP_ROCKET_VERSION")) {
+            self::wprocket_load_settings();
+        }
     }
 
 
@@ -1045,16 +1097,21 @@ class Update {
                     self::update_task_status('fix_packages', true);
                     wp_send_json_success(['message' => 'Composer packages fixed successfully']);
                     break;
+                case "update_theme_apperance" :
+                    self::update_theme_apperance();
+                    self::update_task_status('update_theme_apperance', true);
+                    wp_send_json_success(['message' => 'Theme apperances updated successfully']);
+                    break;
                 case 'copy_theme':
                     self::copy_theme();
                     self::update_task_status('copy_theme', true);
                     wp_send_json_success(['message' => 'Theme files copied successfully']);
                     break;
-                case 'copy_templates':
+                /*case 'copy_templates':
                     self::copy_templates();
                     self::update_task_status('copy_templates', true);
                     wp_send_json_success(['message' => 'Template filess copied successfully']);
-                    break;
+                    break;*/
                 case 'copy_fonts':
                     self::copy_fonts();
                     self::update_task_status('copy_fonts', true);
@@ -1108,7 +1165,7 @@ class Update {
                     wp_send_json_success(['message' => 'JS/CSS compiled successfully']);
                     break;
                 case 'defaults':
-                    self::defaults();
+                    self::defaults($plugin_types);
                     self::update_task_status('defaults', true);
                     wp_send_json_success(['message' => "Default values have been successfully created."]);
                     break;
@@ -1452,6 +1509,34 @@ class Update {
             error_log("Boyutlar uygun değil, güncelleme yapılmadı.");
         }
     }
+    private static function set_permalink_to_post_name(){
+        global $wp_rewrite;
+        update_option('permalink_structure', '/%postname%/');
+        $wp_rewrite->set_permalink_structure('/%postname%/');
+        $wp_rewrite->flush_rules();
+    }
+    private static function disable_yearmonth_folders(){
+        update_option('uploads_use_yearmonth_folders', 0);
+    }
+    private static function wprocket_load_settings() {
+        $settings_path = SH_PATH . "content/wp-rocket-settings.json";
+        if (file_exists($settings_path)) {
+            $settings_json = file_get_contents($settings_path);
+            $settings_data = json_decode($settings_json, true);
+            if (is_array($settings_data)) {
+                update_option('wp_rocket_settings', $settings_data);
+                if (function_exists('rocket_generate_config_file')) {
+                    rocket_generate_config_file();
+                }
+                echo 'WP Rocket ayarları başarıyla yüklendi!';
+            } else {
+                echo 'JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.';
+            }
+        } else {
+            echo 'Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.';
+        }
+    }
+
 
 
 
@@ -1460,7 +1545,7 @@ class Update {
     private static function enqueue_update_script() {
         wp_enqueue_script(
             'theme-update-script',
-            get_template_directory_uri() . '/vendor/salthareket/theme/src/update.js',
+            get_template_directory_uri() . '/vendor/salthareket/theme/src/js/update.js',
             ['jquery'],
             '1.0',
             true
