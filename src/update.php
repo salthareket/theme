@@ -1066,7 +1066,7 @@ class Update {
     private static function compile_js_css(){
         acf_compile_js_css();
     }
-    private static function defaults(){
+    private static function defaults($plugin_types = array()){
         self::disable_yearmonth_folders();
         self::update_site_logo(SH_PATH ."content/logo-salt-hareket.png");
         self::set_default_acf_values();
