@@ -939,7 +939,6 @@ class Update {
         $text_domain = basename(get_template_directory());
         $theme_name = ucwords(str_replace('-', ' ', $text_domain));
         if (file_exists($style_file)) {
-            echo "text_domain:" . $text_domain;
             $style_content = file_get_contents($style_file);    
             $style_content = preg_replace('/(Theme Name:\\s*).*$/m', "Theme Name: $theme_name", $style_content);
             $style_content = preg_replace('/(Text Domain:\\s*).*$/m', "Text Domain: $text_domain", $style_content);
