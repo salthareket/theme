@@ -1135,9 +1135,9 @@ class Update {
                     wp_send_json_success(['message' => 'ACF fields updated successfully']);
                     break;
                 case 'install_wp_plugins':
-                    ob_start();
+                    //ob_start();
                     self::install_wp_plugins($plugin_types);
-                    ob_end_clean();
+                    //ob_end_clean();
                     self::update_task_status('install_wp_plugins', true);
                     wp_send_json_success(['message' => 'WP plugins installed successfully']);
                     break;
@@ -1526,7 +1526,10 @@ class Update {
             $settings_json = file_get_contents($settings_path);
             $settings_data = json_decode($settings_json, true);
             if (is_array($settings_data)) {
-                update_option('wp_rocket_settings', $settings_data);
+                foreach($settings_data as $key => $setting){
+                    error_log($key.":".$setting);
+                    update_rocket_option( $key, $setting);
+                }
                 if (function_exists('rocket_generate_config_file')) {
                     rocket_generate_config_file();
                 }
@@ -1536,6 +1539,10 @@ class Update {
             }
         } else {
             error_log('Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
+        }
+        if (function_exists('rocket_regenerate_configuration')) {
+            rocket_regenerate_configuration();
+            error_log('WP Rocket yapılandırma dosyaları yeniden oluşturuldu!');
         }
     }
 
