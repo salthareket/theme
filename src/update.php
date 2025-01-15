@@ -1071,7 +1071,7 @@ class Update {
     private static function defaults($plugin_types = array()){
         self::disable_yearmonth_folders();
         self::update_site_logo(SH_PATH ."content/logo-salt-hareket.png");
-        self::set_default_acf_values();
+        self::set_default_acf_values($plugin_types);
         self::create_home_page();
         self::create_menu();
         self::update_image_sizes();
@@ -1363,7 +1363,11 @@ class Update {
 
         return $attachment_id;
     }
-    private static function set_default_acf_values() {
+    private static function set_default_acf_values($plugin_types=array()) {
+        $header_tool_language = [
+            'menu_item' => 'languages',
+            'menu_type' => 'inactive'
+        ];
         $default_values = [
             "header_container" => "default",
             "header_fixed" => "top",
@@ -1391,7 +1395,7 @@ class Update {
                                 'fullscreen' => 1,
                                 'container' => 'default'
                             ],
-                        ],
+                        ]
                     ],
                 ],
             ],
@@ -1407,8 +1411,13 @@ class Update {
             "seperate_js" => 1,
             "enable_production" => 1
         ];
+        if(in_array("multilanguage", $plugin_types)){
+            array_unshift($default_values["header_end"]["header_tools"]["header_tools"], $header_tool_language);
+        }
         foreach ($default_values as $field_key => $value) {
-            update_field($field_key, $value, 'option');
+            if(empty(get_option("options_".$field_key))){
+                update_field($field_key, $value, 'option');
+            }
         }
         error_log("Default header values have been set.");
     }
@@ -1468,6 +1477,7 @@ class Update {
             $locations = get_theme_mod('nav_menu_locations');
             $locations[$menu_location] = $menu_id;
             set_theme_mod('nav_menu_locations', $locations);
+            //register_nav_menus(get_menu_locations());
 
             // "Home" sayfasını menüye ekle
             $home_page = get_page_by_title('Home');
