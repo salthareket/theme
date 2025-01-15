@@ -286,8 +286,8 @@ function array2Attrs($attributes = array(), $make_them_data = 0, $prefix = "", $
                 if ($make_them_data) {
                     $name = 'data-' . $prefix .$name;
                 }
-                $name  = htmlentities($name, ENT_QUOTES, 'UTF-8');
-                $value = htmlentities($value, ENT_QUOTES, 'UTF-8');
+                $name  = htmlentities($name ?? '', ENT_QUOTES, 'UTF-8');
+                $value = htmlentities($value ?? '', ENT_QUOTES, 'UTF-8');
                 if(!empty($value) && $accept_empty){
                    continue;
                 }
