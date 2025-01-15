@@ -1303,7 +1303,7 @@ class Update {
     // Default Contents
     private static function update_site_logo($logo_path) {
         // ACF'deki mevcut logo ID'sini kontrol et
-        $current_logo_id = get_field('logo', 'option'); // 'option' global ayar sayfası için
+        $current_logo_id = get_option('options_logo'); // 'option' global ayar sayfası için
 
         if ($current_logo_id) {
             // Mevcut logo kontrolü
@@ -1320,7 +1320,7 @@ class Update {
         if ($attachment_id) {
             // "logo" adlı ACF alanını güncelle
             update_field('logo', $attachment_id, 'option'); // 'option' global ayar sayfası için
-            if(!get_field('logo_footer', 'option')){
+            if(!get_option('options_logo_footer')){
                 update_field('logo_footer', $attachment_id, 'option');
             }
             error_log("Logo successfully updated to ACF field.");
