@@ -1449,6 +1449,10 @@ class Update {
         }
     }
     private static function create_menu() {
+        $menus = wp_get_nav_menus();
+        if (!empty($menus)) {
+           return;
+        }
         // Menü adını ve konumunu tanımla
         $menu_name = 'header';
         $menu_location = 'header-menu';
