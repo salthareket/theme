@@ -218,7 +218,7 @@ class Update {
                         <hr>
                         <div class="d-flex justify-content-center">
                             <div class="form-check d-flex align-items-center">
-                                <input class="form-check-input" type="checkbox" name="plugin_types" value="multilanuage" id="multilanguageSwitch">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="multilanguage" id="multilanguageSwitch">
                                 <label class="form-check-label ms-2" for="multilanguageSwitch">Multilanguage</label>
                             </div>
                             <div class="ms-4 form-check d-flex align-items-center">
