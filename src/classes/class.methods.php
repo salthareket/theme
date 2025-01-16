@@ -1,5 +1,6 @@
 <?php
 
+namespace SaltHareket;
 use MatthiasMullie\Minify;
 
 class MethodClass {
@@ -294,6 +295,7 @@ class MethodClass {
     }
     */
     public function checkForSyntaxErrors($file) {
+
         $fileList = escapeshellarg($file);
         $parallelLintPath = get_stylesheet_directory() . '/vendor/bin/parallel-lint';
 

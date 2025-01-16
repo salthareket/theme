@@ -442,7 +442,8 @@ if(SH_THEME_EXISTS || file_exists(get_template_directory() . "/theme/index.php")
     include_once get_template_directory() . "/theme/index.php";
 }
 if (is_admin()) {
-    include_once SH_INCLUDES_PATH . "admin/index.php";
+    //include_once SH_INCLUDES_PATH . "admin/index.php";
+    include_once THEME_INCLUDES_PATH . "admin/index.php";
     if(!function_exists("acf_general_settings_rewrite")){
         include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
     }

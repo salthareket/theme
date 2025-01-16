@@ -1303,7 +1303,7 @@ class Update {
     // Default Contents
     private static function update_site_logo($logo_path) {
         // ACF'deki mevcut logo ID'sini kontrol et
-        $current_logo_id = get_option('options_logo'); // 'option' global ayar sayfası için
+        $current_logo_id = get_option('options_logo_footer'); // 'option' global ayar sayfası için
 
         if ($current_logo_id) {
             // Mevcut logo kontrolü

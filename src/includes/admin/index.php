@@ -609,8 +609,9 @@ if($field["name"] == "enable_membership" && $value == 1){
 if($value){
 set_my_account_page();
 }
-require SH_CLASSES_PATH . "class.methods.php";
-$methods = new MethodClass();
+if(!class_exists("SaltHareket\MethodClass")){
+            require_once SH_CLASSES_PATH . "class.methods.php";
+        }
 $methods->createFiles(false);
 $methods->createFiles(false, "admin");
 if(function_exists("redirect_notice")){

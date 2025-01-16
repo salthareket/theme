@@ -50,6 +50,8 @@ jQuery(document).ready(function ($) {
 
     function runTask(taskIndex) {
 
+        console.table(taskIndex, tasks.length);
+
         if (taskIndex >= tasks.length) {
             completeInstallation();
             return;

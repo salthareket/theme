@@ -2967,8 +2967,9 @@ function acf_methods_settings($value=0){
 	        if ( function_exists( 'rocket_clean_minify' ) ) {
                 rocket_clean_minify();
             }
-            require SH_CLASSES_PATH . "class.methods.php";
-            $methods = new MethodClass();
+            if(!class_exists("SaltHareket\MethodClass")){
+	            require_once SH_CLASSES_PATH . "class.methods.php";
+	        }
             $frontend = $methods->createFiles(false); 
             error_log(json_encode($frontend));
             $admin = $methods->createFiles(false, "admin");
