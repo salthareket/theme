@@ -131,62 +131,6 @@ function get_contact_forms($slug=""){
 
 
 
-
-
-
-/*Set as featured image custom image fields value*/
-function acf_set_video_image( $value, $post_id, $field ){
-	     //$file = get_template_directory() . '/static/test.txt';
-	     if(acf_set_thumbnail_condition($post_id)){
-
-	        if(isset($value) && $value != '') {
-
-                if($field['type'] == 'repeater'){
-                    $row_index = 0;
-                  	if( have_rows($field['name']) ) :
-			 	        while( have_rows($field['name']) ) : the_row();
-
-							 	   $field_name = 'video';
-							 	   $field_value = extract_url(get_sub_field($field_name));
-							 	   
-							 	   $field_video_name = $field['name'].'_'.$row_index.'_'.$field_name;
-							 	   $field_image_name = $field['name'].'_'.$row_index.'_'.$field_name.'_image';
-							 	   $field_locked_name = $field['name'].'_'.$row_index.'_locked';
-							 	   $image_size = 1600;
-
-							 	   $is_locked = get_sub_field('locked');//get_post_meta( $post_id, $field_locked_name, true );
-
-							 	   if(empty($is_locked)){
-							 	   	  $is_locked = false;
-							 	   }else{
-							 	   	  $is_locked = true;
-							 	   }  
-							 	   $lolo .= $field_video_name.' = '.$field_value;	 
-							 	   $lolo .= 'locked='.$is_locked; 
-							 	   if(!$is_locked){
-				                       $field_attach_id = get_post_meta( $post_id, $field_image_name, true );
-				                       if($field_attach_id){
-				                          wp_delete_attachment( $field_attach_id, true );
-				                       }
-				                       ///////$field_value = get_post_meta( $post_id, $field_video_name, true );
-				                       $thumbnail_uri = get_video_thumbnail_uri($field_value, $image_size );
-									   $attach_id = featured_image_from_url($thumbnail_uri, $post_id, true);
-									   update_post_meta($post_id, $field_image_name, $attach_id);
-				                       //$lolo .= '$thumbnail_uri='.$thumbnail_uri; 
-				                       //$lolo .= '$attach_id='.$attach_id; 
-					               }
-				 	        // }
-					               $row_index++; 
-                        endwhile; 
-				    endif;
-			 	}
-
-	        }
-			//file_put_contents($file,$lolo);
-	    }
-        return $value;
-}
-
 function acf_set_thumbnail_condition($post_id){
 	$post_types = get_post_types(); // Tüm kayıtlı post tiplerini al
     $supported_post_types = []; // Thumbnail desteği olanları burada tut
@@ -290,41 +234,6 @@ function create_options_menu_children($menu_title, $options){
 				'parent_slug'	=> sanitize_title($menu_title),
 			));			
 		}
-	}
-}
-
-
-function acf_oembed_data($data, $image_size=0, $attrs="" ){
-	if(!empty($data)){
-		$url=extract_url($data);
-		$data_parse=parse_video_uri( $url );
-		$arr = array(
-		       'type' => $data_parse['type'],
-			   'id' => str_replace('video/','',$data_parse['id']),
-			   'url' => $url."&controls=0",
-			   'embed' => $data,
-			   'embed_url' => "https://www.youtube.com/embed/". $data_parse['id'] ."?rel=0&showinfo=0&autoplay=0&mute=0",
-			   'watch' => "https://www.".($data_parse['type']=="vimeo"?"vimeo.com/":"youtube.com/watch?v=").$data_parse['id']
-	    );
-	    if($arr["type"] == "vimeo"){
-	    	$arr["embed_url"] = "https://player.vimeo.com/video/".$arr["id"]."?autoplay=1&title=0&byline=0&portrait=0";
-	    }
-	    if($image_size>0){
-	    	$arr["src"] = get_video_thumbnail_uri( $url, $image_size );
-	    }
-		return $arr;
-	}
-}
-function acf_oembed_url($data){
-	if(!empty($data)){
-		return extract_url($data);
-	}
-}
-function acf_oembed_id($data){
-	if(!empty($data)){
-		$url=extract_url($data);
-		$data_parse=parse_video_uri( $url );
-		return str_replace('video/','',$data_parse['id']);
 	}
 }
 
@@ -493,44 +402,6 @@ function acf_dynamic_container($class="", $page_settings = array(), $manually = 
 	}
 	return $class.($offcanvas?"-fluid":"");
 }
-
-
-
-function store_embed_image($value, $post_id, $field){
-	$featured = false;
-    $name = $field["name"];
-	$field_name = "video_url";
-	$image_field = "video_image";
-	$switch_field = "custom_video_image";
-	$save_field = $image_field;
-
-    if(strlen($name) != strlen($field_name)){
-		$save_field = str_replace("_".$field_name, "_".$image_field, $name);
-    }
-    
-    error_log("post_id:".$post_id);
-    error_log($save_field);
-    error_log(json_encode($field));
-    error_log(json_encode($value));
-    
-    $image_size = 600;
-    $url = extract_url($value);
-    $field_attach_id = get_post_meta( $post_id, $save_field , true );
-    error_log("field_attach_id:".$field_attach_id);
-    if($field_attach_id){
-        wp_delete_attachment( $field_attach_id, true );
-    }
-    $thumbnail_uri = get_video_thumbnail_uri($url, $image_size );
-    $attach_id = featured_image_from_url($thumbnail_uri, $post_id, $featured, $save_field, true);
-    update_field($save_field, $attach_id, $post_id);
-    update_field($switch_field, 1, $post_id);
-    error_log("---------------------------------------------------");
-    return $value;
-}
-//add_filter('acf/update_value/name=video_url', 'store_embed_image', 999, 3);
-
-
-
 
 
 

@@ -4,7 +4,9 @@ class FeaturedImage {
     Private $post_id = 0;
 
     public function __construct() {
-        add_action('save_post', [$this, 'setFeaturedImageForPost'], 20);
+        //add_action('save_post', [$this, 'setFeaturedImageForPost'], 20);
+        //add_action('edited_terms', [$this, 'setFeaturedImageForTerm'], 20, 2);
+        add_action('acf/save_post', [$this, 'setFeaturedImageForPost'], 20);
         add_action('edited_terms', [$this, 'setFeaturedImageForTerm'], 20, 2);
     }
 
@@ -49,6 +51,8 @@ class FeaturedImage {
         }
 
         $featured_image_id = $this->determineFeaturedImage($media_field);
+
+        error_log("featured_image_id:".$featured_image_id);
 
         if ($featured_image_id) {
             update_term_meta($term_id, '_thumbnail_id', $featured_image_id);
@@ -106,6 +110,7 @@ class FeaturedImage {
             foreach ($media_field['video_gallery'] as $item) {
                 if ($item['type'] === 'embed' && !empty($item['url'])) {
                     $poster_image_id = $this->getPosterFrameFromEmbed($item['url']);
+                    error_log("poster_image_id:".$poster_image_id);
                     if ($poster_image_id) {
                         return $poster_image_id;
                     }
@@ -119,14 +124,16 @@ class FeaturedImage {
     }
 
     private function getPosterFrameFromEmbed($embed_url = "", $post_id = 0) {
-        $image_url = get_video_thumbnail_uri($embed_url);
+        $embed = new OembedVideo($embed_url);
+        $embed_data = $embed->get();
+        $image_url = $embed_data["src"];
         error_log("poster:" . $image_url);
-        if($image_url){
+        if(!empty($image_url)){
             $file_name = md5($image_url);
+            error_log("dosya adı:".$file_name);
             return featured_image_from_url($image_url, $this->post_id, false, $file_name);
         }
-        return null;
-        
+        return null; 
     }
 }
 

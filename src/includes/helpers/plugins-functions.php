@@ -669,7 +669,9 @@ function lightGallerySource($fields) {
     if ($videos && $fields["add_videos"] && $fields["add_type"] == "start") {
         foreach ($videos as $item) {
             if ($item["type"] == "embed") {
-                $video_thumb = get_video_thumbnail_uri($item["url"]);
+            	$embed = new OembedVideo($item["url"]);
+		        $embed_data = $embed->get();
+                $video_thumb = $embed_data["src"];
                 $sources[] = [
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
@@ -697,7 +699,9 @@ function lightGallerySource($fields) {
     foreach ($gallery as $item) {
         if (in_array($item["type"], ["embed", "file"])) {
             if ($item["type"] == "embed") {
-                $video_thumb = get_video_thumbnail_uri($item["url"]);
+            	$embed = new OembedVideo($item["url"]);
+		        $embed_data = $embed->get();
+                $video_thumb = $embed_data["src"];
                 $sources[] = [
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
@@ -736,7 +740,9 @@ function lightGallerySource($fields) {
     if ($videos && $fields["add_videos"] && $fields["add_type"] == "end") {
         foreach ($videos as $item) {
             if ($item["type"] == "embed") {
-                $video_thumb = get_video_thumbnail_uri($item["url"]);
+                $embed = new OembedVideo($item["url"]);
+		        $embed_data = $embed->get();
+                $video_thumb = $embed_data["src"];
                 $sources[] = [
                 	"type"      => $item["type"],
                     "lg-size"   => "1280-720",
@@ -798,7 +804,5 @@ function lightGallerySource($fields) {
 	    $sources = $sources_filtered;
 	}
 
-
-    
     return $sources;
 }

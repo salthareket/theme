@@ -48,7 +48,7 @@ function file_get_contents1($url) {
     }
 }
 
-
+/*
 function get_embed_video_data($url){
 	$dimensions = array(
        "width"  => "100%",
@@ -72,7 +72,7 @@ function get_embed_video_data($url){
         );
 	}
 }
-
+*/
 function set_embed_lazy($code){
     if(empty($code)){
 		return $code;
@@ -82,121 +82,7 @@ function set_embed_lazy($code){
 	return $code;
 }
 
-/* Pull apart OEmbed video link to get thumbnails out*/
-function get_video_thumbnail_uri( $video_uri = "", $image_size=0 ) {
-    if(empty($video_uri)){
-    	return;
-    }
-	$thumbnail_uri = '';
-	$video = parse_video_uri( $video_uri );		
-	
-	// get youtube thumbnail
-	if ( $video['type'] == 'youtube' )
-		$thumbnail_uri = 'http://img.youtube.com/vi/' . $video['id'] . '/maxresdefault.jpg';
-	
-	// get vimeo thumbnail
-	if( $video['type'] == 'vimeo' )
-		$thumbnail_uri = get_vimeo_thumbnail_uri( $video['id'], $image_size );
 
-	// get default/placeholder thumbnail
-	if( empty( $thumbnail_uri ) || is_wp_error( $thumbnail_uri ) )
-		$thumbnail_uri = ''; 
-	
-	//return thumbnail uri
-	return $thumbnail_uri;
-}
-
-
-/* Parse the video uri/url to determine the video type/source and the video id */
-function parse_video_uri( $url = "") {
-	if(empty($url)){
-		return false;
-	}
-
-	// Parse the url 
-	$parse = parse_url( $url );
-
-	// Set blank variables
-	$video_type = '';
-	$video_id = '';
-	
-	// Url is http://youtu.be/xxxx
-	if ( $parse['host'] == 'youtu.be' ) {
-		$video_type = 'youtube';
-		$video_id = ltrim( $parse['path'],'/' );	
-	}
-	
-	// Url is http://www.youtube.com/watch?v=xxxx 
-	// or http://www.youtube.com/watch?feature=player_embedded&v=xxx
-	// or http://www.youtube.com/embed/xxxx
-	if ( ( $parse['host'] == 'youtube.com' ) || ( $parse['host'] == 'www.youtube.com' ) ) {
-	
-		$video_type = 'youtube';
-
-		parse_str( $parse['query'], $output);
-
-		if ( !empty( $output["feature"] ) ){
-			$video_id = explode( 'v=', $parse['query'] ) ;
-			$video_id = end( $video_id );
-		}
-			
-		if ( strpos( $parse['path'], 'embed' ) == 1 ){
-			$video_id = explode( '/', $parse['path'] );
-			$video_id = end( $video_id );
-		}
-
-		if(empty($video_id)){
-		   $video_id = $output["v"];
-		}
-	}
-
-	// Url is http://www.vimeo.com
-	if ( ( $parse['host'] == 'vimeo.com' ) || ( $parse['host'] == 'www.vimeo.com' ) || ( $parse['host'] == 'player.vimeo.com' )  ) {
-		$video_type = 'vimeo';
-		$video_id = ltrim( $parse['path'],'/' );					
-	}
-	//$host_names = explode(".", $parse['host'] );
-	//$rebuild = ( ! empty( $host_names[1] ) ? $host_names[1] : '') . '.' . ( ! empty($host_names[2] ) ? $host_names[2] : '');
-	
-	if ( !empty( $video_type ) ) {
-		$video_array = array(
-			'type' => $video_type,
-			'id' => $video_id
-		);
-		return $video_array;
-	} else {
-		return false;
-	}
-}
-
-
-/* Takes a Vimeo video/clip ID and calls the Vimeo API v2 to get the large thumbnail URL.*/
-function get_vimeo_thumbnail_uri( $clip_id="", $image_size=0 ) {
-	//$vimeo_api_uri = 'http://vimeo.com/api/v2/' . $clip_id . '.php';
-	$vimeo_api_uri = 'https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/' . $clip_id;
-	$vimeo_response = @file_get_contents($vimeo_api_uri);//wp_remote_get( $vimeo_api_uri );
-
-
-	/*$vimeo_response = @file_get_contents($vimeo_api_uri); // @ işareti hata bastırır
-    if ($vimeo_response === false) {
-        error_log('Vimeo API isteği başarısız oldu: ' . $vimeo_api_uri);
-        return 'Bir hata oluştu, Vimeo thumbnail alınamadı.';
-    }*/
-
-
-	if ($vimeo_response === false) {//if( is_wp_error( $vimeo_response ) ) {
-		return $vimeo_response;
-	} else {
-		$vimeo_response = json_decode($vimeo_response);//wp_remote_get( $vimeo_api_uri );
-		$url = $vimeo_response->thumbnail_url;
-		if(!empty($image_size)){
-			$url = str_split($url, stripos($url,'_'));
-			return $url[0].'_'.$image_size.'.jpg';
-		}else{
-		   return $url;
-		}
-	}
-}
 
 function upload_image($url="", $post_id=0, $featured=false) {
 	$attachmentId = "";
@@ -231,7 +117,7 @@ function featured_image_from_url($image_url="", $post_id=0, $featured=false, $na
 		  $upload_dir = wp_upload_dir(); // Set upload folder
 		  $image_data = file_get_contents($image_url); // Get image data
 
-		  $filename   = basename($image_url); // Create image file name
+		  //$filename   = basename($image_url); // Create image file name
 		  
 		  $info = pathinfo($image_url);
 		  //dirname   = File Path
@@ -246,13 +132,19 @@ function featured_image_from_url($image_url="", $post_id=0, $featured=false, $na
 		  if($name_addition){
              $name_addition_text = '-'.$post_id.'-'.get_random_number(111,999);
 		  }
+
+		  $extension = $info['extension'] ?? "jpg";
 		  
 		  // Check folder permission and define file location
 		  if( wp_mkdir_p( $upload_dir['path'] ) ) {
-			  $file = $upload_dir['path'] . '/' . $info['filename'].$name_addition_text.'.'.$info['extension'];
+			  $file = $upload_dir['path'] . '/' . $info['filename'].$name_addition_text.'.'.$extension;
 		  } else {
-			  $file = $upload_dir['basedir'] . '/' . $info['filename'].$name_addition_text.'.'.$info['extension'];
+			  $file = $upload_dir['basedir'] . '/' . $info['filename'].$name_addition_text.'.'.$extension;
 		  }
+
+		  $filename = basename($file); // Create image file name
+
+		  error_log("file:".$file);
 
 		  // Create the image  file on the server
 		  file_put_contents( $file, $image_data );
@@ -267,9 +159,13 @@ function featured_image_from_url($image_url="", $post_id=0, $featured=false, $na
 			  'post_content'   => '',
 			  'post_status'    => 'inherit'
 		  );
+
+		  error_log(print_r($attachment,true));
 		  
 		  // Create the attachment
 		  $attach_id = wp_insert_attachment( $attachment, $file, $post_id );
+
+		   error_log("attach_id:".$attach_id);
 		  
 		  // Include image.php
 		  require_once(ABSPATH . 'wp-admin/includes/image.php');
@@ -754,7 +650,9 @@ function get_video($video_args=array()){
 		    if(!isset($args["video_url"]) || (isset($args["video_url"]) && empty($args["video_url"]))){
 		    	return;
 		    }
-		    $data = acf_oembed_data($args["video_url"]);
+		    $embed = new OembedVideo($args["video_url"]);
+		    $data = $embed->get();
+		    //$data = acf_oembed_data($args["video_url"]);
 			$code = str_replace("{{src}}", $data["embed_url"], $code);
 			if(isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])){
 				$code = str_replace("{{poster}}", "data-poster=".$settings["video_image"], $code);

@@ -410,6 +410,7 @@ include_once SH_CLASSES_PATH . "class.encrypt.php";
 include_once SH_CLASSES_PATH . "class.paginate.php";
 include_once SH_CLASSES_PATH . "class.localization.php";
 include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
+include_once SH_CLASSES_PATH . "class.oembed-video.php";
 include_once SH_CLASSES_PATH . "class.featured-image.php";
 //include 'classes/class.geolocation.query.php';
 
