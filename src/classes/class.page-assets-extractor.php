@@ -315,6 +315,16 @@ class PageAssetsExtractor {
         return $this->save_meta($result, $id);
     }
 
+    public function getTotalBytes($filePaths) {
+        $totalBytes = 0;
+        foreach ($filePaths as $filePath) {
+            if (file_exists($filePath)) {
+                $totalBytes += filesize($filePath);
+            }
+        }
+        return $totalBytes;
+    }
+
     public function combine_and_cache_files($type, $files) {
         if ($type !== 'css' && $type !== 'js') {
             return false;
@@ -342,7 +352,7 @@ class PageAssetsExtractor {
             sort($files);
         }
 
-        $file_names = implode(',', $files);
+        $file_names = implode(',', $files).":".$this->getTotalBytes($files);
         $hash = md5($file_names);
         $cache_dir = STATIC_PATH . $type . '/cache/';
         $cache_file = $cache_dir . $hash . '.' . $type;
