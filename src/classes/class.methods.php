@@ -296,6 +296,11 @@ class MethodClass {
     */
     public function checkForSyntaxErrors($file) {
 
+        $vendorPath = get_stylesheet_directory() . '/vendor/bin'; // Projenin vendor/bin dizini
+        if (is_dir($vendorPath)) {
+            putenv('PATH=' . getenv('PATH') . PATH_SEPARATOR . $vendorPath);
+        }
+
         $fileList = escapeshellarg($file);
         $parallelLintPath = get_stylesheet_directory() . '/vendor/bin/parallel-lint';
 
