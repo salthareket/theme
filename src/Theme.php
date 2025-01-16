@@ -256,7 +256,7 @@ Class Theme{
         }else{
             $post_pagination = get_option("options_post_pagination");
         }
-            if($post_pagination){
+            if(is_array($post_pagination) && count($post_pagination) > 0){
                 $post_pagination_tmp = [];
                 foreach ($post_pagination as $item) {
                     $post_type = $item["post_type"];

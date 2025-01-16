@@ -1135,9 +1135,9 @@ class Update {
                     wp_send_json_success(['message' => 'ACF fields updated successfully']);
                     break;
                 case 'install_wp_plugins':
-                    //ob_start();
+                    ob_start();
                     self::install_wp_plugins($plugin_types);
-                    //ob_end_clean();
+                    ob_clean();
                     self::update_task_status('install_wp_plugins', true);
                     wp_send_json_success(['message' => 'WP plugins installed successfully']);
                     break;

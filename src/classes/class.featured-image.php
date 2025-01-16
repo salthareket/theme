@@ -13,10 +13,14 @@ class FeaturedImage {
             return;
         }
 
+        if (!class_exists("ACF")) {
+            return;
+        }
+
         $this->post_id = $post_id;
 
         $media_field = get_field('media', $post_id);
-        error_log(print_r($media_field,true));
+        error_log(print_r($media_field, true));
         if (!$media_field || !isset($media_field['media_type'])) {
             return;
         }
@@ -31,6 +35,14 @@ class FeaturedImage {
     }
 
     public function setFeaturedImageForTerm($term_id, $taxonomy) {
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        if (!class_exists("ACF")) {
+            return;
+        }
+        
         $media_field = get_field('media', 'term_' . $term_id);
         if (!$media_field || !isset($media_field['media_type'])) {
             return;
@@ -105,7 +117,6 @@ class FeaturedImage {
 
         return null; // Hiçbir uygun görsel yoksa
     }
-
 
     private function getPosterFrameFromEmbed($embed_url = "", $post_id = 0) {
         $image_url = get_video_thumbnail_uri($embed_url);

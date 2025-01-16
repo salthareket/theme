@@ -610,9 +610,9 @@ if($value){
 set_my_account_page();
 }
 if(!class_exists("SaltHareket\MethodClass")){
-            require_once SH_CLASSES_PATH . "class.methods.php";
-        }
-$methods = new SaltHareket\MethodClass();    
+require_once SH_CLASSES_PATH . "class.methods.php";
+}
+$methods = new SaltHareket\MethodClass();
 $methods->createFiles(false);
 $methods->createFiles(false, "admin");
 if(function_exists("redirect_notice")){

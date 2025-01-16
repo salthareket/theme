@@ -298,9 +298,10 @@ class Post extends Timber\Post{
 
     public function get_thumbnail($args=array()){
         $media = $this->meta("media");
-        if($media->media_type == "image"){
-            if($media->use_responsive_image){
-                $args["src"] = $media->image_responsive;
+        error_log($media);
+        if($media["media_type"] == "image"){
+            if($media["use_responsive_image"]){
+                $args["src"] = $media["image_responsive"];
                 $image = new \Image($args);
                 return $image->init();
             }else{

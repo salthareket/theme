@@ -829,13 +829,13 @@ function get_video($video_args=array()){
 	}
 	$code = str_replace("{{class}}", $class, $code);
 
-	if($args["video_settings"]["videoReact"]){
+	if(isset($args["video_settings"]["videoReact"]) && $args["video_settings"]["videoReact"]){
 		$config["clickToPlay"] = true;
 	}
 
 	if(isset($settings["controls"]) && $settings["controls"]){
 		$config["controls"] = $settings["controls_options"];
-		if($settings["controls_options_settings"]){
+		if(isset($settings["controls_options_settings"]) && $settings["controls_options_settings"]){
 			$config["settings"] = $settings["controls_options_settings"];			
 		}
 		$code = str_replace("{{controls}}", "controls", $code);
