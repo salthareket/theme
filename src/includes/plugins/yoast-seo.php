@@ -104,25 +104,28 @@ if(get_option("options_breadcrumb_from_menu")){
 	    $menu = wp_get_nav_menu_object($menu_name);
 	    if($menu){
 	    	$current_url = "";
+	    	$current_post_type = get_post_type(); // Geçerli post type'ı al
 	    	$breadcrumb_items = [];
 	        $menu_items = wp_get_nav_menu_items($menu->term_id);
 	        $singular = false;
 
-	        if( is_singular( 'product' ) ) {
-				foreach ($menu_items as $item) {
-				    if (get_post_meta($item->ID, 'object_type', true) === 'product') {
-				        $singular = $item;
-				        break;
-				    }
-				}
-				if($singular){
-		        	$breadcrumb_items[] = [
-		                'url' => $singular->url,
-		                'text' => $singular->title
-		            ];
-		            $current_url = $singular->url;				
-				}
-	        }
+	        if (is_singular() && $current_post_type != "page") {
+
+			    foreach ($menu_items as $item) {
+			        if (get_post_meta($item->ID, 'object_type', true) === $current_post_type) {
+			            $singular = $item;
+			            break;
+			        }
+			    }
+
+			    if ($singular) {
+			        $breadcrumb_items[] = [
+			            'url' => $singular->url,
+			            'text' => $singular->title
+			        ];
+			        $current_url = $singular->url;
+			    }
+			}
 
 	        if(empty($current_url)){
 				$current_url = (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
@@ -154,10 +157,17 @@ if(get_option("options_breadcrumb_from_menu")){
 			        break;
 			    }
 			}
-	        array_unshift($breadcrumb_items, [
-	            'url' => get_site_url()."/",
-	            'text' => translate('Home')
-	        ]);
+			if(!get_option("options_breadcrumb_remove_home")){
+			    $homepage_id = get_option('page_on_front');
+			    $homepage_title = $homepage_id ? get_the_title($homepage_id) : get_bloginfo('name');
+			    if (function_exists('pll__') && $homepage_id) {
+			        $homepage_title = pll__(get_the_title($homepage_id));
+			    }
+			    array_unshift($breadcrumb_items, [
+			        'url' => get_home_url(),
+			        'text' => $homepage_title
+			    ]);
+		    }
 	        $links = $breadcrumb_items;    	
 	    }
 	    return $links;
