@@ -2970,6 +2970,7 @@ function acf_methods_settings($value=0){
             if(!class_exists("SaltHareket\MethodClass")){
 	            require_once SH_CLASSES_PATH . "class.methods.php";
 	        }
+	        $methods = new SaltHareket\MethodClass();
             $frontend = $methods->createFiles(false); 
             error_log(json_encode($frontend));
             $admin = $methods->createFiles(false, "admin");
