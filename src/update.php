@@ -1004,17 +1004,16 @@ class Update {
     private static function register_fields(){
         acf_json_to_db(get_template_directory() . '/acf-json');
     }
-    private static function update_fields(){
+    private static function update_fields() {
         global $wpdb;
         $post_name = "group_66e309dc049c4";
         $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s", $post_name);
         $post_id = $wpdb->get_var($query);
-        if($post_id){
-            acf_save_post_block_columns_action( $post_id );
-            /*wp_update_post([
-                'ID' => $post_id,
-                'post_content' => get_post_field('post_content', $post_id), // Mevcut içeriği koru
-            ]);*/
+
+        if ($post_id) {
+            acf_save_post_block_columns_action($post_id, true);
+            $cache = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $post_name);
+            $cache::update_cache();
         }
     }
     private static function npm_install(): string{

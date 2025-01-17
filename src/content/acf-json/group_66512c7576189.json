@@ -94,7 +94,8 @@
                 "id": ""
             },
             "choices": {
-                "default": "Default"
+                "default": "Default",
+                "templates\/post\/tease": "Post Tease"
             },
             "default_value": false,
             "return_format": "value",
@@ -156,5 +157,5 @@
     "acfe_categories": {
         "block": "Block"
     },
-    "modified": 1736539456
+    "modified": 1736985492
 }

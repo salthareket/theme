@@ -314,6 +314,41 @@ function block_ratio_padding($ratio=""){
     $ratio_val[0] = $ratio_val[0] == 235 ? 2.35 : $ratio_val[0];
     return (number_format(($ratio_val[1]/$ratio_val[0]), 2) * 100);
 }
+function block_align($align, $block_column = []){
+    $classes = [];
+    if(!empty($block_column)){
+        $direction_hr = "align-items-";
+        $direction_vr = "justify-content-";
+    }else{
+        $direction_hr = "justify-content-";
+        $direction_vr = "align-items-";
+    }
+    if(isset($align["hr"])){
+        if($align["hr"] == "responsive"){
+            $classes = array_merge($classes, block_responsive_classes($align["hr_responsive"], $direction_hr, $block_column));
+        }else{
+            $classes[] = $direction_hr.$align["hr"];
+        }        
+    }
+    if(isset($align["vr"])){
+        if($align["vr"] != "none"){
+            if($align["vr"] == "responsive"){
+                $classes = array_merge($classes, block_responsive_classes($align["vr_responsive"], $direction_vr, $block_column));
+            }else{
+                $classes[] = $direction_vr.$align["vr"];
+            }
+        }
+    }
+    if(isset($align["text"])){
+        if($align["text"] == "responsive"){
+            $classes = array_merge($classes, block_responsive_classes($align["text_responsive"], "text-", ""));
+        }else{
+            $classes[] = "text-".$align["text"];
+        }
+    }
+    $classes = implode(" ", $classes);
+    return $classes;
+}
 function block_classes($block, $fields, $block_column){
     $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $classes = [];
@@ -333,7 +368,7 @@ function block_classes($block, $fields, $block_column){
         }
         $classes[] = "position-relative";
         if(isset($fields["block_settings"]["sticky_top"]) && $fields["block_settings"]["sticky_top"]){
-            if($fields["block_settings"]["vertical_align"] != "center"){
+            if($fields["block_settings"]["align"]["vr"] != "center" && $fields["block_settings"]["align"]["vr"] != "responsive"){
                 $classes[] = "sticky-top";
             }
         }
@@ -363,12 +398,21 @@ function block_classes($block, $fields, $block_column){
             }
         }
     }
-    if($block["align"]){
+    /*if($block["align"]){
         $classes[] = "text-".$block["align"];
-    }
+    }*/
     if(isset($fields["block_settings"])){
         $classes[] = block_spacing($fields["block_settings"]);
         $classes[] = "d-flex";
+        if(empty(block_container($fields["block_settings"]["container"]))){
+            $classes[] = "flex-column-justify-content-center";
+        }
+
+        $classes[] = block_align($fields["block_settings"]["align"], $block_column);
+
+        /*if(isset($fields["block_settings"]["horizontal_align"]) && $fields["block_settings"]["horizontal_align"]){
+            $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["horizontal_align"], "justify-content-", $block_column));
+        }
         if($fields["block_settings"]["vertical_align"] != "none"){
             if(!empty($block_column)){
                 $classes[] = "justify-content-".$fields["block_settings"]["vertical_align"];
@@ -376,17 +420,11 @@ function block_classes($block, $fields, $block_column){
                 $classes[] = "align-items-".$fields["block_settings"]["vertical_align"];
             }
         }
-        if(empty(block_container($fields["block_settings"]["container"]))){
-            $classes[] = "flex-column-justify-content-center";
-        }
         if(isset($fields["block_settings"]["text_align"]) && $fields["block_settings"]["text_align"]){
             $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["text_align"], "text-", ""));
-        }
-        if(isset($fields["block_settings"]["horizontal_align"]) && $fields["block_settings"]["horizontal_align"]){
-            $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["horizontal_align"], "justify-content-", $block_column));
-        }
-    }
+        }*/
 
+    }
     
     $classes = implode(" ", $classes);
     return $classes;
@@ -597,9 +635,11 @@ function block_columns($args=array(), $block = []){
 
                 }else{
 
-                    if(isset($args["block_settings"]) && isset($args["block_settings"]["horizontal_align"]) && $args["block_settings"]["horizontal_align"]){
+                    $classes[] = block_align($args["block_settings"]["align"]);
+
+                    /*if(isset($args["block_settings"]) && isset($args["block_settings"]["horizontal_align"]) && $args["block_settings"]["horizontal_align"]){
                         $classes = array_merge($classes, block_responsive_classes($args["block_settings"]["horizontal_align"], "justify-content-"));
-                    }
+                    }*/
                     
                 }         
             }            

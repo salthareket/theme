@@ -131,75 +131,33 @@ class OembedVideo {
         return $thumbnail_uri;
     }
 
-    private function getVimeoThumbnailUri($clip_id = "", $image_size = 0) {
-	    $vimeo_api_uri = 'https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/' . $clip_id;
-	    $vimeo_response = @file_get_contents($vimeo_api_uri);
-
-	    if ($vimeo_response === false) {
-	        return '';
-	    } else {
-	        $vimeo_response = json_decode($vimeo_response);
-	        error_log(print_r($vimeo_response, true));
-	        $url = $vimeo_response->thumbnail_url;
-
-	        // En büyük boyutu zorlamak
-	        $high_res_url = preg_replace('/_(\\d+x\\d+)\\.jpg$/', '_1920x1080.jpg', $url);
-
-	        // Kontrol için büyük boyutun varlığı test edilir
-	        $headers = @get_headers($high_res_url);
-	        if ($headers && strpos($headers[0], '200') !== false) {
-	            return $high_res_url;
-	        }
-
-	        // Boyut belirtildiyse mevcut URL'yi ayarla
-	        if (!empty($image_size)) {
-	            $url = preg_replace('/_(\\d+x\\d+)\\.jpg$/', "_$image_size.jpg", $url);
-	        }
-
-	        return $url;
-	    }
-	}
-
-
-    /*private function getVimeoThumbnailUri($clip_id = "", $image_size = 0) {
+    private function getVimeoThumbnailUri($clip_id = "") {
         $vimeo_api_uri = 'https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/' . $clip_id;
         $vimeo_response = @file_get_contents($vimeo_api_uri);
 
         if ($vimeo_response === false) {
-            return '';
+            return ''; // API erişim hatası durumunda boş döndür
         } else {
             $vimeo_response = json_decode($vimeo_response);
-            $url = $vimeo_response->thumbnail_url;
-            if (!empty($image_size)) {
-                $url = preg_replace('/_(\d+x\d+)\.jpg$/', "_$image_size.jpg", $url);
+            if (empty($vimeo_response->thumbnail_url)) {
+                return ''; // Thumbnail URL'si yoksa boş döndür
             }
-            return $url;
+
+            $url = $vimeo_response->thumbnail_url;
+
+            // Boyut kısımlarını temizle ve orijinal büyük görüntüyü al
+            $high_res_url = preg_replace('/-[d_]*\\d+x\\d+$/', '', $url);
+
+            // Büyük görüntü URL'sinin geçerli olup olmadığını kontrol et
+            $headers = @get_headers($high_res_url);
+            if ($headers && strpos($headers[0], '200') !== false) {
+                return $high_res_url; // Geçerliyse büyük çözünürlüklü URL döndür
+            }
+
+            return $url; // Büyük URL geçersizse orijinal URL döndür
         }
     }
 
-    private function getDailymotionThumbnailUri($video_id = "") {
-        $dailymotion_api = "https://api.dailymotion.com/video/$video_id?fields=thumbnail_720_url,thumbnail_1080_url";
-        $response = @file_get_contents($dailymotion_api);
-
-        if ($response === false) {
-            return '';
-        }
-
-        $data = json_decode($response, true);
-        if (isset($data['thumbnail_1080_url'])) {
-            return $data['thumbnail_1080_url'];
-        } elseif (isset($data['thumbnail_720_url'])) {
-            return $data['thumbnail_720_url'];
-        }
-
-        return '';
-    }
-
-    private function getDailymotionThumbnailUri($video_id = "") {
-        $dailymotion_api = "https://www.dailymotion.com/thumbnail/video/" . $video_id;
-        $response = @file_get_contents($dailymotion_api);
-        return $response !== false ? $dailymotion_api : '';
-    }*/
     private function getDailymotionThumbnailUri($video_id = "") {
         $dailymotion_api = "https://api.dailymotion.com/video/$video_id?fields=thumbnail_720_url,thumbnail_1080_url";
         $response = @file_get_contents($dailymotion_api);

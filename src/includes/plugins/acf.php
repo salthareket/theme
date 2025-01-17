@@ -1245,7 +1245,7 @@ function acf_add_field_options($field) {
 		}
 	}
 
-	if(in_array("acf-align-hr", $class)){
+	if(in_array("acf-align-hr", $class) || in_array("acf-align-hr-responsive", $class)){
 		$field["allow_custom"] = 0;
 		$field["default_value"] = "start";
 		$field["type"] = "select";
@@ -1260,14 +1260,29 @@ function acf_add_field_options($field) {
         	"center" => "Center", 
         	"end"    => "Right"
         );
+        if(in_array("acf-align-hr-responsive", $class)){
+        	$options["responsive"] = "Responsive";
+        }
 		$field['choices'] = array();
 		foreach($options as $key => $label) {
 		    $field['choices'][$key] = $label;
 		}
 	}
-	if(in_array("acf-align-vr", $class)){
+
+	if(in_array("acf-bs-align-vr", $class)){
+		$options = array(
+        	"start"  => "Top",
+        	"center" => "Center", 
+        	"end"    => "Bottom"
+        );
+		$field['choices'] = array();
+		foreach($options as $key => $label) {
+		    $field['choices'][$key] = $label;
+		}
+	}
+	if(in_array("acf-align-vr", $class) || in_array("acf-align-vr-none", $class) || in_array("acf-align-vr-responsive", $class)){
 		$field["allow_custom"] = 0;
-		$field["default_value"] = "start";
+		$field["default_value"] = in_array("acf-align-vr-none", $class)?"center":"start";
 		$field["type"] = "select";
 		$field["multiple"] = 0;
 		$field["allow_null"] = 0;
@@ -1280,6 +1295,12 @@ function acf_add_field_options($field) {
         	"center" => "Center", 
         	"end"    => "Bottom"
         );
+        if(in_array("acf-align-vr-responsive", $class)){
+        	$options["responsive"] = "Responsive";
+        }
+        if(in_array("acf-align-vr-none", $class)){
+        	$options["none"] = "None";
+        }
 		$field['choices'] = array();
 		foreach($options as $key => $label) {
 		    $field['choices'][$key] = $label;
@@ -1875,434 +1896,490 @@ if(is_admin()){
 	add_filter('acf/load_field', 'acf_add_field_options');
 }
 
-
-
 class UpdateFlexibleFieldLayouts {
 
-	private $field_name;
-	public $field_data;
-	public $field_layouts;
-	public $block_name; 
-	public $block_data;
-	public $migration;
+    private $post_id;
+    private $field_name;
+    private $field_key;
+    public $field_data;
+    public $field_layouts;
+    public $block_name;
+    public $block_data;
+    public $migration;
 
-	private $clone; 
-	private $breakpoints; 
-	//private $parallax; 
+    private $clone;
+    private $breakpoints;
 
-	public function __construct($field_name="", $block_name="", $migration = []) {
+
+    private $cached_field_data = [];
+    private $cached_field_layouts = [];
+
+    public function __construct($post_id = 0, $field_name = "", $field_key = "", $block_name = "", $migration = []) {
+    	$this->post_id = $post_id;
         $this->field_name = $field_name;
+        $this->field_key = $field_key;
         $this->block_name = $block_name;
         $this->migration = $migration;
+
         $this->clone = array(
-	        'aria-label' => '',
-		    'type' => 'clone',
-		    'instructions' => '',
-		    'required' => 0,
-		    'conditional_logic' => 0,
-		    'wrapper' => array(
-		        'width' => '',
-		        'class' => '',
-		        'id' => '',
-		    ),
-		    'parent_layout' => '',
-		    'clone' => array(
-		    ),
-		    'display' => 'seamless',
-		    'layout' => 'block',
-		    'prefix_label' => 0,
-		    'prefix_name' => 0,
-		    'acfe_seamless_style' => 0,
-		    'acfe_clone_modal' => 0,
-		    'acfe_clone_modal_close' => 0,
-		    'acfe_clone_modal_button' => '',
-		    'acfe_clone_modal_size' => 'large',
-		);
-		$this->breakpoints = array(
-		    'aria-label' => '',
-		    'type' => 'acf_bs_breakpoints',
-		    'instructions' => '',
-		    'required' => 0,
-		    'conditional_logic' => 0,
-		    'wrapper' => array(
-		        'width' => '',
-		        'class' => '',
-		        'id' => '',
-		    ),
-		    'parent_layout' => '',
-		    'acf_bs_breakpoints_type' => 'number',
-		    'show_description' => 1,
-		    'acf_bs_breakpoints_choices' => '',
-		    'allow_in_bindings' => 0,
-		    'font_size' => 14,
-		);
-		/*$this->parallax = array(
-			"aria-label" =>  "",
-			"type" => "clone",
-			"instructions" =>  "",
-			"required" => 0,
-			"conditional_logic" => 0,
-			"wrapper" => array(
-				"width"=> "",
-				"class"=> "",
-				"id"=> ""
-			),
-			"clone"=> array(
-				"group_673e9a4739ec9"
-			),
-		);*/
+            'aria-label' => '',
+            'type' => 'clone',
+            'instructions' => '',
+            'required' => 0,
+            'conditional_logic' => 0,
+            'wrapper' => array(
+                'width' => '',
+                'class' => '',
+                'id' => '',
+            ),
+            'parent_layout' => '',
+            'clone' => array(),
+            'display' => 'seamless',
+            'layout' => 'block',
+            'prefix_label' => 0,
+            'prefix_name' => 0,
+            'acfe_seamless_style' => 0,
+            'acfe_clone_modal' => 0,
+            'acfe_clone_modal_close' => 0,
+            'acfe_clone_modal_button' => '',
+            'acfe_clone_modal_size' => 'large',
+        );
+        $this->breakpoints = array(
+            'aria-label' => '',
+            'type' => 'acf_bs_breakpoints',
+            'instructions' => '',
+            'required' => 0,
+            'conditional_logic' => 0,
+            'wrapper' => array(
+                'width' => '',
+                'class' => '',
+                'id' => '',
+            ),
+            'parent_layout' => '',
+            'acf_bs_breakpoints_type' => 'number',
+            'show_description' => 1,
+            'acf_bs_breakpoints_choices' => '',
+            'allow_in_bindings' => 0,
+            'font_size' => 14,
+        );
     }
 
-    public function get_block_field_data($block){
-    	$data = [];
-    	$id = $block->post_name;
-    	$file = get_stylesheet_directory() . '/acf-json/'.$id.".json";
-    	$data = file_get_contents($file);
-    	if($data){
-    		$data = json_decode($data, true);
-    		$fields = $data["fields"];
-    		$layouts = [];
-    		$data = [];
-    		foreach($fields as $item){
-    			if(isset($item["layouts"])){
-    				$layouts = $item["layouts"];
+    public function get_block_field_data($block) {
+        $data = [];
+        $id = $block->post_name;
+        $file = get_stylesheet_directory() . '/acf-json/'.$id.".json";
+        $data = file_get_contents($file);
+        if ($data) {
+            $data = json_decode($data, true);
+            $fields = $data["fields"];
+            $layouts = [];
+            $data = [];
+            foreach($fields as $item) {
+                if (isset($item["layouts"])) {
+                    $layouts = $item["layouts"];
                     continue;
-    			}
-    		}
-    		if($layouts){
-    			foreach($layouts as $layout){
-    				$fields = [];
-    				$sub_fields = $layout["sub_fields"];
-    				foreach($sub_fields as $sub_field){
-    					$fields[$sub_field["name"]] = $sub_field["key"];
-    				}
-    				$data[$layout["name"]] = array(
-                       "key" => $layout["key"],
-                       "sub_fields" => $fields
-    				);
-    			}
-    		}
-    	}
-    	return $data;
+                }
+            }
+            if ($layouts) {
+                foreach($layouts as $layout) {
+                    $fields = [];
+                    $sub_fields = $layout["sub_fields"];
+                    foreach($sub_fields as $sub_field) {
+                        $fields[$sub_field["name"]] = $sub_field["key"];
+                    }
+                    $data[$layout["name"]] = array(
+                        "key" => $layout["key"],
+                        "sub_fields" => $fields
+                    );
+                }
+            }
+        }
+        return $data;
     }
 
-    public function get_block_fields(){
-    	global $wpdb;
-		$block_categories = ["block"];
-		//$block_categories[] = basename(get_stylesheet_directory());
-		$taxonomy = 'acf-field-group-category';
-		$taxonomy_terms = implode("', '", array_map('esc_sql', $block_categories));
-		$sql = "
-			SELECT p.*
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
-			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-			INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
-			WHERE p.post_type = 'acf-field-group'
-			AND p.post_status = 'publish'
-			AND t.slug IN ('$taxonomy_terms')
-			AND tt.taxonomy = '$taxonomy'
-			ORDER BY p.post_title ASC
-		";
+    public function get_block_fields() {
+        global $wpdb;
+        $block_categories = ["block"];
+        $taxonomy = 'acf-field-group-category';
+        $taxonomy_terms = implode("', '", array_map('esc_sql', $block_categories));
+        $sql = "
+        SELECT p.*
+            FROM { $wpdb->posts } p
+        INNER JOIN { $wpdb->term_relationships } tr ON p.ID = tr.object_id
+        INNER JOIN { $wpdb->term_taxonomy } tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+        INNER JOIN { $wpdb->terms } t ON tt.term_id = t.term_id
+        WHERE p.post_type = 'acf-field-group'
+        AND p.post_status = 'publish'
+        AND t.slug IN('$taxonomy_terms')
+        AND tt.taxonomy = '$taxonomy'
+        ORDER BY p.post_title ASC ";
 
-		return $wpdb->get_results($sql);
+        return $wpdb->get_results($sql);
     }
-    public function field_data($forced=false){
-    	if(!empty($this->field_data) && !$forced){
-    		return $this->field_data;
-    	}else{
-			global $wpdb;
-		    $post_excerpt_value = 'acf_block_columns'; // Aradığınız post_excerpt değeri
-			$post_type = 'acf-field'; // Post tipini belirtin, örneğin 'acf-field'
+    /*public function field_data($forced = false) {
+        if (!empty($this->field_data) && !$forced) {
+            return $this->field_data;
+        } else {
+            global $wpdb;
+            $post_excerpt_value = 'acf_block_columns'; // Aradığınız post_excerpt değeri
+            $post_type = 'acf-field'; // Post tipini belirtin, örneğin 'acf-field'
 
-			$post_data = $wpdb->get_row( 
-			    $wpdb->prepare( 
-			        "
-			        SELECT ID, post_content 
-			        FROM $wpdb->posts 
-			        WHERE post_excerpt = %s 
-			        AND post_type = %s 
-			        LIMIT 1
-			        ", 
-			        $post_excerpt_value, 
-			        $post_type
-			    ), 
-			    ARRAY_A // Veriyi bir dizi (array) olarak almak için
-			);
-			$this->field_data = $post_data;
-			return $post_data;    		
-    	}
-    }
-    public function field_layouts(){
-    	if(!empty($this->field_layouts)){
-    		return $this->field_layouts;
-    	}else{
-			$fields_added = [];
-			$post_data = $this->field_data();
-			if($post_data){
-				$post_content = unserialize($post_data['post_content']);
-				if(isset($post_content["layouts"])){
-					$layouts = $post_content["layouts"];
-				    foreach($post_content["layouts"] as $item){
-			            if(isset($item["sub_fields"][1])){
-			                $fields_added[] = $item["sub_fields"][1]["name"];
-			            }
-					}			
-				}
-			}
-			$this->field_layouts = $fields_added;
-			return $fields_added;
-		}
-	}
+            $post_data = $wpdb->get_row(
+                $wpdb->prepare(
+                    "
+                    SELECT ID, post_content FROM $wpdb->posts WHERE post_excerpt = % s AND post_type = % s LIMIT 1 ", 
+                    $post_excerpt_value,
+                    $post_type
+                ),
+                ARRAY_A // Veriyi bir dizi (array) olarak almak için
+            );
+            $this->field_data = $post_data;
+            return $post_data;
+        }
+    }*/
+    public function field_data($forced = false) {
+        if (!empty($this->cached_field_data) && !$forced) {
+            return $this->cached_field_data;
+        }
 
-	public function get_block_data(){
-        if(!empty($this->block_data)){
-    		return $this->block_data;
-    	}else{
-	    	global $wpdb;
-			$post_data = $wpdb->get_row( 
-				$wpdb->prepare( 
-				    "
-				    SELECT *
-				    FROM $wpdb->posts 
-				    WHERE post_excerpt = %s 
-				    AND post_type = %s 
-				    AND post_status = 'publish' 
-				    LIMIT 1
-				    ", 
-				        $this->block_name, 
-				        'acf-field-group'
-				), 
-				ARRAY_A // Veriyi bir dizi (array) olarak almak için
-		    );
-		    $this->block_data = $post_data;
-		    return $post_data;
-		}
+        global $wpdb;
+        $post_excerpt_value = 'acf_block_columns';
+        $post_type = 'acf-field';
+
+        $post_data = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT ID, post_content FROM $wpdb->posts WHERE post_excerpt = %s AND post_type = %s LIMIT 1",
+                $post_excerpt_value,
+                $post_type
+            ),
+            ARRAY_A
+        );
+
+        $this->cached_field_data = $post_data;
+        return $post_data;
     }
-	public function block_exists_in_layouts(){
-		$layouts = $this->field_layouts();
-		$block_name_solid = str_replace("block-", "", $this->block_name);
-		error_log(json_encode($layouts));
-		error_log($block_name_solid." var mı? => ".in_array($block_name_solid, $layouts));
-		return in_array($block_name_solid, $layouts);
-	}
-	public function block_exists_in_db(){
-		global $wpdb;
-		$post_parent = $this->field_data()["ID"];
-		$block_name_solid = str_replace("block-", "", $this->block_name);
-		$block = $wpdb->get_var( 
-		    $wpdb->prepare(
-		        "
-		        SELECT post_excerpt 
-		        FROM {$wpdb->posts} 
-		        WHERE post_type = %s 
-		        AND post_parent = %d 
-		        AND post_excerpt = %s
-		        ", 
-		        'acf-field', 
-		        $post_parent,
-		        $block_name_solid
-		    )
-		);
-	    return !empty($block)?true:false;
-	}
-	public function create_clone($block, $post_parent, $layout_name, $layout_data=[]){
-		if($layout_data && isset($layout_data["sub_fields"]) && in_array( $slug, array_values($layout_data["sub_fields"]))){
+    /*public function field_layouts() {
+        if (!empty($this->field_layouts)) {
+            return $this->field_layouts;
+        } else {
+            $fields_added = [];
+            $post_data = $this->field_data();
+            if ($post_data) {
+                $post_content = unserialize($post_data['post_content']);
+                if (isset($post_content["layouts"])) {
+                    $layouts = $post_content["layouts"];
+                    foreach($post_content["layouts"] as $item) {
+                        if (isset($item["sub_fields"][1])) {
+                            $fields_added[] = $item["sub_fields"][1]["name"];
+                        }
+                    }
+                }
+            }
+            $this->field_layouts = $fields_added;
+            return $fields_added;
+        }
+    }*/
+    public function field_layouts() {
+        if (!empty($this->cached_field_layouts)) {
+            return $this->cached_field_layouts;
+        }
+
+        $fields_added = [];
+        $post_data = $this->field_data();
+        if ($post_data) {
+            $post_content = unserialize($post_data['post_content']);
+            if (isset($post_content['layouts'])) {
+                foreach ($post_content['layouts'] as $item) {
+                    if (isset($item['sub_fields'][1])) {
+                        $fields_added[] = $item['sub_fields'][1]['name'];
+                    }
+                }
+            }
+        }
+
+        $this->cached_field_layouts = $fields_added;
+        return $fields_added;
+    }
+
+    public function get_block_data() {
+        if (!empty($this->block_data)) {
+            return $this->block_data;
+        } else {
+            global $wpdb;
+            $post_data = $wpdb->get_row(
+                $wpdb->prepare(
+                    "
+                    SELECT *
+                    FROM $wpdb->posts WHERE post_excerpt = % s AND post_type = % s AND post_status = 'publish'
+                    LIMIT 1 ", 
+                    $this->block_name,
+                    'acf-field-group'
+                ),
+                ARRAY_A // Veriyi bir dizi (array) olarak almak için
+            );
+            $this->block_data = $post_data;
+            return $post_data;
+        }
+    }
+    public function block_exists_in_layouts() {
+        $layouts = $this->field_layouts();
+        $block_name_solid = str_replace("block-", "", $this->block_name);
+        //error_log(json_encode($layouts));
+        //error_log($block_name_solid." var mı? => ".in_array($block_name_solid, $layouts));
+        return in_array($block_name_solid, $layouts);
+    }
+    public function block_exists_in_db() {
+        global $wpdb;
+        $post_parent = $this->field_data()["ID"];
+        $block_name_solid = str_replace("block-", "", $this->block_name);
+        $block = $wpdb->get_var(
+            $wpdb->prepare(
+                "
+                SELECT post_excerpt FROM { $wpdb->posts } WHERE post_type = % s AND post_parent = % d AND post_excerpt = % s ", 
+                'acf-field',
+                $post_parent,
+                $block_name_solid
+            )
+        );
+        return !empty($block) ? true : false;
+    }
+    public function create_clone($block, $post_parent, $layout_name, $layout_data = []) {
+        if ($layout_data && isset($layout_data["sub_fields"]) && in_array($slug, array_values($layout_data["sub_fields"]))) {
             $post_name = $layout_data["sub_fields"][$slug];
-		}else{
-			$post_name = 'field_'.uniqid();
-		}
+        } else {
+            $post_name = 'field_'.uniqid();
+        }
 
-		$clone = $this->clone;
-		//$clone["key"] = "field_".$unique_code;
-		//$clone["name"] = str_replace("block-", "", $block["post_excerpt"]);
-		$clone["parent_layout"] = $layout_name;
-		//$clone["parent"] = $post_parent;
-		$clone["parent_id"] = $post_parent;
-		$clone["clone"] = array(
-			$block["post_name"]
-		);
-		$post_data = array(
-			//'post_title'    => $block["post_title"],
-			'post_content'  => serialize($clone), // post_content diziyi JSON olarak kaydediyoruz
-			'post_status'   => 'publish', // Yayınlanmış olarak ayarla
-			'post_type'     => 'acf-field', // Post tipini acf-field olarak belirle
-			'post_name'     => $post_name, // Post slug (post_name)
-			'post_parent'   => $post_parent, // Parent ID, 8293 olarak belirlenmiş
-			'post_excerpt'  => str_replace("block-", "", $block["post_excerpt"]), // Parent ID, 8293 olarak belirlenmiş
-		);
-		$post_id = wp_insert_post($post_data);
-		/*$guid = home_url("/?post_type=acf-field&#038;p=" . $post_id);
-		$clone["ID"] = $post_id;
-		global $wpdb;
-		$wpdb->update(
-			$wpdb->posts,
-			array('guid' => $guid, "post_content" => serialize($clone)),
-			array('ID' => $post_id),
-			array('%s'),
-			array('%d')
-		);*/
-		return $clone;
-	}
-	public function create_field($block, $post_parent, $layout_name, $args = array(), $title="", $slug="", $layout_data=[]){
-		if($layout_data && isset($layout_data["sub_fields"]) && in_array( $slug, array_values($layout_data["sub_fields"]))){
+        $clone = $this->clone;
+        $clone["parent_layout"] = $layout_name;
+        $clone["parent_id"] = $post_parent;
+        $clone["clone"] = array(
+            $block["post_name"]
+        );
+        $post_data = array(
+            //'post_title'    => $block["post_title"],
+            'post_content' => serialize($clone), // post_content diziyi JSON olarak kaydediyoruz
+            'post_status' => 'publish', // Yayınlanmış olarak ayarla
+            'post_type' => 'acf-field', // Post tipini acf-field olarak belirle
+            'post_name' => $post_name, // Post slug (post_name)
+            'post_parent' => $post_parent, // Parent ID, 8293 olarak belirlenmiş
+            'post_excerpt' => str_replace("block-", "", $block["post_excerpt"]), // Parent ID, 8293 olarak belirlenmiş
+        );
+        $post_id = wp_insert_post($post_data);
+        return $clone;
+    }
+    public function create_field($block, $post_parent, $layout_name, $args = array(), $title = "", $slug = "", $layout_data = []) {
+        if ($layout_data && isset($layout_data["sub_fields"]) && in_array($slug, array_values($layout_data["sub_fields"]))) {
             $post_name = $layout_data["sub_fields"][$slug];
-		}else{
-			$post_name = 'field_'.uniqid();
-		}
-		//$breakpoints = $args;//$this->breakpoints;
-		//$breakpoints["name"] = "breakpoints";
-		//$breakpoints["key"] = "field_".$unique_code;
-		$args["parent_layout"] = $layout_name;
-		//$breakpoints["parent"] = $post_parent;
-		//$breakpoints["parent_id"] = $post_parent;
-		$post_data = array(
-			'post_title'    => $title,//"Breakpoints",
-			'post_content'  => serialize($args), // post_content diziyi JSON olarak kaydediyoruz
-			'post_status'   => 'publish', // Yayınlanmış olarak ayarla
-			'post_type'     => 'acf-field', // Post tipini acf-field olarak belirle
-			'post_name'     => $post_name, // Post slug (post_name)
-			'post_parent'   => $post_parent, // Parent ID, 8293 olarak belirlenmiş
-			'post_excerpt'  => $slug,//"breakpoints",
-		);
-		$post_id = wp_insert_post($post_data);
-		/*$guid = home_url("/?post_type=acf-field&#038;p=" . $post_id);
-		$breakpoints["ID"] = $post_id;
-		global $wpdb;
-		$wpdb->update(
-			$wpdb->posts,
-			array('guid' => $guid, "post_content" => serialize($breakpoints)),
-			array('ID' => $post_id),
-			array('%s'),
-			array('%d')
-		);*/
-		return $args;
-	}
-	public function update(){
-		//if(!$this->block_exists_in_layouts()){
-		if(!$this->block_exists_in_db()){	
-		
-			error_log("+++ Ekleniyor");
+        } else {
+            $post_name = 'field_'.uniqid();
+        }
+        $args["parent_layout"] = $layout_name;
+        $post_data = array(
+            'post_title' => $title, //"Breakpoints",
+            'post_content' => serialize($args), // post_content diziyi JSON olarak kaydediyoruz
+            'post_status' => 'publish', // Yayınlanmış olarak ayarla
+            'post_type' => 'acf-field', // Post tipini acf-field olarak belirle
+            'post_name' => $post_name, // Post slug (post_name)
+            'post_parent' => $post_parent, // Parent ID, 8293 olarak belirlenmiş
+            'post_excerpt' => $slug, //"breakpoints",
+        );
+        $post_id = wp_insert_post($post_data);
+        return $args;
+    }
+    /*public function update() {
 
-			$post_data = $this->field_data();
-			if($post_data){
-				$post_parent = $post_data['ID'];
-				$post_content = unserialize($post_data['post_content']);
-				$layouts = $post_content["layouts"];
+        if (!$this->block_exists_in_db()) {
 
-				$block = $this->get_block_data();
-                
+            error_log("+++ Ekleniyor");
+
+            $post_data = $this->field_data();
+            if ($post_data) {
+                $post_parent = $post_data['ID'];
+                $post_content = unserialize($post_data['post_content']);
+                $layouts = $post_content["layouts"];
+
+                $block = $this->get_block_data();
+
                 $layout_data = [];
-				if($this->migration && in_array($this->block_name, array_values($this->migration))){
+                if ($this->migration && in_array($this->block_name, array_values($this->migration))) {
                     $layout_data = $this->migration[$this->block_name];
                     $layout_name = $layout_data["key"];
-				}else{
-					$layout_name = "layout_".uniqid();
-				}
+                } else {
+                    $layout_name = "layout_".uniqid();
+                }
 
-				$breakpoints = $this->create_field($block, $post_parent, $layout_name, $this->breakpoints, "Breakpoints", "breakpoints", $layout_data);
-				//$parallax = $this->create_field($block, $post_parent, $layout_name, $this->parallax, "Parallax", "parallax", $layout_data);
+                $breakpoints = $this->create_field($block, $post_parent, $layout_name, $this->breakpoints, "Breakpoints", "breakpoints", $layout_data);
 
-				$clone = $this->create_clone($block, $post_parent, $layout_name, $layout_data);
+                $clone = $this->create_clone($block, $post_parent, $layout_name, $layout_data);
 
-				if ($clone && $breakpoints){// && $parallax) {
+                if ($clone && $breakpoints) { // && $parallax) {
 
-					$clone["parent_id"] = $post_parent;
+                    $clone["parent_id"] = $post_parent;
 
                     $subfields = [];
-					//$subfields[] = $breakpoints;
-					//$subfields[] = $clone;    
 
-					$layouts[$layout_name] = array(
-						"key" => $layout_name,
-						"name" => $block["post_excerpt"],
-						"label" => $block["post_title"],
-						"display" => "block",
-						"sub_fields" => $subfields,
-						"min" => "",
-						"max" => "",
-						"acfe_flexible_modal_edit_size" => false,
-						"acfe_flexible_settings" => false,
-						"acfe_flexible_settings_size" => "medium",
-						"acfe_flexible_render_template" => false,
-						"acfe_flexible_render_style" => false,
-						"acfe_flexible_render_script" => false,
-						"acfe_flexible_thumbnail" => false,
-						"acfe_flexible_category" => false,
-					);
+                    $layouts[$layout_name] = array(
+                        "key" => $layout_name,
+                        "name" => $block["post_excerpt"],
+                        "label" => $block["post_title"],
+                        "display" => "block",
+                        "sub_fields" => $subfields,
+                        "min" => "",
+                        "max" => "",
+                        "acfe_flexible_modal_edit_size" => false,
+                        "acfe_flexible_settings" => false,
+                        "acfe_flexible_settings_size" => "medium",
+                        "acfe_flexible_render_template" => false,
+                        "acfe_flexible_render_style" => false,
+                        "acfe_flexible_render_script" => false,
+                        "acfe_flexible_thumbnail" => false,
+                        "acfe_flexible_category" => false,
+                    );
 
-					//update
-					$post_content["layouts"] = $layouts;
-					$post_content = serialize($post_content);
+                    //update
+                    $post_content["layouts"] = $layouts;
+                    $post_content = serialize($post_content);
                     global $wpdb;
-					$updated = $wpdb->update( 
-						$wpdb->posts, 
-						array( 
-							'post_content' => $post_content, // Güncellenen değer
-						), 
-						array( 'ID' => $post_parent ) // Güncellenecek postun ID'si
-					);
-					//$this->update_layouts($post_parent, $subfields);
-				}
-			}
-		}else{
-			error_log("--- Eklenmiyor");
-		}
-	}
+                    $updated = $wpdb->update(
+                        $wpdb->posts,
+                        array(
+                            'post_content' => $post_content, // Güncellenen değer
+                        ),
+                        array('ID' => $post_parent) // Güncellenecek postun ID'si
+                    );
+                }
+            }
+        } else {
+            error_log("--- Eklenmiyor");
+        }
+    }*/
+    public function update() {
+        if (!$this->block_exists_in_db()) {
+            error_log("+++ Ekleniyor");
 
-	public function update_layouts($post_parent){
-		global $wpdb;
-		$posts = $wpdb->get_results( 
-		    $wpdb->prepare(
-		        "
-		        SELECT ID, post_title 
-		        FROM {$wpdb->posts} 
-		        WHERE post_type = %s 
-		        AND post_parent = %d 
-		        AND (post_excerpt IS NULL OR post_excerpt = '')
-		        ", 
-		        'acf-field', 
-		        $post_parent
-		    )
-		);
+            $post_data = $this->field_data();
+            if ($post_data) {
+                $post_parent = $post_data['ID'];
+                $post_content = unserialize($post_data['post_content']);
+                $layouts = $post_content['layouts'];
 
-		if ($posts) {
-		    foreach ($posts as $post) {
-		        $new_excerpt = sanitize_title( str_replace( 'block', '', strtolower( $post->post_title ) ) );
-		        $wpdb->update(
-		            $wpdb->posts, 
-		            array('post_excerpt' => $new_excerpt), // post_excerpt alanını güncelle
-		            array('ID' => $post->ID) // ID'ye göre güncelle
-		        );
-		    }
-		}
+                $block = $this->get_block_data();
+
+                $layout_data = [];
+                if ($this->migration && in_array($this->block_name, array_values($this->migration))) {
+                    $layout_data = $this->migration[$this->block_name];
+                    $layout_name = $layout_data['key'];
+                } else {
+                    $layout_name = "layout_" . uniqid();
+                }
+
+                $breakpoints = $this->create_field($block, $post_parent, $layout_name, $this->breakpoints, "Breakpoints", "breakpoints", $layout_data);
+                $clone = $this->create_clone($block, $post_parent, $layout_name, $layout_data);
+
+                if ($clone && $breakpoints) {
+                    $clone['parent_id'] = $post_parent;
+
+                    $layouts[$layout_name] = array(
+                        'key' => $layout_name,
+                        'name' => $block['post_excerpt'],
+                        'label' => $block['post_title'],
+                        'display' => 'block',
+                        'sub_fields' => [],
+                        'min' => '',
+                        'max' => '',
+                    );
+
+                    // Post içeriği güncelleniyor
+                    $post_content['layouts'] = $layouts;
+                    $post_content = serialize($post_content);
+
+                    global $wpdb;
+                    $wpdb->update(
+                        $wpdb->posts,
+                        ['post_content' => $post_content],
+                        ['ID' => $post_parent]
+                    );
+                }
+            }
+        } else {
+            error_log("--- Eklenmiyor");
+        }
+    }
+
+    public function update_layouts($post_parent) {
+        global $wpdb;
+        $posts = $wpdb->get_results(
+            $wpdb->prepare(
+                "
+                SELECT ID, post_title FROM { $wpdb->posts } WHERE post_type = % s AND post_parent = % d AND(post_excerpt IS NULL OR post_excerpt = '')
+                ", 
+                'acf-field',
+                $post_parent
+            )
+        );
+
+        if ($posts) {
+            foreach($posts as $post) {
+                $new_excerpt = sanitize_title(str_replace('block', '', strtolower($post->post_title)));
+                $wpdb->update(
+                    $wpdb->posts,
+                    array('post_excerpt' => $new_excerpt), // post_excerpt alanını güncelle
+                    array('ID' => $post->ID) // ID'ye göre güncelle
+                );
+            }
+        }
+    }
+
+    public static function update_cache() {
+	    if ($this->post_id) {
+	        acf_save_post_block_columns_action($this->post_id);
+
+	        // ACF Cache'i temizle
+	        acf_flush_field_cache();
+
+	        // Alan grubunu yeniden yükle
+	        if($this->field_key){
+	        	acf_import_field_group(acf_get_field_group($this->field_key));	        	
+	        }
+
+	        // Alan grubunu manuel kaydet
+	        do_action('acf/save_post', $this->post_id);
+	    }
 	}
 }
 function acf_save_post_block_columns_action( $post_id ){
 	if(has_term("block", 'acf-field-group-category', $post_id)){ // is block
     	$block = get_post($post_id);
+
     	remove_action( 'save_post', 'acf_save_post_block_columns', 20 );
+
     	if($block->post_excerpt != "block-bootstrap-columns"){
-	    	$layouts = new UpdateFlexibleFieldLayouts("acf_block_columns", $block->post_excerpt);
+
+	    	$layouts = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block->post_name, $block->post_excerpt);
 	    	$layouts->update();
+
     	}elseif($block->post_excerpt == "block-bootstrap-columns"){
+
     		$layouts_check = new UpdateFlexibleFieldLayouts();
     		$blocks = $layouts_check->get_block_fields();
     		if($blocks){
     			$group_field_data = $layouts_check->get_block_field_data($block);
-    			//error_log(json_encode($group_field_data));
     			error_log("block-bootstrap-columns s a v i n g . . . . . . . . . . . . ");
-    			error_log(json_encode(($layouts_check->field_layouts())));
     			foreach($blocks as $item){
     				error_log("adding:".$item->post_excerpt);
-    				$layouts = new UpdateFlexibleFieldLayouts("acf_block_columns", $item->post_excerpt, $group_field_data);
+    				$layouts = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $item->post_name, $block->post_excerpt, $group_field_data);
     				$layouts->update();
     			}
     		}
+
     	}
+
     	add_action( 'save_post', 'acf_save_post_block_columns', 20 );
+
     }
 }
+
 function acf_save_post_block_columns( $post_id ) {
 	if (defined('DOING_AJAX') && DOING_AJAX) {
 		return;
@@ -2327,7 +2404,7 @@ function acf_save_post_block_columns( $post_id ) {
 
     acf_save_post_block_columns_action( $post_id );
 }
-add_action( 'save_post', 'acf_save_post_block_columns', 20 );
+add_action( 'save_post', 'acf_save_post_block_columns', 20, 1);
 
 
 
@@ -2768,14 +2845,14 @@ function acf_compile_js_css($value=0){
                 $workingDir = get_stylesheet_directory();
                 $command = ['npx', 'webpack', '--env', 'enable_ecommerce=false'];
                 $process = new Process($command, $workingDir);
+
                 $currentUser = getenv('USERNAME') ?: getenv('USER'); // Windows için USERNAME, diğer sistemlerde USER
                 $nodeJsPath = 'C:\Program Files\nodejs';
                 $npmPath = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
                 $process->setEnv([
                     'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath,
                 ]);
-
-                //$process->setTimeout(300); // Zaman aşımı (isteğe bağlı)
+                $process->setTimeout(null);
                 try {
                     $process->mustRun(); // Komutu çalıştır ve başarısız olursa hata fırlat
                     error_log($process->getOutput()); // Çıktıyı kaydet
@@ -3265,13 +3342,18 @@ function acf_json_to_db($acf_json_path = "") {
 	            // Var olan grup kontrolü
 	            $existing_group = acf_get_field_group($field_group['key']);
 
-	            if ($existing_group) {
+	            /*if ($existing_group) {
 	                // Mevcut grup varsa sil
 	                acf_delete_field_group($existing_group['ID']);
-	            }
+	            }*/
+	            if ($existing_group) {
+				    acf_update_field_group(array_merge($existing_group, $field_group));
+				} else {
+				    acf_import_field_group($field_group);
+				}
 
 	            // Yeni grubu veritabanına ekle
-	            acf_import_field_group($field_group);
+	            //acf_import_field_group($field_group);
 	            $imported_groups[] = $field_group['title'];        		
         	}
 

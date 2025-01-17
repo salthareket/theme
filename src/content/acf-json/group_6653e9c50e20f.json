@@ -171,6 +171,7 @@
                     "collapsed": "field_64f7a6eaa0155",
                     "button_label": "Add Content",
                     "rows_per_page": 20,
+                    "parent_repeater": "field_64e781e91fed9",
                     "sub_fields": [
                         {
                             "key": "field_64f7a6eaa0155",
@@ -224,8 +225,7 @@
                             "preview_size": "thumbnail",
                             "parent_repeater": "field_64f7a6c5a0154"
                         }
-                    ],
-                    "parent_repeater": "field_64e781e91fed9"
+                    ]
                 }
             ]
         }
@@ -255,7 +255,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1736734109,
+    "modified": 1736985492,
     "acfe_categories": {
         "block": "Block"
     }

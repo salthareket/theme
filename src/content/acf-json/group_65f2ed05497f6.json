@@ -2025,92 +2025,374 @@
             "allow_in_bindings": 1
         },
         {
-            "key": "field_661c91c58dc73",
-            "label": "Vertical Align",
-            "name": "vertical_align",
+            "key": "field_678a553c27045",
+            "label": "Align",
+            "name": "align",
             "aria-label": "",
-            "type": "select",
+            "type": "group",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "16.6",
+                "width": "",
                 "class": "",
                 "id": ""
             },
-            "choices": {
-                "none": "None",
-                "start": "Top",
-                "center": "Center",
-                "end": "Bottom"
-            },
-            "default_value": "center",
-            "return_format": "value",
-            "multiple": 0,
-            "translations": "sync",
-            "allow_null": 0,
-            "allow_in_bindings": 1,
-            "ui": 0,
-            "ajax": 0,
-            "placeholder": "",
-            "allow_custom": 0,
-            "search_placeholder": ""
-        },
-        {
-            "key": "field_6642297e21c44",
-            "label": "Text Align",
-            "name": "text_align",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "acf-bs-align-hr",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "select",
-            "show_description": 0,
-            "acf_bs_breakpoints_choices": "",
-            "font_size": 14,
-            "choices": {
-                "start": "Left",
-                "center": "Center",
-                "end": "Right"
-            }
-        },
-        {
-            "key": "field_673d17c8afeca",
-            "label": "Horizontal Align",
-            "name": "horizontal_align",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "acf-bs-align-hr",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "select",
-            "show_description": 0,
-            "acf_bs_breakpoints_choices": "",
-            "xxxl": "",
-            "xxl": "",
-            "xl": "",
-            "lg": "",
-            "md": "",
-            "sm": "",
-            "xs": "",
-            "allow_in_bindings": 1,
-            "font_size": 14,
-            "choices": {
-                "start": "Left",
-                "center": "Center",
-                "end": "Right"
-            }
+            "layout": "block",
+            "acfe_seamless_style": 1,
+            "sub_fields": [
+                {
+                    "key": "field_678a5a731c4ec",
+                    "label": "(Column 2\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "2\/12",
+                    "endpoint": 0
+                },
+                {
+                    "key": "field_673d17c8afeca",
+                    "label": "Horizontal",
+                    "name": "hr",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-align-hr-responsive",
+                        "id": ""
+                    },
+                    "choices": {
+                        "start": "Left",
+                        "center": "Center",
+                        "end": "Right",
+                        "responsive": "Responsive"
+                    },
+                    "default_value": "start",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "translations": "copy_once",
+                    "allow_null": 0,
+                    "allow_in_bindings": 1,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_678a5a971c4ed",
+                    "label": "(Column 10\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "10\/12",
+                    "endpoint": 0
+                },
+                {
+                    "key": "field_678a53000c844",
+                    "label": "",
+                    "name": "hr_responsive",
+                    "aria-label": "",
+                    "type": "acf_bs_breakpoints",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_673d17c8afeca",
+                                "operator": "==",
+                                "value": "responsive"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-bs-align-hr  py-0",
+                        "id": ""
+                    },
+                    "acf_bs_breakpoints_type": "select",
+                    "show_description": 0,
+                    "acf_bs_breakpoints_choices": "",
+                    "xxxl": "",
+                    "xxl": "",
+                    "xl": "",
+                    "lg": "",
+                    "md": "",
+                    "sm": "",
+                    "xs": "",
+                    "allow_in_bindings": 1,
+                    "font_size": 14,
+                    "choices": {
+                        "start": "Left",
+                        "center": "Center",
+                        "end": "Right"
+                    }
+                },
+                {
+                    "key": "field_678a5ab61c4ee",
+                    "label": "(Column 2\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "2\/12",
+                    "endpoint": 0
+                },
+                {
+                    "key": "field_661c91c58dc73",
+                    "label": "Vertical",
+                    "name": "vr",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-align-vr-none acf-align-vr-responsive",
+                        "id": ""
+                    },
+                    "choices": {
+                        "start": "Top",
+                        "center": "Center",
+                        "end": "Bottom",
+                        "responsive": "Responsive",
+                        "none": "None"
+                    },
+                    "default_value": "center",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "translations": "sync",
+                    "acfe_settings": "",
+                    "acfe_validate": "",
+                    "allow_null": 0,
+                    "acfe_permissions": "",
+                    "allow_in_bindings": 1,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_678a5af4a4932",
+                    "label": "(Column 10\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "10\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 1
+                },
+                {
+                    "key": "field_678a57ff27046",
+                    "label": "",
+                    "name": "vr_responsive",
+                    "aria-label": "",
+                    "type": "acf_bs_breakpoints",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_661c91c58dc73",
+                                "operator": "==",
+                                "value": "responsive"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-bs-align-vr py-0",
+                        "id": ""
+                    },
+                    "acf_bs_breakpoints_type": "select",
+                    "show_description": 0,
+                    "default_value": "start",
+                    "acf_bs_breakpoints_choices": "",
+                    "xxxl": "",
+                    "xxl": "",
+                    "xl": "",
+                    "lg": "",
+                    "md": "",
+                    "sm": "",
+                    "xs": "",
+                    "acfe_settings": "",
+                    "acfe_validate": "",
+                    "acfe_permissions": "",
+                    "allow_in_bindings": 1,
+                    "font_size": 14,
+                    "choices": {
+                        "start": "Top",
+                        "center": "Center",
+                        "end": "Bottom"
+                    }
+                },
+                {
+                    "key": "field_678a5affa4933",
+                    "label": "(Column 2\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "2\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 1
+                },
+                {
+                    "key": "field_6642297e21c44",
+                    "label": "Text",
+                    "name": "text",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-align-hr-responsive",
+                        "id": ""
+                    },
+                    "choices": {
+                        "start": "Left",
+                        "center": "Center",
+                        "end": "Right",
+                        "responsive": "Responsive"
+                    },
+                    "default_value": "start",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "translations": "copy_once",
+                    "allow_null": 0,
+                    "allow_in_bindings": 1,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": ""
+                },
+                {
+                    "key": "field_678a5b06a4934",
+                    "label": "(Column 10\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "10\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 1
+                },
+                {
+                    "key": "field_678a53d8475c3",
+                    "label": "",
+                    "name": "text_responsive",
+                    "aria-label": "",
+                    "type": "acf_bs_breakpoints",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_6642297e21c44",
+                                "operator": "==",
+                                "value": "responsive"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-bs-align-hr py-0",
+                        "id": ""
+                    },
+                    "acf_bs_breakpoints_type": "select",
+                    "show_description": 0,
+                    "acf_bs_breakpoints_choices": "",
+                    "xxxl": "",
+                    "xxl": "",
+                    "xl": "",
+                    "lg": "",
+                    "md": "",
+                    "sm": "",
+                    "xs": "",
+                    "allow_in_bindings": 1,
+                    "font_size": 14,
+                    "choices": {
+                        "start": "Left",
+                        "center": "Center",
+                        "end": "Right"
+                    }
+                },
+                {
+                    "key": "field_678a5bdbd55de",
+                    "label": "(Column Endpoint)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "endpoint": 1,
+                    "allow_in_bindings": 0,
+                    "columns": "6\/12"
+                }
+            ],
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         },
         {
             "key": "field_66216f5d39b9c",
@@ -2369,6 +2651,8 @@
             "layout": "block",
             "prefix_label": 0,
             "prefix_name": 0,
+            "acfe_settings": "",
+            "acfe_permissions": "",
             "acfe_seamless_style": 0,
             "acfe_clone_modal": 0,
             "acfe_clone_modal_close": 0,
@@ -2434,10 +2718,11 @@
     "acfe_autosync": [
         "json"
     ],
-    "acfe_form": 0,
+    "acfe_permissions": "",
+    "acfe_form": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1736736517,
+    "modified": 1737130847,
     "acfe_categories": {
         "common": "Common"
     }
