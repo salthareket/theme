@@ -29,7 +29,11 @@
     {% endif %}
 
     {% if fields.template_block %}
-        {% include fields.template_block with { fields: fields } %}
+        {{ include(
+                fields.template_block,
+                { fields: fields }, 
+                ignore_missing = true)
+        }}
     {% else %}
         {{  video({
                 src: fields,

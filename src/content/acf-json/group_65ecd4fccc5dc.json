@@ -1,9 +1,9 @@
 {
-    "key": "group_66fbebae99ce4",
-    "title": "Block Audio",
+    "key": "group_65ecd4fccc5dc",
+    "title": "Block Table",
     "fields": [
         {
-            "key": "field_66fbebaea82d7",
+            "key": "field_67848766a5e98",
             "label": "Block Settings",
             "name": "block_settings",
             "aria-label": "",
@@ -12,7 +12,7 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "20",
+                "width": "",
                 "class": "",
                 "id": ""
             },
@@ -21,10 +21,9 @@
             "acfe_group_modal_close": 1,
             "acfe_group_modal_button": "",
             "acfe_group_modal_size": "large",
-            "acfe_seamless_style": 0,
             "sub_fields": [
                 {
-                    "key": "field_66fbebaebead5",
+                    "key": "field_67848766a5e9a",
                     "label": "",
                     "name": "",
                     "aria-label": "",
@@ -50,14 +49,95 @@
                     "acfe_clone_modal_button": "",
                     "acfe_clone_modal_size": "large"
                 }
-            ]
+            ],
+            "acfe_seamless_style": 0
         },
         {
-            "key": "field_66fbebaeabedf",
-            "label": "",
-            "name": "",
+            "key": "field_65ed8b33a2fc0",
+            "label": "Striped Rows",
+            "name": "table_striped",
             "aria-label": "",
-            "type": "clone",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_65ed8b87a2fc2",
+            "label": "Striped Columns",
+            "name": "table_striped_columns",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_65ed8ba3a2fc3",
+            "label": "Hover",
+            "name": "table_hover",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_65ee3d5325f19",
+            "label": "Minimal",
+            "name": "table_minimal",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_65ecd4fda2fbf",
+            "label": "Table",
+            "name": "table",
+            "aria-label": "",
+            "type": "table",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
@@ -66,67 +146,9 @@
                 "class": "",
                 "id": ""
             },
-            "clone": [
-                "group_66fbe7a6dc49a"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large"
-        },
-        {
-            "key": "field_66fbebaeaf89e",
-            "label": "Template",
-            "name": "template_block",
-            "aria-label": "",
-            "type": "select",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "acf-template-custom-default",
-                "id": ""
-            },
-            "choices": {
-                "default": "Default",
-                "templates\/post\/tease": "Post Tease"
-            },
-            "default_value": false,
-            "return_format": "value",
-            "multiple": 0,
-            "placeholder": "",
-            "allow_null": 1,
-            "allow_in_bindings": 1,
-            "ui": 0,
-            "ajax": 0,
-            "allow_custom": 0,
-            "search_placeholder": ""
-        },
-        {
-            "key": "field_66fbebaeb3307",
-            "label": "Wrapper class",
-            "name": "wrapper_class",
-            "aria-label": "",
-            "type": "text",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "50",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "maxlength": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": ""
+            "use_header": 0,
+            "use_caption": 2,
+            "allow_in_bindings": 1
         }
     ],
     "location": [
@@ -134,7 +156,7 @@
             {
                 "param": "block",
                 "operator": "==",
-                "value": "acf\/audio"
+                "value": "acf\/table"
             }
         ]
     ],
@@ -154,7 +176,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737315618,
+    "modified": 1737318083,
     "acfe_categories": {
         "block": "Block"
     }

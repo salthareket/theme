@@ -1013,7 +1013,7 @@ class Update {
         if ($post_id) {
             acf_save_post_block_columns_action($post_id, true);
             $cache = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $post_name);
-            $cache::update_cache();
+            $cache->update_cache();
         }
     }
     private static function npm_install(): string{
@@ -1091,84 +1091,104 @@ class Update {
         $plugin_types = isset($_POST['plugin_types']) && is_array($_POST['plugin_types'])
         ? array_map('sanitize_text_field', $_POST['plugin_types'])
         : [];
+        $tasks_status = isset($_POST['tasks_status']) && is_array($_POST['tasks_status'])
+        ? array_map('sanitize_text_field', $_POST['tasks_status'])
+        : [];
+        if($tasks_status){
+            self::$tasks_status = $tasks_status;
+        }
         try {
             switch ($task_id) {
                 case 'fix_packages':
                     self::fix_packages();
                     self::update_task_status('fix_packages', true);
-                    wp_send_json_success(['message' => 'Composer packages fixed successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Composer packages fixed successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case "update_theme_apperance" :
                     self::update_theme_apperance();
                     self::update_task_status('update_theme_apperance', true);
-                    wp_send_json_success(['message' => 'Theme apperances updated successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Theme apperances updated successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'copy_theme':
                     self::copy_theme();
                     self::update_task_status('copy_theme', true);
-                    wp_send_json_success(['message' => 'Theme files copied successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Theme files copied successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 /*case 'copy_templates':
                     self::copy_templates();
                     self::update_task_status('copy_templates', true);
-                    wp_send_json_success(['message' => 'Template filess copied successfully']);
+                    wp_send_json_success(['message' => 'Template filess copied successfully', 'tasks_status' => $tasks_status ]);
                     break;*/
                 case 'copy_fonts':
                     self::copy_fonts();
                     self::update_task_status('copy_fonts', true);
-                    wp_send_json_success(['message' => 'Fonts copied successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Fonts copied successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'copy_fields':
                     self::copy_fields();
                     self::update_task_status('copy_fields', true);
-                    wp_send_json_success(['message' => 'ACF fields copied successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF fields copied successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'register_fields':
                     self::register_fields();
                     self::update_task_status('register_fields', true);
-                    wp_send_json_success(['message' => 'ACF fields registered successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF fields registered successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case "update_fields":
                     self::update_fields();
                     self::update_task_status('update_fields', true);
-                    wp_send_json_success(['message' => 'ACF fields updated successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF fields updated successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'install_wp_plugins':
                     ob_start();
                     self::install_wp_plugins($plugin_types);
                     ob_clean();
                     self::update_task_status('install_wp_plugins', true);
-                    wp_send_json_success(['message' => 'WP plugins installed successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'WP plugins installed successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'install_local_plugins':
                     self::install_local_plugins($plugin_types);
                     self::update_task_status('install_local_plugins', true);
-                    wp_send_json_success(['message' => 'Local plugins installed successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Local plugins installed successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'npm_install':
                     self::npm_install();
                     self::update_task_status('npm_install', true);
-                    wp_send_json_success(['message' => 'NPM Packages installed successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'NPM Packages installed successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'compile_methods':
                     self::compile_methods();
                     self::update_task_status('compile_methods', true);
-                    wp_send_json_success(['message' => 'ACF Methods compiled successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF Methods compiled successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'generate_files':
                     self::generate_files();
                     self::update_task_status('generate_files', true);
-                    wp_send_json_success(['message' => 'Files generated successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Files generated successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'compile_js_css':
                     self::compile_js_css();
                     self::update_task_status('compile_js_css', true);
-                    wp_send_json_success(['message' => 'JS/CSS compiled successfully']);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'JS/CSS compiled successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case 'defaults':
                     self::defaults($plugin_types);
                     self::update_task_status('defaults', true);
-                    wp_send_json_success(['message' => "Default values have been successfully created."]);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => "Default values have been successfully created.", 'tasks_status' => $tasks_status ]);
                     break;
                 default:
                     wp_send_json_error(['message' => 'Invalid task ID']);

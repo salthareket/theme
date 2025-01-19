@@ -1325,7 +1325,7 @@ function acf_add_field_options($field) {
 	}
 
     
-    if(in_array("acf-plyr-options", $class)){
+    if(in_array("acf-plyr-video-options", $class) || in_array("acf-plyr-audio-options", $class)){
     	$field["allow_custom"] = 0;
 		$field["default_value"] = "";
 		$field["type"] = "select";
@@ -1335,30 +1335,48 @@ function acf_add_field_options($field) {
 		$field["ui"] = 1;
 		$field["search_placeholder"] = "";
 		$field["return_format"] = "value";
-		$options = [
-		    'play-large' => 'The large play button in the center',
-		    'restart' => 'Restart playback',
-		    'rewind' => 'Rewind by the seek time (default 10 seconds)',
-		    'play' => 'Play/pause playback',
-		    'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
-		    'progress' => 'The progress bar and scrubber for playback and buffering',
-		    'current-time' => 'The current time of playback',
-		    'duration' => 'The full duration of the media',
-		    'mute' => 'Toggle mute',
-		    'volume' => 'Volume control',
-		    'captions' => 'Toggle captions',
-		    'settings' => 'Settings menu',
-		    'pip' => 'Picture-in-picture (currently Safari only)',
-		    'airplay' => 'Airplay (currently Safari only)',
-		    'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
-		    'fullscreen' => 'Toggle fullscreen',
-		];
+		if(in_array("acf-plyr-video-options", $class)){
+			$options = [
+			    'play-large' => 'The large play button in the center',
+			    'restart' => 'Restart playback',
+			    'rewind' => 'Rewind by the seek time (default 10 seconds)',
+			    'play' => 'Play/pause playback',
+			    'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
+			    'progress' => 'The progress bar and scrubber for playback and buffering',
+			    'current-time' => 'The current time of playback',
+			    'duration' => 'The full duration of the media',
+			    'mute' => 'Toggle mute',
+			    'volume' => 'Volume control',
+			    'captions' => 'Toggle captions',
+			    'settings' => 'Settings menu',
+			    'pip' => 'Picture-in-picture (currently Safari only)',
+			    'airplay' => 'Airplay (currently Safari only)',
+			    'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
+			    'fullscreen' => 'Toggle fullscreen',
+			];			
+		}
+		if(in_array("acf-plyr-audio-options", $class)){
+			$options = [
+			    'restart' => 'Restart playback',
+			    'rewind' => 'Rewind by the seek time (default 10 seconds)',
+			    'play' => 'Play/pause playback',
+			    'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
+			    'progress' => 'The progress bar and scrubber for playback and buffering',
+			    'current-time' => 'The current time of playback',
+			    'duration' => 'The full duration of the media',
+			    'mute' => 'Toggle mute',
+			    'volume' => 'Volume control',
+			    'settings' => 'Settings menu',
+			    'airplay' => 'Airplay (currently Safari only)',
+			    'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
+			];			
+		}
 	    $field['choices'] = array();
 		foreach(array_keys($options) as $label) {
 			$field['choices'][$label] = $label;
 		}
     }
-    if(in_array("acf-plyr-settings", $class)){
+    if(in_array("acf-plyr-video-settings", $class) || in_array("acf-plyr-audio-settings", $class)){
     	$field["allow_custom"] = 0;
 		$field["default_value"] = "";
 		$field["type"] = "select";
@@ -1368,7 +1386,12 @@ function acf_add_field_options($field) {
 		$field["ui"] = 1;
 		$field["search_placeholder"] = "";
 		$field["return_format"] = "value";
-    	$options = ['captions', 'quality', 'speed', 'loop'];
+		if(in_array("acf-plyr-video-settings", $class)){
+			$options = ['captions', 'quality', 'speed', 'loop'];
+		}
+    	if(in_array("acf-plyr-audio-settings", $class)){
+			$options = ['quality', 'speed', 'loop'];
+		}
     	$field['choices'] = array();
 		foreach($options as $label) {
 			$field['choices'][$label] = $label;
@@ -1898,9 +1921,9 @@ if(is_admin()){
 
 class UpdateFlexibleFieldLayouts {
 
-    private $post_id;
-    private $field_name;
-    private $field_key;
+    public $post_id;
+    public $field_name;
+    public $field_key;
     public $field_data;
     public $field_layouts;
     public $block_name;
@@ -2331,20 +2354,20 @@ class UpdateFlexibleFieldLayouts {
         }
     }
 
-    public static function update_cache() {
-	    if ($this->post_id) {
-	        acf_save_post_block_columns_action($this->post_id);
+    public function update_cache() {
+	    if ($this->$post_id) {
+	        acf_save_post_block_columns_action($this->$post_id);
 
 	        // ACF Cache'i temizle
 	        acf_flush_field_cache();
 
 	        // Alan grubunu yeniden yükle
-	        if($this->field_key){
-	        	acf_import_field_group(acf_get_field_group($this->field_key));	        	
+	        if($this->$field_key){
+	        	acf_import_field_group(acf_get_field_group($this->$field_key));	        	
 	        }
 
 	        // Alan grubunu manuel kaydet
-	        do_action('acf/save_post', $this->post_id);
+	        do_action('acf/save_post', $this->$post_id);
 	    }
 	}
 }

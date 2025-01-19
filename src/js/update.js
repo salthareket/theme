@@ -58,6 +58,7 @@ jQuery(document).ready(function ($) {
         }
 
         const task = tasks[taskIndex];
+        let tasks_status = [];
 
         $.ajax({
             url: updateAjax.ajax_url,
@@ -66,6 +67,7 @@ jQuery(document).ready(function ($) {
                 action: 'run_task',
                 task_id: task.id,
                 plugin_types: plugin_types(),
+                tasks_status: tasks_status,
                 nonce: updateAjax.nonce
             },
             beforeSend: function () {
@@ -77,6 +79,7 @@ jQuery(document).ready(function ($) {
                 response = parseAjaxResponse(response);
                 if (response.success) {
                     installationStatus.html(response.data.message);
+                    tasks_status = response.data.tasks_status;
                     const progress = Math.round(((taskIndex + 1) / tasks.length) * 100);
                     progressBar
                         .css('width', progress + '%')

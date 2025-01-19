@@ -320,7 +320,7 @@
                     ],
                     "wrapper": {
                         "width": "50",
-                        "class": "acf-plyr-options",
+                        "class": "acf-plyr-video-options",
                         "id": ""
                     },
                     "choices": {
@@ -346,7 +346,9 @@
                     "multiple": 1,
                     "allow_custom": 0,
                     "placeholder": "",
+                    "translations": "copy_once",
                     "allow_null": 0,
+                    "allow_in_bindings": 1,
                     "ui": 1,
                     "ajax": 0,
                     "search_placeholder": ""
@@ -375,7 +377,7 @@
                     ],
                     "wrapper": {
                         "width": "50",
-                        "class": "acf-plyr-settings",
+                        "class": "acf-plyr-video-settings",
                         "id": ""
                     },
                     "choices": {
@@ -389,7 +391,9 @@
                     "multiple": 1,
                     "allow_custom": 0,
                     "placeholder": "",
+                    "translations": "copy_once",
                     "allow_null": 0,
+                    "allow_in_bindings": 1,
                     "ui": 1,
                     "ajax": 0,
                     "search_placeholder": ""
@@ -778,7 +782,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1736985492,
+    "modified": 1737315485,
     "acfe_categories": {
         "common": "Common"
     }

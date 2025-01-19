@@ -1827,7 +1827,7 @@
         },
         {
             "key": "field_670d6147b9667",
-            "label": "Parallax",
+            "label": "Background Parallax",
             "name": "",
             "aria-label": "",
             "type": "tab",
@@ -1913,7 +1913,7 @@
         },
         {
             "key": "field_66d877ce8515b",
-            "label": "Parallax",
+            "label": "Active",
             "name": "parallax",
             "aria-label": "",
             "type": "true_false",
@@ -1995,6 +1995,7 @@
             },
             "message": "",
             "default_value": 0,
+            "translations": "copy_once",
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
@@ -2564,8 +2565,8 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
+    "modified": 1737315960,
     "acfe_categories": {
         "common": "Common"
-    },
-    "modified": 1736985494
+    }
 }
