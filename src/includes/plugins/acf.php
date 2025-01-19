@@ -3332,7 +3332,7 @@ add_action('admin_footer', function () {
 
 
 
-function acf_json_to_db($acf_json_path = "") {
+function acf_json_to_db($acf_json_path = "", $overwrite = true) {
     // ACF JSON klasör yolu
     if(empty($acf_json_path)){
     	$acf_json_path = get_template_directory() . '/acf-json';
@@ -3361,23 +3361,28 @@ function acf_json_to_db($acf_json_path = "") {
         }
 
         if (isset($field_group['key'])) {
-        	if(!in_array($field_group['title'], $imported_groups)){
+        	if(!in_array($field_group['key'], $imported_groups)){
 	            // Var olan grup kontrolü
 	            $existing_group = acf_get_field_group($field_group['key']);
 
-	            /*if ($existing_group) {
-	                // Mevcut grup varsa sil
-	                acf_delete_field_group($existing_group['ID']);
-	            }*/
 	            if ($existing_group) {
-				    acf_update_field_group(array_merge($existing_group, $field_group));
-				} else {
+	                if ($overwrite) {
+	                    acf_delete_field_group($existing_group['ID']); // Eskiyi sil
+	                    acf_import_field_group($field_group); // Yeniyi ekle
+	                } else {
+	                    acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
+	                }
+	            }else {
 				    acf_import_field_group($field_group);
 				}
 
+				if (defined('ACF_LOCAL_JSON')) {
+                    acf_write_json_field_group($field_group);
+                }
+
 	            // Yeni grubu veritabanına ekle
 	            //acf_import_field_group($field_group);
-	            $imported_groups[] = $field_group['title'];        		
+	            $imported_groups[] = $field_group['key'];        		
         	}
 
         }
