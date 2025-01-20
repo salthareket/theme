@@ -61,6 +61,7 @@ function init_lightGallery(){
 			    dynamic: true,
 			    dynamicEl: gallery_source,
 			    plugins: plugins,
+			    licenseKey:"1111-1111-111-1111",
 			    mobileSettings: { controls: true, showCloseIcon: true, download: false } 
 			});
 			$(this).on("click", function(){
@@ -79,6 +80,7 @@ function init_lightGallery(){
 						galleryId: id,
 						getCaptionFromTitleOrAlt: false,
 						plugins: plugins,
+						licenseKey:"1111-1111-111-1111",
 						mobileSettings: { controls: true, showCloseIcon: true, download: false } 
 					}
 				);

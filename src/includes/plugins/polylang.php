@@ -106,9 +106,11 @@ add_filter('timber/render/file', function ($file) {
                         "archive-{$default_slug}.twig",
                     ];
                     foreach ($template_names as $template_name) {
-                        $template_path = get_stylesheet_directory()."/".Timber::$dirname[0] . '/' . $template_name;
-                        if (file_exists($template_path)) {
-                            return $template_name; // Geçerli template dosyasını döndür
+                        foreach (Timber::$dirname as $dirname) {
+                            $template_path = get_stylesheet_directory() . "/{$dirname}/{$template_name}";
+                            if (file_exists($template_path)) {
+                                return $template_name; // İlk bulunan geçerli template dosyasını döndür
+                            }
                         }
                     }
                 }
