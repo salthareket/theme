@@ -633,12 +633,12 @@ Class Theme{
         return $wpscss_compiler->get_compile_errors();
     }
 	public function init(){
-
-        add_action("init", function(){
-            \PluginManager::init();
-            \Update::init();
-        });
+        if(is_admin()){
+            add_action("init", function(){
+                \PluginManager::init();
+                \Update::init();
+            });            
+        }
         new \starterSite(); 
-
 	}
 }
