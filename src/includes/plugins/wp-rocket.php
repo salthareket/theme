@@ -228,3 +228,11 @@ add_action('template_redirect', function () {
         error_log('Sayfa cachelendi: ' . $url);
     }
 });*/
+
+
+function is_wp_rocket_crawling() {
+    if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket') !== false) {
+        return true; // WP Rocket bu sayfayı önbelleğe almak için ziyaret ediyor
+    }
+    return false;
+}

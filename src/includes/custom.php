@@ -1657,8 +1657,9 @@ class SaltBase{
     public function get_site_config($jsLoad = 0){
         
         $is_cached = false;
-        if(function_exists("wprocket_is_cached")){
-            $is_cached = wprocket_is_cached();
+        //if(function_exists("wprocket_is_cached")){
+        if (defined("WP_ROCKET_VERSION")) {
+            $is_cached = is_wp_rocket_crawling();//wprocket_is_cached();
         }
         
         $enable_favorites =  boolval(ENABLE_FAVORITES);
