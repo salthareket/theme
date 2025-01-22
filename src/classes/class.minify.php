@@ -139,11 +139,13 @@ class SaltMinifier{
                 error_log("rtl convert: ".$rtl_item);
 	            $file_name = $key."-rtl.css";
 	            $css = file_get_contents($rtl_item);
+
 	            $parser = new Sabberworm\CSS\Parser($css);
 	            $tree = $parser->parse();
-	            $rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
+	            $rtlcss = new MoodleHQ\RtlCss\RtlCss($tree);
 	            $rtlcss->flip();
 	            $output = $tree->render();
+
 	            // minify
 	            $minify = new Minify\CSS($output);
 	            $minify->minify( $this->get_rtl_folder($key) . $file_name );

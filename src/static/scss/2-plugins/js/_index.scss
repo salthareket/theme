@@ -38,4 +38,7 @@
 	@if index($plugins, "jarallax") {
 		@import 'plugin-jarallax';
 	}
+	@if index($plugins, "locomotive-scroll") {
+		@import 'plugin-locomotive-scroll';
+	}
 }

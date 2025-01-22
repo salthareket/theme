@@ -450,7 +450,10 @@ function block_attrs($block, $fields, $block_column){
 
     if(isset($fields["block_settings"]["block_parallax"]) && $fields["block_settings"]["block_parallax"]["active"]){
         $attrs["data-scroll"] = "";
-        $attrs["data-scroll-speed"] = $fields["block_settings"]["block_parallax"]["scroll_speed"];
+        $scroll_speed = $fields["block_settings"]["block_parallax"]["scroll_speed"];
+        if($scroll_speed > 0){
+            $attrs["data-scroll-speed"] = $scroll_speed;
+        }
         $attrs["data-scroll-position"] = $fields["block_settings"]["block_parallax"]["scroll_position"];
         $attrs["data-scroll-repeat"] = "";
         if($fields["block_settings"]["block_parallax"]["scroll_ignore_fold"]){
@@ -461,8 +464,12 @@ function block_attrs($block, $fields, $block_column){
         }
         $attrs["data-scroll-direction"] = $fields["block_settings"]["block_parallax"]["scroll_direction"];
         if($fields["block_settings"]["block_parallax"]["scroll_progress"] != "none"){
-            $attrs["data-scroll-event-progress"] = "progressEvent";
             $attrs["data-scroll-event-property"] = $fields["block_settings"]["block_parallax"]["scroll_progress"];
+            if($scroll_speed > 0){
+                $attrs["data-scroll-css-progress"] = "";
+            }else{
+                $attrs["data-scroll-event-progress"] = "progressEvent";
+            }
         }
     }
 
