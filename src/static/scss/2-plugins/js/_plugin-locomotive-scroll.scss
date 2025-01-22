@@ -1,15 +1,16 @@
+/*! purgecss start ignore */
 @mixin dynamic-filter($property, $progress-var) {
     @if $property=="grayscale" {
 
-        filter: grayscale(#{$progress-var});
+        filter: unquote("grayscale(#{$progress-var})");
 
     }@else if $property=="invert" {
 
-        filter: invert(#{$progress-var});
+        filter: unquote("invert(#{$progress-var})"); 
 
     }@else if $property=="blur" {
 
-        filter: blur(calc(#{$progress-var} * 5px));
+        filter: blur(calc(#{$progress-var} * 5px)); // calc ile kullan
 
     }@else if $property=="brightness" {
 
@@ -23,7 +24,9 @@
         background-color: rgba(#{$r}, #{$g}, #{$b}, 1); // Renk hesaplama
 
     }@else {
+
         @warn "Unknown filter property: #{$property}";
+
     }
 }
 
@@ -55,22 +58,22 @@
 
     &[data-scroll-event-property="blur"] {
         //filter: blur(calc(var(--progress) * 5px));
-        @include dynamic-filter("blur", var(--progress));
+        @include dynamic-filter("blur", "var(--progress)");
     }
 
     &[data-scroll-event-property="brightness"] {
          //filter: brightness(calc(var(--progress) + 1));
-         @include dynamic-filter("brightness", var(--progress));
+         @include dynamic-filter("brightness", "var(--progress)");
     }
 
     &[data-scroll-event-property="grayscale"] {
         //filter: grayscale(var(--progress));
-        @include dynamic-filter("grayscale", var(--progress));
+        //@include dynamic-filter("grayscale", "var(--progress)");
     }
 
     &[data-scroll-event-property="invert"] {
          //filter: invert(var(--progress));
-         @include dynamic-filter("invert", var(--progress));
+         @include dynamic-filter("invert", "var(--progress)");
     }
 
     &[data-scroll-event-property="border-radius"] {
@@ -120,3 +123,5 @@
         padding: calc(var(--progress) * 20px);
     }
 }
+
+/*! purgecss end ignore */

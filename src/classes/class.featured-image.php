@@ -29,6 +29,14 @@ class FeaturedImage {
 
         $featured_image_id = $this->determineFeaturedImage($media_field);
 
+        if($featured_image_id){
+            if(is_array($featured_image_id)){
+                $featured_image_id = $featured_image_id["ID"];
+            }
+        }
+
+        //error_log(print_r($featured_image_id, true));
+
         if ($featured_image_id) {
             set_post_thumbnail($post_id, $featured_image_id);
         } else {

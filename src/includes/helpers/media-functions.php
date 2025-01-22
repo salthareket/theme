@@ -737,7 +737,7 @@ function get_video($video_args=array()){
 			$config["settings"] = $settings["controls_options_settings"];			
 		}
 		$code = str_replace("{{controls}}", "controls", $code);
-        $config["hideControls"] = $settings["controls_hide"];
+        $config["hideControls"] = isset($settings["controls_hide"])?$settings["controls_hide"]:false;
 	}else{
 		$config["controls"] = false;
 		$config["settings"] = false;
