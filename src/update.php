@@ -918,7 +918,7 @@ class Update {
             if($fixes){
                 foreach($fixes as $fix){
                     if($fix["version"] == self::get_package_version($fix["package"])){
-                        $file = get_template_directory() . "/vendor/salthareket/theme/src/fix/".$fix["file"];
+                        $file = get_template_directory() . "/vendor/salthareket/theme/src/fix/".basename($fix["file"]);
                         $target_file = get_template_directory()."/vendor/".$fix["package"]."/".$fix["file"];
                         if($fix["status"] && file_exists($file) && file_exists($target_file)){
                             self::fileCopy($file, $target_file);

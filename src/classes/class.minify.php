@@ -142,7 +142,7 @@ class SaltMinifier{
 
 	            $parser = new Sabberworm\CSS\Parser($css);
 	            $tree = $parser->parse();
-	            $rtlcss = new MoodleHQ\RtlCss\RtlCss($tree);
+	            $rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
 	            $rtlcss->flip();
 	            $output = $tree->render();
 
