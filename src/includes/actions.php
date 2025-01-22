@@ -694,7 +694,6 @@ function wp_scss_set_variables(){
     }
 
     $variables = [
-        "host_url" => "'" . $host_url . "'",
         "woocommerce" => class_exists("WooCommerce") ? "true" : "false",
         "yobro" => class_exists("Redq_YoBro") ? "true" : "false",
         "mapplic" => class_exists("Mapplic") ? "true" : "false",
@@ -714,12 +713,13 @@ function wp_scss_set_variables(){
         "search_history" => boolval(ENABLE_SEARCH_HISTORY) ? "true" : "false",
         "logo" => "'" . get_field("logo", "option") . "'",
         "dropdown_notification" => boolval(header_has_dropdown()) ? "true" : "false",
+        "host_url" => "'" . $host_url . "'",
         "node_modules_path" =>  '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
-        "theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"'
-
+        "theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"',
+        "sh_static_path" =>  '"' . str_replace('\\', '/', SH_STATIC_PATH) . '"'
     ];
 
-    error_log(print_r($variables['theme_static_path'], true));
+    //error_log(print_r($variables['theme_static_path'], true));
 
     
     if(file_exists(get_stylesheet_directory() ."/static/js/js_files_all.json")){

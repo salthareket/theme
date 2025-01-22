@@ -2,7 +2,7 @@
 
 @if variable-exists("use-fontawesome") {
 	@if $use-fontawesome {
-	    $fa-font-path : '#{$host_url}/static/fonts/fontawesome/webfonts';
+	    $fa-font-path : '#{$sh_static_path}fonts/fontawesome/webfonts';
 	    @if $fontawesome-brands {
 			@import '../fonts/fontawesome/scss/brands';
 	    }

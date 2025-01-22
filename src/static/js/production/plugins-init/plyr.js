@@ -238,38 +238,44 @@ $('.wp-block-video video').each(function() {
 
 
 function plyr_bg_embed($obj) {
+	console.log("plyr_bg_embed")
 	let bg_cover = $obj.closest(".bg-cover");
 	if(bg_cover.length > 0 && $obj.find(".plyr__video-embed").length > 0){
 		var $container = bg_cover;
+		var obj = bg_cover.find(">.jarallax-img").length>0?bg_cover.find(">.jarallax-img"):$obj
         var containerWidth = $container.width();
         var containerHeight = $container.height();
         var objWidth = $obj.width();
         var objHeight = $obj.height();
 
-        if (objWidth < containerWidth) {
+        console.log(obj)
+        
+        if (objHeight < containerHeight) {
+
+        	//var newObjHeight = containerHeight;
+            var newObjWidth = (containerHeight * 16) / 9;
+            var offsetX = (containerWidth - newObjWidth) / 2;
+            obj.css({
+            	'max-width': "none",
+                'width': newObjWidth + 'px',
+                'height': '100%',
+                'min-height': '100%',
+                'margin-left': offsetX + 'px',
+                'margin-top': '0'
+            });
+
+        }else if (objWidth < containerWidth) {
 
         	var newObjWidth = containerWidth;
             var newObjHeight = (containerWidth * 9) / 16;
             var offsetY = (containerHeight - newObjHeight) / 2;
-            $obj.css({
+            obj.css({
             	'max-height': "none",
-                'width': newObjWidth + 'px',
+                'width': '100%',
+                'height': newObjHeight + 'px',
                 'min-height': newObjHeight + 'px',
-                'left': '0',
-                'top': offsetY
-            });
-
-        }else{
-
-            var newObjHeight = containerHeight;
-            var newObjWidth = (containerHeight * 16) / 9;
-            var offsetX = (containerWidth - newObjWidth) / 2;
-            $obj.css({
-            	'max-width': "none",
-                'width': newObjWidth + 'px',
-                'min-height': newObjHeight + 'px',
-                'left': offsetX + 'px',
-                'top': '0'
+                'margin-left': '0',
+                'margin-top': offsetY
             });
 
         }

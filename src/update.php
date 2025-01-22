@@ -28,7 +28,7 @@ class Update {
         ["id" => "update_theme_apperance", "name" => "Updating '".TEXT_DOMAIN."' Theme Apperance"],
         ["id" => "copy_theme", "name" => "Copying Theme Files"],
         //["id" => "copy_templates", "name" => "Copying Template Files"],
-        ["id" => "copy_fonts", "name" => "Copying Fonts"],
+        //["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
         ["id" => "generate_files", "name" => "Generating Files"],
@@ -983,7 +983,7 @@ class Update {
         if (is_dir($srcDir)) {
             self::recurseCopy($srcDir, $target_dir);
         }
-    }*/
+    }
     private static function copy_fonts(){
         $srcDir = SH_STATIC_PATH . 'fonts';
         $target_dir = STATIC_PATH . 'fonts';
@@ -993,7 +993,7 @@ class Update {
         if (is_dir($srcDir)) {
             self::recurseCopy($srcDir, $target_dir, ["scss"]);
         }
-    }
+    }*/
     private static function copy_fields(){
         $srcDir = SH_PATH . 'content/acf-json';
         $target_dir = get_template_directory() . '/acf-json';
@@ -1124,13 +1124,13 @@ class Update {
                     self::copy_templates();
                     self::update_task_status('copy_templates', true);
                     wp_send_json_success(['message' => 'Template filess copied successfully', 'tasks_status' => $tasks_status ]);
-                    break;*/
+                    break;
                 case 'copy_fonts':
                     self::copy_fonts();
                     self::update_task_status('copy_fonts', true);
                     $tasks_status = json_encode(self::$tasks_status);
                     wp_send_json_success(['message' => 'Fonts copied successfully', 'tasks_status' => $tasks_status ]);
-                    break;
+                    break;*/
                 case 'copy_fields':
                     self::copy_fields();
                     self::update_task_status('copy_fields', true);
