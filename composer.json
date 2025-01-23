@@ -29,8 +29,7 @@
         "timber/timber": "*",
         "voku/simple_html_dom": "^4.8",
         "scssphp/scssphp": "^1.13",
-        "php-ffmpeg/php-ffmpeg": "^1.1",
-        "php-ffmpeg/php-ffprobe": "^0.16.0"
+        "php-ffmpeg/php-ffmpeg": "^1.1"
     },
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4"
