@@ -15,7 +15,6 @@ class OembedVideo {
         if (empty($this->url)) {
             return false;
         }
-
         $url = extract_url($this->url);
         $data_parse = $this->parse($url);
 
@@ -38,7 +37,7 @@ class OembedVideo {
         }
 
         if ($arr["type"] == "dailymotion") {
-            $arr["embed_url"] = "https://www.dailymotion.com/embed/video/" . $arr["id"];
+            $arr["embed_url"] = "https://geo.dailymotion.com/player.html?video=" . $arr["id"];
         }
 
         return $arr;
@@ -87,12 +86,18 @@ class OembedVideo {
             if (strpos($video_id, '/') !== false) {
                 $video_id = explode('/', $video_id)[0];
             }
-        } elseif ($host === 'dailymotion.com' || $host === 'www.dailymotion.com') {
+        } elseif ($host === 'dailymotion.com' || $host === 'www.dailymotion.com' || $host === 'geo.dailymotion.com') {
             $video_type = 'dailymotion';
             if (strpos($parse['path'], '/video/') !== false) {
                 $video_id = explode('/video/', $parse['path'])[1];
+            } elseif (strpos($parse['path'], '/player.html') !== false && isset($parse['query'])) {
+                parse_str($parse['query'], $query_params);
+                if (!empty($query_params['video'])) {
+                    $video_id = $query_params['video'];
+                }
             }
         }
+
 
         if (!empty($video_type) && !empty($video_id)) {
             return [

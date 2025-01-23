@@ -637,6 +637,8 @@ function get_video($video_args=array()){
 		$code = str_replace("{{attrs}}", array2Attrs($video_args["attrs"]), $code);
 	}
 	$code = str_replace("{{attrs}}", "", $code);
+
+
 	switch($type){
 
 		case "audio" :
@@ -652,7 +654,6 @@ function get_video($video_args=array()){
 		    }
 		    $embed = new OembedVideo($args["video_url"]);
 		    $data = $embed->get();
-		    //$data = acf_oembed_data($args["video_url"]);
 			$code = str_replace("{{src}}", $data["embed_url"], $code);
 			if(isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])){
 				$code = str_replace("{{poster}}", "data-poster=".$settings["video_image"], $code);

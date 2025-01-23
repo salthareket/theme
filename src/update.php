@@ -697,11 +697,11 @@ class Update {
                 $args["command"] = $remove?"remove":"require";
                 $args["packages"] = [$package_name];
             }else{
-                $new_packages = array_diff(array_keys(self::get_required_packages()), self::get_installed_packages());
+                /*$new_packages = array_diff(array_keys(self::get_required_packages()), self::get_installed_packages());
                 if (!empty($new_packages)) {
                     $args['command'] = 'install';
                     unset($args['packages']);
-                }
+                }*/
             }
             
             error_log(json_encode($args));

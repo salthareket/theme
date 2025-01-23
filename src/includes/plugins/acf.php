@@ -3686,3 +3686,60 @@ add_filter('acf/update_value/name=modal_home', function ($value, $post_id, $fiel
     }
     return $value;
 }, 10, 3);
+
+
+
+
+
+
+add_filter('acf/update_value/key=field_66f9e48418b77', 'process_video_on_field_update', 10, 3);
+
+function process_video_on_field_update($value, $post_id, $field) {
+    // Eğer alan boşsa işlem yapma
+    if (empty($value)) {
+        return $value;
+    }
+
+    // Video dosyasının URL'sini çöz
+    if (is_numeric($value)) {
+        // Gelen değer bir attachment ID ise
+        $video_url = wp_get_attachment_url($value);
+    } else {
+        // Gelen değer bir URL ise direkt kullan
+        $video_url = $value;
+    }
+
+    // Video dosyasının tam yolunu belirle
+    $upload_dir = wp_upload_dir();
+    $video_path = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $video_url);
+
+    // Eğer dosya mevcut değilse işlem yapma
+    if (!file_exists($video_path)) {
+        error_log('Video dosyası bulunamadı: ' . $video_path);
+        return $value;
+    }
+
+    // Video işleme sınıfını başlat
+    try {
+        $video = new VideoProcessor();
+        $arr = $video->processVideo($post_id, $video_path, true, true);
+
+        if (!empty($arr)) {
+            // İşleme sonucunda dönen Post ID'lerini logla
+            error_log('720p Video Post ID: ' . $arr[720]);
+            error_log('480p Video Post ID: ' . $arr[480]);
+            error_log('360p Video Post ID: ' . $arr[360]);
+            error_log('Thumbnails Post ID: ' . $arr['thumbnails']);
+            error_log('VTT Post ID: ' . $arr['vtt']);
+        } else {
+            error_log('Video işlenirken bir hata oluştu.');
+        }
+    } catch (Exception $e) {
+        error_log('Hata: ' . $e->getMessage());
+    }
+
+    // Alanın orijinal değerini geri döndür
+    return $value;
+}
+
+

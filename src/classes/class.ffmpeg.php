@@ -1,7 +1,6 @@
 <?php
 
 use FFMpeg\FFMpeg;
-use FFMpeg\FFProbe;
 use FFMpeg\Format\Video\X264;
 use Symfony\Component\Process\Process;
 
@@ -10,7 +9,6 @@ class VideoProcessor
     private $ffmpegPath;
     private $ffprobePath;
     private $ffmpeg;
-    private $ffprobe;
 
     public function __construct()
     {
@@ -21,28 +19,20 @@ class VideoProcessor
             'timeout'          => 3600,
             'ffmpeg.threads'   => 4,
         ]);
-
-        $this->ffprobe = FFProbe::create([
-            'ffmpeg.binaries'  => $this->ffprobePath,
-        ]);
     }
 
-    private function setBinaryPaths()
-    {
+    private function setBinaryPaths(){
         if (stristr(PHP_OS, 'WIN')) {
-            $themeDir = get_template_directory();
-            $this->ffmpegPath = $themeDir . '/bin/b/ffmpeg.exe';
-            $this->ffprobePath = $themeDir . '/bin/b/ffprobe.exe';
-        } elseif (stristr(PHP_OS, 'LINUX')) {
-            $this->ffmpegPath = '/usr/bin/ffmpeg';
-            $this->ffprobePath = '/usr/bin/ffprobe';
-        } elseif (stristr(PHP_OS, 'DARWIN')) {
-            $this->ffmpegPath = '/usr/local/bin/ffmpeg';
-            $this->ffprobePath = '/usr/local/bin/ffprobe';
+            // Windows için
+            $this->ffmpegPath = SH_PATH . '/bin/win/ffmpeg.exe';
+            $this->ffprobePath = SH_PATH . '/bin/win/ffprobe.exe';
         } else {
-            die('Desteklenmeyen işletim sistemi: ' . PHP_OS);
+            // Linux için
+            $this->ffmpegPath = SH_PATH . '/bin/linux/ffmpeg';
+            $this->ffprobePath = SH_PATH . '/bin/linux/ffprobe';
         }
     }
+
 
     public function processVideo($postId, $inputPath, $resize = false, $previewThumbnails = false)
     {
@@ -98,12 +88,6 @@ class VideoProcessor
 
     private function convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName)
     {
-        $format = $this->ffprobe->format($inputPath)->get('format_name');
-
-        if (strpos($format, 'mp4') !== false) {
-            return $inputPath;
-        }
-
         $outputPath = "{$outputDir}/{$baseFileName}.mp4";
         $video = $this->ffmpeg->open($inputPath);
         $video->save(new X264(), $outputPath);
@@ -113,16 +97,9 @@ class VideoProcessor
 
     private function resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName)
     {
-        $videoInfo = $this->ffprobe->streams($inputPath)->videos()->first();
-        $width = $videoInfo->get('width');
-
-        if ($width > 1280) {
-            $outputPath = "{$outputDir}/{$baseFileName}-720p.mp4";
-            $this->convertResolutionToPath($inputPath, $outputPath, 1280, 720);
-            return $outputPath;
-        }
-
-        return $inputPath;
+        $outputPath = "{$outputDir}/{$baseFileName}-720p.mp4";
+        $this->convertResolutionToPath($inputPath, $outputPath, 1280, 720);
+        return $outputPath;
     }
 
     private function convertResolution($postId, $inputPath, $outputDir, $baseFileName, $width, $height)
