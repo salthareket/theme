@@ -9,7 +9,6 @@ function plyr_init_all(){
 	});
 }
 
-
 function plyr_init($obj){
 	if(!isLoadedJS("plyr")){
 		return false;
@@ -26,6 +25,8 @@ function plyr_init($obj){
 		}else{
 			config_data = {};
 		}
+
+		const video_bg = $obj.hasClass("video-bg");
 
 		function set_quality(video){
 			let devices = {phone: {size: 360, max: 767}, "tablet": {size: 480, min: 768, max: 1024}, "desktop" : {size: 720, min: 1025} };
@@ -67,15 +68,7 @@ function plyr_init($obj){
 		}
 
 	    const video = new Plyr($obj);
-	    /*if(!IsBlank(class_data)){
-           $obj.addClass(class_data);
-           console.log($obj)
-           if(class_data.includes("jarallax-img") && $obj.find(".plyr__video-embed").length > 0){
-              $obj.closest(".jarallax").jarallax();
-           }
-	    }*/
-	    set_quality(video);
-	    //plyr_bg_embed($obj);
+	    
 	    if(video.elements.container){
 	    	video.elements.container.plyr = video;
 	    }
@@ -95,6 +88,10 @@ function plyr_init($obj){
 		  	const instance = e.detail.plyr;
 		  	const config = instance.config;
 
+		  	set_quality(video);
+
+		  	$obj.find(".plyr__video-embed").fitEmbedBackground();
+
 		  	video_container.addClass("loaded ready inited");
 
 		  	if (document.hidden) {
@@ -112,7 +109,6 @@ function plyr_init($obj){
 				   video.play();
 			    }
 			}
-			//plyr_bg_embed($obj);
         	$(window).trigger("resize");
 		})
 		.on("play", (e) => {
@@ -194,14 +190,24 @@ function plyr_init($obj){
 		    }
 		});
 
-		let resizeTimeout;
+		var debounce = resizeDebounce(set_quality, 10);
+		$(window).on('resize', function() {
+                debounce(video);
+        });
+        $(document).on(
+            'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange',
+            function() {
+               debounce(video);
+            }
+        );
+
+		/*let resizeTimeout;
 		window.addEventListener("resize", function() {
 			clearTimeout(resizeTimeout);
 			resizeTimeout = setTimeout(function() {
 	            set_quality(video);
-			    //plyr_bg_embed($obj);
 	        }, 100);
-		});
+		});*/
 
 	    $obj
 		.bind('webkitfullscreenchange mozfullscreenchange fullscreenchange', function(e) {
@@ -210,7 +216,8 @@ function plyr_init($obj){
                 video_container.addClass("fullscreen");
 		    }else{
                 video_container.removeClass("fullscreen");
-			}    
+			}
+			debounce(video);
 		});
 
 		waiting_init.initElement();
@@ -221,7 +228,11 @@ function plyr_init($obj){
 			$obj.removeClass("jarallax-img");
 			video_container.closest(".plyr").addClass("jarallax-img");
 		}
-		
+
+		if(video_bg && $obj.find("iframe").length > 0){
+			$obj.addClass("plyr--bg");
+		}
+
 		return video;
 	}
 }
@@ -234,100 +245,3 @@ $('.wp-block-video video').each(function() {
 	$(this).addClass("player");
 	plyr_init($(this));
 });
-
-
-
-function plyr_bg_embed($obj) {
-	console.log("plyr_bg_embed")
-	let bg_cover = $obj.closest(".bg-cover");
-	if(bg_cover.length > 0 && $obj.find(".plyr__video-embed").length > 0){
-		var $container = bg_cover;
-		var obj = bg_cover.find(">.jarallax-img").length>0?bg_cover.find(">.jarallax-img"):$obj
-        var containerWidth = $container.width();
-        var containerHeight = $container.height();
-        var objWidth = $obj.width();
-        var objHeight = $obj.height();
-
-        console.log(obj)
-        
-        if (objHeight < containerHeight) {
-
-        	//var newObjHeight = containerHeight;
-            var newObjWidth = (containerHeight * 16) / 9;
-            var offsetX = (containerWidth - newObjWidth) / 2;
-            obj.css({
-            	'max-width': "none",
-                'width': newObjWidth + 'px',
-                'height': '100%',
-                'min-height': '100%',
-                'margin-left': offsetX + 'px',
-                'margin-top': '0'
-            });
-
-        }else if (objWidth < containerWidth) {
-
-        	var newObjWidth = containerWidth;
-            var newObjHeight = (containerWidth * 9) / 16;
-            var offsetY = (containerHeight - newObjHeight) / 2;
-            obj.css({
-            	'max-height': "none",
-                'width': '100%',
-                'height': newObjHeight + 'px',
-                'min-height': newObjHeight + 'px',
-                'margin-left': '0',
-                'margin-top': offsetY
-            });
-
-        }
-    }
-}
-
-
-function plyr_bg_embed_old($obj) {
-	let bg_cover = $obj.closest(".bg-cover");
-	let embed_container = $obj.find(".plyr");
-
-	if(bg_cover.length > 0 && $obj.find(".plyr__video-embed").length > 0){
-		var $container = bg_cover;
-        var containerWidth = $container.width();
-        var containerHeight = $container.height();
-        var objWidth = $obj.width();
-        var objHeight = $obj.height();
-        var aspect_ratio = objWidth / objHeight;
-
-        // Farklı boyut hesaplamalarına göre nesneyi yeniden boyutlandırıyoruz
-        if (objWidth <= containerWidth) {
-            var newObjWidth = containerWidth;
-            //var newObjHeight = (containerWidth * objHeight) / objWidth;
-            var newObjHeight = (containerWidth * 9) / 16;
-            var offsetY = (containerHeight - newObjHeight) / 2;
-
-            // CSS'i sadece gerekliyse güncelle
-            if (newObjWidth !== $obj.width() || newObjHeight !== $obj.height()) {
-                $obj.css({
-                    'max-height': "none",
-                    'width': newObjWidth + 'px',
-                    'height': newObjHeight + 'px',
-                    'left': '0',
-                    'top': offsetY + 'px'
-                });
-            }
-        } else {
-            var newObjHeight = containerHeight;
-            //var newObjWidth = (containerHeight * objWidth) / objHeight;
-            var newObjWidth = (containerHeight * 16) / 9;
-            var offsetX = (containerWidth - newObjWidth) / 2;
-
-            // CSS'i sadece gerekliyse güncelle
-            if (newObjWidth !== $obj.width() || newObjHeight !== $obj.height()) {
-                $obj.css({
-                    'max-width': "none",
-                    'width': newObjWidth + 'px',
-                    'height': newObjHeight + 'px',
-                    'left': offsetX + 'px',
-                    'top': '0'
-                });
-            }
-        }
-    }
-}

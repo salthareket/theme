@@ -176,7 +176,7 @@ class Update {
         error_log('GitHub API response: ' . $body);
         return 'Unknown';
     }
-    private static function get_installed_packages() {
+    private static function get_required_packages() {
         if (!file_exists(self::$composer_path)) {
             return [];
         }
@@ -184,8 +184,12 @@ class Update {
         if (json_last_error() !== JSON_ERROR_NONE) {
             return [];
         }
-        $installed_packages = array_keys($json_data['require'] ?? []);
-        return $installed_packages;
+        $required_packages = array_keys($json_data['require'] ?? []);
+        return $required_packages;
+    }
+    private static function get_installed_packages() {
+        $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
+        return array_map(function($pkg) { return $pkg['name']; }, $lock_data['packages'] ?? []);
     }
     public static function check_for_update_notice() {
         $current_version = self::get_current_version();
@@ -262,7 +266,7 @@ class Update {
     public static function render_update_page() {
         $current_version = self::get_current_version();
         $latest_version = self::get_latest_version();
-        $installed_packages = self::get_installed_packages();
+        $required_packages = self::get_required_packages();
         
         $init_class = "";
         $dependencies = get_option('composer_dependencies');
@@ -281,6 +285,7 @@ class Update {
                 echo '<button id="update-theme-button" class="button button-primary '.$init_class.'">Update to ' . esc_html($latest_version) . '</button>';
             } else {
                 echo '<h3 class="text-success fw-bold">Your theme is up to date.</h3>';
+                echo '<button id="update-theme-button" class="button button-primary '.$init_class.'">Update Depencies</button>';
             }
 
             echo '<hr class="my-5" />';
@@ -295,7 +300,7 @@ class Update {
             echo '<h2>Remove Package</h2>';
             echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="remove"></div>';
             echo '<select id="remove-package-name" name="remove-package-name" style="width: 300px; margin-right: 10px;">';
-            foreach ($installed_packages as $package) {
+            foreach ($required_packages as $package) {
                 echo '<option value="' . esc_attr($package) . '">' . esc_html($package) . '</option>';
             }
             echo '</select>';
@@ -662,6 +667,7 @@ class Update {
             if (!file_exists(self::$composer_path)) {
                 wp_send_json_error(['message' => 'composer.json is not found.']);
             }
+
             
             //if($manually){
                 $updates = self::get_composer_updates();
@@ -690,8 +696,14 @@ class Update {
             if(!empty($package_name)){
                 $args["command"] = $remove?"remove":"require";
                 $args["packages"] = [$package_name];
+            }else{
+                $new_packages = array_diff(array_keys(self::get_required_packages()), self::get_installed_packages());
+                if (!empty($new_packages)) {
+                    $args['command'] = 'install';
+                    unset($args['packages']);
+                }
             }
-
+            
             error_log(json_encode($args));
 
             $app = new Application();

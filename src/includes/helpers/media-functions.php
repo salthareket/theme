@@ -718,7 +718,7 @@ function get_video($video_args=array()){
     if($init){
     	$class .= " init-me "; 
     }
-	if($type != "audio" &&isset($settings["videoBg"]) && $settings["videoBg"]){
+	if($type != "audio" && isset($settings["videoBg"]) && $settings["videoBg"]){
 		$config["fullscreen"] = [ "enabled" => false, "fallback" => false, "iosNative" => false, "container" => null ];
 		$settings["videoReact"] = false;
 		$config["clickToPlay"] = false;
