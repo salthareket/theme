@@ -202,7 +202,7 @@ class Update {
         }
 
         printf(
-            '<div class="notice notice-warning is-dismissible d-flex py-4 ps-4"><img src="../content/logo-salt-hareket.png" width="50" height="50"/><div class="ms-3"><h3 class="m-0">SaltHareket/Theme</h3><p class="mb-0">Version <strong>%s</strong> is available <a href="%s">Update Now</a></p></div></div>',
+            '<div class="notice notice-warning is-dismissible d-flex py-4 ps-4"><img src="'.SH_URL.'/src/content/logo-salt-hareket.png" width="50" height="50"/><div class="ms-3"><h3 class="m-0">SaltHareket/Theme</h3><p class="mb-0">Version <strong>%s</strong> is available <a href="%s">Update Now</a></p></div></div>',
             esc_html($latest_version),
             admin_url('admin.php?page=update-theme')
         );

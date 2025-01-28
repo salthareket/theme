@@ -60,8 +60,10 @@ class VideoProcessor
         $outputDir = $uploadDir['path'];
         $baseFileName = $this->sanitizeFileName($postId);
         $results = [];
-
-        $inputPath = $this->convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName);
+        
+        if (pathinfo($inputPath, PATHINFO_EXTENSION) != 'mp4') {
+            $inputPath = $this->convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName);
+        }
 
         $video = $this->ffmpeg->open($inputPath);
         $videoInfo = $video->getStreams()->videos()->first();
@@ -75,19 +77,18 @@ class VideoProcessor
         } else {
             $inputPath = $this->resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $originalWidth, $originalHeight);
         }
+        $results[720] = $this->saveToMediaLibrary($postId, $inputPath);
+
+        
 
         if ($resize) {
-            $results[720] = $this->saveToMediaLibrary($postId, $inputPath);
             $resolutions = is_array($resize) ? $resize : [480, 360];
-
             foreach ($resolutions as $height) {
                 $width = (int) round($height * ($originalWidth / $originalHeight));
                 $width = round($width / 2) * 2;
                 $height = round($height / 2) * 2;
                 $results[$height] = $this->convertResolution($postId, $inputPath, $outputDir, $baseFileName, $width, $height);
             }
-        } else {
-            $results[720] = $this->saveToMediaLibrary($postId, $inputPath);
         }
         
         if($poster){
@@ -118,7 +119,8 @@ class VideoProcessor
     }
 
     private function convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName){
-        $outputPath = "{$outputDir}/{$baseFileName}.mp4";
+
+        $outputPath = "{$outputDir}/{$baseFileName}-720p.mp4";
 
         $video = $this->ffmpeg->open($inputPath);
 
@@ -149,45 +151,56 @@ class VideoProcessor
         return $this->saveToMediaLibrary($postId, $outputPath);
     }
 
-    private function convertResolutionToPath($inputPath, $outputPath, $width, $height){
+    private function convertResolutionToPath($inputPath, $outputPath, $width, $height) {
         $video = $this->ffmpeg->open($inputPath);
 
-        // Çözünürlük tanımlaması
+        // Orijinal video bilgilerini al
+        $video_info = $video->getStreams()->videos()->first()->all();
+        $original_bitrate = isset($video_info['bit_rate']) ? (int) $video_info['bit_rate'] / 1000 : 2000; // Varsayılan: 2000 kbps
+
+        // CRF ve Preset Ayarları
+        $crf = 23; // Varsayılan CRF
+        $preset = 'veryslow'; // Yavaş kodlama, daha küçük dosya boyutu
+        if ($height == 720) {
+            $crf = 23;
+        } elseif ($height == 480) {
+            $crf = 28;
+        } elseif ($height == 360) {
+            $crf = 32;
+        }
+
+        // Ölçeklenmiş bitrate hesaplama
+        $scaled_bitrate = $original_bitrate * ($height / $video_info['height']);
+
+        // Çözünürlük ayarlama
         $dimension = new Dimension($width, $height);
         $video->filters()
             ->resize($dimension, ResizeFilter::RESIZEMODE_INSET, true)
             ->synchronize();
-        $kbps = 2000;
-        // Video bitrate ayarı
-        if ($height === 720) {
-            $kbps = 2000;
-        } elseif ($height === 480) {
-            $kbps = 1000; // 480p için
-        } elseif ($height === 360) {
-            $kbps = 500; // 360p için
-        }
 
         // X264 formatını oluştur
         $format = new X264('aac', 'libx264');
-        $format->setVideoCodec('libx264');
         $format
-            ->setKiloBitrate($kbps)
-            ->setAudioChannels(2)
-            ->setAudioKiloBitrate(128) // Ses bitrate
-            ->setAdditionalParameters(['-preset', 'veryfast', '-tune', 'zerolatency']);
-
-
-        // FFmpeg komutunu log ile yazdır
-        $cmd = $video->getFinalCommand($format, $outputPath);
-        error_log(print_r($cmd, true));
+            ->setAdditionalParameters([
+                '-crf', (string) $crf,       // CRF (Kalite Faktörü)
+                '-preset', $preset,          // Kodlama hızı (veryslow daha küçük dosya boyutu sağlar)
+                '-tune', 'film',             // Görüntü kalitesini optimize etmek için
+                '-movflags', '+faststart',   // Hızlı başlangıç için
+            ])
+            ->setKiloBitrate((int)$scaled_bitrate) // Ölçeklenmiş bitrate
+            ->setAudioChannels(2) // Ses kanalı
+            ->setAudioKiloBitrate(128); // Sabit ses bitrate
 
         // Video dosyasını kaydet
         $video->save($format, $outputPath);
 
-        // İşlem sonrası çözünürlük ve bitrate kontrolü
+        // İşlem sonrası video detaylarını logla
         $this->logVideoDetails($outputPath);
-    }
 
+        // Debug için log
+        error_log("Processed Video - Height: $height, CRF: $crf, Scaled Bitrate: $scaled_bitrate kbps");
+        ///error_log(print_r($video_info, true));
+    }
 
     private function logVideoDetails($filePath){
         $ffprobe = $this->ffmpeg->getFFProbe();
@@ -223,7 +236,7 @@ class VideoProcessor
         }
 
         $frames = [];
-        $frameInterval = 10; // Frame aralığı (sn)
+        $frameInterval = 5; // Frame aralığı (sn)
         $video = $this->ffmpeg->open($inputPath);
         $duration = $video->getFormat()->get('duration');
 
@@ -236,14 +249,14 @@ class VideoProcessor
 
         $this->createSprite($frames, $spritePath);
 
-        $this->createVtt($frames, $spritePath, $vttPath);
+        // Frame intervalini VTT fonksiyonuna da gönder
+        $this->createVtt($frames, $spritePath, $vttPath, $frameInterval);
 
         foreach ($frames as $frame) {
             if (file_exists($frame)) {
                 unlink($frame); // Frame dosyasını sil
             }
         }
-    
     }
 
     private function resizeImage($filePath, $width){
@@ -291,7 +304,7 @@ class VideoProcessor
         imagedestroy($sprite);
     }
 
-    private function createVtt($frames, $spritePath, $vttPath){
+    private function createVtt($frames, $spritePath, $vttPath, $frameInterval){
         $columns = 15;
         $vtt = "WEBVTT\n\n";
 
@@ -301,8 +314,9 @@ class VideoProcessor
             $x = ($index % $columns) * $width;
             $y = floor($index / $columns) * $height;
 
-            $startTime = gmdate("H:i:s", $index * 10);
-            $endTime = gmdate("H:i:s", ($index + 1) * 10);
+            // Zaman hesaplamalarını $frameInterval ile senkronize et
+            $startTime = gmdate("H:i:s", $index * $frameInterval);
+            $endTime = gmdate("H:i:s", ($index + 1) * $frameInterval);
 
             $vtt .= "{$index}\n{$startTime}.000 --> {$endTime}.000\n";
             $vtt .= basename($spritePath) . "#xywh={$x},{$y},{$width},{$height}\n\n";
