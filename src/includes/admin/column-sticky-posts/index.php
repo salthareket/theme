@@ -75,7 +75,7 @@ function update_sticky_meta_on_save($post_id) {
     }
     $post_types = get_post_types(array('public' => true), 'names');
     $post_type = get_post_type($post_id);
-    if(in_array($post_type, $post_types)){
+    if(in_array($post_type, array_keys($post_types))){
         $is_sticky = is_sticky($post_id) ? 1 : 0;
         update_post_meta($post_id, '_is_sticky', $is_sticky);        
     }

@@ -108,7 +108,7 @@
                     "name": "phone",
                     "aria-label": "",
                     "type": "file",
-                    "instructions": "min: 370p",
+                    "instructions": "min: 360p",
                     "required": 0,
                     "conditional_logic": 0,
                     "wrapper": {
@@ -126,6 +126,196 @@
                     "library": "all"
                 }
             ]
+        },
+        {
+            "key": "field_67975f5689401",
+            "label": "Auto Generate Options",
+            "name": "ffmpeg_available",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "By selecting the following settings, you can automatically generate the requirements for your videos.",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_663f74de3ea7a",
+                        "operator": "==",
+                        "value": "file"
+                    },
+                    {
+                        "field": "field_66f9e48418b77",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "acfe_seamless_style": 1,
+            "sub_fields": [
+                {
+                    "key": "field_6797647a4fd31",
+                    "label": "Empty video sizes",
+                    "name": "generate_sizes",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_663f74de3ea7a",
+                                "operator": "==",
+                                "value": "file"
+                            },
+                            {
+                                "field": "field_66f9e48418b77",
+                                "operator": "!=empty"
+                            },
+                            {
+                                "field": "field_66f9e4c018b78",
+                                "operator": "==empty"
+                            }
+                        ],
+                        [
+                            {
+                                "field": "field_663f74de3ea7a",
+                                "operator": "==",
+                                "value": "file"
+                            },
+                            {
+                                "field": "field_66f9e48418b77",
+                                "operator": "!=empty"
+                            },
+                            {
+                                "field": "field_66f9e4ca18b79",
+                                "operator": "==empty"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "translations": "copy_once",
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                },
+                {
+                    "key": "field_679764d54fd32",
+                    "label": "Frame thumbnails",
+                    "name": "generate_thumbnails",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_663f74de3ea7a",
+                                "operator": "==",
+                                "value": "file"
+                            },
+                            {
+                                "field": "field_66f9e4ca18b79",
+                                "operator": "!=empty"
+                            }
+                        ],
+                        [
+                            {
+                                "field": "field_663f74de3ea7a",
+                                "operator": "==",
+                                "value": "file"
+                            },
+                            {
+                                "field": "field_6797647a4fd31",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "translations": "copy_once",
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                },
+                {
+                    "key": "field_679764f74fd33",
+                    "label": "Poster frame",
+                    "name": "generate_poster",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_663f74de3ea7a",
+                                "operator": "==",
+                                "value": "file"
+                            },
+                            {
+                                "field": "field_66f9e48418b77",
+                                "operator": "!=empty"
+                            },
+                            {
+                                "field": "field_663f74df3ea87",
+                                "operator": "==empty"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "translations": "copy_once",
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                }
+            ],
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
+        },
+        {
+            "key": "field_679763ca89402",
+            "label": "",
+            "name": "",
+            "aria-label": "",
+            "type": "message",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "hidden",
+                "id": ""
+            },
+            "message": "",
+            "new_lines": "",
+            "esc_html": 0
         },
         {
             "key": "field_663f74de3ea7c",
@@ -397,6 +587,36 @@
                     "ui": 1,
                     "ajax": 0,
                     "search_placeholder": ""
+                },
+                {
+                    "key": "field_6798cdb061a10",
+                    "label": "Show Duration Thumbnails",
+                    "name": "show_thumbnails",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_663f74df3ea84",
+                                "operator": "==",
+                                "value": "progress"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "translations": "copy_once",
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
                 },
                 {
                     "key": "field_6642164c9d989",
@@ -753,6 +973,42 @@
                             "parent_repeater": "field_664210041992f"
                         }
                     ]
+                },
+                {
+                    "key": "field_6798cd6f61a0f",
+                    "label": "VTT Thumbnails",
+                    "name": "vtt_thumbnails",
+                    "aria-label": "",
+                    "type": "file",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_663f74df3ea84",
+                                "operator": "==",
+                                "value": "progress"
+                            },
+                            {
+                                "field": "field_6798cdb061a10",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "uploader": "",
+                    "return_format": "url",
+                    "translations": "copy_once",
+                    "min_size": "",
+                    "max_size": "",
+                    "mime_types": "vtt",
+                    "allow_in_bindings": 0,
+                    "library": "all"
                 }
             ]
         }
@@ -782,7 +1038,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737315485,
+    "modified": 1738070525,
     "acfe_categories": {
         "common": "Common"
     }

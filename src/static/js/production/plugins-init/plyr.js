@@ -80,7 +80,7 @@ function plyr_init($obj){
 			}, 500);
 		}
 
-	    var swiper = $obj.closest(".swiper").length>0?$obj.closest(".swiper")[0].swiper:false;
+	   var swiper = $obj.closest(".swiper").length>0?$obj.closest(".swiper")[0].swiper:false;
 		var video_container = swiper?$obj.closest(".swiper-slide"):$obj.parent();
 
 	    $obj

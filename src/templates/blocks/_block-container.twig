@@ -73,6 +73,31 @@
 		{% endif %}
 	{% endif %}
 
+
+	{% if is_preview and block_meta.lock %}
+	    <div class="{{block_meta.container}}">
+			<div class="alert alert-danger">
+				<div class="row align-items-center">
+					<div class="col col-auto">
+                       <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
+					</div>
+					<div class="col">
+						<h4 class="fw-bold mb-1">Attention</h4>
+						<p class="text-xs lh-sm mb-0">
+						The video(s) within this block are currently being processed in the background. Please refrain from making any edits to this block during this time. You can check the progress of the processing and review the status by visiting this link.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<style>
+		#{{block_meta.id|replace({"_":"-"})}}{
+			pointer-events:none!important;
+		}
+		</style>
+    {% endif %}
+
+
 	<div class="{{block_meta_classes}}" {{block_meta.attrs}}>
 
 	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}

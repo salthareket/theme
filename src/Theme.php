@@ -81,6 +81,15 @@ Class Theme{
             ['Update', 'render_page'] // Theme Update içeriğini render et
         );
 
+        add_submenu_page(
+            'theme-settings', // Ana menü slug'ı
+            'Video Process',
+            'Video Process',
+            'manage_options',
+            'video-process',
+            ['Update', 'render_video_process_page'] // Theme Update içeriğini render et
+        );
+
         // Gereksiz alt menüyü kaldır
         add_action('admin_menu', function () {
             global $submenu;

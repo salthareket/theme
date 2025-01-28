@@ -250,4 +250,35 @@ jQuery(document).ready(function ($) {
     });
 
 
+
+    $('#install-ffmpeg-button').on('click', function () {
+        var $button = $(this);
+        $button.prop('disabled', true).text('Installing...');
+
+        composer_message("Please wait...", "loading", "install");
+
+        $.ajax({
+            url: updateAjax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'install_ffmpeg',
+                _ajax_nonce: updateAjax.nonce
+            },
+            success: function (response) {
+                console.log(response);
+                if (response.success) {
+                    composer_message(response.data.message, response.data.action, "install");
+                } else {
+                    composer_message(response.data.message, "error", "install");
+                }
+                $button.prop('disabled', false).text('Install');
+            },
+            error: function () {
+                composer_message('AJAX request failed.', "error", "update");
+                $button.prop('disabled', false).text('Install');
+            }
+        });
+    });
+
+
 });

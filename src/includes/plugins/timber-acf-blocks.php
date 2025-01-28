@@ -30,6 +30,9 @@ add_filter( 'timber/acf-gutenberg-blocks-preview-identifier', function( $sufix )
     return $sufix;
 });
 
+
+
+
 function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4x3"], $gap=3, $class="") {
 
     $htmlOutput = '';
@@ -106,7 +109,6 @@ function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4
 
     return $htmlOutput;
 }
-
 function block_gallery_pattern($images, $patterns, $gap=3, $class="") {
     if(!$patterns){
         return;
@@ -285,19 +287,19 @@ function block_container($container=""){
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default);
     switch($container){
         case "" :
-            $container = "container px-4 px-lg-3";
+            $container = "container px-4 px-lg-3 h-inherit";
         break;
         case "default" :
-            $container = $default." px-4 px-lg-3";
+            $container = $default." px-4 px-lg-3 h-inherit";
         break;
         case "no" :
             $container = "";
         break;
         case "auto" :
-            $container = "w-auto px-4 px-lg-3";
+            $container = "w-auto px-4 px-lg-3 h-inherit";
         break;
         default :
-            $container = "container-".$container." px-4 px-lg-3";
+            $container = "container-".$container." px-4 px-lg-3 h-inherit";
         break;
     }
     return $container;
@@ -425,6 +427,12 @@ function block_classes($block, $fields, $block_column){
         }*/
 
     }
+
+    if(is_admin()){
+        if(isset($block["lock"]) && $block["lock"]){
+            $classes[] = "acf-block-locked";
+        }
+    }
     
     $classes = implode(" ", $classes);
     return $classes;
@@ -448,7 +456,7 @@ function block_attrs($block, $fields, $block_column){
     }
     $attrs["data-index"] = isset($block["index"])?$block["index"]:0;
 
-    if(isset($fields["block_settings"]["block_parallax"]) && $fields["block_settings"]["block_parallax"]["active"]){
+    if(isset($fields["block_settings"]["block_parallax"]) && !empty($fields["block_settings"]["block_parallax"]["active"])){
         $attrs["data-scroll"] = "";
         $scroll_speed = $fields["block_settings"]["block_parallax"]["scroll_speed"];
         if($scroll_speed > 0){
@@ -831,7 +839,7 @@ function block_bg_video($block, $fields, $block_column){
             $container_attr = "";
             $container_class = "";
             $video_class = "";
-            if($background["parallax"]){
+            if(!empty($background["parallax"])){
                 $container_attr = "data-jarallax data-speed='".$background["parallax_settings"]["speed"]."' data-type='".$background["parallax_settings"]["type"]."' ";
                 $container_class = "jarallax";
                 if($background["type"] == "file"){
@@ -872,11 +880,11 @@ function block_bg_video($block, $fields, $block_column){
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
             $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover '.$classes.' position-absolute-fill hide-controls overflow-hidden" style="'.$image_style.'">';
-            if($background["type"] == "embed"){
+            if($background["type"] == "embed" && !empty($background["parallax"])){
                 $image .= '<div class="jarallax-img">';
             }
             $image .= get_video(["src" => $args, "class" => $video_class, "init" => true]);
-            if($background["type"] == "embed"){
+            if($background["type"] == "embed" && !empty($background["parallax"])){
                 $image .= '</div>';
             }
             $image .= "</div>";
@@ -1451,6 +1459,7 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
         }
         $block_data["id"] = $id;
 
+        $meta["lock"]             = isset($block_data["lock"]) && $block_data["lock"];
         $meta["index"]            = isset($block_data["index"])?$block_data["index"]:0;
         $meta["parent"]           = $block_column?$block_column["parent"]:0;
         $meta["id"]               = $id;//$block_data["id"].(!empty($block_column)?"-".unique_code(5):"");

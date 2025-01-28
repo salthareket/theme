@@ -61,6 +61,8 @@ class Update {
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
         add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
+
+        add_action('wp_ajax_install_ffmpeg', [__CLASS__, 'install_ffmpeg']);
         self::check_installation();
     }
 
@@ -316,6 +318,319 @@ class Update {
         }
         self::enqueue_update_script();
     }
+    public static function video_process_page() { 
+        
+        $video_process = new VideoProcessor();
+        $is_supported = $video_process->supported;
+        $is_available = $video_process->available;
+    ?>
+        <div class="wrap">
+            <h1>Video Process</h1>
+            <?php 
+            $args = [
+                'post_type'      => 'any',
+                'post_status'    => 'publish',
+                'meta_query'     => [
+                    [
+                        'key'     => 'video_tasks',
+                        'compare' => 'EXISTS',
+                    ],
+                ],
+                'posts_per_page' => -1,
+                'orderby'        => 'ID',
+                'order'          => 'ASC',
+            ];
+            $query = new WP_Query($args);
+            $posts = $query->posts;
+
+            if(!$is_supported){?>
+               <div class="alert alert-danger text-danger alert-dismissible rounded-3 w-25"><?php echo PHP_OS;?> is not supported!</div>
+            <?php
+            }else{    
+            ?>
+                <ul class="list-group w-50">
+                        <li class="list-group-item py-4">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <strong>FFMpeg</strong> for <?php echo PHP_OS;?>
+                                </div>
+                                <div class="col col-auto text-end">
+                                    <?php
+                                    if($is_available){?>
+                                        <span class="text-success fw-bold">Installed</span>
+                                    <?php
+                                    }else{
+                                    ?>
+                                       <div class="alert alert-dismissible rounded-3 w-25 fade d-none"></div>
+                                       <button id="install-ffmpeg-button" class="button button-primary">Install</button>
+                                    <?php
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                        </li>
+                </ul>
+                <?php
+                if($posts){
+                ?>
+                    <div class="list-group w-50 mt-5">
+                    <?php
+                    foreach($posts as $post){
+                        $tasks = get_post_meta($post->ID, 'video_tasks', true);
+                        $blocks = parse_blocks($post->post_content);
+                    ?>
+                        <div class="list-group-item py-3">
+                            <?php echo "<h3 class='mb-3 mt-0'>".$post->post_title.": <span class='text-success'>Video Processing...</span></h3>";
+                            foreach($tasks as $task){ 
+                                $status = $task["status"];
+                                $block = $blocks[$task["index"]];
+                                $video = wp_get_attachment_url($block["attrs"]["data"]["video_file_desktop"]);
+                            ?>
+                                <div class="list-group">
+                                    <div class="list-group-item py-3">
+                                        <div class="row">
+                                            <div class="col col-auto">
+                                                <video 
+                                                    src="<?php echo esc_url($video); ?>" 
+                                                    preload="metadata" 
+                                                    style="max-width: 200px; display: block; pointer-events: none;" 
+                                                    muted 
+                                                    playsinline 
+                                                    oncontextmenu="return false;" 
+                                                    class="rounded-3 overflow-hidden"
+                                                >
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            </div>
+                                            <div class="col">
+                                                <table class="table table-light table-striped">
+                                                    <tbody>
+                                                        <?php
+                                                        $loading = $status; 
+                                                        if($task["sizes"]){
+                                                            foreach($task["sizes"] as $size){
+                                                            ?>
+                                                            <tr>
+                                                                <?php
+                                                                if(!$loading){
+                                                                    $loading = true
+                                                                ?>
+                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
+                                                                <?php
+                                                                }else{?>
+                                                                   <td class="text-center" style="width:30px;">---</td>
+                                                                <?php
+                                                                }
+                                                                ?>
+                                                                <td class="fw-bold">Generate <?php echo $size;?>p size</td>
+                                                                <td class="text-end">
+                                                                    <?php 
+                                                                     echo $status?"Completed":"In progress...";
+                                                                    ?>
+                                                                </td>
+                                                            </tr>
+                                                            <?php
+                                                            }
+                                                        }?>
+
+                                                        <?php 
+                                                        if($task["thumbnails"]){
+                                                            ?>
+                                                            <tr>
+                                                                <?php
+                                                                if(!$loading){
+                                                                    $loading = true
+                                                                ?>
+                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
+                                                                <?php
+                                                                }else{?>
+                                                                   <td class="text-center" style="width:30px;">---</td>
+                                                                <?php
+                                                                }
+                                                                ?>
+                                                                <td class="fw-bold">Generating thumbnails</td>
+                                                                <td class="text-end">
+                                                                    <?php 
+                                                                     echo $status?"Completed":"In progress...";
+                                                                    ?>
+                                                                </td>
+                                                            </tr>
+                                                            <?php
+                                                        }?>
+
+                                                        <?php 
+                                                        if($task["poster"]){
+                                                            ?>
+                                                            <tr>
+                                                                <?php
+                                                                if(!$loading){
+                                                                    $loading = true
+                                                                ?>
+                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
+                                                                <?php
+                                                                }else{?>
+                                                                   <td class="text-center" style="width:30px;">---</td>
+                                                                <?php
+                                                                }
+                                                                ?>
+                                                                <td class="fw-bold">Generating poster frame</td>
+                                                                <td class="text-end">
+                                                                    <?php 
+                                                                     echo $status?"Completed":"In progress...";
+                                                                    ?>
+                                                                </td>
+                                                            </tr>
+                                                            <?php
+                                                        }?>
+                                                        
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php
+                            }
+                            ?>
+                        </div>
+                    <?php
+                    }?>
+                <?php 
+                }else{
+                ?>
+                
+                    <div class="list-group w-50 mt-5 rounded-4 py-5 text-center">
+                        <h3 class="text-muted">There are currently no video processing tasks in the queue</h3>
+                    </div>
+
+                <?php
+                }
+            }
+            ?>
+        </div>
+    <?php
+    }
+    public static function render_video_process_page() {
+        self::video_process_page();
+        self::enqueue_update_script();
+    }
+
+    public static function install_ffmpeg(){
+        $package = "salthareket/ffmpeg-";
+        $folder = self::$repo_directory . "/src/bin/";
+        if (stristr(PHP_OS, 'WIN')) {
+            $package .= "win";
+            $folder .= "win/";
+        }else{
+            $package .= "linux";
+            $folder .= "linux/";
+        }
+        // GitHub'dan zip dosyasını indirme
+        $url = self::$github_api_url . '/' . $package . '/releases/latest';
+
+        $response = wp_remote_get($url, [
+            'headers' => [
+                'Accept' => 'application/vnd.github.v3+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo('version'),
+                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN
+            ]
+        ]);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error(['message' => 'FFmpeg zip file could not be downloaded: ' . $response->get_error_message(), 'action' => 'error']);
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['zipball_url'])) {
+            wp_send_json_error(['message' => 'Invalid response from GitHub API.', 'action' => 'error']);
+        }
+
+        // Zip dosyasını indirme
+        add_filter('http_request_timeout', function($timeout) {
+            return 600;
+        });
+
+        $zip_url = $data['zipball_url'];
+        $zip_file = download_url($zip_url);
+
+        remove_filter('http_request_timeout', '__return_true');
+
+        if (is_wp_error($zip_file)) {
+            wp_send_json_error(['message' => 'Failed to download FFmpeg zip file: ' . $zip_file->get_error_message(), 'action' => 'error']);
+        }
+
+        // Geçici bir dizin oluşturma
+        $temp_dir = self::$vendor_directory . '/temp';
+        if (!file_exists($temp_dir)) {
+            mkdir($temp_dir, 0755, true);
+        }
+
+        // Zip dosyasını açma
+        $unzip_result = unzip_file($zip_file, $temp_dir);
+
+        if (is_wp_error($unzip_result)) {
+            // Fallback: ZipArchive kullanarak dosyayı çıkar
+            $zip = new ZipArchive();
+            if ($zip->open($zip_file) === true) {
+                $extract_result = $zip->extractTo($temp_dir);
+                $zip->close();
+                if (!$extract_result) {
+                    self::recurseDelete($temp_dir);
+                    wp_send_json_error(['message' => 'ZipArchive failed to extract FFmpeg package.', 'action' => 'error']);
+                }
+            } else {
+                self::recurseDelete($temp_dir);
+                wp_send_json_error(['message' => 'Zip file could not be extracted using ZipArchive.', 'action' => 'error']);
+            }
+        }
+
+        @unlink($zip_file); // Geçici zip dosyasını sil
+
+        // Çıkarılan dosyaları hedef klasöre taşıma
+        $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
+
+        if ($extracted_dir && is_dir($extracted_dir)) {
+            // Çıkarılan klasör içindeki zip dosyalarını bul ve çıkar
+            $inner_zip_files = glob($extracted_dir . '/*.zip');
+
+            foreach ($inner_zip_files as $inner_zip_file) {
+                $inner_unzip_result = unzip_file($inner_zip_file, $extracted_dir);
+
+                if (is_wp_error($inner_unzip_result)) {
+                    $zip = new ZipArchive();
+                    if ($zip->open($inner_zip_file) === true) {
+                        $extract_result = $zip->extractTo($extracted_dir);
+                        $zip->close();
+                        if (!$extract_result) {
+                            wp_send_json_error(['message' => "Failed to extract inner zip file: $inner_zip_file"]);
+                        }
+                    } else {
+                        wp_send_json_error(['message' => "Inner zip file could not be extracted: $inner_zip_file"]);
+                    }
+                }
+
+                @unlink($inner_zip_file); // İç zip dosyasını sil
+            }
+
+            if (!self::moveFolderForce($extracted_dir, $folder)) {
+                self::recurseDelete($temp_dir);
+                wp_send_json_error(['message' => 'Failed to move FFmpeg files to target directory.', 'action' => 'error']);
+            }
+
+            // Geçici dizini temizle
+            self::recurseDelete($temp_dir);
+
+            wp_send_json_success(['message' => 'FFmpeg successfully installed.', 'action' => 'refresh']);
+        } else {
+            self::recurseDelete($temp_dir);
+            wp_send_json_error(['message' => 'Invalid extracted directory structure.']);
+        }
+    }
+
+
+
 
 
 

@@ -1115,7 +1115,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -1257,7 +1257,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -1399,7 +1399,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -1541,7 +1541,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -1724,7 +1724,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -1866,7 +1866,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -2008,7 +2008,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -2150,7 +2150,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -7733,6 +7733,10 @@
             "acfe_group_modal_close": 0,
             "acfe_group_modal_button": "",
             "acfe_group_modal_size": "large",
+            "_clone": "field_67805541a95f9",
+            "__key": "field_673ea45535547",
+            "__name": "block_parallax",
+            "__label": "Parallax",
             "sub_fields": [
                 {
                     "key": "field_67804dc9c0685",
@@ -7973,11 +7977,7 @@
                     "ui_off_text": "",
                     "ui": 1
                 }
-            ],
-            "_clone": "field_67805541a95f9",
-            "__key": "field_673ea45535547",
-            "__name": "block_parallax",
-            "__label": "Parallax"
+            ]
         },
         {
             "key": "field_674d65b2e1dd0",
@@ -8042,7 +8042,7 @@
     "acfe_form": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737228390,
+    "modified": 1737516194,
     "acfe_categories": {
         "common": "Common"
     }

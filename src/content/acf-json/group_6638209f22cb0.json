@@ -154,6 +154,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668da023c46e6",
+                    "__key": "field_660e6e81dcc96",
+                    "__name": "typography",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_660da06c34e3f",
@@ -909,11 +913,7 @@
                             "allow_in_bindings": 1,
                             "font_size": 14
                         }
-                    ],
-                    "_clone": "field_668da023c46e6",
-                    "__key": "field_660e6e81dcc96",
-                    "__name": "typography",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_660fdebb7d254",
@@ -953,6 +953,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668da003c46e5",
+                    "__key": "field_660fe689903cf",
+                    "__name": "colors",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_660fe698903d0",
@@ -1091,11 +1095,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_668da003c46e5",
-                    "__key": "field_660fe689903cf",
-                    "__name": "colors",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_660fde5dbc834",
@@ -1135,6 +1135,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_670288476767d",
+                    "__key": "field_660e6f026b5c7",
+                    "__name": "body",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_660d9d6b34e3c",
@@ -1391,11 +1395,7 @@
                             "enable_opacity": 0,
                             "return_format": "string"
                         }
-                    ],
-                    "_clone": "field_670288476767d",
-                    "__key": "field_660e6f026b5c7",
-                    "__name": "body",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_670288406767c",
@@ -1435,6 +1435,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d9fe0c46e4",
+                    "__key": "field_67028681ce978",
+                    "__name": "buttons",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_67028681e13b1",
@@ -1637,11 +1641,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_668d9fe0c46e4",
-                    "__key": "field_67028681ce978",
-                    "__name": "buttons",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_660fde76bc835",
@@ -1681,6 +1681,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d9fb4c46e3",
+                    "__key": "field_660e7fdd9ee71",
+                    "__name": "header",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_6637b290e2db5",
@@ -3809,11 +3813,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_668d9fb4c46e3",
-                    "__key": "field_660e7fdd9ee71",
-                    "__name": "header",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_6636aa48f8039",
@@ -3853,6 +3853,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d9f9ac46e2",
+                    "__key": "field_6636aa51f803a",
+                    "__name": "footer",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_6636aafef803b",
@@ -4004,11 +4008,7 @@
                             "enable_opacity": 0,
                             "return_format": "string"
                         }
-                    ],
-                    "_clone": "field_668d9f9ac46e2",
-                    "__key": "field_6636aa51f803a",
-                    "__name": "footer",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_6636a43b10904",
@@ -4048,6 +4048,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d9f81c46e1",
+                    "__key": "field_6636a45710905",
+                    "__name": "breadcrumb",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_671755535ae1d",
@@ -4323,11 +4327,7 @@
                             "enable_opacity": 0,
                             "return_format": "string"
                         }
-                    ],
-                    "_clone": "field_668d9f81c46e1",
-                    "__key": "field_6636a45710905",
-                    "__name": "breadcrumb",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_6636a56acdf46",
@@ -4367,6 +4367,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d9f62c46e0",
+                    "__key": "field_6636a578cdf47",
+                    "__name": "pagination",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_66381aed0b753",
@@ -5200,11 +5204,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_668d9f62c46e0",
-                    "__key": "field_6636a578cdf47",
-                    "__name": "pagination",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_6636a9da3b8c4",
@@ -5244,6 +5244,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d9f45c46df",
+                    "__key": "field_6636a9e43b8c5",
+                    "__name": "hero",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_6636a9ef3b8c6",
@@ -5264,11 +5268,7 @@
                             "acf_bs_breakpoints_choices": "",
                             "font_size": 14
                         }
-                    ],
-                    "_clone": "field_668d9f45c46df",
-                    "__key": "field_6636a9e43b8c5",
-                    "__name": "hero",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_66376b8f76113",
@@ -5308,6 +5308,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d958880abb",
+                    "__key": "field_66376ba976114",
+                    "__name": "offcanvas",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_6638160c184b2",
@@ -6312,11 +6316,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_668d958880abb",
-                    "__key": "field_66376ba976114",
-                    "__name": "offcanvas",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_66381c133b56e",
@@ -6356,6 +6356,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_668d950be4839",
+                    "__key": "field_66381c2a3b56f",
+                    "__name": "header_tools",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_66381c433b570",
@@ -7601,11 +7605,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_668d950be4839",
-                    "__key": "field_66381c2a3b56f",
-                    "__name": "header_tools",
-                    "__label": ""
+                    ]
                 },
                 {
                     "key": "field_66906d9c9ce75",
@@ -7645,6 +7645,10 @@
                     "acfe_group_modal_close": 0,
                     "acfe_group_modal_button": "",
                     "acfe_group_modal_size": "large",
+                    "_clone": "field_66906f5a61b03",
+                    "__key": "field_66906dde6f035",
+                    "__name": "utilities",
+                    "__label": "",
                     "sub_fields": [
                         {
                             "key": "field_66906e336f036",
@@ -8204,11 +8208,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "_clone": "field_66906f5a61b03",
-                    "__key": "field_66906dde6f035",
-                    "__name": "utilities",
-                    "__label": ""
+                    ]
                 }
             ]
         }
@@ -8238,7 +8238,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737228390,
+    "modified": 1737516244,
     "acfe_categories": {
         "general": "General"
     }

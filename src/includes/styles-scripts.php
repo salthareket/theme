@@ -341,7 +341,7 @@ function load_frontend_files() {
 
 
 function admin_header_styles(){
-	wp_enqueue_style('fontawesome','https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css' , array(),'5.13.0','');
+	wp_enqueue_style('fontawesome','https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' , array(),'5.13.0','');
 	wp_enqueue_style('bootstrap-admin', STATIC_URL . 'css/bootstrap-admin.css'); 
     wp_enqueue_style('acf-layouts', STATIC_URL . 'css/header-admin.css');
 	wp_enqueue_style('main-admin', STATIC_URL . 'css/main-admin.css'); 

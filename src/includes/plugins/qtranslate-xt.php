@@ -315,3 +315,21 @@ public function encode_language_values( $values ) {
         }
 }
 */
+
+
+if (class_exists("acf")) {
+    // admin sayfasındaki acf label'ları seçili dilde göstermek için fix code.
+    function acf_load_field_translate($field) {
+        if (ENABLE_MULTILANGUAGE == "qtranslate_xt" && is_admin()) {
+            global $post;
+            if(isset($post->ID)){
+                if (get_post_type($post->ID) == 'acf-field-group') {
+                    return $field;
+                }
+                $field['label'] = qtranxf_useCurrentLanguageIfNotFoundUseDefaultLanguage($field['label']);  
+            }
+        }
+        return $field;
+    }
+    add_filter('acf/load_field', 'acf_load_field_translate');
+}

@@ -125,7 +125,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -168,7 +168,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -211,7 +211,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -254,7 +254,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -320,7 +320,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -363,7 +363,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -406,7 +406,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -449,7 +449,7 @@
                         "11": 11,
                         "12": 12
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -492,5 +492,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1737228390
+    "modified": 1737516223
 }

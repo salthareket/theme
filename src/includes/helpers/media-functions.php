@@ -769,6 +769,14 @@ function get_video($video_args=array()){
     	$config["ratio"] = str_replace("x", ":", $config["ratio"]);
 	}
 
+    if($type == "file"){
+    	if(isset($settings["show_thumbnails"]) && $settings["show_thumbnails"]){
+    		if(!empty($settings["vtt_thumbnails"])){
+				$config["previewThumbnails"] = ["enabled" => true, "src" => $settings["vtt_thumbnails"]];
+    		}
+    	}
+    }
+
 	$config["debug"] = false;
 	$config = json_encode($config);
 	$config = str_replace("'","", $config);
