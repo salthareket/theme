@@ -20,6 +20,10 @@ class StarterSite extends Timber\Site{
 
     public function theme_supports(){
 
+        if (!is_admin()) {
+            return;
+        }
+
         // Add default posts and comments RSS feed links to head.
         add_theme_support("automatic-feed-links");
         add_theme_support("menus");
@@ -540,6 +544,9 @@ class StarterSite extends Timber\Site{
     } 
 
     function register_post_types(){
+        if (!is_admin()) {
+            return;
+        }
         //this is where you can register custom post types
         include SH_INCLUDES_PATH . "register/post-type.php";
         if(SH_THEME_EXISTS){
@@ -548,6 +555,9 @@ class StarterSite extends Timber\Site{
     }
 
     function register_taxonomies(){
+        if (!is_admin()) {
+            return;
+        }
         include SH_INCLUDES_PATH . "register/user.php";
         include SH_INCLUDES_PATH . "register/taxonomy.php";
         if(SH_THEME_EXISTS){

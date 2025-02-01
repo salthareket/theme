@@ -14,9 +14,22 @@ add_action('wp_head', 'add_theme_root_variable_to_head', 1);
 function dequeue_theme_styles() {
     wp_dequeue_style('theme-style'); // 'theme-style' yerine kendi temanızın style.css dosyasının kayıt adını kullanın
     wp_deregister_style('theme-style');
+    if (!is_admin() && !apply_filters('show_admin_bar', true)) {
+        wp_deregister_style('dashicons');
+    }
 }
-
 add_action('wp_enqueue_scripts', 'dequeue_theme_styles', 999);
+
+
+function remove_jquery_migrate($scripts) {
+    if (!is_admin() && isset($scripts->registered['jquery'])) {
+        $script = $scripts->registered['jquery'];
+        if ($script->deps) {
+            $script->deps = array_diff($script->deps, array('jquery-migrate'));
+        }
+    }
+}
+add_action('wp_default_scripts', 'remove_jquery_migrate');
 
 
 function frontend_header_styles(){
@@ -159,6 +172,16 @@ function frontend_header_scripts(){
 	wp_deregister_script('jquery');
 	wp_register_script ('jquery', STATIC_URL . 'js/jquery.min.js', array(), '1.0.0', false);
 	wp_enqueue_script('jquery');
+
+	// Script'i kaydet
+	wp_register_script('image-sizes', SH_STATIC_URL .'js/image-sizes.js' , array(), '1.0.0', false);
+	wp_enqueue_script('image-sizes');
+	add_filter('script_loader_tag', function ($tag, $handle) {
+	    if (strpos($handle, 'image-sizes') !== false) { // header- ile başlayan scriptlere uygula
+	        $tag = str_replace('src=', 'defer src=', $tag);
+	    }
+	    return $tag;
+	}, 10, 2);
     
    if(ENABLE_PRODUCTION){
 		$header_files = compile_files_config(true)["js"]["header"];

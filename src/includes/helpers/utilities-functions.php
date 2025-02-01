@@ -74,6 +74,8 @@ function phpcolors($color, $method="getRgb", $amount=0){
 }
 
 
+
+
 function get_image_average_color($image_path) {
     // Dosya uzantısını kontrol et
     $extension = strtolower(pathinfo($image_path, PATHINFO_EXTENSION));
@@ -94,12 +96,38 @@ function get_image_average_color($image_path) {
         case 'png':
             $image = @imagecreatefrompng($image_path);
             break;
+        case 'avif':
+            if (class_exists('Imagick')) {
+                try {
+                    $imagick = new Imagick($image_path);
+                    $imagick->transformImageColorspace(Imagick::COLORSPACE_RGB);
+                    $image = imagecreatefromstring($imagick->getImageBlob());
+                    $imagick->destroy();
+                } catch (Exception $e) {
+                    error_log('AVIF renk alma hatası: ' . $e->getMessage());
+                    return false;
+                }
+            } elseif (function_exists('imageavif')) {
+                $image = imagecreatefromstring(file_get_contents($image_path));
+                if (!$image) return false;
+            } elseif (shell_exec('which avifdec')) {
+                $temp_png = str_replace('.avif', '.png', $image_path);
+                shell_exec("avifdec $image_path $temp_png");
+                if (file_exists($temp_png)) {
+                    $image = imagecreatefrompng($temp_png);
+                    unlink($temp_png);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            break;
         default:
             return false;
     }
 
     if (!$image) {
-        // Görüntü oluşturulamadıysa, hata işlemi
         return false;
     }
 
@@ -130,7 +158,6 @@ function get_image_average_color($image_path) {
         'contrast_color' => $contrast_color,
     );
 }
-
 function calculate_contrast_color($color) {
     // Renk kodunu parçala
     list($r, $g, $b) = sscanf($color, "#%02x%02x%02x");
@@ -141,7 +168,6 @@ function calculate_contrast_color($color) {
     // Kontrast oranına göre siyah veya beyaz rengi seç
     return ($luminance > 128) ? '#000000' : '#FFFFFF';
 }
-
 function calculate_contrast_color_mode($color) {
     return calculate_contrast_color($color) == "#000000" ? "light" : "dark";
 }

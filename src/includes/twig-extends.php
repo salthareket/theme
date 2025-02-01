@@ -5,3 +5,4 @@ include "extends/post.php";
 include "extends/term.php";
 include "extends/menu.php";
 include "extends/menuitem.php";
+include "extends/image.php";

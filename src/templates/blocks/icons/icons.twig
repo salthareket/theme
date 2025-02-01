@@ -41,7 +41,7 @@
                     {% set link_start = "<a href='" ~ item.content.url.url ~ "' class='" ~ (not is_external?"btn-loading-page":"") ~" d-flex flex-column" ~ (fields.reverse?"-reverse":"") ~ "' "  ~ attrs ~ " title='" ~ (button.link_text|default(item.title)) ~"'>" %}
                 {% endif %}
 
-                <div class="d-flex {% if fields.reverse and not link_start %}flex-column-reverse{% endif %}align-items-start" data-mh="icon-list-{{block_meta.id}}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                <div class="d-flex flex-column {% if fields.reverse and not link_start %}flex-column-reverse{% endif %}align-items-start" data-mh="icon-list-{{block_meta.id}}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
                     
                     {% if link_start  %}
                         {{ link_start }}

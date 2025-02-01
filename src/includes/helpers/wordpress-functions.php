@@ -1067,6 +1067,11 @@ function wp_query_to_sql($type = "post", $query = [], $helper = []) {
 
 
 function get_title_from_url($url) {
+
+    if(empty($url)){
+        return "";
+    }
+    
     // URL'den sayfa veya post ID'sini almak için
     $page_id = url_to_postid($url);
 

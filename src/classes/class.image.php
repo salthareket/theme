@@ -1,4 +1,6 @@
-<?php 
+<?php
+
+namespace SaltHareket; 
 
 Class Image{
 
@@ -140,6 +142,8 @@ Class Image{
             $attrs["loading"] = "lazy";
         }
 
+        $this->args["class"] .= $this->args["post"]->get_focal_point_class();
+
         if($this->args["type"] == "img"){
 
             if($this->is_single){
@@ -198,7 +202,7 @@ Class Image{
         }
 
         if($this->args["placeholder"]){
-            $html = '<div class="img-placeholder '.$this->args["placeholder_class"].' '. ($this->args["lazy"] && !$this->args["preview"]?"loading":"").'"  style="background-color:'.$this->args["post"]->meta("average_color").';">' . $html . '</div>';
+            $html = '<div class="img-placeholder '.$this->args["placeholder_class"].' '. ($this->args["lazy"] && !$this->args["preview"]?"loading":"").'"  style="background-color:'.$this->args["post"]->meta("average_color").';aspect-ratio:'.$this->args["post"]->get_aspect_ratio().';">' . $html . '</div>';
         }
 
         return $html;
@@ -210,14 +214,14 @@ Class Image{
             //echo $args["src"]." numeric";
 
             $args["id"] = intval($args["src"]);
-            $args["post"] = Timber::get_image($args["id"]);
+            $args["post"] = \Timber::get_image($args["id"]);
 
         } elseif (is_string($args["src"])) {
 
             //echo $args["src"]." string";
             
             $args["id"] = get_attachment_id_by_url($args["src"]);
-            $args["post"] = Timber::get_image($args["id"]);
+            $args["post"] = \Timber::get_image($args["id"]);
 
         } elseif (is_object($args["src"])) {
             //echo $args["src"]." object";
@@ -237,7 +241,7 @@ Class Image{
         } elseif (is_array($args["src"])) {
 
             $args["id"] = $args["src"]["id"];
-            $args["post"] = Timber::get_image($args["src"]["id"]);
+            $args["post"] = \Timber::get_image($args["src"]["id"]);
         }
 
         if(empty($args["width"]) && isset($args["post"])){

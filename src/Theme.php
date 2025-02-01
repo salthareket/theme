@@ -18,15 +18,18 @@ Class Theme{
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
         if(SH_THEME_EXISTS){
             add_action("wp_enqueue_scripts", "load_frontend_files", 20);
-            add_action("admin_init", "load_admin_files");
         }
-        add_action("admin_init", [$this, "remove_comments"]);
         add_filter('body_class', [$this, 'body_class'] );
-        add_action('admin_menu', [$this, 'init_theme_settings_menu']);
+        
         if(is_admin()){
+            if(SH_THEME_EXISTS){
+                add_action("admin_init", "load_admin_files");
+            }
+            add_action("admin_init", [$this, "remove_comments"]);
+            add_action('admin_menu', [$this, 'init_theme_settings_menu']);
             add_action("admin_init", function(){
                 visibility_under_construction();
-            });    
+            });
         }else{
             add_action("wp", function(){
                 visibility_under_construction();
@@ -34,7 +37,7 @@ Class Theme{
         }
     }
 
-    function increase_memory_limit() {
+    public function increase_memory_limit() {
         // Bellek limitini artır
         @ini_set('memory_limit', '1536M');
 
@@ -109,7 +112,7 @@ Class Theme{
         if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
             \Schema_Breadcrumbs::instance();
         }
-        //if(isset($GLOBALS["theme_menus"])){
+
         add_action("acf/init", function(){
             register_nav_menus(get_menu_locations());
         });
@@ -139,7 +142,7 @@ Class Theme{
             }
             create_options_menu($options_menu);
 
-            if(ENABLE_NOTIFICATIONS){
+            if(ENABLE_NOTIFICATIONS && is_admin()){
                 $notifications_menu = [
                     "title" => "Notifications",
                     "redirect" => false,
@@ -314,9 +317,6 @@ Class Theme{
         $GLOBALS["salt"] = $salt;
     }
     public function language_settings(){
-
-        //echo "Theme->language_settings(".ENABLE_MULTILANGUAGE.")<br>";
-
         if(ENABLE_MULTILANGUAGE){
             $languages = [];
             switch(ENABLE_MULTILANGUAGE){
@@ -602,6 +602,9 @@ Class Theme{
         define("SITE_ASSETS", $site_assets);
     }
     public function remove_comments(){
+        if (!is_admin()) {
+            return;
+        }
         $disable_comments_file = "/remove-comments-absolute.php";
         $disable_comments_path = SH_INCLUDES_PATH . $disable_comments_file;
         $disable_comments_plugin = WP_PLUGIN_DIR . $disable_comments_file;
@@ -646,6 +649,7 @@ Class Theme{
             add_action("init", function(){
                 \PluginManager::init();
                 \Update::init();
+                new \AvifConverter(50);
             });            
         }
         new \starterSite(); 

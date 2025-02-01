@@ -214,19 +214,20 @@ if (class_exists("acf")) {
 
 add_action('after_setup_theme', function () {
     if (!class_exists("Timber")) {
-        add_action("admin_notices", function () {
-            echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
-                esc_url(admin_url("plugins.php#timber")) .
-                '">' .
-                esc_url(admin_url("plugins.php")) .
-                "</a></p></div>";
-        });
+        if(is_admin()){
+            add_action("admin_notices", function () {
+                echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
+                    esc_url(admin_url("plugins.php#timber")) .
+                    '">' .
+                    esc_url(admin_url("plugins.php")) .
+                    "</a></p></div>";
+            });            
+        }
         add_filter("template_include", function ($template) {
             return SH_STATIC_PATH . "no-timber.html";
         });
         return;
     } else {
-
         Timber::$dirname = array( 'vendor/salthareket/theme/src/templates', 'theme/templates', 'templates' );
         Timber::$autoescape = false;
         Timber::$cache = false;
@@ -304,14 +305,17 @@ if ($GLOBALS["pagenow"] === "wp-login.php") {
 }*/
 
 if (class_exists("ACF")) {
-
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
+
     if(class_exists('ACFE')){
        include_once SH_INCLUDES_PATH . "plugins/acfe.php";
     }
     if(class_exists("OpenStreetMap")){
         //die;
         include_once SH_INCLUDES_PATH . "plugins/acf-osm.php";
+    }
+    if(is_admin()){
+        include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
     }
     //include_once SH_INCLUDES_PATH . "acf-field-groups.php";
     
@@ -401,7 +405,15 @@ if (ENABLE_PRODUCTION) {
     include_once SH_INCLUDES_PATH . "minify-rules.php";
 }
 
-include_once SH_CLASSES_PATH . "class.scss-compiler.php";
+//if(is_admin()){
+    include_once SH_CLASSES_PATH . "class.avif.php";
+    include_once SH_CLASSES_PATH . "class.scss-compiler.php";
+    include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
+    include_once SH_CLASSES_PATH . "class.oembed-video.php";
+    include_once SH_CLASSES_PATH . "class.featured-image.php";
+    include_once SH_CLASSES_PATH . "class.ffmpeg.php";   
+//}
+
 
 include_once SH_CLASSES_PATH . "class.image.php";
 include_once SH_CLASSES_PATH . "class.shortcodes.php";
@@ -409,12 +421,7 @@ include_once SH_CLASSES_PATH . "class.logger.php";
 include_once SH_CLASSES_PATH . "class.encrypt.php";
 include_once SH_CLASSES_PATH . "class.paginate.php";
 include_once SH_CLASSES_PATH . "class.localization.php";
-include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
-include_once SH_CLASSES_PATH . "class.oembed-video.php";
-include_once SH_CLASSES_PATH . "class.featured-image.php";
-include_once SH_CLASSES_PATH . "class.ffmpeg.php";
 //include 'classes/class.geolocation.query.php';
-
 
 include_once SH_INCLUDES_PATH . "notices.php";
 include_once SH_INCLUDES_PATH . "rewrite.php";
@@ -452,6 +459,9 @@ if (SH_THEME_EXISTS && is_admin()) {
 }
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 include_once SH_INCLUDES_PATH . "actions.php";
+if(is_admin()){
+    include_once SH_INCLUDES_PATH . "actions-admin.php";
+}
 /*
 $GLOBALS["base_urls"] = array();
 //if (ENABLE_MEMBERSHIP) {

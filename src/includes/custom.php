@@ -122,9 +122,11 @@ class SaltBase{
         $localization = new Localization();
         $localization->woocommerce_support = true;
         $this->localization = $localization;
-
-        $extractor = new PageAssetsExtractor();
-        $this->extractor = $extractor;
+        
+        //if(is_admin()){
+            $extractor = new PageAssetsExtractor();
+            $this->extractor = $extractor;            
+        //}
 
         if(ENABLE_SEARCH_HISTORY){
             $search_history = new SearchHistory();

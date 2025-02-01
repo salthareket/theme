@@ -6,9 +6,11 @@ add_filter( 'timber/acf-gutenberg-blocks-templates', function () {
 
 add_filter( 'timber/acf-gutenberg-blocks-data', function( $context ){
     //$context['fields']['extra_data'] = 'New extra data';
-    $upload_dir = wp_upload_dir();
-    $upload_url = $upload_dir['baseurl'];
-    $context['fields']['upload_url'] = $upload_url;
+    if(isset($context['fields'])){
+        $upload_dir = wp_upload_dir();
+        $upload_url = $upload_dir['baseurl'];
+        $context['fields']['upload_url'] = $upload_url;        
+    }
     return $context;
 });
 
@@ -1593,6 +1595,7 @@ function acf_block_id_fields($post_id){
             error_log($block['blockName']);
 
             $data = $block['attrs']['data'];
+            error_log(print_r($data, true));
 
             $block_settings_field_id = explode("_field", $data['_block_settings_hero'])[0];
 

@@ -26,3 +26,8 @@ class AppExtension extends AbstractExtension {
         return array_values($array); // PHP'nin array_values fonksiyonunu kullanıyoruz
     }
 }
+
+
+apply_filters('timber/cache/mode', function () {
+    return Timber\Loader::CACHE_OBJECT;
+});

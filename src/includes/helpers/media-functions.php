@@ -1,4 +1,7 @@
 <?php
+
+use SaltHareket\Image;
+
 function file_get_contents3($url=""){
 	$options = [
 	  'http' => [
@@ -259,13 +262,21 @@ add_filter( 'wp_get_attachment_image_attributes', 'add_orientation_class_filter'
 
 function get_attachment_id_by_url($image_url) {
     global $wpdb;
-    $prefix = $wpdb->prefix;
-    $attachment = $wpdb->get_col("SELECT ID FROM " . $prefix . "posts" . " WHERE guid='" . $image_url . "';");
-    if($attachment){
-    	return $attachment[0];
+    $attachment_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts} WHERE guid = %s AND post_type = 'attachment'",
+        $image_url
+    ));
+    if ($attachment_id) {
+        return $attachment_id;
     }
-    return false;
+    $filename = pathinfo($image_url, PATHINFO_FILENAME);
+    $attachment_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'attachment'",
+        $filename
+    ));
+    return $attachment_id ?: false; // Eğer bulunamazsa false döndür
 }
+
 
 function get_attachment_dimensions_by_url($image_url) {
 	$attachment_id = get_attachment_id_by_url($image_url);
@@ -544,7 +555,7 @@ add_filter('image_size_names_choose', 'upload_sizes_names');
 
 
 function get_image_set($args=array()){
-	$image = new \Image($args);
+	$image = new SaltHareket\Image($args);
 	return $image->init();
     /*
 	$defaults = array(
@@ -670,6 +681,8 @@ function get_video($video_args=array()){
 			    		$attachment_id = get_attachment_id_by_url($source);
 			    		if($source){
 			    			$meta = get_post_meta($attachment_id, '_wp_attachment_metadata', true);
+			    			error_log(print_r($source, true));
+			    			error_log("attachment_id:".$attachment_id);
 			    			$sources .= '<source '.($lazy?"":"").'src="'.$source.'" type="'.$meta["mime_type"].'" size="'.$meta["height"].'" />';
 			    		}
 			    	}
@@ -784,4 +797,74 @@ function get_video($video_args=array()){
 	$data_config = "data-plyr-config='$config'";
 	$code = str_replace("{{config}}", $data_config, $code);
     return $code;
+}
+
+
+function getAspectRatio(int $width, int $height){
+    // search for greatest common divisor
+    $greatestCommonDivisor = static function($width, $height) use (&$greatestCommonDivisor) {
+        return ($width % $height) ? $greatestCommonDivisor($height, $width % $height) : $height;
+    };
+    $divisor = $greatestCommonDivisor($width, $height);
+    return $width / $divisor . '/' . $height / $divisor;
+}
+
+
+
+function get_google_optimized_avif_quality() {
+    $base_quality = 50; // Varsayılan kalite
+    $min_quality = 10;  // En düşük kalite
+    $max_resolution_threshold = 1920 * 1080; // Full HD'den büyük görseller sıkıştırılmalı
+    $filesize_threshold = 300000; // 300 KB üstünde kaliteyi düşür
+
+    // Son yüklenen dosyayı al
+    global $wpdb;
+    $attachment = $wpdb->get_row("SELECT ID, guid FROM {$wpdb->posts} WHERE post_type = 'attachment' ORDER BY post_date DESC LIMIT 1");
+
+    if (!$attachment) {
+        return $base_quality;
+    }
+
+    $file_path = get_attached_file($attachment->ID);
+    if (!file_exists($file_path)) {
+        return $base_quality;
+    }
+
+    $filesize = filesize($file_path);
+    $image_info = getimagesize($file_path);
+
+    if (!$image_info) {
+        return $base_quality;
+    }
+
+    // Görselin genişlik ve yüksekliğini al
+    $width = $image_info[0];
+    $height = $image_info[1];
+
+    // Görselin piksel yoğunluğunu hesapla
+    $resolution = $width * $height;
+
+    // Ortalama renk çeşitliliğini belirlemek için basit bir hesap (renk derinliği)
+    $bits_per_pixel = isset($image_info['bits']) ? $image_info['bits'] : 8;
+    $color_variation = ($bits_per_pixel / 8) * 100; // Renk çeşitliliğine göre değer üret
+
+    // Eğer çözünürlük 1920x1080'den büyükse kaliteyi düşür
+    if ($resolution > $max_resolution_threshold) {
+        $resolution_factor = ($resolution / $max_resolution_threshold) * 15; // Büyük çözünürlüklerde kaliteyi sert düşür
+        $base_quality -= $resolution_factor;
+    }
+
+    // Dosya boyutu çok büyükse kaliteyi daha da düşür
+    if ($filesize > $filesize_threshold) {
+        $size_factor = ($filesize / $filesize_threshold) * 10; // Büyük dosyalarda ekstra sıkıştırma
+        $base_quality -= $size_factor;
+    }
+
+    // Eğer görselin renk çeşitliliği düşükse (tek renk, az detay), kaliteyi iyice azalt
+    if ($color_variation < 80) { 
+        $base_quality -= 15; // Az detaylı resimler için ekstra sıkıştırma
+    }
+
+    // Kaliteyi min ve max değerler arasında sınırla
+    return max($min_quality, min(80, $base_quality));
 }

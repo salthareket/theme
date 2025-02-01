@@ -249,6 +249,10 @@ class Update {
                                 <input class="form-check-input" type="checkbox" name="plugin_types" value="newsletter" id="newsletterSwitch">
                                 <label class="form-check-label ms-2" for="newsletterSwitch">Newsletter</label>
                             </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="cookie" id="cookieSwitch">
+                                <label class="form-check-label ms-2" for="cookieSwitch">Cookie Consent</label>
+                            </div>
                             
                         </div>
                     </div>
@@ -382,8 +386,8 @@ class Update {
                         <div class="list-group-item py-3">
                             <?php echo "<h3 class='mb-3 mt-0'>".$post->post_title.": <span class='text-success'>Video Processing...</span></h3>";
                             foreach($tasks as $task){ 
-                                $status = $task["status"];
-                                $block = $blocks[$task["index"]];
+                                $status = isset($task["tasks"]);
+                                $block = $blocks[$task["block_index"]];
                                 $video = wp_get_attachment_url($block["attrs"]["data"]["video_file_desktop"]);
                             ?>
                                 <div class="list-group">
@@ -403,29 +407,31 @@ class Update {
                                                 </video>
                                             </div>
                                             <div class="col">
+                                                <?php 
+                                                if($status){
+                                                ?>
                                                 <table class="table table-light table-striped">
                                                     <tbody>
                                                         <?php
-                                                        $loading = $status; 
-                                                        if($task["sizes"]){
-                                                            foreach($task["sizes"] as $size){
+                                                         
+                                                        if(isset($task["tasks"]["sizes"])){
+                                                            foreach($task["tasks"]["sizes"] as $size => $size_status){
                                                             ?>
                                                             <tr>
                                                                 <?php
-                                                                if(!$loading){
-                                                                    $loading = true
+                                                                if(!$size_status){
                                                                 ?>
                                                                    <td class="loading loading-xs position-relative" style="width:30px;"></td>
                                                                 <?php
                                                                 }else{?>
-                                                                   <td class="text-center" style="width:30px;">---</td>
+                                                                   <td class="text-center text-success text-center" style="width:30px;"><i class="fa fa-check"></i></td>
                                                                 <?php
                                                                 }
                                                                 ?>
                                                                 <td class="fw-bold">Generate <?php echo $size;?>p size</td>
                                                                 <td class="text-end">
                                                                     <?php 
-                                                                     echo $status?"Completed":"In progress...";
+                                                                     echo $size_status?"Completed":"In progress...";
                                                                     ?>
                                                                 </td>
                                                             </tr>
@@ -434,57 +440,61 @@ class Update {
                                                         }?>
 
                                                         <?php 
-                                                        if($task["thumbnails"]){
+                                                        if(isset($task["tasks"]["poster"])){
                                                             ?>
                                                             <tr>
                                                                 <?php
-                                                                if(!$loading){
-                                                                    $loading = true
+                                                                if(!$task["tasks"]["poster"]){
                                                                 ?>
-                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
+                                                                    <td class="loading loading-xs position-relative" style="width:30px;"></td> 
                                                                 <?php
                                                                 }else{?>
-                                                                   <td class="text-center" style="width:30px;">---</td>
-                                                                <?php
-                                                                }
-                                                                ?>
-                                                                <td class="fw-bold">Generating thumbnails</td>
-                                                                <td class="text-end">
-                                                                    <?php 
-                                                                     echo $status?"Completed":"In progress...";
-                                                                    ?>
-                                                                </td>
-                                                            </tr>
-                                                            <?php
-                                                        }?>
-
-                                                        <?php 
-                                                        if($task["poster"]){
-                                                            ?>
-                                                            <tr>
-                                                                <?php
-                                                                if(!$loading){
-                                                                    $loading = true
-                                                                ?>
-                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
-                                                                <?php
-                                                                }else{?>
-                                                                   <td class="text-center" style="width:30px;">---</td>
+                                                                    <td class="text-center text-success text-center" style="width:30px;"><i class="fa fa-check"></i></td>
                                                                 <?php
                                                                 }
                                                                 ?>
                                                                 <td class="fw-bold">Generating poster frame</td>
                                                                 <td class="text-end">
                                                                     <?php 
-                                                                     echo $status?"Completed":"In progress...";
+                                                                     echo $task["tasks"]["poster"]?"Completed":"In progress...";
                                                                     ?>
                                                                 </td>
                                                             </tr>
                                                             <?php
                                                         }?>
                                                         
+                                                        <?php 
+                                                        if(isset($task["tasks"]["thumbnails"])){
+                                                            ?>
+                                                            <tr>
+                                                                <?php
+                                                                if(!$task["tasks"]["thumbnails"]){
+                                                                ?>
+                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
+                                                                <?php
+                                                                }else{?>
+                                                                   <td class="text-center text-success text-center" style="width:30px;"><i class="fa fa-check"></i></td>
+                                                                <?php
+                                                                }
+                                                                ?>
+                                                                <td class="fw-bold">Generating thumbnails</td>
+                                                                <td class="text-end">
+                                                                    <?php 
+                                                                     echo $task["tasks"]["thumbnails"]?"Completed":"In progress...";
+                                                                    ?>
+                                                                </td>
+                                                            </tr>
+                                                            <?php
+                                                        }?>
+
                                                     </tbody>
                                                 </table>
+                                                <?php
+                                                }else{?>
+                                                   <span class="fw-bold text-success">Completed!</span>
+                                                <?php
+                                                }
+                                                ?>
                                             </div>
                                         </div>
                                     </div>

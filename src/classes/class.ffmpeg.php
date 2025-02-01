@@ -5,8 +5,7 @@ use FFMpeg\Format\Video\X264;
 use FFMpeg\Filters\Video\ResizeFilter;
 use FFMpeg\Coordinate\Dimension;
 
-class VideoProcessor
-{
+class VideoProcessor{
     private $ffmpegPath;
     private $ffprobePath;
     private $ffmpeg;
@@ -40,11 +39,9 @@ class VideoProcessor
             $this->ffprobePath = SH_PATH . '/bin/linux/ffprobe';
         }
     }
-    
     public function is_supported(){
         return stristr(PHP_OS, 'WIN') || stristr(PHP_OS, 'Linux');
     }
-
     public function is_available(){
         if($this->supported){
             return file_exists($this->ffmpegPath) && file_exists($this->ffprobePath);
@@ -52,75 +49,130 @@ class VideoProcessor
         return false;
     }
 
-    public function processVideo($postId, $inputPath, $resize = false, $previewThumbnails = false, $poster = false){
+    public function update_video_task($post_id = 0, $task = []){
+        $video_tasks = get_post_meta($post_id, 'video_tasks', true);
+        if($task){
+            $video_tasks[$task["index"]] = $task;
+            $remove = true;
+            foreach($video_tasks as $video_task){
+                if(isset($video_task["tasks"])){
+                    $remove = false;
+                    continue;
+                }
+            }
+            error_log(print_r($video_tasks, true));
+            error_log("remove:" . $remove);
+            if($remove){
+                delete_post_meta($post_id, 'video_tasks');
+            }else{
+                update_post_meta($post_id, 'video_tasks', $video_tasks);
+            }
+        }
+    }
+    public function get_dimensions($inputPath){
+        $video = $this->ffmpeg->open($inputPath);
+        $videoInfo = $video->getStreams()->videos()->first();
+        return [
+            "width"  => $videoInfo->get('width'),
+            "height" => $videoInfo->get('height')
+        ];
+    }
+
+    public function processVideo($post_id, $inputPath, $inputId, $video_task = []){
         if(!$this->available){
             return [];
         }
         $uploadDir = wp_upload_dir();
         $outputDir = $uploadDir['path'];
-        $baseFileName = $this->sanitizeFileName($postId);
+        $baseFileName = $this->sanitizeFileName($inputPath, $inputId);
         $results = [];
         
         if (pathinfo($inputPath, PATHINFO_EXTENSION) != 'mp4') {
             $inputPath = $this->convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName);
         }
 
-        $video = $this->ffmpeg->open($inputPath);
-        $videoInfo = $video->getStreams()->videos()->first();
-        $originalWidth = $videoInfo->get('width');
-        $originalHeight = $videoInfo->get('height');
+        $dimensions = $this->get_dimensions($inputPath);
 
-        if ($originalHeight === 720) {
-            $optimizedPath = "{$outputDir}/{$baseFileName}-720p.mp4";
-            rename($inputPath, $optimizedPath);
-            $inputPath = $optimizedPath;
-        } else {
-            $inputPath = $this->resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $originalWidth, $originalHeight);
+        $task_index = 0;
+        $sizes = [];
+        $thumbnails = false;
+        $poster = false;
+        if($video_task){
+            $task_index = $video_task['index'];
+            $sizes = isset($video_task["tasks"]['sizes']) ? array_keys($video_task["tasks"]['sizes']) : [];
+            $poster = isset($video_task["tasks"]['poster']);
+            $thumbnails = isset($video_task["tasks"]['thumbnails']);
         }
-        $results[720] = $this->saveToMediaLibrary($postId, $inputPath);
 
+        if ($originalHeight > 720) {
+            $inputPath    = $this->resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $dimensions["width"], $dimensions["height"]);
+            $results[720] = $this->saveToMediaLibrary($post_id, $inputPath, $inputId);
+        }
+        $video_task["tasks"]['sizes']["720"] = true;
+        $this->update_video_task($post_id, $video_task);
         
-
-        if ($resize) {
-            $resolutions = is_array($resize) ? $resize : [480, 360];
+        if ($sizes) {
+            $resolutions = is_array($sizes) ? $sizes : [480, 360];
             foreach ($resolutions as $height) {
-                $width = (int) round($height * ($originalWidth / $originalHeight));
-                $width = round($width / 2) * 2;
-                $height = round($height / 2) * 2;
-                $results[$height] = $this->convertResolution($postId, $inputPath, $outputDir, $baseFileName, $width, $height);
+                if($resolutions != 720){
+                    $width = (int) round($height * ($dimensions["width"] / $dimensions["height"]));
+                    $width = round($width / 2) * 2;
+                    $height = round($height / 2) * 2;
+                    $results[$height] = $this->convertResolution($post_id, $inputPath, $outputDir, $baseFileName, $width, $height);
+                    $video_task["tasks"]['sizes'][$height] = true;
+                    $this->update_video_task($post_id, $video_task);                    
+                }
             }
         }
         
         if($poster){
             $posterPath = "{$outputDir}/{$baseFileName}-poster.jpg";
             $this->generatePosterFrame($inputPath, $posterPath);
-            $results['poster'] = $this->saveToMediaLibrary($postId, $posterPath);            
+            $results['poster'] = $this->saveToMediaLibrary($post_id, $posterPath);
+            $video_task["tasks"]['poster'] = true;
+            $this->update_video_task($post_id, $video_task);             
         }
 
-        if ($previewThumbnails) {
-            $thumbnailVideo = $resize ? "{$outputDir}/{$baseFileName}-360p.mp4" : $inputPath;
+        if ($thumbnails) {
+            $thumbnailVideo = in_array(360, $sizes) ? "{$outputDir}/{$baseFileName}-360p.mp4" : "";
+            if(empty($thumbnailVideo)){
+                $thumbnailVideo = in_array(480, $sizes) ? "{$outputDir}/{$baseFileName}-480p.mp4" : $inputPath;
+            }
             $thumbnailsDir = "{$outputDir}";//"{$outputDir}/thumbnails";
             $spritePath = "{$thumbnailsDir}/{$baseFileName}.jpg";
             $vttPath = "{$thumbnailsDir}/{$baseFileName}.vtt";
 
             $this->generateThumbnails($thumbnailVideo, $thumbnailsDir, $spritePath, $vttPath);
 
-            $results['thumbnails'] = $this->saveToMediaLibrary($postId, $spritePath);
-            $results['vtt'] = $this->saveToMediaLibrary($postId, $vttPath);
+            $results['thumbnails'] = $this->saveToMediaLibrary($post_id, $spritePath);
+            $results['vtt'] = $this->saveToMediaLibrary($post_id, $vttPath);
+
+            $video_task["tasks"]['thumbnails'] = true;
+            $this->update_video_task($post_id, $video_task); 
         }
+        unset($video_task["tasks"]);
+        $this->update_video_task($post_id, $video_task); 
 
         return $results;
     }
 
-    private function sanitizeFileName($postId){
-        $postType = get_post_type($postId);
-        $uniqueString = $postType . '-' . $postId;
+    /*private function sanitizeFileName($post_id){
+        $postType = get_post_type($post_id);
+        $uniqueString = $postType . '-' . $post_id;
         return md5($uniqueString);
+    }*/
+    private function sanitizeFileName($inputPath, $attachment_id) {
+        $filename = pathinfo($inputPath, PATHINFO_FILENAME);
+        $extension = pathinfo($inputPath, PATHINFO_EXTENSION);
+        if (empty($extension)) {
+            $extension = 'mp4';
+        }
+        return $filename;// . "-" . $attachment_id.".".$extension;
     }
 
     private function convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName){
 
-        $outputPath = "{$outputDir}/{$baseFileName}-720p.mp4";
+        $outputPath = "{$outputDir}/{$baseFileName}.mp4";
 
         $video = $this->ffmpeg->open($inputPath);
 
@@ -135,22 +187,19 @@ class VideoProcessor
 
         return $outputPath;
     }
-
     private function resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $originalWidth, $originalHeight){
         $targetHeight = 720;
         $targetWidth = (int) round($targetHeight * ($originalWidth / $originalHeight));
 
-        $outputPath = "{$outputDir}/{$baseFileName}-720p.mp4";
+        $outputPath = "{$outputDir}/{$baseFileName}.mp4";
         $this->convertResolutionToPath($inputPath, $outputPath, $targetWidth, $targetHeight);
         return $outputPath;
     }
-
-    private function convertResolution($postId, $inputPath, $outputDir, $baseFileName, $width, $height){
+    private function convertResolution($post_id, $inputPath, $outputDir, $baseFileName, $width, $height){
         $outputPath = "{$outputDir}/{$baseFileName}-{$height}p.mp4";
         $this->convertResolutionToPath($inputPath, $outputPath, $width, $height);
-        return $this->saveToMediaLibrary($postId, $outputPath);
+        return $this->saveToMediaLibrary($post_id, $outputPath);
     }
-
     private function convertResolutionToPath($inputPath, $outputPath, $width, $height) {
         $video = $this->ffmpeg->open($inputPath);
 
@@ -186,6 +235,7 @@ class VideoProcessor
                 '-preset', $preset,          // Kodlama hızı (veryslow daha küçük dosya boyutu sağlar)
                 '-tune', 'film',             // Görüntü kalitesini optimize etmek için
                 '-movflags', '+faststart',   // Hızlı başlangıç için
+                //'-b:v', '1000k'
             ])
             ->setKiloBitrate((int)$scaled_bitrate) // Ölçeklenmiş bitrate
             ->setAudioChannels(2) // Ses kanalı
@@ -202,34 +252,12 @@ class VideoProcessor
         ///error_log(print_r($video_info, true));
     }
 
-    private function logVideoDetails($filePath){
-        $ffprobe = $this->ffmpeg->getFFProbe();
-
-        // Dosya bilgilerini al
-        $videoInfo = $ffprobe->streams($filePath)->videos()->first();
-        $audioInfo = $ffprobe->streams($filePath)->audios()->first();
-
-        error_log("Video Details: " . print_r([
-            'width' => $videoInfo->get('width'),
-            'height' => $videoInfo->get('height'),
-            'bitrate' => $videoInfo->get('bit_rate'),
-            'duration' => $videoInfo->get('duration')
-        ], true));
-
-        if ($audioInfo) {
-            error_log("Audio Details: " . print_r([
-                'bitrate' => $audioInfo->get('bit_rate'),
-                'channels' => $audioInfo->get('channels')
-            ], true));
-        }
-    }
-
     private function generatePosterFrame($inputPath, $posterPath){
         $this->ffmpeg->open($inputPath)
             ->frame(\FFMpeg\Coordinate\TimeCode::fromSeconds(5))
             ->save($posterPath);
     }
-
+    
     private function generateThumbnails($inputPath, $thumbnailsDir, $spritePath, $vttPath){
         if (!file_exists($thumbnailsDir)) {
             mkdir($thumbnailsDir, 0777, true);
@@ -258,7 +286,6 @@ class VideoProcessor
             }
         }
     }
-
     private function resizeImage($filePath, $width){
         list($originalWidth, $originalHeight) = getimagesize($filePath);
         $aspectRatio = $originalHeight / $originalWidth;
@@ -273,8 +300,6 @@ class VideoProcessor
         imagedestroy($image);
         imagedestroy($newImage);
     }
-
-
     private function createSprite($frames, $spritePath){
         $columns = 15;
         $rows = ceil(count($frames) / $columns);
@@ -303,8 +328,7 @@ class VideoProcessor
         imagejpeg($sprite, $spritePath);
         imagedestroy($sprite);
     }
-
-    private function createVtt($frames, $spritePath, $vttPath, $frameInterval){
+    private function createVtt($frames, $spritePath, $vttPath, $frameInterval) {
         $columns = 15;
         $vtt = "WEBVTT\n\n";
 
@@ -314,7 +338,6 @@ class VideoProcessor
             $x = ($index % $columns) * $width;
             $y = floor($index / $columns) * $height;
 
-            // Zaman hesaplamalarını $frameInterval ile senkronize et
             $startTime = gmdate("H:i:s", $index * $frameInterval);
             $endTime = gmdate("H:i:s", ($index + 1) * $frameInterval);
 
@@ -325,32 +348,64 @@ class VideoProcessor
         file_put_contents($vttPath, $vtt);
     }
 
-    private function saveToMediaLibrary($postId, $filePath){
+    private function saveToMediaLibrary($post_id, $filePath, $attachment_id = null){
+        $uploadDir = wp_upload_dir(); 
+        $fileUrl = $uploadDir['url'] . '/' . basename($filePath);
         $filetype = wp_check_filetype(basename($filePath));
+
+        if ($attachment_id) {
+            $metadata = wp_get_attachment_metadata($attachment_id) ?: [];
+            if (strpos($filetype['type'], 'video') !== false) {
+                $dimensions = $this->get_dimensions($filePath);
+                $metadata['width'] = $dimensions['width'];
+                $metadata['height'] = $dimensions['height'];
+            } else {
+                list($metadata['width'], $metadata['height']) = getimagesize($filePath);
+            }
+            $metadata['file'] = str_replace($uploadDir['basedir'] . '/', '', $filePath);
+            wp_update_attachment_metadata($attachment_id, $metadata);
+            return $attachment_id; // Mevcut ID'yi döndür
+        }
+
         $attachment = [
             'post_mime_type' => $filetype['type'],
             'post_title'     => sanitize_file_name(basename($filePath)),
             'post_content'   => '',
             'post_status'    => 'inherit',
+            'guid'           => $fileUrl,
         ];
-
-        $attachId = wp_insert_attachment($attachment, $filePath, $postId);
-
-        // WordPress'te diğer boyutların oluşturulmasını engelle
+        $attachId = wp_insert_attachment($attachment, $filePath, $post_id);
         add_filter('intermediate_image_sizes_advanced', [$this, 'disableIntermediateImageSizes']);
-
-        // Medya meta verisini oluştur
         $metadata = wp_generate_attachment_metadata($attachId, $filePath);
         wp_update_attachment_metadata($attachId, $metadata);
-
-        // Filtreyi kaldır
         remove_filter('intermediate_image_sizes_advanced', [$this, 'disableIntermediateImageSizes']);
-
         return $attachId;
     }
 
     public function disableIntermediateImageSizes($sizes){
         // Thumbnail, medium, large gibi boyutları kaldır
         return [];
+    }
+
+    private function logVideoDetails($filePath){
+        $ffprobe = $this->ffmpeg->getFFProbe();
+
+        // Dosya bilgilerini al
+        $videoInfo = $ffprobe->streams($filePath)->videos()->first();
+        $audioInfo = $ffprobe->streams($filePath)->audios()->first();
+
+        error_log("Video Details: " . print_r([
+            'width' => $videoInfo->get('width'),
+            'height' => $videoInfo->get('height'),
+            'bitrate' => $videoInfo->get('bit_rate'),
+            'duration' => $videoInfo->get('duration')
+        ], true));
+
+        if ($audioInfo) {
+            error_log("Audio Details: " . print_r([
+                'bitrate' => $audioInfo->get('bit_rate'),
+                'channels' => $audioInfo->get('channels')
+            ], true));
+        }
     }
 }

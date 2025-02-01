@@ -1,4 +1,7 @@
 <?php
+
+use SaltHareket\Image;
+
 class Term extends Timber\Term{
     protected $post_count;
 
@@ -10,16 +13,16 @@ class Term extends Timber\Term{
         if($media->media_type == "image"){
             if($media->use_responsive_image){
                 $args["src"] = $media->image_responsive;
-                $image = new \Image($args);
+                $image = new SaltHareket\Image($args);
                 return $image->init();
             }else{
                 $args["src"] = $this->thumbnail();
-                $image = new \Image($args);
+                $image = new SaltHareket\Image($args);
                 return $image->init();
             }
         }else{
             $args["src"] = $this->thumbnail();
-            $image = new \Image($args);
+            $image = new SaltHareket\Image($args);
             return $image->init();
         }
     }

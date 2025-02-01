@@ -81,7 +81,10 @@ $required_plugins = array(
         "type" => ["newsletter"],
         "name" => 'newsletter/plugin.php'
     ),
-    //'featured-image-admin-thumb-fiat/featured-image-admin-thumb.php',
+    array(
+        "type" => ["cookie"],
+        "name" => 'complianz-gdpr/complianz-gpdr.php'
+    ),
 );
 if(ACTIVATE_UNDER_CONSTRUCTION){
     //$required_plugins[] = 'underconstruction/underConstruction.php';
