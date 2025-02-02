@@ -72,7 +72,7 @@
 
             {% elseif gallery_type == "pattern" %}
 
-               {{function("block_gallery_pattern", source, fields.settings.pattern, fields.settings.gap, fields.settings.item_class)}}
+               {{function("block_gallery_pattern", source, fields.settings.pattern, fields.settings.gap, fields.settings.item_class, fields.settings.loop)}}
 
             {% else %}
                 {% for item in source %}
@@ -144,6 +144,7 @@
                             {% if ratio_class %}
                             <div class="{{ratio_class}}">
                             {% endif %}
+                            {#{{img({src: item.src, class : image_class, lazy: true, lazy_native: true})}}#}
                             <img src="{{item.src|replace({"{upload_url}" : site.upload_url})}}"
                                 alt="{{item.title}}" 
                                 loading="lazy"
@@ -222,9 +223,11 @@
         {% endif %}
 
     </div>
+    {% if lightbox %}
     <script type="text/javascript" data-inline="true">
         {{gallery_id|replace({"-": "_"})}} = {{source|json_encode}};
     </script>
+    {% endif %}
 
 {% endblock %}
 

@@ -1860,6 +1860,11 @@ function acf_add_field_options($field) {
         }
     }
 
+    if($field["type"] == "image" || $field["type"] == "gallery"){
+        $mime_types = ["jpg", "jpeg", "png", "gif", "svg", "webp", "avif"];
+        $field["mime_types"] = implode(",", $mime_types);
+    }
+
 	return $field;
 }
 add_filter('acf/load_field', 'acf_add_field_options');

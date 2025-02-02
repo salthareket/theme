@@ -41,6 +41,10 @@ function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4
     $index = 0;
     $totalImages = count($images);
 
+    if(!$ratios){
+        $ratios = ["4x3"];
+    }
+
     while ($index < $totalImages) {
         // Random number between 1 and maxCol, ensuring it doesn't exceed remaining images
         $randomCol = min(rand(1, $maxCol), $totalImages - $index);
@@ -111,7 +115,7 @@ function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4
 
     return $htmlOutput;
 }
-function block_gallery_pattern($images, $patterns, $gap=3, $class="") {
+function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = false) {
     if(!$patterns){
         return;
     }
@@ -120,73 +124,88 @@ function block_gallery_pattern($images, $patterns, $gap=3, $class="") {
     $index = 0;
     $totalImages = count($images);
 
-    foreach($patterns as $key => $pattern){
-        $col = $pattern["columns"];
-        $ratio = $pattern["ratio"];
-        $breakpoint = $pattern["breakpoint"];
-        $ratioClass = "ratio ratio-".$ratio;
-        $gapClass = 'gx-' . $gap . ' gy-' . $gap . ' mb-'.$gap;
+    $repeat = 1;
+    if($loop){
+        $totalColumns = array_sum(array_map(fn($item) => $item['columns'], $patterns));
+        $repeat = ceil($totalImages / $totalColumns); 
+    }
 
-        // Check if the row will contain only one image
-        if ($col === 1) {
-            $htmlOutput .= '<div class="row ' . $gapClass . '">';
-        } else {
-            $htmlOutput .= '<div class="row row-cols-' . $breakpoint . '-' . $col . ' row-cols-1 ' . $gapClass . '">';
-        }
+    for ($z = 1; $z <= $repeat; $z++) {
+        foreach($patterns as $key => $pattern){
+            $col = $pattern["columns"];
+            $ratio = $pattern["ratio"];
+            $breakpoint = $pattern["breakpoint"];
+            $ratioClass = "ratio ratio-".$ratio;
+            $gapClass = 'gx-' . $gap . ' gy-' . $gap . ' mb-'.$gap;
 
-        for ($i = 0; $i < $col; $i++) {
-            switch($images[$index]["type"]){
-                case "image":
-                    if(isset($images[$index]["img-src"])){
-                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';
-                        $index++;                
-                    }
-                break;
-                case "file" :
-                case "embed" :
-                    $args = array(
-                        "video_type" => $images[$index]["type"],
-                        "video_settings" => array(
-                            "videoBg" => 1,
-                            "autoplay" => 0,
-                            "loop" => 0,
-                            "muted" => 0,
-                            "videoReact" => 1,
-                            "controls" => 1,
-                            "controls_options" => array(
-                                 "play-large"
-                            ),
-                            "controls_options_settings" => array(),
-                            "controls_hide" => 0,
-                            "ratio" => "",
-                            "custom_video_image" => "",
-                            "video_image" => $images[$index]["poster"],
-                            "vtt" => ""
-                        )
-                    );
-                    if($images[$index]["type"] == "file"){
-                        $args["video_file"] = array(
-                            "desktop" => $images[$index]["src"]
-                        );
-                    }else{
-                        $args["video_url"] = $images[$index]["src"];
-                    }
-                    $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">';
-                    $htmlOutput .= get_video([
-                        "src" => $args,
-                        "class" => $class,
-                        "init" => true,
-                        "lazy" => true,
-                        "attrs" => []
-                    ]);
-                    $htmlOutput .= '</div></div>';
-                    $index++; 
-                break;
+            // Check if the row will contain only one image
+            if ($col === 1) {
+                $htmlOutput .= '<div class="row ' . $gapClass . '">';
+            } else {
+                $htmlOutput .= '<div class="row row-cols-' . $breakpoint . '-' . $col . ' row-cols-1 ' . $gapClass . '">';
             }
+
+            for ($i = 0; $i < $col; $i++) {
+                if ($index >= $totalImages) {
+                    $htmlOutput .= '</div>';
+                    break 2; // İç ve dış for döngüsünden çık!
+                }
+                switch($images[$index]["type"]){
+                    case "image":
+                        if(isset($images[$index]["img-src"])){
+                            $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';
+                            $index++;                
+                        }
+                    break;
+                    case "file" :
+                    case "embed" :
+                        $args = array(
+                            "video_type" => $images[$index]["type"],
+                            "video_settings" => array(
+                                "videoBg" => 1,
+                                "autoplay" => 0,
+                                "loop" => 0,
+                                "muted" => 0,
+                                "videoReact" => 1,
+                                "controls" => 1,
+                                "controls_options" => array(
+                                     "play-large"
+                                ),
+                                "controls_options_settings" => array(),
+                                "controls_hide" => 0,
+                                "ratio" => "",
+                                "custom_video_image" => "",
+                                "video_image" => $images[$index]["poster"],
+                                "vtt" => ""
+                            )
+                        );
+                        if($images[$index]["type"] == "file"){
+                            $args["video_file"] = array(
+                                "desktop" => $images[$index]["src"]
+                            );
+                        }else{
+                            $args["video_url"] = $images[$index]["src"];
+                        }
+                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">';
+                        $htmlOutput .= get_video([
+                            "src" => $args,
+                            "class" => $class,
+                            "init" => true,
+                            "lazy" => true,
+                            "attrs" => []
+                        ]);
+                        $htmlOutput .= '</div></div>';
+                        $index++; 
+                    break;
+                }
+            }
+            $htmlOutput .= '</div>';
         }
-        $htmlOutput .= '</div>';
     }
     return $htmlOutput;
+}
+function block_gallery_pattern_loop(){
+
 }
 
 
