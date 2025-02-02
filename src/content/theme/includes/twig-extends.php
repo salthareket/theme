@@ -6,6 +6,7 @@ include "extends/post.php";
 include "extends/term.php";
 include "extends/menu.php";
 include "extends/menuitem.php";
+include "extends/image.php";
 
 add_filter('timber/post/classmap', function ($classmap) {
     $post_types = get_post_types(array('public' => true), 'names');
@@ -14,6 +15,7 @@ add_filter('timber/post/classmap', function ($classmap) {
     foreach ($post_types as $post_type) {
         $custom_classmap[$post_type] = ThemePost::class;
     }
+    $custom_classmap["attachment"] = ThemeImage::class;
     return array_merge($classmap, $custom_classmap);
 });
 
