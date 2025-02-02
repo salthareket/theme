@@ -149,7 +149,7 @@
                 ]
             ],
             "wrapper": {
-                "width": "",
+                "width": "100",
                 "class": "",
                 "id": ""
             },
@@ -602,6 +602,11 @@
                                 "field": "field_663f74df3ea84",
                                 "operator": "==",
                                 "value": "progress"
+                            },
+                            {
+                                "field": "field_663f74de3ea7a",
+                                "operator": "==",
+                                "value": "file"
                             }
                         ]
                     ],
@@ -751,7 +756,7 @@
                     "max_width": "",
                     "max_height": "",
                     "max_size": "",
-                    "mime_types": "",
+                    "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
                     "preview_size": "thumbnail",
                     "library": "all"
                 },
@@ -1038,7 +1043,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1738070525,
+    "modified": 1738494219,
     "acfe_categories": {
         "common": "Common"
     }
