@@ -82,6 +82,10 @@ $required_plugins = array(
         "name" => 'newsletter/plugin.php'
     ),
     array(
+        "type" => ["automation"],
+        "name" => "advanced-cron-manager/advanced-cron-manager.php"
+    ),
+    array(
         "type" => ["cookie"],
         "name" => 'complianz-gdpr/complianz-gpdr.php'
     ),
@@ -128,7 +132,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.17.4",
+    "v" => "3.18.1.3",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );

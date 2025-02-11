@@ -153,7 +153,7 @@ function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = fa
                 switch($images[$index]["type"]){
                     case "image":
                         if(isset($images[$index]["img-src"])){
-                            $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';
+                            $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover ' . $images[$index]["class"] . ' '.$class.'"></div></div>';
                             $index++;                
                         }
                     break;
@@ -204,10 +204,6 @@ function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = fa
     }
     return $htmlOutput;
 }
-function block_gallery_pattern_loop(){
-
-}
-
 
 
 function block_responsive_classes($field=[], $type="", $block_column=""){
@@ -246,32 +242,6 @@ function block_responsive_classes($field=[], $type="", $block_column=""){
     }
     return $classes;
 }
-/*
-function block_responsive_column_classes($field=[], $type="col-", $field_name=""){
-    $tempClasses = [];
-    $lastValue = null;
-    $lastKey = null;
-
-    foreach ($field as $key => $value) {
-        if ($value) {
-            if(!empty($field_name) && isset($value[$field_name])){
-                $value = $value[$field_name];
-            }
-            if ($value !== $lastValue) {
-                $col = ($key === "xs") ? "" : $key . "-";
-                $tempClasses[] = $type . $col . $value;
-            } else {
-                if ($key > $lastKey) {
-                    $key = ($key === "xs") ? "" : $key . "-";
-                    $tempClasses[count($tempClasses) - 1] = $type . $key . $value;
-                }
-            }
-            $lastValue = $value;
-            $lastKey = $key;
-        }
-    }
-    return $tempClasses;
-}*/
 function block_responsive_column_classes($field = [], $type = "col-", $field_name = "") {
     $tempClasses = [];
     $lastValue = null;
@@ -603,6 +573,1087 @@ function generate_spacing_classes($spacing, $prefix) {
 }
 
 
+function generate_breakpoint_css($classname, $breakpoints, $styles="") {
+    $breakpoint_sizes = [
+        "xs" => "0px", 
+        "sm" => "576px", 
+        "md" => "768px", 
+        "lg" => "992px", 
+        "xl" => "1200px", 
+        "xxl" => "1400px", 
+        "xxxl" => "1600px"
+    ];
+
+    if (empty($breakpoints)) return "";
+
+    // Breakpoint'leri sıralı hale getir
+    $selected = array_values(array_intersect(array_keys($breakpoint_sizes), (array)$breakpoints));
+
+    if (empty($selected)) return "";
+
+    $css = [];
+    $start = $selected[0]; 
+    $end = $start; 
+    
+    for ($i = 1; $i < count($selected); $i++) {
+        $current = $selected[$i];
+        $prev = $selected[$i - 1];
+
+        // Ardışık olup olmadığını kontrol et
+        if (array_search($current, array_keys($breakpoint_sizes)) === array_search($prev, array_keys($breakpoint_sizes)) + 1) {
+            $end = $current; // Eğer ardışık ise bitiş noktasını güncelle
+        } else {
+            // Yeni bir grup başlat
+            $css[] = generate_media_query($classname, $start, $end, $breakpoint_sizes, $styles);
+            $start = $current;
+            $end = $current;
+        }
+    }
+
+    // Son grubu da ekle
+    $css[] = generate_media_query($classname, $start, $end, $breakpoint_sizes, $styles);
+
+    return implode("\n", array_filter($css));
+}
+function generate_media_query($classname, $start, $end, $breakpoint_sizes, $styles = "") {
+    $min = $breakpoint_sizes[$start];
+
+    // Eğer `end` son breakpoint değilse, max-width hesapla
+    $breakpoint_keys = array_keys($breakpoint_sizes);
+    $next_index = array_search($end, $breakpoint_keys) + 1;
+    $max = isset($breakpoint_keys[$next_index]) 
+        ? " and (max-width: calc(" . $breakpoint_sizes[$breakpoint_keys[$next_index]] . " - 1px))" 
+        : "";
+
+    if(empty($styles)){
+      $styles = "display: none !important;";
+    }
+    return "@media (min-width: $min)$max { $classname { $styles } }";
+}
+
+
+function block_slider_controls($id = "", $controls = [], $direction = "horizontal", $autoheight = false){
+    $attrs = [];
+    $tools = [];
+    $css = [];
+    foreach($controls as $control){
+        $type = $control["acf_fc_layout"];
+        $placement = $control["placement"];
+        $position_x = $control["position"]["x"];
+        $position_y = $control["position"]["y"];
+
+        $autoheight = $autoheight && $direction == "vertical" ? false : $autoheight;
+
+        $space_prefix = "";
+        $space_obj = $id." .swiper";
+        if($placement == "outside"){
+            $space_prefix = $autoheight?"padding-":"";
+            $space_obj = $autoheight?$id." .card>.card-body":$space_obj;
+        }
+
+        switch($type){
+            case "navigation" :
+
+                
+                $attrs[$type] = true;
+
+                $size = unit_value($control["view"]["size"]);
+                $sides_offset = unit_value($control["view"]["x"]);
+                $top_offset = unit_value($control["view"]["y"]);
+
+                if($position_x == "center"){
+                    $top_offset = unit_value($control["view"]["y"]);
+                    $sides_offset = "50%";
+                }
+                if($position_y == "center"){
+                    $top_offset = "50%";
+                    $sides_offset = unit_value($control["view"]["x"]);
+                }
+                if($position_x == "center" && $position_y == "center"){
+                    $top_offset = "50%";
+                    $sides_offset = unit_value($control["view"]["x"]);
+                }
+
+                $rotate = $direction == "vertical" && $control["view"]["rotate"] ? true : false;
+
+                $css_top = "var(--swiper-navigation-top-offset)";
+                $css_left = "var(--swiper-navigation-sides-offset)";
+                $css_right = "var(--swiper-navigation-sides-offset)";
+                $css_bottom = "var(--swiper-navigation-top-offset)";
+
+                $css_size = "var(--swiper-navigation-size)";
+                if($rotate){
+                    if($position_y == "start" || $position_y == "end"){
+                        $css_top = "calc(var(--swiper-navigation-top-offset) + calc(var(--swiper-navigation-width) - var(--swiper-navigation-size)) / 2)";
+                    }
+                    if($position_x == "start" || $position_x == "end"){
+                        $css_left = "calc(var(--swiper-navigation-sides-offset) + calc(var(--swiper-navigation-size) - var(--swiper-navigation-width)) / 2)";
+                    }
+                    $css_size = "var(--swiper-navigation-width)";
+                }
+
+                $btn_prev = $id." .swiper-button-prev";
+                $btn_next = $id." .swiper-button-next";
+
+                if($control["hide"]){
+                    $css[] = generate_breakpoint_css($id." .swiper-button-prev, ".$id." .swiper-button-next", $control["hide"]);
+                    if($placement == "outside"){
+                        $css[] = generate_breakpoint_css($space_obj, $control["hide"], "padding:0!important;top:0!important;bottom:0!important;left:0!important;right:0!important;");
+                    }
+                }
+                
+                switch($position_x."-".$position_y){
+                        
+                        //sol ust
+                        case "start-start" :
+                            if($direction == "vertical" && $rotate){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_top." * 2) + calc(".$css_size." * 2));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+                           
+                                $css[] = $btn_prev."{" .
+                                        "top: ". $css_top .";" .
+                                        "bottom: auto;" .
+                                        "left: ".$css_left.";" .
+                                        "right: auto;" .
+                                        "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                        "top: calc(".$css_top." + ".$css_size.");" .
+                                        "bottom: auto;" .
+                                        "left: ".$css_left.";" .
+                                        "right: auto;" .
+                                        "margin-top:0;" .
+                                "}";                                    
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_top." * 2) + var(--swiper-navigation-size));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: ".$css_left.";" .
+                                    "right: auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: calc( ".$css_left." + var(--swiper-navigation-width));" .
+                                    "right: auto;" .
+                                    "margin-top:0;" .
+                                "}";
+
+                            }
+                        break;
+
+                        // sol orta
+                        case "start-center" :
+                            if($direction == "vertical" && $rotate){
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(".$css_left." * 2) + var(--swiper-navigation-width) );" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-navigation-sides-offset);" .
+                                    "right:auto;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: calc(".$css_top." + ".$css_size.");" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-navigation-sides-offset);" .
+                                    "right:auto;" .
+                                "}";
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(".$css_left." * 2) + calc(var(--swiper-navigation-width) * 2) );" .
+                                        "width: auto;" .
+                                    "}";                                 
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: ".$css_left.";" .
+                                    "right: auto;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: calc( ".$css_left." + var(--swiper-navigation-width));" .
+                                    "right:auto);" .
+                                "}";
+                            }
+                        break;
+
+                        //sol alt
+                        case "start-end" :
+                            if($direction == "vertical" && $rotate){
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(".$css_left." * 2) + var(--swiper-navigation-width) );" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                        "top: auto;" .
+                                        "bottom: calc(".$css_top." + ".$css_size.");" .
+                                        "left: ".$css_left.";" .
+                                        "right: auto;" .
+                                        "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                        "top: auto;" .
+                                        "bottom: ". $css_top .";" .
+                                        "left: ".$css_left.";" .
+                                        "right: auto;" .
+                                        "margin-top:0;" .
+                                "}";
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(".$css_left." * 2) + calc(var(--swiper-navigation-width) * 2) );" .
+                                        "width: auto;" .
+                                    "}";                                 
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: auto;" .
+                                    "bottom: ".$css_top.";" .
+                                    "left: ".$css_left.";" .
+                                    "right: auto;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: auto;" .
+                                    "bottom: ".$css_top.";" .
+                                    "left: calc( ".$css_left." + var(--swiper-navigation-width));" .
+                                    "right:auto);" .
+                                "}";
+                            }
+                        break;
+
+                        
+
+                        //orta üst
+                        case "center-start" : //ok
+                            if($direction == "vertical" && $rotate){
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_top." * 2) + calc(".$css_size." * 2));" .
+                                        "height: auto;" .
+                                    "}";                                        
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ". $css_top .";" .
+                                    "bottom: auto;" .
+                                    "left: ". $css_left .";" .
+                                    "right:auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: calc(".$css_top." + ".$css_size.");" .
+                                    "bottom: auto;" .
+                                    "left: ".$css_left.";" .
+                                    "right:auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_top." * 2) + ".$css_size.");" .
+                                        "height: auto;" .
+                                    "}";                             
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ". $css_top .";" .
+                                    "bottom: auto;" .
+                                    "left: calc(".$css_left." - var(--swiper-navigation-width));" .
+                                    "right:auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: ". $css_top .";" .
+                                    "bottom: auto;" .
+                                    "left: calc( ".$css_left." + 0px );" .
+                                    "right:auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                            }
+                        break;
+
+                        //orta
+                        case "center-center" : //ok
+                            if($direction == "vertical" && $rotate){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_left." * 2) + var(--swiper-navigation-width) );" .
+                                        $spce_prefix."bottom: calc( calc(".$css_left." * 2) + var(--swiper-navigation-width) );" .
+                                            "height: auto;" .
+                                    "}"; 
+                                }
+                                $css[] = $btn_prev."{" .
+                                        "top: calc(".$css_left." + calc(var(--swiper-navigation-width) - var(--swiper-navigation-size)) / 2);" .
+                                        "bottom: auto;" .
+                                        "left: ".$css_top.";" .
+                                        "right: auto;" .
+                                        "margin-top: 0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                        "top: auto;" .
+                                        "bottom: calc(".$css_left." + calc(var(--swiper-navigation-width) - var(--swiper-navigation-size)) / 2);" .
+                                        "left: ". $css_top .";" .
+                                        "right: auto;" .
+                                        "margin-top: 0;" .
+                                "}";
+
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(".$css_left." * 2) + var(--swiper-navigation-width) );" .
+                                        $space_prefix."right: calc( calc(".$css_left." * 2) + var(--swiper-navigation-width) );" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ". $css_top .";" .
+                                    "bottom: auto;" .
+                                    "left: ".$css_left.";" .
+                                    "right: auto;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: ". $css_top .";" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: ".$css_right.";" .
+                                "}";
+                            }
+                        break;
+
+                        //orta alt
+                        case "center-end" : 
+                            if($direction == "vertical" && $rotate){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(".$css_top." * 2) + calc(".$css_size." * 2));" .
+                                        "height: auto;" .
+                                    "}";                             
+                                }
+                                $css[] = $btn_prev."{" .
+                                        "top: auto;" .
+                                        "bottom: calc(".$css_top." + ".$css_size.");" .
+                                        "left: ". $css_left .";" .
+                                        "right: auto;" .
+                                        "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                        "top: auto;" .
+                                        "bottom: ". $css_top .";" .
+                                        "left: ".$css_left.";" .
+                                        "right: auto;" .
+                                        "margin-top:0;" .
+                                "}";                                    
+
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(".$css_top." * 2) + ".$css_size.");" .
+                                        "height: auto;" .
+                                    "}";                             
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: auto;" .
+                                    "bottom: ". $css_top .";" .
+                                    "left: calc(".$css_left." - var(--swiper-navigation-width));" .
+                                    "right:auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: auto;" .
+                                    "bottom: ". $css_top .";" .
+                                    "left: calc( ".$css_left." + 0px );" .
+                                    "right:auto;" .
+                                    "margin-top:0;" .
+                                "}";
+                            }
+                        break;
+
+
+  
+                        //sag ust
+                        case "end-start" :
+                            if($direction == "vertical" && $rotate){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_top." * 2) + calc(".$css_size." * 2));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+                           
+                                $css[] = $btn_prev."{" .
+                                        "top: ". $css_top .";" .
+                                        "bottom: auto;" .
+                                        "left: auto;" .
+                                        "right: ".$css_right.";" .
+                                        "margin-top: 0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                        "top: calc(".$css_top." + ".$css_size.");" .
+                                        "bottom: auto;" .
+                                        "left: auto;" .
+                                        "right: ".$css_right.";" .
+                                        "margin-top:0;" .
+                                "}";                                    
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(".$css_top." * 2) + var(--swiper-navigation-size));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: calc( ".$css_right." + var(--swiper-navigation-width));" .
+                                    "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: ".$css_right.";" .
+                                    "margin-top:0;" .
+                                "}";
+
+                            }
+                        break;
+
+                        //sag orta
+                        case "end-center" :
+                            if($direction == "vertical" && $rotate){
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(".$css_right." * 2) + var(--swiper-navigation-width) );" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right:var(--swiper-navigation-sides-offset);" .
+                                    "margin-top: 0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: calc(".$css_top." + ".$css_size.");" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right:var(--swiper-navigation-sides-offset);" .
+                                    "margin-top: 0;" .
+                                "}";
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(".$css_right." * 2) + calc(var(--swiper-navigation-width) * 2) );" .
+                                        "width: auto;" .
+                                    "}";                                 
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: calc( ".$css_right." + var(--swiper-navigation-width));" .
+                                    "margin-top: 0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: ".$css_top.";" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: ".$css_right.";" .
+                                    "margin-top: 0;" .
+                                "}";
+                            }
+                        break;
+
+                        //sag alt
+                        case "end-end" :
+                            if($direction == "vertical" && $rotate){
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(".$css_right." * 2) + var(--swiper-navigation-size) );" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $btn_prev."{" .
+                                        "top: auto;" .
+                                        "bottom: calc(".$css_top." + ".$css_size.");" .
+                                        "left:  auto;" .
+                                        "right:".$css_left.";" .
+                                        "margin-top:0;" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                        "top: auto;" .
+                                        "bottom: ". $css_top .";" .
+                                        "left: auto;" .
+                                        "right: ".$css_left.";" .
+                                        "margin-top:0;" .
+                                "}";
+                            }else{
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(".$css_right." * 2) + calc(var(--swiper-navigation-width) * 2) );" .
+                                        "width: auto;" .
+                                    "}";                                 
+                                }
+                                $css[] = $btn_prev."{" .
+                                    "top: auto;" .
+                                    "bottom: ".$css_top.";" .
+                                    "left: auto;" .
+                                    "right: calc( ".$css_right." + var(--swiper-navigation-width));" .
+                                "}";
+                                $css[] = $btn_next."{" .
+                                    "top: auto;" .
+                                    "bottom: ".$css_top.";" .
+                                    "left: auto;" .
+                                    "right: ".$css_right.";" .
+                                    "margin-top:0;" .
+                                "}";
+                            }
+                        break;
+                }
+
+                $values = [];
+                $values["--swiper-navigation-size"] = $size;
+                $values["--swiper-navigation-sides-offset"] = $sides_offset;
+                $values["--swiper-navigation-top-offset"] = $top_offset;
+                $values["--swiper-navigation-width"] = "calc(var(--swiper-navigation-size)/ 44 * 27)";
+                $css[] = $id."{" .
+                    implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                "}";
+
+                if($rotate){
+                    $css[] = $btn_prev.", ".$btn_prev."{" .
+                        "transform: rotate(90deg);" .
+                    "}";
+                }
+            break;
+
+            case "pagination" :
+                $pagination_type = $control["type"];
+                $attrs[$type] = $pagination_type;
+                $values = [];
+
+                if($control["hide"]){
+                    $css[] = generate_breakpoint_css($id." .swiper-pagination", $control["hide"]);
+                    if($placement == "outside"){
+                        $css[] = generate_breakpoint_css($space_obj, $control["hide"], "padding:0!important;top:0!important;bottom:0!important;left:0!important;right:0!important;");
+                    }
+                }
+
+                if($pagination_type == "bullets"){
+                    if(isset($control["view"]["bullets"]["visible"]) && $control["view"]["bullets"]["visible"] > 0){
+                        $attrs["pagination-visible"] = $control["view"]["bullets"]["visible"];
+                    }
+
+                    $color = $control["view"]["bullets"]["active"]["color"];
+                    $color_dark = $control["view"]["bullets"]["active"]["color_dark"];
+                    $opacity = $control["view"]["bullets"]["active"]["opacity"];
+
+                    $color_inactive = $control["view"]["bullets"]["inactive"]["color"];
+                    $color_dark_inactive = $control["view"]["bullets"]["inactive"]["color_dark"];
+                    $opacity_inactive = $control["view"]["bullets"]["inactive"]["opacity"];
+
+                    $left = unit_value($control["view"]["bullets"]["left"]);
+                    $right = unit_value($control["view"]["bullets"]["right"]);
+                    $top = unit_value($control["view"]["bullets"]["top"]);
+                    $bottom = unit_value($control["view"]["bullets"]["bottom"]);
+
+                    $gap_x = unit_value($control["view"]["bullets"]["gap"]);
+                    $gap_y = unit_value($control["view"]["bullets"]["gap"]);
+
+                    $width = unit_value($control["view"]["bullets"]["width"]);
+                    $height = unit_value($control["view"]["bullets"]["height"]);
+                    $size = unit_value($control["view"]["bullets"]["width"]);
+
+                    if($position_x == "center"){
+                        $left = "50%";
+                    }
+                    if($position_y == "center"){
+                        $top = "50%";
+                    }
+
+                    $pagination = $id." .swiper-pagination";
+
+                    switch($position_x."-".$position_y){
+                        
+                        //sol ust
+                        case "start-start" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "margin-top:0;" .
+                                    "height: auto;" .
+                                    "transform:none;" .
+                                "}";                                  
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "margin-top:0;" .
+                                    "transform: none;" .
+                                    "width: auto;" .
+                                "}";
+                                /*$css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";*/
+                            }
+                        break;
+
+                        // sol orta
+                        case "start-center" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";                                  
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    //"height: 100%;" .
+                                    "transform: translateY(-50%);" .
+                                "}";
+                                $css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";
+                            }
+                        break;
+
+                        //sol alt
+                        case "start-end" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "height: auto;" .
+                                    "transform:none;" .
+                                "}";                                  
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "height: auto;" .
+                                    "transform:none;" .
+                                "}";
+                                $css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";
+                            }
+                        break;
+
+                        
+
+                        //orta üst
+                        case "center-start" : //ok
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "transform:translateX(-50%);" .
+                                "}";
+                                $css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: inline-block;" .
+                                    "margin: var(--swiper-pagination-bullet-horizontal-gap);" .
+                                "}";                                
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "transform:translateX(-50%);" .
+                                "}";
+                                /*$css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";*/
+                            }
+                        break;
+
+                        //orta - orta alt
+                        case "center-center" : //ok
+                        case "center-end" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "transform:translateX(-50%);" .
+                                "}";
+                                $css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: inline-block;" .
+                                    "margin: var(--swiper-pagination-bullet-horizontal-gap);" .
+                                "}";                                
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform:translateX(-50%);" .
+                                "}";
+                                /*$css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";*/
+                            }
+                        break;
+
+
+
+                        //sag ust
+                        case "end-start" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform:none;" .
+                                "}";                                  
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "transform: none;" .
+                                    "width: auto;" .
+                                "}";
+                                /*$css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";*/
+                            }
+                        break;
+
+                        //sag orta
+                        case "end-center" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";                                  
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";
+                                $css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";
+                            }
+                        break;
+
+                        //sag alt
+                        case "end-end" :
+                            if($direction == "vertical"){
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-bullet-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "height: auto;" .
+                                    "transform:none;" .
+                                "}";                                  
+
+                            }else{
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-bullet-height));" .
+                                        "height: auto;" .
+                                    "}";                                   
+                                }
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform:none;" .
+                                "}";
+                                /*$css[] = $pagination." .swiper-pagination-bullet{" .
+                                    "display: block;" .
+                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
+                                "}";*/
+                            }
+                        break;
+                    }
+
+                    $values["--swiper-pagination-inactive-color"] = $color_inactive;
+                    $values["--swiper-pagination-bullet-opacity"] = $opacity;
+                    $values["--swiper-pagination-bullet-inactive-opacity"] = $opacity_inactive;
+                    $values["--swiper-pagination-bullet-size"] = $size;
+                    $values["--swiper-pagination-bullet-width"] = $width;
+                    $values["--swiper-pagination-bullet-height"] = $height;
+                    $values["--swiper-pagination-bullet-horizontal-gap"] = $gap_x;
+                    $values["--swiper-pagination-bullet-vertical-gap"] = $gap_y;
+                    $values["--swiper-pagination-left"] = $left;
+                    $values["--swiper-pagination-right"] = $right;
+                    $values["--swiper-pagination-top"] = $top;
+                    $values["--swiper-pagination-bottom"] = $bottom;
+
+                }
+
+
+                if($pagination_type == "progressbar"){
+
+                    $values["--swiper-pagination-progressbar-bg-color"] = $color_inactive;
+                    $values["--swiper-pagination-progressbar-size"] = $color_inactive;
+
+                }
+
+                if($pagination_type == "fraction"){
+
+                    $values["--swiper-pagination-fraction-color"] = $color_inactive;
+                    $values["--swiper-pagination-left"] = $left;
+                    $values["--swiper-pagination-right"] = $right;
+                    $values["--swiper-pagination-top"] = $top;
+                    $values["--swiper-pagination-bottom"] = $bottom;
+
+                }
+
+                $values["--swiper-pagination-color"] = $color;
+                $css[] = $id."{" .
+                    implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                "}";
+            break;
+
+            case "pagination_thumbs" :
+                $attrs[$type] = 1;
+
+            break;
+
+            case "scrollbar" :
+                $attrs[$type] = 1;
+
+
+                $values["--swiper-scrollbar-border-radius"] = $bottom;
+                $values["--swiper-scrollbar-top"] = $bottom;
+                $values["--swiper-scrollbar-bottom"] = $bottom;
+                $values["--swiper-scrollbar-left"] = $bottom;
+                $values["--swiper-scrollbar-right"] = $bottom;
+                $values["--swiper-scrollbar-sides-offset"] = $bottom;
+                $values["--swiper-scrollbar-bg-color"] = $bottom;
+                $values["--swiper-scrollbar-drag-bg-color"] = $bottom;
+                $values["--swiper-scrollbar-size"] = $bottom;
+
+                $css[] = $id."{" .
+                    implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                "}";
+            break;
+
+        }
+
+        if(isset($control["view"]["css"]) && !empty($control["view"]["css"])){
+            $css[] = $id. " ".$control["view"]["css"];
+        }
+                
+        $tools[$type] = array(
+            "placement" => $control["placement"],
+            "css" => $css
+        );
+    }
+    //error_log(print_r($tools, true));
+    return array(
+       "attrs" => $attrs,
+       "controls" => $tools
+    );
+}
+
 function block_columns($args=array(), $block = []){
 
     $classes = [];
@@ -618,6 +1669,8 @@ function block_columns($args=array(), $block = []){
         "5" => 48
     );
 
+    $slider_controls = [];
+
     if($args){
         if(!isset($args["slider"])){
             $args["slider"] = 0;  
@@ -627,9 +1680,27 @@ function block_columns($args=array(), $block = []){
             if((isset($args["slider"]) && $args["slider"]) || (isset($block["name"]) && in_array($block["name"], ["acf/archive"])) ){
                 
                 $slide_half = 0;
+                
                 if(isset($args["slider_settings"]) && $args["slider_settings"]){
+
                     foreach($args["slider_settings"] as $key => $item){
-                        $attrs["data-slider-".$key] = $item;
+                        if(!is_array($item)){
+                            $attrs["data-slider-".$key] = $item;
+                        }else{
+                            if($key == "controls" && $item){
+                                $slider_controls = block_slider_controls("#".$block["id"], $item, $args["slider_settings"]["direction"], $args["slider_settings"]["autoheight"]);
+                            }
+                            //error_log("#".$key." -> ".$args["slider_settings"]["direction"]);
+                            //error_log(print_r($item, true));
+                        }
+                        if(isset($slider_controls["attrs"])){
+                            foreach($slider_controls["attrs"] as $key => $item){
+                                $attrs["data-slider-".$key] = $item;
+                            }
+                        }
+                    }
+                    if($attrs["data-slider-autoheight"] && $attrs["data-slider-direction"] == "vertical"){
+                       $attrs["data-slider-autoheight"] = false; 
                     }
                     $slide_half = $args["slider_settings"]["half_view"]?0.5:0;
                 }
@@ -650,11 +1721,7 @@ function block_columns($args=array(), $block = []){
                     $attrs["data-slider-breakpoints"] = json_encode($breakpoints);
                     $attrs["data-slider-gaps"] = json_encode($gaps);                
                 }
-                /*if(isset($args["slider_settings"]) && $args["slider_settings"]){
-                    foreach($args["slider_settings"] as $key => $item){
-                        $attrs["data-slider-".$key] = $item;
-                    }
-                }*/
+
                 if(isset($args["block_settings"]) && $args["block_settings"]["height"] == "ratio"){
                     $attrs["data-slider-autoheight"] = false;
                 }
@@ -684,6 +1751,7 @@ function block_columns($args=array(), $block = []){
     return array(
         "class" => implode(" ", $classes),
         "attrs" => array2Attrs($attrs),
+        "controls" => isset($slider_controls["controls"]) ? $slider_controls["controls"] : []
     );
 }
 function block_aos($args=array()){
@@ -1171,9 +2239,7 @@ function block_css($block, $fields, $block_column){
         if(!empty($gradient) && !$background["gradient_mask"] && !$block_column){
             $code_inner .= $gradient;
         }            
-
     }
-
 
     $color = isset($fields["block_settings"]["text_color"])?$fields["block_settings"]["text_color"]:"";
     if($color){
@@ -1342,7 +2408,6 @@ function block_css($block, $fields, $block_column){
             }
         }
     }
-
      
     if(!empty($code_height)){
         $code .= $code_height;
@@ -1453,9 +2518,11 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
     );
     if($block_data){
 
+        //error_log(print_r($block_data, true));
+
         //if(isset($fields["block_settings"]["custom_id"]) && !empty($fields["block_settings"]["custom_id"])){
-        if(isset($block_data["block_settings_custom_id"]) && !empty($block_data["block_settings_custom_id"])){
-            $block_id = $block_data["block_settings_custom_id"];//$fields["block_settings"]["custom_id"];
+        if(isset($block_data["data"]["block_settings_custom_id"]) && !empty($block_data["data"]["block_settings_custom_id"])){
+            $block_id = $block_data["data"]["block_settings_custom_id"];//$fields["block_settings"]["custom_id"];
         }else{
             $block_id = $block_data["id"];
         }
@@ -1525,6 +2592,15 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
             }
         }
     }
+
+    $meta["_date"] = date("Y-m-d H:i:s");
+
+    if(!isset($_GET["fetch"]) ) { 
+        // save meta as option for fast response (saves 0.04 sn.)
+        error_log("saving ------  option ---- meta -> ". $id." block:". $block_data["name"] );
+        update_option($block_data["id"], $meta);
+    }
+
     return $meta;
 }
 
@@ -1614,17 +2690,19 @@ function acf_block_id_fields($post_id){
             error_log($block['blockName']);
 
             $data = $block['attrs']['data'];
-            error_log(print_r($data, true));
+            //error_log(print_r($data, true));
 
-            $block_settings_field_id = explode("_field", $data['_block_settings_hero'])[0];
+            $block_settings_field_id = $data['_block_settings'];//explode("_field", $data['_block_settings_hero'])[0];
 
-            if (!isset($data['block_settings_custom_id'])){
+            error_log("block_settings_field_id:".$block_settings_field_id);
+
+            if (!isset($data['block_settings_custom_id']) || empty($data['block_settings_custom_id'])){
                 $block['attrs']['data']['_block_settings_custom_id'] = $block_settings_field_id."_field_674d65b2e1dd0";
                 $block['attrs']['data']['block_settings_custom_id'] = 'block_' . md5(uniqid('', true));
-                error_log("block : block_settings_custom_id added");
+                error_log("block : block_settings_custom_id added -> ".$block['attrs']['data']['block_settings_custom_id']);
                 $updated = true;
             }
-            if (!isset($data['block_settings_column_id'])){
+            if (!isset($data['block_settings_column_id']) || empty($data['block_settings_column_id'])){
                 $block['attrs']['data']['_block_settings_column_id'] = $block_settings_field_id."_field_67213addcfaf3";
                 $block['attrs']['data']['block_settings_column_id'] = unique_code(5);
                 error_log("block : block_settings_column_id added");

@@ -206,10 +206,15 @@
 
             {% else %}
                 {% set thumb = source[0] %}
-                <div class="col cursor-hand">
+                <div class="col cursor-hand position-relative">
                     {% if ratio_class %}
                     <div class="{{ratio_class}}">
                     {% endif %}
+                        {% if fields.settings.overlay and fields.settings.text %}
+                            <div class="overlay position-absolute-fill z-1 p-4 d-flex flex-column align-items-{{fields.settings.align_vr}} justify-content-{{fields.settings.align_hr}} {{image_class}}" {% if fields.settings.overlay_color %}style="background-color:{{fields.settings.overlay_color}};"{% endif %}>
+                                {{fields.settings.text}}
+                            </div>
+                        {% endif %}
                         <img src="{{(thumb.poster?thumb.poster:thumb.src)|replace({"{upload_url}" : site.upload_url})}}"
                             alt="{{thumb.title}}" 
                             loading="lazy"

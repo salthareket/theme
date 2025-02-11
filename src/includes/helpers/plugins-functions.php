@@ -724,6 +724,8 @@ function lightGallerySource($fields) {
             }
         } else {
             // Image türündeki öğeler
+            $image = Timber::get_image($item["id"]);
+            $image_class = $image->get_focal_point_class();
             $sources[] = [
             	"type"      => $item["type"],
                 "href"      => $item["url"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["url"]),
@@ -731,7 +733,8 @@ function lightGallerySource($fields) {
                 "src"       => $item["sizes"]["medium_large"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["sizes"]["medium_large"]),
                 "img-src"   => $item["url"],
                 "width"     => $item["width"],
-                "height"    => $item["height"]
+                "height"    => $item["height"],
+                "class"     => $image_class ? $image_class : "object-position-center"
             ];
         }
     }

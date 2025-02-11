@@ -407,7 +407,7 @@ Class Theme{
                                 $url = pll_home_url($language['slug']);
                             }
 
-                         } elseif (is_tax()) {  // Taxonomy sayfası için ekleme
+                        } elseif (is_tax()) {  // Taxonomy sayfası için ekleme
 
                             $taxonomy = get_query_var('taxonomy');
                             $term = get_query_var('term');
@@ -442,7 +442,8 @@ Class Theme{
                             if ($post_language) {
                                 $url = get_permalink($post_language);
                             } else {
-                                $url = pll_home_url($language['slug']);
+                                //$url = pll_home_url($language['slug']);
+                                $url = pll_home_url(pll_default_language());
                             }
                         }
                         $languages[] = [

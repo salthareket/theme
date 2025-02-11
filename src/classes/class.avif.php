@@ -35,6 +35,12 @@ class AvifConverter {
         if ($context !== 'upload') {
             return $file;
         }
+
+        $extension = strtolower(pathinfo($file['file'], PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['avif', 'webp'])) {
+            return $file;
+        }
         
         $converted_file = $this->convertToAvif($file['file']);
         

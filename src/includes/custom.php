@@ -191,9 +191,7 @@ class SaltBase{
             }
             update_post_meta( $post_id, 'has_map', $has_map );
             
-            
             acf_block_id_fields($post_id);
-            
 
             error_log("P O S T  S A V I N G  H O O K....");
 

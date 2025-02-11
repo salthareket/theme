@@ -80,10 +80,6 @@ if(isLoadedJS("vanilla-lazyload")){
 			   //obj.closest(".jarallax").newJarallax();
 			}
 			$.fn.matchHeight._update();
-			if(isLoadedJS("background-check")){
-				BackgroundCheck.refresh();
-			}
-
 	    },
 	    callback_error : function(e){
 	    	var obj = $(e);

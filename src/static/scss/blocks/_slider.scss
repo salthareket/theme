@@ -6,12 +6,22 @@
 			min-height:inherit;
 		}
 		.swiper{
-			min-height:inherit;
-			.swiper-wrapper{
+			&:not(.swiper-vertical){
 				min-height:inherit;
+			}
+			.swiper-wrapper{
+				//min-height:inherit;
 				.swiper-slide{
-					min-height: inherit;
+					//min-height: inherit;
 				}
+			}
+			&:not(.swiper-vertical){
+				.swiper-wrapper{
+				    min-height:inherit;
+				    .swiper-slide{
+				    	min-height:inherit;
+				    }
+			    }
 			}
 		}
 	}

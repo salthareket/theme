@@ -447,3 +447,10 @@ table.wp-list-table.tags{
 .shortcode-content{
     display:block;
 }
+
+.acf-range-wrap{
+    display:flex;
+    input[type="range"]{
+        width:100%;
+    }
+}

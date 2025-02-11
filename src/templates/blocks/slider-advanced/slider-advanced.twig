@@ -47,7 +47,7 @@
                     {% if slide.add_content %}
                         {% set content = slide.content %}
                         {% if content.title or content.description %}
-                            <div class="content {{block_meta.container_slider}} py-3 {% if fields.slider_settings.autoheight %}position-absolute{% endif %} {% if block_meta.settings.stretch_height %}h-100{% endif %}" data-bg-check="#{{block_meta.id}} .swiper-bg img">
+                            <div class="content {{block_meta.container_slider}} py-3 {% if fields.slider_settings.autoheight %}position-absolute{% endif %} {% if block_meta.settings.stretch_height %}h-100{% endif %}">
                                 <div class="row justify-content-{{content.align}} {% if fields.block_settings.stretch_height %}h-100{% endif %}">
                                     <div class="col-lg-{{content.column}} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
                                     {% if content.title %}
@@ -82,7 +82,7 @@
                                 </div>
                             {% endif %}
                             <noscript class="loading-lazy">
-                                <div class="swiper-bg bg-cover" style="background-image:url({{get_image(slide.image.xxxl)}});"></div>
+                                <div class="swiper-bg bg-cover" style="background-image:url({{get_image(slide.image.url)}});"></div>
                             </noscript>
                         {% endif %}
 
@@ -105,8 +105,14 @@
                     {% set slide_index = slide_index + 1 %}
 
                 {% elseif slide.acf_fc_layout == "dynamic" %}
+                
+                    {% if slide.type == "selected" %}
+                       {% set posts = get_posts(slide["posts_" ~ slide.type]) %}
+                    {% else %}
+                       {% set posts = slide["posts_" ~ slide.type] %}
+                    {% endif %}
 
-                    {% for post in slide["posts_" ~ slide.type] %}
+                    {% for post in posts %}
                     <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
                         {% include slide.template ~ ".twig" with { post : post, container : block_meta.container_slider } %}
                         {% if slide.overlay and not slide.video.video_settings.controls %}
@@ -119,7 +125,7 @@
                 {% endif %}
             {% endfor %}    
         </div>
-        <div class="swiper-pagination" data-bg-check="#{{block_meta.id}} .swiper-bg img"></div>
+        <div class="swiper-pagination"></div>
     </div>
 
     <style type="text/css">

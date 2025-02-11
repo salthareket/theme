@@ -104,7 +104,7 @@ class VideoProcessor{
             $thumbnails = isset($video_task["tasks"]['thumbnails']);
         }
 
-        if ($originalHeight > 720) {
+        if ($dimensions["height"] > 720) {
             $inputPath    = $this->resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $dimensions["width"], $dimensions["height"]);
             $results[720] = $this->saveToMediaLibrary($post_id, $inputPath, $inputId);
         }
@@ -385,6 +385,29 @@ class VideoProcessor{
     public function disableIntermediateImageSizes($sizes){
         // Thumbnail, medium, large gibi boyutları kaldır
         return [];
+    }
+
+    public function updateVideoMeta($result = []){
+        if (!isset($result['720'])) {
+            return false;
+        }
+        $attachment_id = $result['720'];
+        if(isset($result['480'])){
+            update_post_meta($attachment_id, 'tablet', $result['sizes']['480']);
+        }
+        if(isset($result['360'])){
+            update_post_meta($attachment_id, 'phone', $result['sizes']['360']);
+        }
+        if(isset($result['poster'])){
+            update_post_meta($attachment_id, 'poster', $result['poster']);
+        }
+        if(isset($result['thumbnails'])){
+            update_post_meta($attachment_id, 'thumbnails', $result['thumbnails']);
+        }
+        if(isset($result['vtt'])){
+            update_post_meta($attachment_id, 'vtt', $result['vtt']);
+        }
+        return true;
     }
 
     private function logVideoDetails($filePath){

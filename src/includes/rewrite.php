@@ -267,13 +267,7 @@ function handle_custom_search_redirect() {
 
 
 
-function download_redirect_file() {
-    global $wp_query;
-    if (isset($wp_query->query_vars['file_id']) && !empty($wp_query->query_vars['file_id'])) {
-        download_check_file();
-    }
-}
-add_action('template_redirect', 'download_redirect_file');
+
 
 function download_check_file() {
     $file_id = get_query_var('file_id');
@@ -323,7 +317,6 @@ function download_check_file() {
         }
     }
 }
-
 function download_get_file($file = "", $mime_type = "") {
     if ($file) {
         // Güvenlik başlıklarını ekleyelim
@@ -346,4 +339,11 @@ function download_get_file($file = "", $mime_type = "") {
         readfile($file);
         exit;
     }
-}/**/
+}
+function download_redirect_file() {
+    global $wp_query;
+    if (isset($wp_query->query_vars['file_id']) && !empty($wp_query->query_vars['file_id'])) {
+        download_check_file();
+    }
+}
+add_action('template_redirect', 'download_redirect_file');

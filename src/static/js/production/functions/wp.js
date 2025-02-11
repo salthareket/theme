@@ -39,17 +39,6 @@ function function_secure($plugin, $name, $params) {
     }
 }
 
-/*
-function function_secure($plugin, $name, $params){
-    if(isLoadedJS($plugin)){
-        if (Array.isArray($params)) {
-            window[$name].apply(null, $params);
-        } else {
-            window[$name]($params);
-        }
-    }
-}*/
-
 function initContactForm(){
     var obj = wpcf7;
         obj.initForm = function ( el ) { 

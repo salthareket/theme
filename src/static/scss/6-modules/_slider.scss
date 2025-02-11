@@ -409,7 +409,7 @@
             }
         }
     }
-    .swiper-pagination{
+    /*.swiper-pagination{
         position:absolute;
         z-index:3;
         bottom:30px;
@@ -498,7 +498,7 @@
     }
     .swiper-button-lock {
       display: none;
-    }
+    }*/
     @media (min-width: 992px) {
         &[data-slider-pagination-thumbs="true"]{
             .swiper-wrapper{
@@ -511,6 +511,7 @@
         }
     }
 }
+/*
 @media (min-width: 992px) and (max-width: 1199px){
     .swiper-slider{
          @include calc(height, '100vh - #{$header-height-md}');
@@ -649,3 +650,4 @@
         }
     }
 }
+*/

@@ -53,7 +53,7 @@
             "acfe_clone_modal": 1,
             "acfe_clone_modal_close": 1,
             "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
+            "acfe_clone_modal_size": "small",
             "acfe_seamless_style": 0
         },
         {
@@ -423,7 +423,7 @@
                     "sub_fields": [
                         {
                             "key": "field_66128113adb00",
-                            "label": "Column Widh",
+                            "label": "Widh",
                             "name": "column",
                             "aria-label": "",
                             "type": "select",
@@ -452,41 +452,41 @@
                             "default_value": 6,
                             "return_format": "value",
                             "multiple": 0,
-                            "allow_custom": 0,
-                            "search_placeholder": "",
+                            "translations": "copy_once",
                             "allow_null": 0,
-                            "ui": 0,
-                            "ajax": 0,
-                            "placeholder": ""
-                        },
-                        {
-                            "key": "field_6612818fadb01",
-                            "label": "Column Align",
-                            "name": "align",
-                            "aria-label": "",
-                            "type": "select",
-                            "instructions": "",
-                            "required": 0,
-                            "conditional_logic": 0,
-                            "wrapper": {
-                                "width": "25",
-                                "class": "",
-                                "id": ""
-                            },
-                            "choices": {
-                                "start": "Left",
-                                "center": "Center",
-                                "end": "Right"
-                            },
-                            "default_value": "start",
-                            "return_format": "value",
-                            "multiple": 0,
-                            "allow_null": 0,
+                            "allow_in_bindings": 1,
                             "ui": 0,
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
                             "search_placeholder": ""
+                        },
+                        {
+                            "key": "field_67a33ecc69092",
+                            "label": "Align",
+                            "name": "align",
+                            "aria-label": "",
+                            "type": "clone",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "clone": [
+                                "group_67a33debcc7b3"
+                            ],
+                            "display": "group",
+                            "layout": "block",
+                            "prefix_label": 0,
+                            "prefix_name": 1,
+                            "acfe_seamless_style": 0,
+                            "acfe_clone_modal": 0,
+                            "acfe_clone_modal_close": 0,
+                            "acfe_clone_modal_button": "",
+                            "acfe_clone_modal_size": "large"
                         },
                         {
                             "key": "field_6424d80944854",
@@ -1598,7 +1598,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1738284537,
+    "modified": 1738751764,
     "acfe_categories": {
         "block": "Block"
     }

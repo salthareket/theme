@@ -54,8 +54,17 @@
 			{% set fields = fields|merge({slider : fields.query.values.slider|default(0) }) %}
 		{% endif %}
 	{% endif %}
+    
 
-	{% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
+    {% if is_preview %}
+       {% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
+    {% else %}
+		{% set block_meta = function("get_option", fields.block_settings.custom_id) %}
+		{% if not block_meta or block_meta == "" %}
+		    {% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
+		{% endif %}
+	{% endif %}
+
 	
 	{% set nested = false %}
 	{% if not block_column and is_column %}

@@ -1,5 +1,40 @@
 <?php
 
+
+/*add_action('wp', function () {
+    if (!function_exists('pll_get_languages') || is_admin()) {
+        return;
+    }
+
+    global $post;
+
+    $current_lang = pll_current_language(); // Mevcut dili al
+    $default_lang = pll_default_language(); // Varsayılan dili al
+    $available_languages = pll_get_languages(['fields' => 'slug']); // Tüm aktif dillerin slug'larını al
+
+    // Eğer log çalışıyor mu test etmek istiyorsan buraya bir test logu ekle
+    error_log("TEST: Polylang yönlendirme kontrolü başlatıldı.");
+
+    // Eğer mevcut dil Polylang'da yoksa veya içerik bulunamıyorsa
+    if (!in_array($current_lang, $available_languages) || (is_singular() && empty($post))) {
+        error_log("POLYLANG HATA: '{$current_lang}' dili mevcut değil veya içerik bulunamadı!");
+
+        if (!empty($default_lang)) {
+            $redirect_url = home_url('/' . $default_lang . '/');
+            error_log("YÖNLENDİRME: {$redirect_url}");
+            wp_redirect($redirect_url, 301);
+            exit;
+        } else {
+            status_header(404);
+            include(get_template_directory() . '/404.php');
+            exit;
+        }
+    }
+});*/
+
+
+
+
 function query_vars_for_pagination($query_vars){
     $args = array();
     $allowed = ["page", "orderby", "order", "post_type", "paged", "meta_query", "tax_query", "posts_per_page", "s"];

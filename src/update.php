@@ -250,6 +250,10 @@ class Update {
                                 <label class="form-check-label ms-2" for="newsletterSwitch">Newsletter</label>
                             </div>
                             <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="automation" id="automationSwitch">
+                                <label class="form-check-label ms-2" for="automationSwitch">Automation</label>
+                            </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
                                 <input class="form-check-input" type="checkbox" name="plugin_types" value="cookie" id="cookieSwitch">
                                 <label class="form-check-label ms-2" for="cookieSwitch">Cookie Consent</label>
                             </div>

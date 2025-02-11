@@ -799,7 +799,6 @@ function get_video($video_args=array()){
     return $code;
 }
 
-
 function getAspectRatio(int $width, int $height){
     // search for greatest common divisor
     $greatestCommonDivisor = static function($width, $height) use (&$greatestCommonDivisor) {
@@ -808,8 +807,6 @@ function getAspectRatio(int $width, int $height){
     $divisor = $greatestCommonDivisor($width, $height);
     return $width / $divisor . '/' . $height / $divisor;
 }
-
-
 
 function get_google_optimized_avif_quality() {
     $base_quality = 50; // Varsayılan kalite
