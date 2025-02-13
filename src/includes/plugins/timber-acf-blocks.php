@@ -635,8 +635,10 @@ function generate_media_query($classname, $start, $end, $breakpoint_sizes, $styl
 function block_slider_controls($id = "", $controls = [], $direction = "horizontal", $autoheight = false){
     $attrs = [];
     $tools = [];
-    $css = [];
+    
     foreach($controls as $control){
+        $css = [];
+        $js = "";
         $type = $control["acf_fc_layout"];
         $placement = $control["placement"];
         $position_x = $control["position"]["x"];
@@ -653,7 +655,6 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
 
         switch($type){
             case "navigation" :
-
                 
                 $attrs[$type] = true;
 
@@ -1149,7 +1150,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                 "}";
 
                 if($rotate){
-                    $css[] = $btn_prev.", ".$btn_prev."{" .
+                    $css[] = $btn_prev.", ".$btn_next."{" .
                         "transform: rotate(90deg);" .
                     "}";
                 }
@@ -1158,7 +1159,6 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
             case "pagination" :
                 $pagination_type = $control["type"];
                 $attrs[$type] = $pagination_type;
-                $values = [];
 
                 if($control["hide"]){
                     $css[] = generate_breakpoint_css($id." .swiper-pagination", $control["hide"]);
@@ -1168,6 +1168,9 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                 }
 
                 if($pagination_type == "bullets"){
+
+                    $values = [];
+
                     if(isset($control["view"]["bullets"]["visible"]) && $control["view"]["bullets"]["visible"] > 0){
                         $attrs["pagination-visible"] = $control["view"]["bullets"]["visible"];
                     }
@@ -1219,10 +1222,9 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                                     "bottom: auto;" .
                                     "left: var(--swiper-pagination-left);" .
                                     "right: auto;" .
-                                    "margin-top:0;" .
                                     "height: auto;" .
                                     "transform:none;" .
-                                "}";                                  
+                                "}";
 
                             }else{
 
@@ -1237,14 +1239,10 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                                     "bottom: auto;" .
                                     "left: var(--swiper-pagination-left);" .
                                     "right: auto;" .
-                                    "margin-top:0;" .
                                     "transform: none;" .
                                     "width: auto;" .
                                 "}";
-                                /*$css[] = $pagination." .swiper-pagination-bullet{" .
-                                    "display: block;" .
-                                    "margin: var(--swiper-pagination-bullet-vertical-gap);" .
-                                "}";*/
+
                             }
                         break;
 
@@ -1267,7 +1265,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                                     "width: auto;" .
                                     "height: auto;" .
                                     "transform: translateY(-50%);" .
-                                "}";                                  
+                                "}";
 
                             }else{
 
@@ -1283,7 +1281,6 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                                     "left: var(--swiper-pagination-left);" .
                                     "right: auto;" .
                                     "width: auto;" .
-                                    //"height: 100%;" .
                                     "transform: translateY(-50%);" .
                                 "}";
                                 $css[] = $pagination." .swiper-pagination-bullet{" .
@@ -1572,10 +1569,25 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                             }
                         break;
                     }
+                    
+                    $css[] = $id." .swiper .swiper-pagination .swiper-pagination-bullet{" .
+                         "transition: background .3s ease-out;" .
+                    "}";
+                    $css[] = $id." .swiper.slide-dark .swiper-pagination .swiper-pagination-bullet.swiper-pagination-bullet-active{" .
+                         "background: var(--swiper-pagination-bullet-color-dark);" .
+                    "}";
+                    $css[] = $id." .swiper.slide-dark .swiper-pagination .swiper-pagination-bullet:not(.swiper-pagination-bullet-active){" .
+                         "background: var(--swiper-pagination-bullet-inactive-color-dark);" .
+                    "}";
 
-                    $values["--swiper-pagination-inactive-color"] = $color_inactive;
+                    $values["--swiper-pagination-color"] = $color;
+                    $values["--swiper-pagination-bullet-color-dark"] = $color_dark;
                     $values["--swiper-pagination-bullet-opacity"] = $opacity;
+
+                    $values["--swiper-pagination-bullet-inactive-color"] = $color_inactive;
+                    $values["--swiper-pagination-bullet-inactive-color-dark"] = $color_dark_inactive;
                     $values["--swiper-pagination-bullet-inactive-opacity"] = $opacity_inactive;
+
                     $values["--swiper-pagination-bullet-size"] = $size;
                     $values["--swiper-pagination-bullet-width"] = $width;
                     $values["--swiper-pagination-bullet-height"] = $height;
@@ -1586,65 +1598,595 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     $values["--swiper-pagination-top"] = $top;
                     $values["--swiper-pagination-bottom"] = $bottom;
 
+                    $css[] = $pagination."{" .
+                        implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                    "}";
                 }
 
-
                 if($pagination_type == "progressbar"){
+                    
+                    $values = [];
+                    $color = $control["view"]["progressbar"]["color"];
+                    $bg_color = $control["view"]["progressbar"]["color_bg"];
+                    $size =  unit_value($control["view"]["progressbar"]["size"]);
 
-                    $values["--swiper-pagination-progressbar-bg-color"] = $color_inactive;
-                    $values["--swiper-pagination-progressbar-size"] = $color_inactive;
+                    $values["--swiper-pagination-progressbar-bg-color"] = $bg_color;
+                    $values["--swiper-pagination-progressbar-size"] = $size;
 
+                    if(isset($color)){
+                        $values["--swiper-pagination-color"] = $color;
+                    }
+
+                    $pagination = $id." .swiper-pagination-progressbar";
+
+                    $css[] = $pagination."{" .
+                        implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                    "}";
                 }
 
                 if($pagination_type == "fraction"){
+                    
+                    $values = [];
 
-                    $values["--swiper-pagination-fraction-color"] = $color_inactive;
+                    $color = $control["view"]["fraction"]["color"];
+                    $color_dark = $control["view"]["fraction"]["color_dark"];
+                    $size = unit_value($control["view"]["fraction"]["size"]);
+                    $width = "calc(".$size." * 2)";
+
+                    $left = unit_value($control["view"]["fraction"]["left"]);
+                    $right = unit_value($control["view"]["fraction"]["right"]);
+                    $top = unit_value($control["view"]["fraction"]["top"]);
+                    $bottom = unit_value($control["view"]["fraction"]["bottom"]);
+
+                    if($position_x == "center"){
+                        $left = "50%";
+                    }
+                    if($position_y == "center"){
+                        $top = "50%";
+                    }
+
+                    $pagination = $id." .swiper-pagination-fraction";
+
+                    switch($position_x."-".$position_y){
+                        
+                        //sol ust
+                        case "start-start" :
+
+                            if($placement == "outside"){
+                                $css[] = $space_obj."{" .
+                                    $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-fraction-size));" .
+                                    "width: auto;" .
+                                "}";
+                            }
+                            $css[] = $pagination."{" .
+                                "top: var(--swiper-pagination-top);" .
+                                "bottom: auto;" .
+                                "left: var(--swiper-pagination-left);" .
+                                "right: auto;" .
+                                "width: auto;" .
+                                "height: auto;" .
+                            "}";
+                        break;
+
+                        // sol orta
+                        case "start-center" :
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-fraction-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";
+                           
+                        break;
+
+                        //sol alt
+                        case "start-end" :
+                         
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "text-align: left;" .
+                                "}";
+                           
+                        break;
+
+                        
+
+                        //orta üst
+                        case "center-start" : //ok
+                          
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "transform:translateX(-50%);" .
+                                    "text-align: center;" .
+                                "}";
+
+                        break;
+
+                        //orta - orta alt
+                        case "center-center" : //ok
+                        case "center-end" :
+                        
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "text-align: center;" .
+                                "}";
+
+                        break;
+
+
+
+                        //sag ust
+                        case "end-start" :
+                           
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "text-align: right;" .
+                                "}";
+                            
+                        break;
+
+                        //sag orta
+                        case "end-center" :
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-fraction-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";                                  
+
+                        break;
+
+                        //sag alt
+                        case "end-end" :
+                    
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "height: auto;" .
+                                    "text-align: right;" .
+                                "}";                                  
+
+                          
+                        break;
+                    }
+
+                    $css[] = $pagination."{" .
+                        "font-size: var(--swiper-pagination-fraction-size);" .
+                    "}";
+
+                    $css[] = $id." .swiper.slide-dark .swiper-pagination-fraction{" .
+                         "color: var(--swiper-pagination-fraction-color-dark);" .
+                    "}";
+
+                    $values["--swiper-pagination-fraction-color"] = $color;
+                    $values["--swiper-pagination-fraction-color-dark"] = $color_dark;
+                    $values["--swiper-pagination-fraction-size"] = $size;
+                    $values["--swiper-pagination-fraction-width"] = $width;
                     $values["--swiper-pagination-left"] = $left;
                     $values["--swiper-pagination-right"] = $right;
                     $values["--swiper-pagination-top"] = $top;
                     $values["--swiper-pagination-bottom"] = $bottom;
 
+                    if(isset($color)){
+                        $values["--swiper-pagination-color"] = $color;
+                    }
+                    $css[] = $pagination."{" .
+                        implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                    "}";
                 }
 
-                $values["--swiper-pagination-color"] = $color;
-                $css[] = $id."{" .
-                    implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
-                "}";
+                if($pagination_type == "custom"){
+                    
+                    $values = [];
+
+                    $color = $control["view"]["custom"]["color"];
+                    $color_dark = $control["view"]["custom"]["color_dark"];
+                    $size = unit_value($control["view"]["custom"]["size"]);
+                    $width = "calc(".$size." * 2)";
+                    $left = unit_value($control["view"]["custom"]["left"]);
+                    $right = unit_value($control["view"]["custom"]["right"]);
+                    $top = unit_value($control["view"]["custom"]["top"]);
+                    $bottom = unit_value($control["view"]["custom"]["bottom"]);
+
+                    $js = $control["view"]["custom"]["js"];
+                    if(!empty($js)){
+                        $func = str_replace("#", "", $id)."_swiper_custom";
+                        $js = " ".$func." = " .$js.";";
+                        $attrs["render-bullet"] = $func;
+                    }
+
+                    if($position_x == "center"){
+                        $left = "50%";
+                    }
+                    if($position_y == "center"){
+                        $top = "50%";
+                    }
+
+                    $pagination = $id." .swiper-pagination-custom";
+
+                    switch($position_x."-".$position_y){
+                        
+                        //sol ust
+                        case "start-start" :
+
+                            if($placement == "outside"){
+                                $css[] = $space_obj."{" .
+                                    $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-fraction-size));" .
+                                    "width: auto;" .
+                                "}";
+                            }
+                            $css[] = $pagination."{" .
+                                "top: var(--swiper-pagination-top);" .
+                                "bottom: auto;" .
+                                "left: var(--swiper-pagination-left);" .
+                                "right: auto;" .
+                                "width: auto;" .
+                                "height: auto;" .
+                            "}";
+                        break;
+
+                        // sol orta
+                        case "start-center" :
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."left: calc( calc(var(--swiper-pagination-left) * 2) + var(--swiper-pagination-fraction-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";
+                           
+                        break;
+
+                        //sol alt
+                        case "start-end" :
+                         
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "text-align: left;" .
+                                "}";
+                           
+                        break;
+
+                        
+
+                        //orta üst
+                        case "center-start" : //ok
+                          
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "transform:translateX(-50%);" .
+                                    "text-align: center;" .
+                                "}";
+
+                        break;
+
+                        //orta - orta alt
+                        case "center-center" : //ok
+                        case "center-end" :
+                        
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-bottom) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: var(--swiper-pagination-left);" .
+                                    "right: auto;" .
+                                    "width:auto;" .
+                                    "height: auto;" .
+                                    "text-align: center;" .
+                                "}";
+
+                        break;
+
+
+
+                        //sag ust
+                        case "end-start" :
+                           
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."top: calc( calc(var(--swiper-pagination-top) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "text-align: right;" .
+                                "}";
+                            
+                        break;
+
+                        //sag orta
+                        case "end-center" :
+
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."right: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-fraction-width));" .
+                                        "width: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: var(--swiper-pagination-top);" .
+                                    "bottom: auto;" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "width: auto;" .
+                                    "height: auto;" .
+                                    "transform: translateY(-50%);" .
+                                "}";                                  
+
+                        break;
+
+                        //sag alt
+                        case "end-end" :
+                    
+                                if($placement == "outside"){
+                                    $css[] = $space_obj."{" .
+                                        $space_prefix."bottom: calc( calc(var(--swiper-pagination-right) * 2) + var(--swiper-pagination-fraction-size));" .
+                                        "height: auto;" .
+                                    "}";
+                                }
+
+                                $css[] = $pagination."{" .
+                                    "top: auto;" .
+                                    "bottom: var(--swiper-pagination-bottom);" .
+                                    "left: auto;" .
+                                    "right: var(--swiper-pagination-right);" .
+                                    "height: auto;" .
+                                    "text-align: right;" .
+                                "}";                                  
+
+                          
+                        break;
+                    }
+
+                    $css[] = $pagination."{" .
+                        "font-size: var(--swiper-pagination-custom-size);" .
+                        "color: var(--swiper-pagination-custom-color);" .
+                    "}";
+
+                    $css[] = $id." .swiper.slide-dark .swiper-pagination-custom{" .
+                         "color: var(--swiper-pagination-custom-color-dark);" .
+                    "}";
+
+                    $values["--swiper-pagination-custom-color"] = $color_custom;
+                    $values["--swiper-pagination-custom-color-dark"] = $color_dark;
+                    $values["--swiper-pagination-custom-size"] = $size;
+                    $values["--swiper-pagination-left"] = $left;
+                    $values["--swiper-pagination-right"] = $right;
+                    $values["--swiper-pagination-top"] = $top;
+                    $values["--swiper-pagination-bottom"] = $bottom;
+
+                    if(isset($color)){
+                        $values["--swiper-pagination-color"] = $color;
+                    }
+                    $css[] = $pagination."{" .
+                        implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                    "}";
+                }
+                
             break;
 
             case "pagination_thumbs" :
                 $attrs[$type] = 1;
+
+                $values = [];
 
             break;
 
             case "scrollbar" :
                 $attrs[$type] = 1;
 
+                $values = [];
 
-                $values["--swiper-scrollbar-border-radius"] = $bottom;
-                $values["--swiper-scrollbar-top"] = $bottom;
+                $attrs[$type."-draggable"] = $control["draggable"]?true:false;
+                $attrs[$type."-snap"] = $control["snap"]?true:false;
+                
+                $position = $control["position_".$direction];
+                $bg_color = $control["view"]["bg_color"];
+                $drag_color = $control["view"]["drag_color"];
+                $sides_offset = unit_value($control["view"]["sides_offset"]);
+                $size = unit_value($control["view"]["size"]);
+                $border_radius = unit_value($control["view"]["border_radius"]);
+                
+                $top = $bottom = $left = $right = "auto";
+                
+                if($direction == "vertical"){
+                    $left  = $position == "left" ? 0 : $left;
+                    $right = $position == "right" ? 0 : $right;
+                }
+                if($direction == "horizontal"){
+                    $top    = $position == "top" ? 0 : $top;
+                    $bottom = $position == "bottom" ? 0 : $bottom;
+                }
+
+                $pagination = $id." .swiper-scrollbar";
+                
+                if($placement == "outside"){
+                    switch($position){
+                        
+                        case "top" :
+                            $css[] = $space_obj."{" .
+                                $space_prefix."top: calc( calc(var(--swiper-scrollbar-sides-offset) * 2) + var(--swiper-scrollbar-size));" .
+                                "height: auto;" .
+                            "}";
+                        break;
+
+                        case "left" :
+                            $css[] = $space_obj."{" .
+                                $space_prefix."left: calc( calc(var(--swiper-scrollbar-sides-offset) * 2) + var(--swiper-scrollbar-size));" .
+                                "width: auto;" .
+                             "}";
+                        break;
+
+                        case "right" :
+                            $css[] = $space_obj."{" .
+                                $space_prefix."right: calc( calc(var(--swiper-scrollbar-sides-offset) * 2) + var(--swiper-scrollbar-size));" .
+                                "width: auto;" .
+                            "}";
+                        break;
+
+                        case "bottom" :
+                            $css[] = $space_obj."{" .
+                                $space_prefix."bottom: calc( calc(var(--swiper-scrollbar-sides-offset) * 2) + var(--swiper-scrollbar-size));" .
+                                "height: auto;" .
+                            "}";
+                        break;
+
+                    }
+                }
+
+                $values["--swiper-scrollbar-bg-color"] = $bg_color;
+                $values["--swiper-scrollbar-drag-bg-color"] = $drag_color;
+                $values["--swiper-scrollbar-top"] = $top;
                 $values["--swiper-scrollbar-bottom"] = $bottom;
-                $values["--swiper-scrollbar-left"] = $bottom;
-                $values["--swiper-scrollbar-right"] = $bottom;
-                $values["--swiper-scrollbar-sides-offset"] = $bottom;
-                $values["--swiper-scrollbar-bg-color"] = $bottom;
-                $values["--swiper-scrollbar-drag-bg-color"] = $bottom;
-                $values["--swiper-scrollbar-size"] = $bottom;
+                $values["--swiper-scrollbar-left"] = $left;
+                $values["--swiper-scrollbar-right"] = $right;
+                $values["--swiper-scrollbar-sides-offset"] = $sides_offset;
+                $values["--swiper-scrollbar-size"] = $size;
+                $values["--swiper-scrollbar-border-radius"] = $border_radius;
 
-                $css[] = $id."{" .
+                $css[] = $pagination."{" .
                     implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                 "}";
             break;
-
         }
 
         if(isset($control["view"]["css"]) && !empty($control["view"]["css"])){
             $css[] = $id. " ".$control["view"]["css"];
         }
+
+        $css = implode("\n", array_filter($css));
                 
         $tools[$type] = array(
             "placement" => $control["placement"],
-            "css" => $css
+            "css" => $css,
+            "js"  => $js
         );
     }
     //error_log(print_r($tools, true));
@@ -1708,13 +2250,14 @@ function block_columns($args=array(), $block = []){
                 if(isset($args["column_breakpoints"])){
                     $breakpoints = new ArrayObject();
                     $gaps = new ArrayObject();
+                    $gap_direction = $args["slider_settings"]["direction"] == "horizontal" ? "gx" : "gy";
                     foreach($args["column_breakpoints"] as $key => $item){
                         if(in_array($key, $sizes)){
                             if(isset($item["columns"])){
                                 $breakpoints[$key] = intval($item["columns"]) + $slide_half;
                             }
-                            if(isset($item["gx"])){
-                                $gaps[$key] = $gap_sizes[$item["gx"]];
+                            if(isset($item[$gap_direction])){
+                                $gaps[$key] = $gap_sizes[$item[$gap_direction]];
                             }
                         }
                     }
@@ -2518,15 +3061,14 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
     );
     if($block_data){
 
-        //error_log(print_r($block_data, true));
-
-        //if(isset($fields["block_settings"]["custom_id"]) && !empty($fields["block_settings"]["custom_id"])){
         if(isset($block_data["data"]["block_settings_custom_id"]) && !empty($block_data["data"]["block_settings_custom_id"])){
-            $block_id = $block_data["data"]["block_settings_custom_id"];//$fields["block_settings"]["custom_id"];
+            $block_id = $block_data["data"]["block_settings_custom_id"];
         }else{
             $block_id = $block_data["id"];
         }
+
         $id = $block_id;
+
         if( $block_data["name"] == "acf/bootstrap-columns" && empty($block_column) &&
             isset($fields["acf_block_columns"][0]["acf_fc_layout"]) &&
             $fields["acf_block_columns"][0]["acf_fc_layout"] != "block-bootstrap-columns" && 
@@ -2557,15 +3099,28 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
         $meta["container"]        = isset($meta["settings"]["container"])?block_container($meta["settings"]["container"]):"default";
         $meta["bg_image"]         = block_bg_media($block_data, $fields, $block_column);
         $meta["data"]             = array(
-                                        "align"      => $block_data["align"],
-                                        "fullHeight" => $block_data["fullHeight"]
+            "align"      => $block_data["align"],
+            "fullHeight" => $block_data["fullHeight"]
         );
-       $meta["css"]              = block_css($block_data, $fields, $block_column);
+       $meta["css"]               = block_css($block_data, $fields, $block_column);
        if(isset($fields["aos_settings"])){
             $meta["aos"] = block_aos($fields["aos_settings"]);
        }
        if(isset($fields["column_breakpoints"]) || isset($fields["slider_settings"])){
             $meta["row"] = block_columns($fields, $block_data);
+            if(isset($fields["slider_settings"])){
+                if(isset($meta["row"]["controls"])){
+                    $css_tmp = $meta["css"];
+                    $css = "";
+                    foreach($meta["row"]["controls"] as $control){
+                        if(isset($control["css"]) && !empty($control["css"])){
+                            $css .= $control["css"];
+                        }
+                    }
+                    $css_tmp = str_replace("</style>", $css."</style>", $css_tmp);
+                    $meta["css"] = $css_tmp;
+                }
+            }
        }
        if(isset($fields["slider_settings"])){
             $meta["container_slider"] = block_container($fields["slider_settings"]["container"]);
@@ -2594,10 +3149,10 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
     }
 
     $meta["_date"] = date("Y-m-d H:i:s");
-
-    if(!isset($_GET["fetch"]) ) { 
+    
+    if (isset($_GET['fetch'])) {
         // save meta as option for fast response (saves 0.04 sn.)
-        error_log("saving ------  option ---- meta -> ". $id." block:". $block_data["name"] );
+        error_log("fetch saving ------  option ---- meta -> ". $id." block:". $block_data["name"] );
         update_option($block_data["id"], $meta);
     }
 

@@ -544,9 +544,6 @@ class StarterSite extends Timber\Site{
     } 
 
     function register_post_types(){
-        if (!is_admin()) {
-            return;
-        }
         //this is where you can register custom post types
         include SH_INCLUDES_PATH . "register/post-type.php";
         if(SH_THEME_EXISTS){
@@ -555,9 +552,6 @@ class StarterSite extends Timber\Site{
     }
 
     function register_taxonomies(){
-        if (!is_admin()) {
-            return;
-        }
         include SH_INCLUDES_PATH . "register/user.php";
         include SH_INCLUDES_PATH . "register/taxonomy.php";
         if(SH_THEME_EXISTS){

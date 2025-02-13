@@ -19,7 +19,7 @@ class PageAssetsExtractor {
         $this->home_url = home_url("/");
         $this->home_url_encoded = str_replace("/","\/", $this->home_url);
         $upload_dir = wp_upload_dir();
-        $upload_url = $upload_dir['baseurl']."/";;
+        $upload_url = $upload_dir['baseurl']."/";
         $this->upload_url = $upload_url;
         $this->upload_url_encoded = str_replace("/","\/", $this->upload_url);
         if (defined('ENABLE_MULTILANGUGE') && ENABLE_MULTILANGUGE) {
@@ -94,13 +94,21 @@ class PageAssetsExtractor {
         $fetch_url = (!empty($url) && is_string($url))
         ? $url . (strpos($url, '?') === false ? '?fetch&nocache=true' : '&fetch&nocache=true')
         : '?fetch&nocache=true';
-
+        error_log("fetched->".$fetch_url);
 
         if(get_page_status($fetch_url) != 200){
             return false;
         }
+
+        $opts = [
+            "http" => [
+                "header" =>  "User-Agent: MyFetchBot/1.0\r\n"
+            ]
+        ];
+        $context = stream_context_create($opts);
+        $html_content = HtmlDomParser::file_get_html($fetch_url, false, $context);
         
-        $html_content = HtmlDomParser::file_get_html($fetch_url);
+        //$html_content = HtmlDomParser::file_get_html($fetch_url, false, $context);
         
         if (!$html_content) {
             return false;
@@ -116,6 +124,7 @@ class PageAssetsExtractor {
             $block_content = $block->outerHtml();
         }
         $html = HtmlDomParser::str_get_html($main_content . $block_content);
+
         return $this->extract_assets($html, $id);
     }
 
@@ -153,15 +162,23 @@ class PageAssetsExtractor {
         // <style> ve <script> etiketlerini $main ve $block içinde ara
         if ($html) {
             $scripts = $html->findMulti('script');
+            error_log(print_r($scripts, true));
             $scripts_filtered = [];
             foreach ($scripts as $script) {
-                if (!isset($script->attr['data-inline']) || $script->attr['data-inline'] !== 'true') {
+                //$attrs = $script->attr ?? [];
+                if (!$script->hasAttribute('data-inline')) {
                     $scripts_filtered[] = $script;
                 }
             }
             $scripts = $scripts_filtered;
+            error_log("dönüş:");
+            error_log(print_r($scripts, true));
             foreach ($scripts as $script) {
-                $code = $script->innerHtml();
+                 if (is_object($script) && method_exists($script, 'innerHtml')) {
+                    $code = $script->innerHtml();
+                } else {
+                    continue;
+                }
                 $js[] = $code;
             }
             if($js){
@@ -180,7 +197,8 @@ class PageAssetsExtractor {
             $styles = $html->findMulti('style');
             $styles_filtered = [];
             foreach ($styles as $style) {
-                if (!isset($style->attr['data-inline']) || $style->attr['data-inline'] !== 'true') {
+                $attrs = $style->attr ?? [];
+                if (!array_key_exists('data-inline', $attrs)) {
                     $styles_filtered[] = $style;
                 }
             }
@@ -262,7 +280,7 @@ class PageAssetsExtractor {
                     }
                 }
                 if($plugin_files_css){
-                    $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css);
+                    $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css);//dosya adı
                     $plugin_css = str_replace(STATIC_URL, '', $plugin_css);
                 }
                 if($plugin_files_css_rtl){
@@ -301,7 +319,6 @@ class PageAssetsExtractor {
             array_unique($wp_js);
         }
 
-
         $result = array(
             "js" => $js, //on page save
             "css" => $css, //on page save
@@ -311,7 +328,6 @@ class PageAssetsExtractor {
             "plugin_css_rtl" => $plugin_css_rtl,
             "wp_js" => $wp_js,
         );
-        //error_log(json_encode($result));
         return $this->save_meta($result, $id);
     }
 
@@ -363,7 +379,9 @@ class PageAssetsExtractor {
             if (file_exists($file_system_path)) {
                 $content = file_get_contents($file_system_path);
                 if ($content !== false) {
-                    // İçeriği ekle ve sonuna yeni satır ekle
+                    if($type == "css"){
+                        $content = str_replace(STATIC_URL, "../../", $content);// read assets from cache folder
+                    }
                     $combined_content .= $content . PHP_EOL; // Sonuna yeni satır ekleniyor
                 } else {
                     error_log("Error reading file: $file_system_path");
@@ -378,9 +396,8 @@ class PageAssetsExtractor {
         $combined_content = str_replace("(function($){", "", $combined_content);
         $combined_content = str_replace("})(jQuery)", "", $combined_content);
         $combined_content = str_replace("}(jQuery))", "", $combined_content);
-        file_put_contents($cache_file, trim($combined_content)); // Boş satırları önlemek için trim kullan
-        //return get_stylesheet_directory_uri() . '/static/' . $type . '/cache/' . $hash . '.' . $type;
-        //return '/static/' . $type . '/cache/' . $hash . '.' . $type;
+        file_put_contents($cache_file, trim($combined_content));
+
         return $type . '/cache/' . $hash . '.' . $type;
     }
 

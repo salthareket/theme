@@ -34,13 +34,14 @@
            {% if key == "pagination" %}
                 {% set outside = outside ~ "<div class='swiper-pagination'></div>" %}
            {% endif %}
+           {% if key == "scrollbar" %}
+                {% set outside = outside ~ "<div class='swiper-scrollbar'></div>" %}
+           {% endif %}
         {% endif %}
-        {% if control.css %}
-            <style type="text/css">
-            {% for css in control.css %}
-               {{css}}
-            {% endfor %}
-            </style>
+        {% if control.js %}
+            {{"<script type='text/javascript' data-inline='true'>"}}
+               {{control.js}}
+            {{"</script>"}}
         {% endif %}
     {% endfor %}
 
@@ -63,7 +64,7 @@
     {% endif %}
 
 
-    <div class="swiper-slider swiper {% if fields.slider_parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not block_meta.settings.hero %} fade loading{% endif %} {% endif %} {% if autoheight and not settings.height == "ratio" %}position-relative h-auto{% else %}position-absolute-fill{% endif %}" {{block_meta.row.attrs}} data-color-dark="{{fields.slider_settings.color_dark}}" data-color-light="{{fields.slider_settings.color_light}}">
+    <div class="swiper-slider swiper {% if fields.slider_parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not block_meta.settings.hero %} fade loading{% endif %} {% endif %} {% if autoheight and not settings.height == "ratio" %}position-relative h-auto{% else %}position-absolute-fill{% endif %}" {{block_meta.row.attrs}}>
         <div class="swiper-wrapper">
             {% for slide in fields.slider %}
 
@@ -112,7 +113,7 @@
                                 </div>
                             {% endif %}
                             <noscript class="loading-lazy">
-                                <div class="swiper-bg bg-cover" style="background-image:url({{get_image(slide.image.xxxl)}});"></div>
+                                <div class="swiper-bg bg-cover" style="background-image:url({{slide.image.url}});"></div>
                             </noscript>
                         {% endif %}
 
@@ -143,9 +144,6 @@
     </div>
 
     <style type="text/css">
-        #{{block_meta.id}}{
-            background-color:{{block_meta.settings.bg_color}};
-        }
         {% for slide in fields.slider %}
             {% if slide.overlay and not slide.video.video_settings.controls %}
                 #{{block_meta.id}} .slide-{{loop.index}}:before{

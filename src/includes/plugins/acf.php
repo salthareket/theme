@@ -67,9 +67,9 @@ function acf_get_contacts($type=""){
 			);
 		}
 		$posts = Timber::get_posts($args);
-		if (!empty($posts["posts"]) && $type == "main") { 
+		if ($posts->found_posts && $type == "main") { 
 			error_log("post var mı?");
-		    $posts = $posts[0]; 
+		    $posts = $posts->to_array()[0]; 
 		}
 	//}
 	return $posts;
@@ -88,8 +88,8 @@ function acf_get_contact_related($post_id=0, $post_type="post"){
 			)
 	);
 	$posts = Timber::get_posts($args);
-	if($posts){
-    	$posts = $posts[0];
+	if ($posts->found_posts) { 
+	    $posts = $posts->to_array()[0]; 
 	}
     return $posts;
 }

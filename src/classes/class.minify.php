@@ -538,8 +538,11 @@ class SaltMinifier{
                         $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
                         if (!empty($publish_url)) {
                             $final_url = str_replace(home_url(), $publish_url, $final_url);
-                        }
+                        }/**/
                         error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
+
+                        //$final_url = str_replace(STATIC_URL, "../", $final_url);
+
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
                         if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
@@ -548,10 +551,11 @@ class SaltMinifier{
                             $clean_url = explode('?', $asset["url"])[0];
                             $query = parse_url($asset["url"], PHP_URL_QUERY);
                             $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                            if(!empty($publish_url)){
+                           if(!empty($publish_url)){
                                 $final_url = str_replace(home_url(), $publish_url, $final_url);
                             }
                             error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
+                            //$final_url = str_replace(STATIC_URL, "../", $final_url);
                             $css = str_replace($asset["url"], $final_url, $css);
                         }
                     }

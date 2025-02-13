@@ -60,6 +60,11 @@ if ( ! class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
 					// Strip the file extension to get the slug.
 					$slug = $file_parts['filename'];
 
+					// **Blok zaten kayıtlı mı kontrol et!**
+		            if (self::is_block_registered($slug)) {
+		                continue;
+		            }
+
 					// Get header info from the found template file(s).
 					$file_path    = locate_template( $dir . "/{$slug}.twig" );
 					$file_headers = get_file_data(
@@ -399,6 +404,12 @@ if ( ! class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
 
 			return $data;
 		}
+
+		private static function is_block_registered($block_name) {
+		    global $wp_registered_blocks;
+		    return isset($wp_registered_blocks[$block_name]);
+		}
+
 	}
 }
 

@@ -42,6 +42,8 @@ define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_co
 define("SEPERATE_CSS", get_option("options_seperate_css"));
 define("SEPERATE_JS",  get_option("options_seperate_js"));
 
+define("ENABLE_TWIG_CACHE",  get_option("options_enable_twig_cache"));
+
 $exclude_from_search = get_option("options_exclude_from_search");
 $exclude_from_search = $exclude_from_search?$exclude_from_search:[];
 define("EXCLUDE_FROM_SEARCH", $exclude_from_search);
@@ -230,7 +232,7 @@ add_action('after_setup_theme', function () {
     } else {
         Timber::$dirname = array( 'vendor/salthareket/theme/src/templates', 'theme/templates', 'templates' );
         Timber::$autoescape = false;
-        Timber::$cache = false;
+        //Timber::$cache = false;
         include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
         include_once SH_INCLUDES_PATH . 'twig-extends.php';
         if(SH_THEME_EXISTS){

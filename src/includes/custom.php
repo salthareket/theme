@@ -193,7 +193,7 @@ class SaltBase{
             
             acf_block_id_fields($post_id);
 
-            error_log("P O S T  S A V I N G  H O O K....");
+            error_log("P O S T  S A V I N G  H O O K....".$post_id);
 
             $extractor = $this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_post($post_id, $post, $update);
@@ -201,13 +201,13 @@ class SaltBase{
             // post'un featured image'ının alt text'i eklenmemişse post'un title'ını alt text olarak kaydet.
             $thumbnail_id = get_post_thumbnail_id($post_id);
             if (!$thumbnail_id) {
-                return;
+                $alt_text = get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true);
+                if (empty($alt_text)) {
+                    $post_title = get_the_title($post_id);
+                    update_post_meta($thumbnail_id, '_wp_attachment_image_alt', $post_title);
+                }
             }
-            $alt_text = get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true);
-            if (empty($alt_text)) {
-                $post_title = get_the_title($post_id);
-                update_post_meta($thumbnail_id, '_wp_attachment_image_alt', $post_title);
-            }
+            
         }
         add_action('save_post', [ $this, 'on_post_published'], 100, 3);
         add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);

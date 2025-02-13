@@ -22,7 +22,6 @@ class FeaturedImage {
         $this->post_id = $post_id;
 
         $media_field = get_field('media', $post_id);
-        error_log(print_r($media_field, true));
         if (!$media_field || !isset($media_field['media_type'])) {
             return;
         }
@@ -34,8 +33,6 @@ class FeaturedImage {
                 $featured_image_id = $featured_image_id["ID"];
             }
         }
-
-        //error_log(print_r($featured_image_id, true));
 
         if ($featured_image_id) {
             set_post_thumbnail($post_id, $featured_image_id);
@@ -59,9 +56,6 @@ class FeaturedImage {
         }
 
         $featured_image_id = $this->determineFeaturedImage($media_field);
-
-        error_log("featured_image_id:".$featured_image_id);
-
         if ($featured_image_id) {
             update_term_meta($term_id, '_thumbnail_id', $featured_image_id);
         } else {

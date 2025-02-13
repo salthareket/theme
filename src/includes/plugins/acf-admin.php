@@ -8,7 +8,6 @@ use SaltHareket\Theme;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
-
 function get_theme_styles($variables = array()){
     $theme_styles = acf_get_theme_styles();
     if($theme_styles){
@@ -487,38 +486,38 @@ function get_theme_styles($variables = array()){
 }
 
 function acf_get_theme_styles(){
-	$theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
+    $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
     $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
         
     $theme_styles = [];
     if(file_exists($theme_styles_latest)){
-    	$theme_styles = file_get_contents($theme_styles_latest);
-    	$theme_styles = json_decode($theme_styles, true);
+        $theme_styles = file_get_contents($theme_styles_latest);
+        $theme_styles = json_decode($theme_styles, true);
     }
     if(!$theme_styles){
-    	$theme_styles = get_field("theme_styles", "option");
+        $theme_styles = get_field("theme_styles", "option");
     }
     if(!$theme_styles && !isset($theme_styles["header"]["themes"]) && file_exists($theme_styles_defaults)){
-    	$theme_styles = file_get_contents($theme_styles_defaults);
-    	$theme_styles = json_decode($theme_styles, true);
+        $theme_styles = file_get_contents($theme_styles_defaults);
+        $theme_styles = json_decode($theme_styles, true);
     }
     return $theme_styles;
 }
 
 function acf_set_thumbnail_condition($post_id){
-	$post_types = get_post_types(); // Tüm kayıtlı post tiplerini al
+    $post_types = get_post_types(); // Tüm kayıtlı post tiplerini al
     $supported_post_types = []; // Thumbnail desteği olanları burada tut
     foreach ($post_types as $post_type) {
         if (post_type_supports($post_type, 'thumbnail')) {
             $supported_post_types[] = $post_type; // Thumbnail desteği varsa listeye ekle
         }
     }
-	$post_type = get_post_type( $post_id );
-	if(in_array($post_type, $supported_post_types)){
-	    return true;
-	}else{
-	    return false;
-	}
+    $post_type = get_post_type( $post_id );
+    if(in_array($post_type, $supported_post_types)){
+        return true;
+    }else{
+        return false;
+    }
 }
 
 
@@ -543,115 +542,115 @@ add_filter('acf/validate_value', function ($valid, $value, $field, $input) {
 
 
 add_filter('acf/load_value/type=file', function($value, $post_id, $field) {
-	if (!empty($value) && get_post_status($value) === false) {
-		return null; // Eğer dosya yoksa alanı boş yap
-	}
-	return $value; // Eğer dosya varsa, normal değerini döndür
+    if (!empty($value) && get_post_status($value) === false) {
+        return null; // Eğer dosya yoksa alanı boş yap
+    }
+    return $value; // Eğer dosya varsa, normal değerini döndür
 }, 10, 3);
 
 
 // Google maps
 add_filter('acf/update_value/name=map_url', 'acf_map_embed_update', 10, 3);
 function acf_map_embed_update( $value, $post_id, $field ) {
-	if(strpos($value, "<iframe ") !== false){
-		$value = preg_replace('/\\\\/', '', $value);
-		$value = get_iframe_src( $value );
-	}
-	return $value;
+    if(strpos($value, "<iframe ") !== false){
+        $value = preg_replace('/\\\\/', '', $value);
+        $value = get_iframe_src( $value );
+    }
+    return $value;
 }
 
 add_action('acf/update_value', 'acf_map_lat_lng', 99, 3 ); 
 function acf_map_lat_lng( $value, $post_id, $field ) {
-	if( 'google_map' === $field['type']){
-		if( 'map' === $field['name'] ) {
-			update_post_meta( $post_id, 'lat', $value['lat'] );
-			update_post_meta( $post_id, 'lng', $value['lng'] );
-		}
-		if( 'lat' === $field['name'] && isset($value['lat']) ) {
-			update_post_meta( $post_id, 'lat', $value['lat'] );
-		}
-		if( 'lng' === $field['name'] && isset($value['lng']) ) {
-			update_post_meta( $post_id, 'lng', $value['lng'] );
-		}
-	}
-	return $value;
+    if( 'google_map' === $field['type']){
+        if( 'map' === $field['name'] ) {
+            update_post_meta( $post_id, 'lat', $value['lat'] );
+            update_post_meta( $post_id, 'lng', $value['lng'] );
+        }
+        if( 'lat' === $field['name'] && isset($value['lat']) ) {
+            update_post_meta( $post_id, 'lat', $value['lat'] );
+        }
+        if( 'lng' === $field['name'] && isset($value['lng']) ) {
+            update_post_meta( $post_id, 'lng', $value['lng'] );
+        }
+    }
+    return $value;
 }
 function acf_get_coordinates_from_embed_url($url){
-	$coordinates = array();
-	// Koordinatları çıkarmak için regex deseni
-	$pattern = '/!3d([0-9.]+)!2d([0-9.]+)/';
+    $coordinates = array();
+    // Koordinatları çıkarmak için regex deseni
+    $pattern = '/!3d([0-9.]+)!2d([0-9.]+)/';
 
-	// Embed kodundan enlem ve boylam koordinatlarını çıkarın
-	preg_match($pattern, $url, $matches);
+    // Embed kodundan enlem ve boylam koordinatlarını çıkarın
+    preg_match($pattern, $url, $matches);
 
-	if (count($matches) >= 3) {
-	    $coordinates["lat"] = $matches[1];
-	    $coordinates["lng"] = $matches[2];
-	    return $coordinates;
-	} 
-	return false;
+    if (count($matches) >= 3) {
+        $coordinates["lat"] = $matches[1];
+        $coordinates["lng"] = $matches[2];
+        return $coordinates;
+    } 
+    return false;
 }
 
 
 // General Settings Condition
 add_filter('acf/load_field/name=enable_ecommerce', 'acf_general_option_enable_ecommerce');
 function acf_general_option_enable_ecommerce($field) {
-	if (ENABLE_ECOMMERCE) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    if (ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 
 add_filter('acf/load_field/name=enable_cart', 'acf_general_option_enable_cart');
 function acf_general_option_enable_cart($field) {
-	if (!ENABLE_ECOMMERCE) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    if (!ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 
 add_filter('acf/load_field/name=enable_woo_api', 'acf_general_option_enable_woo_api');
 function acf_general_option_enable_woo_api($field) {
-	if (!ENABLE_ECOMMERCE) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    if (!ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 
 add_filter('acf/load_field/name=breadcrumb_add_product_brand', 'acf_general_option_breadcrumb_add_product_brand');
 function acf_general_option_breadcrumb_add_product_brand($field) {
-	if (!ENABLE_ECOMMERCE) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    if (!ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 
 add_filter('acf/load_field/name=breadcrumb_add_product_taxonomy', 'acf_general_option_breadcrumb_add_product_taxonomy');
 function acf_general_option_breadcrumb_add_product_taxonomy($field) {
-	if (!ENABLE_ECOMMERCE) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    if (!ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 
 add_filter('acf/load_field/name=remove_woocommerce_styles', 'acf_general_option_remove_woocommerce_styles');
 function acf_general_option_remove_woocommerce_styles($field) {
-	if (!ENABLE_ECOMMERCE) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    if (!ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 
 
@@ -666,116 +665,116 @@ function acf_generate_id($length = 12) {
 }
 
 function acf_get_raw_value($post_id, $field_name, $field_group_name, $index=0){ // $index required for repeater
-	if(isset($field_group_name)){
-	    $index = isset($index)?$index."_":"";
-		$meta_key = $field_group_name."_".$index.$field_name;
-	}else{
+    if(isset($field_group_name)){
+        $index = isset($index)?$index."_":"";
+        $meta_key = $field_group_name."_".$index.$field_name;
+    }else{
         $meta_key = $field_name;
-	}
-	global $wpdb;
-	$value = $wpdb->get_var("select meta_value from wp_postmeta where post_id=".$post_id." and meta_key='".$meta_key."'");
-	if(!empty($value) && ENABLE_MULTILANGUAGE == "qtranslate"){
-		$lang = qtranxf_getLanguage();
-		$value = qtranxf_split($value);
-		if(isset($value[$lang])){
-			$value = $value[$lang];
-		}
-	}
-	return $value;
+    }
+    global $wpdb;
+    $value = $wpdb->get_var("select meta_value from wp_postmeta where post_id=".$post_id." and meta_key='".$meta_key."'");
+    if(!empty($value) && ENABLE_MULTILANGUAGE == "qtranslate"){
+        $lang = qtranxf_getLanguage();
+        $value = qtranxf_split($value);
+        if(isset($value[$lang])){
+            $value = $value[$lang];
+        }
+    }
+    return $value;
 }
 
 
 
 function acf_admin_colors_footer() { 
-	$colors = [];
-	$colors_file = THEME_STATIC_PATH . 'data/colors_mce.json';
-	if(file_exists($colors_file)){
-	    $colors = file_get_contents($colors_file);
-	    $colors = json_decode($colors, true);
-	    if($colors){
-	    	$colors = array_keys($colors);
-	    }
-	}
-	?>
-	<script type="text/javascript">
-	(function($) {
-		acf.add_filter('color_picker_args', function( args, $field ){
-			<?php 
-			if($colors){
-			?>
-				let colors = <?php echo json_encode($colors);?>;
-            <?
-			}else{
-			?>
-				let colors = [];
-		        let obj = getComputedStyle(document.documentElement);
-		        let custom_colors = obj.getPropertyValue('--salt-colors').trim();
-		        if(!IsBlank(custom_colors)){
-		        	custom_colors = custom_colors.split(",");
-		        	custom_colors.forEach(color => {
-					    colors.push(obj.getPropertyValue('--bs-'+color.trim()).trim());
-					});
-		        }
-	        <?php 
-	        }
-	        ?>
-			args.palettes = colors
-			return args;
-		});
-	})(jQuery);
-	</script>
+    $colors = [];
+    $colors_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+    if(file_exists($colors_file)){
+        $colors = file_get_contents($colors_file);
+        $colors = json_decode($colors, true);
+        if($colors){
+            $colors = array_keys($colors);
+        }
+    }
+    ?>
+    <script type="text/javascript">
+    (function($) {
+        acf.add_filter('color_picker_args', function( args, $field ){
+            <?php 
+            if($colors){
+            ?>
+                let colors = <?php echo json_encode($colors);?>;
+            <?php
+            }else{
+            ?>
+                let colors = [];
+                let obj = getComputedStyle(document.documentElement);
+                let custom_colors = obj.getPropertyValue('--salt-colors').trim();
+                if(!IsBlank(custom_colors)){
+                    custom_colors = custom_colors.split(",");
+                    custom_colors.forEach(color => {
+                        colors.push(obj.getPropertyValue('--bs-'+color.trim()).trim());
+                    });
+                }
+            <?php 
+            }
+            ?>
+            args.palettes = colors
+            return args;
+        });
+    })(jQuery);
+    </script>
 <?php }
 add_action('acf/input/admin_footer', 'acf_admin_colors_footer');
 
 
 
 if(ENABLE_ECOMMERCE){
-	//another solutions for below:
-	//https://remicorson.com/mastering-woocommerce-products-custom-fields/
-	//https://remicorson.com/woocommerce-custom-fields-for-variations/
+    //another solutions for below:
+    //https://remicorson.com/mastering-woocommerce-products-custom-fields/
+    //https://remicorson.com/woocommerce-custom-fields-for-variations/
 
-	// Render fields at the bottom of variations - does not account for field group order or placement.
-	add_action( 'woocommerce_product_after_variable_attributes', function( $loop, $variation_data, $variation ) {
-	    global $abcdefgh_i; // Custom global variable to monitor index
-	    $abcdefgh_i = $loop;
-	    // Add filter to update field name
-	    add_filter( 'acf/prepare_field', 'acf_prepare_field_update_field_name' );
-	    
-	    // Loop through all field groups
-	    $acf_field_groups = acf_get_field_groups();
-	    foreach( $acf_field_groups as $acf_field_group ) {
-	        foreach( $acf_field_group['location'] as $group_locations ) {
-	            foreach( $group_locations as $rule ) {
-	                // See if field Group has at least one post_type = Variations rule - does not validate other rules
-	                if( $rule['param'] == 'post_type' && $rule['operator'] == '==' && $rule['value'] == 'product_variation' ) {
-	                    // Render field Group
-	                    acf_render_fields( $variation->ID, acf_get_fields( $acf_field_group ) );
-	                    break 2;
-	                }
-	            }
-	        }
-	    }
-	    
-	    // Remove filter
-	    remove_filter( 'acf/prepare_field', 'acf_prepare_field_update_field_name' );
-	}, 10, 3 );
+    // Render fields at the bottom of variations - does not account for field group order or placement.
+    add_action( 'woocommerce_product_after_variable_attributes', function( $loop, $variation_data, $variation ) {
+        global $abcdefgh_i; // Custom global variable to monitor index
+        $abcdefgh_i = $loop;
+        // Add filter to update field name
+        add_filter( 'acf/prepare_field', 'acf_prepare_field_update_field_name' );
+        
+        // Loop through all field groups
+        $acf_field_groups = acf_get_field_groups();
+        foreach( $acf_field_groups as $acf_field_group ) {
+            foreach( $acf_field_group['location'] as $group_locations ) {
+                foreach( $group_locations as $rule ) {
+                    // See if field Group has at least one post_type = Variations rule - does not validate other rules
+                    if( $rule['param'] == 'post_type' && $rule['operator'] == '==' && $rule['value'] == 'product_variation' ) {
+                        // Render field Group
+                        acf_render_fields( $variation->ID, acf_get_fields( $acf_field_group ) );
+                        break 2;
+                    }
+                }
+            }
+        }
+        
+        // Remove filter
+        remove_filter( 'acf/prepare_field', 'acf_prepare_field_update_field_name' );
+    }, 10, 3 );
 
-	// Filter function to update field names
-	function  acf_prepare_field_update_field_name( $field ) {
-	    global $abcdefgh_i;
-	    $field['name'] = preg_replace( '/^acf\[/', "acf[$abcdefgh_i][", $field['name'] );
-	    return $field;
-	}
-	    
-	// Save variation data
-	add_action( 'woocommerce_save_product_variation', function( $variation_id, $i = -1 ) {
-	    // Update all fields for the current variation
-	    if ( ! empty( $_POST['acf'] ) && is_array( $_POST['acf'] ) && array_key_exists( $i, $_POST['acf'] ) && is_array( ( $fields = $_POST['acf'][ $i ] ) ) ) {
-	        foreach ( $fields as $key => $val ) {
-	            update_field( $key, $val, $variation_id );
-	        }
-	    }
-	}, 10, 2 );	
+    // Filter function to update field names
+    function  acf_prepare_field_update_field_name( $field ) {
+        global $abcdefgh_i;
+        $field['name'] = preg_replace( '/^acf\[/', "acf[$abcdefgh_i][", $field['name'] );
+        return $field;
+    }
+        
+    // Save variation data
+    add_action( 'woocommerce_save_product_variation', function( $variation_id, $i = -1 ) {
+        // Update all fields for the current variation
+        if ( ! empty( $_POST['acf'] ) && is_array( $_POST['acf'] ) && array_key_exists( $i, $_POST['acf'] ) && is_array( ( $fields = $_POST['acf'][ $i ] ) ) ) {
+            foreach ( $fields as $key => $val ) {
+                update_field( $key, $val, $variation_id );
+            }
+        }
+    }, 10, 2 ); 
 }
 
 
@@ -807,7 +806,7 @@ function google_api_key_found_conditional_field( $field ) {
     if ( empty( $google_api_key ) ) {
         return true;
     }else{
-    	return false;
+        return false;
     }
     return $field;
 }
@@ -815,24 +814,24 @@ function google_api_key_found_conditional_field( $field ) {
 add_filter('acf/prepare_field/key=field_673386f1d3129', 'google_api_key_found_conditional_field');
 
 
-	// page settings offcanvas menu template -> chhose menu -> chhose menu item for offcanvas menu root
-	function acf_load_menu_field_choices( $field ) {
-	    $field['choices'] = array();
-	    $menus = get_terms('nav_menu', array('hide_empty' => false));
-	    if ($menus) {
-	    	$field['choices'][""] = __("Menü seçiniz");
-	        foreach ($menus as $menu) {
-	        	$menu_name = $menu->name;
-	        	if(ENABLE_MULTILANGUAGE == "qtranslate_xt"){
-	        		$menu_name = translateContent($menu_name);
-	        	}
-	        	$field['choices'][ $menu->term_id ] = $menu_name;
-	        }
-	    }
-	    populate_menu_items_on_change();
-	    return $field;
-	}
-	add_filter('acf/load_field/key=field_65d5fc059efb9', 'acf_load_menu_field_choices');
+    // page settings offcanvas menu template -> chhose menu -> chhose menu item for offcanvas menu root
+    function acf_load_menu_field_choices( $field ) {
+        $field['choices'] = array();
+        $menus = get_terms('nav_menu', array('hide_empty' => false));
+        if ($menus) {
+            $field['choices'][""] = __("Menü seçiniz");
+            foreach ($menus as $menu) {
+                $menu_name = $menu->name;
+                if(ENABLE_MULTILANGUAGE == "qtranslate_xt"){
+                    $menu_name = translateContent($menu_name);
+                }
+                $field['choices'][ $menu->term_id ] = $menu_name;
+            }
+        }
+        populate_menu_items_on_change();
+        return $field;
+    }
+    add_filter('acf/load_field/key=field_65d5fc059efb9', 'acf_load_menu_field_choices');
 
 
 function populate_menu_items_on_change() {
@@ -863,396 +862,396 @@ EOT;
     }
 }
 add_action('acf/render_field/key=field_65d5fc059efb9', function() {
-    add_action('admin_enqueue_scripts', 'populate_menu_items_on_change');	
+    add_action('admin_enqueue_scripts', 'populate_menu_items_on_change');   
 });
 
-	
+    
 
 
-	function populate_menu_items_callback() {
-	    $menu_id = $_POST['menu_id'];
-	    $menu_items = wp_get_nav_menu_items($menu_id);
-	    if ($menu_items) {
-	        $levels = array(); // Tüm seviyeleri tutan bir dizi
-	        echo '<option value="-1">' . __("Otomatik algıla") .'</option>';
-	        echo '<option value="0">' . __("Tüm menüyü göster") .'</option>';
-	        foreach ($menu_items as $item) {
-	            $level = $item->menu_item_parent > 0 ? $levels[$item->menu_item_parent] + 1 : 0; // Her seviye için uygun level değeri belirleniyor
-	            $levels[$item->ID] = $level; // Her itemin seviyesi saklanıyor
-	            $indent = str_repeat('&nbsp;', $level * 4); // Her seviye için uygun sayıda boşluk ekleniyor
-	            $item_title = $item->title;
-	            if(ENABLE_MULTILANGUAGE == "qtranslate-xt"){
-	                $item_title = translateContent($item_title);
-	            }
-	            //echo '<option value="' . $item->ID . '">' . $indent . $item_title .'</option>';
-	            echo '<option value="' . $item->object_id . '">' . $indent . $item_title .'</option>';
-	        }
-	    }
-	    die();
-	}
-	add_action('wp_ajax_populate_menu_items', 'populate_menu_items_callback');
-	add_action('wp_ajax_nopriv_populate_menu_items', 'populate_menu_items_callback');
+    function populate_menu_items_callback() {
+        $menu_id = $_POST['menu_id'];
+        $menu_items = wp_get_nav_menu_items($menu_id);
+        if ($menu_items) {
+            $levels = array(); // Tüm seviyeleri tutan bir dizi
+            echo '<option value="-1">' . __("Otomatik algıla") .'</option>';
+            echo '<option value="0">' . __("Tüm menüyü göster") .'</option>';
+            foreach ($menu_items as $item) {
+                $level = $item->menu_item_parent > 0 ? $levels[$item->menu_item_parent] + 1 : 0; // Her seviye için uygun level değeri belirleniyor
+                $levels[$item->ID] = $level; // Her itemin seviyesi saklanıyor
+                $indent = str_repeat('&nbsp;', $level * 4); // Her seviye için uygun sayıda boşluk ekleniyor
+                $item_title = $item->title;
+                if(ENABLE_MULTILANGUAGE == "qtranslate-xt"){
+                    $item_title = translateContent($item_title);
+                }
+                //echo '<option value="' . $item->ID . '">' . $indent . $item_title .'</option>';
+                echo '<option value="' . $item->object_id . '">' . $indent . $item_title .'</option>';
+            }
+        }
+        die();
+    }
+    add_action('wp_ajax_populate_menu_items', 'populate_menu_items_callback');
+    add_action('wp_ajax_nopriv_populate_menu_items', 'populate_menu_items_callback');
 
 
 
 function acf_add_field_options($field) {
 
-	$class = explode(" ", $field["wrapper"]["class"]);
+    $class = explode(" ", $field["wrapper"]["class"]);
 
-	/* Using classes for fields:
-	acf-margin-padding
-	acf-font-family
-	acf-font-size
-	acf-text-transform
-	acf-font-weight
-	acf-bs-align-hr
-	acf-align-hr
-	acf-align-vr
-	acf-width-height
-	acf-heading
-	acf-plyr-options
-	acf-plyr-settings
-	acf-body-classes
-	acf-main-classes
-	acf-ratio
-	acf-language-list
-	acf-template-custom || acf-template-custom-default
-	acf-wp-themes
-	acf-image-blend-mode
-	acf-image-filter
-	acf-menu-locations
-	*/
+    /* Using classes for fields:
+    acf-margin-padding
+    acf-font-family
+    acf-font-size
+    acf-text-transform
+    acf-font-weight
+    acf-bs-align-hr
+    acf-align-hr
+    acf-align-vr
+    acf-width-height
+    acf-heading
+    acf-plyr-options
+    acf-plyr-settings
+    acf-body-classes
+    acf-main-classes
+    acf-ratio
+    acf-language-list
+    acf-template-custom || acf-template-custom-default
+    acf-wp-themes
+    acf-image-blend-mode
+    acf-image-filter
+    acf-menu-locations
+    */
 
-	if(in_array("acf-language-list", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "array";
-		$options = get_all_languages(true);
-		if( is_array($options) ) {
-			foreach($options as $label) {
-				$field['choices'][$label["lang"]] = $label["name"];
-			}
-		}
+    if(in_array("acf-language-list", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "array";
+        $options = get_all_languages(true);
+        if( is_array($options) ) {
+            foreach($options as $label) {
+                $field['choices'][$label["lang"]] = $label["name"];
+            }
+        }
     }
 
 
-	if(in_array("acf-breakpoints", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "xl";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$options = array();
-		foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
-			$options[$key] = $key;
-		}
-		$field['choices'] = array();
-		foreach($options as $label) {
-		    $field['choices'][$label] = $label;
-		}
-	}
-
-	if(in_array("acf-columns", $class)){
-		$field["allow_custom"] = 0;
-	    $field["default_value"] = 1;
-		$field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		foreach (range(1, 12) as $number) {
-			$options[$number] = $number;
-		}
-		$field['choices'] = array();
-		foreach ($options as $label) {
-			$field['choices'][$label] = $label;
-		}
+    if(in_array("acf-breakpoints", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "xl";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array();
+        foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+            $options[$key] = $key;
+        }
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
     }
 
-	if(in_array("acf-gaps", $class)){
-		$field["allow_custom"] = 0;
-	    $field["default_value"] = 0;
-		$field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		foreach (range(0, 10) as $number) {
-			$options[$number] = $number;
-		}
-		$field['choices'] = array();
-		$field['choices'][0] = "None";
-		$field['choices']["auto"] = "Auto";
-		foreach ($options as $label) {
-			$field['choices'][$label] = $label;
-		}
+    if(in_array("acf-columns", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = 1;
+        $field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        foreach (range(1, 12) as $number) {
+            $options[$number] = $number;
+        }
+        $field['choices'] = array();
+        foreach ($options as $label) {
+            $field['choices'][$label] = $label;
+        }
     }
 
-	if(in_array("acf-margin-padding", $class) || in_array("acf-margin-padding-responsive", $class)){
-		if(!empty($field["parent"]) && $field["parent"] != 0){
+    if(in_array("acf-gaps", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = 0;
+        $field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        foreach (range(0, 10) as $number) {
+            $options[$number] = $number;
+        }
+        $field['choices'] = array();
+        $field['choices'][0] = "None";
+        $field['choices']["auto"] = "Auto";
+        foreach ($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+    }
+
+    if(in_array("acf-margin-padding", $class) || in_array("acf-margin-padding-responsive", $class)){
+        if(!empty($field["parent"]) && $field["parent"] != 0){
             global $wpdb;
-			$parent_name =  $wpdb->get_var($wpdb->prepare("SELECT post_excerpt FROM {$wpdb->posts} WHERE post_type = 'acf-field' AND post_name = %s", $field["parent"]));
-				if($parent_name){
-					if (in_array($parent_name, ["margin", "padding", "default_margin", "default_padding"])) {
-						$field["allow_custom"] = 0;
-						$field["default_value"] = "";
-						$field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
-						$field["multiple"] = 0;
-						$field["allow_null"] = 0;
-						$field["ajax"] = 0;
-						$field["ui"] = 0;
-						$field["search_placeholder"] = "";
-						$field["return_format"] = "value";
-						$options = array("auto" => "auto");
-						foreach (range(0, 12) as $number) {
-							$options[$number] = $number;
-						}
-						$field['choices'] = array();
-						if (in_array($parent_name, ["margin", "padding"])) {
-							$field['choices']["default"] = "Default";
-						}
-						if (in_array("acf-margin-padding-responsive", $class)) {
-							$field['choices']["responsive"] = "Responsive";
-						}
-						$field['choices'][""] = "None";
-						foreach ($options as $label) {
-							$field['choices'][$label] = $label;
-						}
-					}
-			}	
-		}
-	}
+            $parent_name =  $wpdb->get_var($wpdb->prepare("SELECT post_excerpt FROM {$wpdb->posts} WHERE post_type = 'acf-field' AND post_name = %s", $field["parent"]));
+                if($parent_name){
+                    if (in_array($parent_name, ["margin", "padding", "default_margin", "default_padding"])) {
+                        $field["allow_custom"] = 0;
+                        $field["default_value"] = "";
+                        $field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
+                        $field["multiple"] = 0;
+                        $field["allow_null"] = 0;
+                        $field["ajax"] = 0;
+                        $field["ui"] = 0;
+                        $field["search_placeholder"] = "";
+                        $field["return_format"] = "value";
+                        $options = array("auto" => "auto");
+                        foreach (range(0, 12) as $number) {
+                            $options[$number] = $number;
+                        }
+                        $field['choices'] = array();
+                        if (in_array($parent_name, ["margin", "padding"])) {
+                            $field['choices']["default"] = "Default";
+                        }
+                        if (in_array("acf-margin-padding-responsive", $class)) {
+                            $field['choices']["responsive"] = "Responsive";
+                        }
+                        $field['choices'][""] = "None";
+                        foreach ($options as $label) {
+                            $field['choices'][$label] = $label;
+                        }
+                    }
+            }   
+        }
+    }
 
-	if(in_array("acf-heading", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "h3";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+    if(in_array("acf-heading", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "h3";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
         $options = array(
-        	"h1",
-        	"h2", 
-        	"h3",
-        	"h4",
-        	"h5",
-        	"h6"
+            "h1",
+            "h2", 
+            "h3",
+            "h4",
+            "h5",
+            "h6"
         );
-		$field['choices'] = array();
-		foreach($options as $label) {
-		    $field['choices'][$label] = $label;
-		}
-	}
-	if(in_array("acf-font-family", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "none";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-	    $font_families = array(
-	    	'##System Fonts'                                        => '##System Fonts',
-			'Arial, Helvetica, sans-serif'                          => 'Arial, Helvetica, sans-serif',
-			'"Arial Black", Gadget, sans-serif'                     => '"Arial Black", Gadget, sans-serif',
-			'"Bookman Old Style", serif'                            => '"Bookman Old Style", serif',
-			'"Comic Sans MS", cursive'                              => '"Comic Sans MS", cursive',
-			'Courier, monospace'                                    => 'Courier, monospace',
-			'Garamond, serif'                                       => 'Garamond, serif',
-			'Georgia, serif'                                        => 'Georgia, serif',
-			'Impact, Charcoal, sans-serif'                          => 'Impact, Charcoal, sans-serif',
-			'"Lucida Console", Monaco, monospace'                   => '"Lucida Console", Monaco, monospace',
-			'"Lucida Sans Unicode", "Lucida Grande", sans-serif'    => '"Lucida Sans Unicode", "Lucida Grande", sans-serif',
-			'"MS Sans Serif", Geneva, sans-serif'                   => '"MS Sans Serif", Geneva, sans-serif',
-			'"MS Serif", "New York", sans-serif'                    => '"MS Serif", "New York", sans-serif',
-			'"Palatino Linotype", "Book Antiqua", Palatino, serif'  => '"Palatino Linotype", "Book Antiqua", Palatino, serif',
-			'Tahoma,Geneva, sans-serif'                             => 'Tahoma, Geneva, sans-serif',
-			'"Times New Roman", Times,serif'                        => '"Times New Roman", Times, serif',
-			'"Trebuchet MS", Helvetica, sans-serif'                 => '"Trebuchet MS", Helvetica, sans-serif',
-			'Verdana, Geneva, sans-serif'                           => 'Verdana, Geneva, sans-serif',
-		);
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+    }
+    if(in_array("acf-font-family", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "none";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $font_families = array(
+            '##System Fonts'                                        => '##System Fonts',
+            'Arial, Helvetica, sans-serif'                          => 'Arial, Helvetica, sans-serif',
+            '"Arial Black", Gadget, sans-serif'                     => '"Arial Black", Gadget, sans-serif',
+            '"Bookman Old Style", serif'                            => '"Bookman Old Style", serif',
+            '"Comic Sans MS", cursive'                              => '"Comic Sans MS", cursive',
+            'Courier, monospace'                                    => 'Courier, monospace',
+            'Garamond, serif'                                       => 'Garamond, serif',
+            'Georgia, serif'                                        => 'Georgia, serif',
+            'Impact, Charcoal, sans-serif'                          => 'Impact, Charcoal, sans-serif',
+            '"Lucida Console", Monaco, monospace'                   => '"Lucida Console", Monaco, monospace',
+            '"Lucida Sans Unicode", "Lucida Grande", sans-serif'    => '"Lucida Sans Unicode", "Lucida Grande", sans-serif',
+            '"MS Sans Serif", Geneva, sans-serif'                   => '"MS Sans Serif", Geneva, sans-serif',
+            '"MS Serif", "New York", sans-serif'                    => '"MS Serif", "New York", sans-serif',
+            '"Palatino Linotype", "Book Antiqua", Palatino, serif'  => '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+            'Tahoma,Geneva, sans-serif'                             => 'Tahoma, Geneva, sans-serif',
+            '"Times New Roman", Times,serif'                        => '"Times New Roman", Times, serif',
+            '"Trebuchet MS", Helvetica, sans-serif'                 => '"Trebuchet MS", Helvetica, sans-serif',
+            'Verdana, Geneva, sans-serif'                           => 'Verdana, Geneva, sans-serif',
+        );
 
-		$fonts = array();
-	    $fonts["##Icon Fonts"] = "##Icon Fonts";
-		$fonts['Font Awesome 6 Pro'] = 'Font Awesome 6 Pro';
+        $fonts = array();
+        $fonts["##Icon Fonts"] = "##Icon Fonts";
+        $fonts['Font Awesome 6 Pro'] = 'Font Awesome 6 Pro';
         $fonts['Font Awesome 6 Brands'] = 'Font Awesome 6 Brands';
         $font_families = array_merge( $fonts, $font_families );
 
-		if (class_exists("YABE_WEBFONT")) {
-			$custom_fonts = yabe_get_fonts();
-			if($custom_fonts){
-			   $fonts = array();
-			   $fonts["##Custom Fonts"] = "##Custom Fonts";
-			   foreach($custom_fonts as $font){
-			   	   $name = $font["family"].(!empty($font["selector"])?", ".$font["selector"]:"");
-			   	   $fonts[$name] = $font["title"];
-			   }
-			   $font_families = array_merge( $fonts, $font_families );
-			}
-		}
-		
-		$font_families = array_merge( array('##Defaults' => '##Defaults', 'initial' => 'initial', 'inherit' => 'inherit'), $font_families );
+        if (class_exists("YABE_WEBFONT")) {
+            $custom_fonts = yabe_get_fonts();
+            if($custom_fonts){
+               $fonts = array();
+               $fonts["##Custom Fonts"] = "##Custom Fonts";
+               foreach($custom_fonts as $font){
+                   $name = $font["family"].(!empty($font["selector"])?", ".$font["selector"]:"");
+                   $fonts[$name] = $font["title"];
+               }
+               $font_families = array_merge( $fonts, $font_families );
+            }
+        }
+        
+        $font_families = array_merge( array('##Defaults' => '##Defaults', 'initial' => 'initial', 'inherit' => 'inherit'), $font_families );
         $field['choices'] = array();
-		foreach($font_families as $value => $label) {
-		   $field['choices'][$value] = $label;
-		}
-	}
-	if(in_array("acf-font-weight", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "400";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+        foreach($font_families as $value => $label) {
+           $field['choices'][$value] = $label;
+        }
+    }
+    if(in_array("acf-font-weight", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "400";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
         $options = ["100", "200", "300", "400", "500", "600", "700", "800", "900"];
-		$field['choices'] = array();
-		foreach($options as $label) {
-		    $field['choices'][$label] = $label;
-		}
-	}
-	if(in_array("acf-font-size", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 1;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+    }
+    if(in_array("acf-font-size", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
         $types = ["title", "text"];
-		$field['choices'] = array();
-		
-		$typography  = [];
-		$theme_styles = acf_get_theme_styles();
-	    if($theme_styles){
-	        if(isset($theme_styles["typography"])){
-		        $typography = $theme_styles["typography"];	        		
-	        }
-	    }  
+        $field['choices'] = array();
+        
+        $typography  = [];
+        $theme_styles = acf_get_theme_styles();
+        if($theme_styles){
+            if(isset($theme_styles["typography"])){
+                $typography = $theme_styles["typography"];                  
+            }
+        }  
 
-		foreach($types as $type) {
-			foreach($GLOBALS["breakpoints"] as $key => $breakpoint) {
-				$size = "";
-				if(isset($typography[$type][$key]) && !empty($typography[$type][$key]["value"])){
+        foreach($types as $type) {
+            foreach($GLOBALS["breakpoints"] as $key => $breakpoint) {
+                $size = "";
+                if(isset($typography[$type][$key]) && !empty($typography[$type][$key]["value"])){
                    $size = " - ".$typography[$type][$key]["value"].$typography[$type][$key]["unit"];
-				}
-			    $field['choices'][$type."-".$key] = $type."-".$key.$size;
-			}
-		}
-	}
+                }
+                $field['choices'][$type."-".$key] = $type."-".$key.$size;
+            }
+        }
+    }
 
-	if(in_array("acf-text-transform", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "none";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+    if(in_array("acf-text-transform", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "none";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
         $options = ["none", "capitalize", "uppercase", "lowercase", "full-width", "full-size-kana", "inherit", "initial", "revert", "revert-layer", "unset"];
-		$field['choices'] = array();
-		foreach($options as $label) {
-		    $field['choices'][$label] = $label;
-		}
-	}
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+    }
 
-	if(in_array("acf-bs-align-hr", $class)){
-		$options = array(
-        	"start"  => "Left",
-        	"center" => "Center", 
-        	"end"    => "Right"
-        );
-		$field['choices'] = array();
-		foreach($options as $key => $label) {
-		    $field['choices'][$key] = $label;
-		}
-	}
-
-	if(in_array("acf-align-hr", $class) || in_array("acf-align-hr-responsive", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "start";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+    if(in_array("acf-bs-align-hr", $class)){
         $options = array(
-        	"start"  => "Left",
-        	"center" => "Center", 
-        	"end"    => "Right"
+            "start"  => "Left",
+            "center" => "Center", 
+            "end"    => "Right"
+        );
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+
+    if(in_array("acf-align-hr", $class) || in_array("acf-align-hr-responsive", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "start";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array(
+            "start"  => "Left",
+            "center" => "Center", 
+            "end"    => "Right"
         );
         if(in_array("acf-align-hr-responsive", $class)){
-        	$options["responsive"] = "Responsive";
+            $options["responsive"] = "Responsive";
         }
-		$field['choices'] = array();
-		foreach($options as $key => $label) {
-		    $field['choices'][$key] = $label;
-		}
-	}
-	if(in_array("acf-bs-align-vr", $class)){
-		$options = array(
-        	"start"  => "Top",
-        	"center" => "Center", 
-        	"end"    => "Bottom"
-        );
-		$field['choices'] = array();
-		foreach($options as $key => $label) {
-		    $field['choices'][$key] = $label;
-		}
-	}
-	if(in_array("acf-align-vr", $class) || in_array("acf-align-vr-none", $class) || in_array("acf-align-vr-responsive", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = in_array("acf-align-vr-none", $class)?"start":"start";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+    if(in_array("acf-bs-align-vr", $class)){
         $options = array(
-        	"start"  => "Top",
-        	"center" => "Center", 
-        	"end"    => "Bottom"
+            "start"  => "Top",
+            "center" => "Center", 
+            "end"    => "Bottom"
+        );
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+    if(in_array("acf-align-vr", $class) || in_array("acf-align-vr-none", $class) || in_array("acf-align-vr-responsive", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = in_array("acf-align-vr-none", $class)?"start":"start";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array(
+            "start"  => "Top",
+            "center" => "Center", 
+            "end"    => "Bottom"
         );
         if(in_array("acf-align-vr-responsive", $class)){
-        	$options["responsive"] = "Responsive";
+            $options["responsive"] = "Responsive";
         }
         if(in_array("acf-align-vr-none", $class)){
-        	$options["none"] = "None";
+            $options["none"] = "None";
         }
-		$field['choices'] = array();
-		foreach($options as $key => $label) {
-		    $field['choices'][$key] = $label;
-		}
-	}
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
 
     if(in_array("acf-position-vr", $class)){
         $field["allow_custom"] = 0;
@@ -1295,589 +1294,589 @@ function acf_add_field_options($field) {
         }
     }
 
-	if(in_array("acf-width-height", $class)){
-		$field["allow_custom"] = 1;
-		$field["default_value"] = "auto";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 1;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
+    if(in_array("acf-width-height", $class)){
+        $field["allow_custom"] = 1;
+        $field["default_value"] = "auto";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 1;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
         $options = ["auto", "100%"];
-		$field['choices'] = array();
-		foreach($options as $label) {
-		    $field['choices'][$label] = $label;
-		}
-	}
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+    }
 
     
     if(in_array("acf-plyr-video-options", $class) || in_array("acf-plyr-audio-options", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 1;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 1;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		if(in_array("acf-plyr-video-options", $class)){
-			$options = [
-			    'play-large' => 'The large play button in the center',
-			    'restart' => 'Restart playback',
-			    'rewind' => 'Rewind by the seek time (default 10 seconds)',
-			    'play' => 'Play/pause playback',
-			    'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
-			    'progress' => 'The progress bar and scrubber for playback and buffering',
-			    'current-time' => 'The current time of playback',
-			    'duration' => 'The full duration of the media',
-			    'mute' => 'Toggle mute',
-			    'volume' => 'Volume control',
-			    'captions' => 'Toggle captions',
-			    'settings' => 'Settings menu',
-			    'pip' => 'Picture-in-picture (currently Safari only)',
-			    'airplay' => 'Airplay (currently Safari only)',
-			    'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
-			    'fullscreen' => 'Toggle fullscreen',
-			];			
-		}
-		if(in_array("acf-plyr-audio-options", $class)){
-			$options = [
-			    'restart' => 'Restart playback',
-			    'rewind' => 'Rewind by the seek time (default 10 seconds)',
-			    'play' => 'Play/pause playback',
-			    'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
-			    'progress' => 'The progress bar and scrubber for playback and buffering',
-			    'current-time' => 'The current time of playback',
-			    'duration' => 'The full duration of the media',
-			    'mute' => 'Toggle mute',
-			    'volume' => 'Volume control',
-			    'settings' => 'Settings menu',
-			    'airplay' => 'Airplay (currently Safari only)',
-			    'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
-			];			
-		}
-	    $field['choices'] = array();
-		foreach(array_keys($options) as $label) {
-			$field['choices'][$label] = $label;
-		}
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 1;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 1;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        if(in_array("acf-plyr-video-options", $class)){
+            $options = [
+                'play-large' => 'The large play button in the center',
+                'restart' => 'Restart playback',
+                'rewind' => 'Rewind by the seek time (default 10 seconds)',
+                'play' => 'Play/pause playback',
+                'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
+                'progress' => 'The progress bar and scrubber for playback and buffering',
+                'current-time' => 'The current time of playback',
+                'duration' => 'The full duration of the media',
+                'mute' => 'Toggle mute',
+                'volume' => 'Volume control',
+                'captions' => 'Toggle captions',
+                'settings' => 'Settings menu',
+                'pip' => 'Picture-in-picture (currently Safari only)',
+                'airplay' => 'Airplay (currently Safari only)',
+                'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
+                'fullscreen' => 'Toggle fullscreen',
+            ];          
+        }
+        if(in_array("acf-plyr-audio-options", $class)){
+            $options = [
+                'restart' => 'Restart playback',
+                'rewind' => 'Rewind by the seek time (default 10 seconds)',
+                'play' => 'Play/pause playback',
+                'fast-forward' => 'Fast forward by the seek time (default 10 seconds)',
+                'progress' => 'The progress bar and scrubber for playback and buffering',
+                'current-time' => 'The current time of playback',
+                'duration' => 'The full duration of the media',
+                'mute' => 'Toggle mute',
+                'volume' => 'Volume control',
+                'settings' => 'Settings menu',
+                'airplay' => 'Airplay (currently Safari only)',
+                'download' => 'Show a download button with a link to either the current source or a custom URL you specify in your options',
+            ];          
+        }
+        $field['choices'] = array();
+        foreach(array_keys($options) as $label) {
+            $field['choices'][$label] = $label;
+        }
     }
     if(in_array("acf-plyr-video-settings", $class) || in_array("acf-plyr-audio-settings", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 1;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 1;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		if(in_array("acf-plyr-video-settings", $class)){
-			$options = ['captions', 'quality', 'speed', 'loop'];
-		}
-    	if(in_array("acf-plyr-audio-settings", $class)){
-			$options = ['quality', 'speed', 'loop'];
-		}
-    	$field['choices'] = array();
-		foreach($options as $label) {
-			$field['choices'][$label] = $label;
-		}
-	}
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 1;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 1;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        if(in_array("acf-plyr-video-settings", $class)){
+            $options = ['captions', 'quality', 'speed', 'loop'];
+        }
+        if(in_array("acf-plyr-audio-settings", $class)){
+            $options = ['quality', 'speed', 'loop'];
+        }
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+    }
     
     if(in_array("acf-body-classes", $class) || in_array("acf-main-classes", $class)){
-    	$field["allow_custom"] = 1;
-    	$field["multiple"] = 1;
-		$field["allow_null"] = 1;
-		$field["ui"] = 1;
-		$field["ajax"] = 0;
+        $field["allow_custom"] = 1;
+        $field["multiple"] = 1;
+        $field["allow_null"] = 1;
+        $field["ui"] = 1;
+        $field["ajax"] = 0;
         $field["type"] = "select";
         $field["return_format"] = "value";
-    	$field['choices'] = array();
+        $field['choices'] = array();
 
-    	$theme_styles = acf_get_theme_styles();
+        $theme_styles = acf_get_theme_styles();
 
-    	if(in_array("acf-body-classes", $class)){
-	        if($theme_styles){
-	        	if(isset($theme_styles["header"]["themes"])){
-		            $header_themes = $theme_styles["header"]["themes"];
-		            if($header_themes){
-		            	$field['choices'][] = "##Body Classes";
-		                foreach($header_themes as $theme){
-		                    $theme_class = $theme["class"];
-		                    if(!in_array($theme_class, ["body", "html"])){
-		                        $field['choices'][$theme_class] = $theme_class;                      
-		                    }
-		                }
-		            }	        		
-	        	}
-	        }    		
-    	}
+        if(in_array("acf-body-classes", $class)){
+            if($theme_styles){
+                if(isset($theme_styles["header"]["themes"])){
+                    $header_themes = $theme_styles["header"]["themes"];
+                    if($header_themes){
+                        $field['choices'][] = "##Body Classes";
+                        foreach($header_themes as $theme){
+                            $theme_class = $theme["class"];
+                            if(!in_array($theme_class, ["body", "html"])){
+                                $field['choices'][$theme_class] = $theme_class;                      
+                            }
+                        }
+                    }                   
+                }
+            }           
+        }
 
         $prefixes = array(
-        	"##Margin" => "m", 
-        	"##Margin Top" => "mt", 
-        	"##Margin Bottom" => "mb",
-        	"##Margin Left" => "ms", 
-        	"##Margin Right" => "me", 
-        	"##Margin Left Right" => "mx", 
-        	"##Margin Top Bottom" => "my"
+            "##Margin" => "m", 
+            "##Margin Top" => "mt", 
+            "##Margin Bottom" => "mb",
+            "##Margin Left" => "ms", 
+            "##Margin Right" => "me", 
+            "##Margin Left Right" => "mx", 
+            "##Margin Top Bottom" => "my"
         );
         foreach ($prefixes as $key => $prefix) {
-        	$field['choices'][] = $key;
-	        foreach (range(0, 10) as $number) {
-			    $field['choices'][$prefix."-".$number] = $prefix."-".$number;  
-			}
-		}
+            $field['choices'][] = $key;
+            foreach (range(0, 10) as $number) {
+                $field['choices'][$prefix."-".$number] = $prefix."-".$number;  
+            }
+        }
 
-		$prefixes = array(
-        	"##Padding" => "p", 
-        	"##Padding Top" => "pt", 
-        	"##Padding Bottom" => "pb",
-        	"##Padding Left" => "ps", 
-        	"##Padding Right" => "pe", 
-        	"##Padding Left Right" => "px", 
-        	"##Padding Top Bottom" => "py"
+        $prefixes = array(
+            "##Padding" => "p", 
+            "##Padding Top" => "pt", 
+            "##Padding Bottom" => "pb",
+            "##Padding Left" => "ps", 
+            "##Padding Right" => "pe", 
+            "##Padding Left Right" => "px", 
+            "##Padding Top Bottom" => "py"
         );
         foreach ($prefixes as $key => $prefix) {
-        	$field['choices'][] = $key;
-	        foreach (range(0, 10) as $number) {
-			    $field['choices'][$prefix."-".$number] = $prefix."-".$number;  
-			}
-		}
+            $field['choices'][] = $key;
+            foreach (range(0, 10) as $number) {
+                $field['choices'][$prefix."-".$number] = $prefix."-".$number;  
+            }
+        }
 
         $colors = array("primary", "secondary", "tertiary", "quaternary", "success", "info", "warning", "danger", "light", "dark");
         $prefixes = array("##Text Color" => "text", "##Background Colors" => "bg");
         if($theme_styles){
-	        if(isset($theme_styles["colors"]["custom"])){
-		        $colors_custom = $theme_styles["colors"]["custom"];
+            if(isset($theme_styles["colors"]["custom"])){
+                $colors_custom = $theme_styles["colors"]["custom"];
 
-		        if($colors_custom){
-		       		foreach ($colors_custom as $color_custom) {
-		       			$colors[] = $color_custom["title"];
-		       		}
-		        }
-		    }
-		}
+                if($colors_custom){
+                    foreach ($colors_custom as $color_custom) {
+                        $colors[] = $color_custom["title"];
+                    }
+                }
+            }
+        }
         foreach ($prefixes as $key => $prefix) {
-        	$field['choices'][] = $key;
-	        foreach ($colors as $color) {
-			    $field['choices'][$prefix."-".$color] = $prefix."-".$color;  
-			}
-		}
+            $field['choices'][] = $key;
+            foreach ($colors as $color) {
+                $field['choices'][$prefix."-".$color] = $prefix."-".$color;  
+            }
+        }
     }
 
     if(in_array("acf-button-size", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$field['choices'] = array();
-		$buttons_sizes  = [];
-		$theme_styles = acf_get_theme_styles();
-	    if($theme_styles){
-	        if(isset($theme_styles["buttons"])){
-		        $buttons = $theme_styles["buttons"];
-		        if($buttons && isset($buttons["custom"]) && $buttons["custom"]){
-		        	$buttons_sizes = array_column($buttons["custom"], 'size');
-		        }       		
-	        }
-	    }
-	    if($buttons_sizes){
-			foreach($buttons_sizes as $size) {
-				$field['choices'][$size] = $size;
-			}
-	    }
-	}
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $field['choices'] = array();
+        $buttons_sizes  = [];
+        $theme_styles = acf_get_theme_styles();
+        if($theme_styles){
+            if(isset($theme_styles["buttons"])){
+                $buttons = $theme_styles["buttons"];
+                if($buttons && isset($buttons["custom"]) && $buttons["custom"]){
+                    $buttons_sizes = array_column($buttons["custom"], 'size');
+                }               
+            }
+        }
+        if($buttons_sizes){
+            foreach($buttons_sizes as $size) {
+                $field['choices'][$size] = $size;
+            }
+        }
+    }
 
     if(in_array("acf-ratio", $class) || in_array("acf-default-ratio", $class) || in_array("acf-ratio-value", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-    	$options = array(
-    		"1x1" => "1:1 Square",
-    		"3x2" => "3:2 35mm Movie",
-    		"3x4" => "3:4 Vertical",
-    		"4x3" => "4:3 Standart TV",
-    		"5x4" => "5:4 Traditional Photo Size",
-    		"185x1" => "1.85x1 Standart Widescreen Movie",
-    		"235x1" => "2.35x1 Anamorphic Widescreen Movie",
-    		"9x16" => "9:16 Vertical - Stories, Reels etc.",
-    		"16x9" => "16:9 Widescreen TV, Monitor",
-    		"21x9" => "21:9 Ultra Widescreen TV, Monitor",
-    		"32x9" => "32:9 Super Ultra Widescreen TV, Monitor",
-    	);
-    	$field['choices'] = array();
-    	if(in_array("acf-ratio", $class)){
-    		$field['choices'][] = "None";
-    		$field['choices'][""] = "Default";
-    	}
-		foreach($options as $key => $label) {
-			$field['choices'][$key] = $label;
-		}
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array(
+            "1x1" => "1:1 Square",
+            "3x2" => "3:2 35mm Movie",
+            "3x4" => "3:4 Vertical",
+            "4x3" => "4:3 Standart TV",
+            "5x4" => "5:4 Traditional Photo Size",
+            "185x1" => "1.85x1 Standart Widescreen Movie",
+            "235x1" => "2.35x1 Anamorphic Widescreen Movie",
+            "9x16" => "9:16 Vertical - Stories, Reels etc.",
+            "16x9" => "16:9 Widescreen TV, Monitor",
+            "21x9" => "21:9 Ultra Widescreen TV, Monitor",
+            "32x9" => "32:9 Super Ultra Widescreen TV, Monitor",
+        );
+        $field['choices'] = array();
+        if(in_array("acf-ratio", $class)){
+            $field['choices'][] = "None";
+            $field['choices'][""] = "Default";
+        }
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
     }
 
     if(in_array("acf-template-custom", $class) || in_array("acf-template-custom-default", $class)){
-		$handle = get_stylesheet_directory() . '/theme/templates/_custom/';
-		$templates = array();// scandir($handle);
-		if ($handle = opendir($handle)) {
-		    while (false !== ($entry = readdir($handle))) {
-		        // Sadece `.twig` uzantılı dosyaları kontrol et
-		        if ($entry != "." && $entry != ".." && pathinfo($entry, PATHINFO_EXTENSION) === 'twig') {
-		            $templates[] = $entry;
-		        }
-		    }
-		    closedir($handle);
-		}
-	    $field['choices'] = array();
-	    if(in_array("acf-template-custom-default", $class)){
-	    	$field['choices'][ 'default' ] = "Default";
-	    }
-	    if( is_array($templates) && count($templates) > 0 ) {
-	        foreach( $templates as $template ) {
-	        	$template = str_replace(".twig", "", $template);
-	            $field['choices'][ 'theme/templates/_custom/'.$template ] = $template;
-	        }        
-	    }else{
-	    	$field['choices'][ 'templates/post/tease' ] = "Post Tease";
-	    }
-	}
+        $handle = get_stylesheet_directory() . '/theme/templates/_custom/';
+        $templates = array();// scandir($handle);
+        if ($handle = opendir($handle)) {
+            while (false !== ($entry = readdir($handle))) {
+                // Sadece `.twig` uzantılı dosyaları kontrol et
+                if ($entry != "." && $entry != ".." && pathinfo($entry, PATHINFO_EXTENSION) === 'twig') {
+                    $templates[] = $entry;
+                }
+            }
+            closedir($handle);
+        }
+        $field['choices'] = array();
+        if(in_array("acf-template-custom-default", $class)){
+            $field['choices'][ 'default' ] = "Default";
+        }
+        if( is_array($templates) && count($templates) > 0 ) {
+            foreach( $templates as $template ) {
+                $template = str_replace(".twig", "", $template);
+                $field['choices'][ 'theme/templates/_custom/'.$template ] = $template;
+            }        
+        }else{
+            $field['choices'][ 'templates/post/tease' ] = "Post Tease";
+        }
+    }
 
-	if(in_array("acf-template-modal", $class)){
-		$handle = get_stylesheet_directory() . "/templates/partials/modals";
-		$templates = array();// scandir($handle);
-		if ($handle = opendir($handle)) {
-		    while (false !== ($entry = readdir($handle))) {
-		        if ($entry != "." && $entry != "..") {
-		            $templates[] = $entry;
-		        }
-		    }
-		    closedir($handle);
-		}
-	    $field['choices'] = array();
-	    if( is_array($templates) ) {
-	        foreach( $templates as $template ) {
-	        	$template = str_replace(".twig", "", $template);
-	            $field['choices'][ "templates/partials/modals/".$template ] = $template;
-	        }        
-	    }
-	}
+    if(in_array("acf-template-modal", $class)){
+        $handle = get_stylesheet_directory() . "/templates/partials/modals";
+        $templates = array();// scandir($handle);
+        if ($handle = opendir($handle)) {
+            while (false !== ($entry = readdir($handle))) {
+                if ($entry != "." && $entry != "..") {
+                    $templates[] = $entry;
+                }
+            }
+            closedir($handle);
+        }
+        $field['choices'] = array();
+        if( is_array($templates) ) {
+            foreach( $templates as $template ) {
+                $template = str_replace(".twig", "", $template);
+                $field['choices'][ "templates/partials/modals/".$template ] = $template;
+            }        
+        }
+    }
 
-	if(in_array("acf-wp-themes", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$options = array();
-		$themes = wp_get_themes();
-		foreach ($themes as $theme) {
-	    	$options[$theme->get('TextDomain')] = $theme->get('Name');
-	    }
-    	$field['choices'] = array();
-		foreach($options as $key => $label) {
-			$field['choices'][$key] = $label;
-		}
+    if(in_array("acf-wp-themes", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array();
+        $themes = wp_get_themes();
+        foreach ($themes as $theme) {
+            $options[$theme->get('TextDomain')] = $theme->get('Name');
+        }
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
     }
 
     if(in_array("acf-image-blend-mode", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-    	$options = array(
-    		"" => "No",
-    		"multiply" => "Multiply",
-    		"screen" => "Screen",
-    		"overlay" => "Overlay",
-    		"darken" => "Darken",
-    		"lighten" => "Lighten",
-    		"color-dodge" => "Color Dodge",
-    		"color-burn" => "Color Burn",
-    		"hard-light" => "Hard Light",
-    		"soft-light" => "Soft Light",
-    		"difference" => "Difference",
-    		"exclusion" => "Exclusion",
-    		"hue" => "Hue",
-    		"saturation" => "Saturation",
-    		"color" => "Color",
-    		"luminosity" => "Luminosity",
-    	);
-    	$field['choices'] = array();
-		foreach($options as $key => $label) {
-			$field['choices'][$key] = $label;
-		}
-	}
-	if(in_array("acf-image-filter", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-    	$options = array(
-    		"" => "No",
-    		"grayscale" => "Grayscale",
-    		"sepia" => "Sepia",
-    		"blur" => "Blur",
-    		"brightness" => "Brightness",
-    		"contrast" => "Contrast",
-    		"opacity" => "Opacity"
-    	);
-    	$field['choices'] = array();
-		foreach($options as $key => $label) {
-			$field['choices'][$key] = $label;
-		}
-	}
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array(
+            "" => "No",
+            "multiply" => "Multiply",
+            "screen" => "Screen",
+            "overlay" => "Overlay",
+            "darken" => "Darken",
+            "lighten" => "Lighten",
+            "color-dodge" => "Color Dodge",
+            "color-burn" => "Color Burn",
+            "hard-light" => "Hard Light",
+            "soft-light" => "Soft Light",
+            "difference" => "Difference",
+            "exclusion" => "Exclusion",
+            "hue" => "Hue",
+            "saturation" => "Saturation",
+            "color" => "Color",
+            "luminosity" => "Luminosity",
+        );
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+    if(in_array("acf-image-filter", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array(
+            "" => "No",
+            "grayscale" => "Grayscale",
+            "sepia" => "Sepia",
+            "blur" => "Blur",
+            "brightness" => "Brightness",
+            "contrast" => "Contrast",
+            "opacity" => "Opacity"
+        );
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
 
 
-	if(in_array("acf-menu-locations", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$options = get_menu_locations();
-	    $field['choices'] = array();
-	    foreach($options as $key => $label) {
-			$field['choices'][$key] = $label;
-		}
-	}
+    if(in_array("acf-menu-locations", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = get_menu_locations();
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
 
-	if(in_array("acf-color-classes", $class) || in_array("acf-color-classes-custom", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$colors_list_file = get_template_directory() . '/theme/static/data/colors.json';
-		$colors = file_get_contents($colors_list_file);
-		$options = json_decode($colors, true);
-	    $field['choices'] = array();
-	    foreach($options as $label) {
-			$field['choices'][$label] = $label;
-		}
-		if(in_array("acf-color-classes-custom", $class)){
-			$field['choices']["custom"] = "Custom";
-		}
-	}
+    if(in_array("acf-color-classes", $class) || in_array("acf-color-classes-custom", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $colors_list_file = get_template_directory() . '/theme/static/data/colors.json';
+        $colors = file_get_contents($colors_list_file);
+        $options = json_decode($colors, true);
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
+        if(in_array("acf-color-classes-custom", $class)){
+            $field['choices']["custom"] = "Custom";
+        }
+    }
 
 
-	if(in_array("acf-contact-accounts", $class)){
-		$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 1;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-	    $field['choices'] = array();
-	    $args = array(
-		    'post_type' => 'contact', // Post tipi 'contaxt' olanları seç
-		    'posts_per_page' => -1,
-		    'meta_query' => array(
-		        array(
-		            'key' => 'contact_accounts', // 'contact' grubu içindeki 'accounts' alanını seç
-		            'value' => '', // Boş olmayanları kontrol etmek için
-		            'compare' => '!=' // 'accounts' metası boş değilse
-		        )
-		    )
-		);
-		$options = Timber::get_posts($args);
-		if($options){
-		    foreach($options as $label) {
-				$field['choices'][$label->ID] = $label->post_title;
-			}
-		}else{
-			$field["search_placeholder"] = "Not Found";
-		}
-	}
+    if(in_array("acf-contact-accounts", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $field['choices'] = array();
+        $args = array(
+            'post_type' => 'contact', // Post tipi 'contaxt' olanları seç
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => 'contact_accounts', // 'contact' grubu içindeki 'accounts' alanını seç
+                    'value' => '', // Boş olmayanları kontrol etmek için
+                    'compare' => '!=' // 'accounts' metası boş değilse
+                )
+            )
+        );
+        $options = Timber::get_posts($args);
+        if($options){
+            foreach($options as $label) {
+                $field['choices'][$label->ID] = $label->post_title;
+            }
+        }else{
+            $field["search_placeholder"] = "Not Found";
+        }
+    }
 
-	 if(in_array("acf-mt", $class) || in_array("acf-mb", $class) || in_array("acf-ms", $class) || in_array("acf-me", $class) || in_array("acf-pt", $class) || in_array("acf-pb", $class) || in_array("acf-ps", $class) || in_array("acf-ee", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "array";
-		$prefix = "";
-		$class_check = implode(" ", $class);
-		if(strpos($class_check, "-mt") !== false){
-			$prefix = "mt-";
-		}elseif(strpos($class_check, "-mb") !== false){
-			$prefix = "mb-";
-		}elseif(strpos($class_check, "-ms") !== false){
-			$prefix = "ms-";
-		}elseif(strpos($class_check, "-me") !== false){
-			$prefix = "ms-";
-		}elseif(strpos($class_check, "-pt") !== false){
-			$prefix = "pt-";
-		}elseif(strpos($class_check, "-pb") !== false){
-			$prefix = "pb-";
-		}elseif(strpos($class_check, "-ps") !== false){
-			$prefix = "ps-";
-		}elseif(strpos($class_check, "-pe") !== false){
-			$prefix = "pe-";
-		}
-		$options = [];
-		foreach (range(0, 10) as $number) {
-			$field['choices'][$prefix."-".$number] = $prefix."-".$number;  
-		};
+     if(in_array("acf-mt", $class) || in_array("acf-mb", $class) || in_array("acf-ms", $class) || in_array("acf-me", $class) || in_array("acf-pt", $class) || in_array("acf-pb", $class) || in_array("acf-ps", $class) || in_array("acf-ee", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "array";
+        $prefix = "";
+        $class_check = implode(" ", $class);
+        if(strpos($class_check, "-mt") !== false){
+            $prefix = "mt-";
+        }elseif(strpos($class_check, "-mb") !== false){
+            $prefix = "mb-";
+        }elseif(strpos($class_check, "-ms") !== false){
+            $prefix = "ms-";
+        }elseif(strpos($class_check, "-me") !== false){
+            $prefix = "ms-";
+        }elseif(strpos($class_check, "-pt") !== false){
+            $prefix = "pt-";
+        }elseif(strpos($class_check, "-pb") !== false){
+            $prefix = "pb-";
+        }elseif(strpos($class_check, "-ps") !== false){
+            $prefix = "ps-";
+        }elseif(strpos($class_check, "-pe") !== false){
+            $prefix = "pe-";
+        }
+        $options = [];
+        foreach (range(0, 10) as $number) {
+            $field['choices'][$prefix."-".$number] = $prefix."-".$number;  
+        };
     }
 
     if(in_array("acf-post-types", $class) || in_array("acf-post-types-multiple", $class)){
-    	$multiple = in_array("acf-post-types-multiple", $class);
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = $multiple;
-		$field["allow_null"] = 1;
-		$field["ajax"] = 0;
-		$field["ui"] = $multiple;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$options = get_post_types(['public' => true], 'objects');
-	    $field['choices'] = array();
-	    foreach($options as $label) {
-			$field['choices'][$label->name] = $label->label;
-		}
+        $multiple = in_array("acf-post-types-multiple", $class);
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = $multiple;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = $multiple;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = get_post_types(['public' => true], 'objects');
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label->name] = $label->label;
+        }
     }
 
     if(in_array("acf-taxonomies", $class) || in_array("acf-taxonomies-multiple", $class)){
-    	$multiple = in_array("acf-taxonomies-multiple", $class);
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = $multiple;
-		$field["allow_null"] = 1;
-		$field["ajax"] = 0;
-		$field["ui"] = $multiple;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$options = get_taxonomies(['public' => true]);
-	    $field['choices'] = array();
-	    foreach($options as $label) {
-			$field['choices'][$label] = $label;
-		}
+        $multiple = in_array("acf-taxonomies-multiple", $class);
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = $multiple;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = $multiple;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = get_taxonomies(['public' => true]);
+        $field['choices'] = array();
+        foreach($options as $label) {
+            $field['choices'][$label] = $label;
+        }
     }
 
     if(in_array("acf-map-service", $class)){
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = 0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = 0;
-		$field["search_placeholder"] = "";
-		$field["return_format"] = "value";
-		$options = array("leaflet" => "Leaflet (OpenSteetMap)");
-		/*$google_api_key = acf_get_setting('google_api_key');
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array("leaflet" => "Leaflet (OpenSteetMap)");
+        /*$google_api_key = acf_get_setting('google_api_key');
         if ( !empty( $google_api_key ) ) {*/
-        	$options["google"] = "Google Maps";
+            $options["google"] = "Google Maps";
         /*}*/
-	    $field['choices'] = array();
-	    foreach($options as $key => $label) {
-			$field['choices'][$key] = $label;
-		}
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
     }
 
     if(in_array("acf-location-posts", $class)){
-    	$map_view = get_option("options_map_view");
-    	$field["allow_custom"] = 0;
-		$field["default_value"] = "";
-		$field["type"] = "select";
-		$field["multiple"] = $map_view == "js"?1:0;
-		$field["allow_null"] = 0;
-		$field["ajax"] = 0;
-		$field["ui"] = $map_view == "js"?1:0;;
-		$field["search_placeholder"] = "Find posts";
-		$field["instructions"] = $map_view == "embed"?"'Map view' is set to 'embed' on settings page, so you can select only one post":"";
-		$field["return_format"] = "value";
+        $map_view = get_option("options_map_view");
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = $map_view == "js"?1:0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = $map_view == "js"?1:0;;
+        $field["search_placeholder"] = "Find posts";
+        $field["instructions"] = $map_view == "embed"?"'Map view' is set to 'embed' on settings page, so you can select only one post":"";
+        $field["return_format"] = "value";
         $post_types = [];
         $posts = [];
-		$args = array(
-	        "post_type" => "acf-field-group",
-	        "name"      => "group_63e6945ee6760",
-	        "posts_per_page" => 1
-	    );
-	    $field_group = Timber::get_post($args);
-	    if ($field_group && $field_group->post_type === 'acf-field-group') {
-	        $settings = maybe_unserialize($field_group->post_content);
-	        if (!empty($settings['location'])) {
-	            foreach ($settings['location'] as $location) {
-	                foreach ($location as $rule) {
-	                    if ($rule['param'] === 'post_type') {
-	                        $post_types[] = $rule['value'];
-	                    }
-	                }
-	            }
-	        }
-	    }
-	    if (!empty($post_types) && is_array($post_types)) {
-		    $args = [
-		        'post_type'      => $post_types,
-		        'posts_per_page' => -1,
-		        'post_status'    => 'publish'
-		    ];
-		    $result = get_posts($args);
-		    if($result){
-			    foreach ($result as $post) {
-			        $posts[$post->ID] = $post->post_title . " (".$post->post_type.")"; // Burada post ID'si anahtar, başlık değeri
-			    }		    	
-		    }
-		}
-	    $field['choices'] = array();
-	    if($posts){
-		    foreach($posts as $key => $label) {
-				$field['choices'][$key] = $label;
-			}	    	
-	    }
+        $args = array(
+            "post_type" => "acf-field-group",
+            "name"      => "group_63e6945ee6760",
+            "posts_per_page" => 1
+        );
+        $field_group = Timber::get_post($args);
+        if ($field_group && $field_group->post_type === 'acf-field-group') {
+            $settings = maybe_unserialize($field_group->post_content);
+            if (!empty($settings['location'])) {
+                foreach ($settings['location'] as $location) {
+                    foreach ($location as $rule) {
+                        if ($rule['param'] === 'post_type') {
+                            $post_types[] = $rule['value'];
+                        }
+                    }
+                }
+            }
+        }
+        if (!empty($post_types) && is_array($post_types)) {
+            $args = [
+                'post_type'      => $post_types,
+                'posts_per_page' => -1,
+                'post_status'    => 'publish'
+            ];
+            $result = get_posts($args);
+            if($result){
+                foreach ($result as $post) {
+                    $posts[$post->ID] = $post->post_title . " (".$post->post_type.")"; // Burada post ID'si anahtar, başlık değeri
+                }               
+            }
+        }
+        $field['choices'] = array();
+        if($posts){
+            foreach($posts as $key => $label) {
+                $field['choices'][$key] = $label;
+            }           
+        }
     }
 
     if($field["type"] == "select"){
-    	if(in_array("multiple", $class)){
-    	    $field["multiple"] = 1;
+        if(in_array("multiple", $class)){
+            $field["multiple"] = 1;
         }
         if(in_array("ui", $class)){
-    	    $field["ui"] = 1;
+            $field["ui"] = 1;
         }
     }
 
@@ -1890,23 +1889,23 @@ function acf_add_field_options($field) {
         $field["mime_types"] = implode(",", $mime_types);
     }
 
-	return $field;
+    return $field;
 }
 add_filter('acf/load_field', 'acf_add_field_options');
 
 
 add_filter('acf/load_field/key=field_6425cced6668a', 'acf_load_offcanvas_template_files');
 function acf_load_offcanvas_template_files( $field ) {
-	$handle = get_stylesheet_directory() . "/templates/partials/offcanvas/";
-	$templates = array();// scandir($handle);
-	if ($handle = opendir($handle)) {
-	    while (false !== ($entry = readdir($handle))) {
-	        if ($entry != "." && $entry != "..") {
-	            $templates[] = $entry;
-	        }
-	    }
-	    closedir($handle);
-	}
+    $handle = get_stylesheet_directory() . "/templates/partials/offcanvas/";
+    $templates = array();// scandir($handle);
+    if ($handle = opendir($handle)) {
+        while (false !== ($entry = readdir($handle))) {
+            if ($entry != "." && $entry != "..") {
+                $templates[] = $entry;
+            }
+        }
+        closedir($handle);
+    }
     $field['choices'] = array();
     if( is_array($templates) ) {
         foreach( $templates as $template ) {
@@ -1937,7 +1936,7 @@ class UpdateFlexibleFieldLayouts {
     private $cached_field_layouts = [];
 
     public function __construct($post_id = 0, $field_name = "", $field_key = "", $block_name = "", $migration = []) {
-    	$this->post_id = $post_id;
+        $this->post_id = $post_id;
         $this->field_name = $field_name;
         $this->field_key = $field_key;
         $this->block_name = $block_name;
@@ -2025,17 +2024,17 @@ class UpdateFlexibleFieldLayouts {
         $taxonomy = 'acf-field-group-category';
         $taxonomy_terms = implode("', '", array_map('esc_sql', $block_categories));
         $sql = "
-			SELECT p.*
-			FROM {$wpdb->posts} p
-			INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
-			INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-			INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
-			WHERE p.post_type = 'acf-field-group'
-			AND p.post_status = 'publish'
-			AND t.slug IN ('$taxonomy_terms')
-			AND tt.taxonomy = '$taxonomy'
-			ORDER BY p.post_title ASC
-		";
+            SELECT p.*
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+            INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+            WHERE p.post_type = 'acf-field-group'
+            AND p.post_status = 'publish'
+            AND t.slug IN ('$taxonomy_terms')
+            AND tt.taxonomy = '$taxonomy'
+            ORDER BY p.post_title ASC
+        ";
         return $wpdb->get_results($sql);
     }
 
@@ -2049,19 +2048,19 @@ class UpdateFlexibleFieldLayouts {
         $post_type = 'acf-field';
 
         $post_data = $wpdb->get_row( 
-			    $wpdb->prepare( 
-			        "
-			        SELECT ID, post_content 
-			        FROM $wpdb->posts 
-			        WHERE post_excerpt = %s 
-			        AND post_type = %s 
-			        LIMIT 1
-			        ", 
-			        $post_excerpt_value, 
-			        $post_type
-			    ), 
-			    ARRAY_A // Veriyi bir dizi (array) olarak almak için
-			);
+                $wpdb->prepare( 
+                    "
+                    SELECT ID, post_content 
+                    FROM $wpdb->posts 
+                    WHERE post_excerpt = %s 
+                    AND post_type = %s 
+                    LIMIT 1
+                    ", 
+                    $post_excerpt_value, 
+                    $post_type
+                ), 
+                ARRAY_A // Veriyi bir dizi (array) olarak almak için
+            );
 
         $this->cached_field_data = $post_data;
         return $post_data;
@@ -2094,20 +2093,20 @@ class UpdateFlexibleFieldLayouts {
         } else {
             global $wpdb;
             $post_data = $wpdb->get_row( 
-				$wpdb->prepare( 
-				    "
-				    SELECT *
-				    FROM $wpdb->posts 
-				    WHERE post_excerpt = %s 
-				    AND post_type = %s 
-				    AND post_status = 'publish' 
-				    LIMIT 1
-				    ", 
-				        $this->block_name, 
-				        'acf-field-group'
-				), 
-				ARRAY_A // Veriyi bir dizi (array) olarak almak için
-		    );
+                $wpdb->prepare( 
+                    "
+                    SELECT *
+                    FROM $wpdb->posts 
+                    WHERE post_excerpt = %s 
+                    AND post_type = %s 
+                    AND post_status = 'publish' 
+                    LIMIT 1
+                    ", 
+                        $this->block_name, 
+                        'acf-field-group'
+                ), 
+                ARRAY_A // Veriyi bir dizi (array) olarak almak için
+            );
             $this->block_data = $post_data;
             return $post_data;
         }
@@ -2124,20 +2123,20 @@ class UpdateFlexibleFieldLayouts {
         $post_parent = $this->field_data()["ID"];
         $block_name_solid = str_replace("block-", "", $this->block_name);
         $block = $wpdb->get_var( 
-		    $wpdb->prepare(
-		        "
-		        SELECT post_excerpt 
-		        FROM {$wpdb->posts} 
-		        WHERE post_type = %s 
-		        AND post_parent = %d 
-		        AND post_excerpt = %s
-		        ", 
-		        'acf-field', 
-		        $post_parent,
-		        $block_name_solid
-		    )
-		);
-		error_log("post_parent: ".$post_parent.", block_name_solid: ".$block_name_solid);
+            $wpdb->prepare(
+                "
+                SELECT post_excerpt 
+                FROM {$wpdb->posts} 
+                WHERE post_type = %s 
+                AND post_parent = %d 
+                AND post_excerpt = %s
+                ", 
+                'acf-field', 
+                $post_parent,
+                $block_name_solid
+            )
+        );
+        error_log("post_parent: ".$post_parent.", block_name_solid: ".$block_name_solid);
         return !empty($block)?true:false;
     }
     public function create_clone($block, $post_parent, $layout_name, $layout_data = []) {
@@ -2242,16 +2241,16 @@ class UpdateFlexibleFieldLayouts {
         global $wpdb;
         $posts = $wpdb->get_results(
             $wpdb->prepare(
-		        "
-		        SELECT ID, post_title 
-		        FROM {$wpdb->posts} 
-		        WHERE post_type = %s 
-		        AND post_parent = %d 
-		        AND (post_excerpt IS NULL OR post_excerpt = '')
-		        ", 
-		        'acf-field', 
-		        $post_parent
-		    )
+                "
+                SELECT ID, post_title 
+                FROM {$wpdb->posts} 
+                WHERE post_type = %s 
+                AND post_parent = %d 
+                AND (post_excerpt IS NULL OR post_excerpt = '')
+                ", 
+                'acf-field', 
+                $post_parent
+            )
         );
 
         if ($posts) {
@@ -2267,61 +2266,61 @@ class UpdateFlexibleFieldLayouts {
     }
 
     public function update_cache() {
-	    if ($this->$post_id) {
-	        acf_save_post_block_columns_action($this->$post_id);
+        if ($this->$post_id) {
+            acf_save_post_block_columns_action($this->$post_id);
 
-	        // ACF Cache'i temizle
-	        acf_flush_field_cache();
+            // ACF Cache'i temizle
+            acf_flush_field_cache();
 
-	        // Alan grubunu yeniden yükle
-	        if($this->$field_key){
-	        	acf_import_field_group(acf_get_field_group($this->$field_key));	        	
-	        }
+            // Alan grubunu yeniden yükle
+            if($this->$field_key){
+                acf_import_field_group(acf_get_field_group($this->$field_key));             
+            }
 
-	        // Alan grubunu manuel kaydet
-	        do_action('acf/save_post', $this->$post_id);
-	    }
-	}
+            // Alan grubunu manuel kaydet
+            do_action('acf/save_post', $this->$post_id);
+        }
+    }
 }
 function acf_save_post_block_columns_action( $post_id ){
-	if(has_term("block", 'acf-field-group-category', $post_id)){ // is block
-    	$block = get_post($post_id);
+    if(has_term("block", 'acf-field-group-category', $post_id)){ // is block
+        $block = get_post($post_id);
 
-    	error_log("block->post_excerpt: ".$block->post_excerpt);
+        error_log("block->post_excerpt: ".$block->post_excerpt);
 
-    	remove_action( 'save_post', 'acf_save_post_block_columns', 20 );
+        remove_action( 'save_post', 'acf_save_post_block_columns', 20 );
 
-    	if($block->post_excerpt != "block-bootstrap-columns"){
+        if($block->post_excerpt != "block-bootstrap-columns"){
 
-	    	$layouts = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block->post_name, $block->post_excerpt);
-	    	$layouts->update();
+            $layouts = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block->post_name, $block->post_excerpt);
+            $layouts->update();
 
-    	}elseif($block->post_excerpt == "block-bootstrap-columns"){
+        }elseif($block->post_excerpt == "block-bootstrap-columns"){
 
-    		$layouts_check = new UpdateFlexibleFieldLayouts();
-    		$blocks = $layouts_check->get_block_fields();
-    		if($blocks){
-    			$group_field_data = $layouts_check->get_block_field_data($block);
-    			error_log("block-bootstrap-columns s a v i n g . . . . . . . . . . . . ");
-    			foreach($blocks as $item){
-    				error_log("adding:".$item->post_excerpt);
-    				$layouts = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $item->post_name, $item->post_excerpt, $group_field_data);
-    				$layouts->update();
-    			}
-    		}
-    	}
-    	add_action( 'save_post', 'acf_save_post_block_columns', 20 );
+            $layouts_check = new UpdateFlexibleFieldLayouts();
+            $blocks = $layouts_check->get_block_fields();
+            if($blocks){
+                $group_field_data = $layouts_check->get_block_field_data($block);
+                error_log("block-bootstrap-columns s a v i n g . . . . . . . . . . . . ");
+                foreach($blocks as $item){
+                    error_log("adding:".$item->post_excerpt);
+                    $layouts = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $item->post_name, $item->post_excerpt, $group_field_data);
+                    $layouts->update();
+                }
+            }
+        }
+        add_action( 'save_post', 'acf_save_post_block_columns', 20 );
 
     }
 }
 function acf_save_post_block_columns( $post_id ) {
-	if (defined('DOING_AJAX') && DOING_AJAX) {
-		return;
-	}
-	if (defined('DOING_CRON') && DOING_CRON) {
-		return;
-	}
-	if ( wp_is_post_revision( $post_id ) ) {
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+        return;
+    }
+    if (defined('DOING_CRON') && DOING_CRON) {
+        return;
+    }
+    if ( wp_is_post_revision( $post_id ) ) {
         return;
     }
     if ( get_post_status( $post_id ) !== 'publish' ) {
@@ -2346,61 +2345,61 @@ add_action( 'save_post', 'acf_save_post_block_columns', 20);
 
 
 function acf_layout_posts_preload($fields = array()){// Kullanılmıyor gozukuyor
-	if($fields){
+    if($fields){
 
-		//print_r($fields);
+        //print_r($fields);
 
-		$vars = $fields;/*array(
+        $vars = $fields;/*array(
             "post_type" => $fields["post_type"],
             "taxonomy" => $fields["taxonomy"],
             "parent" => $fields["terms"],
             "numberposts" => $fields["posts_per_page"],
             "orderby" => $fields["orderby"],
             "order" => $fields["order"],
-		);*/
-		if($fields["load_type"] == "all"){
-		   //$vars["numberposts"] = -1;
-		}
+        );*/
+        if($fields["load_type"] == "all"){
+           //$vars["numberposts"] = -1;
+        }
 
-		//echo "aa".$vars["posts_per_page_default"];
+        //echo "aa".$vars["posts_per_page_default"];
 
-		$class = "";
-		$is_home = boolval(is_front_page());
+        $class = "";
+        $is_home = boolval(is_front_page());
 
-		$context = Timber::context();
+        $context = Timber::context();
         $template = "partials/posts/archive-acf.twig";
         $templates = array();
         switch($fields["type"]){
-        	case "post":
-	        	if($is_home){
-	        		$templates[] = $vars["post_type"]."/tease-home.twig";
-	        	}	
-        		$templates[] = $vars["post_type"]."/tease.twig";
-        	break;
-        	case "taxonomy":
-        	    if($is_home){
-	        		$templates[] = $vars["taxonomy"]."/tease-home.twig";
-	        	}
-	            $taxonomy = get_taxonomy($vars["taxonomy"]);
-	            $post_types = $taxonomy->object_type;
-	            foreach($post_types as $post_type){
-	            	if($is_home){
-		        		$templates[] = $post_type."/tease-home.twig";
-		        	}
-	                $templates[] = $post_type."/tease.twig";
-	            }
-	            $templates[] = $vars["taxonomy"]."/tease.twig";
-        	break;
-        	case "user":
-        	    if($is_home){
-	        		$templates[] = $fields["type"]."/tease-home.twig";
-	        	}
+            case "post":
+                if($is_home){
+                    $templates[] = $vars["post_type"]."/tease-home.twig";
+                }   
+                $templates[] = $vars["post_type"]."/tease.twig";
+            break;
+            case "taxonomy":
+                if($is_home){
+                    $templates[] = $vars["taxonomy"]."/tease-home.twig";
+                }
+                $taxonomy = get_taxonomy($vars["taxonomy"]);
+                $post_types = $taxonomy->object_type;
+                foreach($post_types as $post_type){
+                    if($is_home){
+                        $templates[] = $post_type."/tease-home.twig";
+                    }
+                    $templates[] = $post_type."/tease.twig";
+                }
+                $templates[] = $vars["taxonomy"]."/tease.twig";
+            break;
+            case "user":
+                if($is_home){
+                    $templates[] = $fields["type"]."/tease-home.twig";
+                }
                 $templates[] = $fields["type"]."/tease.twig";
             break;
             case "comment":
                 if($is_home){
-	        		$templates[] = $fields["type"]."/tease-home.twig";
-	        	}
+                    $templates[] = $fields["type"]."/tease-home.twig";
+                }
                 $templates[] = $fields["type"]."/tease.twig";
             break;
         }
@@ -2417,7 +2416,7 @@ function acf_layout_posts_preload($fields = array()){// Kullanılmıyor gozukuyo
         }*/
         $templates[] = "tease.twig";
 
-		$paginate = new Paginate([], $vars);
+        $paginate = new Paginate([], $vars);
         $result = $paginate->get_results($fields["type"]);
         //print_r($result);
         $posts = $result["posts"];
@@ -2430,18 +2429,18 @@ function acf_layout_posts_preload($fields = array()){// Kullanılmıyor gozukuyo
         //$response["data"] = $result["data"];
         //$response["html"] = Timber::compile($templates, $context);
 
-		//$posts = Timber::get_posts($vars);
-		
-		//$context["posts"] = $posts;
-		if(isset($fields["is_preview"])){
-			$context["is_preview"] = $fields["is_preview"];			
-		}
+        //$posts = Timber::get_posts($vars);
+        
+        //$context["posts"] = $posts;
+        if(isset($fields["is_preview"])){
+            $context["is_preview"] = $fields["is_preview"];         
+        }
 
-		return array(
-			"posts" => Timber::compile($template, $context),//Timber::compile($fields["post_type"]."/archive-acf.twig", $context),
-			"total" => $result["data"]["total"]//count($posts)//count($posts)
-		);
-	}
+        return array(
+            "posts" => Timber::compile($template, $context),//Timber::compile($fields["post_type"]."/archive-acf.twig", $context),
+            "total" => $result["data"]["total"]//count($posts)//count($posts)
+        );
+    }
 }
 
 
@@ -2450,7 +2449,7 @@ if( ENABLE_MULTILANGUAGE == "qtranslate-xt"){
     // ACF options sayfasındaki alanları kaydetmek için filtre
     add_filter('acf/load_value', 'load_acf_option_value', 10, 3);
     function load_acf_option_value($value, $post_id, $field) {
-    	remove_filter('acf/load_value', 'load_acf_option_value', 10, 3);
+        remove_filter('acf/load_value', 'load_acf_option_value', 10, 3);
 
         $current_lang = qtranxf_getLanguage();
         $default_lang = qtranxf_getSortedLanguages()[0];
@@ -2466,14 +2465,14 @@ if( ENABLE_MULTILANGUAGE == "qtranslate-xt"){
             if (empty($value)) {
                 
                global $q_config;
-	           $q_config['language'] = $default_lang;
-	           //echo $option_name." > yok aabi<br>";
-	           $value = get_field($option_name, "options");
-	           //print_r($value);
-	           $value = get_option($default_option);
-	           //print_r($value);
-	           //echo "<br>";
-	           $q_config['language'] = $current_lang;
+               $q_config['language'] = $default_lang;
+               //echo $option_name." > yok aabi<br>";
+               $value = get_field($option_name, "options");
+               //print_r($value);
+               $value = get_option($default_option);
+               //print_r($value);
+               //echo "<br>";
+               $q_config['language'] = $current_lang;
                 /*if (empty($value)) {
                     $value = get_option($default_alt_option);
                 }*/
@@ -2544,15 +2543,15 @@ function display_page_assets_table() {
     if($urls){
         $total = count($urls);
         $outputArray = [];
-		foreach ($urls as $key => $item) {
-		    $item['id'] = $key; // Key'i 'id' olarak ekle
-		    $outputArray[] = $item; // Yeni array'e ekle
-		}
-		$urls = $outputArray;
+        foreach ($urls as $key => $item) {
+            $item['id'] = $key; // Key'i 'id' olarak ekle
+            $outputArray[] = $item; // Yeni array'e ekle
+        }
+        $urls = $outputArray;
         $message = "JS & CSS Extraction process completed with <strong>".$total." pages.</strong>";
         $type = "success";
     }else{
-    	$urls = [];
+        $urls = [];
         $message = "Not found any pages to extract process.";
         $type = "error";
     }
@@ -2584,62 +2583,62 @@ function display_page_assets_table() {
     }
     ?>
     <script type="text/javascript">
-    	var index = 0;
-    	var urls = <?php echo json_encode($urls);?>;
-    	jQuery(document).ready(function($) {
-	    	$(".btn-page-assets-single").on("click", function(e){
-	    		e.preventDefault();
-	    		$(this).addClass("disabled");
-	    		var $row = $(this).closest("tr");
-	    		var $index = $row.attr("data-index");
-	    		page_assets_update($index, true);
-	        });
-	        $(".btn-page-assets-update").on("click", function(e){
-	        	e.preventDefault();
-	        	$(this).addClass("disabled");
-	        	page_assets_update(0, false);
-	        });
-	    });
+        var index = 0;
+        var urls = <?php echo json_encode($urls);?>;
+        jQuery(document).ready(function($) {
+            $(".btn-page-assets-single").on("click", function(e){
+                e.preventDefault();
+                $(this).addClass("disabled");
+                var $row = $(this).closest("tr");
+                var $index = $row.attr("data-index");
+                page_assets_update($index, true);
+            });
+            $(".btn-page-assets-update").on("click", function(e){
+                e.preventDefault();
+                $(this).addClass("disabled");
+                page_assets_update(0, false);
+            });
+        });
         function page_assets_update($index, $single){
-        	var $row = $(".table-page-assets").find("tr[data-index='"+$index+"']");
-        	$row.find(".actions").empty().addClass("loading loading-xs position-relative");
-        	if(!$single){
-        		$(".progress-page-assets").removeClass("d-none");
-        	}
-    		 data = {
-	            action: 'page_assets_update',
-	            url: urls[$index]
-	        };
-	        $.ajax({
-				url: ajaxurl,
-				type: 'post',
-				dataType: 'json',
-				data: data,
-				success: function(response) {
-					if (!response.error) {
-						$row.find("td").addClass("bg-success text-white");
-						$row.find(".actions").removeClass("loading loading-xs").html("<strong>COMPLETED</strong>");
-						if(!$single){
-							var percent = (($index+1) * 100) / urls.length;
-							$(".progress-page-assets .progress-bar").css("width", percent+"%");
-						}else{
-							$row.find(".btn-page-assets-single").removeClass("disabled");
-						}
-						if($index < urls.length-1 && !$single){
-							$index++;
-							page_assets_update($index);
-						}else{
-							$(".progress-page-assets").remove();
-							$(".table-page-assets-status").prepend("<div class='text-success fs-4 fw-bold'>COMPLETED!</div>");
-							$(".btn-page-assets-update").removeClass("disabled");
-						}
-					}
-				},
-				error: function(xhr, status, error) {
-					console.error('AJAX Error: ' + status + ' - ' + error);
-				}
-	        });
-    	}
+            var $row = $(".table-page-assets").find("tr[data-index='"+$index+"']");
+            $row.find(".actions").empty().addClass("loading loading-xs position-relative");
+            if(!$single){
+                $(".progress-page-assets").removeClass("d-none");
+            }
+             data = {
+                action: 'page_assets_update',
+                url: urls[$index]
+            };
+            $.ajax({
+                url: ajaxurl,
+                type: 'post',
+                dataType: 'json',
+                data: data,
+                success: function(response) {
+                    if (!response.error) {
+                        $row.find("td").addClass("bg-success text-white");
+                        $row.find(".actions").removeClass("loading loading-xs").html("<strong>COMPLETED</strong>");
+                        if(!$single){
+                            var percent = (($index+1) * 100) / urls.length;
+                            $(".progress-page-assets .progress-bar").css("width", percent+"%");
+                        }else{
+                            $row.find(".btn-page-assets-single").removeClass("disabled");
+                        }
+                        if($index < urls.length-1 && !$single){
+                            $index++;
+                            page_assets_update($index);
+                        }else{
+                            $(".progress-page-assets").remove();
+                            $(".table-page-assets-status").prepend("<div class='text-success fs-4 fw-bold'>COMPLETED!</div>");
+                            $(".btn-page-assets-update").removeClass("disabled");
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error: ' + status + ' - ' + error);
+                }
+            });
+        }
     </script>
     <?php
 }
@@ -2651,7 +2650,7 @@ function update_page_assets_message_field($field){
 } 
 add_action('acf/render_field/name=page_assets', 'update_page_assets_message_field');
 function page_assets_update(){
-	$response = array(
+    $response = array(
         "error" => false,
         "message" => "",
         "html" => "",
@@ -2773,7 +2772,7 @@ function get_pages_need_updates($updated_plugins){
 }
 
 function acf_compile_js_css($value=0){
-	       if ( function_exists( 'rocket_clean_minify' ) ) {
+           if ( function_exists( 'rocket_clean_minify' ) ) {
                 rocket_clean_minify();
             }
 
@@ -2908,13 +2907,13 @@ function acf_compile_js_css($value=0){
                 }
             }
             if(!$value){
-            	//return true;
+                //return true;
             }
 }
 function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
     $is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
     if( $value ) {
-    	acf_compile_js_css($value);
+        acf_compile_js_css($value);
     }
     return 0;
 }
@@ -2922,14 +2921,14 @@ add_filter('acf/update_value/name=enable_compile_js_css', 'acf_development_compi
 
 
 function acf_methods_settings($value=0){
-	error_log("acf_methods_settings");
-	        if ( function_exists( 'rocket_clean_minify' ) ) {
+    error_log("acf_methods_settings");
+            if ( function_exists( 'rocket_clean_minify' ) ) {
                 rocket_clean_minify();
             }
             if(!class_exists("SaltHareket\MethodClass")){
-	            require_once SH_CLASSES_PATH . "class.methods.php";
-	        }
-	        $methods = new SaltHareket\MethodClass();
+                require_once SH_CLASSES_PATH . "class.methods.php";
+            }
+            $methods = new SaltHareket\MethodClass();
             $frontend = $methods->createFiles(false); 
             error_log(json_encode($frontend));
             $admin = $methods->createFiles(false, "admin");
@@ -2956,12 +2955,12 @@ function acf_methods_settings($value=0){
                 }
             }
             if(!$value){
-            	//return true;
+                //return true;
             }
 }
 function acf_development_methods_settings( $value=0, $post_id=0, $field="", $original="" ) {
     if( $value ) {
-    	$is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
+        $is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
         if ($is_development) {
            acf_methods_settings($value); 
         }
@@ -3196,6 +3195,179 @@ add_filter('acf/update_value/name=enable_extract_translations', 'acf_development
 
 
 
+
+
+
+function export_and_replace_wp_mysql_dump() {
+    if (!defined('ABSPATH')) {
+        die("🚨 Hata: WordPress ortamında çalışmıyor!");
+    }
+
+    // **WordPress wp-config.php içindeki DB bilgilerini çek**
+    $db_name = DB_NAME;
+    $db_user = DB_USER;
+    $db_pass = DB_PASSWORD;
+    $db_host = DB_HOST;
+
+    $local_url = get_site_url();
+    if (!$local_url) {
+        wp_send_json_error(["message" => "🚨 Hata: Local URL alınamadı!"]);
+    }
+
+    $live_url = get_option("options_publish_url");
+    if (!$live_url) {
+        wp_send_json_error(["message" => "🚨 Hata: Live URL alınamadı!"]);
+    }
+
+    // **Uploads klasörüne kaydet**
+    $uploads_dir = wp_upload_dir()['basedir']; 
+    $backup_file = $uploads_dir . "/" . $db_name . "_backup.sql";
+    $updated_file = $uploads_dir . "/" . $db_name . "_updated.sql";
+    $zip_file = $uploads_dir . "/" . $db_name . "_export.zip";
+
+    try {
+        // **MySQL Bağlantısı**
+        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+
+        // **Tüm tabloları al**
+        $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+        if (!$tables) {
+            wp_send_json_error(["message" => "🚨 Hata: Hiç tablo bulunamadı!"]);
+        }
+
+        // **Dump dosyasını başlat**
+        $sql_dump = "-- WordPress MySQL Export\n-- " . date("Y-m-d H:i:s") . "\n\n";
+
+        foreach ($tables as $table) {
+            // **Tablo yapısını al**
+            $create_table_stmt = $pdo->query("SHOW CREATE TABLE `$table`")->fetch(PDO::FETCH_ASSOC);
+            $sql_dump .= "DROP TABLE IF EXISTS `$table`;\n";
+            $sql_dump .= $create_table_stmt['Create Table'] . ";\n\n";
+
+            // **Tablo içeriğini al**
+            $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll(PDO::FETCH_ASSOC);
+            if ($rows) {
+                foreach ($rows as $row) {
+                    $values = array_map(function ($val) use ($pdo, $local_url, $live_url) {
+                        if (!isset($val)) return 'NULL'; // NULL değerleri koru
+
+                        // **JSON olup olmadığını kontrol et**
+                        $json_decoded = json_decode($val, true);
+                        if (is_array($json_decoded)) {
+                            // JSON içindeki URL'leri değiştir
+                            array_walk_recursive($json_decoded, function (&$item) use ($local_url, $live_url) {
+                                if (is_string($item) && str_contains($item, $local_url)) {
+                                    $item = str_replace($local_url, $live_url, $item);
+                                }
+                            });
+                            $val = json_encode($json_decoded, JSON_UNESCAPED_SLASHES);
+                        } else {
+                            // Normal metin içindeki URL'leri değiştir
+                            $val = str_replace($local_url, $live_url, $val);
+                        }
+
+                        return $pdo->quote($val);
+                    }, array_values($row));
+
+                    $sql_dump .= "INSERT INTO `$table` VALUES (" . implode(", ", $values) . ");\n";
+                }
+                $sql_dump .= "\n";
+            }
+        }
+
+        // **Dump dosyasını kaydet**
+        file_put_contents($backup_file, $sql_dump);
+
+        // **Normal metin içindeki URL'leri değiştir**
+        $sql_dump = str_replace(
+            [$local_url, addslashes($local_url), str_replace(['http://', 'https://'], '', $local_url)],
+            [$live_url, addslashes($live_url), str_replace(['http://', 'https://'], '', $live_url)],
+            $sql_dump
+        );
+
+        // **Yeni SQL dosyasını kaydet**
+        file_put_contents($updated_file, $sql_dump);
+
+        // **ZIP dosyasını oluştur**
+        $zip = new ZipArchive();
+        if ($zip->open($zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+            $zip->addFile($updated_file, basename($updated_file));
+            $zip->close();
+        } else {
+            wp_send_json_error(["message" => "🚨 Hata: ZIP dosyası oluşturulamadı!"]);
+        }
+
+        wp_send_json_success(['zip_url' => wp_upload_dir()['baseurl'] . "/" . basename($zip_file)]);
+
+    } catch (Exception $e) {
+        wp_send_json_error(["message" => "🚨 Hata: " . $e->getMessage()]);
+    }
+}
+
+add_action('wp_ajax_acf_export_mysql', 'acf_export_mysql');
+add_action('wp_ajax_nopriv_acf_export_mysql', 'acf_export_mysql');
+function acf_export_mysql() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Unauthorized']);
+        exit;
+    }
+    $new_sql_file = export_and_replace_wp_mysql_dump();
+    wp_send_json_success(['url' => $new_sql_file]);
+}
+add_action('admin_footer', function () {
+    if (!is_admin()) {
+        return;
+    }
+
+    ?>
+    <script>
+        jQuery(document).ready(function ($) {
+            $('.acf-export-mysql button').on('click', function (e) {
+                e.preventDefault();
+                var $button = $(this);
+                $button.prop('disabled', true).text('Exporting...');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'acf_export_mysql'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.href = response.data.zip_url;
+                        } else {
+                            alert('Error: ' + response.data.message);
+                        }
+                        $button.prop('disabled', false).text('Export');
+                    },
+                    error: function () {
+                        alert('An unexpected error occurred.');
+                        $button.prop('disabled', false).text('Export');
+                    }
+                });
+            });
+        });
+    </script>
+    <?php
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 add_action('wp_ajax_acf_export_field_groups', 'acf_export_field_groups_to_json');
 add_action('wp_ajax_nopriv_acf_export_field_groups', 'acf_export_field_groups_to_json');
 
@@ -3213,7 +3385,7 @@ function acf_export_field_groups_to_json() {
         if (isset($group['acfe_categories'])) {
             $categories = array_keys($group['acfe_categories']);
             if(in_array($textDomain, $categories)){
-            	return false;
+                return false;
             }
             return array_intersect($categories, ['block', 'common', 'general']);
         }
@@ -3226,36 +3398,36 @@ function acf_export_field_groups_to_json() {
     }
 
     // JSON'ları bir diziye kaydet
-	$json_files = [];
-	foreach ($filtered_groups as $group) {
-	    if (isset($group['local_file']) && file_exists($group['local_file'])) {
-	        $json_data = json_decode(file_get_contents($group['local_file']), true);
+    $json_files = [];
+    foreach ($filtered_groups as $group) {
+        if (isset($group['local_file']) && file_exists($group['local_file'])) {
+            $json_data = json_decode(file_get_contents($group['local_file']), true);
 
-	        if (!$json_data) {
-	            continue; // JSON verisi geçerli değilse atla
-	        }
+            if (!$json_data) {
+                continue; // JSON verisi geçerli değilse atla
+            }
 
-	        // Belirli bir grup için özel düzenleme
-	        if ($group['key'] === "group_66e309dc049c4") {
-	            if (isset($json_data['fields']) && is_array($json_data['fields'])) {
-	                foreach ($json_data['fields'] as &$field) {
-	                    if (isset($field['name']) && $field['name'] === 'acf_block_columns') {
-	                        if (isset($field['layouts'])) {
-	                            $field['layouts'] = (object)[]; // layouts alanını boş bir nesne yap
-	                        }
-	                    }
-	                }
-	            }
-	        }
+            // Belirli bir grup için özel düzenleme
+            if ($group['key'] === "group_66e309dc049c4") {
+                if (isset($json_data['fields']) && is_array($json_data['fields'])) {
+                    foreach ($json_data['fields'] as &$field) {
+                        if (isset($field['name']) && $field['name'] === 'acf_block_columns') {
+                            if (isset($field['layouts'])) {
+                                $field['layouts'] = (object)[]; // layouts alanını boş bir nesne yap
+                            }
+                        }
+                    }
+                }
+            }
 
-	        $file_name = sanitize_title($group['key']) . '.json';
-	        $json_path = wp_upload_dir()['basedir'] . '/' . $file_name;
+            $file_name = sanitize_title($group['key']) . '.json';
+            $json_path = wp_upload_dir()['basedir'] . '/' . $file_name;
 
-	        // JSON verisini temizle ve yaz
-	        file_put_contents($json_path, json_encode($json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-	        $json_files[] = $json_path;
-	    }
-	}
+            // JSON verisini temizle ve yaz
+            file_put_contents($json_path, json_encode($json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $json_files[] = $json_path;
+        }
+    }
 
 
     // ZIP dosyası oluştur
@@ -3323,7 +3495,7 @@ add_action('admin_footer', function () {
 function acf_json_to_db($acf_json_path = "", $overwrite = true) {
     // ACF JSON klasör yolu
     if(empty($acf_json_path)){
-    	$acf_json_path = get_template_directory() . '/acf-json';
+        $acf_json_path = get_template_directory() . '/acf-json';
     }
   
     // Klasör kontrolü
@@ -3349,29 +3521,29 @@ function acf_json_to_db($acf_json_path = "", $overwrite = true) {
         }
 
         if (isset($field_group['key'])) {
-        	if(!in_array($field_group['key'], $imported_groups)){
-	            // Var olan grup kontrolü
-	            $existing_group = acf_get_field_group($field_group['key']);
+            if(!in_array($field_group['key'], $imported_groups)){
+                // Var olan grup kontrolü
+                $existing_group = acf_get_field_group($field_group['key']);
 
-	            if ($existing_group) {
-	                if ($overwrite) {
-	                    acf_delete_field_group($existing_group['ID']); // Eskiyi sil
-	                    acf_import_field_group($field_group); // Yeniyi ekle
-	                } else {
-	                    acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
-	                }
-	            }else {
-				    acf_import_field_group($field_group);
-				}
+                if ($existing_group) {
+                    if ($overwrite) {
+                        acf_delete_field_group($existing_group['ID']); // Eskiyi sil
+                        acf_import_field_group($field_group); // Yeniyi ekle
+                    } else {
+                        acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
+                    }
+                }else {
+                    acf_import_field_group($field_group);
+                }
 
-				if (defined('ACF_LOCAL_JSON')) {
+                if (defined('ACF_LOCAL_JSON')) {
                     acf_write_json_field_group($field_group);
                 }
 
-	            // Yeni grubu veritabanına ekle
-	            //acf_import_field_group($field_group);
-	            $imported_groups[] = $field_group['key'];        		
-        	}
+                // Yeni grubu veritabanına ekle
+                //acf_import_field_group($field_group);
+                $imported_groups[] = $field_group['key'];               
+            }
 
         }
     }
@@ -3664,6 +3836,17 @@ add_filter('acf/update_value/name=modal_home', function ($value, $post_id, $fiel
 
 
 
+function acf_enable_twig_cache($new_value, $post_id, $field) {
+    if ($post_id !== 'options') {
+        return $new_value;
+    }
+    $old_value = get_field($field['name'], 'option');
+    if ($old_value == 1 && $new_value == 0) {
+        deleteFolder(STATIC_PATH . 'twig_cache');
+    }
+    return $new_value;
+}
+add_filter('acf/update_value/name=enable_twig_cache', 'acf_enable_twig_cache', 10, 3);
 
 
 
@@ -4060,37 +4243,37 @@ add_filter('acf/load_value/key=field_6798cd6f61a0f', 'sync_acf_with_post_meta', 
 
 /*
 function acf_ffmpeg_available($field) {
-	$ffmpeg = new VideoProcessor();
-	if (!$ffmpeg->available) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    $ffmpeg = new VideoProcessor();
+    if (!$ffmpeg->available) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 add_filter('acf/load_field/name=ffmpeg_available', 'acf_ffmpeg_available');
 
 function acf_ffmpeg_not_available($field) {
-	$ffmpeg = new VideoProcessor();
-	if ($ffmpeg->available) {
-		$field['wrapper']['class'] = 'hidden';
-	}else{
-		$field['wrapper']['class'] = '';
-	}
-	return $field;
+    $ffmpeg = new VideoProcessor();
+    if ($ffmpeg->available) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
 }
 function acf_ffmpeg_not_available_message( $field ) {
-	$ffmpeg = new VideoProcessor();
-	if (!$ffmpeg->available) {
-		ob_start();
-		if ($ffmpeg->supported) {
-			$url = esc_url(admin_url('admin.php?page=video-process'));
-			echo '<div class="notice notice-warning is-dismissible" style="display: flex; align-items: center; padding: 15px;margin:0px;"><span class="dashicons dashicons-warning" style="margin-right: 10px; font-size: 24px; color: #ffba00;"></span><p><strong>Attention:</strong> To automatically generate sizes, frame thumbnails, and video poster frames for your uploaded videos, you can install the FFMpeg plugin from the <a href="'.$url.'">Video process page.</a></p></div>';
-		}else{
-			echo '<div class="notice notice-warning is-dismissible" style="display: flex; align-items: center; padding: 15px;margin:0px;"><span class="dashicons dashicons-no" style="color: #e74c3c; font-size: 24px; margin-right: 10px;"></span><p><strong>Attention:</strong> Unfortunately, your system does not support the FFMpeg plugin. Therefore, the automatic video size, frame thumbnails, and poster frame generation features are disabled.</p></div>';
-		}
-	    $field['message'] = ob_get_clean();
-	}
+    $ffmpeg = new VideoProcessor();
+    if (!$ffmpeg->available) {
+        ob_start();
+        if ($ffmpeg->supported) {
+            $url = esc_url(admin_url('admin.php?page=video-process'));
+            echo '<div class="notice notice-warning is-dismissible" style="display: flex; align-items: center; padding: 15px;margin:0px;"><span class="dashicons dashicons-warning" style="margin-right: 10px; font-size: 24px; color: #ffba00;"></span><p><strong>Attention:</strong> To automatically generate sizes, frame thumbnails, and video poster frames for your uploaded videos, you can install the FFMpeg plugin from the <a href="'.$url.'">Video process page.</a></p></div>';
+        }else{
+            echo '<div class="notice notice-warning is-dismissible" style="display: flex; align-items: center; padding: 15px;margin:0px;"><span class="dashicons dashicons-no" style="color: #e74c3c; font-size: 24px; margin-right: 10px;"></span><p><strong>Attention:</strong> Unfortunately, your system does not support the FFMpeg plugin. Therefore, the automatic video size, frame thumbnails, and poster frame generation features are disabled.</p></div>';
+        }
+        $field['message'] = ob_get_clean();
+    }
     return $field;
 }
 add_filter('acf/load_field/key=field_679763ca89402', 'acf_ffmpeg_not_available');
@@ -4183,23 +4366,23 @@ function process_video_tasks_cron() {
         error_log('Video dosyası bulunamadı: ' . $video_path);
 
         if(count($video_tasks) == 1 || count($video_tasks)-1 == $index){
-        	delete_post_meta($post_id, 'video_tasks');
+            delete_post_meta($post_id, 'video_tasks');
         }else{
-        	unset($video_tasks[$index]);
-        	update_post_meta($post_id, 'video_tasks', $video_tasks);
+            unset($video_tasks[$index]);
+            update_post_meta($post_id, 'video_tasks', $video_tasks);
         }
         unset($blocks[$block_index]['attrs']["lock"]);
         $updated_content = serialize_blocks($blocks);
-	    wp_update_post([
-	        'ID'           => $post_id,
-	        'post_content' => $updated_content,
-	    ]);
-	    $timestamp = wp_next_scheduled('process_video_tasks_event');
-		if ($timestamp) {
-		    wp_unschedule_event($timestamp, 'process_video_tasks_event');
-		    error_log("Old scheduled event cleared.");
-		    wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
-		}
+        wp_update_post([
+            'ID'           => $post_id,
+            'post_content' => $updated_content,
+        ]);
+        $timestamp = wp_next_scheduled('process_video_tasks_event');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'process_video_tasks_event');
+            error_log("Old scheduled event cleared.");
+            wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
+        }
         return;
     }
 
@@ -4261,78 +4444,78 @@ function acf_block_video_process_on_save($post_id) {
     $tasks = [];
     $counter = 0;
     foreach ($blocks as $key => &$block) {
-    	//error_log(print_r($block, true));
+        //error_log(print_r($block, true));
         if(!isset($block['attrs']['data'])){
             continue;
         }
-    	$data = $block['attrs']['data'];
-    	if(!isset($data['video_file_desktop'])){
-    		continue;
-    	}
-    	if(empty($data['video_file_desktop'])){
-    		continue;
-    	}
-    	$process = false;
-    	$task = [
-    		"index" => $counter,
-    		"block_index" => $key,
-    		"tasks" => []
-    	];
-    	
+        $data = $block['attrs']['data'];
+        if(!isset($data['video_file_desktop'])){
+            continue;
+        }
+        if(empty($data['video_file_desktop'])){
+            continue;
+        }
+        $process = false;
+        $task = [
+            "index" => $counter,
+            "block_index" => $key,
+            "tasks" => []
+        ];
+        
         $desktop = $data['video_file_desktop'] ?? null;
         $tablet  = $data['video_file_tablet'] ?? null;
         $phone   = $data['video_file_phone'] ?? null;
         if($desktop){
-        	$sizes      = $data['ffmpeg_available_generate_sizes'] ?? 0;
-        	$thumbnails = $data['ffmpeg_available_generate_thumbnails'] ?? 0;
-        	$poster     = $data['ffmpeg_available_generate_poster'] ?? 0;
+            $sizes      = $data['ffmpeg_available_generate_sizes'] ?? 0;
+            $thumbnails = $data['ffmpeg_available_generate_thumbnails'] ?? 0;
+            $poster     = $data['ffmpeg_available_generate_poster'] ?? 0;
 
-        	$task["tasks"]["sizes"]["720"] = false;
+            $task["tasks"]["sizes"]["720"] = false;
 
-        	if($sizes && (!$tablet || !$phone)){
-        		$process = true;
-        		$task["tasks"]["sizes"] = [];
-        		if(!$tablet){
-        			$task["tasks"]["sizes"]["480"] = false;
-        		}
-        		if(!$phone){
-        			$task["tasks"]["sizes"]["360"] = false;
-        		}
-        	}
-        	if($thumbnails && $sizes){
-        		$process = true;
-        		$task["tasks"]["thumbnails"] = false;
-        	}
-        	if($poster && $sizes){
-        		$process = true;
-        		$task["tasks"]["poster"] = false;
-        	}
-        	if($process){
-        		$tasks[] = $task;
-        		$block['attrs']['lock'] = array(
-	                'move'   => true,
-	                'remove' => true,
-	            );
-        	}
+            if($sizes && (!$tablet || !$phone)){
+                $process = true;
+                $task["tasks"]["sizes"] = [];
+                if(!$tablet){
+                    $task["tasks"]["sizes"]["480"] = false;
+                }
+                if(!$phone){
+                    $task["tasks"]["sizes"]["360"] = false;
+                }
+            }
+            if($thumbnails && $sizes){
+                $process = true;
+                $task["tasks"]["thumbnails"] = false;
+            }
+            if($poster && $sizes){
+                $process = true;
+                $task["tasks"]["poster"] = false;
+            }
+            if($process){
+                $tasks[] = $task;
+                $block['attrs']['lock'] = array(
+                    'move'   => true,
+                    'remove' => true,
+                );
+            }
         }
         $counter++;
     }
     if($tasks){
-    	update_post_meta($post_id, 'video_tasks', $tasks);
-    	//error_log(print_r($blocks, true));
-    	$updated_content = serialize_blocks($blocks);
-    	//error_log($updated_content);
-	    wp_update_post([
-	        'ID'           => $post_id,
-	        'post_content' => $updated_content,
-	    ]);
-    	// Cron job kontrol et ve yoksa tetikle
-    	$timestamp = wp_next_scheduled('process_video_tasks_event');
-		if ($timestamp) {
-		    wp_unschedule_event($timestamp, 'process_video_tasks_event');
-		    error_log("Old scheduled event cleared.");
-		    wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
-		}
+        update_post_meta($post_id, 'video_tasks', $tasks);
+        //error_log(print_r($blocks, true));
+        $updated_content = serialize_blocks($blocks);
+        //error_log($updated_content);
+        wp_update_post([
+            'ID'           => $post_id,
+            'post_content' => $updated_content,
+        ]);
+        // Cron job kontrol et ve yoksa tetikle
+        $timestamp = wp_next_scheduled('process_video_tasks_event');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'process_video_tasks_event');
+            error_log("Old scheduled event cleared.");
+            wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
+        }
         //if (!wp_next_scheduled('process_video_tasks_event')) {
         //    wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
         //    error_log("Cron Job: process_video_tasks_cron() triggered...");

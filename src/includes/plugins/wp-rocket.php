@@ -38,6 +38,7 @@ function wprocket_is_cached() {
     if (defined("WP_ROCKET_VERSION")) {
         foreach (headers_list() as $header) {
             if (strpos($header, 'x-rocket-nginx-serving-static') !== false) {
+                error_log("heeeyy hedır wp rocket vaaar braa");
                 return true;
             }
         }        
@@ -232,7 +233,12 @@ add_action('template_redirect', function () {
 
 function is_wp_rocket_crawling() {
     if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket') !== false) {
+        error_log("wp rocket vaaar braa");
         return true; // WP Rocket bu sayfayı önbelleğe almak için ziyaret ediyor
     }
     return false;
 }
+
+add_filter('rocket_buffer', function ($buffer) {
+    return minify_html_output($buffer);
+});

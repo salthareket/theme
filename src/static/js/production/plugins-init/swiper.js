@@ -1,36 +1,3 @@
-/*function getAverageLuminance(element) {
-    return new Promise((resolve) => {
-        const img = element.querySelector('img');
-        if (!img) {
-            resolve(getComputedLuminance(element)); // Eğer görsel yoksa arka planı kontrol et
-            return;
-        }
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
-
-        const imageData = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
-        const data = imageData.data;
-        
-        let sumLuminance = 0;
-        const totalPixels = data.length / 4;
-
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            
-            const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-            sumLuminance += luminance;
-        }
-        
-        resolve(sumLuminance / totalPixels);
-    });
-}*/
-
 function getAverageLuminance(element) {
     return new Promise((resolve) => {
         // Eğer element 'swiper-slide-video' classına sahipse, poster frame'ini kullan
@@ -76,7 +43,6 @@ function getAverageLuminance(element) {
         resolve(sumLuminance / totalPixels);
     });
 }
-
 function getImageLuminance(imageUrl) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -105,8 +71,6 @@ function getImageLuminance(imageUrl) {
         };
     });
 }
-
-
 function getComputedLuminance(element) {
     const style = getComputedStyle(element);
     const bgColor = style.backgroundColor;
@@ -114,46 +78,27 @@ function getComputedLuminance(element) {
     const [r, g, b] = rgb;
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
+async function updateSlideColors(slider) {
 
-async function updateButtonColors(slider, buttons) {
-    console.log(buttons)
     const activeSlide = slider.querySelector('.swiper-slide-active');
     if (!activeSlide) return;
 
-    let colorLight = slider.dataset.colorLight;
-    let colorDark  = slider.dataset.colorDark;
+    slider.classList.remove("slide-light");
+    slider.classList.remove("slide-dark");
 
     if (activeSlide.classList.contains('slide-dark') || activeSlide.classList.contains('slide-light')) {
-        let color = "#fff";
         if(activeSlide.classList.contains('slide-dark')){
-            color = colorLight;
+            slider.classList.add("slide-dark");
         }
         if(activeSlide.classList.contains('slide-light')){
-            color = colorDark;
+            slider.classList.add("slide-light");
         }
-        if(buttons.length > 0){
-            buttons.forEach(button => {
-                if(!IsBlank(button)){
-                    button.style.color = color;
-                }
-            });         
-        }
-
         return;
     }
-
-    // Görselin yüklenmesini bekle ve tekrar hesapla
     const luminance = await getAverageLuminance(activeSlide);
     const isDark = luminance < 0.5; // 0.5 eşik değeri
-
     activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
-    if(buttons.length > 0){
-        buttons.forEach(button => {
-            if(!IsBlank(button) && button != null){
-                button.style.color = isDark ? colorLight : colorDark; // Açık renk için siyah, koyu için beyaz
-            }
-        });
-    }
+    slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
 }
 
 
@@ -303,6 +248,7 @@ function init_swiper_obj($obj) {
         var auto_height = bool($obj.data("slider-autoheight"), false);
         var navigation = bool($obj.data("slider-navigation"), false);
         var pagination = $obj.data("slider-pagination")||"";
+        var pagination_custom = $obj.data("slider-render-bullet")||"";
         var pagination_top = $obj.data("slider-pagination-top")||"";
         var pagination_visible = $obj.data("slider-pagination-visible")||0;
         var pagination_thumbs = bool($obj.data("slider-pagination-thumbs"), false);
@@ -317,11 +263,13 @@ function init_swiper_obj($obj) {
         var allow_touch_move = bool($obj.data("slider-allow-touch-move"), true);
         var scrollbar = false;
         var scrollbar_el = {};
+        var scrollbar_draggable = bool($obj.data("slider-scrollbar-draggable"), true);
+        var scrollbar_snap = bool($obj.data("slider-scrollbar-snap"), true);
         if($obj.find(".swiper-scrollbar").length>0){
            scrollbar = true;
            scrollbar_el = $obj.find(".swiper-scrollbar");
         }else{
-           scrollbar = bool($obj.data("slider-scrollbar"),false);
+           scrollbar = bool($obj.data("slider-scrollbar"), false);
         }
         var slidesPerView = $obj.attr("data-slider-slides-per-view")||1;
         var slidesPerGroup = $obj.attr("data-slider-slides-per-view")||1;
@@ -520,10 +468,7 @@ function init_swiper_obj($obj) {
 
                     var $el = $(slider.el);
 
-                    var buttons = [this.params.navigation.prevEl, this.params.navigation.nextEl];
-                    console.log("init")
-                    console.log(buttons)
-                    updateButtonColors(this.el, buttons);
+                    updateSlideColors(this.el);
 
                     /*$(".link-initial a").on("click", function() {
                         debugJS($("#home").next("section").attr("id"))
@@ -572,10 +517,8 @@ function init_swiper_obj($obj) {
                 },
                 
                 slideChangeTransitionEnd: function (e) {
-                    var buttons = [this.params.navigation.prevEl, this.params.navigation.nextEl];
                     console.log("slideChangeTransitionEnd")
-                    console.log(buttons)
-                    updateButtonColors(this.el, buttons);
+                    updateSlideColors(this.el);
                 },
                 resize: function() {
                     /*if (card_slider) {
@@ -586,11 +529,7 @@ function init_swiper_obj($obj) {
                                 card_slider.find(">.card-footer").removeClass("d-none");
                             }
                         }*/
-
-                        var buttons = [this.params.navigation.prevEl, this.params.navigation.nextEl];
-                        console.log("resize")
-                        console.log(buttons)
-                        updateButtonColors(this.el, buttons);
+                        updateSlideColors(this.el);
                     //}
                 },
                 slidesGridLengthChange: function() {
@@ -613,10 +552,8 @@ function init_swiper_obj($obj) {
                         //this.params.freeMode = false;
                     }
                     
-                    var buttons = [this.params.navigation.prevEl, this.params.navigation.nextEl];
                     console.log("slidesGridLengthChange")
-                    console.log(buttons)
-                    updateButtonColors(this.el, buttons);
+                    updateSlideColors(this.el);
 
                 }
             }
@@ -646,6 +583,12 @@ function init_swiper_obj($obj) {
                       el: $obj.find('.swiper-scrollbar')[0]
                     }
                 }
+           }
+           if(scrollbar_draggable){
+              options["scrollbar"]["draggable"] = true;
+           }
+           if(scrollbar_snap){
+              options["scrollbar"]["snapOnRelease"] = true;
            }
         }
 
@@ -701,10 +644,8 @@ function init_swiper_obj($obj) {
                   options["pagination"]["dynamicMainBullets"] = pagination_visible;
                }
             }
-            if(pagination == "custom"){
-                options["pagination"]["renderCustom"] =  function (swiper, current, total) {
-                  return ('0' + current).slice(-2) + '/' + ('0' + total).slice(-2);
-                }
+            if(pagination == "custom" && !IsBlank(pagination_custom)){
+                options["pagination"]["renderBullet"] = pagination_custom;
             }
         };
         if (pagination_thumbs) {

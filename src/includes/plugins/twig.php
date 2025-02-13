@@ -28,6 +28,21 @@ class AppExtension extends AbstractExtension {
 }
 
 
-apply_filters('timber/cache/mode', function () {
-    return Timber\Loader::CACHE_OBJECT;
-});
+if (wp_using_ext_object_cache() && wp_cache_get('test_cache', 'test_group')) {
+    apply_filters('timber/cache/mode', function () {
+        return Timber\Loader::CACHE_OBJECT;
+    });
+} else {
+    apply_filters('timber/cache/mode', function () {
+        return Timber\Loader::CACHE_TRANSIENT;
+    });
+}
+
+if(ENABLE_TWIG_CACHE){
+    add_filter('timber/twig/environment/options', function ($options) {
+        $options['cache'] = STATIC_PATH . 'twig_cache'; // Önbellek dizinini belirtin
+        $options['auto_reload'] = ENABLE_PRODUCTION;
+        return $options;
+    });    
+}
+

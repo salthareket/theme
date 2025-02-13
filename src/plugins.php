@@ -160,4 +160,10 @@ $required_plugins_local[] = array(
     "name" => "polylang-wc/polylang-wc.php",
     "file" => "polylang-wc"
 );
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "0.2.0",
+    "name" => "clear-cache-for-timber/clear-cache-for-timber.php",
+    "file" => "clear-cache-for-timber"
+);
 $GLOBALS["plugins_local"] = $required_plugins_local;

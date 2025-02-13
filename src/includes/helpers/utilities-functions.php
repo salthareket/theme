@@ -934,3 +934,73 @@ function check_and_load_translation($textdomain, $locale = null) {
         }
     }
 }
+
+
+
+
+function copyFolder($src, $dest, $exclude = []){
+    $dir = opendir($src);
+
+    if (!is_dir($dest)) {
+        mkdir($dest, 0755, true);
+    }
+
+    while (false !== ($file = readdir($dir))) {
+        if ($file == '.' || $file == '..') {
+            continue; // Geçerli ve üst dizini atla
+        }
+
+        $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+        $destPath = $dest . DIRECTORY_SEPARATOR . $file;
+            // Hariç tutulacak klasör kontrolü
+        if (is_dir($srcPath) && in_array($file, $exclude)) {
+            continue; // Hariç tutulan klasörü atla
+        }
+
+        if (is_dir($srcPath)) {
+            copyFolder($srcPath, $destPath, $exclude);
+        } else {
+            copy($srcPath, $destPath);
+        }
+    }
+    closedir($dir);
+}
+function copyFile($source, $destination) {
+        if (!file_exists($source)) {
+            return;
+        }
+        $destinationDir = dirname($destination);
+        if (!file_exists($destinationDir)) {
+            if (!mkdir($destinationDir, 0777, true)) {
+                return;
+            }
+        }
+        if (copy($source, $destination)) {
+
+        } else {
+            return;
+        }
+}
+function moveFolder($src, $dst) {
+    if (!is_dir($src)) {
+        error_log("Kaynak klasör bulunamadı: $src");
+        return false;
+    }
+    try {
+        copyFolder($src, $dst);
+        deleteFolder($src);
+        return true;
+    } catch (Exception $e) {
+        error_log("Taşıma işlemi başarısız: " . $e->getMessage());
+        return false;
+    }
+}
+function deleteFolder($dir) {
+    if (!is_dir($dir)) return;
+    $items = array_diff(scandir($dir), ['.', '..']);
+    foreach ($items as $item) {
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        is_dir($path) ? deleteFolder($path) : unlink($path);
+    }
+    rmdir($dir);
+}

@@ -431,7 +431,7 @@
                             "required": 0,
                             "conditional_logic": 0,
                             "wrapper": {
-                                "width": "25",
+                                "width": "",
                                 "class": "",
                                 "id": ""
                             },
@@ -482,7 +482,7 @@
                             "layout": "block",
                             "prefix_label": 0,
                             "prefix_name": 1,
-                            "acfe_seamless_style": 0,
+                            "acfe_seamless_style": 1,
                             "acfe_clone_modal": 0,
                             "acfe_clone_modal_close": 0,
                             "acfe_clone_modal_button": "",
@@ -1598,7 +1598,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1738751764,
+    "modified": 1739452228,
     "acfe_categories": {
         "block": "Block"
     }

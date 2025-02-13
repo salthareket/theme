@@ -213,9 +213,9 @@ function plyr_init($obj){
 		.bind('webkitfullscreenchange mozfullscreenchange fullscreenchange', function(e) {
 			var state = document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen;
 		    if(state){
-                video_container.addClass("fullscreen");
+              video_container.addClass("fullscreen");
 		    }else{
-                video_container.removeClass("fullscreen");
+              video_container.removeClass("fullscreen");
 			}
 			debounce(video);
 		});

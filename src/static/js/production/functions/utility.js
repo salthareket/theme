@@ -508,4 +508,4 @@ $.fn.fitEmbedBackground = function() {
             );
 
         });
-    };
+};
