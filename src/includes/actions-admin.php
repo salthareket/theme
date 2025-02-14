@@ -9,13 +9,19 @@ add_filter('wp_editor_set_quality', function ($quality, $mime_type) {
 
 
 // görsel kayudederken gorselin ortalama renk degerini ve bu rengin kontrastını kaydet
-function extract_and_save_average_color($post_ID) {
+function extract_and_save_average_color($post_ID = 0) {
+    if(!$post_ID){
+        return;
+    }
     $mime_types = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
     $image_path = get_attached_file($post_ID);
-    $colors = get_image_average_color($image_path);
-    if($colors){
-        update_post_meta($post_ID, 'average_color', $colors["average_color"]);
-        update_post_meta($post_ID, 'contrast_color', $colors["contrast_color"]);            
+    $mime_type = get_post_mime_type($post_ID);
+    if (in_array($mime_type, $mime_types)) {
+        $colors = get_image_average_color($image_path);
+        if($colors){
+            update_post_meta($post_ID, 'average_color', $colors["average_color"]);
+            update_post_meta($post_ID, 'contrast_color', $colors["contrast_color"]);            
+        }
     }
 }
 add_action('add_attachment', 'extract_and_save_average_color');

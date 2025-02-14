@@ -32,6 +32,10 @@ class AvifConverter {
     }
 
     public function handleUpload($file, $context) {
+        if ($this->isFaviconUploadPage()) {
+            return $file;
+        }
+
         if ($context !== 'upload') {
             return $file;
         }
@@ -72,14 +76,29 @@ class AvifConverter {
                 $imagick = new Imagick($file_path);
                 $imagick->setImageFormat('avif');
                 $imagick->setImageCompressionQuality($this->quality);
+
+                // **Şeffaflık koruma ayarları**
+                if ($imagick->getImageAlphaChannel() != Imagick::ALPHACHANNEL_UNDEFINED) {
+                    $imagick->setImageAlphaChannel(Imagick::ALPHACHANNEL_ACTIVATE);
+                    $imagick->setBackgroundColor('none'); // Şeffaf arka plan
+                }
+
                 $imagick->writeImage($avif_path);
                 $imagick->destroy();
             } elseif (function_exists('imageavif')) {
-                $image = imagecreatefromstring(file_get_contents($file_path));
+                $image = $this->createImageFromFile($file_path);
+                if (!$image) {
+                    return false;
+                }
+
+                // **Şeffaflık koruma ayarları**
+                imagealphablending($image, false);
+                imagesavealpha($image, true);
+
                 imageavif($image, $avif_path, $this->quality);
                 imagedestroy($image);
             } elseif (shell_exec('which avifenc')) {
-                shell_exec("avifenc -q {$this->quality} $file_path $avif_path");
+                shell_exec("avifenc --min 0 --max 63 --lossless -j 8 -a end-usage=q $file_path $avif_path");
             } else {
                 return false;
             }
@@ -88,6 +107,24 @@ class AvifConverter {
         } catch (Exception $e) {
             error_log('AVIF dönüştürme hatası: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    private function createImageFromFile($file_path) {
+        $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+
+        switch ($extension) {
+            case 'png':
+                return imagecreatefrompng($file_path);
+            case 'gif':
+                return imagecreatefromgif($file_path);
+            case 'bmp':
+                return imagecreatefrombmp($file_path);
+            case 'jpeg':
+            case 'jpg':
+                return imagecreatefromjpeg($file_path);
+            default:
+                return false;
         }
     }
 
@@ -104,5 +141,12 @@ class AvifConverter {
                 wp_update_attachment_metadata($attachment_id, $meta);
             }
         }
+    }
+
+    private function isFaviconUploadPage() {
+        if (is_admin() && isset($_GET['page']) && strpos($_GET['page'], 'favicon-by-realfavicongenerator') !== false) {
+            return true;
+        }
+        return false;
     }
 }

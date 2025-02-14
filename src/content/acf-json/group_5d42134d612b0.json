@@ -25,7 +25,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "png, svg",
+            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "preview_size": "thumbnail",
             "library": "all"
         },
@@ -52,7 +52,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "png, svg",
+            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "preview_size": "thumbnail",
             "library": "all"
         },
@@ -79,7 +79,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "png, svg",
+            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "preview_size": "thumbnail",
             "library": "all"
         },
@@ -106,7 +106,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "",
+            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "preview_size": "thumbnail",
             "library": "all"
         },
@@ -133,7 +133,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "png",
+            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "preview_size": "thumbnail",
             "library": "all"
         },
@@ -161,7 +161,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "",
+            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "allow_in_bindings": 1,
             "preview_size": "thumbnail"
         }
@@ -191,7 +191,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737516161,
+    "modified": 1739493799,
     "acfe_categories": {
         "general": "General"
     }

@@ -248,8 +248,10 @@ class PageAssetsExtractor {
 
             if($this->type == "post" && get_option('page_on_front') == $id){
                 $modal_home = get_field("modal_home", "option");
-                if($modal_home["type"] == "video"){
-                    $plugins[] = "plyr";
+                if($modal_home){
+                    if($modal_home["type"] == "video"){
+                        $plugins[] = "plyr";
+                    }
                 }
             }
 

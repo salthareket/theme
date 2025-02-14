@@ -271,27 +271,33 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
     return $tempClasses; // Sınıfları birleştir ve döndür
 }
 
-
-
-function block_container($container=""){
+function block_container_class($container=""){
     $default = get_field("default_container", "options");
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default);
     switch($container){
         case "" :
-            $container = "container px-4 px-lg-3 h-inherit";
+            $container = "container";
         break;
         case "default" :
-            $container = $default." px-4 px-lg-3 h-inherit";
+            $container = $default;
         break;
         case "no" :
             $container = "";
         break;
         case "auto" :
-            $container = "w-auto px-4 px-lg-3 h-inherit";
+            $container = "w-auto";
         break;
         default :
-            $container = "container-".$container." px-4 px-lg-3 h-inherit";
+            $container = "container-".$container;
         break;
+    }
+    return $container;
+}
+
+function block_container($container="", $stretch_height = false){
+    $container = block_container_class($container);
+    if(!empty($container) && $stretch_height){
+        $container .= " h-inherit";
     }
     return $container;
 }
@@ -382,7 +388,8 @@ function block_classes($block, $fields, $block_column){
             $classes[] = $block["className"];
         }
     }
-    if(isset($fields["block_settings"]["stretch_height"])){
+
+    /*if(isset($fields["block_settings"]["stretch_height"])){
         if($fields["block_settings"]["stretch_height"]){
             if($block_column){
                 $classes[] = "h-100";
@@ -390,7 +397,8 @@ function block_classes($block, $fields, $block_column){
                 $classes[] = "flex-column";
             }
         }
-    }
+    }*/
+
     /*if($block["align"]){
         $classes[] = "text-".$block["align"];
     }*/
@@ -2740,7 +2748,8 @@ function block_css($block, $fields, $block_column){
             $css = "";
             foreach($height_responsive as $breakpoint => $value){
                 $code_height_responsive = "";
-                $container = block_container($fields["block_settings"]["container"]);
+                $container = block_container_class($fields["block_settings"]["container"]);
+                //$container = block_container($fields["block_settings"]["container"]);
 
                 if($value["height"] == "ratio"){
                     $ratio = block_ratio_padding($value["ratio"]);
@@ -3165,7 +3174,7 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
         $meta["settings"]         = isset($fields["block_settings"])?$fields["block_settings"]:[];
         $meta["classes"]          = block_classes($block_data, $fields, $block_column);
         $meta["attrs"]            = block_attrs($block_data, $fields, $block_column);
-        $meta["container"]        = isset($meta["settings"]["container"])?block_container($meta["settings"]["container"]):"default";
+        $meta["container"]        = isset($meta["settings"]["container"])?block_container($meta["settings"]["container"], $fields["block_settings"]["stretch_height"]):"default";
         $meta["bg_image"]         = block_bg_media($block_data, $fields, $block_column);
         $meta["data"]             = array(
             "align"      => $block_data["align"],

@@ -238,7 +238,3 @@ function is_wp_rocket_crawling() {
     }
     return false;
 }
-
-add_filter('rocket_buffer', function ($buffer) {
-    return minify_html_output($buffer);
-});

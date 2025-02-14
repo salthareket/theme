@@ -333,3 +333,28 @@ if (class_exists("acf")) {
     }
     add_filter('acf/load_field', 'acf_load_field_translate');
 }
+
+
+// qTranslate çeviri fonksiyonu (aktif dili algılar)
+function qtranslate_fix($content) {
+    if (function_exists('qtranxf_getLanguage') && function_exists('qtranxf_use')) {
+        $current_lang = qtranxf_getLanguage(); // Aktif dili al
+        return qtranxf_use($current_lang, $content, false, true);
+    }
+    return $content;
+}
+
+// Post başlıklarını çekerken çeviri uygula
+add_filter('the_title', 'qtranslate_fix', 10, 1);
+
+// Taxonomy (Kategori, Etiket vs.) başlıklarını çekerken çeviri uygula
+add_filter('single_term_title', 'qtranslate_fix', 10, 1);
+add_filter('list_cats', 'qtranslate_fix', 10, 1); // Kategori listeleme için
+
+// WordPress opsiyonlarını çekerken çeviri uygula
+add_filter('option_blogname', 'qtranslate_fix', 10, 1);
+add_filter('option_blogdescription', 'qtranslate_fix', 10, 1);
+add_filter('option_my_custom_option', 'qtranslate_fix', 10, 1); // Özel opsiyonlar için
+
+// ACF alanlarını çekerken çeviri uygula
+add_filter('acf/load_value', 'qtranslate_fix', 10, 3);
