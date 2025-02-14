@@ -24,22 +24,23 @@ class SizeFlipper
 
         return new Size(-1 * $scalarSize, $size->getUnit(), $size->isColorComponent());
     }*/
-    public function invertSize($size){
+    public function invertSize($size) {
         if ($size instanceof \Sabberworm\CSS\Value\CalcFunction) {
             // CalcFunction için özel işlem
             foreach ($size->getArguments() as $arg) {
                 if ($arg instanceof \Sabberworm\CSS\Value\Size) {
-                    $arg->setValue(-$arg->getValue());
+                    $arg->setSize(-$arg->getSize()); // setValue yerine setSize kullanıldı
                 }
             }
             return $size;
         } elseif ($size instanceof \Sabberworm\CSS\Value\Size) {
             // Normal Size işlemi
-            $size->setValue(-$size->getValue());
+            $size->setSize(-$size->getSize()); // setValue yerine setSize kullanıldı
             return $size;
         } else {
             throw new \InvalidArgumentException('Unsupported size type');
         }
     }
+
 
 }

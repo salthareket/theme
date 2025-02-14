@@ -257,7 +257,6 @@ class Update {
                                 <input class="form-check-input" type="checkbox" name="plugin_types" value="cookie" id="cookieSwitch">
                                 <label class="form-check-label ms-2" for="cookieSwitch">Cookie Consent</label>
                             </div>
-                            
                         </div>
                     </div>
 
