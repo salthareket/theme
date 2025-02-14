@@ -162,19 +162,15 @@ class PageAssetsExtractor {
         // <style> ve <script> etiketlerini $main ve $block içinde ara
         if ($html) {
             $scripts = $html->findMulti('script');
-            error_log(print_r($scripts, true));
             $scripts_filtered = [];
             foreach ($scripts as $script) {
-                //$attrs = $script->attr ?? [];
                 if (!$script->hasAttribute('data-inline')) {
                     $scripts_filtered[] = $script;
                 }
             }
             $scripts = $scripts_filtered;
-            error_log("dönüş:");
-            error_log(print_r($scripts, true));
             foreach ($scripts as $script) {
-                 if (is_object($script) && method_exists($script, 'innerHtml')) {
+                if (is_object($script) && method_exists($script, 'innerHtml')) {
                     $code = $script->innerHtml();
                 } else {
                     continue;
@@ -197,8 +193,7 @@ class PageAssetsExtractor {
             $styles = $html->findMulti('style');
             $styles_filtered = [];
             foreach ($styles as $style) {
-                $attrs = $style->attr ?? [];
-                if (!array_key_exists('data-inline', $attrs)) {
+                if (!$style->hasAttribute('data-inline')) {
                     $styles_filtered[] = $style;
                 }
             }

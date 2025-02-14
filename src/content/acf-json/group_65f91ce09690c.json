@@ -257,6 +257,29 @@
             "append": "ms"
         },
         {
+            "key": "field_67ae7e94e3371",
+            "label": "Speed (ms)",
+            "name": "speed",
+            "aria-label": "",
+            "type": "range",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "40",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 750,
+            "translations": "copy_once",
+            "min": 0,
+            "max": 10000,
+            "allow_in_bindings": 0,
+            "step": 50,
+            "prepend": "",
+            "append": "ms"
+        },
+        {
             "key": "field_65f91f33ccfe0",
             "label": "Lazy Load",
             "name": "lazy",
@@ -272,6 +295,50 @@
             },
             "message": "",
             "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_67ae762e586db",
+            "label": "Continuous Scroll",
+            "name": "continuous-scroll",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "copy_once",
+            "allow_in_bindings": 1,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_67ae71ec188cd",
+            "label": "Free Mode",
+            "name": "free-mode",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "copy_once",
+            "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
             "ui": 1
@@ -402,6 +469,28 @@
             },
             "message": "",
             "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_67ae71a6188cc",
+            "label": "Mousewheel Scroll",
+            "name": "mousewheel",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "copy_once",
+            "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
             "ui": 1
@@ -573,7 +662,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739115808,
+    "modified": 1739489072,
     "acfe_categories": {
         "common": "Common"
     }

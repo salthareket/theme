@@ -632,7 +632,7 @@ function generate_media_query($classname, $start, $end, $breakpoint_sizes, $styl
 }
 
 
-function block_slider_controls($id = "", $controls = [], $direction = "horizontal", $autoheight = false){
+function block_slider_controls($id = "", $controls = [], $direction = "horizontal", $autoheight = false, $continuous_scroll = false){
     $attrs = [];
     $tools = [];
     
@@ -1598,7 +1598,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     $values["--swiper-pagination-top"] = $top;
                     $values["--swiper-pagination-bottom"] = $bottom;
 
-                    $css[] = $pagination."{" .
+                    $css[] = $id."{" .
                         implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                     "}";
                 }
@@ -1606,9 +1606,21 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                 if($pagination_type == "progressbar"){
                     
                     $values = [];
+                    $position = $control["position_".$direction];
                     $color = $control["view"]["progressbar"]["color"];
                     $bg_color = $control["view"]["progressbar"]["color_bg"];
                     $size =  unit_value($control["view"]["progressbar"]["size"]);
+
+                    $top = $bottom = $left = $right = "auto";
+                
+                    if($direction == "vertical"){
+                        $left  = $position == "left" ? 0 : $left;
+                        $right = $position == "right" ? 0 : $right;
+                    }
+                    if($direction == "horizontal"){
+                        $top    = $position == "top" ? 0 : $top;
+                        $bottom = $position == "bottom" ? 0 : $bottom;
+                    }
 
                     $values["--swiper-pagination-progressbar-bg-color"] = $bg_color;
                     $values["--swiper-pagination-progressbar-size"] = $size;
@@ -1620,6 +1632,47 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     $pagination = $id." .swiper-pagination-progressbar";
 
                     $css[] = $pagination."{" .
+                        "top: ".$top.";" .
+                        "left: ".$left.";" .
+                        "right: ".$right.";" .
+                        "bottom: ".$bottom.";" .
+                    "}";
+
+                    if($placement == "outside"){
+                        switch($position){
+                            
+                            case "top" :
+                                $css[] = $space_obj."{" .
+                                    $space_prefix."top: var(--swiper-pagination-progressbar-size);" .
+                                    "height: auto;" .
+                                "}";
+                            break;
+
+                            case "left" :
+                                $css[] = $space_obj."{" .
+                                    $space_prefix."left: var(--swiper-pagination-progressbar-size);" .
+                                    "width: auto;" .
+                                 "}";
+                            break;
+
+                            case "right" :
+                                $css[] = $space_obj."{" .
+                                    $space_prefix."right: var(--swiper-pagination-progressbar-size);" .
+                                    "width: auto;" .
+                                "}";
+                            break;
+
+                            case "bottom" :
+                                $css[] = $space_obj."{" .
+                                    $space_prefix."bottom: var(--swiper-pagination-progressbar-size);" .
+                                    "height: auto;" .
+                                "}";
+                            break;
+
+                        }
+                    }
+
+                    $css[] = $id."{" .
                         implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                     "}";
                 }
@@ -1849,7 +1902,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     if(isset($color)){
                         $values["--swiper-pagination-color"] = $color;
                     }
-                    $css[] = $pagination."{" .
+                    $css[] = $id."{" .
                         implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                     "}";
                 }
@@ -2085,7 +2138,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     if(isset($color)){
                         $values["--swiper-pagination-color"] = $color;
                     }
-                    $css[] = $pagination."{" .
+                    $css[] = $id."{" .
                         implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                     "}";
                 }
@@ -2106,7 +2159,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
 
                 $attrs[$type."-draggable"] = $control["draggable"]?true:false;
                 $attrs[$type."-snap"] = $control["snap"]?true:false;
-                
+
                 $position = $control["position_".$direction];
                 $bg_color = $control["view"]["bg_color"];
                 $drag_color = $control["view"]["drag_color"];
@@ -2117,12 +2170,12 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                 $top = $bottom = $left = $right = "auto";
                 
                 if($direction == "vertical"){
-                    $left  = $position == "left" ? 0 : $left;
-                    $right = $position == "right" ? 0 : $right;
+                    $left  = $position == "left" ? $sides_offset : $left;
+                    $right = $position == "right" ? $sides_offset : $right;
                 }
                 if($direction == "horizontal"){
-                    $top    = $position == "top" ? 0 : $top;
-                    $bottom = $position == "bottom" ? 0 : $bottom;
+                    $top    = $position == "top" ? $sides_offset : $top;
+                    $bottom = $position == "bottom" ? $sides_offset : $bottom;
                 }
 
                 $pagination = $id." .swiper-scrollbar";
@@ -2163,15 +2216,15 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
 
                 $values["--swiper-scrollbar-bg-color"] = $bg_color;
                 $values["--swiper-scrollbar-drag-bg-color"] = $drag_color;
+                $values["--swiper-scrollbar-sides-offset"] = $sides_offset;
+                $values["--swiper-scrollbar-size"] = $size;
+                $values["--swiper-scrollbar-border-radius"] = $border_radius;
                 $values["--swiper-scrollbar-top"] = $top;
                 $values["--swiper-scrollbar-bottom"] = $bottom;
                 $values["--swiper-scrollbar-left"] = $left;
                 $values["--swiper-scrollbar-right"] = $right;
-                $values["--swiper-scrollbar-sides-offset"] = $sides_offset;
-                $values["--swiper-scrollbar-size"] = $size;
-                $values["--swiper-scrollbar-border-radius"] = $border_radius;
 
-                $css[] = $pagination."{" .
+                $css[] = $id."{" .
                     implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                 "}";
             break;
@@ -2189,10 +2242,26 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
             "js"  => $js
         );
     }
-    //error_log(print_r($tools, true));
+    
+    $css = "";
+    if($continuous_scroll){
+        $css = $id." .swiper[data-slider-continuous-scroll] > .swiper-wrapper{" .
+             "transition-timing-function:linear!important; " .
+        "}";
+        $attrs["freeMode"] = true;
+        $attrs["loop"] = true;
+        $attrs["allowTouchMove"] = false;
+        $attrs["autoplay"] = true;
+        $attrs["delay"] = 0;
+        $attrs["slidesPerView"] = 5.5;
+        $attrs["spaceBetween"] = 0;
+        //$attrs["speed"] = 10;
+    }
+
     return array(
        "attrs" => $attrs,
-       "controls" => $tools
+       "controls" => $tools,
+       "css" => $css
     );
 }
 
@@ -2230,10 +2299,8 @@ function block_columns($args=array(), $block = []){
                             $attrs["data-slider-".$key] = $item;
                         }else{
                             if($key == "controls" && $item){
-                                $slider_controls = block_slider_controls("#".$block["id"], $item, $args["slider_settings"]["direction"], $args["slider_settings"]["autoheight"]);
+                                $slider_controls = block_slider_controls("#".$block["id"], $item, $args["slider_settings"]["direction"], $args["slider_settings"]["autoheight"], $args["slider_settings"]["continuous-scroll"]);
                             }
-                            //error_log("#".$key." -> ".$args["slider_settings"]["direction"]);
-                            //error_log(print_r($item, true));
                         }
                         if(isset($slider_controls["attrs"])){
                             foreach($slider_controls["attrs"] as $key => $item){
@@ -2291,10 +2358,12 @@ function block_columns($args=array(), $block = []){
             }            
         }
     }
+
     return array(
         "class" => implode(" ", $classes),
         "attrs" => array2Attrs($attrs),
-        "controls" => isset($slider_controls["controls"]) ? $slider_controls["controls"] : []
+        "controls" => isset($slider_controls["controls"]) ? $slider_controls["controls"] : [],
+        "css" => isset($slider_controls["css"]) ? $slider_controls["css"] : ""
     );
 }
 function block_aos($args=array()){
@@ -3116,6 +3185,9 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
                         if(isset($control["css"]) && !empty($control["css"])){
                             $css .= $control["css"];
                         }
+                    }
+                    if(!empty($meta["row"]["css"])){
+                        $css .= $meta["row"]["css"];
                     }
                     $css_tmp = str_replace("</style>", $css."</style>", $css_tmp);
                     $meta["css"] = $css_tmp;

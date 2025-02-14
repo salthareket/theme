@@ -575,15 +575,7 @@
                             "type": "radio",
                             "instructions": "",
                             "required": 0,
-                            "conditional_logic": [
-                                [
-                                    {
-                                        "field": "field_67a4c657d7287",
-                                        "operator": "!=",
-                                        "value": "progressbar"
-                                    }
-                                ]
-                            ],
+                            "conditional_logic": 0,
                             "wrapper": {
                                 "width": "",
                                 "class": "",
@@ -694,6 +686,92 @@
                             "acfe_group_modal_close": 0,
                             "acfe_group_modal_button": "",
                             "acfe_group_modal_size": "large"
+                        },
+                        {
+                            "key": "field_67ae6cecf3ae4",
+                            "label": "Position",
+                            "name": "position_horizontal",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_67a8cd012a1ea",
+                                        "operator": "==",
+                                        "value": "horizontal"
+                                    },
+                                    {
+                                        "field": "field_67a4c657d7287",
+                                        "operator": "==",
+                                        "value": "progressbar"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "choices": {
+                                "top": "Top",
+                                "bottom": "Bottom"
+                            },
+                            "default_value": "bottom",
+                            "return_format": "value",
+                            "multiple": 0,
+                            "translations": "copy_once",
+                            "allow_null": 0,
+                            "allow_in_bindings": 0,
+                            "ui": 0,
+                            "ajax": 0,
+                            "placeholder": "",
+                            "allow_custom": 0,
+                            "search_placeholder": ""
+                        },
+                        {
+                            "key": "field_67ae6cf1f3ae5",
+                            "label": "Position",
+                            "name": "position_vertical",
+                            "aria-label": "",
+                            "type": "select",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_67a8cd012a1ea",
+                                        "operator": "==",
+                                        "value": "vertical"
+                                    },
+                                    {
+                                        "field": "field_67a4c657d7287",
+                                        "operator": "==",
+                                        "value": "progressbar"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "choices": {
+                                "left": "Left",
+                                "right": "Right"
+                            },
+                            "default_value": "left",
+                            "return_format": "value",
+                            "multiple": 0,
+                            "translations": "copy_once",
+                            "allow_null": 0,
+                            "allow_in_bindings": 0,
+                            "ui": 0,
+                            "ajax": 0,
+                            "placeholder": "",
+                            "allow_custom": 0,
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_67a4c657d7287",
@@ -3473,7 +3551,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739477208,
+    "modified": 1739485215,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

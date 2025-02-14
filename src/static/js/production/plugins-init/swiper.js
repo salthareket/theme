@@ -240,7 +240,7 @@ function init_swiper_obj($obj) {
         return;
     }
   
-        var effect = $obj.data("slider-effect")||"slide";
+        var effect = $obj.data("slider-effect") ?? "slide";
         var crossFade = false;
         if(effect == "fade"){
            var crossFade = bool($obj.data("slider-cross-fade"), crossFade);
@@ -248,19 +248,22 @@ function init_swiper_obj($obj) {
         var auto_height = bool($obj.data("slider-autoheight"), false);
         var navigation = bool($obj.data("slider-navigation"), false);
         var pagination = $obj.data("slider-pagination")||"";
-        var pagination_custom = $obj.data("slider-render-bullet")||"";
-        var pagination_top = $obj.data("slider-pagination-top")||"";
+        var pagination_custom = $obj.data("slider-render-bullet") ?? "";
+        var pagination_top = $obj.data("slider-pagination-top") ?? "";
         var pagination_visible = $obj.data("slider-pagination-visible")||0;
         var pagination_thumbs = bool($obj.data("slider-pagination-thumbs"), false);
         var autoplay = bool($obj.data("slider-autoplay"), false);
         var autoplay_pause = bool($obj.data("slider-autoplay-pause"), true);
-        var delay = $obj.data("slider-delay")||(autoplay?5000:0);
+        var delay = $obj.data("slider-delay") ?? (autoplay ? 5000 : 0);
+        var speed = $obj.data("slider-speed") ?? 750;
         var loop = bool($obj.data("slider-loop"), false);
         var lazy = bool($obj.data("slider-lazy"), false);
         var zoom = bool($obj.data("slider-zoom"), false);
+        var free_mode = bool($obj.data("slider-free-mode"), false);
         var direction = IsBlank($obj.data("slider-direction"))||$obj.data("slider-direction")=="horizontal"?"horizontal":"vertical";
         var grab = bool($obj.data("slider-grab"), true);
         var allow_touch_move = bool($obj.data("slider-allow-touch-move"), true);
+        var mousewheel = bool($obj.data("slider-mousewheel"), false);
         var scrollbar = false;
         var scrollbar_el = {};
         var scrollbar_draggable = bool($obj.data("slider-scrollbar-draggable"), true);
@@ -271,8 +274,8 @@ function init_swiper_obj($obj) {
         }else{
            scrollbar = bool($obj.data("slider-scrollbar"), false);
         }
-        var slidesPerView = $obj.attr("data-slider-slides-per-view")||1;
-        var slidesPerGroup = $obj.attr("data-slider-slides-per-view")||1;
+        var slidesPerView = $obj.attr("data-slider-slides-per-view") ?? 1;
+        var slidesPerGroup = $obj.attr("data-slider-slides-per-view") ?? 1;
 
         var card_slider = $obj.closest(".card").length>0?$obj.closest(".card"):false;
             //card_slider = card_slider?$obj.closest(".card"):card_slider;
@@ -454,7 +457,7 @@ function init_swiper_obj($obj) {
             watchSlidesVisibility: true,
             centerInsufficientSlides : true,
             preventInteractionOnTransition : true,
-            speed: 750,
+            speed: speed,
             //breakpoints: breakpoints,
             autoplay : false,
             allowTouchMove : allow_touch_move,
@@ -708,6 +711,16 @@ function init_swiper_obj($obj) {
         }
         if(direction){
             options["direction"] = direction;
+        }
+        if(free_mode){
+            options["freeMode"] = {
+                enabled: true
+            };
+        }
+        if(mousewheel){
+            options["mousewheel"] = {
+                enabled: true
+            };
         }
 
         var dataAttr = $obj.data();

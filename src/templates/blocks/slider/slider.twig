@@ -45,6 +45,8 @@
         {% endif %}
     {% endfor %}
 
+    {% set slide_index = 1 %}
+    {% set slide_overlays = [] %}
 
     {% set theme_styles = function("_get_option", "theme_styles") %}
 
@@ -96,7 +98,7 @@
 
                     {% if slide.add_media %}
 
-                        {% if slide.media_type == "image" %}
+                        {% if slide.media_type == "image" and slide.image %}
                             {% if not autoheight or (autoheight and block_meta.settings.height == "ratio") %}
                                 <div class="swiper-bg position-absolute-fill w-100 h-100">
                                     {{img({src: slide.image, class : "object-fit-cover w-100 h-100", lazy: (not is_preview and (not block_meta.settings.hero and loop.index != 1)), lcp: (loop.index == 1?true:false)})}}
@@ -117,7 +119,7 @@
                             </noscript>
                         {% endif %}
 
-                        {% if slide.media_type == "video" %}
+                        {% if slide.media_type == "video" and slide.video %}
                             <div class="swiper-bg bg-cover swiper-video swiper-video-{% if slide.video.video_type == "file" %}file{% else %}url{% endif %} {% if not autoheight %}position-absolute-fill{% else %}w-100{% endif %} loading-hide-loading-light" style="background-image: url({{slide.video.video_settings.video_image}});">
                                 {% if autoheight and not block_meta.settings.height == "ratio" and not slide.video.video_settings.ratio %}
                                     {% set slide = slide|merge({
@@ -137,35 +139,40 @@
                         {% endif %}
                     {% endif %}
                 </div>
+                {% if slide.overlay and not slide.video.video_settings.controls %}
+                    {% set slide_overlays = slide_overlays|merge([{index: slide_index, overlay_position:slide.overlay_position, overlay_color: slide.overlay_color, overlay_color_alpha: slide.overlay_color_alpha}]) %}
+                {% endif %}
+                {% set slide_index = slide_index + 1 %}
 
             {% endfor %}
         </div>
         {#<div class="swiper-pagination"></div>#}
     </div>
 
+    {% if slide_overlays %}
     <style type="text/css">
-        {% for slide in fields.slider %}
-            {% if slide.overlay and not slide.video.video_settings.controls %}
-                #{{block_meta.id}} .slide-{{loop.index}}:before{
-                    {% if slide.overlay_position == "top" %}
-                        background: linear-gradient(to bottom,  {{slide.overlay_color}} 0%, {{slide.overlay_color_alpha}} 33.333%);
-                    {% endif %}
-                    {% if slide.overlay_position == "bottom" %}
-                        background: linear-gradient(to bottom,  {{slide.overlay_color_alpha}} 0%, {{slide.overlay_color}} 33.333%);
-                    {% endif %}
-                    {% if slide.overlay_position == "left" %}
-                        background: linear-gradient(to right,  {{slide.overlay_color}} 0%, {{slide.overlay_color_alpha}} 33.333%);
-                    {% endif %}
-                    {% if slide.overlay_position == "right" %}
-                        background: linear-gradient(to right,  {{slide.overlay_color_alpha}} 0%, {{slide.overlay_color}} 33.333%);
-                    {% endif %}
-                    {% if slide.overlay_position == "full" %}
-                        background-color: {{slide.overlay_color}};
-                    {% endif %}
-                }
-            {% endif %}
+        {% for slide in slide_overlays %}
+
+            #{{block_meta.id}} .slide-{{slide.index}}:before{
+                {% if slide.overlay_position == "top" %}
+                    background: linear-gradient(to bottom,  {{slide.overlay_color}} 0%, {{slide.overlay_color_alpha}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "bottom" %}
+                    background: linear-gradient(to bottom,  {{slide.overlay_color_alpha}} 0%, {{slide.overlay_color}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "left" %}
+                    background: linear-gradient(to right,  {{slide.overlay_color}} 0%, {{slide.overlay_color_alpha}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "right" %}
+                    background: linear-gradient(to right,  {{slide.overlay_color_alpha}} 0%, {{slide.overlay_color}} 33.333%);
+                {% endif %}
+                {% if slide.overlay_position == "full" %}
+                     background-color: {{slide.overlay_color}};
+                {% endif %}
+            }
+
             {% if slide.media_type == "image" %}
-                {% set image = get_post(slide.image.desktop) %}
+                {% set image = get_post(slide.image.id) %}
                 #{{block_meta.id}} .slide-{{loop.index}}{
                     color:{{image.meta("contrast_color")}};
                     background-color:{{image.meta("average_color")}};
@@ -173,6 +180,7 @@
             {% endif %}
         {% endfor %}
     </style>
+    {% endif %}
     
     {% if fields.slider_parallax %}
         </div>
