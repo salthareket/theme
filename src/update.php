@@ -1124,6 +1124,19 @@ class Update {
 
 
     public static function get_composer_updates() {
+
+        // HOME veya COMPOSER_HOME ortam değişkenini ayarla (Linux/macOS)
+        if (!getenv('HOME')) {
+            putenv('HOME=' . sys_get_temp_dir()); // Geçici dizini HOME olarak ayarla
+            $_SERVER['HOME'] = sys_get_temp_dir();
+        }
+
+        // Windows için COMPOSER_HOME ayarı (Opsiyonel)
+        if (!getenv('COMPOSER_HOME')) {
+            putenv('COMPOSER_HOME=' . sys_get_temp_dir());
+            $_SERVER['COMPOSER_HOME'] = sys_get_temp_dir();
+        }
+
         $app = new Application();
         $app->setAutoExit(false);
         $input = new ArrayInput([

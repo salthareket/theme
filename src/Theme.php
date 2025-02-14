@@ -4,6 +4,7 @@ namespace SaltHareket;
 use ScssPhp\SCSSPhp\SCSSCompiler;
 use ScssPhp\ScssPhp\OutputStyle;
 
+
 Class Theme{
 
     function __construct(){
