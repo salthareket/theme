@@ -19,7 +19,7 @@
 
 {% set column_breakpoint = fields.column_breakpoint|default("xl") %}
 
-{% set row_class = fields.reversible ? "flex-lg-row flex-column" : "" %}
+{% set row_class = fields.reversible ? " flex-column" : "" %}
 {# set row_class = row_class ~ " gx-" ~ breakpoint ~ "-" ~ fields.gap_x  %}
 {% set row_class = row_class ~ " gx-" ~ breakpoint ~ "-" ~ fields.gap_x  #}
 
@@ -45,7 +45,7 @@
 	    {% endfor %}
 
 		{# set row_item_class = " gx-" ~ breakpoint ~ "-" ~ fields.gap_x #}
-		{% set row_item_class = row_item_class ~ (item_index is even and fields.reversible ? " flex-" ~ column_breakpoint ~ "-row-reverse is-even" : " is-odd") %}
+		{% set row_item_class = row_item_class ~ (item_index is even and fields.reversible ? " flex-" ~ column_breakpoint ~ "-row-reverse is-even" : " flex-lg-row is-odd") %}
 		{# set row_item_class = row_item_class ~ (loop.index != 1 ? " mt-" ~ fields.gap_y : "") #}
 		{% set row_item_class = row_item_class ~ (fields.sync_image_height and not fields.ratio ? " flex-wrap" : " align-items-" ~ fields.block_settings.vertical_align) %}
 		{% set row_item_class = row_item_class ~ (block_meta.container == "" ? " w-100" : "") %}

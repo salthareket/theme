@@ -410,6 +410,7 @@ if (ENABLE_PRODUCTION) {
 //if(is_admin()){
     include_once SH_CLASSES_PATH . "class.avif.php";
     include_once SH_CLASSES_PATH . "class.scss-compiler.php";
+    include_once SH_CLASSES_PATH . "class.remove-unused-css.php";
     include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
     include_once SH_CLASSES_PATH . "class.oembed-video.php";
     include_once SH_CLASSES_PATH . "class.featured-image.php";

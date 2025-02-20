@@ -1,3 +1,4 @@
+/*
 function getAverageLuminance(element) {
     return new Promise((resolve) => {
         // Eğer element 'swiper-slide-video' classına sahipse, poster frame'ini kullan
@@ -24,7 +25,6 @@ function getAverageLuminance(element) {
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
-
         const imageData = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
         const data = imageData.data;
         
@@ -78,6 +78,120 @@ function getComputedLuminance(element) {
     const [r, g, b] = rgb;
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
+*/
+function getAverageLuminance(element) {
+    return new Promise((resolve) => {
+        if (!element) {
+            console.warn("Element bulunamadı.");
+            resolve(1); // Varsayılan olarak beyaz geri döndür (tam parlaklık)
+            return;
+        }
+
+        // Eğer element video ise poster frame'ini kullan
+        if (element.classList.contains("swiper-slide-video")) {
+            const posterElement = element.querySelector(".plyr__poster");
+            if (posterElement) {
+                const bgImage = getComputedStyle(posterElement).backgroundImage;
+                const imageUrlMatch = bgImage.match(/url\(["']?(.*?)["']?\)/);
+                if (imageUrlMatch && imageUrlMatch[1]) {
+                    return getImageLuminance(imageUrlMatch[1]).then(resolve);
+                }
+            }
+        }
+
+        const img = element.querySelector("img");
+
+        // Eğer img yoksa, arka plan rengini kullan
+        if (!img) {
+            console.warn("Resim bulunamadı, arka plan rengi kontrol ediliyor...");
+            resolve(getComputedLuminance(element));
+            return;
+        }
+
+        // Eğer resim lazy-load nedeniyle yüklenmemişse, onload beklenmeli
+        if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+            console.warn("Resim yüklenmemiş, onload bekleniyor:", img.src);
+            img.onload = () => processImage(img, resolve);
+            img.onerror = () => {
+                console.error("Resim yüklenirken hata oluştu:", img.src);
+                resolve(getComputedLuminance(element));
+            };
+            return;
+        }
+
+        // Eğer resim yüklenmişse direkt işleme geç
+        processImage(img, resolve);
+    });
+}
+
+function processImage(img, resolve) {
+    try {
+        if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+            console.error("Resmin genişliği veya yüksekliği sıfır:", img.src);
+            resolve(1); // Beyaz olarak varsayılan parlaklık
+            return;
+        }
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+
+        // Eğer resim yüklenmemişse getImageData çalışmaz, bu yüzden güvenli hale getiriyoruz
+        let imageData;
+        try {
+            imageData = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
+        } catch (e) {
+            console.error("getImageData hatası:", e);
+            resolve(getComputedLuminance(img)); // Arka plan rengini kullan
+            return;
+        }
+
+        const data = imageData.data;
+        let sumLuminance = 0;
+        const totalPixels = data.length / 4;
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+            sumLuminance += luminance;
+        }
+
+        resolve(sumLuminance / totalPixels);
+    } catch (e) {
+        console.error("processImage hatası:", e);
+        resolve(1); // Beyaz olarak varsayılan parlaklık
+    }
+}
+
+function getImageLuminance(imageUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = imageUrl;
+
+        img.onload = () => processImage(img, resolve);
+
+        img.onerror = () => {
+            console.error("getImageLuminance: Resim yüklenemedi:", imageUrl);
+            resolve(1); // Varsayılan parlaklık beyaz
+        };
+    });
+}
+
+function getComputedLuminance(element) {
+    const style = getComputedStyle(element);
+    const bgColor = style.backgroundColor;
+    const rgb = bgColor.match(/\d+/g)?.map(Number) || [255, 255, 255]; // Varsayılan beyaz
+    const [r, g, b] = rgb;
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
 async function updateSlideColors(slider) {
 
     const activeSlide = slider.querySelector('.swiper-slide-active');

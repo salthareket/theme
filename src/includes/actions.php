@@ -1,49 +1,37 @@
 <?php
 
+if (!function_exists('wp_doing_rest')) {
+    function wp_doing_rest() {
+        return defined('REST_REQUEST') && REST_REQUEST;
+    }
+}
 
-/*add_action('wp', function () {
-    if (!function_exists('pll_get_languages') || is_admin()) {
-        return;
+function is_main_query_valid() {
+    global $wp_query;
+
+    if (is_admin()) {
+        return false; // Admin panelde çalıştırma
     }
 
-    global $post;
-
-    $current_lang = pll_current_language(); // Mevcut dili al
-    $default_lang = pll_default_language(); // Varsayılan dili al
-    $available_languages = pll_get_languages(['fields' => 'slug']); // Tüm aktif dillerin slug'larını al
-
-    // Eğer log çalışıyor mu test etmek istiyorsan buraya bir test logu ekle
-    error_log("TEST: Polylang yönlendirme kontrolü başlatıldı.");
-
-    // Eğer mevcut dil Polylang'da yoksa veya içerik bulunamıyorsa
-    if (!in_array($current_lang, $available_languages) || (is_singular() && empty($post))) {
-        error_log("POLYLANG HATA: '{$current_lang}' dili mevcut değil veya içerik bulunamadı!");
-
-        if (!empty($default_lang)) {
-            $redirect_url = home_url('/' . $default_lang . '/');
-            error_log("YÖNLENDİRME: {$redirect_url}");
-            wp_redirect($redirect_url, 301);
-            exit;
-        } else {
-            status_header(404);
-            include(get_template_directory() . '/404.php');
-            exit;
-        }
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+        return false; // AJAX sorgularında çalıştırma
     }
-});*/
+
+    if (defined('DOING_CRON') && DOING_CRON) {
+        return false; // CRON işlemlerinde çalıştırma
+    }
+
+    if (wp_doing_rest()) {
+        return false; // REST API isteklerinde çalıştırma
+    }
+
+    return isset($wp_query) && $wp_query->is_main_query();
+}
 
 
-
-
-function query_vars_for_pagination($query_vars){
-    $args = array();
+function query_vars_for_pagination($query_vars) {
     $allowed = ["page", "orderby", "order", "post_type", "paged", "meta_query", "tax_query", "posts_per_page", "s"];
-    foreach($query_vars as $key => $var){
-        if(in_array($key, $allowed)){
-            $args[$key] = $var;
-        }
-    }
-    return $args;
+    return array_filter($query_vars, fn($key) => in_array($key, $allowed), ARRAY_FILTER_USE_KEY);
 }
 function pagination_query_request() {
     global $wp_query;
@@ -70,6 +58,76 @@ function pagination_query_request() {
         if(is_prefetch_request()){
             return $output;
         }*/
+
+        $query_vars = query_vars_for_pagination($wp_query->query_vars);
+        $query_vars["querystring"] = json_decode(queryStringJSON(), true);
+
+        $tax_query = $wp_query->tax_query;
+        if ( $tax_query && is_array( $tax_query->queries ) && ! empty( $tax_query->queries ) ) {
+            $query_vars['tax_query'] = $tax_query->queries;
+        }
+        
+        $meta_query = $wp_query->meta_query;
+        if ( $meta_query && is_array( $meta_query->queries ) && ! empty( $meta_query->queries ) ) {
+            $query_vars['meta_query'] = $meta_query->queries;
+        }
+
+        if($wp_query->is_posts_page() || empty($query_vars["post_type"])){
+            $query_vars["post_type"] = "post";
+        }
+        $post_type = $query_vars["post_type"];
+        if(is_search()){
+            $post_type = "search";
+        }
+        if(isset($wp_query->query_vars["post_type"])){
+            $qpt = get_query_var("qpt", $post_type);
+            $qpt = is_array($qpt)||empty($qpt)||$qpt=="search"||is_numeric($qpt)?"any":$qpt;
+            if (EXCLUDE_FROM_SEARCH && $qpt == "any") {
+                $post_types = get_post_types(['public' => true], 'names');
+                foreach (EXCLUDE_FROM_SEARCH as $post_type) {
+                    if (in_array($post_type, $post_types)) {
+                        unset($post_types[$post_type]);
+                    }
+                }
+                $qpt = $post_types;
+            }
+            $post_type = $qpt;
+            $query_vars["post_type"] = $post_type ;
+        }
+
+        $post_type = $post_type == "any" || is_array($post_type) ? "search" : $post_type;
+
+        $pagination = get_post_type_pagination($post_type);
+
+        if($pagination){
+            if(!$pagination["paged"]){ // && !$GLOBALS["post_pagination"][$post_type]["ajax"]){
+                return $output;
+           }else{
+                $query_vars['posts_per_page'] = $pagination["posts_per_page"];
+           }
+        }else{
+
+        }
+
+        $output['vars'][$post_type] = $query_vars;
+
+        if(isset($_GET["yith_wcan"]) || isset($_GET['orderby'])){
+            $output['request'][$post_type] = $wp_query->request;
+        }
+
+    }
+    return $output;
+}
+
+
+/*
+function pagination_query_request() {
+    global $wp_query;
+    $output = array(
+        "vars" => array(),
+        "request" => array()
+    );
+    if ( ((is_shop() || is_post_type_archive() || is_search() || is_home() ) && $wp_query->is_main_query()) || isset($wp_query->query_vars["post_type"]) || isset($wp_query->query_vars["qpt"])) {
 
         $query_vars = query_vars_for_pagination($wp_query->query_vars);
         $query_vars["querystring"] = json_decode(queryStringJSON(), true);
@@ -130,6 +188,7 @@ function pagination_query_request() {
     }
     return $output;
 }
+*/
 function pagination_query(){
      global $wp_query;
         $pagination_query = pagination_query_request();
@@ -139,13 +198,14 @@ function pagination_query(){
             $wp_query->query_vars["post_type"] = "post";
         }
         $post_type = $wp_query->query_vars["post_type"];
+
         if(is_search()){
             $post_type = "search";
         }
         if(isset($wp_query->query_vars["post_type"])){
-            $post_type = get_query_var("qpt");
+            $post_type = get_query_var("qpt", $post_type);
         }
-        
+
         //$pagination_type = $post_type=="any"?"search":$post_type;
 
         if(isset($pagination_query['vars'][$post_type]) || isset($pagination_query['request'][$post_type])){
@@ -163,7 +223,40 @@ function pagination_query(){
             "request" => $query_pagination_request
         );
 }
+
 function custom_result_count() {
+    global $wp_query;
+
+    $post_type = $wp_query->get('post_type') ?? "post";
+    $per_page = $GLOBALS["post_pagination"][$post_type]['posts_per_page'] ?? get_option('posts_per_page');
+    
+    if (!$per_page || ($post_type === "product" && function_exists('woocommerce_result_count'))) {
+        woocommerce_result_count();
+        return;
+    }
+
+    $total = $wp_query->found_posts;
+    $current = max(1, get_query_var('paged', 1));
+
+    if ($total <= $per_page) return;
+
+    echo '<div class="woocommerce-result-count result-count m-0 custom">';
+    printf(
+        _nx(
+            'Showing %1$d&ndash;%2$d of %3$d result',
+            'Showing %1$d&ndash;%2$d of %3$d results',
+            $total,
+            'with first and last result',
+            'woocommerce'
+        ),
+        ($per_page * $current) - $per_page + 1,
+        min($total, $per_page * $current),
+        $total
+    );
+    echo '</div>';
+}
+
+/*function custom_result_count() {
     // WooCommerce bağımlılıklarını kontrol et
     //if ( ! function_exists( 'wc_get_loop_prop' ) || ! function_exists( 'woocommerce_products_will_display' ) ) {
         //return;
@@ -201,18 +294,18 @@ function custom_result_count() {
     if ( 1 === $total ) {
         _e( 'Showing the single result', 'woocommerce' );
     } elseif ( $total <= $per_page || -1 === $per_page ) {
-        /* translators: %d: total results */
+        // translators: %d: total results
         printf( _n( 'Showing all %d result', 'Showing all %d results', $total, 'woocommerce' ), $total );
     } else {
         $first = ( $per_page * $current ) - $per_page + 1;
         $last  = min( $total, $per_page * $current );
-        /* translators: 1: first result 2: last result 3: total results */
+        // translators: 1: first result 2: last result 3: total results
         printf( _nx( 'Showing %1$d&ndash;%2$d of %3$d result', 'Showing %1$d&ndash;%2$d of %3$d results', $total, 'with first and last result', 'woocommerce' ), $first, $last, $total );
     }
 
     echo '</div>';
 }
-
+*/
 
 function header_has_dropdown(){
     $header_tools_dropdown = false;
@@ -259,7 +352,17 @@ function header_has_navigation(){
     }
     return $header_navigation;
 }
-function header_footer_options(){
+function header_footer_options($save = false){
+
+    $header_footer_options = THEME_STATIC_PATH . 'data/header-footer-options.json';
+
+    if(file_exists($header_footer_options) && !$save){
+        $header_footer_options = file_get_contents($header_footer_options);
+        $header_footer_options = json_decode($header_footer_options, true);
+        return $header_footer_options;
+    }
+
+
         // Header Options //
         $header_fixed = get_field("header_fixed", "options");
         $header_fixed = in_array($header_fixed, ["top","bottom","bottom-start"]) ? $header_fixed : false;
@@ -381,10 +484,12 @@ function header_footer_options(){
             "menu" => $footer_menu
         );
 
-        return array(
+        $header_footer_options = array(
             "header" => $header_options,
             "footer" => $footer_options
         );
+
+        return $header_footer_options;
 }
 
 
@@ -470,6 +575,22 @@ function bootstrap_gallery( $output = '', $atts = array(), $instance = '' ) {
 }
 add_filter( 'post_gallery', 'bootstrap_gallery', 10, 4 );
 
+
+function add_lazyload_to_images($content) {
+    if (!is_singular()) return $content;
+
+    // srcset -> data-srcset, src -> data-src
+    $content = preg_replace('/<img([^>]*)srcset=["\'](.*?)["\'](.*?)>/i', '<img$1data-srcset="$2"$3>', $content);
+    $content = preg_replace('/<img([^>]*)src=["\'](.*?)["\'](.*?)>/i', '<img$1data-src="$2"$3>', $content);
+
+    // Lazy load için class ekleme
+    $content = preg_replace('/<img([^>]*)class=["\'](.*?)["\'](.*?)>/i', '<img$1class="$2 lazy"$3>', $content);
+
+    return $content;
+}
+add_filter('the_content', 'add_lazyload_to_images', 99);
+
+/*
 function add_lazyload_to_images($content) {
     if (is_single() || is_page()) {
         // srcset'i data-srcset olarak değiştir
@@ -493,6 +614,7 @@ function add_lazyload_to_images($content) {
     return $content;
 }
 add_filter('the_content', 'add_lazyload_to_images', 99);
+*/
 
 /*add responsive classes to embeds*/
 function responsive_embed_oembed_html($html, $url, $attr, $post_id) {
@@ -580,3 +702,24 @@ function ns_filter_avatar($avatar, $id_or_email, $size, $default, $alt, $args) {
     return $avatar; 
 }
 //add_filter('get_avatar','ns_filter_avatar', 10, 6);
+
+function get_cached_transient($key, $fallback_callback, $expiration = HOUR_IN_SECONDS) {
+    $data = get_transient($key);
+    if (!$data || !is_array($data)) {
+        $data = call_user_func($fallback_callback);
+        if ($data && is_array($data)) {
+            set_transient($key, $data, $expiration);
+        }
+    }
+    return is_array($data) ? $data : [];
+}
+
+
+function add_mp3_cache_headers() {
+    if (isset($_SERVER['REQUEST_URI']) && preg_match('/\.mp3$/', $_SERVER['REQUEST_URI'])) {
+        header("Cache-Control: public, max-age=31536000, immutable");
+        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 31536000) . " GMT");
+    }
+}
+add_action('send_headers', 'add_mp3_cache_headers');
+

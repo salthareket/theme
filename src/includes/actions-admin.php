@@ -1,5 +1,10 @@
 <?php
 
+add_action('wp_update_nav_menu', function($menu_id, $menu_data = []) {
+    delete_transient('timber_menus'); // Menü cache'ini temizle
+}, 10, 2);
+
+
 add_filter('wp_editor_set_quality', function ($quality, $mime_type) {
     if ($mime_type === 'image/avif') {
         return get_google_optimized_avif_quality();
@@ -85,7 +90,7 @@ function scss_variables_boolean($value=""){
     }
     return $value;
 }
-function scss_variables_image($balue=""){
+function scss_variables_image($value=""){
     if(empty($value)){
         $value = "none";
     }

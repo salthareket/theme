@@ -12,19 +12,22 @@
             }
         }
         if (site_config.hasOwnProperty("favorites")) {
-            var favorites = $.parseJSON(site_config.favorites);
-            if (favorites.length > 0) {
-                debugJS(favorites)
-                $(".nav-item[data-type='favorites']").addClass("active");
-                $(".btn-favorite").each(function() {
-                    var id = parseInt($(this).attr("data-id"));
-                    $(this).removeClass("active");
-                    debugJS();
-                    if (inArray(id, favorites)) {
-                        $(this).addClass("active");
-                    }
-                });
+            if(!IsBlank(favorites)){
+                var favorites = $.parseJSON(site_config.favorites);
+                if (favorites.length > 0) {
+                    debugJS(favorites)
+                    $(".nav-item[data-type='favorites']").addClass("active");
+                    $(".btn-favorite").each(function() {
+                        var id = parseInt($(this).attr("data-id"));
+                        $(this).removeClass("active");
+                        debugJS();
+                        if (inArray(id, favorites)) {
+                            $(this).addClass("active");
+                        }
+                    });
+                }                
             }
+
         }
 
         if (site_config.cart > 0) {

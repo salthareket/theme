@@ -4,7 +4,6 @@ namespace SaltHareket;
 use ScssPhp\SCSSPhp\SCSSCompiler;
 use ScssPhp\ScssPhp\OutputStyle;
 
-
 Class Theme{
 
     function __construct(){
@@ -511,7 +510,7 @@ Class Theme{
                 }
             }
 
-            if (!is_shop() && !empty($query->get("post_type"))) {
+            if (!is_shop() && !empty($post_type)) {
                 $pagination = get_post_type_pagination($post_type);
                 $posts_per_page = -1;
                 if($pagination){

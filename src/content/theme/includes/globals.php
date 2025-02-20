@@ -267,8 +267,6 @@ function add_to_twig_extras($context){
 }
 add_action("timber/context", "add_to_twig_extras", 9999);
 
-
-
 function timber_output($output, $data, $file){
     // wrap tease posts with col class
     if(strpos($file, "tease")>-1){

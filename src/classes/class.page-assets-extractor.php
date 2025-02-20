@@ -13,6 +13,7 @@ class PageAssetsExtractor {
     public $home_url_encoded = "";
     public $upload_url = "";
     public $upload_url_encoded = "";
+    public $url;
 
     public function __construct() {
         error_log("PageAssetsExtractor initialized in admin.");
@@ -64,6 +65,7 @@ class PageAssetsExtractor {
         //error_log("urls : ".json_encode($urls));
 
         $url = get_permalink($post_id);
+        $this->url = $url;
         error_log("url : ".json_encode($url));
 
         //foreach ($urls as $url) {
@@ -76,6 +78,7 @@ class PageAssetsExtractor {
         error_log("fetch_term_url->".$term_id." tax ".$taxonomy);
         $term = get_term($term_id, $taxonomy);
         $url = get_term_link($term);
+        $this->url = $url;
         error_log("get_term_link->".$url);
 
         if (!is_wp_error($url)) {
@@ -114,7 +117,7 @@ class PageAssetsExtractor {
             return false;
         }
 
-        // <main> tagini bul
+        /*// <main> tagini bul
         $main_content = $html_content->findOne('main') ? $html_content->findOne('main')->outerHtml() : '';
 
         // block-* classına sahip divleri bul
@@ -124,8 +127,8 @@ class PageAssetsExtractor {
             $block_content = $block->outerHtml();
         }
         $html = HtmlDomParser::str_get_html($main_content . $block_content);
-
-        return $this->extract_assets($html, $id);
+        */  
+        return $this->extract_assets($html_content, $id);
     }
 
     // Tüm URL'lerden fetch işlemi (manuel çalıştırılacak)
@@ -150,14 +153,39 @@ class PageAssetsExtractor {
         return $results;
     }
 
+
+
+    private function remove_unused_css($html, $output){
+        $css = file_get_contents(STATIC_PATH ."css/main-combined.css");
+        $remover = new RemoveUnusedCss($html, $css);
+        return $remover->process();
+    }
+   
+
+
     // JS ve CSS assetlerini bul
-    public function extract_assets($html, $id) {
+    public function extract_assets($html_content, $id) {
         $js = [];
         $css = [];
+        $css_page = "";
+        $css_page_rtl = "";
         $plugins = [];
         $plugin_js = "";
         $plugin_css = "";
         $plugin_css_rtl = "";
+
+
+        // <main> tagini bul
+        $main_content = $html_content->findOne('main') ? $html_content->findOne('main')->outerHtml() : '';
+
+        // block-* classına sahip divleri bul
+        $block_content = "";
+        $block = $html_content->findOne('.block--hero');
+        if($block){
+            $block_content = $block->outerHtml();
+        }
+        $html = HtmlDomParser::str_get_html($main_content . $block_content);
+
 
         // <style> ve <script> etiketlerini $main ve $block içinde ara
         if ($html) {
@@ -278,7 +306,10 @@ class PageAssetsExtractor {
                 }
                 if($plugin_files_css){
                     $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css);//dosya adı
+                    
                     $plugin_css = str_replace(STATIC_URL, '', $plugin_css);
+                    //print_r($plugin_css);
+                    
                 }
                 if($plugin_files_css_rtl){
                     $plugin_css_rtl = $this->combine_and_cache_files("css", $plugin_files_css_rtl);
@@ -315,10 +346,35 @@ class PageAssetsExtractor {
             }
             array_unique($wp_js);
         }
+        
+        if($html_content){
+            $cache_dir = STATIC_PATH . 'css/cache/';
+            $css_page_hash = md5($this->type."-".$id);
+            $css_page = $cache_dir . $css_page_hash . '.css';
+            $css_page_content = $this->remove_unused_css($html_content, $css_page);
+            $css_page_content = str_replace("../", "../../", $css_page_content);
+            file_put_contents($css_page, $css_page_content);
+            //rtl
+            $css_page_rtl_hash = md5($this->type."-".$id."-rtl");
+            $css_page_rtl = $cache_dir . $css_page_rtl_hash . '.css';
+            $parser = new Sabberworm\CSS\Parser($css_page_content);
+            $tree = $parser->parse();
+            $rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
+            $rtlcss->flip();
+            $css_page_content_rtl = $tree->render();
+            $minify = new Minify\CSS($css_page_content_rtl);
+            $css_page_content_rtl = $minify->minify();
+            file_put_contents($css_page_rtl, $css_page_content_rtl);
+
+            $css_page = str_replace(STATIC_PATH, '', $css_page);
+            $css_page_rtl = str_replace(STATIC_PATH, '', $css_page_rtl);
+        }
 
         $result = array(
             "js" => $js, //on page save
             "css" => $css, //on page save
+            "css_page" => $css_page,
+            "css_page_rtl" => $css_page_rtl,
             "plugins" => $plugins, //on page save
             "plugin_js" => $plugin_js,
             "plugin_css" => $plugin_css,
@@ -393,6 +449,7 @@ class PageAssetsExtractor {
         $combined_content = str_replace("(function($){", "", $combined_content);
         $combined_content = str_replace("})(jQuery)", "", $combined_content);
         $combined_content = str_replace("}(jQuery))", "", $combined_content);
+
         file_put_contents($cache_file, trim($combined_content));
 
         return $type . '/cache/' . $hash . '.' . $type;

@@ -1,6 +1,8 @@
 <?php
 class Salt extends SaltBase {
 
+    private static $already_ran = false;
+
     public function update_profile($vars=array(), $callback=""){
         $response = $this->response();
         $user_id = $this->user->ID;
@@ -454,16 +456,16 @@ class Salt extends SaltBase {
     }
 
     public function on_post_published($post_id, $post, $update){
-        /*
-        remove_action('save_post', [ $this, 'on_post_published'], 100, 3);
-        remove_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
-        remove_action('publish_post', [ $this, 'on_post_published'], 100, 3);
-        if (is_callable([parent::class, 'on_post_published'])) {
-            remove_action('save_post', [ parent::class, 'on_post_published'], 100, 3);
-            remove_action('save_post_product', [ parent::class, 'on_post_published'], 100, 3);
-            remove_action('publish_post', [ parent::class, 'on_post_published'], 100, 3);
-        }
-        */
+        
+        /*remove_action('save_post', [ $this, 'on_post_published'], 100);
+        remove_action('save_post_product', [ $this, 'on_post_published'], 100);
+        remove_action('publish_post', [ $this, 'on_post_published'], 100);*/
+        /*if (is_callable([parent::class, 'on_post_published'])) {
+            remove_action('save_post', [ parent::class, 'on_post_published'], 100);
+            remove_action('save_post_product', [ parent::class, 'on_post_published'], 100);
+            remove_action('publish_post', [ parent::class, 'on_post_published'], 100);
+        }*/
+        
         if (defined('DOING_AJAX') && DOING_AJAX) {
             return;
         }
@@ -478,18 +480,25 @@ class Salt extends SaltBase {
         }
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
+            if (self::$already_ran) {
+                return; // Eğer zaten çalıştıysa, çık
+            }
+
+            self::$already_ran = true; // Flag'i ayarla
+
             parent::on_post_published($post_id, $post, $update);
+
+            self::$already_ran = false; // Flag'i ayarla
         }
-        /*
-        add_action('save_post', [ $this, 'on_post_published'], 100, 3);
+        /*add_action('save_post', [ $this, 'on_post_published'], 100, 3);
         add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
         add_action('publish_post', [ $this, 'on_post_published'], 100, 3);
         if (is_callable([parent::class, 'on_post_published'])) {
             add_action('save_post', [ parent::class, 'on_post_published'], 100, 3);
             add_action('save_post_product', [ parent::class, 'on_post_published'], 100, 3);
             add_action('publish_post', [ parent::class, 'on_post_published'], 100, 3);
-        }
-        */
+        }*/
+       
     }
 
     public function on_term_published($term_id, $tt_id, $taxonomy){

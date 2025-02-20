@@ -10,7 +10,9 @@
             scroll_to = vars.page;
         }
         var url = "";
-        if(vars.url.indexOf("?") > -1){
+        var paged_url = bool(vars.paged_url);
+
+        /*if(vars.url.indexOf("?") > -1 && paged_url){
            var url_parts = vars.url.split("?");
            if(!IsBlank(url_parts[1])){
                var url_json = url2json(vars.url);
@@ -30,7 +32,34 @@
         }
         if(!IsBlank(url)){
             history.pushState(null, document.title, url);
+        }*/
+
+        if(vars.page>1 && paged_url){
+            var url = "";
+            if(vars.url.indexOf("?") > -1){
+               var url_parts = vars.url.split("?");
+               if(!IsBlank(url_parts[1])){
+                   var url_json = url2json(vars.url);
+                   if(url_json){
+                      if(url_json.hasOwnProperty("paged")){
+                         //url_json["paged"] = vars.page;
+                      }
+                      url_parts[1] = json2url(url_json);
+                   }
+                   var url = url_parts[0] + "page/"+vars.page+"/?" + url_parts[1];
+                   //var url = url_parts[0] + "?" + url_parts[1];
+               }else{
+                   var url = url_parts[0] + "page/"+vars.page+"/";
+               }
+            }else{
+                var url = vars.url + "page/"+vars.page+"/";
+            }
+            if(!IsBlank(url)){
+                history.pushState(null, document.title, url);
+            }            
         }
+
+
         /*$(vars.container)
         .removeClass("loading-process");*/
         objs.btn.removeClass("loading");

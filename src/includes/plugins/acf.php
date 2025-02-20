@@ -22,6 +22,26 @@ function my_acf_json_load_point( $paths ) {
     return $paths;
 }
 
+function get_cached_field($field_name, $context = "option", $group = "acf", $cache_time = HOUR_IN_SECONDS) {
+    try {
+        $cache_key = "{$group}_{$field_name}_{$context}";
+        $field_value = wp_cache_get($cache_key);
+
+        if ($field_value === false) {
+            $field_value = get_field($field_name, $context);
+            if ($field_value !== null) { // Null olursa cache'e yazmasın
+                wp_cache_set($cache_key, $field_value, $group, $cache_time);
+            }
+        }
+
+        return $field_value;
+    } catch (Exception $e) {
+        error_log("ACF Cache Error ({$field_name}): " . $e->getMessage());
+        return null;
+    }
+}
+
+
 if (ENABLE_MULTILANGUAGE){
 
 	add_filter('acf/settings/default_language', 'my_acf_settings_default_language');
@@ -33,6 +53,25 @@ if (ENABLE_MULTILANGUAGE){
 	function my_acf_settings_current_language( $language ) {
 		return $GLOBALS["language"];
 	}
+}
+
+function acf_get_theme_styles(){
+    $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
+    $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
+        
+    $theme_styles = [];
+    if(file_exists($theme_styles_latest)){
+        $theme_styles = file_get_contents($theme_styles_latest);
+        $theme_styles = json_decode($theme_styles, true);
+    }
+    if(!$theme_styles){
+        $theme_styles = get_field("theme_styles", "option");
+    }
+    if(!$theme_styles && !isset($theme_styles["header"]["themes"]) && file_exists($theme_styles_defaults)){
+        $theme_styles = file_get_contents($theme_styles_defaults);
+        $theme_styles = json_decode($theme_styles, true);
+    }
+    return $theme_styles;
 }
 
 // contact main location

@@ -6,6 +6,27 @@ L.Icon.Default.mergeOptions({
     shadowUrl: leaflet_images + L.Icon.Default.prototype.options.shadowUrl.split('/').pop()
 });
 
+L.TileLayer.LazyLoad = L.TileLayer.extend({
+    createTile: function (coords, done) {
+        const tile = document.createElement('img');
+
+        tile.setAttribute("loading", "lazy"); // Native Lazy Load
+        tile.style.width = this.options.tileSize + "px";
+        tile.style.height = this.options.tileSize + "px";
+        tile.alt = "Leaflet map tile";
+
+        tile.onload = () => done(null, tile);
+        tile.onerror = () => {
+            console.error("Tile yüklenemedi: ", this.getTileUrl(coords));
+            done("Tile yüklenemedi", tile);
+        };
+
+        // Gerçek tile URL'sini belirle
+        tile.src = this.getTileUrl(coords);
+        return tile;
+    }
+});
+
 function init_leaflet(){
 	var token_init = "leaflet-init";
     if($(".leaflet-custom").not("."+token_init).length>0){
@@ -57,10 +78,27 @@ function init_leaflet(){
             }
     		var map = L.map(id, map_config).setView([51.505, -0.09], 13);
 
-    		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    		L.tileLayer.lazyLoad = function (url, options) {
+			    return new L.TileLayer.LazyLoad(url, options);
+			};
+
+			// Lazy yükleme yapan Tile Layer ekle
+			L.tileLayer.lazyLoad('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			    tileSize: 256,
+			    maxZoom: 19,
+			    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+			}).addTo(map);
+
+    		/*L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			    maxZoom: 19,
 			    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-			}).addTo(map);
+			})
+			.on('tileloadstart', function(event) {
+		        event.tile.setAttribute('loading', 'lazy');
+		    })
+			.addTo(map);*/
+
+
 
 	    	var markers = L.markerClusterGroup({
 				spiderfyOnMaxZoom: true,

@@ -45,4 +45,3 @@ if(ENABLE_TWIG_CACHE){
         return $options;
     });    
 }
-

@@ -1,5 +1,9 @@
 <?php
 
+function is_url($url) {
+    return filter_var($url, FILTER_VALIDATE_URL) !== false;
+}
+
 Function get_host_url(){
     return site_url();	
 }

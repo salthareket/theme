@@ -5,7 +5,7 @@ function get_menu_item_visibility($menu_item) {
     $is_logged_in = is_user_logged_in();
     $user_language = function_exists('qtranxf_getLanguage') ? qtranxf_getLanguage() : $GLOBALS["language"];
 
-    if (get_field('has_condition', $menu_item) && get_field('has_condition', $menu_item) === true) {
+    if (get_field('has_condition', $menu_item)) {
 
         $conditions = get_field('conditions', $menu_item);
         foreach ($conditions as $condition) {
@@ -68,6 +68,7 @@ function pst_nav_menu_remove_children_recursive(&$items, $parent_id) {
         }
     }
 }
+
 function pst_nav_menu_objects( $items, $args ) {
     # if ( 'primary' !== $args->theme_location ) {
     #     return $items;

@@ -1,11 +1,14 @@
 <?php
+
 function lang_predefined(){
     $dict = [];
-    $translates = get_template_directory() . '/theme/static/data/translates.json';
-    if(file_exists($translates)){
-        $translates = file_get_contents($translates);
-        $translates = json_decode($translates, true, 512, JSON_UNESCAPED_UNICODE);
-        if($translates){
+    $translates_path = get_template_directory() . '/theme/static/data/translates.json';
+
+    if(file_exists($translates_path)){
+        $translates = file_get_contents($translates_path);
+        $translates = json_decode($translates, true);
+        
+        if(is_array($translates)){
             foreach($translates as $translate){
                 $dict[$translate] = trans($translate);
             }        
@@ -23,18 +26,19 @@ class SaltBase{
     public $localization;
     public $search_history;
     public $extractor;
+    private static $already_ran = false;
 
     public function __construct($user=array()) {
 
         //echo "new Salt()<br>";
 
-        if(ENABLE_MEMBERSHIP && !is_admin()){
+        if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin()){
             add_action('wp', [ $this, 'update_online_users_status' ]);
             add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
             add_action('wp_insert_comment', 'on_insert_comment', 10, 2);
         }
         
-        if(ENABLE_MEMBERSHIP && !is_admin() && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') === false){
+        if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin() && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') === false){
            //add_action('init', [ $this, 'start_session'], 1); // start global session for saving the referer url
            add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
 
@@ -74,11 +78,13 @@ class SaltBase{
         //remove_action( 'admin_color_scheme_picker', 'admin_color_scheme_picker' );
 
         //post types save event
+        if (has_action('save_post', [ $this, 'on_post_published' ])) {
+            remove_action('save_post', [ $this, 'on_post_published' ], 100);
+        }
         add_action('save_post', [ $this, 'on_post_published'], 100, 3);
         add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
         add_action('publish_post', [ $this, 'on_post_published'], 100, 3);
         add_action('wp_insert_post_data', [$this, 'on_post_pre_update'], 10, 2 );
-
 
         add_action('created_term', [$this, 'on_term_published'], 10, 3);
         add_action('edited_term', [$this, 'on_term_published'], 10, 3);
@@ -128,7 +134,7 @@ class SaltBase{
             $this->extractor = $extractor;            
         //}
 
-        if(ENABLE_SEARCH_HISTORY){
+        if(defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY){
             $search_history = new SearchHistory();
             $this->search_history = $search_history;            
         }
@@ -167,9 +173,22 @@ class SaltBase{
     }
 
     public function on_post_published($post_id, $post, $update){
-        remove_action('save_post', [ $this, 'on_post_published'], 100, 3);
-        remove_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
-        remove_action('publish_post', [ $this, 'on_post_published'], 100, 3);
+
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
+            return;
+        }
+
+        $current_hook = current_filter();
+            if (!in_array($current_hook, ['save_post'])) {
+                error_log("❌ Hook $current_hook tarafından çağrıldı. İşlem yapılmadı.");
+                return;
+            }
+
+        remove_action('save_post', [ $this, 'on_post_published'], 100);
+        remove_action('save_post_product', [ $this, 'on_post_published'], 100);
+        remove_action('publish_post', [ $this, 'on_post_published'], 100);
+
         if (defined('DOING_AJAX') && DOING_AJAX) {
             return;
         }
@@ -184,6 +203,16 @@ class SaltBase{
         }
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
+
+            if (did_action('save_post') > 1 || did_action('publish_post') > 1) {
+                return;
+            }
+
+            if (self::$already_ran) {
+                return; // Eğer zaten çalıştıysa, çık
+            }
+
+            self::$already_ran = true; // Flag'i ayarla
             
             $has_map = false;
             if(page_has_block($post_id, "acf/map")){
@@ -194,6 +223,15 @@ class SaltBase{
             acf_block_id_fields($post_id);
 
             error_log("P O S T  S A V I N G  H O O K....".$post_id);
+            
+            /*$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+            foreach ($backtrace as $trace) {
+                $file = isset($trace['file']) ? $trace['file'] : '[Dosya Yok]';
+                $line = isset($trace['line']) ? $trace['line'] : '[Satır Yok]';
+                $function = isset($trace['function']) ? $trace['function'] : '[Fonksiyon Yok]';
+                
+                error_log("🔹 $function çağırdı --> Dosya: $file - Satır: $line");
+            }*/
 
             $extractor = $this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_post($post_id, $post, $update);
@@ -207,6 +245,8 @@ class SaltBase{
                     update_post_meta($thumbnail_id, '_wp_attachment_image_alt', $post_title);
                 }
             }
+            
+            self::$already_ran = false; // İşlem tamamlandı, flag'i sıfırla
             
         }
         add_action('save_post', [ $this, 'on_post_published'], 100, 3);
@@ -398,7 +438,7 @@ class SaltBase{
         
         return $response;
     }
-    public function on_user_login( $user_login, $user ) {
+    public function on_user_login( $user_login, $user) {
         update_user_meta( $user->ID, 'last_login', time() );
     }
     public function on_login_redirect() {

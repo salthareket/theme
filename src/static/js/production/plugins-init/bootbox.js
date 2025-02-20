@@ -72,11 +72,11 @@ function _confirm(title, msg, size, className, btn_confirm, btn_cancel, callback
         return modal;
 }
 function _alert(title, msg, size, className, btn_ok, callback, closeButton, centerContent){
-	    if(!isLoadedJS("bootbox")){
+	   if(!isLoadedJS("bootbox")){
 	    	alert(title+"\n"+msg);
 	    	return false;
-	    }
-	    var options = {
+	   }
+	   var options = {
        	    	className: "modal-alert text-center ",
        	    	message : ".",
 	       	    buttons: {

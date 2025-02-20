@@ -485,25 +485,6 @@ function get_theme_styles($variables = array()){
     return $variables;
 }
 
-function acf_get_theme_styles(){
-    $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
-    $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
-        
-    $theme_styles = [];
-    if(file_exists($theme_styles_latest)){
-        $theme_styles = file_get_contents($theme_styles_latest);
-        $theme_styles = json_decode($theme_styles, true);
-    }
-    if(!$theme_styles){
-        $theme_styles = get_field("theme_styles", "option");
-    }
-    if(!$theme_styles && !isset($theme_styles["header"]["themes"]) && file_exists($theme_styles_defaults)){
-        $theme_styles = file_get_contents($theme_styles_defaults);
-        $theme_styles = json_decode($theme_styles, true);
-    }
-    return $theme_styles;
-}
-
 function acf_set_thumbnail_condition($post_id){
     $post_types = get_post_types(); // Tüm kayıtlı post tiplerini al
     $supported_post_types = []; // Thumbnail desteği olanları burada tut
@@ -3779,6 +3760,7 @@ function acf_theme_styles_save_hook($post_id) {
             //save colors
             save_theme_styles_colors($theme_styles);
             save_theme_styles_header_themes($theme_styles["header"]);
+            delete_transient('theme_styles');
         }
     }
 }
@@ -3819,8 +3801,45 @@ function acf_theme_styles_load_presets( $field ) {
 }
 add_filter('acf/load_field/name=theme_styles_presets', 'acf_theme_styles_load_presets');
 
+function acf_header_footer_options_save_hook($post_id) {
+    // Sadece options sayfası kaydedildiğinde çalışsın
+    if ($post_id !== 'options') {
+        return;
+    }
+
+    // Kaydedilen option page'in slug'ını al
+    if (isset($_POST['acf'])) {
+        $current_screen = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
+
+        if ($current_screen === 'header') {
+            $header_footer_options = header_footer_options(true);
+            $preset_file = THEME_STATIC_PATH . 'data/header-footer-options.json';
+            $json_data = json_encode($header_footer_options);
+            file_put_contents($preset_file, $json_data);
+            delete_transient('header_footer_options');
+        }
+    }
+}
+add_action('acf/save_post', 'acf_header_footer_options_save_hook', 10);
 
 
+function acf_clear_wp_cache($post_id){
+    if ($post_id !== 'options') {
+        return;
+    }
+    if (isset($_POST['acf'])) {
+        $current_screen = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
+
+        if ($current_screen === 'ayarlar') {
+            wp_cache_delete('acf_logo', 'acf');
+            wp_cache_delete('acf_logo_affix', 'acf');
+            wp_cache_delete('acf_logo_mobile', 'acf');
+            wp_cache_delete('acf_logo_footer', 'acf');
+            wp_cache_delete('acf_logo_icon', 'acf');
+        }
+    }
+}
+add_action('acf/save_post', 'acf_clear_wp_cache', 10);
 
 
 add_filter('acf/update_value/name=modal_home', function ($value, $post_id, $field) {

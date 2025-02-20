@@ -8,6 +8,11 @@
 	var hash = root.hash;
 	var is_home = root.is_home;
 
+if(!isLoadedJS("bootbox")){
+    function _alert(title, msg){
+        alert(title + "\n\r" + msg);
+    }
+}
 
 
 if(isLoadedJS("lenis")){

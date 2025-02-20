@@ -63,21 +63,23 @@ function frontend_header_styles(){
     }
     
     $remove_global_styles = get_field("remove_global_styles", "option");
-    if(($remove_global_styles == "auto" && !$has_core_blocks) || (is_bool($remove_global_styles) && $remove_global_styles)){
+    if(($remove_global_styles == "auto" && !$has_core_blocks) || $remove_global_styles){
+    	wp_deregister_style('global-styles');
+    	wp_deregister_style('global-styles-inline');
 		wp_dequeue_style( 'global-styles-inline' );
        	wp_dequeue_style('global-styles');
     }
     
     $remove_block_styles = get_field("remove_block_styles", "option");
-    if(($remove_block_styles == "auto" && !$has_core_blocks) || (is_bool($remove_block_styles) && $remove_block_styles)){
+    if(($remove_block_styles == "auto" && !$has_core_blocks) || $remove_block_styles){
 		wp_dequeue_style( 'wp-block-library' );
 		wp_dequeue_style( 'wc-blocks-style' ); 
     }
      
     $remove_classic_theme_styles = get_field("remove_classic_theme_styles", "option");
     if($remove_classic_theme_styles){
-    	//wp_deregister_style('classic-theme-styles-inline');
-    	//wp_deregister_style('classic-theme-styles');
+    	wp_deregister_style('classic-theme-styles-inline');
+    	wp_deregister_style('classic-theme-styles');
         wp_dequeue_style('classic-theme-styles-inline');
     	wp_dequeue_style('classic-theme-styles');
     }
@@ -129,9 +131,14 @@ function frontend_header_styles(){
     //wp_register_style('blocks', get_stylesheet_directory_uri() . '/static/css/blocks.css', array(), $version, '');
     //wp_register_style('blocks-rtl', get_stylesheet_directory_uri() . '/static/css/blocks-rtl.css', array(), $version, '');
 
-    wp_register_style('main', STATIC_URL . 'css/main-combined.css', array(), $version, '');
-    wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
-
+    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS['css_page']) && file_exists(STATIC_PATH . SITE_ASSETS["css_page"])){
+        wp_register_style('main', STATIC_URL . SITE_ASSETS["css_page"], array(), $version, '');
+        wp_register_style('main-rtl', STATIC_URL . SITE_ASSETS["css_page_rtl"], array(), $version, '');
+    }else{
+    	wp_register_style('main', STATIC_URL . 'css/main-combined.css', array(), $version, '');
+    	wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
+    }
+    
     //wp_enqueue_style('fonts');
     wp_enqueue_style('locale');
     

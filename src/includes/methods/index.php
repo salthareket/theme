@@ -386,7 +386,6 @@ if ($query->have_posts()){
 $index = ($vars['page'] ) * $args['posts_per_page']; // Mevcut sayfa için ofset hesaplama
 foreach($query->posts as $post){
 ob_start();
-//echo $post->ID." - ";
 $context = Timber::context();
 $index++;
 $context['index'] = $index;
@@ -401,10 +400,10 @@ $GLOBALS["pagination_page"] = "";
 wp_reset_query();
 $data = $response;
 $data["html"] = $html;
-$total = $vars["total"];
-$per_page = $args["posts_per_page"];
-$current = $vars["page"];
-$initial = $vars["initial"];
+$total = (int) $vars["total"];
+$per_page = (int) $args["posts_per_page"];
+$current = (int) $vars["page"];
+$initial = (int) $vars["initial"];
 if (1 === $total) {
 $data["data"] = _e('Showing the single result', 'woocommerce');
 } elseif ($total <= $per_page || -1 === $per_page) {

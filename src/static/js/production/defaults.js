@@ -711,7 +711,12 @@ class ajax_query {
 
         if (!ajax_hooks.hasOwnProperty($obj.method)) {
             debugJS($obj)
-            _alert("Ajax JS Error", $obj.method + " is not defined.");
+            if(isLoadedJS("bootbox")){
+                _alert("Ajax JS Error", $obj.method + " is not defined.");
+            }else{
+                console.log("Ajax JS Error", $obj.method + " is not defined.")
+                
+            }
             return false;
         }
         if (ajax_hooks[$obj.method].hasOwnProperty("before") && !$obj.skipBefore) {

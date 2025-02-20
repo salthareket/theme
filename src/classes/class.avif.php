@@ -31,15 +31,10 @@ class AvifConverter {
         return false;
     }
 
-    public function handleUpload($file, $context) {
-        if ($this->isFaviconUploadPage()) {
+    public function handleUpload($file, $context) {  
+        if ($context !== 'upload' || $this->isExcludedUpload()) {
             return $file;
         }
-
-        if ($context !== 'upload') {
-            return $file;
-        }
-
         $extension = strtolower(pathinfo($file['file'], PATHINFO_EXTENSION));
 
         if (in_array($extension, ['avif', 'webp'])) {
@@ -143,10 +138,19 @@ class AvifConverter {
         }
     }
 
-    private function isFaviconUploadPage() {
-        if (is_admin() && isset($_GET['page']) && strpos($_GET['page'], 'favicon-by-realfavicongenerator') !== false) {
+    private function isExcludedUpload() {
+        // Eğer admin panelinde değilsek veya AJAX çağrısı değilse devam et
+        if (!is_admin() || !defined('DOING_AJAX') || !DOING_AJAX) {
+            return false;
+        }
+
+        // AJAX çağrısının referer'ini kontrol et
+        if (!empty($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'favicon-by-realfavicongenerator') !== false) {
             return true;
         }
+
         return false;
     }
+
+
 }

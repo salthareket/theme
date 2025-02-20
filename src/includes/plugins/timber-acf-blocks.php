@@ -273,10 +273,10 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
 
 function block_container_class($container=""){
     $default = get_field("default_container", "options");
-    $default = $default=="no"?"":"container".(empty($default)?"":"-".$default);
+    $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " px-4 px-lg-3";
     switch($container){
         case "" :
-            $container = "container";
+            $container = "container px-4 px-lg-3";
         break;
         case "default" :
             $container = $default;
@@ -288,7 +288,7 @@ function block_container_class($container=""){
             $container = "w-auto";
         break;
         default :
-            $container = "container-".$container;
+            $container = "container-".$container . " px-4 px-lg-3";
         break;
     }
     return $container;
@@ -649,8 +649,8 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
         $js = "";
         $type = $control["acf_fc_layout"];
         $placement = $control["placement"];
-        $position_x = $control["position"]["x"];
-        $position_y = $control["position"]["y"];
+        $position_x = isset($control["position"]["x"])?$control["position"]["x"]:"center";
+        $position_y = isset($control["position"]["y"])?$control["position"]["y"]:"center";
 
         $autoheight = $autoheight && $direction == "vertical" ? false : $autoheight;
 
