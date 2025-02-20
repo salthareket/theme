@@ -25,7 +25,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+            "mime_types": "",
             "preview_size": "thumbnail",
             "library": "all"
         },
@@ -91,7 +91,7 @@
                     "max_width": "",
                     "max_height": "",
                     "max_size": "",
-                    "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+                    "mime_types": "",
                     "preview_size": "thumbnail",
                     "library": "all"
                 },
@@ -502,5 +502,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1739493812
+    "modified": 1737516178
 }

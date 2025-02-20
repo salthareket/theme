@@ -1373,7 +1373,7 @@
                             "max_width": "",
                             "max_height": "",
                             "max_size": "",
-                            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+                            "mime_types": "",
                             "insert": "append",
                             "preview_size": "thumbnail"
                         },
@@ -3462,7 +3462,11 @@
                                 "class": "acf-button-size",
                                 "id": ""
                             },
-                            "choices": [],
+                            "choices": {
+                                "default": "default",
+                                "sm": "sm",
+                                "lg": "lg"
+                            },
                             "default_value": "",
                             "return_format": "value",
                             "multiple": 0,
@@ -3726,7 +3730,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739493821,
+    "modified": 1738284650,
     "acfe_categories": {
         "block": "Block"
     }

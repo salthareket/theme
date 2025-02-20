@@ -209,7 +209,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+            "mime_types": "",
             "allow_in_bindings": 1,
             "preview_size": "thumbnail"
         },
@@ -2135,7 +2135,7 @@
             "max_width": "",
             "max_height": "",
             "max_size": "",
-            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+            "mime_types": "",
             "allow_in_bindings": 1,
             "preview_size": "thumbnail"
         },
@@ -2565,7 +2565,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739493859,
+    "modified": 1737516255,
     "acfe_categories": {
         "common": "Common"
     }

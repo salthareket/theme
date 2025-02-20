@@ -154,7 +154,7 @@
                     "max_width": "",
                     "max_height": "",
                     "max_size": "",
-                    "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+                    "mime_types": "jpg, jpeg, png, webp, gif, avif",
                     "allow_in_bindings": 1,
                     "preview_size": "thumbnail"
                 },
@@ -230,7 +230,7 @@
                     "max_width": "",
                     "max_height": "",
                     "max_size": "",
-                    "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+                    "mime_types": "",
                     "insert": "append",
                     "preview_size": "medium"
                 },
@@ -385,7 +385,7 @@
                             "max_width": "",
                             "max_height": "",
                             "max_size": "",
-                            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
+                            "mime_types": "",
                             "allow_in_bindings": 0,
                             "preview_size": "thumbnail",
                             "parent_repeater": "field_676e27f6bfdc0"
@@ -432,7 +432,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739493811,
+    "modified": 1738285360,
     "acfe_categories": {
         "common": "Common"
     }

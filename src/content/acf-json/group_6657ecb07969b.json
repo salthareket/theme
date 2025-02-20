@@ -230,20 +230,20 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs",
-                        "title-sm": "title-sm",
-                        "title-md": "title-md",
-                        "title-lg": "title-lg",
-                        "title-xl": "title-xl",
-                        "title-xxl": "title-xxl",
-                        "title-xxxl": "title-xxxl",
-                        "text-xs": "text-xs",
-                        "text-sm": "text-sm",
-                        "text-md": "text-md",
-                        "text-lg": "text-lg",
-                        "text-xl": "text-xl",
-                        "text-xxl": "text-xxl",
-                        "text-xxxl": "text-xxxl"
+                        "title-xs": "title-xs - 22px",
+                        "title-sm": "title-sm - 32px",
+                        "title-md": "title-md - 42px",
+                        "title-lg": "title-lg - 52px",
+                        "title-xl": "title-xl - 62px",
+                        "title-xxl": "title-xxl - 72px",
+                        "title-xxxl": "title-xxxl - 82px",
+                        "text-xs": "text-xs - 14px",
+                        "text-sm": "text-sm - 16px",
+                        "text-md": "text-md - 18px",
+                        "text-lg": "text-lg - 24px",
+                        "text-xl": "text-xl - 32px",
+                        "text-xxl": "text-xxl - 36px",
+                        "text-xxxl": "text-xxxl - 42px"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -325,7 +325,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739493861,
+    "modified": 1738284570,
     "acfe_categories": {
         "block": "Block"
     }

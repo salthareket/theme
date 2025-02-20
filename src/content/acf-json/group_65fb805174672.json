@@ -293,7 +293,11 @@
                                 "class": "acf-button-size",
                                 "id": ""
                             },
-                            "choices": [],
+                            "choices": {
+                                "default": "default",
+                                "sm": "sm",
+                                "lg": "lg"
+                            },
                             "default_value": "",
                             "return_format": "value",
                             "multiple": 0,
@@ -1583,7 +1587,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739493835,
+    "modified": 1738663239,
     "acfe_categories": {
         "block": "Block"
     }
