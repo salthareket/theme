@@ -28,6 +28,7 @@
         "twig/twig": "*",
         "timber/timber": "*",
         "voku/simple_html_dom": "^4.8",
+        "dimabdc/php-fast-simple-html-dom-parser": "^1.4",
         "scssphp/scssphp": "^1.13",
         "php-ffmpeg/php-ffmpeg": "^1.1"
     },
