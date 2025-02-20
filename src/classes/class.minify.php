@@ -477,43 +477,12 @@ class SaltMinifier{
 	    
 	    if ($matches) {
 	        $assets = array();
-	        /*foreach ($matches[3] as $key => $match) {
-	            if (substr($match, 0, 5) != "data:") {
-	                // Parametreleri kaldır
-	                $file_path = preg_replace('/\?.*$/', '', $match); // Parametreleri temizle
-	                $file = basename($file_path); // Sadece dosya adını al
-	                $assets[] = array(
-	                    "code" => $matches[0][$key],
-	                    "url" => $match,
-	                    "file" => $file,
-	                    "clean_url" => $file_path // Temiz URL
-	                );
-	            }
-	        }*/
-
             foreach ($matches[3] as $key => $match) {
                 if (substr($match, 0, 5) != "data:") {
                     error_log("match:".$match);
                     $relative_path = preg_replace('/\?.*$/', '', $match); // Parametreleri temizle
-                    /*$absolute_path = realpath($css_dir . DIRECTORY_SEPARATOR . $relative_path);
-
-                    
-                    if (preg_match('/^[a-zA-Z]:\\\\|^\//', $relative_path)) { // Windows ve Unix için tam yol kontrolü
-                        $absolute_path = realpath($relative_path);
-                    } else {
-                        $absolute_path = realpath($css_dir . DIRECTORY_SEPARATOR . $relative_path);
-                    }
-
-
-                    if ($absolute_path === false) {
-                        // Hata günlüğü
-                        error_log("Dosya bulunamadı: " . $css_dir . DIRECTORY_SEPARATOR . $relative_path);
-                        continue;
-                    }*/
-
                     $relative_path_parts = explode("node_modules", $relative_path);
                     $relative_path = get_home_path()."node_modules".$relative_path_parts[1];
-
 
                     $file = basename($relative_path); // Sadece dosya adını al
                     $assets[] = array(
@@ -537,11 +506,13 @@ class SaltMinifier{
                         $query = parse_url($asset["url"], PHP_URL_QUERY);
                         $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
                         if (!empty($publish_url)) {
-                            $final_url = str_replace(home_url(), $publish_url, $final_url);
-                        }/**/
-                        error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
+                            //$final_url = str_replace(home_url(), $publish_url, $final_url);
+                        }
+                        //error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
 
                         //$final_url = str_replace(STATIC_URL, "../", $final_url);
+
+                        $final_url = str_replace(STATIC_URL, "{STATIC_URL}", $final_url);
 
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
@@ -551,10 +522,13 @@ class SaltMinifier{
                             $clean_url = explode('?', $asset["url"])[0];
                             $query = parse_url($asset["url"], PHP_URL_QUERY);
                             $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                           if(!empty($publish_url)){
-                                $final_url = str_replace(home_url(), $publish_url, $final_url);
+                            if(!empty($publish_url)){
+                                //$final_url = str_replace(home_url(), $publish_url, $final_url);
                             }
-                            error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
+
+                            $final_url = str_replace(STATIC_URL, "{STATIC_URL}", $final_url);
+
+                            //error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
                             //$final_url = str_replace(STATIC_URL, "../", $final_url);
                             $css = str_replace($asset["url"], $final_url, $css);
                         }
@@ -562,43 +536,6 @@ class SaltMinifier{
                 }
                 file_put_contents($css_file, $css);
             }
-	        /*if ($assets) {
-                error_log(json_encode($assets));
-	            foreach ($assets as $key => $asset) {
-	                // node_modules içindeki URL'leri kontrol et
-	                $copy_file = explode("/node_modules/", $asset["clean_url"]);
-	                
-	                if (isset($copy_file[1])) {
-	                    $copy_file = $copy_file[1];
-	                    $source_path = $this->rules["config"]["node"] . $copy_file;
-	                    
-	                    // Dosya mevcutsa kopyala
-	                    if (file_exists($source_path) && !is_dir($source_path)) {
-	                        copy($source_path, $this->output["plugin_assets"] . $asset["file"]);
-	                        $clean_url = explode('?', $asset["url"])[0];
-	                        $query = parse_url($asset["url"], PHP_URL_QUERY);
-	                        $final_url = $this->rules["config"]["js_uri"] . "assets/" . $asset["file"] . ($query ? '?' . $query : '');
-	                        if(!empty($publish_url)){
-	                            $final_url = str_replace(home_url(), $publish_url, $final_url);
-	                        }
-	                        $css = str_replace($asset["url"], $final_url, $css);
-	                    }
-	                } else {
-	                    // Eğer CSS içinde bir URL varsa ve bu URL node_modules'dan gelmiyorsa, sadece kopyala
-	                    if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
-	                        copy($asset["url"], $this->output["plugin_assets"] . $asset["file"]);
-	                        $clean_url = explode('?', $asset["url"])[0];
-	                        $query = parse_url($asset["url"], PHP_URL_QUERY);
-	                        $final_url = $this->rules["config"]["js_uri"] . "assets/" . $asset["file"] . ($query ? '?' . $query : '');
-	                        if(!empty($publish_url)){
-	                            $final_url = str_replace(home_url(), $publish_url, $final_url);
-	                        }
-	                        $css = str_replace($asset["url"], $final_url, $css);
-	                    }
-	                }
-	            }
-	            file_put_contents($css_file, $css);
-	        }*/
 	    }
 	}
 

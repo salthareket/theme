@@ -434,6 +434,7 @@ class PageAssetsExtractor {
                 if ($content !== false) {
                     if($type == "css"){
                         $content = str_replace(STATIC_URL, "../../", $content);// read assets from cache folder
+                        $content = str_replace("{STATIC_URL}", "../../", $content);// read assets from cache folder
                     }
                     $combined_content .= $content . PHP_EOL; // Sonuna yeni satır ekleniyor
                 } else {
