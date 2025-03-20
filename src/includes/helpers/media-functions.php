@@ -586,24 +586,27 @@ function get_video($video_args=array()){
 	$type  = $args["video_type"] ?? "file";
 	$class = isset($video_args["class"])?$video_args["class"]:"";
 	$init  = $video_args["init"] ?? false;
-	$lazy  = $video_args["lazy"] ?? false;
+	$lazy  = $video_args["lazy"] ?? true;
+	$title = $args["video_title"] ?? "";
 
-	
-	$embed = '<div class="player plyr__video-embed {{class}}" {{config}} {{controls}} {{autoplay}} {{poster}} {{muted}} {{attrs}}><iframe
-	    class="video"
+	$embed = '<div class="player plyr__video-embed {{class}}" {{config}} {{poster}} {{attrs}}><iframe
+	    class="video {{class_lazy}}"
+	    title="{{title}}"
 	    src="{{src}}"
 	    allowfullscreen
 	    allowtransparency
 	    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-	  ></iframe></div>';
+	  ></iframe>{{poster_lazy}}</div>';
 	$audio = '<audio class="player video {{class}}" {{controls}} {{autoplay}} {{muted}} {{config}}>
 	  <source src="{{src}}" type="audio/mp3" />
 	</audio>';
 	$file = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{lazy}} {{attrs}}>
 	  <source src="{{src}}" type="video/mp4" />
+	  {{poster_lazy}}
 	  {{vtt}}
 	</video>';
 	$file_responsive = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{lazy}} {{attrs}}>
+	  {{poster_lazy}}
 	  {{src}}
 	  {{vtt}}
 	</video>';
@@ -640,7 +643,11 @@ function get_video($video_args=array()){
 	if($lazy){
 		//$code = str_replace("{{lazy}}", "loading='lazy'", $code);
 		$code = str_replace("{{preload}}", "none'", $code);
-		//$class .= "lazy";
+		if($type == "embed"){
+	    	$class .= " lazy-container "; 
+	    }else{
+	    	$class .= "lazy";
+	    }
 	}
 	$code = str_replace("{{lazy}}", "", $code);
 	$code = str_replace("{{preload}}", "metadata", $code);
@@ -664,13 +671,28 @@ function get_video($video_args=array()){
 		    	return;
 		    }
 		    $embed = new OembedVideo($args["video_url"]);
-		    $data = $embed->get();
-			$code = str_replace("{{src}}", $data["embed_url"], $code);
+		    $data = $embed->get($settings);
+		    $poster = isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])?$settings["video_image"]:$data["src"];
+	        if($lazy){
+	        	$code = str_replace('{{class_lazy}}', 'lazy', $code);
+	        	$code = str_replace('src="{{src}}"', 'data-src="{{src}}"', $code);
+	        	if(image_is_lcp($poster)){
+                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init" style="background-image: url(&quot;'.$poster.'&quot;);"></div>', $code);
+	        	}else{
+	        		$code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init lazy" data-bg="'.$poster.'"></div>', $code);
+	        	}
+	        }else{
+	        	$code = str_replace('{{class_lazy}}', '', $code);
+	        	$code = str_replace("{{poster_lazy}}", "", $code);
+	        }
+	        $code = str_replace("{{src}}", $data["embed_url"], $code);
 			if(isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])){
-				$code = str_replace("{{poster}}", "data-poster=".$settings["video_image"], $code);
+				$code = str_replace("{{poster}}", "data-poster=".$poster, $code);
 	        }else{
 	        	$code = str_replace("{{poster}}", "", $code);
 	        }
+	        $title = empty($title)?$data["title"]:$title;
+	        $code = str_replace("{{title}}", $title, $code);
 		break;
 
 		case "file" :
@@ -704,12 +726,14 @@ function get_video($video_args=array()){
 				$poster = $settings["video_image"];
 				$code = str_replace("{{poster}}", "poster=".$poster." data-poster=".$poster, $code);
 				if($lazy){
-					add_action('wp_head', function() use ($poster) {
-				        add_preload_image($poster);
-				    });					
+					/*add_action('wp_head', function() use ($poster) {
+				        Salthareket\Image::add_preload_image($poster);
+				    });*/
+				    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster opacity-100 lazy" data-bg="'.$poster.'"></div>', $code);		
 				}
 	        }else{
 	        	$code = str_replace("{{poster}}", "", $code);
+	        	$code = str_replace("{{poster_lazy}}", "", $code);
 	        }
 	        $vtt = "";
 	        if(isset($settings["vtt"]) && !empty($settings["vtt"])){
@@ -732,6 +756,7 @@ function get_video($video_args=array()){
     if($init){
     	$class .= " init-me "; 
     }
+    
 	if($type != "audio" && isset($settings["videoBg"]) && $settings["videoBg"]){
 		$config["fullscreen"] = [ "enabled" => false, "fallback" => false, "iosNative" => false, "container" => null ];
 		$settings["videoReact"] = false;
@@ -740,6 +765,8 @@ function get_video($video_args=array()){
 		$code = str_replace("{{class}}", "video-bg ".$class, $code);    
 	}
 	$code = str_replace("{{class}}", $class, $code);
+
+	//$config["youtube"] = [ "noCookie" => true, "rel" => 0, "showinfo" => 0, "iv_load_policy" => 3, "modestbranding" => 1 ];
 
 	if(isset($args["video_settings"]["videoReact"]) && $args["video_settings"]["videoReact"]){
 		$config["clickToPlay"] = true;
@@ -865,3 +892,40 @@ function get_google_optimized_avif_quality() {
     // Kaliteyi min ve max değerler arasında sınırla
     return max($min_quality, min(80, $base_quality));
 }
+
+
+
+function get_embed_video_title($video_url) {
+    if (empty($video_url)) {
+        return false;
+    }
+
+    // Video servislerini belirle
+    if (strpos($video_url, 'youtube.com') !== false || strpos($video_url, 'youtu.be') !== false) {
+        $oembed_url = "https://www.youtube.com/oembed?url=" . urlencode($video_url) . "&format=json";
+    } elseif (strpos($video_url, 'vimeo.com') !== false) {
+        $oembed_url = "https://vimeo.com/api/oembed.json?url=" . urlencode($video_url);
+    } elseif (strpos($video_url, 'dailymotion.com') !== false) {
+        $oembed_url = "https://www.dailymotion.com/services/oembed?url=" . urlencode($video_url);
+    } else {
+        return false; // Desteklenmeyen platform
+    }
+
+    // API isteği gönder
+    $response = wp_remote_get($oembed_url, ['timeout' => 5]);
+
+    if (is_wp_error($response)) {
+        return false;
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    return isset($data['title']) ? $data['title'] : false;
+}
+
+function image_is_lcp($image){
+	$lcp = new \Lcp();
+	return $lcp->is_lcp($image);
+}
+

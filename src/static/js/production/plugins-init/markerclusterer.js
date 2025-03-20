@@ -150,7 +150,7 @@ class GoogleMaps{
 		            } else {
 		                // Template-based popup content
 		                twig({
-		                    href: ajax_request_vars.assets_url + config.popup.template,
+		                    href: ajax_request_vars.theme_url + config.popup.template,
 		                    async: false,
 		                    allowInlineIncludes: false,
 		                    load: function (template) {
@@ -208,7 +208,7 @@ class GoogleMaps{
 		                        infowindow.open(map, marker_item);
 		                    } else {
 		                        twig({
-		                            href: ajax_request_vars.assets_url + config.popup.template,
+		                            href: ajax_request_vars.theme_url + config.popup.template,
 		                            async: false,
 		                            allowInlineIncludes: false,
 		                            load: function (template) {

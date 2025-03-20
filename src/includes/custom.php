@@ -1,5 +1,7 @@
 <?php
 
+use SaltHareket\Theme;
+
 function lang_predefined(){
     $dict = [];
     $translates_path = get_template_directory() . '/theme/static/data/translates.json';
@@ -28,9 +30,18 @@ class SaltBase{
     public $extractor;
     private static $already_ran = false;
 
+    private static $instance;
+    
+    public static function get_instance() {
+        if (!self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
     public function __construct($user=array()) {
 
-        //echo "new Salt()<br>";
+        error_log("new Salt()");
 
         if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin()){
             add_action('wp', [ $this, 'update_online_users_status' ]);
@@ -41,10 +52,8 @@ class SaltBase{
         if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin() && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') === false){
            //add_action('init', [ $this, 'start_session'], 1); // start global session for saving the referer url
            add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
-
            //Bypass logout confirmation on nonce verification failure
            add_action('check_admin_referer', [ $this, 'logout_without_confirmation'], 1, 2);
-
            add_action('login_redirect', [ $this, 'on_login_redirect' ], 10, 3);
         }
 
@@ -112,9 +121,10 @@ class SaltBase{
         
         //scripts
         if(!is_admin()){
-            add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
+            //add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
         }else{
-            add_action('admin_init', [$this, 'site_config_js'], 20 );       
+            add_filter('acf/update_value', [$this, 'clear_cached_option'], 10, 3);
+            //add_action('admin_init', [$this, 'site_config_js'], 20 );       
         }
 
         //add_action('wp_footer', [$this, 'add_page_assets']);
@@ -163,6 +173,58 @@ class SaltBase{
         );
     }
 
+    public static function get_cached_query($args = []) {
+        $cache_key = 'custom_query_' . md5(serialize($args));
+        //delete_transient('custom_query_' . md5(serialize($args)));
+        $cached_data = get_transient($cache_key);
+        if (false === $cached_data) {
+            $query = new WP_Query($args);
+            $cached_data = $query;
+            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS); // 1 saat cache
+        }
+        return $cached_data;
+    }
+
+    public static function get_cached_posts($args = []) {
+        $cache_key = 'custom_query_' . md5(serialize($args));
+        //delete_transient('custom_query_' . md5(serialize($args)));
+        $cached_data = get_transient($cache_key);
+        if (false === $cached_data) {
+            $query = new WP_Query($args);
+            $cached_data = $query->posts;
+            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS); // 1 saat cache
+        }
+        return $cached_data;
+    }
+
+    public static function get_cached_option($key) {
+        $cache_key = 'acf_option_' . $key;
+        $cached_value = get_transient($cache_key);
+        //error_log("get from cache: ".$cache_key); 
+        //error_log(print_r($cached_value, true));
+        if ($cached_value !== false) {
+            return $cached_value;
+        }
+        $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
+        //error_log("set to cache: ".$cache_key); 
+        //error_log(print_r($value, true));
+        set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
+        //error_log("-----------------------------------");
+        return $value;
+    }
+
+    public function clear_cached_option($value, $post_id, $field) {
+        if ($post_id !== 'options') return $value;
+        $cache_key = 'acf_option_' . $field['name'];
+        //error_log("deleting: ".$cache_key); 
+        delete_transient($cache_key); // Sadece ilgili option’ın cache’ini sil
+        //error_log("-----------------------------------");
+        return $value;
+    }
+
+    
+
+
     public function on_post_pre_update($data){
         /*if($data["post_type"] == "page"){
            $menu_order = wp_count_posts("page")->publish;
@@ -173,6 +235,8 @@ class SaltBase{
     }
 
     public function on_post_published($post_id, $post, $update){
+
+        if(is_wp_rocket_crawling()) return;
 
         if (defined('REST_REQUEST') && REST_REQUEST) {
             error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
@@ -214,11 +278,19 @@ class SaltBase{
 
             self::$already_ran = true; // Flag'i ayarla
             
+            // check & save has map block
             $has_map = false;
-            if(page_has_block($post_id, "acf/map")){
+            if(post_has_block($post_id, "acf/map")){
                 $has_map = true;
             }
             update_post_meta( $post_id, 'has_map', $has_map );
+
+            // check & save has core block
+            $has_core_block = false;
+            if(post_has_core_block($post_id)){
+                $has_core_block = true;
+            }
+            update_post_meta( $post_id, 'has_core_block', $has_core_block );
             
             acf_block_id_fields($post_id);
 
@@ -1694,255 +1766,40 @@ class SaltBase{
         }
     }
 
-    public function get_site_config($jsLoad = 0){
-        
-        $is_cached = false;
-        //if(function_exists("wprocket_is_cached")){
-        if (defined("WP_ROCKET_VERSION")) {
-            $is_cached = is_wp_rocket_crawling();//wprocket_is_cached();
-        }
-        
-        $enable_favorites =  boolval(ENABLE_FAVORITES);
-        $enable_follow =  boolval(ENABLE_FOLLOW);
-        $enable_search_history =  boolval(ENABLE_SEARCH_HISTORY);
-
-        if ($enable_favorites) {
-            $favorites_obj = new Favorites();
-            $favorites_obj->update();
-            $favorites = $favorites_obj->favorites;
-            $favorites = json_encode($favorites, JSON_NUMERIC_CHECK);
-            $GLOBALS["favorites"] = $favorites;
-        }
-
-        if ($enable_follow) {
-            $follow_types = FOLLOW_TYPES;
-        }
-
-        if($enable_search_history){
-            $search_history_obj = new SearchHistory();
-            $search_history = $search_history_obj->get_user_terms();
-        }
-
-        $path = getSiteSubfolder();
-        
-        $config = array(
-            "enable_membership"     => boolval(ENABLE_MEMBERSHIP),
-            "enable_favorites"      => $enable_favorites,
-            "enable_follow"         => $enable_follow,
-            "enable_search_history" => $enable_search_history,
-            "enable_cart"           => boolval(ENABLE_CART),
-            "enable_filters"        => boolval(ENABLE_FILTERS),
-            "enable_chat"           => boolval(ENABLE_CHAT),
-            "enable_notifications"  => boolval(ENABLE_NOTIFICATIONS),
-            "enable_ecommerce"      => boolval(ENABLE_ECOMMERCE),
-            "enable_ip2country"     => boolval(ENABLE_IP2COUNTRY),
-            "path"                  => $path,
-            "loaded"                => ($jsLoad==1?true:false),
-            "cached"                => boolval($is_cached),
-            "logged"                => is_user_logged_in(),
-            "debug"                 => boolval(ENABLE_CONSOLE_LOGS)
-        );
-        if(isset($GLOBALS['base_urls'])){
-            $config["base_urls"] = $GLOBALS['base_urls'];
-        }
-        if ($enable_favorites) {
-           $config["favorites"] = json_decode($favorites, true);
-           $config["favorite_types"] = FAVORITE_TYPES;
-        }
-        if ($enable_follow) {
-           $config["follow_types"] = FOLLOW_TYPES;
-        }
-        if ($enable_search_history) {
-           $config["search_history"] = $search_history;//json_decode($search_history, true);
-        }
-        if(!$config["logged"]){
-            $config["nonce"] = wp_create_nonce( 'ajax' );
-        }
-        if(ENABLE_IP2COUNTRY){
-            $user_country = "";
-            $user_country_code = "";
-            $user_city = "";
-            $user_language = "";
-            if(isset($_COOKIE['user_country'])){
-                $user_country = $_COOKIE["user_country"];
-            }
-            if(isset($_COOKIE['user_country_code'])){
-                $user_country_code = $_COOKIE["user_country_code"];
-            }
-            if(isset($_COOKIE['user_city'])){
-                $user_city = $_COOKIE["user_city"];
-            }
-            if(isset($_COOKIE['user_language'])){
-                $user_language = $_COOKIE["user_language"];
-            }
-            if(isset($_COOKIE['user_region'])){
-                $user_region = json_decode($_COOKIE["user_region"]);
-            }
-            if(empty($user_city) || empty($user_country) || empty($user_country_code)){
-                
-                $data = $this->localization->ip_info();
-
-                if(empty($user_country)){
-                    if(!$data){
-                        $user_country = "Unknown";
-                    }else{
-                        if(isset($data->name)){
-                            $user_country = $data->name;
-                        }else{
-                            $user_country = $data["name"];
-                        }
-                    }
+    public static function get_integration($slug=""){
+        $integrations = self::get_cached_option("integrations"); // Option page'den repeater'ı çek
+        if ($integrations) {
+            foreach ($integrations as $integration) {
+                if ($integration['name'] === $name) {
+                    return $integration['keys']; // Eğer eşleşirse keys alanını döndür
                 }
-
-                if(empty($user_country_code)){
-                    if(!$data){
-                        $user_country_code = "";
-                    }else{
-                        if(isset($data->iso2)){
-                            $user_country_code = $data->iso2;
-                        }else{
-                            $user_country_code = $data["iso2"];
-                        }
-                    }
-                }
-
-                if(empty($user_city)){
-                    if(!$data){
-                        $user_city = "Unknown";
-                    }else{
-                        if(isset($data->state)){
-                            $user_city = $data->state;
-                        }else{
-                            $user_city = $data["state"];
-                        }
-                    }
-                }
-
-                if(empty($user_language)){
-                    $user_language = strtolower( substr( get_locale(), 0, 2 ) );
-                    if (function_exists("qtranxf_getSortedLanguages")) {
-                        $user_language = qtranxf_getLanguage();
-                    }else{
-                        $user_language = strtolower( substr( get_locale(), 0, 2 ) );
-                    }
-                }
-
-                if(empty($user_region) && ENABLE_REGIONAL_POSTS){
-                    $user_region = get_region_by_country_code($user_country_code);
-                }
-                
             }
-            $config["user_country"] = $user_country;
-            $config["user_country_code"] = $user_country_code;
-            $config["user_city"] = $user_city;
-            $config["user_language"] = $user_language;
-            setcookie('user_country', $user_country, time() + (86400 * 365), $path); 
-            setcookie('user_country_code', $user_country_code, time() + (86400 * 365), $path);
-            setcookie('user_city', $user_city, time() + (86400 * 365), $path);
-            setcookie('user_language', $user_language, time() + (86400 * 365), $path);
-            if(ENABLE_REGIONAL_POSTS){
-                setcookie('user_region', json_encode($user_region), time() + (86400 * 365), $path);
-            }
-        }else{
-            $user_language = $GLOBALS["language"];
-            $config["user_language"] = $user_language;
-            //setcookie('user_language', $user_language, time() + (86400 * 365), $path);
         }
-
-        $required_js_file = get_stylesheet_directory() ."/static/js/js_files.json";
-        if(file_exists($required_js_file)){
-            $required_js = file_get_contents($required_js_file);
-        }else{
-            $required_js = [];
-        }
-        if(!is_array($required_js)){
-            $required_js = json_decode($required_js, true);
-        }
-        $config["required_js"] = $required_js;
-
-        if(defined("SH_INCLUDES_URL")){
-           $config["theme_includes_url"] = SH_INCLUDES_URL; 
-        }
-
-        return $config;  
+        return []; // Eğer bulunamazsa null döndür
     }
 
-    public function site_config_js(){
-
-            //wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/includes/methods/index.js', array("jquery"), '1.0', false );
-            //wp_register_script( 'site_config_vars', SH_INCLUDES_URL . 'methods/index.js', array("jquery"), '1.0', false );
-            wp_register_script( 'site_config_vars', STATIC_URL . 'js/methods.min.js', array("jquery"), '1.0', false );
-            wp_enqueue_script('site_config_vars');
-
-            if(isset($GLOBALS["site_config"])){
-                $args = $GLOBALS["site_config"];
-            }else{
-                $args = $this->get_site_config();
+    public function measureLCP($url, $deviceType = 'desktop') {
+        $api = Salt::get_integration("google_pagespeed_insights");
+        if($api){
+            $apiKey = $api["key"];
+            if(!empty($apiKey)){
+                $endpoint = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=$url&key=$apiKey&strategy=$deviceType";
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $endpoint);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                $response = curl_exec($ch);
+                curl_close($ch);
+                if ($response) {
+                    $data = json_decode($response, true);
+                    $lcp = $data['lighthouseResult']['audits']['largest-contentful-paint']['numericValue'];
+                    return $lcp;
+                }             
             }
-            $args["dictionary"] = $GLOBALS["lang_predefined"];
-            wp_localize_script( 'site_config_vars', 'site_config', $args);
-
-            /*$inline_js = "
-                document.addEventListener('visibilitychange', function () {
-                    if (document.visibilityState === 'hidden') {
-                        document.body.classList.remove('loading-process');
-                    }
-                });
-                window.addEventListener('popstate', function () {
-                    document.body.classList.remove('loading-process');
-                    document.body.style.position = '';
-                    document.body.style.overflow = '';
-                });
-                window.addEventListener('pageshow', function (event) {
-                    if (event.persisted) {
-                        // Geri dönüldüğünde body'deki sınıfları sıfırla
-                        document.body.classList.remove('loading-process');
-                        document.body.classList.add('init'); // init class'ını yeniden ekle
-                    }
-                });
-            ";
-            wp_add_inline_script('site_config_vars', $inline_js);*/
-
-            //required js files
-            //$required = json_decode(file_get_contents(get_stylesheet_directory() ."/static/js/js_files.json"), true);
-            wp_localize_script( 'site_config_vars', 'required_js', $args["required_js"]);
-            
-            if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !is_admin()){
-                $conditional = SITE_ASSETS["plugins"];//apply_filters("salt_conditional_plugins", []);
-                $conditional = $conditional ? $conditional : [];
-                wp_localize_script( 'site_config_vars', 'conditional_js', array_values($conditional));
-                /*if(!empty(SITE_ASSETS["js"])){
-                    wp_register_script( 'page-scripts', '', array("jquery"), '1.0', true );
-                    wp_enqueue_script( 'page-scripts' );
-                    wp_add_inline_script( 'page-scripts', SITE_ASSETS["js"]);                    
-                }*/
-
-                if(!empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
-                    wp_register_style( 'page-styles', false );
-                    wp_enqueue_style( 'page-styles' );
-                    $upload_dir = wp_upload_dir();
-                    $upload_url = $upload_dir['baseurl']."/";
-                    $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
-                    $code = str_replace("{home_url}", home_url("/"), $code);
-                    wp_add_inline_style( 'page-styles', $code); 
-                }              
-            }
-
-            $args = array(
-                    'url'           =>     home_url().'/',//.qtranxf_getLanguage(),
-                    'ajax_nonce'    =>     wp_create_nonce( 'ajax' ),
-                    'assets_url'    =>     get_stylesheet_directory_uri()."/",
-                    'title'         =>     ''
-            );
-            if(class_exists("Redq_YoBro")){
-                $user = wp_get_current_user();
-                $conversations = yobro_get_all_conversations($user->ID);
-                if($conversations){
-                    $args["conversations"] = $conversations;
-                }
-            }
-            wp_localize_script( 'site_config_vars', 'ajax_request_vars', $args);
+        }
+        return false; // Hata durumunda
     }
+
+
 
 }
 

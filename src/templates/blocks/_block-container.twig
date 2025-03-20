@@ -88,7 +88,7 @@
 			<div class="alert alert-danger">
 				<div class="row align-items-center">
 					<div class="col col-auto">
-                       <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
+                   <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
 					</div>
 					<div class="col">
 						<h4 class="fw-bold mb-1">Attention</h4>
@@ -113,12 +113,12 @@
 		<div class="sticky-top">
 	{% endif %}
         
-        {% if block('block_content_outer')|trim == "" %}
+       {% if block('block_content_outer')|trim == "" %}
 	    {{ block_meta.bg_image }}
 	    {% endif %}
 
 		{% if block_meta.container and (not block_column and not nested) %}
-			<div class="{{block_meta.container}} {% if block_meta.bg_image %}z-3{% endif %} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
+			<div class="{{block_meta.container}} {% if block_meta.bg_image %}z-2{% endif %} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
 		{% endif %}
 
 		    {% if fields.block_settings.wrapper_class %}

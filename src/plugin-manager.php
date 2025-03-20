@@ -93,7 +93,7 @@ class PluginManager {
 
             $installed_version = $plugin_data['Version'] ?? 'Not Installed';
             $current_version = $plugin_info['v'];
-            $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version);
+            $update_available = ($installed_version !== 'Not Installed' && $installed_version !== $current_version && version_compare($installed_version, $current_version, '<'));
 
             $plugins_data[] = [
                 'name' => $plugin_data['Name'] ?? $plugin_info['file'],

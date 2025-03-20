@@ -13,6 +13,19 @@ add_filter('wp_editor_set_quality', function ($quality, $mime_type) {
 }, 10, 2);
 
 
+function set_default_image_alt_text($attachment_id) {
+    $alt_text = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+    if (empty($alt_text)) {
+        $image_url = wp_get_attachment_url($attachment_id);
+        $path_parts = pathinfo($image_url);
+        $alt_text = ucwords(str_replace(['-', '_'], ' ', $path_parts['filename']));
+        update_post_meta($attachment_id, '_wp_attachment_image_alt', $alt_text);
+    }
+}
+add_action('add_attachment', 'set_default_image_alt_text');
+
+
+
 // görsel kayudederken gorselin ortalama renk degerini ve bu rengin kontrastını kaydet
 function extract_and_save_average_color($post_ID = 0) {
     if(!$post_ID){
@@ -169,6 +182,7 @@ function wp_scss_set_variables(){
     return $variables;
 }
 add_filter("wp_scss_variables", "wp_scss_set_variables");
+
 
 
 

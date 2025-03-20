@@ -7,7 +7,7 @@ function get_option_shortcode( $atts ) {
     $a = shortcode_atts( array(
        'field' => ""
     ), $atts );
-    return get_field($a["field"],"option");
+    return SaltBase::get_cached_option($a["field"]);//get_field($a["field"], "option");
 }
 add_shortcode( 'get_option', 'get_option_shortcode' );
 

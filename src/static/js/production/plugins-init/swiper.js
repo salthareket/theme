@@ -220,6 +220,9 @@ function init_swiper_video_slide(swiper, obj){
     if(isLoadedJS("plyr")){
         if(obj.find(".swiper-video").not(".inited").length > 0){
             var video_slide = obj.find(".swiper-video").not(".inited");
+            /*if(video_slide.find('.player').hasClass("lazy")){
+                lazyLoadInstance.load(video_slide.find('.player'));
+            }*/
                 video_slide.addClass("inited");
                 const player = plyr_init(video_slide.find('.player'));//new Plyr(video_slide.find('.player')[0]);
                 video_slide.data("plyr", player);
@@ -284,7 +287,7 @@ function init_swiper_video(swiper){
                     }
 
                     if(slide.find(".swiper-video").length > 0){
-                        if(video.autoplay){
+                        if(video && video.autoplay){
                             if(slide.hasClass("ready")){
                                video.play();
                             }else{

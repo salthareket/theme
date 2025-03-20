@@ -126,7 +126,11 @@ function create_custom_menu( $items, $menu, $args ) {
 						}else{
 							if(isset($dynamic_menu_item["post_type"]) && $dynamic_menu_item["post_type"]["posts_per_page"] != 0){
 								$args = $dynamic_menu_item["post_type"];
-								$posts = Timber::get_posts($args);
+
+								$posts = SaltBase::get_cached_query($args);
+								$posts = Timber::get_posts($posts);
+
+								//$posts = Timber::get_posts($args);
 								if($posts){
 									foreach ( $posts as $post ) {
 										custom_menu_items::add_object($menu->name, $post->ID, 'post', $menu_order, intval($item->db_id), '', '', '', $post->title);
@@ -173,7 +177,11 @@ function create_custom_menu_loop($menu, $item, $parent, $menu_order, $dynamic_me
 						)
 					);
 				}
-				$children = Timber::get_posts($args);
+				
+				$children = SaltBase::get_cached_query($args);
+				$children = Timber::get_posts($children);
+
+				//$children = Timber::get_posts($args);
 				if($children){
 					foreach ( $children as $child ) {
 						custom_menu_items::add_object($menu->name, $child->ID, 'post', $menu_order, intval($parent->db_id), '', '', '', $child->title);

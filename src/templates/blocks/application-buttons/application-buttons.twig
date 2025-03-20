@@ -31,7 +31,7 @@
     <ul class="list-inline m-0">
         {% for item in fields.buttons %}
             <li class="list-inline-item">
-                <a href="{{item.url}}" title="{{item.link_text}}">
+                <a href="{{item.url}}" title="{{item.link_text|default(item.platform)}}">
                     <img src="{{images[item.platform][fields.scheme]}}" class="img-fluid" alt="">
                 </a>
             </li>

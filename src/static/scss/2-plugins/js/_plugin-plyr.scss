@@ -63,3 +63,9 @@ video{
 		height:auto;
 	}
 }
+
+.player.lazy-container{
+	.plyr__poster{
+		opacity:1!important;
+	}
+}

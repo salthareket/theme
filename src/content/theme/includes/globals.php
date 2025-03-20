@@ -1,35 +1,5 @@
 <?php
 
-// Sayfalardaki bazı gereksiz ve kullanılmayan bölümlerin kaldırılması
-add_action( 'wp_loaded', function(){
-    remove_action('wp_head', 'feed_links', 2); // Genel feed linkleri
-    remove_action('wp_head', 'feed_links_extra', 3); // Ek feed linkleri (Kategori, Yazar, vb.)
-    remove_action('wp_head', 'rsd_link'); // Really Simple Discovery (RSD) linki
-    remove_action('wp_head', 'wlwmanifest_link'); // Windows Live Writer manifest linki
-    remove_action('wp_head', 'wp_shortlink_wp_head'); // Kısa link (shortlink) linki
-    remove_action('wp_head', 'wp_generator'); // WordPress sürüm bilgisi
-    remove_action('wp_head', 'adjacent_posts_rel_link_wp_head', 10, 0); // Önceki ve sonraki yazı linkleri
-    remove_action('wp_head', 'wp_oembed_add_discovery_links'); // OEmbed discovery linkleri
-    remove_action( 'admin_color_scheme_picker', 'admin_color_scheme_picker' );
-
-    // WordPress 5.4 ve sonraki sürümler için gizleme
-    remove_action('wp_head', 'rest_output_link_wp_head', 10);
-    remove_action('wp_head', 'wp_resource_hints', 2);
-
-    if(ENABLE_ECOMMERCE){
-        remove_action( 'wp_head', 'wc_generator_tag' ); // WooCommerce sürüm bilgisi
-        remove_action( 'wp_head', 'wc_add_generator_meta_tag' ); // WooCommerce meta tag
-        remove_action( 'wp_head', 'woocommerce_output_all_notices', 10 ); // WooCommerce hata mesajları
-        remove_action( 'wp_head', 'wc_robots' ); // WooCommerce robots meta tag
-        remove_action( 'wp_head', 'wc_oembed_add_admin_links' ); // WooCommerce oEmbed linkleri
-        remove_action( 'wp_head', 'wc_oembed_add_discovery_links' ); // WooCommerce oEmbed discovery linkleri    
-    }    
-});
-
-
-
-
-
 // otomatik olarak download edilip yüklenilmesi istenen pluginler burada tanımlanacak.
 /*  Ornek: 
     $plugins = array(
@@ -229,34 +199,6 @@ $my_account_links = array(
 );
 $GLOBALS["my_account_links"] = $my_account_links;
 
-
-
-
-if (defined("WPSEO_FILE")) {
-    /*remove "home page" from breadcrumb*/
-    //add_filter('wpseo_breadcrumb_links', 'remove_home_from_breadcrumb', 10, 1 ); 
-
-    /*fix & add taxonomy hierarch breadcrumb*/
-    //add_filter('wpseo_breadcrumb_links', 'fix_tax_hierarchy_on_breadcrumb', 10, 1 ); 
-
-    /*remove current page/post from breadcrumb*/
-    //add_filter('wpseo_breadcrumb_links', 'remove_current_from_breadcrumb', 10, 1 ); 
-
-    //add_filter('wpseo_breadcrumb_links', 'change_shopping_link_on_breadcrumb', 10, 1 ); 
-
-    //add_filter('wpseo_breadcrumb_links', 'fix_translate_on_breadcrumb', 10, 1 );
-
-    //add_parents_to_post_breadcrumb
-    //add_filter( 'wpseo_breadcrumb_links', 'add_parents_to_post_breadcrumb', 10, 1 );
-
-    if ( class_exists( 'WooCommerce' ) ) {
-        /*add "brand" to breadcrumb*/
-        // add_filter('wpseo_breadcrumb_links', 'add_brand_to_breadcrumb', 10, 1 ); 
-        /*add single product's category to breadcrumb*/
-        //add_filter('wpseo_breadcrumb_links', 'add_category_to_breadcrumb', 10, 1 ); 
-    }
-}
-
 $GLOBALS["sitemap_exclude_post_ids"] = array();
 
 $GLOBALS["sitemap_exclude_term_ids"] = array();
@@ -267,7 +209,7 @@ function add_to_twig_extras($context){
 }
 add_action("timber/context", "add_to_twig_extras", 9999);
 
-function timber_output($output, $data, $file){
+/*function timber_output($output, $data, $file){
     // wrap tease posts with col class
     if(strpos($file, "tease")>-1){
         $folder = explode("/", $file);
@@ -294,7 +236,7 @@ function timber_output($output, $data, $file){
     return $output;
 }
 add_action("timber/output", "timber_output", 2, 9999);
-
+*/
 
 function notification_url_map($action, $post_id, $user_id){
     switch($action){

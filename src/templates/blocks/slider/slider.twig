@@ -23,7 +23,7 @@
 {% extends "blocks/_block-container.twig" %}
 
 {% block block_content %}
-    
+
     {% set outside = "" %}
     {% set slider_controls = block_meta.row.controls %}
     {% for key, control in slider_controls %}
@@ -48,7 +48,7 @@
     {% set slide_index = 1 %}
     {% set slide_overlays = [] %}
 
-    {% set theme_styles = function("_get_option", "theme_styles") %}
+    {# set theme_styles = function("_get_option", "theme_styles") #}
 
     {% if outside != "" %}
     <div class="card card-reset w-100">
@@ -64,14 +64,25 @@
     {% if autoheight and fields.slider_settings.direction == "vertical" %}
        {% set autoheight = false %}
     {% endif %}
+ 
 
+    {% set has_lcp = false %}
+    {% for slide in fields.slider %}
+        {% if slide.add_media %}
+            {% if slide.media_type == "image" and slide.image %}
+                {% if function("image_is_lcp", slide.image) %}
+                   {% set has_lcp = true %}
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
 
-    <div class="swiper-slider swiper {% if fields.slider_parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not block_meta.settings.hero %} fade loading{% endif %} {% endif %} {% if autoheight and not settings.height == "ratio" %}position-relative h-auto{% else %}position-absolute-fill{% endif %}" {{block_meta.row.attrs}}>
+    <div class="swiper-slider swiper {% if fields.slider_parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not block_meta.settings.hero and not has_lcp %} fade loading{% endif %} {% endif %} {% if autoheight and not settings.height == "ratio" %}position-relative h-auto{% else %}position-absolute-fill{% endif %}" {{block_meta.row.attrs}}>
         <div class="swiper-wrapper">
             {% for slide in fields.slider %}
 
-                {% set lazy = (not is_preview and (not block_meta.settings.hero and loop.index != 1) and not fields.slider_settings.lazy) %}
-                {% set lcp = ( (block_meta.index == 0 and loop.index0 == 0) or (block_meta.settings.hero and block_meta.index == 0 and loop.index0 == 0) )?true:false %}
+                {% set lazy = not is_preview %} {#(not is_preview and (not block_meta.settings.hero and loop.index != 1) and not fields.slider_settings.lazy) %}#}
+                {% set lcp = false %}{#( (block_meta.index == 0 and loop.index0 == 0) or (block_meta.settings.hero and block_meta.index == 0 and loop.index0 == 0) )?true:false %}#}
                 {% set lazy_native = not lazy and fields.slider_settings.lazy %}
 
                 <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{loop.index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
@@ -99,16 +110,22 @@
                     {% if slide.add_media %}
 
                         {% if slide.media_type == "image" and slide.image %}
+
+                            {% if function("image_is_lcp", slide.image) %}
+                               {% set lazy = false %}
+                               {% set lcp = true %}
+                            {% endif %}
+
                             {% if not autoheight or (autoheight and block_meta.settings.height == "ratio") %}
                                 <div class="swiper-bg position-absolute-fill w-100 h-100">
-                                    {{img({src: slide.image, class : "object-fit-cover w-100 h-100", lazy: (not is_preview and (not block_meta.settings.hero and loop.index != 1)), lcp: (loop.index == 1?true:false)})}}
+                                    {{img({src: slide.image, class : "object-fit-cover w-100 h-100", lazy: lazy, lcp: lcp})}}
                                     {% if not lcp and fields.slider_settings.lazy and slider|length > 1 %}
                                         <div class="swiper-lazy-preloader"></div>
                                     {% endif %}
                                 </div>
                             {% else %}
                                 <div class="swiper-bg w-100 h-auto">
-                                    {{img({src: slide.image, class : "w-100 h-auto", lazy: (not is_preview and (not block_meta.settings.hero and loop.index != 1)), lcp: (loop.index == 1?true:false)})}}
+                                    {{img({src: slide.image, class : "w-100 h-auto", lazy: lazy, lcp: lcp})}}
                                     {% if not lcp and fields.slider_settings.lazy and slider|length > 1 %}
                                         <div class="swiper-lazy-preloader"></div>
                                     {% endif %}

@@ -144,6 +144,28 @@
             ]
         },
         {
+            "key": "field_67bf7e9791b38",
+            "label": "Title",
+            "name": "video_title",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "translations": "translate",
+            "maxlength": "",
+            "allow_in_bindings": 0,
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
             "key": "field_67975f5689401",
             "label": "Auto Generate Options",
             "name": "ffmpeg_available",
@@ -166,11 +188,15 @@
             ],
             "wrapper": {
                 "width": "100",
-                "class": "",
+                "class": "hidden",
                 "id": ""
             },
             "layout": "block",
             "acfe_seamless_style": 1,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
                     "key": "field_6797647a4fd31",
@@ -309,11 +335,7 @@
                     "ui_off_text": "",
                     "ui": 1
                 }
-            ],
-            "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large"
+            ]
         },
         {
             "key": "field_679763ca89402",
@@ -323,10 +345,22 @@
             "type": "message",
             "instructions": "",
             "required": 0,
-            "conditional_logic": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_663f74de3ea7a",
+                        "operator": "==",
+                        "value": "file"
+                    },
+                    {
+                        "field": "field_66f9e48418b77",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "message": "",
@@ -1059,7 +1093,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1738607675,
+    "modified": 1741610979,
     "acfe_categories": {
         "common": "Common"
     }

@@ -127,6 +127,10 @@ function btn_loading_page(){
         			redirect_polyfill($(this).attr("href"), true);
         		}else{
         			$("body").addClass("loading-process");
+        			setTimeout(() => {
+					    window.location.href = $(this).attr("href");
+					}, 50);
+
         		}
         	}
         })

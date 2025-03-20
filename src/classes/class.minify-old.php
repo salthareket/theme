@@ -86,6 +86,7 @@ class SaltMinifier{
 	}
 
 	public function css(){
+        
         //duplicate main.css to main-admin.css
 		$main_css = file_get_contents($this->output["main.css"]);
         file_put_contents($this->rules["config"]["css"] . 'main-admin.css', $main_css);
@@ -99,6 +100,7 @@ class SaltMinifier{
         }
         
         $this->locale_css();
+
 	}
 
 	public function locale_css(){
@@ -130,11 +132,12 @@ class SaltMinifier{
             return $this->output["plugins"];
         }
     }
+
 	public function rtl_css(){
-		if($this->rtl_list){
-	        foreach($this->rtl_list as $key => $rtl_item){
-	            $file_name = $key."-rtl.css";
-	            $css = file_get_contents($rtl_item);
+        if($this->rtl_list){
+            foreach($this->rtl_list as $key => $rtl_item){
+                $file_name = $key."-rtl.css";
+                $css = file_get_contents($rtl_item);
                 
                 //extract and store font-faces to preserve manupulation
                 $fonts = "";
@@ -159,9 +162,9 @@ class SaltMinifier{
                 // put back font faces and save
                 $css = $fonts.$css;
                 file_put_contents($this->get_rtl_folder($key) . $file_name, $css);
-	        }
-	    }
-	}
+            }
+        }
+    }
 
 	public function js(){
 		if ($this->rules["js"]["jquery"]){
@@ -174,6 +177,7 @@ class SaltMinifier{
 		$this->functions_js();
 		$this->main_js();
 		$this->plugins();
+        $this->rtl_css();
 		return $this->plugin_settings();
 	}
 	public function locale_js(){
@@ -237,6 +241,7 @@ class SaltMinifier{
             }
         }
 	}
+
 	public function functions_js(){
 		$minify = false;
 		if (file_exists($this->output["functions.min.js"])){
@@ -256,6 +261,7 @@ class SaltMinifier{
         	$this->minify_js($this->functions, $this->output["functions.min.js"], $this->prod_folder . 'functions/');
         }
 	}
+
 	public function main_js(){
 		$minify = false;
 		$total_files = [];
@@ -338,20 +344,28 @@ class SaltMinifier{
                         }else{
                             $minify->add($item_url);
                         }
+                        //$this->assets_check[] = $item_url;
+                        //$this->rtl_list[$filename] = $item_url;
                     }
                 }else{
                     $minify = new Minify\CSS($item);
+                    //$this->assets_check[] = $item;
+                    //$this->rtl_list[$filename] = $item;
                 }
             }else{
                 if(is_array($item)){
                     foreach($item as $item_url){
                         $minify->add($item_url);
+                        //$this->assets_check[] = $item_url;
+                        //$this->rtl_list[$filename] = $item_url;
                     }
                 }else{
                     $minify->add($item);
+                    //$this->assets_check[] = $item;
+                    //$this->rtl_list[$filename] = $item;
                 }
             }
-            $counter ++;
+            $counter++;
         }
         if($files){
             $minify->minify($output);
@@ -443,9 +457,9 @@ class SaltMinifier{
         $existing_meta = get_option("assets_plugins_conditional"); // Var olan option'u kontrol et
         if ($existing_meta) {
             $updates_plugins = $this->check_plugin_updates($existing_meta, $js_list_conditional_version);
-            //error_log("updates_plugins:".json_encode($updates_plugins));
+            error_log("updates_plugins:".json_encode($updates_plugins));
             $updates_init = $this->check_plugin_init_updates($this->plugins_update);
-            //error_log("updates_init:".json_encode($updates_init));
+            error_log("updates_init:".json_encode($updates_init));
             $updates = array_merge($updates_plugins, $updates_init);
             $updates = array_unique($updates);
             update_option("assets_plugins_conditional", $js_list_conditional_version); // Güncelle
@@ -457,85 +471,23 @@ class SaltMinifier{
         $js_json = get_stylesheet_directory() . '/static/js/js_files_conditional.json';
         file_put_contents($js_json, $js_list_conditional);
 
-        $this->rtl_css();
-
         return $updates;
 	}
 
 	public function plugin_assets($css_file = "") {
-        //error_log("plugin_assets-----------------------------------");
+        error_log("plugin_assets-----------------------------------");
 	    $enable_publish = get_option("options_enable_publish");
 	    $publish_url = "";
 	    if($enable_publish){
 	        $publish_url = get_option("options_publish_url");
 	    } 
-        //error_log($css_file);
+        error_log($css_file);
 	    $css = file_get_contents($css_file);
 
         $css_dir = dirname($css_file);
-
-        preg_match_all('/url\(([\s])?([\"|\'])?(.*?)([\"|\'])?([\s])?\)/i', $css, $matches, PREG_PATTERN_ORDER);
-
-        if ($matches) {
-            $assets = [];
-            
-            foreach ($matches[3] as $key => $match) {
-                if (substr($match, 0, 5) != "data:") {
-                    $relative_path = preg_replace('/\?.*$/', '', $match); // Parametreleri temizle
-                    $file = basename($relative_path); // Dosya adını al
-
-                    // Uzantı kontrolü yap
-                    if (!preg_match('/\.[a-zA-Z0-9]+$/', $file)) {
-                        // Eğer uzantı yoksa, sadece ilgili `url(...)` kısmını CSS'den temizle
-                        $css = preg_replace('/\b[\w-]+\s*:\s*' . preg_quote($matches[0][$key], '/') . '\s*;?/', '', $css);
-                    } else {
-                        // Eğer uzantı varsa, işlemleri yap
-                        $relative_path_parts = explode("node_modules", $relative_path);
-                        $clean_url = get_home_path()."node_modules".$relative_path_parts[1];
-
-                        $assets[] = array(
-                            "code" => $matches[0][$key],
-                            "url" => $match,
-                            "file" => $file,
-                            "clean_url" => $clean_url
-                        );
-                    }
-                }
-            }
-            if ($assets) {
-                if (!is_dir($this->output["plugin_assets"])) {
-                    mkdir($this->output["plugin_assets"], 0755, true); 
-                }
-                foreach ($assets as $key => $asset) {
-                    if (file_exists($asset["clean_url"]) && !is_dir($asset["clean_url"])) {
-                        copy($asset["clean_url"], $this->output["plugin_assets"] . $asset["file"]);
-                        $query = parse_url($asset["url"], PHP_URL_QUERY);
-                        $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                        if (!empty($publish_url)) {
-                            //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                        }
-                        $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
-                        $css = str_replace($asset["url"], $final_url, $css);
-                    }else{
-                        if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
-                            copy($asset["url"], $this->output["plugin_assets"] . $asset["file"]);
-                            $clean_url = explode('?', $asset["url"])[0];
-                            $query = parse_url($asset["url"], PHP_URL_QUERY);
-                            $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                            if(!empty($publish_url)){
-                                //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                            }
-                            $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
-                            $css = str_replace($asset["url"], $final_url, $css);
-                        }
-                    }
-                }
-            }
-            file_put_contents($css_file, $css);
-        }
-
-
-	    /*if ($matches) {
+	    preg_match_all('/url\(([\s])?([\"|\'])?(.*?)([\"|\'])?([\s])?\)/i', $css, $matches, PREG_PATTERN_ORDER);
+	    
+	    if ($matches) {
 	        $assets = array();
             foreach ($matches[3] as $key => $match) {
                 if (substr($match, 0, 5) != "data:") {
@@ -557,18 +509,27 @@ class SaltMinifier{
                 if (!is_dir($this->output["plugin_assets"])) {
                     mkdir($this->output["plugin_assets"], 0755, true); 
                 }
+                error_log(json_encode($assets));
                 foreach ($assets as $key => $asset) {
+                    // Dosya mevcutsa kopyala
                     if (file_exists($asset["clean_url"]) && !is_dir($asset["clean_url"])) {
+                        error_log("copy(".$asset["clean_url"].", ".$this->output["plugin_assets"] . $asset["file"].")");
                         copy($asset["clean_url"], $this->output["plugin_assets"] . $asset["file"]);
                         $query = parse_url($asset["url"], PHP_URL_QUERY);
                         $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
                         if (!empty($publish_url)) {
                             //$final_url = str_replace(home_url(), $publish_url, $final_url);
                         }
-                        $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
+                        //error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
+
+                        //$final_url = str_replace(STATIC_URL, "../", $final_url);
+
+                        $final_url = str_replace(STATIC_URL, "{STATIC_URL}", $final_url);
+
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
                         if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
+                             error_log("copy(".$asset["url"].", ".$this->output["plugin_assets"] . $asset["file"].")");
                             copy($asset["url"], $this->output["plugin_assets"] . $asset["file"]);
                             $clean_url = explode('?', $asset["url"])[0];
                             $query = parse_url($asset["url"], PHP_URL_QUERY);
@@ -576,14 +537,18 @@ class SaltMinifier{
                             if(!empty($publish_url)){
                                 //$final_url = str_replace(home_url(), $publish_url, $final_url);
                             }
-                            $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
+
+                            $final_url = str_replace(STATIC_URL, "{STATIC_URL}", $final_url);
+
+                            //error_log("str_replace(".$asset["url"].", ".$final_url.", css)");
+                            //$final_url = str_replace(STATIC_URL, "../", $final_url);
                             $css = str_replace($asset["url"], $final_url, $css);
                         }
                     }
                 }
                 file_put_contents($css_file, $css);
             }
-	    }*/
+	    }
 	}
 
 	public function set_plugin_versions(){
@@ -651,4 +616,5 @@ class SaltMinifier{
 		$this->css();
 		return $this->js();
 	}
+
 }

@@ -1852,6 +1852,69 @@ function acf_add_field_options($field) {
         }
     }
 
+    if(in_array("acf-api-list", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 1;
+        $field["search_placeholder"] = "Search an API";
+        $field["return_format"] = "value";
+        $apis = [
+            'google_maps'                  => 'Google Maps API',
+            'google_places'                => 'Google Places API',
+            'google_geocoding'             => 'Google Geocoding API',
+            'google_directions'            => 'Google Directions API',
+            'google_distance_matrix'       => 'Google Distance Matrix API',
+            'google_street_view'           => 'Google Street View API',
+            'google_maps_elevation'        => 'Google Maps Elevation API',
+            'google_maps_embed'            => 'Google Maps Embed API',
+            'google_static_maps'           => 'Google Static Maps API',
+            'google_cloud_vision'          => 'Google Cloud Vision API',
+            'google_cloud_translation'     => 'Google Cloud Translation API',
+            'google_speech_to_text'        => 'Google Cloud Speech-to-Text API',
+            'google_text_to_speech'        => 'Google Cloud Text-to-Speech API',
+            'google_cloud_functions'       => 'Google Cloud Functions API',
+            'google_cloud_firestore'       => 'Google Cloud Firestore API',
+            'google_firebase_db'           => 'Google Firebase Realtime Database API',
+            'google_firebase_auth'         => 'Google Firebase Authentication API',
+            'google_ads'                   => 'Google Ads API',
+            'google_analytics'             => 'Google Analytics API',
+            'google_search_console'        => 'Google Search Console API',
+            'google_drive'                 => 'Google Drive API',
+            'google_calendar'              => 'Google Calendar API',
+            'google_gmail'                 => 'Google Gmail API',
+            'google_youtube_data'          => 'Google YouTube Data API',
+            'google_youtube_analytics'     => 'Google YouTube Analytics API',
+            'google_pagespeed_insights'    => 'Google PageSpeed Insights API',
+            //
+            'openweather'         => 'OpenWeather',
+            'twitter'             => 'Twitter API',
+            'facebook_graph'      => 'Facebook Graph API',
+            'instagram_graph'     => 'Instagram Graph API',
+            'spotify'             => 'Spotify API',
+            'github'              => 'GitHub API',
+            'unsplash'            => 'Unsplash API',
+            'stripe'              => 'Stripe API',
+            'paypal'              => 'PayPal API',
+            'linkedin'            => 'Linkedin API',
+            'twilio'              => 'Twilio API',
+            'mailchimp'           => 'MailChimp API',
+            'sendgrid'            => 'SendGrid API',
+            'firebase'            => 'Firebase API',
+            'algolia'             => 'Algolia API',
+            //'wordpress_rest'    => 'WordPress REST API',
+            //'woocommerce'       => 'WooCommerce API',
+            'amazon_s3'           => 'Amazon S3 API',
+        ];
+        $field['choices'] = array();
+        foreach($apis as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+
     if($field["type"] == "select"){
         if(in_array("multiple", $class)){
             $field["multiple"] = 1;
@@ -3197,7 +3260,8 @@ function export_and_replace_wp_mysql_dump() {
 
     $live_url = get_option("options_publish_url");
     if (!$live_url) {
-        wp_send_json_error(["message" => "🚨 Hata: Live URL alınamadı!"]);
+        $live_url = $local_url;
+        //wp_send_json_error(["message" => "🚨 Hata: Live URL alınamadı!"]);
     }
 
     // **Uploads klasörüne kaydet**
@@ -3674,14 +3738,13 @@ function acf_save_menu_safelist_classes($post_id) {
     $blocks = parse_blocks(get_post_field('post_content', $post_id));
     if($blocks){
         foreach ($blocks as $block) {
-
             if ($block['blockName'] === 'acf/social-media') {
                 if (isset($block['attrs']['data'])) {
                     $block_data = $block['attrs']['data'];
-                    if (isset($block_data['accounts']) && is_numeric($block_data['accounts'])) {
-                        $account_count = $block_data['accounts']; // Örneğin 3
+                    if($block_data["add_accounts_from"] == "custom"){
+                        $account_count = $block_data['social_accounts_custom'];
                         for ($i = 0; $i < $account_count; $i++) {
-                            $account_name = isset($block_data["accounts_{$i}_name"]) ? $block_data["accounts_{$i}_name"] : '';
+                            $account_name = isset($block_data["social_accounts_custom_{$i}_name"]) ? $block_data["social_accounts_custom_{$i}_name"] : '';
                             if ($account_name) {
                                 $class = "fa-".$account_name;
                                 $classes = array_map('trim', array_filter(explode(' ', $class)));
@@ -3692,7 +3755,6 @@ function acf_save_menu_safelist_classes($post_id) {
                 }
                 break;
             }
-            
         }
     }
 
@@ -3869,6 +3931,20 @@ add_filter('acf/update_value/name=enable_twig_cache', 'acf_enable_twig_cache', 1
 
 
 
+/*
+function acf_testing($new_value, $post_id, $field) {
+    if ($post_id !== 'options') {
+        return $new_value;
+    }
+    $old_value = get_field($field['name'], 'option');
+    error_log(print_r($old_value, true));
+    error_log(print_r($new_value, true));
+    return $new_value;
+}
+add_filter('acf/update_value/name=post_pagination', 'acf_testing', 10, 3);
+*/
+
+
 
 
 function delete_related_video_attachments($post_id) {
@@ -3997,7 +4073,7 @@ function process_video_tasks_cron() {
         'orderby'        => 'ID',
         'order'          => 'ASC',
     ];
-
+    //$query = SaltBase::get_cached_query($args);
     $query = new WP_Query($args);
 
     if (!$query->have_posts()) {

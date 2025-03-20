@@ -13,7 +13,7 @@ ${settings.body}
 `;$('body').append(offcanvasTemplate);var offcanvasElement=new bootstrap.Offcanvas(document.getElementById(offcanvasId));$(this).on('click',function(){offcanvasElement.show();if(typeof settings.onShow==='function'){settings.onShow()}});$(`#${offcanvasId}`).on('hidden.bs.offcanvas',function(){if(typeof settings.onHide==='function'){settings.onHide()}
 $(`#${offcanvasId}`).remove()})})}}(jQuery));
 ajax_hooks['acf_layout_posts'] = {before:function(response,vars,form,objs){if(isset(objs[0])){var obj=$(objs[0])}else if(isset(objs.obj)){var obj=$(objs.obj)}
-obj.find(".item-total").html("SEARCHING...")},after:function(response,vars,form,objs){if(isset(objs[0])){var obj=$(objs[0])}else if(isset(objs.obj)){var obj=$(objs.obj)}
+console.log("acf layout posts çalıştı");obj.find(".item-total").html("SEARCHING...")},after:function(response,vars,form,objs){if(isset(objs[0])){var obj=$(objs[0])}else if(isset(objs.obj)){var obj=$(objs.obj)}
 var btn=obj.find(".btn-next-page");btn.removeClass("loading processing");debugJS(vars,form,objs);var scroll_to=vars.page;if(vars.page_total==vars.page){scroll_to=vars.page}
 var paged_url=bool(vars.paged_url);if(vars.page>1&&paged_url){var url="";if(vars.url.indexOf("?")>-1){var url_parts=vars.url.split("?");if(!IsBlank(url_parts[1])){var url_json=url2json(vars.url);if(url_json){if(url_json.hasOwnProperty("paged")){}
 url_parts[1]=json2url(url_json)}
@@ -50,7 +50,8 @@ if(vars.direction=="next"){$(vars.container).append(response.html);if($(vars.con
 if(vars.page_total==vars.page||IsBlank(response.html)){objs.btn.remove();var pagination=$(vars.container+"-pagination.next");if(pagination.length>0){pagination.remove()}}else{objs.btn.attr("data-page",vars.page+1);objs.btn.data("page",vars.page+1)}}
 if(!IsBlank(response.data)){$(".result-count").html(response.data)}
 root.ui.scroll_to($(vars.container).find("[data-page='"+(scroll_to)+"']"))}};
-ajax_hooks['site_config'] = {init:function(){var query=new ajax_query();query.method="site_config";query.request()},after:function(response,vars,form){site_config=response;if(site_config.hasOwnProperty("nonce")){if(!IsBlank(site_config)){ajax_request_vars.ajax_nonce=site_config.nonce}}
+ajax_hooks['site_config'] = {init:function(meta=[]){var query=new ajax_query();query.method="site_config";let vars={meta:meta}
+query.vars=vars;query.request()},after:function(response,vars,form){site_config=response;if(site_config.hasOwnProperty("nonce")){if(!IsBlank(site_config)){ajax_request_vars.ajax_nonce=site_config.nonce}}
 if(site_config.hasOwnProperty("favorites")){if(!IsBlank(favorites)){var favorites=$.parseJSON(site_config.favorites);if(favorites.length>0){debugJS(favorites)
 $(".nav-item[data-type='favorites']").addClass("active");$(".btn-favorite").each(function(){var id=parseInt($(this).attr("data-id"));$(this).removeClass("active");debugJS();if(inArray(id,favorites)){$(this).addClass("active")}})}}}
 if(site_config.cart>0){var counter=$(".nav-item[data-type='cart'] > a").find(".notification-count");if(counter.length==0){$(".nav-item[data-type='cart'] > a").prepend("<div class='notification-count'>"+site_config.cart+"</div>")}}

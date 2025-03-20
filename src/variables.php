@@ -1,5 +1,7 @@
 <?php
-
+if (defined('VARIABLES_LOADED')) {
+    return; // Eğer daha önce yüklendiyse tekrar yükleme
+}
 if (!function_exists("get_home_path")) {
     include_once ABSPATH . "/wp-admin/includes/file.php";
 }
@@ -130,7 +132,7 @@ define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_option("options_enable_
 add_action('acf/init', function(){
     $regional_post_settings = array();
     if(ENABLE_REGIONAL_POSTS){
-       $regional_post_settings = get_field("regional_post_settings", "option");
+       $regional_post_settings = SaltBase::get_cached_option('regional_post_settings');//get_field("regional_post_settings", "option");
     }
     define("REGIONAL_POST_SETTINGS", $regional_post_settings);
 });
@@ -424,6 +426,7 @@ include_once SH_CLASSES_PATH . "class.logger.php";
 include_once SH_CLASSES_PATH . "class.encrypt.php";
 include_once SH_CLASSES_PATH . "class.paginate.php";
 include_once SH_CLASSES_PATH . "class.localization.php";
+include_once SH_CLASSES_PATH . "class.lcp.php";
 //include 'classes/class.geolocation.query.php';
 
 include_once SH_INCLUDES_PATH . "notices.php";
@@ -484,3 +487,5 @@ if(SH_THEME_EXISTS){
 }
 //$salt->init();
 $GLOBALS["salt"] = $salt;
+
+define('VARIABLES_LOADED', true);

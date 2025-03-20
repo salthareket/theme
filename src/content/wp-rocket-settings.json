@@ -1,14 +1,15 @@
 {
-    "minify_css": 1,
     "exclude_css": [],
     "remove_unused_css_safelist": [],
     "critical_css": "",
-    "minify_js": 1,
     "exclude_inline_js": [],
     "exclude_js": [],
     "defer_all_js": 1,
     "exclude_defer_js": [],
     "delay_js": 1,
+    "delay_js_exclusions_selected": [
+        "76026e82-d9cf-482c-b480-55c57693a184"
+    ],
     "delay_js_exclusions": [],
     "exclude_lazyload": [],
     "image_dimensions": 1,
@@ -39,10 +40,10 @@
     "secret_key": "c1171a5c",
     "license": "",
     "secret_cache_key": "",
-    "minify_css_key": "6784921e67e9a761866070",
-    "minify_js_key": "6784921e67ef1956172455",
-    "version": "3.17.4",
-    "previous_version": "",
+    "minify_css_key": "67db2b140dbcc902327719",
+    "minify_js_key": "67db2b140dbd1574846995",
+    "version": "3.18.2",
+    "previous_version": "3.17.3.1",
     "cloudflare_old_settings": "",
     "cache_ssl": 0,
     "minify_google_fonts": 1,
@@ -56,6 +57,8 @@
     "cloudflare_zone_id": "",
     "async_css_mobile": "",
     "cache_logged_user": 0,
+    "minify_css": 0,
+    "minify_js": 0,
     "minify_concatenate_js": 0,
     "lazyload": 0,
     "lazyload_iframes": 0,
@@ -71,7 +74,14 @@
     "sucury_waf_cache_sync": 0,
     "cdn": 0,
     "varnish_auto_purge": 0,
-    "delay_js_exclusions_selected": [],
-    "delay_js_exclusions_selected_exclusions": [],
-    "cache_webp": 0
+    "host_fonts_locally": 0,
+    "delay_js_execution_safe_mode": 0,
+    "delay_js_exclusions_selected_exclusions": [
+        "google-analytics.com\/analytics.js",
+        "ga\\( '",
+        "ga\\('",
+        "\/gtag\/js",
+        "gtag\\(",
+        "\/gtm.js"
+    ]
 }

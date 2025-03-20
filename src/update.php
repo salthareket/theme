@@ -294,6 +294,7 @@ class Update {
                 echo '<button id="update-theme-button" class="button button-primary '.$init_class.'">Update to ' . esc_html($latest_version) . '</button>';
             } else {
                 echo '<h3 class="text-success fw-bold">Your theme is up to date.</h3>';
+                echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="update"></div>';
                 echo '<button id="update-theme-button" class="button button-primary '.$init_class.'">Update Depencies</button>';
             }
 

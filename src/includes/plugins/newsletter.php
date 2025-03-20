@@ -11,7 +11,7 @@
             wp_localize_script( 'newsletter-ajax', 'newsletter_ajax', array(
                 'url' =>            admin_url( 'admin-ajax.php' ),
                 'ajax_nonce' =>     wp_create_nonce( 'noncy_nonce' ),
-                'assets_url' =>     get_stylesheet_directory_uri()
+                'theme_url' =>     get_stylesheet_directory_uri()
             ) );
         //} 
     }

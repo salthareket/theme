@@ -52,7 +52,7 @@ var size = root.browser.size();
 root.get_css_vars();
 
 if(isLoadedJS("vanilla-lazyload")){
-	var lazyLoadInstance = new LazyLoad({
+	 lazyLoadInstance = new LazyLoad({
 	    elements_selector: ".lazy",
 	    //use_native : true,
 	    //unobserve_entered: true,
@@ -79,13 +79,21 @@ if(isLoadedJS("vanilla-lazyload")){
 			if(obj.closest(".jarallax").length>0){
 			   //obj.closest(".jarallax").newJarallax();
 			}
+
+			if(obj.hasClass("video")){
+				obj.closest(".lazy-container").removeClass("lazy-container");
+	            obj.parent().find(">.plyr__poster").remove();
+	            obj.parent().addClass("lazy-loaded")
+				plyr_init(obj.parent());
+			}
+
 			$.fn.matchHeight._update();
 	    },
 	    callback_error : function(e){
 	    	var obj = $(e);
 	    	debugJS(obj.attr("data-placeholder"))
 	    	if(obj[0].nodeName == 'IMG' && obj.attr("data-placeholder")){
-	    	    obj.attr("data-src", template_uri+"/static/img/placeholder/img-"+obj.attr("data-placeholder")+".jpg");
+	    	    obj.attr("data-src", ajax_request_vars.theme_url+"/static/img/placeholder/img-"+obj.attr("data-placeholder")+".jpg");
 	    	    obj.closest(".loading").removeClass("loading")
 		        obj.closest(".loading-hide").removeClass("loading-hide");
 		        obj.closest(".loading-process").removeClass("loading-process");
@@ -99,7 +107,7 @@ if(isLoadedJS("vanilla-lazyload")){
 	    	var obj = $(e);
 	    	if(obj[0].nodeName == 'IMG' && obj.attr("data-placeholder")){
 	           if(IsBlank(obj.attr("data-src")) && IsBlank(obj.attr("src"))){
-		    	   obj.attr("data-src", template_uri+"/static/img/placeholder/img-"+obj.attr("data-placeholder")+".jpg");
+		    	   obj.attr("data-src", ajax_request_vars.theme_url+"/static/img/placeholder/img-"+obj.attr("data-placeholder")+".jpg");
 		    	   obj.closest(".loading").removeClass("loading")
 		           obj.closest(".loading-hide").removeClass("loading-hide");
 		           obj.closest(".loading-process").removeClass("loading-process");
@@ -109,19 +117,24 @@ if(isLoadedJS("vanilla-lazyload")){
 			       LazyLoad.load(obj[0]);          	
 	           }
 		    }
-		    var lazyFunctionName = e.getAttribute("data-lazy-function");
-			var lazyFunction = window.lazyFunctions[lazyFunctionName];
-			if (!lazyFunction) return;
-			lazyFunction(e);
+
 			if(typeof window["AOS"] === "object"){
 				AOS.refreshHard();
 			}
+            
+            var lazyFunctionName = e.getAttribute("data-lazy-function");
+            if(lazyFunctionName){
+				var lazyFunction = window.lazyFunctions[lazyFunctionName];
+				if (!lazyFunction) return;
+				lazyFunction(e);            	
+            }
 	    }
 	});
 	//for ajax
 	//lazyLoadInstance.update();
 	document.addEventListener('lazyloaded', function(e){
 		var obj = $(e.target);
+		console.log(obj)
 		if(obj.hasClass("swiper-bg")){
 	       obj.closest(".swiper-slide").addClass("image-loaded");
 		}

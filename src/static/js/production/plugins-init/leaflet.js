@@ -1,4 +1,4 @@
-const leaflet_images = template_uri+'/static/js/assets/';
+const leaflet_images = ajax_request_vars.theme_url+'/static/js/assets/';
 
 // Mevcut URL'leri alıp prefix ekleyerek güncelleriz
 L.Icon.Default.mergeOptions({
@@ -160,7 +160,7 @@ function init_leaflet(){
 	    					}else{
 
 		    					twig({
-			                        href : ajax_request_vars.assets_url+config.popup.template,
+			                        href : ajax_request_vars.theme_url+config.popup.template,
 									async : false,
 									allowInlineIncludes : false,
 									load: function(template) {
@@ -281,7 +281,7 @@ function init_leaflet(){
 	    						}else{
 
 									twig({
-				                        href : ajax_request_vars.assets_url+config.popup.template,
+				                        href : ajax_request_vars.theme_url+config.popup.template,
 										async : false,
 										allowInlineIncludes : false,
 										load: function(template) {

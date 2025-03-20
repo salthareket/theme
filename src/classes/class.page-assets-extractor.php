@@ -14,6 +14,7 @@ class PageAssetsExtractor {
     public $upload_url = "";
     public $upload_url_encoded = "";
     public $url;
+    public $html;
 
     public function __construct() {
         error_log("PageAssetsExtractor initialized in admin.");
@@ -103,6 +104,8 @@ class PageAssetsExtractor {
             return false;
         }
 
+        $this->url = $fetch_url;
+
         $opts = [
             "http" => [
                 "header" =>  "User-Agent: MyFetchBot/1.0\r\n"
@@ -111,23 +114,12 @@ class PageAssetsExtractor {
         $context = stream_context_create($opts);
         $html_content = HtmlDomParser::file_get_html($fetch_url, false, $context);
         
-        //$html_content = HtmlDomParser::file_get_html($fetch_url, false, $context);
-        
         if (!$html_content) {
             return false;
         }
 
-        /*// <main> tagini bul
-        $main_content = $html_content->findOne('main') ? $html_content->findOne('main')->outerHtml() : '';
+        $this->html = $html_content;
 
-        // block-* classına sahip divleri bul
-        $block_content = "";
-        $block = $html_content->findOne('.block--hero');
-        if($block){
-            $block_content = $block->outerHtml();
-        }
-        $html = HtmlDomParser::str_get_html($main_content . $block_content);
-        */  
         return $this->extract_assets($html_content, $id);
     }
 
@@ -155,9 +147,11 @@ class PageAssetsExtractor {
 
 
 
-    private function remove_unused_css($html, $output){
-        $css = file_get_contents(STATIC_PATH ."css/main-combined.css");
-        $remover = new RemoveUnusedCss($html, $css);
+    private function remove_unused_css($html, $input = "", $output="", $whitelist=[], $critical_css = false){
+        if(empty($input)){
+            $input = file_get_contents(STATIC_PATH ."css/main-combined.css");
+        }
+        $remover = new RemoveUnusedCss($html, $input, $output, $whitelist, $critical_css);
         return $remover->process();
     }
    
@@ -185,7 +179,6 @@ class PageAssetsExtractor {
             $block_content = $block->outerHtml();
         }
         $html = HtmlDomParser::str_get_html($main_content . $block_content);
-
 
         // <style> ve <script> etiketlerini $main ve $block içinde ara
         if ($html) {
@@ -233,9 +226,11 @@ class PageAssetsExtractor {
             if($css){
                 $css = array_unique($css);
                 $css = implode("\n", $css);
+
                 $minifier = new Minify\CSS();
                 $minifier->add($css);
                 $css = $minifier->minify();
+
                 $css = str_replace($this->upload_url, "{upload_url}", $css);
                 $css = str_replace($this->upload_url_encoded, "{upload_url}", $css);
                 $css = str_replace($this->home_url, "{home_url}", $css);
@@ -275,7 +270,7 @@ class PageAssetsExtractor {
             }
 
             if($this->type == "post" && get_option('page_on_front') == $id){
-                $modal_home = get_field("modal_home", "option");
+                $modal_home = SaltBase::get_cached_option("modal_home");//get_field("modal_home", "option");
                 if($modal_home){
                     if($modal_home["type"] == "video"){
                         $plugins[] = "plyr";
@@ -292,27 +287,22 @@ class PageAssetsExtractor {
             if($plugins){
 
                 //plugin css
+                $plugin_files_whitelist = [];
                 $plugin_files_css = [];
                 $plugin_files_css_rtl = [];
                 foreach($plugins as $plugin){
                     if($files["js"]["plugins"][$plugin]["css"]){
-                        $plugin_files_css[] = STATIC_URL . 'js/plugins/'.$plugin.".css"; 
-                    }
-                }
-                foreach($plugins as $plugin){
-                    if($files["js"]["plugins"][$plugin]["css"]){
-                        $plugin_files_css_rtl[] = STATIC_URL . 'js/plugins/'.$plugin."-rtl.css"; 
+                        $plugin_files_css[] = STATIC_URL . 'js/plugins/'.$plugin.".css";
+                        $plugin_files_css_rtl[] = STATIC_URL . 'js/plugins/'.$plugin."-rtl.css";
+                        $plugin_files_whitelist[] = $files["js"]["plugins"][$plugin]["whitelist"];
                     }
                 }
                 if($plugin_files_css){
-                    $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css);//dosya adı
-                    
+                    $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css, $plugin_files_whitelist);//dosya adı
                     $plugin_css = str_replace(STATIC_URL, '', $plugin_css);
-                    //print_r($plugin_css);
-                    
                 }
                 if($plugin_files_css_rtl){
-                    $plugin_css_rtl = $this->combine_and_cache_files("css", $plugin_files_css_rtl);
+                    $plugin_css_rtl = $this->combine_and_cache_files("css", $plugin_files_css_rtl, $plugin_files_whitelist);
                     $plugin_css_rtl = str_replace(STATIC_URL, '', $plugin_css_rtl);
                 }
 
@@ -328,8 +318,8 @@ class PageAssetsExtractor {
                     $plugin_js = $this->combine_and_cache_files("js", $plugin_files_js);
                     $plugin_js = str_replace(STATIC_URL, '', $plugin_js);
                 }
-
             }
+
         }
         
         $wp_js = [];
@@ -351,7 +341,13 @@ class PageAssetsExtractor {
             $cache_dir = STATIC_PATH . 'css/cache/';
             $css_page_hash = md5($this->type."-".$id);
             $css_page = $cache_dir . $css_page_hash . '.css';
-            $css_page_content = $this->remove_unused_css($html_content, $css_page);
+
+            $css_page_content = $this->remove_unused_css($html_content);
+
+            /*$css_page_content = $this->remove_unused_css($html_content, "", "", [], true);//, $css_page);
+            $css = $css_page_content["critical_css"].$css;
+            $css_page_content = $css_page_content["css"];*/
+
             $css_page_content = str_replace("../", "../../", $css_page_content);
             file_put_contents($css_page, $css_page_content);
             //rtl
@@ -362,8 +358,8 @@ class PageAssetsExtractor {
             $rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
             $rtlcss->flip();
             $css_page_content_rtl = $tree->render();
-            $minify = new Minify\CSS($css_page_content_rtl);
-            $css_page_content_rtl = $minify->minify();
+            //$minify = new Minify\CSS($css_page_content_rtl);
+            //$css_page_content_rtl = $minify->minify();
             file_put_contents($css_page_rtl, $css_page_content_rtl);
 
             $css_page = str_replace(STATIC_PATH, '', $css_page);
@@ -381,10 +377,11 @@ class PageAssetsExtractor {
             "plugin_css_rtl" => $plugin_css_rtl,
             "wp_js" => $wp_js,
         );
+        //error_log(print_r($result, true));
         return $this->save_meta($result, $id);
     }
 
-    public function combine_and_cache_files($type, $files) {
+    public function combine_and_cache_files($type, $files, $whitelist = []) {
         if ($type !== 'css' && $type !== 'js') {
             return false;
         }
@@ -410,8 +407,12 @@ class PageAssetsExtractor {
         } else {
             sort($files);
         }
-
-        $file_names = implode(',', $files);
+        if($type == "js"){
+            $file_names = implode(',', $files);
+        }else{
+            $file_names = implode(',', $files)."-".$this->url;
+        }
+        
         $hash = md5($file_names);
         $cache_dir = STATIC_PATH . $type . '/cache/';
         $cache_file = $cache_dir . $hash . '.' . $type;
@@ -425,16 +426,21 @@ class PageAssetsExtractor {
         }
 
         $combined_content = '';
-        foreach ($files as $file) {
+        foreach ($files as $key => $file) {
             // Dosyanın tam yolunu kullan
-            $file_system_path = STATIC_PATH . 'js/plugins/' . basename($file);
+            $plugin_name = basename($file);
+            $file_system_path = STATIC_PATH . 'js/plugins/' . $plugin_name;
             
             if (file_exists($file_system_path)) {
                 $content = file_get_contents($file_system_path);
                 if ($content !== false) {
                     if($type == "css"){
                         $content = str_replace(STATIC_URL, "../../", $content);// read assets from cache folder
-                        $content = str_replace("{STATIC_URL}", "../../", $content);// read assets from cache folder
+                        $content = str_replace("[STATIC_URL]", "../../", $content);// read assets from cache folder
+                    }
+                    // remove unused css from plugin's css file
+                    if($type == "css" && $whitelist[$key]){
+                        $content = $this->remove_unused_css($this->html, $content, "", $whitelist[$key]);
                     }
                     $combined_content .= $content . PHP_EOL; // Sonuna yeni satır ekleniyor
                 } else {
@@ -457,10 +463,22 @@ class PageAssetsExtractor {
     }
 
     public function save_meta($result, $id) {
+        $meta = [
+            "type" => "",
+            "id"   => ""
+        ];
+        $result["lcp"] = [
+            "desktop" => [],
+            "mobile"  => []
+        ];
         if($this->type != "archive"){
             $meta_function_get = "get_{$this->type}_meta";
             $meta_function_update = "update_{$this->type}_meta";
             $meta_function_add = "add_{$this->type}_meta";
+
+            $meta["type"] = $this->type;
+            $meta["id"] = $id;
+            $result["meta"] = $meta;
 
             $existing_meta = call_user_func($meta_function_get, $id, 'assets', true);
             if ($existing_meta) {
@@ -471,6 +489,10 @@ class PageAssetsExtractor {
 
         }else{
             //"post_type_${lang}_assets";
+            $meta["type"] = "archive";
+            $meta["id"] = $id;
+            $result["meta"] = $meta;
+
             $option_name = $id . '_assets'; // Option name oluştur
             $existing_meta = get_option($option_name); // Var olan option'u kontrol et
             if ($existing_meta) {
@@ -480,8 +502,9 @@ class PageAssetsExtractor {
             }
         }
         if($this->type == "post" && !$this->mass){
-            //$this->save_post_terms( $id ); //causes wprocket error
+            $this->save_post_terms( $id ); //causes wprocket error
         }
+        
         $this->disable_hooks = false;
         return $result;
     }
@@ -667,7 +690,6 @@ class PageAssetsExtractor {
                                     ];                                    
                                 }
                             }
-
                         break; 
                 }
 
@@ -734,7 +756,7 @@ class PageAssetsExtractor {
                     );
 
                     if ( isset( $term->term_id, $taxonomy ) && ! empty( $args['name'] ) ) {
-                        wp_update_term( $term->term_id, $taxonomy, $args );
+                        return wp_update_term( $term->term_id, $taxonomy, $args );
                     }
                 }
             }

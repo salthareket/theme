@@ -5,6 +5,7 @@
         }else if(isset(objs.obj)){
             var obj = $(objs.obj);
         }
+        console.log("acf layout posts çalıştı");
         obj.find(".item-total").html("SEARCHING...");
     },
     after: function(response, vars, form, objs) {

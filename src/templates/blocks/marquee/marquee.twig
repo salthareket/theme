@@ -38,7 +38,9 @@
 							<a href="{{item.link}}" title="{{item.title}}" style="color:{{fields.settings.color}}">
 						{% endif %}
 							{{ item.title }}
-							<img src="{{ item.thumbnail.src }}" class="img-fluid">
+							{% if item.thumbnail %}
+								<img src="{{ item.thumbnail.src }}" class="img-fluid" alt="{{item.thumbnail.alt_text}}">
+							{% endif %}
 						{% if fields.settings.add_links %}
 							</a>
 						{% endif %}

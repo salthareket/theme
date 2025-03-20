@@ -1,3 +1,53 @@
+function resizeDebounce(func, wait) {
+	let timeout;
+	return function(...args) {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(this, args), wait);
+	};
+}
+
+$.fn.fitEmbedBackground = function() {
+        return this.each(function() {
+            var container = $(this),
+                iframe = container.find('iframe');
+
+            // Video boyutunu yeniden hesapla
+            function resizeVideo() {
+                var containerWidth = container.width(),
+                    containerHeight = container.height(),
+                    containerRatio = containerWidth / containerHeight,
+                    videoRatio = 16 / 9;
+
+                // Genişlik/Yükseklik oranlarına göre iframe boyutunu ayarla
+                if (containerRatio > videoRatio) {
+                    iframe.css({
+                        width: containerWidth + 'px',
+                        height: (containerWidth / videoRatio) + 'px'
+                    });
+                } else {
+                    iframe.css({
+                        width: (containerHeight * videoRatio) + 'px',
+                        height: containerHeight + 'px'
+                    });
+                }
+            }
+
+            // İlk çalıştırma
+            resizeVideo();
+
+            // Gecikmeli resize
+            var debounce = resizeDebounce(resizeVideo, 10);
+
+            // Resize ve fullscreen olaylarını dinle
+            $(window).on('resize', debounce);
+            $(document).on(
+                'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange',
+                debounce
+            );
+
+        });
+};
+/*
 function lazyLoadIframe($player) {
     $player.find(".plyr__video-embed iframe").each(function () {
         let iframe = $(this);
@@ -33,16 +83,13 @@ function lazyLoadBg($obj){
 	});
 }
 
-
-
 function enableLazyIframe($container) {
     let iframe = $container.find("iframe.lazy");
     if (iframe.length && iframe.attr("data-src")) {
         iframe.attr("src", iframe.attr("data-src"));
         iframe.removeClass("lazy");
     }
-}
-
+}*/
 
 function plyr_init_all(){
 	if(!isLoadedJS("plyr")){
@@ -61,18 +108,31 @@ function plyr_init($obj){
 	}
 	var token_init = "plyr-init";
 	if(!IsBlank($obj)){
-		if($obj.hasClass(token_init)){
+		if($obj.hasClass(token_init) || $obj.hasClass("lazy-container")){
 			return;
 		}
+
+		console.log($obj)
 
 		var config_data = $obj.attr("data-plyr-config");
 		if(!IsBlank(config_data) && typeof config_data != "undefined"){
 			config_data = JSON.parse(config_data);
+			config_data["youtube"] = {
+		        noCookie: true,
+		    };
 		}else{
 			config_data = {};
 		}
 
+		const type = $obj[0].tagName.toLowerCase() === 'div' ? 'embed' : $obj[0].tagName.toLowerCase();
+
+		const lazy_loaded = $obj.hasClass("lazy-loaded");
+
 		const video_bg = $obj.hasClass("video-bg");
+
+		if(video_bg && $obj.find("iframe").length > 0){
+			$obj.addClass("plyr--bg");
+		}
 
 		function set_quality(video){
 			let devices = {phone: {size: 360, max: 767}, "tablet": {size: 480, min: 768, max: 1024}, "desktop" : {size: 720, min: 1025} };
@@ -138,33 +198,54 @@ function plyr_init($obj){
 		  	const instance = e.detail.plyr;
 		  	const config = instance.config;
 
-		  	if ($obj.find(".plyr__video-embed").length) {
+		  	/*if ($obj.find(".plyr__video-embed").length) {
                 //lazyLoadBg($obj.find(".plyr__poster"));
                 //lazyLoadIframe($obj);
+                const videoData = instance.source;
+			    console.log(videoData);
+			    const videoTitle = videoData.title;
+			    if (videoTitle) {
+			        const iframe = instance.elements.container.querySelector('iframe');
+			        iframe.setAttribute('title', videoTitle);
+			    }
+            }*/
+
+            $obj.find(">.plyr__poster").remove();
+            
+            if(type == "video"){
+            	set_quality(video);
             }
-
-		  	set_quality(video);
-
-		  	$obj.find(".plyr__video-embed").fitEmbedBackground();
+            
+            if(type == "embed"){
+		  		$obj.find(".plyr__video-embed").fitEmbedBackground();
+		    }
 
 		  	video_container.addClass("loaded ready inited");
 
-		  	if (document.hidden) {
-		  		video_container.addClass("viewport-paused");
-	            instance.pause();
-	        } else if (!config.autoplay) {
-	        	video_container.removeClass("viewport-paused")
-	            video_container.addClass("paused");
-	        }
+		  	if(lazy_loaded){
+		  		video.pause();
+		  		video.restart();
+		  	}
 
-        	if(!config.autoplay){
-				video_container.addClass("paused");
-			}else{
-				if(video_container.is(":in-viewport") && !document.hidden){
-				   video.play();
-			    }
-			}
-        	$(window).trigger("resize");
+			  	if (document.hidden) {
+			  		video_container.addClass("viewport-paused");
+		            instance.pause();
+		        } else if (!config.autoplay) {
+		        	video_container.removeClass("viewport-paused")
+		            video_container.addClass("paused");
+		        }
+
+	        	if(!config.autoplay){
+					video_container.addClass("paused");
+					console.log("pausedddddd")
+				}else{
+					if(video_container.is(":in-viewport") && !document.hidden){
+					   video.play();
+					   console.log("plaaaayyyiiiiiingg")
+				    }
+				}
+	        	$(window).trigger("resize");
+
 		})
 		.on("play", (e) => {
 		  	video_container.removeClass("loading").addClass("playing").removeClass("paused").removeClass("inited");
@@ -283,16 +364,12 @@ function plyr_init($obj){
 			$obj.removeClass("jarallax-img");
 			video_container.closest(".plyr").addClass("jarallax-img");
 		}
-
-		if(video_bg && $obj.find("iframe").length > 0){
-			$obj.addClass("plyr--bg");
-		}
-
+		
 		return video;
 	}
 }
 
-$(".player.init-me").each(function(){
+$(".player.init-me").not(".lazy-container").each(function(){
 	plyr_init($(this));
 });
 

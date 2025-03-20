@@ -283,7 +283,8 @@ function bwp_url_to_postid($url){
 		}
 
 			// Do the query
-			$query = new WP_Query($query);
+		    $query = SaltBase::get_cached_query($query);
+			//$query = new WP_Query($query);
 			if ( !empty($query->posts) && $query->is_singular )
 				return $query->post->ID;
 			else
@@ -478,6 +479,12 @@ function is_prefetch_request() {
     }
 
     return false;
+}
+
+
+function is_local($url="") {
+    $site_url = get_site_url(); // WordPress sitenin ana URL'si
+    return strpos($url, $site_url) === 0; // URL, site URL'si ile başlıyorsa yereldir
 }
 
 function is_external($url=""){

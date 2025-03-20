@@ -108,7 +108,7 @@ function init_leaflet(){
 	    					}else{
 
 		    					twig({
-			                        href : ajax_request_vars.assets_url+config.popup.template,
+			                        href : ajax_request_vars.theme_url+config.popup.template,
 									async : false,
 									allowInlineIncludes : false,
 									load: function(template) {
@@ -229,7 +229,7 @@ function init_leaflet(){
 	    						}else{
 
 									twig({
-				                        href : ajax_request_vars.assets_url+config.popup.template,
+				                        href : ajax_request_vars.theme_url+config.popup.template,
 										async : false,
 										allowInlineIncludes : false,
 										load: function(template) {

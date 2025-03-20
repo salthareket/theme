@@ -8,7 +8,8 @@ Class Image{
         'src' => '',
         'id' => null,
         'class' => '',
-        'lazy' => true,
+        'style' => '',
+        'lazy' => false,
         'lazy_native' => false,
         'width' => null,
         'height' => null,
@@ -47,12 +48,12 @@ Class Image{
         if($this->args["lcp"]){
 	       $this->args["lazy"] = false;
 	       $this->args["lazy_native"] = false;
-	       $this->attrs["fetchpriority"] = "high";
+	       $this->args["attrs"]["fetchpriority"] = "high";
+           $this->args["attrs"]["loading"] = "eager";
 	    }
 
         $this->prefix = $this->args["lazy"]?"data-":"";
 
-    
         if(is_array($this->args["src"]) && in_array(array_keys($this->args["src"])[0], array_keys($this->breakpoints))){
 
             $values = remove_empty_items(array_values($this->args["src"]));
@@ -320,7 +321,7 @@ Class Image{
                         $query_w = "min";
                         $w = $keys[$counter+1] + 1;
                     }
-                    $srcset .= '<source media="('.$query_w.'-width: '.$w.'px)" '.$args[0]["prefix"].'srcset="'.$item.'">';
+                    $srcset .= '<source media="('.$query_w.'-width: '.$w.'px)" '.$args[0]["prefix"].'srcset="'.$item.'"/>';
                     $counter++;
                 }
             }
@@ -341,11 +342,11 @@ Class Image{
                 $best_image = $this->find_best_image_for_breakpoint($args, $breakpoint, array_keys($this->breakpoints));
 
                 if ($best_image) {
-                    $html .= '<source media="'.$query.'" '.$args[0]["prefix"].'srcset="'.$best_image["image"].'">' . "\n";
+                    $html .= '<source media="'.$query.'" '.$args[0]["prefix"].'srcset="'.$best_image["image"].'"/>' . "\n";
                     $last_image = $best_image;
                 }else{
                     if($last_image){
-                        $html .= '<source media="'.$query.'" '.$args[0]["prefix"].'srcset="'.$last_image["src"]->src($breakpoint).'">' . "\n";
+                        $html .= '<source media="'.$query.'" '.$args[0]["prefix"].'srcset="'.$last_image["src"]->src($breakpoint).'"/>' . "\n";
                     }
                 }
             }
@@ -422,20 +423,26 @@ Class Image{
         return rtrim($sorted_srcset, ', ');
     }
 
-    public function add_preload_image($attrs){
+    public static function add_preload_image($attrs=[], $echo = true){
+        $code = "";
         error_log("add_preload_image ".json_encode($attrs));
         if(empty($attrs)){
             return;
         }
         if(is_array($attrs)){
             if(isset($attrs["srcset"])){
-                echo '<link rel="preload" as="image" href="'.$attrs["src"].'" imagesrcset="'.$attrs["srcset"].'" imagesizes="'.$attrs["sizes"].'">'."\n";
+                $code = '<link rel="preload" as="image" href="'.$attrs["src"].'" imagesrcset="'.$attrs["srcset"].'" imagesizes="'.$attrs["sizes"].'" fetchpriority="high">'."\n";
             }else{
                 error_log(json_encode($attrs["src"]));
-                echo '<link rel="preload" href="'.$attrs["src"].'" as="image">'."\n";
+                $code = '<link rel="preload" href="'.$attrs["src"].'" as="image" fetchpriority="high">'."\n";
             }       
         }else{
-            echo '<link rel="preload" href="'.$attrs.'" as="image">'."\n";
+            $code = '<link rel="preload" href="'.$attrs.'" as="image" fetchpriority="high">'."\n";
+        }
+        if($echo){
+            echo $code;
+        }else{
+            return $code;
         }
     }
 

@@ -272,7 +272,7 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
 }
 
 function block_container_class($container=""){
-    $default = get_field("default_container", "options");
+    $default = SaltBase::get_cached_option("default_container");//get_field("default_container", "options");
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " px-4 px-lg-3";
     switch($container){
         case "" :
@@ -500,7 +500,7 @@ function block_spacing($settings) {
 function generate_spacing_classes($spacing, $prefix) {
     $classes = [];
     $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
-    $default = get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
+    $default = SaltBase::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
 
     // 'default' değerlerini doldur
     foreach ($spacing as $key => $item) {
@@ -669,6 +669,9 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                 $size = unit_value($control["view"]["size"]);
                 $sides_offset = unit_value($control["view"]["x"]);
                 $top_offset = unit_value($control["view"]["y"]);
+
+                $color = $control["view"]["color"];
+                $color_dark = $control["view"]["color_dark"];
 
                 if($position_x == "center"){
                     $top_offset = unit_value($control["view"]["y"]);
@@ -1149,12 +1152,27 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                 }
 
                 $values = [];
+                $values["--swiper-navigation-color"] = $color;
+                $values["--swiper-navigation-color-dark"] = $color_dark;
                 $values["--swiper-navigation-size"] = $size;
                 $values["--swiper-navigation-sides-offset"] = $sides_offset;
                 $values["--swiper-navigation-top-offset"] = $top_offset;
                 $values["--swiper-navigation-width"] = "calc(var(--swiper-navigation-size)/ 44 * 27)";
                 $css[] = $id."{" .
                     implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
+                "}";
+
+                if($placement == "outside"){
+                    $css[] = $id.">.card{" .
+                        "min-height: inherit;" .
+                    "}";                     
+                }
+
+                $css[] = $id." .swiper-button-prev, ".$id." .swiper-button-next{" .
+                    "transition: color .3s ease-out, background-color .3s ease-out;" .
+                "}";
+                $css[] = $id." .swiper.slide-dark .swiper-button-prev, ".$id." .swiper.slide-dark .swiper-button-next{" .
+                    "color: var(--swiper-navigation-color-dark);" .
                 "}";
 
                 if($rotate){
@@ -1202,6 +1220,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     $width = unit_value($control["view"]["bullets"]["width"]);
                     $height = unit_value($control["view"]["bullets"]["height"]);
                     $size = unit_value($control["view"]["bullets"]["width"]);
+                    $border_radius = unit_value($control["view"]["bullets"]["border_radius"]);
 
                     if($position_x == "center"){
                         $left = "50%";
@@ -1340,9 +1359,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                                 "}";
                             }
                         break;
-
                         
-
                         //orta üst
                         case "center-start" : //ok
                             if($direction == "vertical"){
@@ -1441,7 +1458,6 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                                 "}";*/
                             }
                         break;
-
 
 
                         //sag ust
@@ -1577,6 +1593,16 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                             }
                         break;
                     }
+
+                    if($placement == "outside"){
+                        $css[] = $id.">.card{" .
+                            "min-height: inherit;" .
+                        "}";                     
+                    }
+                    $css[] = $pagination."{" .
+                         "font-size: 0;" .
+                         "z-index: 3;" .
+                    "}";
                     
                     $css[] = $id." .swiper .swiper-pagination .swiper-pagination-bullet{" .
                          "transition: background .3s ease-out;" .
@@ -1599,6 +1625,7 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                     $values["--swiper-pagination-bullet-size"] = $size;
                     $values["--swiper-pagination-bullet-width"] = $width;
                     $values["--swiper-pagination-bullet-height"] = $height;
+                    $values["--swiper-pagination-bullet-border-radius"] = $border_radius;
                     $values["--swiper-pagination-bullet-horizontal-gap"] = $gap_x;
                     $values["--swiper-pagination-bullet-vertical-gap"] = $gap_y;
                     $values["--swiper-pagination-left"] = $left;
@@ -1890,8 +1917,15 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                         break;
                     }
 
+                    if($placement == "outside"){
+                        $css[] = $id.">.card{" .
+                            "min-height: inherit;" .
+                        "}";                     
+                    }
+
                     $css[] = $pagination."{" .
                         "font-size: var(--swiper-pagination-fraction-size);" .
+                        "z-index: 3;" .
                     "}";
 
                     $css[] = $id." .swiper.slide-dark .swiper-pagination-fraction{" .
@@ -2126,6 +2160,17 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                         break;
                     }
 
+                    if($placement == "outside"){
+                        $css[] = $id.">.card{" .
+                            "min-height: inherit;" .
+                        "}";                     
+                    }
+
+                    $css[] = $pagination."{" .
+                        "font-size: var(--swiper-pagination-fraction-size);" .
+                        "z-index: 3;" .
+                    "}";
+
                     $css[] = $pagination."{" .
                         "font-size: var(--swiper-pagination-custom-size);" .
                         "color: var(--swiper-pagination-custom-color);" .
@@ -2150,14 +2195,12 @@ function block_slider_controls($id = "", $controls = [], $direction = "horizonta
                         implode("; ", array_map(fn($k, $v) => "$k: $v", array_keys($values), $values)) .
                     "}";
                 }
-                
             break;
 
             case "pagination_thumbs" :
                 $attrs[$type] = 1;
 
                 $values = [];
-
             break;
 
             case "scrollbar" :
@@ -2277,6 +2320,7 @@ function block_columns($args=array(), $block = []){
 
     $classes = [];
     $attrs = [];
+    $css = "";
     //$code = "";
     $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $gap_sizes = array(
@@ -2295,10 +2339,10 @@ function block_columns($args=array(), $block = []){
             $args["slider"] = 0;  
         }
 
+        $slide_half = 0;
+
         if(isset($args["slider"]) || isset($args["column_breakpoints"]) ) {
             if((isset($args["slider"]) && $args["slider"]) || (isset($block["name"]) && in_array($block["name"], ["acf/archive"])) ){
-                
-                $slide_half = 0;
                 
                 if(isset($args["slider_settings"]) && $args["slider_settings"]){
 
@@ -2336,6 +2380,7 @@ function block_columns($args=array(), $block = []){
                             }
                         }
                     }
+
                     $attrs["data-slider-breakpoints"] = json_encode($breakpoints);
                     $attrs["data-slider-gaps"] = json_encode($gaps);                
                 }
@@ -2362,16 +2407,42 @@ function block_columns($args=array(), $block = []){
                         $classes = array_merge($classes, block_responsive_classes($args["block_settings"]["horizontal_align"], "justify-content-"));
                     }*/
                     
-                }         
-            }            
+                }
+            }
+            
+
+            if(isset($args["column_breakpoints"])){
+                    $breakpoints = new ArrayObject();
+                    $gaps = new ArrayObject();
+                    $gap_direction = $args["slider_settings"]["direction"] == "horizontal" ? "gx" : "gy";
+                    $css_temp = "#".$block["id"]." .swiper-slider{";
+                    foreach($args["column_breakpoints"] as $key => $item){
+                        if(in_array($key, $sizes)){
+                            if(isset($item["columns"])){
+                                $breakpoints[$key] = intval($item["columns"]) + $slide_half;
+                                $css_temp .= "--col-".$key.":".$breakpoints[$key].";";
+                            }
+                            if(isset($item[$gap_direction])){
+                                $gaps[$key] = $gap_sizes[$item[$gap_direction]];
+                                $css_temp .= "--gap-".$key.":".$gaps[$key].";";
+                            }
+                        }
+                    }
+                    $css_temp .= "}";
+                    $css .= $css_temp;
+            }
+
+                       
         }
     }
+
+    $css .= isset($slider_controls["css"]) ? $slider_controls["css"] : "";
 
     return array(
         "class" => implode(" ", $classes),
         "attrs" => array2Attrs($attrs),
         "controls" => isset($slider_controls["controls"]) ? $slider_controls["controls"] : [],
-        "css" => isset($slider_controls["css"]) ? $slider_controls["css"] : ""
+        "css" => $css
     );
 }
 function block_aos($args=array()){
@@ -2453,7 +2524,7 @@ function block_bg_image($block, $fields, $block_column){
         $background = $fields["block_settings"]["background"];
         $background_color = $fields["block_settings"]["background"]["color"];
 
-        if(!empty($background["image"])){// && (!empty($background["image_filter"]) || !empty($background["image_blend_mode"]))){
+        if(!empty($background["image"]) || !empty($background["image_responsive"])){// && (!empty($background["image_filter"]) || !empty($background["image_blend_mode"]))){
             if(!empty($background["image_filter"])){
                 if(is_array($background["image_filter_amount"])){
                    $image_filter_amount = unit_value($background["image_filter_amount"]);
@@ -2512,7 +2583,25 @@ function block_bg_image($block, $fields, $block_column){
 
             $image .= '>';
             if($background["repeat"] == "no-repeat" && $background["size"] != "fixed"){
-                $image .= '<img src="'.$background["image"].'" class="object-fit-'.$background["size"].' '.$image_class.'" alt="'.trans("Arama Yap").'" style="'.$image_style.'"/>';
+                if(!empty($background["image"])){
+                    $image .= '<img src="'.$background["image"].'" class="object-fit-'.$background["size"].' '.$image_class.'" alt="'.trans("Arama Yap").'" style="'.$image_style.'"/>';
+                }
+                if(!empty($background["image_responsive"])){
+                    $args = [
+                        "src" => $background["image_responsive"], 
+                        "class" => 'object-fit-'.$background["size"].' '.$image_class,
+                        "preview" => is_admin(),
+                        "attrs" => []
+                    ];
+                    if($image_style){
+                        $args["attrs"]["style"] = $image_style;
+                    }
+                    $lcp = new \Lcp();
+                    if($lcp->is_lcp($background["image_responsive"])){
+                        $args["lcp"] = true;
+                    }
+                    $image .= get_image_set($args);
+                }
             }
             $image .= '</div>';
         }
@@ -2670,6 +2759,7 @@ function block_bg_media($block, $fields, $block_column){
         $background = $fields["block_settings"]["background"];
         switch($background["type"]){
             case "image" :
+            case "image_responsive" :
                 $result = block_bg_image($block, $fields, $block_column);
             break;
 
@@ -3241,38 +3331,58 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
 }
 
 
-function page_has_block($page="", $block_name=""){
+function post_has_block($slug="", $block_name=""){
     $found = false;
-     if (filter_var($page, FILTER_VALIDATE_URL)) {
-        $page_id = url_to_postid($page);
+     if (filter_var($slug, FILTER_VALIDATE_URL)) {
+        $post_id = url_to_postid($slug);
     } else {
-        if(is_numeric($page)){
-            $page_id = $page;
+        if(is_numeric($slug)){
+            $post_id = $slug;
         }else{
-            $page_id = get_page_by_path($page)->ID;            
+            $post_id = slug2Id($slug);//get_page_by_path($page)->ID;            
         }
     }
-    $post_blocks = get_blocks($page_id);
-    if($post_blocks){
-        foreach ( $post_blocks as $key => $block ) {
-            if($block["blockName"] == $block_name){
-                $found = true;
+    if($post_id){
+        $post_blocks = get_blocks($post_id);
+        if($post_blocks){
+            foreach ( $post_blocks as $key => $block ) {
+                if($block["blockName"] == $block_name){
+                    $found = true;
+                    break;
+                }
             }
-        }
+        }        
     }
     return $found;
 }
-/*
-function generate_custom_id( $value, $post_id, $field ) {
-    if ( empty( $value ) ) {
-        $value = 'block_' . md5( uniqid( '', true ) );
-    }
-    return $value;
-}
-add_filter( 'acf/load_value/name=custom_id', 'generate_custom_id', 10, 3 );
-add_filter( 'acf/update_value/name=custom_id', 'generate_custom_id', 10, 3 );
-*/
 
+function post_has_core_block($slug="") {
+    $found = false;
+    if (filter_var($slug, FILTER_VALIDATE_URL)) {
+        $post_id = url_to_postid($slug);
+    } else {
+        if(is_numeric($slug)){
+            $post_id = $slug;
+        } else {
+            $post_id = slug2Id($slug);
+        }
+    }
+    if($post_id){
+        $post_blocks = get_blocks($post_id);
+        if($post_blocks){
+            foreach ( $post_blocks as $key => $block ) {
+                if (isset($block['blockName']) && !empty($block['blockName'])) {
+                    error_log($block['blockName']);
+                    if (strpos($block['blockName'], 'core/') !== false && $block['blockName'] != 'core/paragraph') {
+                        $found = true;
+                        break;
+                    }
+                }
+            }
+        }        
+    }
+    return $found;
+}
 
 
 function generate_unique_column_id( $value, $post_id, $field ) {
@@ -3284,35 +3394,30 @@ function generate_unique_column_id( $value, $post_id, $field ) {
 add_filter( 'acf/load_value/name=column_id', 'generate_unique_column_id', 10, 3 );
 add_filter( 'acf/update_value/name=column_id', 'generate_unique_column_id', 10, 3 );
 
-/*
-add_filter('acf/update_value/name=custom_id', function($value, $post_id, $field) {
-    // Eğer alan boşsa post ID'yi veya başka bir mantıksal ID'yi kullan.
-    $value = uniqid('block_'); // Bloğun DOM ID'si yerine başka bir benzersiz değer.
-    error_log("custom_id:".$value);
-    if (empty($value)) {
-        
+
+function acf_get_block_data_item($array = [], $end = "") {
+    $filtered = [];
+    foreach ($array as $key => $value) {
+        if ((!str_starts_with($key, '_')) && (str_ends_with($key, "_".$end) || $key === $end)) {
+            $filtered[$key] = $value;
+        }
     }
-    return $value;
-}, 10, 3);
-
-function set_custom_id_on_load( $value, $post_id, $field ) {
-    // Eğer `custom_id` boşsa, yeni bir değer ata.
-    if ( empty( $value ) ) {}
-        // Burada istediğin ID'yi al.
-        $block_id = $post_id;//uniqid('block_'); // Uniqid yerine istediğin ID’yi oluştur veya al.
-        $value = $block_id;
-
-        // Kaydetmek için update_post_meta kullan.
-        update_post_meta( $post_id, $field['name'], $value );
-    
-
-    return $value;
+    return $filtered;
 }
-add_filter( 'acf/load_value/name=custom_id', 'set_custom_id_on_load', 10, 3 );
 
 
-*/
+
 function acf_block_id_fields($post_id){
+
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+    if(is_wp_rocket_crawling()) return;
+
+    static $processed_posts = [];
+    if (in_array($post_id, $processed_posts)) return;
+    $processed_posts[] = $post_id;
+
+
     $content = get_post_field('post_content', $post_id);
     if (empty($content)) {
         return;
@@ -3322,26 +3427,21 @@ function acf_block_id_fields($post_id){
     $updated = false;
     foreach ($blocks as &$block) {
         if (isset($block['blockName']) && strpos($block['blockName'], 'acf/') === 0) {
-            
-            error_log($block['blockName']);
 
             $data = $block['attrs']['data'];
-            //error_log(print_r($data, true));
 
             $block_settings_field_id = $data['_block_settings'];//explode("_field", $data['_block_settings_hero'])[0];
-
-            error_log("block_settings_field_id:".$block_settings_field_id);
 
             if (!isset($data['block_settings_custom_id']) || empty($data['block_settings_custom_id'])){
                 $block['attrs']['data']['_block_settings_custom_id'] = $block_settings_field_id."_field_674d65b2e1dd0";
                 $block['attrs']['data']['block_settings_custom_id'] = 'block_' . md5(uniqid('', true));
-                error_log("block : block_settings_custom_id added -> ".$block['attrs']['data']['block_settings_custom_id']);
+                //error_log("block : block_settings_custom_id added -> ".$block['attrs']['data']['block_settings_custom_id']);
                 $updated = true;
             }
             if (!isset($data['block_settings_column_id']) || empty($data['block_settings_column_id'])){
                 $block['attrs']['data']['_block_settings_column_id'] = $block_settings_field_id."_field_67213addcfaf3";
                 $block['attrs']['data']['block_settings_column_id'] = unique_code(5);
-                error_log("block : block_settings_column_id added");
+                //error_log("block : block_settings_column_id added");
                 $updated = true;
             }
             if($block['blockName'] == "acf/bootstrap-columns"){
@@ -3350,7 +3450,7 @@ function acf_block_id_fields($post_id){
                         if (!preg_match('/^(_|block_settings|_block_settings)/', $key)) {
                             if (empty($data[$key])) {
                                 $id = unique_code(5);
-                                error_log("column : ".$key."=".$id);
+                                //error_log("column : ".$key."=".$id);
                                 $block['attrs']['data'][$key] = $id;
                                 $updated = true;
                             }
@@ -3358,9 +3458,22 @@ function acf_block_id_fields($post_id){
                     }
                 }                  
             }
+
+            $video_urls = acf_get_block_data_item($block['attrs']['data'] ,"video_url");
+            if($video_urls){
+                foreach($video_urls as $key => $video_url){
+                    $title_key = str_replace("video_url", "video_title", $key);
+                    if(isset($block['attrs']['data'][$title_key]) && empty($block['attrs']['data'][$title_key]) && !empty($video_url)){
+                        $block['attrs']['data'][$title_key] = get_embed_video_title($video_url);
+                        $updated = true;
+                    }
+                }
+            }
         }
     }
     if ($updated) {
+        //remove_action('save_post_product', [Saltbase::get_instance(), 'on_post_published'], 100);
+
         $new_content = wp_slash(serialize_blocks($blocks));
         wp_update_post([
             'ID'           => $post_id,

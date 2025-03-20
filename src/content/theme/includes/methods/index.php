@@ -364,7 +364,8 @@ unset($post_args["s"]);
 }
 //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
 $html = "";
-$query = new WP_Query($post_args);
+//$query = new WP_Query($post_args);
+$query = SaltBase::get_cached_query($post_args);
 $folder = $post_args["post_type"];
 if($args["post_type"] == "any" || is_array($args["post_type"])){
 $folder = "search";
@@ -384,12 +385,14 @@ endif;
 }else{
 if ($query->have_posts()){
 $index = ($vars['page'] ) * $args['posts_per_page']; // Mevcut sayfa için ofset hesaplama
-foreach($query->posts as $post){
+$query = Timber::get_posts($query);
+//foreach($query->posts as $post){
+foreach($query as $post){
 ob_start();
 $context = Timber::context();
 $index++;
 $context['index'] = $index;
-$context['post'] = Timber::get_post($post);
+$context['post'] = $post;//Timber::get_post($post);
 Timber::render([$folder."/tease.twig", "tease.twig"], $context);
 $html .= ob_get_clean();
 $context = null;
@@ -399,7 +402,7 @@ $GLOBALS["pagination_page"] = "";
 }
 wp_reset_query();
 $data = $response;
-$data["html"] = $html;
+$data["html"] = minify_html($html);
 $total = (int) $vars["total"];
 $per_page = (int) $args["posts_per_page"];
 $current = (int) $vars["page"];
@@ -426,8 +429,11 @@ echo json_encode($data);
 wp_die();
 break;
 case 'site_config':
-$salt = new Salt();
-echo json_encode($salt->get_site_config(1));
+$meta = [];
+if(isset($vars["meta"])) {
+$meta = $vars["meta"];
+}
+echo json_encode(SaltHareket\Theme::get_site_config(1, $meta));
 die();
 break;
 case 'twig_render':
@@ -574,7 +580,7 @@ die();
 break;
 case 'map_modal':
 $html = "";
-$map_service = get_field("map_service", "option");
+$map_service = SaltBase::get_cached_option("map_service");//get_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -618,7 +624,14 @@ $skeleton["map_settings"]["map"]["markers"][] = $post_data;
 $html = get_map_config($skeleton);//get_map_config($post->get_map_data());
 }else if($ids){
 $map_data = [];
-$posts = Timber::get_posts($ids);
+$args = array(
+'post__in' => $ids,
+'posts_per_page' => -1,
+'orderby' => 'post__in',
+);
+$posts = SaltBase::get_cached_query($args);
+$posts = Timber::get_posts($posts);
+//$posts = Timber::get_posts($ids);
 if($posts){
 $skeleton["map_type"] = "dynamic";
 $skeleton["map_settings"]["posts"] = $posts;

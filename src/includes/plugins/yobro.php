@@ -232,14 +232,14 @@
     }
     function yobro_first_admin_conversation($post_id, $reciever_id){
     	global $wpdb;
-    	$administrator = get_field("site_admin", "option");
+    	$administrator = SaltBase::get_cached_option("site_admin");//get_field("site_admin", "option");
 	    $admin_id =  $administrator["ID"];
         $sql = "SELECT * FROM wp_yobro_conversation where reciever=$reciever_id and sender=$admin_id and post_id = $post_id order by created_at DESC limit 1";
 		return $wpdb->get_results($sql);
     }
     function yobro_has_admin_conversation($post_id, $reciever_id){
     	global $wpdb;
-    	$administrator = get_field("site_admin", "option");
+    	$administrator = SaltBase::get_cached_option("site_admin");//get_field("site_admin", "option");
 	    $admin_id =  $administrator["ID"];
 		$sql = "SELECT COUNT(DISTINCT id) FROM wp_yobro_conversation where reciever=$reciever_id and sender=$admin_id and post_id = $post_id order by created_at DESC limit 1";
 		return $wpdb->get_var($sql);

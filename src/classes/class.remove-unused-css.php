@@ -2,11 +2,14 @@
 
 use MatthiasMullie\Minify;
 use voku\helper\HtmlDomParser;
+use Sabberworm\CSS\Parser;
+use Sabberworm\CSS\OutputFormat;
 
 class RemoveUnusedCss {
     private $html;
     private $css;
     private $css_temp = "";
+    private $critical_css = false;
     private $output;
     private $root_variables_used = [];
     private $animations_used = [];
@@ -14,11 +17,11 @@ class RemoveUnusedCss {
         "media_queries" => [],
         "root_variables" => [],
         "keyframes" => [],
+        "supports" => [],
         "fonts" => [],
         "styles" => []
     ];
     public $white_list = [
-        ".fade",
         ".show",
         ".affix",
         ".header-hide",
@@ -28,7 +31,8 @@ class RemoveUnusedCss {
         ".loading-*",
         ".lenis",
         ".lenis-*",
-        ".modal-open",
+        ".menu-dropdown-open",
+        ".dgwt-wcas-open",
         ".menu-open",
         ".offcanvas-open",
         ".offcanvas-fullscreen-open",
@@ -38,14 +42,39 @@ class RemoveUnusedCss {
         ".open",
         ".active",
         ".close",
-        ".loaded"
+        ".showing",
+        ".hiding",
+        ".closing",
+
+        ".loaded",
+        ".error",
+        ".initial"
     ];
 
     private $acceptable_pseudo_classes = [
-        ':hover', ':focus', ':active', ':visited', ':disabled', ':checked', ':required', ':empty'];
-         //':first-child', ':last-child', ':nth-child', ':nth-of-type'];
+       ':not',
+       ':checked', 
+       ':link', 
+       ':disabled', 
+       ':enabled', 
+       ':selected', 
+       ':invalid', 
+       ':hover', 
+       ':visited', 
+       ':root', 
+       ':scope', 
+       ':first-child', 
+       ':last-child', 
+       ':nth-child', 
+       ':nth-last-child', 
+       //':first-of-type', 
+       //':last-of-type', 
+       ':only-child', 
+       ':only-of-type', 
+       ':empty'
+   ];
 
-    public function __construct($html, $css, $output = "", $additional_whitelist = []) {
+    public function __construct($html, $css, $output = "", $additional_whitelist = [], $critical_css = false) {
         if (is_string($html)) {
             $this->html = is_file($html) ? file_get_contents($html) : $html;
             $this->html = HtmlDomParser::str_get_html($this->html);
@@ -58,11 +87,13 @@ class RemoveUnusedCss {
         $this->css = is_file($css) ? file_get_contents($css) : $css;
         $this->output = $output;
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
+        $this->critical_css = $critical_css;
     }
 
     public function process() {
         $this->removeUnnecessaryLines();
         $this->removeComments();
+        //$this->extractSupportsQueries();
         $this->extractMediaQueries();
         $this->extractRootVariables();
         $this->extractKeyframes();
@@ -76,12 +107,70 @@ class RemoveUnusedCss {
         $minify = new Minify\CSS($this->css_temp);
         $this->css_temp = $minify->minify();
         
-        if(!empty($output)){
+        if(!empty($this->output)){
             file_put_contents($this->output, $this->css_temp);
         }else{
+            if($this->critical_css){ // returns array
+                return $this->extract_critical_css($this->html, $this->css_temp);
+            }
             return $this->css_temp;
         }
-        
+    }
+
+    public function extract_critical_css(HtmlDomParser $dom, string $css): array {
+        $usedSelectors = [];
+
+        // Sayfadaki tüm class ve ID'leri topla
+        foreach ($dom->find('*') as $element) {
+            if ($element->hasAttribute('class')) {
+                foreach (explode(" ", $element->getAttribute('class')) as $class) {
+                    $usedSelectors[] = "." . trim($class);
+                }
+            }
+            if ($element->hasAttribute('id')) {
+                $usedSelectors[] = "#" . trim($element->getAttribute('id'));
+            }
+        }
+
+        // CSS'yi parse et
+        $parser = new Parser($css);
+        $cssDocument = $parser->parse();
+
+        $criticalCSS = "";
+        $remainingCSS = $css;
+
+        foreach ($cssDocument->getAllRuleSets() as $ruleSet) {
+            // Eğer RuleSet, DeclarationBlock değilse atla
+            if (!($ruleSet instanceof Sabberworm\CSS\RuleSet\DeclarationBlock)) {
+                continue;
+            }
+
+            foreach ($ruleSet->getSelectors() as $selector) {
+                foreach ($usedSelectors as $usedSelector) {
+                    if (strpos($selector, $usedSelector) !== false) {
+                        $ruleCss = $ruleSet->render(OutputFormat::createCompact()); // ✅ BURASI DÜZELTİLDİ!
+
+                        $criticalCSS .= $ruleCss;// . "\n";
+
+                        // Orijinal CSS'den bu critical kodu çıkar
+                        $remainingCSS = str_replace($ruleCss, '', $remainingCSS);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Minify yap
+        $minifierCritical = new Minify\CSS($criticalCSS);
+        $criticalCSS = $minifierCritical->minify();
+
+        $minifierCSS = new Minify\CSS($remainingCSS);
+        $remainingCSS = $minifierCSS->minify();
+
+        return [
+            'css' => $remainingCSS,
+            'critical_css' => $criticalCSS
+        ];
     }
 
     private function removeUnnecessaryLines() {
@@ -125,7 +214,7 @@ class RemoveUnusedCss {
         }
     }
     private function extractKeyframes() {
-        preg_match_all('/(@(?:-webkit-|-moz-|-o-)?keyframes)\s+([\w-]+)\s*{((?:[^{}]+|{[^{}]*})*)}/s', $this->css, $matches, PREG_SET_ORDER);
+        preg_match_all('/(@(?:-webkit-|-moz-|-o-|-ms-)?keyframes)\s+([\w-]+)\s*{((?:[^{}]+|{[^{}]*})*)}/s', $this->css, $matches, PREG_SET_ORDER);
         foreach ($matches as $match) {
             $keyframe_type = trim($match[1]);
             $keyframe_name = trim($match[2]);
@@ -168,10 +257,11 @@ class RemoveUnusedCss {
             return;
         }
         $this->updateWhiteList($dom);
-       // error_log(print_r($this->white_list, true));
+        //error_log(print_r($this->white_list, true));
         $this->processFonts();
         $this->processStyles($dom);
         $this->checkMediaQueries($dom);
+        //$this->processSupports();
         $this->processKeyframes();
         $this->processRootVariables();
     }
@@ -273,124 +363,128 @@ class RemoveUnusedCss {
         $this->animations_used = array_values(array_unique($this->animations_used));
     }
 
+    private function cleanWhitelistClasses($selector) {
+
+        // İlk olarak pseudo-elementlerin işlenmesi
+        $selector = str_replace("::", ":", $selector);
+
+        // Geçerli olmayan pseudo-class'ları temizliyoruz
+        $selector = preg_replace_callback('/:[a-zA-Z0-9\-_]+/', function ($matches) {
+            return in_array($matches[0], $this->acceptable_pseudo_classes) ? $matches[0] : '';
+        }, $selector);
+
+        $selector = str_replace(":not()", "", $selector);
+
+        preg_match_all('/:not\(([^)]*)\)/', $selector, $not_matches);
+        $protected_parts = [];
+        if (!empty($not_matches[1])) {
+            foreach ($not_matches[1] as $index => $content) {
+                $placeholder = "PLACEHOLDER_$index";
+                $selector = str_replace(":not($content)", $placeholder, $selector);
+                $protected_parts[$placeholder] = ":not($content)";
+            }
+        }
+
+        foreach ($this->white_list as $key => $value) {
+            $selector = str_replace($value." ", " ", $selector);
+            $selector = str_replace($value.":", ":", $selector);
+            $selector = str_replace($value.".", ".", $selector);
+            $selector = str_replace($value.">", ">", $selector);
+            $selector = str_replace($value." >", ">", $selector);
+            $selector = str_replace($value." +", "+", $selector);
+            $selector = str_replace($value." ~", "~", $selector);
+            $selector = str_replace($value."PLACEHOLDER_", "PLACEHOLDER_", $selector);
+            //$selector = rtrim($selector, $value);
+            $selector = rtrim($selector, ":");
+        }
+
+        // **Whitelist öğeleri için tam eşleşme yapan regex oluştur**
+        $whitelist_pattern = implode('|', array_map(function ($class) {
+            return '(?<=\s|\.)' . preg_quote(ltrim($class, '.'), '/') . '(?=\s|\.|>|$)';
+        }, $this->white_list));
+
+        // **Tam eşleşen class'ları kaldır (Ama :not() içindeki class'ları dokunmadan bırak!)**
+        $selector = preg_replace('/\b' . $whitelist_pattern . '\b(?![^\(]*\))/', '', $selector);
+
+        // **Ekstra temizlik**
+        $selector = preg_replace('/\s+/', ' ', $selector);  // Fazla boşlukları temizle
+        $selector = preg_replace('/\.(\s|$)/', '$1', $selector); // Gereksiz noktaları kaldır
+        $selector = trim($selector);
+
+        // :not(...) içindeki ifadeleri geri ekleyelim
+        foreach ($protected_parts as $placeholder => $original) {
+            $selector = str_replace($placeholder, $original, $selector);
+        }
+
+        // Eğer :not() boşsa, onu silelim
+        $selector = str_replace(":not()", "", $selector);
+
+        // Gereksiz boşlukları ve noktaları temizliyoruz
+        $selector = preg_replace('/\s+/', ' ', $selector);
+        $selector = preg_replace('/\.+/', '.', $selector);
+        $selector = preg_replace('/\.\s/', ' ', $selector);
+        $selector = str_replace(">:", ">*:", $selector);
+        $selector = str_replace(".>", ">", $selector);
+        $selector = str_replace(":>", ">", $selector);
+        $selector = str_replace("+>", ">", $selector);
+        $selector = str_replace("~>", ">", $selector);
+
+        $selector = rtrim($selector, '.');
+        $selector = ltrim($selector, "+");
+        $selector = rtrim($selector, "+");
+        $selector = rtrim($selector, "~");
+        $selector = ltrim($selector, "~");
+        $selector = trim($selector, ',');
+        $selector = rtrim($selector, ">");
+        $selector = ltrim($selector, ">");
+        $selector = rtrim($selector, '.');
+
+        return $selector;
+    }
+
+
     private function selectorExists($dom, $selector) {
         $selector = trim($selector);
         if (empty($selector)) return false;
 
-        error_log("input:" . $selector);
-
         // Eğer selector ':' ile başlıyorsa doğrudan kabul et
         if (strpos($selector, ':') === 0) {
+            error_log("found: ".$selector);
             return true;
         }
 
-        // CSS combinator operatörleri ile başlayanları temizle
-        $selector = preg_replace('/^[>+~\s]+/', '', $selector);
-
+        if(preg_match('/^\s*@supports\s+/i', ltrim($selector))){
+            error_log("found: ".$selector);
+            return true;
+        }
+        
         foreach ($this->white_list as $whitelist_class) {
             if (strpos($whitelist_class, '*') !== false) {
-                // Wildcard içeren whitelisted class'lar için
                 $whitelist_pattern = str_replace('*', '.*', preg_quote($whitelist_class, '/'));
                 if (preg_match('/' . $whitelist_pattern . '/', $selector)) {
+                    //error_log(" wildcard: ".$selector);
+                    error_log("found: ".$selector);
                     return true;
                 }
-            } elseif (strpos($selector, $whitelist_class) !== 0) {
-                $selector = preg_replace('/(?<![-\w])' . preg_quote($whitelist_class, '/') . '(?![-\w])/', '', $selector);
             }
-        }
-        
-
-        error_log("output 1:" . $selector);
-
-        // Whitelist içindeki elemanları selector'dan çıkar
-        foreach ($this->white_list as $whitelist_class) {
-            // Eğer selector'un başında whitelist class varsa dokunma
-            if (strpos($selector, $whitelist_class) === 0) {
-                continue;
-            }
-            // Whitelist class'ı sadece bağımsız bir kelime olarak kaldır
-            $selector = preg_replace('/(?<=\W|^)' . preg_quote($whitelist_class, '/') . '(?=\W|$)/', '', $selector);
-        }
-
-        // Boşlukları düzelt
-        $selector = trim(preg_replace('/\s+/', ' ', $selector));
-
-        error_log("output 2:" . $selector);
-
-        $selector = trim(preg_replace('/\s+/', ' ', $selector));
-
-        error_log("output 3:" . $selector);
-        
-        // Pseudo-elements temizle, sadece belirlenen pseudo-class'ları tut
-        $selector = preg_replace_callback('/:(?!' . implode('|', array_map('preg_quote', $this->acceptable_pseudo_classes)) . ')([a-zA-Z-]+(?:\(.*?\))?)/', function ($matches) {
-            return '';
-        }, $selector);
-
-        error_log("output 4:" . $selector);
-
-        // Eğer selector pseudo içeriyorsa ve kabul edilebilir değilse, ana selector'u koru
-        if (strpos($selector, ':') !== false) {
-            preg_match('/([^:]+)(:[^:]*)/', $selector, $matches);
-            if (!empty($matches[1]) && !empty($matches[2]) && in_array($matches[2], $this->acceptable_pseudo_classes)) {
-                $selector = $matches[1] . $matches[2];
-            } else {
-                $selector = $matches[1] ?? $selector;
-            }
-        }
-
-        $selector = rtrim($selector, ">");
-        $selector = ltrim($selector, ">");
-
-        error_log("output 5:" . $selector);
-
-        // Eğer combinator içeren selector ise, ana selector'u kontrol et
-        if (preg_match('/(.+)([>+~])(.+)/', $selector, $matches)) {
-        	error_log(print_r($matches, true));
-            $base_selector = trim($matches[1]);
-            $child_selector = trim($matches[3]);
-            
-            if ($this->selectorExists($dom, $base_selector)) {
-                error_log("output base:" . $base_selector);
+            $pattern = '/(^|\s|\+|>|\:)' . preg_quote($whitelist_class, '/') . '(\s|\+|>|\:|$)/';
+            if (preg_match($pattern, $selector)) {
+                error_log("found: ".$selector);
                 return true;
-            } else {
-                return false;
             }
         }
+        
+        $selector = $this->cleanWhitelistClasses($selector);
 
-        // Hatalı selectorleri direkt ekleyerek hata almayı engelle
-        /*if (preg_match('/[^a-zA-Z0-9.#\[\]\-_\s>+~]/', $selector)) {
-            error_log("Skipping invalid selector: " . $selector);
-            return true;
-        }*/
-
-        $selector = preg_replace_callback('/:(?!' . implode('|', array_map('preg_quote', $this->acceptable_pseudo_classes)) . ')([a-zA-Z-]+(?:\(.*?\))?)/', function ($matches) {
-            return '';
-        }, $selector);
-
-        $selector = preg_replace_callback('/:(?!' . implode('|', array_map('preg_quote', $this->acceptable_pseudo_classes)) . ')([a-zA-Z-]+(?:\(.*?\))?)/', function ($matches) {
-            return '';
-        }, $selector);
-
-        // `:not()` içinde içerik yoksa, onu kaldır
-        $selector = preg_replace('/:not\(\s*\)/', '', $selector);
-
-        // Çift virgülleri tek hale getir
-        $selector = preg_replace('/,+/', ',', $selector);
-
-        // Baştaki ve sondaki virgülleri temizle
-        $selector = trim($selector, ',');
-
-        error_log("output final:" . $selector);
-
-        // Elementi HTML içinde ara
+        $found = true;
         $elements = $dom->find($selector);
         if (!$elements || count($elements) === 0) {
-            //error_log("Selector not found in DOM: " . $selector);
-            return false;
+            $found = false;
+            error_log("not found: ".$selector);
+        }else{
+            error_log("found: ".$selector);
         }
-        
-        
-        return true;
+        return $found;
     }
 
     private function updateWhiteList($dom) {
@@ -398,29 +492,73 @@ class RemoveUnusedCss {
             error_log("Error parsing HTML for whitelist update");
             return;
         }
-
+        
+        // Ajax method check
         $modal_triggers = ["map_modal", "page_modal", "form_modal", "template_modal", "iframe_modal"];
         $bootstrap_modal_classes = [
             ".modal", ".modal-*", ".btn-close"
         ];
 
         foreach ($modal_triggers as $trigger) {
-            $elements = $dom->find("[data-ajax-method='$trigger']");
-            if (!empty($elements)) {
+            $selector = "[data-ajax-method='$trigger']";
+            $elements = $dom->find($selector);
+            if ($elements || count($elements) > 1) {
                 $this->white_list = array_merge($this->white_list, $bootstrap_modal_classes);
                 $this->white_list[] = ".bootbox";
                 break;
             }
         }
+
+        //Bootstrap Check
+        $triggers = ["collapse", "modal", "dropdown", "tooltip", "popover", "button", "tab", "pill", "offcanvas"];
+        foreach ($triggers as $trigger) {
+            $selector = "[data-bs-toggle='$trigger']";
+            $elements = $dom->find($selector);
+            if (!$elements || count($elements) === 0) {
+            }else{
+                $this->white_list[] = ".".$trigger;
+                $this->white_list[] = ".".$trigger."-*";
+            }
+        }
+
+        $elements = $dom->find(".plyr, .player");
+        if ($elements || count($elements) > 1) {
+            $this->white_list[] = ".plyr";
+            $this->white_list[] = ".plyr-*";
+            $this->white_list[] = ".plyr__*";
+        }
+
+        $file_path = THEME_STATIC_PATH . 'data/css_safelist.json';
+        if(file_exists($file_path)){
+            $data = file_get_contents($file_path);
+            $data = json_decode($data, true);
+            $data = $data["dynamicSafelist"];
+            $data = array_map(fn($item) => '.' . $item, $data);
+            $data = array_merge($data, $this->white_list);
+            $data = remove_duplicated_items($data);
+            $this->white_list = $data;
+        }
+
     }
 
     private function isWhitelisted($dom, $selector) {
         foreach ($this->white_list as $whitelisted_class) {
+            // Eğer selector tamamen whitelist'teki class ise direkt true döndür
             if ($selector === $whitelisted_class) {
                 return true;
             }
-            if (strpos($selector, $whitelisted_class) !== false) {
-                $parent_selector = trim(str_replace($whitelisted_class, '', $selector));
+
+            // Eğer whitelist class'ı parantez içindeyse, dokunma
+            if (preg_match('/\(' . preg_quote($whitelisted_class, '/') . '\)/', $selector)) {
+                continue;
+            }
+
+            // Sadece tam sınıf eşleşmelerini kaldır (diğer kelimeleri bozmaz)
+            $pattern = '/(?<=\s|^)' . preg_quote($whitelisted_class, '/') . '(?=\s|$)/';
+
+            if (preg_match($pattern, $selector)) {
+                $parent_selector = trim(preg_replace($pattern, '', $selector));
+
                 if (empty($parent_selector) || $this->selectorExists($dom, $parent_selector)) {
                     return true;
                 }
@@ -428,13 +566,4 @@ class RemoveUnusedCss {
         }
         return false;
     }
-
 }
-
-
-
-
-
-
-
-

@@ -27,16 +27,16 @@
             "sub_fields": [
                 {
                     "key": "field_6766d190f6769",
-                    "label": "Service Name",
-                    "name": "service_name",
+                    "label": "Service",
+                    "name": "name",
                     "aria-label": "",
-                    "type": "text",
+                    "type": "select",
                     "instructions": "",
                     "required": 0,
                     "conditional_logic": 0,
                     "wrapper": {
                         "width": "30",
-                        "class": "",
+                        "class": "acf-api-list",
                         "id": ""
                     },
                     "default_value": "",
@@ -46,6 +46,57 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
+                    "allow_custom": 0,
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ajax": 0,
+                    "ui": 1,
+                    "search_placeholder": "Search an API",
+                    "return_format": "value",
+                    "choices": {
+                        "google_maps": "Google Maps API",
+                        "google_places": "Google Places API",
+                        "google_geocoding": "Google Geocoding API",
+                        "google_directions": "Google Directions API",
+                        "google_distance_matrix": "Google Distance Matrix API",
+                        "google_street_view": "Google Street View API",
+                        "google_maps_elevation": "Google Maps Elevation API",
+                        "google_maps_embed": "Google Maps Embed API",
+                        "google_static_maps": "Google Static Maps API",
+                        "google_cloud_vision": "Google Cloud Vision API",
+                        "google_cloud_translation": "Google Cloud Translation API",
+                        "google_speech_to_text": "Google Cloud Speech-to-Text API",
+                        "google_text_to_speech": "Google Cloud Text-to-Speech API",
+                        "google_cloud_functions": "Google Cloud Functions API",
+                        "google_cloud_firestore": "Google Cloud Firestore API",
+                        "google_firebase_db": "Google Firebase Realtime Database API",
+                        "google_firebase_auth": "Google Firebase Authentication API",
+                        "google_ads": "Google Ads API",
+                        "google_analytics": "Google Analytics API",
+                        "google_search_console": "Google Search Console API",
+                        "google_drive": "Google Drive API",
+                        "google_calendar": "Google Calendar API",
+                        "google_gmail": "Google Gmail API",
+                        "google_youtube_data": "Google YouTube Data API",
+                        "google_youtube_analytics": "Google YouTube Analytics API",
+                        "google_pagespeed_insights": "Google PageSpeed Insights API",
+                        "openweather": "OpenWeather",
+                        "twitter": "Twitter API",
+                        "facebook_graph": "Facebook Graph API",
+                        "instagram_graph": "Instagram Graph API",
+                        "spotify": "Spotify API",
+                        "github": "GitHub API",
+                        "unsplash": "Unsplash API",
+                        "stripe": "Stripe API",
+                        "paypal": "PayPal API",
+                        "linkedin": "Linkedin API",
+                        "twilio": "Twilio API",
+                        "mailchimp": "MailChimp API",
+                        "sendgrid": "SendGrid API",
+                        "firebase": "Firebase API",
+                        "algolia": "Algolia API",
+                        "amazon_s3": "Amazon S3 API"
+                    },
                     "parent_repeater": "field_6766d15ff6768"
                 },
                 {
@@ -131,7 +182,7 @@
             }
         ]
     ],
-    "menu_order": 0,
+    "menu_order": 5,
     "position": "normal",
     "style": "default",
     "label_placement": "top",
@@ -147,8 +198,8 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
+    "modified": 1740823166,
     "acfe_categories": {
         "general": "General"
-    },
-    "modified": 1737516304
+    }
 }

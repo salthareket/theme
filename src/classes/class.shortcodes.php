@@ -136,12 +136,12 @@ class customShortcodes {
     }
 
     public function cf7_forms() {
-        $forms = get_posts([
+        $args = [
             'post_type' => 'wpcf7_contact_form',
             'posts_per_page' => -1,
             'post_status' => 'publish',
-        ]);
-
+        ];
+        $forms = get_posts($args);
         $forms_array = [];
         if (!empty($forms)) {
             foreach ($forms as $form) {

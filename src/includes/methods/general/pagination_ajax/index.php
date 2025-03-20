@@ -61,7 +61,9 @@
     //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
 
     $html = "";
-    $query = new WP_Query($post_args);
+    //$query = new WP_Query($post_args);
+    $query = SaltBase::get_cached_query($post_args);
+
 
     $folder = $post_args["post_type"];
     if($args["post_type"] == "any" || is_array($args["post_type"])){
@@ -85,12 +87,15 @@
 
             $index = ($vars['page'] ) * $args['posts_per_page']; // Mevcut sayfa için ofset hesaplama
 
-            foreach($query->posts as $post){
+            $query = Timber::get_posts($query);
+
+            //foreach($query->posts as $post){
+            foreach($query as $post){
                 ob_start();
                 $context = Timber::context();
                 $index++;
                 $context['index'] = $index;
-                $context['post'] = Timber::get_post($post);
+                $context['post'] = $post;//Timber::get_post($post);
                 Timber::render([$folder."/tease.twig", "tease.twig"], $context);
                 $html .= ob_get_clean();
                 $context = null;
@@ -102,7 +107,7 @@
     wp_reset_query();
 
     $data = $response;
-    $data["html"] = $html;
+    $data["html"] = minify_html($html);
 
     $total = (int) $vars["total"];
     $per_page = (int) $args["posts_per_page"];

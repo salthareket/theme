@@ -1,6 +1,6 @@
 <?php
 $html = "";
-$map_service = get_field("map_service", "option");
+$map_service = SaltBase::get_cached_option("map_service");//get_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -48,7 +48,16 @@ if($id){
     $html = get_map_config($skeleton);//get_map_config($post->get_map_data());
 }else if($ids){
     $map_data = [];
-    $posts = Timber::get_posts($ids);
+    
+    $args = array(
+        'post__in' => $ids,
+        'posts_per_page' => -1,
+        'orderby' => 'post__in',
+    );
+    $posts = SaltBase::get_cached_query($args);
+    $posts = Timber::get_posts($posts);
+
+    //$posts = Timber::get_posts($ids);
     if($posts){
         $skeleton["map_type"] = "dynamic";
         $skeleton["map_settings"]["posts"] = $posts;

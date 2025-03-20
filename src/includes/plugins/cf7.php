@@ -207,7 +207,7 @@ add_filter( 'shortcode_atts_wpcf7', 'custom_shortcode_atts_wpcf7_filter', 10, 3 
 function get_cf7_forms($id=0){
     $forms = array();
     if (class_exists("WPCF7")) {
-        $acf_forms = get_field("forms", "options");
+        $acf_forms = SaltBase::get_cached_option("forms");//get_field("forms", "options");
         if(empty($acf_forms) || !$acf_forms) {
             return null;
         }

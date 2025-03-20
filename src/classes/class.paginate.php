@@ -245,9 +245,11 @@ Class Paginate{
     	    $total = 0;
     	    switch($type){
     	       case "post" :
+    	            $query  = SaltBase::get_cached_query($query);
+    	            
                		$result = Timber::get_posts($query);//new Timber\PostQuery($query, $class);
-               		$total = $result->found_posts;
-               		$posts = $result;//->to_array();//$result->get_posts();
+               		$total  = $result->found_posts;
+               		$posts  = $result;//->to_array();//$result->get_posts();
                		if(isset($result->max_num_pages)){
                			$page_total = $result->max_num_pages;
                		}

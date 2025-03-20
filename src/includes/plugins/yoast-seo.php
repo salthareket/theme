@@ -1,5 +1,11 @@
 <?php
 
+
+add_action('after_setup_theme', function() {
+    add_filter('wpseo_title', '__return_false');
+});
+
+
 // Yoast SEO meta tag kontrolü
 add_filter('wpseo_frontend_presenters', function($presenters) {
     global $post;

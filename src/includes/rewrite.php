@@ -234,7 +234,8 @@ function handle_custom_search_redirect() {
                     'posts_per_page' => $posts_per_page
                 );
                 //print_r($args);
-                $query = new WP_Query( $args );
+                $query = SaltBase::get_cached_query($args);
+                //$query = new WP_Query( $args );
                 if ( $query->have_posts() ) {
                     $wp_query->posts = $query->posts;//array_merge($wp_query->posts, $query->posts);
                     $wp_query->post_count = count($wp_query->posts);

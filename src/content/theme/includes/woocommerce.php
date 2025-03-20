@@ -469,7 +469,7 @@ function custom_post_permalink($permalink, $post) {
     }
     return $permalink;
 }
-add_filter('post_type_link', 'custom_post_permalink', 10, 2);
+//add_filter('post_type_link', 'custom_post_permalink', 10, 2);
 
 
 function custom_post_type_archive_link($link, $post_type) {
@@ -484,7 +484,7 @@ function custom_post_type_archive_link($link, $post_type) {
     }
     return $link;
 }
-add_filter('post_type_archive_link', 'custom_post_type_archive_link', 10, 2);
+//add_filter('post_type_archive_link', 'custom_post_type_archive_link', 10, 2);
 
 
 
@@ -595,4 +595,4 @@ function custom_breadcrumb_links( $links ) {
 
     return $links;
 }
-add_filter( 'wpseo_breadcrumb_links', 'custom_breadcrumb_links' );
+//add_filter( 'wpseo_breadcrumb_links', 'custom_breadcrumb_links' );

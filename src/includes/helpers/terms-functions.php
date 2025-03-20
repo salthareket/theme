@@ -362,7 +362,7 @@ function get_term_hierarchy($taxonomy="", $term_id=0, $array=array()){
 }
 
 function get_category_total_post_count($taxonomy = "category", $term_id = 0){
-	$query = new WP_Query( array(
+	$args = array(
 	    'tax_query' => array(
 	        array(
 	            'taxonomy' => $taxonomy,
@@ -373,7 +373,9 @@ function get_category_total_post_count($taxonomy = "category", $term_id = 0){
 	    ),
 	    'nopaging' => true,
 	    'fields' => 'ids',
-	));
+	);
+	$query = SaltBase::get_cached_query($args);
+	//$query = new WP_Query($args);
 	return $query->post_count;
 }
 

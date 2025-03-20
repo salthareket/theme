@@ -1,7 +1,11 @@
 {
-    init: function() {
+    init: function(meta = []) {
         var query = new ajax_query();
         query.method = "site_config";
+        let vars = {
+            meta : meta
+        }
+        query.vars = vars;
         query.request();
     },
     after: function(response, vars, form) {

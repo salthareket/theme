@@ -1,4 +1,7 @@
 <?php
-$salt = new Salt();
-echo json_encode($salt->get_site_config(1));
+$meta = [];
+if(isset($vars["meta"])) {
+   $meta = $vars["meta"];
+}
+echo json_encode(SaltHareket\Theme::get_site_config(1, $meta));
 die();

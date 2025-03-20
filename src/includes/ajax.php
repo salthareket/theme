@@ -1,5 +1,7 @@
 <?php
 
+use SaltHareket\Theme;
+
 //namespace YoBro\App;
 use YoBro\App\Message;
 use YoBro\App\Attachment;
@@ -41,16 +43,14 @@ function ajax_disable_plugins($plugins){
 
     /* convert json */
     if (!is_array($_REQUEST['load_plugins']) && $_REQUEST['load_plugins']) {
-        $_REQUEST['load_plugins'] = json_decode($_REQUEST['load_plugins'],true);
+        $_REQUEST['load_plugins'] = json_decode($_REQUEST['load_plugins'], true);
     }
 
     /* unset plugins not included in the load_plugins array */
     foreach ($plugins as $key => $plugin_path) {
-
         if (!in_array($plugin_path, $_REQUEST['load_plugins'] )) {
             unset($plugins[$key]);
         }
-
     }
 
     return $plugins;
@@ -95,6 +95,23 @@ function ajax_security($data){
             echo(json_encode($response));
             exit;
     }
+}
+
+function minify_html($html) {
+    // HTML içindeki gereksiz boşlukları ve satır sonlarını temizler
+    $search = array(
+        '/\>[^\S ]+/s',  // < tag'inin sonrasındaki boşluklar
+        '/[^\S ]+\</s',  // > tag'inin öncesindeki boşluklar
+        '/(\s)+/s',      // Birden fazla boşlukları tek boşluk yap
+        '/<!--(.|\s)*?-->/' // HTML yorumlarını sil
+    );
+    $replace = array(
+        '>',
+        '<',
+        '\\1',
+        ''
+    );
+    return preg_replace($search, $replace, $html);
 }
 
 function query($data){
@@ -182,7 +199,7 @@ function query($data){
         $context["ajax_call"] = true;
         $context["ajax_method"] = $method;
         if (isset($templates)) {
-            $data["html"] = Timber::compile($templates, $context);
+            $data["html"] = minify_html(Timber::compile($templates, $context));
         }
         if (isset($page)) {
             $data["page"] = $page;
@@ -199,4 +216,5 @@ function query($data){
         echo json_encode($data);
         /*Timber::render( $templates, $context );*/
     }
+    wp_die();
 }

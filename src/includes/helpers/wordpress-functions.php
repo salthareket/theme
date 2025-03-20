@@ -3,11 +3,30 @@
 /*give slug get id*/
 function slug2Id($slug) {
     global $wpdb;
-    return $wpdb->get_var($wpdb->prepare(
+
+    // İlk olarak postlarda ara
+    $post_id = $wpdb->get_var($wpdb->prepare(
         "SELECT ID FROM $wpdb->posts WHERE post_name = %s",
         $slug
     ));
+
+    // Eğer post bulunmazsa, term (kategori, etiket vb.) araması yap
+    if (!$post_id) {
+        $term = $wpdb->get_var($wpdb->prepare(
+            "SELECT term_id FROM $wpdb->terms WHERE slug = %s",
+            $slug
+        ));
+
+        // Term bulunursa term_id döndür
+        if ($term) {
+            return $term;
+        }
+    }
+
+    // Eğer ikisi de bulunmazsa, null döndür
+    return null;
 }
+
 
 function get_leafnode_object($menu, $object, $leaf_node=array(), $menu_items=array(), $menu_item_parent=0){
 	if(count($menu_items)==0){
@@ -650,7 +669,8 @@ function get_user_role($user_id=0) {
 
 
 function wp_count_posts_by_query($args) {
-    $query = new WP_Query($args);
+    $query = SaltBase::get_cached_query($args);
+    //$query = new WP_Query($args);
 
     if ($query->have_posts()) {
         return count($query->posts);
@@ -699,14 +719,15 @@ function update_or_add_post_meta($post_id, $meta_key, $new_value) {
 }
 
 function get_menu_locations() {
-    $value = get_field("menu_locations", "option");
+    $locations = [
+        'header-menu' => 'Header Menu',
+        'footer-menu' => 'Footer Menu',
+    ];
+    $value = SaltBase::get_cached_option("menu_locations");//get_field("menu_locations", "option");
     if (empty($value)) {
-        return [
-            'header-menu' => 'Header Menu',
-            'footer-menu' => 'Footer Menu',
-        ];
+        return $locations;
     }
-    $formatted_locations = [];
+    $formatted_locations = $locations;
     foreach ($value as $location) {
         $menu_name = $location["name"]; // Array'deki ilk değeri alır
         $key = sanitize_title($menu_name); // 'Header Menu' => 'header-menu'
@@ -717,7 +738,7 @@ function get_menu_locations() {
 
 function get_menu_populate(){
     $arr = [];
-    $value = get_field("menu_populate", "option");
+    $value = SaltBase::get_cached_option("menu_populate");//get_field("menu_populate", "option");
     if($value){
         foreach($value as $item){
             $menu = $item["menu"];

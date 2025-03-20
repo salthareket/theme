@@ -77,7 +77,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
-		"init"  => "" 
+		"init"  => "",
+		"whitelist" => []
 	];
 	$plugins['jquery-slinky'] = [
 		"c"   => false,
@@ -88,7 +89,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => [],
 		"attrs" => [],
-		"init"  => "" 
+		"init"  => "",
+		"whitelist" => []
 	];
 	$plugins['bootbox'] = [
 		"c"   => true,
@@ -104,7 +106,8 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="iframe_modal"', 
 			'data-ajax-method="map_modal"'
 		],
-		"init" => ""
+		"init" => "",
+		"whitelist" => []
 	];
 	$plugins['aos'] = [
 		"c"   => true,
@@ -115,7 +118,10 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => [],
 		"attrs"  => ['data-aos='],
-		"init" => ""
+		"init" => "",
+		"whitelist" => [
+			"aos-animate"
+		]
 	];
 	$plugins['plyr'] = [
 		"c"	=> true,
@@ -126,18 +132,20 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => ["player"],
 		"attrs" => [],
-		"init"     => "plyr_init"  
+		"init"     => "plyr_init",
+		"whitelist" => [] 
 	];
 	$plugins['swiper'] = [
 		"c"   => true,
 		"admin" => true,
-		"url" => $node_path . 'swiper/swiper-bundle.js',
+		"url" => $node_path . 'swiper/swiper-bundle.min.js',
 		"css" => [
 			$node_path .'swiper/swiper-bundle.min.css'
 		],
 		"class" => ["swiper"],
 		"attrs" => [],
-		"init"     => "init_swiper"
+		"init"     => "init_swiper",
+		"whitelist" => []
 	];
 	$plugins['vanilla-lazyload'] = [
 		"c"   => false,
@@ -146,7 +154,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
-		"init"  => "" 
+		"init"  => "",
+		"whitelist" => [] 
 	];
 	$plugins['justifiedGallery'] = [
 		"c"	=> true,
@@ -157,7 +166,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => ["justified-gallery", "lightgallery"],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['lightgallery'] = [
 		"c"   => true,
@@ -168,7 +178,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => ["lightgallery"],
 		"attrs" => [],
-		"init"     => "init_lightGallery"
+		"init"     => "init_lightGallery",
+		"whitelist" => []
 	];
 	$plugins['lightgallery-video'] = [
 		"c"   => true,
@@ -177,7 +188,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => ["lightgallery"],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['jquery-match-height'] = [
 		"c" => false,
@@ -186,7 +198,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['scrollpos-styler'] = [
 		"c"	=> false,
@@ -195,7 +208,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['is-in-viewport'] = [
 		"c"	=> false,
@@ -204,7 +218,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['letteringjs'] = [
 		"c"	=> true,
@@ -213,7 +228,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => ["text-effect"],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['textillate'] = [
 		"c"	=> true,
@@ -224,7 +240,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => ["text-effect"],
 		"attrs" => [],
-		"init"     => "text_effect"
+		"init"     => "text_effect",
+		"whitelist" => []
 	];
     $plugins['jarallax'] = [
    		"c"	=> true,
@@ -235,7 +252,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => ["jarallax", "jarallax-video"],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
     $plugins['lenis'] = [
    		"c"	=> false,
@@ -244,7 +262,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
     $plugins['jquery.simple-text-rotator'] = [
    		"c"	=> true,
@@ -255,7 +274,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => ["text-rotator"],
 		"attrs" => [],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['masonry-layout'] = [
    		"c"	=> true,
@@ -264,7 +284,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => [],
 		"attrs" => ["data-masonry"],
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['twig'] = [
    		"c"	=> true,
@@ -274,7 +295,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["leaflet-custom", "googlemaps-custom"],
 		"attrs" => [],
 		"condition" => get_option("options_map_view") == "js" ? 1: 0,
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['leaflet'] = [
    		"c"	=> true,
@@ -288,7 +310,8 @@ function compile_files_config($enable_production=false){
             'data-ajax-method="map_modal"'
 		],
 		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "leaflet" ? 1: 0,
-		"init"     => "init_leaflet"
+		"init"     => "init_leaflet",
+		"whitelist" => []
 	];
 	$plugins['leaflet.markercluster'] = [
    		"c"	=> true,
@@ -303,7 +326,8 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="map_modal"'
 		],
 		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "leaflet" ? 1: 0,
-		"init"     => ""
+		"init"     => "",
+		"whitelist" => []
 	];
 	$plugins['markerclusterer'] = [
    		"c"	=> true,
@@ -315,7 +339,8 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="map_modal"'
 		],
 		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "google" ? 1: 0,
-		"init"     => "init_google_maps"
+		"init"     => "init_google_maps",
+		"whitelist" => []
 	];
 
 	$plugins['smarquee'] = [
@@ -325,7 +350,8 @@ function compile_files_config($enable_production=false){
 		"css" => [],
 		"class" => ["smarquee"],
 		"attrs" => [],
-		"init"     => "init_smarquee"  
+		"init"     => "init_smarquee",
+		"whitelist" => []  
 	];
 
 	$plugins['locomotive-scroll'] = [
@@ -337,7 +363,8 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => [],
 		"attrs" => ["data-scroll"],
-		"init"     => "init_locomotive_scroll"  
+		"init"     => "init_locomotive_scroll",
+		"whitelist" => []  
 	];
 
 
@@ -349,7 +376,8 @@ function compile_files_config($enable_production=false){
 			"css" => [],
 			"class" => [],
 			"attrs" => [],
-			"init"     => ""
+			"init"     => "",
+		    "whitelist" => []
 		];
 	   $plugins['smartmenus-bs'] = [
 	   		"c"   => false, 
@@ -360,7 +388,8 @@ function compile_files_config($enable_production=false){
 			],
 			"class" => [],
 			"attrs" => [],
-			"init"     => ""
+			"init"     => "",
+		    "whitelist" => []
 		];
 	}
     

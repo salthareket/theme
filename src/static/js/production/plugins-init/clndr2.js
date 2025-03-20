@@ -13,7 +13,7 @@ function calendar(){
 	       	var $template = $calendar.data("template");
 	       	if(!IsBlank($template)){
 	        	twig({
-						href : ajax_request_vars.assets_url+"static/templates/"+$template+".twig",
+						href : ajax_request_vars.theme_url+"static/templates/"+$template+".twig",
 						async : false,
 						allowInlineIncludes : true,
 						load: function(template) {

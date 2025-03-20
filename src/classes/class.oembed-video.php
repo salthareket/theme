@@ -11,7 +11,7 @@ class OembedVideo {
         $this->attrs = $attrs;
     }
 
-    public function get() {
+    public function get($attrs=[]) {
         if (empty($this->url)) {
             return false;
         }
@@ -22,18 +22,22 @@ class OembedVideo {
             return false;
         }
 
+        $autoplay = empty($attrs["autoplay"])?"0":"1";
+        $muted = empty($attrs["muted"])?"0":"1";
+
         $arr = [
             'type' => $data_parse['type'],
             'id' => str_replace('video/', '', $data_parse['id']),
             'url' => $url . "&controls=0",
             'embed' => $this->url,
-            'embed_url' => "https://www.youtube.com/embed/" . $data_parse['id'] . "?rel=0&showinfo=0&autoplay=0&mute=0",
+            'embed_url' => "https://www.youtube-nocookie.com/embed/" . $data_parse['id'] . "?rel=0&showinfo=0&autoplay=".$autoplay."&mute=".$muted,
             'watch' => "https://www." . ($data_parse['type'] == "vimeo" ? "vimeo.com/" : "youtube.com/watch?v=") . $data_parse['id'],
-            'src' => $this->poster($url, $this->image_size)
+            'src' => $this->poster($url, $this->image_size),
+            "title" => $this->title()
         ];
 
         if ($arr["type"] == "vimeo") {
-            $arr["embed_url"] = "https://player.vimeo.com/video/" . $arr["id"] . "?autoplay=1&title=0&byline=0&portrait=0";
+            $arr["embed_url"] = "https://player.vimeo.com/video/" . $arr["id"] . "?autoplay=".$autoplay."&title=0&byline=0&portrait=0"."&mute=".$muted;
         }
 
         if ($arr["type"] == "dailymotion") {
@@ -109,6 +113,11 @@ class OembedVideo {
         return false;
     }
 
+    private function title() {
+        preg_match('/<iframe[^>]+title=["\']([^"\']+)["\']/i', $this->url, $matches);
+        return $matches[1] ?? null;
+    }
+
     private function poster($video_uri = "", $image_size = 0) {
         if (empty($video_uri)) {
             return '';
@@ -118,7 +127,7 @@ class OembedVideo {
         $video = $this->parse($video_uri);
 
         if ($video['type'] == 'youtube') {
-            $thumbnail_uri = 'http://img.youtube.com/vi/' . $video['id'] . '/maxresdefault.jpg';
+            $thumbnail_uri = 'https://img.youtube.com/vi/' . $video['id'] . '/maxresdefault.jpg';
         }
 
         if ($video['type'] == 'vimeo') {

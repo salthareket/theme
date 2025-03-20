@@ -378,7 +378,7 @@ var favorites = {
                             toast_notification({
                                 url: "",
                                 sender: {
-                                    image: "<img src='" + ajax_request_vars.assets_url + "/static/img/notification/favorites-add.jpg' class='img-fluid' alt='Added to favorites'/>"
+                                    image: "<img src='" + ajax_request_vars.theme_url + "/static/img/notification/favorites-add.jpg' class='img-fluid' alt='Added to favorites'/>"
                                 },
                                 message: response.message
                             });                            
@@ -419,7 +419,7 @@ var favorites = {
                             toast_notification({
                                 url: "",
                                 sender: {
-                                    image: "<img src='" + ajax_request_vars.assets_url + "/static/img/notification/favorites-remove.jpg' class='img-fluid' alt='Removed from favorites'/>"
+                                    image: "<img src='" + ajax_request_vars.theme_url + "/static/img/notification/favorites-remove.jpg' class='img-fluid' alt='Removed from favorites'/>"
                                 },
                                 message: response.message
                             });
@@ -783,7 +783,6 @@ class ajax_query {
             return false;
         }
         ajax_query_process = true;
-
 
         var data = $obj.data();
         if ($obj.upload) {

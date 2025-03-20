@@ -128,7 +128,7 @@ $( document ).ready(function() {
 	    $.ajaxSetup({headers: {'X-CSRF-TOKEN': ajax_request_vars.ajax_nonce}});
 
 		if(!$("body").hasClass("logged")){/* && (site_config.enable_favorites || site_config.enable_search_history)){*/
-			ajax_hooks["site_config"].init();
+			ajax_hooks["site_config"].init(site_config.meta);
 		}
 		init_functions();
 
