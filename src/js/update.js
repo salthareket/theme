@@ -1,5 +1,6 @@
 jQuery(document).ready(function ($) {
 
+    const status = updateAjax.status;
     const tasks = updateAjax.tasks || [];
 
     let currentTaskIndex = 0;
@@ -9,7 +10,9 @@ jQuery(document).ready(function ($) {
 
     $('#start-installation-button').on('click', function () {
         $(this).prop('disabled', true); // Butonu devre dışı bırak
-        runTask(currentTaskIndex); // İlk görevi çalıştır
+        if(status == "pending"){
+            runTask(currentTaskIndex); // İlk görevi çalıştır
+        }
     });
 
     function plugin_types() {
@@ -100,10 +103,56 @@ jQuery(document).ready(function ($) {
         });
     }
 
+    function runUpdateTask(taskIndex, data) {
+
+        console.table(taskIndex, tasks.length);
+
+        if (taskIndex >= tasks.length) {
+            composer_message(data.message, data.action, "update");
+            return;
+        }
+
+        const task = tasks[taskIndex];
+        let tasks_status = status;
+
+        $.ajax({
+            url: updateAjax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'run_task',
+                task_id: task.id,
+                plugin_types: plugin_types(),
+                tasks_status: tasks_status,
+                nonce: updateAjax.nonce
+            },
+            beforeSend: function () {
+                composer_message(task["name"], "update", "update");
+            },
+            success: function (response) {
+                response = parseAjaxResponse(response);
+                if (response.success) {
+                    composer_message(response.data.message, "loading", "update");
+                    runUpdateTask(taskIndex + 1, data);
+                } else {
+                    composer_message(task["name"]+"<br><div style='color:red;'>"+response.data.message+"</div>", "error", "update");
+                    alert('Error: ' + response.data.message);
+                }
+            },
+            error: function () {
+                composer_message(task["name"]+"<br><div style='color:red;'>An unexpected error occurred</div>", "error", "update");
+                alert('An unexpected error occurred.');
+                currentTaskIndex = taskIndex;
+                $('#update-theme-button').prop('disabled', false).html("Try Again")
+            }
+        });
+    }
+
     function completeInstallation() {
         installationStatus.html("<div style='color:green;'>Installation completed successfully!</div>");
         location.reload(); // Sayfayı yenile
     }
+
+
 
 
     function composer_message($message = "", $action = "", $type = ""){
@@ -161,11 +210,16 @@ jQuery(document).ready(function ($) {
             success: function (response) {
                 console.log(response);
                 if (response.success) {
-                    composer_message(response.data.message, response.data.action, "update");
+                    if(response.data.action == "update"){
+                        runUpdateTask(0, response.data); // İlk görevi çalıştır
+                    }else{
+                        composer_message(response.data.message, response.data.action, "update");
+                        $button.prop('disabled', false).text('Update');
+                    }
                 } else {
                     composer_message(response.data.message, "error", "update");
+                    $button.prop('disabled', false).text('Update');
                 }
-                $button.prop('disabled', false).text('Update');
             },
             error: function () {
                 composer_message('AJAX request failed.', "error", "update");

@@ -41,6 +41,12 @@ class Update {
         ["id" => "defaults", "name" => "Defaults Settings"]
     ];
 
+    public static $update_tasks = [
+        ["id" => "copy_fields", "name" => "Copying ACF Fields"],
+        ["id" => "register_fields", "name" => "Registering ACF Fields"],
+        ["id" => "update_fields", "name" => "Updating ACF Fields"]
+    ];
+
     // Admin notifi ekler
     public static function init() {
         $theme_root = get_template_directory();
@@ -61,6 +67,7 @@ class Update {
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
         add_action('wp_ajax_remove_package', [__CLASS__, 'composer_remove']);
         add_action('wp_ajax_run_task', [__CLASS__, 'run_task']);
+        add_action('wp_ajax_run_update_task', [__CLASS__, 'run_update_task']);
 
         add_action('wp_ajax_install_ffmpeg', [__CLASS__, 'install_ffmpeg']);
         self::check_installation();
@@ -985,10 +992,6 @@ class Update {
     }
 
 
-
-
-
-
     public static function composer($package_name="", $remove = false) {
         error_log("composer calıstıııııı -> ".$package_name);
         try {
@@ -1074,6 +1077,11 @@ class Update {
             $message = [];
             if($result["update"]){
                 $message[] = $result["update"];
+
+                /*["id" => "copy_fields", "name" => "Copying ACF Fields"],
+                ["id" => "register_fields", "name" => "Registering ACF Fields"],
+                ["id" => "update_fields", "name" => "Updating ACF Fields"],*/
+
             }
             if($result["install"]){
                 $message[] = $result["install"];
@@ -1958,8 +1966,11 @@ class Update {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('update_theme_nonce')
         ];
+        $args["status"] = self::$status;
         if (self::$status === 'pending') {
             $args["tasks"] = self::$installation_tasks;
+        }else{
+            $args["tasks"] = self::$update_tasks;
         }
         wp_localize_script('theme-update-script', 'updateAjax', $args);
     }
