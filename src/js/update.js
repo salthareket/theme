@@ -102,13 +102,19 @@ jQuery(document).ready(function ($) {
             }
         });
     }
+    function completeInstallation() {
+        installationStatus.html("<div style='color:green;'>Installation completed successfully!</div>");
+        location.reload(); // Sayfayı yenile
+    }
+
 
     function runUpdateTask(taskIndex, data) {
 
         console.table(taskIndex, tasks.length);
 
         if (taskIndex >= tasks.length) {
-            composer_message(data.message, data.action, "update");
+            composer_message(data.message, "update", "update");
+            $('#update-theme-button').prop('disabled', false).html("Update Depencies");
             return;
         }
 
@@ -126,12 +132,12 @@ jQuery(document).ready(function ($) {
                 nonce: updateAjax.nonce
             },
             beforeSend: function () {
-                composer_message(task["name"], "update", "update");
+                composer_message(task["name"] + ", Please wait...", "loading", "update");
             },
             success: function (response) {
                 response = parseAjaxResponse(response);
                 if (response.success) {
-                    composer_message(response.data.message, "loading", "update");
+                    composer_message(response.data.message + ", Please wait...", "loading", "update");
                     runUpdateTask(taskIndex + 1, data);
                 } else {
                     composer_message(task["name"]+"<br><div style='color:red;'>"+response.data.message+"</div>", "error", "update");
@@ -142,14 +148,9 @@ jQuery(document).ready(function ($) {
                 composer_message(task["name"]+"<br><div style='color:red;'>An unexpected error occurred</div>", "error", "update");
                 alert('An unexpected error occurred.');
                 currentTaskIndex = taskIndex;
-                $('#update-theme-button').prop('disabled', false).html("Try Again")
+                $('#update-theme-button').prop('disabled', false).html("Try Again");
             }
         });
-    }
-
-    function completeInstallation() {
-        installationStatus.html("<div style='color:green;'>Installation completed successfully!</div>");
-        location.reload(); // Sayfayı yenile
     }
 
 
