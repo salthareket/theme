@@ -106,14 +106,6 @@ class ThemeProduct extends Timber\Post{
 		return false;
 	}
 
-	/*public function link(){
-    	$link = get_permalink($this->ID);
-    	if(get_query_var('wpc-brand') == 'olvido' && !strpos($link, "olvido/")){
-    		$link = str_replace("kitaplar/", "olvido/kitaplar/", $link);
-    	}
-    	return $link;
-    }*/
-
     public function is_in_grouped(){
 	    $grouped_products = wc_get_products(array(
 	        'type'     => 'grouped',
