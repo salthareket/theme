@@ -137,7 +137,7 @@ function lcp_data(metric, type) {
     return code;
 }
 
-function lcp_data_save(metric, type="desktop") {
+function lcp_data_save(metric, type = "desktop") {
     const lcpData = lcp_data(metric, type);
     console.log(type + " LCP:", lcpData);
     fetch(ajax_request_vars.url_admin, {
@@ -151,12 +151,14 @@ function lcp_data_save(metric, type="desktop") {
         }),
     })
     .then(response => response.json())
-    .then(data => console.log(type + " LCP Sonuçları kaydedildi:", data));
-
-    if (type == "mobile" && window.opener) {
-        self.close();
-    }
+    .then(data => {
+        console.log(type + " LCP Sonuçları kaydedildi:", data);
+        if (type === "mobile" && window.opener) {
+            self.close();
+        }
+    });
 }
+
 
 
 function lcp_for_mobile(url) {
