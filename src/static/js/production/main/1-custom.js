@@ -58,6 +58,7 @@ if(isLoadedJS("vanilla-lazyload")){
 	    //unobserve_entered: true,
 	    callback_loaded : function(e){
 			var obj = $(e);
+
 		    if(obj.hasClass("ratio")){
 		       obj.parent().removeClass("loading").removeClass("loading-hide");
 		    }
@@ -80,7 +81,11 @@ if(isLoadedJS("vanilla-lazyload")){
 			   //obj.closest(".jarallax").newJarallax();
 			}
 
+			console.log(obj)
+
 			if(obj.hasClass("video")){
+				console.log("eveet")
+				console.log(obj.parent())
 				obj.closest(".lazy-container").removeClass("lazy-container");
 	            obj.parent().find(">.plyr__poster").remove();
 	            obj.parent().addClass("lazy-loaded")
@@ -141,18 +146,18 @@ if(isLoadedJS("vanilla-lazyload")){
 		$.fn.matchHeight._update();
 		//debugJS("lazyloaded belowwww")
 		//debugJS(e);
-		if(isLoadedJS("background-check")){
+		/*if(isLoadedJS("background-check")){
 			setTimeout(function(){
 				bg_check();
 			},500);
-		}
+		}*/
 	});
 	$(document)
 	.on('lazyload', function(e){
 		$.fn.matchHeight._update();
-		if(isLoadedJS("background-check")){
+		/*if(isLoadedJS("background-check")){
 			bg_check();
-		}
+		}*/
 		$(window).trigger("resize");
 	});
 }

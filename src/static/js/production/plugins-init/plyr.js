@@ -47,49 +47,6 @@ $.fn.fitEmbedBackground = function() {
 
         });
 };
-/*
-function lazyLoadIframe($player) {
-    $player.find(".plyr__video-embed iframe").each(function () {
-        let iframe = $(this);
-        if (iframe.attr("src")) {
-            iframe.attr("data-src", iframe.attr("src"));
-            iframe.removeAttr("src");
-            iframe.addClass("lazy");
-        }
-    });
-    new LazyLoad({
-        elements_selector: "iframe.lazy"
-    });
-}
-
-function lazyLoadBg($obj){
-	$obj.each(function() {
-	    var $this = $(this);
-	    var bgImage = $this.css("background-image");
-
-	    // URL'yi çıkart
-	    var matches = bgImage.match(/url\(["']?(.*?)["']?\)/);
-	    if (matches && matches[1]) {
-	        var imageUrl = matches[1];
-
-	        // Yeni `data-bg` attribute ekle
-	        $this.attr("data-bg", imageUrl);
-	        
-	        // Inline style'ı kaldır
-	        $this.removeAttr("style");
-
-	        $this.addClass("lazy");
-	    }
-	});
-}
-
-function enableLazyIframe($container) {
-    let iframe = $container.find("iframe.lazy");
-    if (iframe.length && iframe.attr("data-src")) {
-        iframe.attr("src", iframe.attr("data-src"));
-        iframe.removeClass("lazy");
-    }
-}*/
 
 function plyr_init_all(){
 	if(!isLoadedJS("plyr")){
@@ -133,7 +90,7 @@ function plyr_init($obj){
 		if(video_bg && $obj.find("iframe").length > 0){
 			$obj.addClass("plyr--bg");
 		}
-
+		
 		function set_quality(video){
 			let devices = {phone: {size: 360, max: 767}, "tablet": {size: 480, min: 768, max: 1024}, "desktop" : {size: 720, min: 1025} };
 			let quality = "";
@@ -177,14 +134,25 @@ function plyr_init($obj){
 		//lazyLoadIframe($obj);
 
 	    const video = new Plyr($obj);
-	    
+
+	    console.log(video);
+
+	    if(type == "embed"){
+			if($obj.find("iframe").attr("src").includes("dailymotion.com")){
+				$obj.addClass("plyr plyr--full-ui plyr--video plyr--dailymotion");
+				$obj.find("iframe").wrap('<div class="plyr__video-wrapper plyr__video-embed"></div>');
+				$obj.find(".plyr__video-embed").fitEmbedBackground();
+			}
+		}
+
+
 	    if(video.elements.container){
 	    	video.elements.container.plyr = video;
 	    }
         
         // custom poster image
 	    var poster = $obj.attr("data-poster");
-        if(!IsBlank(poster) && ($obj.hasClass("plyr--youtube") || $obj.hasClass("plyr--vimeo"))){
+        if(!IsBlank(poster) && ($obj.hasClass("plyr--youtube") || $obj.hasClass("plyr--vimeo") || $obj.hasClass("plyr--dailymotion"))){
 		    setTimeout(() => {
 				video.poster = poster;
 			}, 500);

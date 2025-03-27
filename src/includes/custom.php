@@ -265,12 +265,17 @@ class SaltBase{
         if ( get_post_status( $post_id ) !== 'publish' ) {
             return;
         }
+
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
 
+            error_log("ZT-1");
+            error_log(did_action('save_post')."  ".did_action('publish_post'));
+
             if (did_action('save_post') > 1 || did_action('publish_post') > 1) {
-                return;
+                //return;
             }
+
 
             if (self::$already_ran) {
                 return; // Eğer zaten çalıştıysa, çık

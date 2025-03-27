@@ -2411,7 +2411,7 @@ function block_columns($args=array(), $block = []){
             }
             
 
-            if(isset($args["column_breakpoints"])){
+            if(isset($args["column_breakpoints"]) && isset($args["slider_settings"])){
                     $breakpoints = new ArrayObject();
                     $gaps = new ArrayObject();
                     $gap_direction = $args["slider_settings"]["direction"] == "horizontal" ? "gx" : "gy";

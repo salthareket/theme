@@ -147,7 +147,7 @@ function featured_image_from_url($image_url="", $post_id=0, $featured=false, $na
 
 		  $filename = basename($file); // Create image file name
 
-		  error_log("file:".$file);
+		  //error_log("file:".$file);
 
 		  // Create the image  file on the server
 		  file_put_contents( $file, $image_data );
@@ -162,13 +162,9 @@ function featured_image_from_url($image_url="", $post_id=0, $featured=false, $na
 			  'post_content'   => '',
 			  'post_status'    => 'inherit'
 		  );
-
-		  error_log(print_r($attachment,true));
 		  
 		  // Create the attachment
 		  $attach_id = wp_insert_attachment( $attachment, $file, $post_id );
-
-		   error_log("attach_id:".$attach_id);
 		  
 		  // Include image.php
 		  require_once(ABSPATH . 'wp-admin/includes/image.php');
@@ -661,7 +657,6 @@ function get_video($video_args=array()){
 
 		case "audio" :
 		    if(is_array($args["files"])){
-		   	    //error_log(json_encode($args["files"]));
 		   	    $code = str_replace("{{src}}", $args["files"][0]["file"], $code);
 		    }
 		break;
@@ -670,7 +665,7 @@ function get_video($video_args=array()){
 		    if(!isset($args["video_url"]) || (isset($args["video_url"]) && empty($args["video_url"]))){
 		    	return;
 		    }
-		    $embed = new OembedVideo($args["video_url"]);
+		    $embed = new OembedVideo($args["video_url"], "1600x900");
 		    $data = $embed->get($settings);
 		    $poster = isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])?$settings["video_image"]:$data["src"];
 	        if($lazy){
@@ -703,13 +698,29 @@ function get_video($video_args=array()){
 			    		$attachment_id = get_attachment_id_by_url($source);
 			    		if($source){
 			    			$meta = get_post_meta($attachment_id, '_wp_attachment_metadata', true);
-			    			error_log(print_r($source, true));
-			    			error_log("attachment_id:".$attachment_id);
 			    			$sources .= '<source '.($lazy?"":"").'src="'.$source.'" type="'.$meta["mime_type"].'" size="'.$meta["height"].'" />';
 			    		}
 			    	}
 			    	if($sources){
 						$code = str_replace("{{src}}", $sources, $code);
+
+						if(empty($settings["controls"])){
+							$settings["controls"] = 1;
+							$settings["controls_options"] = ["settings"];
+							$settings["controls_options_settings"] = ["quality"];
+							$config["controls"] = ["settings"];
+							$config["settings"] = ["quality"];
+						}else{
+							if(!in_array("settings", $settings["controls_options"])){
+								$settings["controls_options"][] = "settings";
+								$config["controls"][] = "settings";
+							}
+							if(!in_array("quality", $settings["controls_options_settings"])){
+								$settings["controls_options_settings"][] = "quality";
+								$config["settings"][] = "quality";
+							}
+						}
+
 					}else{
 			    		return;
 			    	}	
@@ -813,6 +824,13 @@ function get_video($video_args=array()){
     	if(isset($settings["show_thumbnails"]) && $settings["show_thumbnails"]){
     		if(!empty($settings["vtt_thumbnails"])){
 				$config["previewThumbnails"] = ["enabled" => true, "src" => $settings["vtt_thumbnails"]];
+				if(empty($settings["controls"])){
+					$config["controls"] = ["progress"];
+				}else{
+					if(!in_array("progress", $settings["controls_options"])){
+						$config["controls"][] = "progress";
+					}
+				}
     		}
     	}
     }

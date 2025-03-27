@@ -4,11 +4,17 @@ class OembedVideo {
     private $url;
     private $image_size;
     private $attrs;
+    private $api;
+    private $type;
+    private $id;
 
     public function __construct($url = "", $image_size = 0, $attrs = []) {
         $this->url = $url;
         $this->image_size = $image_size;
         $this->attrs = $attrs;
+        $this->api = [];
+        $this->type = "";
+        $this->id = "";
     }
 
     public function get($attrs=[]) {
@@ -21,6 +27,9 @@ class OembedVideo {
         if (!$data_parse) {
             return false;
         }
+
+        $this->type = $data_parse['type'];
+        $this->id = $data_parse['id'];
 
         $autoplay = empty($attrs["autoplay"])?"0":"1";
         $muted = empty($attrs["muted"])?"0":"1";
@@ -41,7 +50,8 @@ class OembedVideo {
         }
 
         if ($arr["type"] == "dailymotion") {
-            $arr["embed_url"] = "https://geo.dailymotion.com/player.html?video=" . $arr["id"];
+            $arr["url"] = "https://geo.dailymotion.com/player.html?video=" . $arr["id"];
+            $arr["embed_url"] ="https://geo.dailymotion.com/player.html?autoplay=".$autoplay."&ui-logo=0&ui-start-screen-info=0&startTime=0&mute=".$muted."&video=" . $arr["id"];
         }
 
         return $arr;
@@ -85,11 +95,12 @@ class OembedVideo {
             }
         } elseif (in_array($host, ['vimeo.com', 'player.vimeo.com'])) {
             $video_type = 'vimeo';
-            $video_id = ltrim($parse['path'], '/');
 
-            if (strpos($video_id, '/') !== false) {
-                $video_id = explode('/', $video_id)[0];
+            $pattern = '/(?:https?:\/\/)?(?:www\.)?(?:player\.)?vimeo\.com\/(?:video\/|channels\/[\w]+\/|groups\/[^\/]+\/videos\/|album\/\d+\/video\/|)(\d+)/i';
+            if (preg_match($pattern, $url, $matches)) {
+               $video_id = $matches[1];
             }
+
         } elseif ($host === 'dailymotion.com' || $host === 'www.dailymotion.com' || $host === 'geo.dailymotion.com') {
             $video_type = 'dailymotion';
             if (strpos($parse['path'], '/video/') !== false) {
@@ -102,7 +113,6 @@ class OembedVideo {
             }
         }
 
-
         if (!empty($video_type) && !empty($video_id)) {
             return [
                 'type' => $video_type,
@@ -114,8 +124,8 @@ class OembedVideo {
     }
 
     private function title() {
-        preg_match('/<iframe[^>]+title=["\']([^"\']+)["\']/i', $this->url, $matches);
-        return $matches[1] ?? null;
+        $this->getApi();
+        return $this->api->title;
     }
 
     private function poster($video_uri = "", $image_size = 0) {
@@ -145,48 +155,60 @@ class OembedVideo {
         return $thumbnail_uri;
     }
 
-    private function getVimeoThumbnailUri($clip_id = "") {
-        $vimeo_api_uri = 'https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/' . $clip_id;
-        $vimeo_response = @file_get_contents($vimeo_api_uri);
+    private function getVimeoThumbnailUri($clip_id = "", $image_size = "") {
+        $this->getApi();
+        $url = "";
 
-        if ($vimeo_response === false) {
-            return ''; // API erişim hatası durumunda boş döndür
-        } else {
-            $vimeo_response = json_decode($vimeo_response);
-            if (empty($vimeo_response->thumbnail_url)) {
-                return ''; // Thumbnail URL'si yoksa boş döndür
+        if ($this->api) {
+            if (empty($this->api->thumbnail_url)) {
+                return '';
             }
-
-            $url = $vimeo_response->thumbnail_url;
+            $url = $this->api->thumbnail_url;
 
             // Boyut kısımlarını temizle ve orijinal büyük görüntüyü al
             $high_res_url = preg_replace('/-[d_]*\\d+x\\d+$/', '', $url);
+
+            if(!empty($image_size)){
+                $high_res_url .= "-d_".$image_size;
+            }
 
             // Büyük görüntü URL'sinin geçerli olup olmadığını kontrol et
             $headers = @get_headers($high_res_url);
             if ($headers && strpos($headers[0], '200') !== false) {
                 return $high_res_url; // Geçerliyse büyük çözünürlüklü URL döndür
             }
-
-            return $url; // Büyük URL geçersizse orijinal URL döndür
         }
+        return $url; // Büyük URL geçersizse orijinal URL döndür
     }
 
     private function getDailymotionThumbnailUri($video_id = "") {
-        $dailymotion_api = "https://api.dailymotion.com/video/$video_id?fields=thumbnail_720_url,thumbnail_1080_url";
-        $response = @file_get_contents($dailymotion_api);
-
-        if ($response === false) {
-            return '';
+        $this->getApi();
+        $url = "";
+        if ($this->api) {
+            if(isset($this->api->thumbnail_720_url)) {
+               $url = $this->api->thumbnail_720_url;
+            }
         }
+        return $url;
+    }
 
-        $data = json_decode($response, true);
-        if (isset($data['thumbnail_1080_url'])) {
-            return $data['thumbnail_1080_url'];
-        } elseif (isset($data['thumbnail_720_url'])) {
-            return $data['thumbnail_720_url'];
+    private function getApi(){
+        if(!$this->api){
+            if($this->type == "youtube"){
+                $url = extract_url($this->url);
+                $api_uri = "https://noembed.com/embed?url=" . urlencode($url);
+            }elseif($this->type == "vimeo"){
+                $api_uri = 'https://vimeo.com/api/oembed.json?url=https%3A//vimeo.com/' . $this->id;
+            }elseif($this->type == "dailymotion"){
+                $api_uri = "https://api.dailymotion.com/video/".$this->id."?fields=title,thumbnail_720_url";
+            }
+            $response = @file_get_contents($api_uri);
+            if ($response === false) {
+               $this->api =  []; // API erişim hatası durumunda boş döndür
+            } else {
+                $response = json_decode($response);
+                $this->api = $response;
+            }
         }
-
-        return '';
     }
 }

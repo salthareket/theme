@@ -4217,35 +4217,41 @@ function acf_block_video_process_on_save($post_id) {
         if(empty($data['video_file_desktop'])){
             continue;
         }
+
         $process = false;
-        $task = [
-            "index" => $counter,
-            "block_index" => $key,
-            "tasks" => []
-            /*"status" => false,
-            "sizes"      => [],
-            "thumbnails" => false,
-            "poster"     => false*/
-        ];
-        
+
         $desktop = $data['video_file_desktop'] ?? null;
         $tablet  = $data['video_file_tablet'] ?? null;
         $phone   = $data['video_file_phone'] ?? null;
+
         if($desktop){
             $sizes      = $data['ffmpeg_available_generate_sizes'] ?? 0;
             $thumbnails = $data['ffmpeg_available_generate_thumbnails'] ?? 0;
             $poster     = $data['ffmpeg_available_generate_poster'] ?? 0;
 
-            $task["tasks"]["sizes"]["720"] = false;
+            $task = [
+                "index" => $counter,
+                "block_index" => $key,
+                "tasks" => []
+                /*"status" => false,
+                "sizes"      => [],
+                "thumbnails" => false,
+                "poster"     => false*/
+            ];
 
-            if($sizes && (!$tablet || !$phone)){
+            $task["tasks"]["sizes"]["720"] = 0;
+
+            error_log("desktop:".$desktop." tablet:".$tablet." phone:".$phone);
+            error_log("sizes:".$sizes." thumbnails:".$thumbnails." poster:".$poster);
+
+            if($sizes && (empty($tablet) || empty($phone))){
                 $process = true;
                 $task["tasks"]["sizes"] = [];
-                if(!$tablet){
-                    $task["tasks"]["sizes"]["480"] = false;
+                if(empty($tablet)){
+                    $task["tasks"]["sizes"]["480"] = 0;
                 }
-                if(!$phone){
-                    $task["tasks"]["sizes"]["360"] = false;
+                if(empty($phone)){
+                    $task["tasks"]["sizes"]["360"] = 0;
                 }
             }
             if($thumbnails && $sizes){
@@ -4257,6 +4263,9 @@ function acf_block_video_process_on_save($post_id) {
                 $task["tasks"]["poster"] = false;
             }
             if($process){
+                $block['attrs']['data']['ffmpeg_available_generate_sizes'] = 0;
+                $block['attrs']['data']['ffmpeg_available_generate_thumbnails'] = 0;
+                $block['attrs']['data']['ffmpeg_available_generate_poster'] = 0;
                 $tasks[] = $task;
                 $block['attrs']['lock'] = array(
                     'move'   => true,
@@ -4267,6 +4276,10 @@ function acf_block_video_process_on_save($post_id) {
         $counter++;
     }
     if($tasks){
+
+        error_log(print_r($tasks, true));
+
+       /* */
         update_post_meta($post_id, 'video_tasks', $tasks);
         //error_log(print_r($blocks, true));
         $updated_content = serialize_blocks($blocks);
@@ -4277,6 +4290,9 @@ function acf_block_video_process_on_save($post_id) {
         ]);
         // Cron job kontrol et ve yoksa tetikle
         do_action('process_video_tasks_event');
+        
+
+
         /*$timestamp = wp_next_scheduled('process_video_tasks_event');
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'process_video_tasks_event');
@@ -4295,6 +4311,9 @@ add_action('acf/save_post', 'acf_block_video_process_on_save', 20);
 function sync_acf_with_post_meta($value, $post_id, $field) {
     // Post meta anahtarları ve ilgili ACF field'leri eşleştiriyoruz
     $meta_to_acf_mapping = [
+        'field_6797647a4fd31' => 'generate_sizes',
+        'field_679764d54fd32' => 'generate_thumbnails',
+        'field_679764f74fd33' => 'generate_poster',
         'field_66f9e4c018b78' => 'tablet',
         'field_66f9e4ca18b79' => 'phone',
         'field_663f74df3ea87' => 'poster',
@@ -4319,312 +4338,15 @@ function sync_acf_with_post_meta($value, $post_id, $field) {
     $meta_key = $meta_to_acf_mapping[$field['key']];
     $meta_value = get_post_meta($related_post_id, $meta_key, true);
 
+    $value = (!empty($meta_value) && empty($value)) ? $meta_value : $value;
+    if(in_array($meta_key, $meta_to_acf_mapping)){
+        $value = 0;
+    }
     // Eğer ACF alanı boşsa ve meta doluysa, meta değerini döndür
-    return (!empty($meta_value) && empty($value)) ? $meta_value : $value;
+    return $value;
 }
 add_filter('acf/load_value/key=field_66f9e4c018b78', 'sync_acf_with_post_meta', 10, 3);
 add_filter('acf/load_value/key=field_66f9e4ca18b79', 'sync_acf_with_post_meta', 10, 3);
 add_filter('acf/load_value/key=field_663f74df3ea87', 'sync_acf_with_post_meta', 10, 3);
 add_filter('acf/load_value/key=field_664210041992f', 'sync_acf_with_post_meta', 10, 3);
 add_filter('acf/load_value/key=field_6798cd6f61a0f', 'sync_acf_with_post_meta', 10, 3);
-/**/
-
-
-
-
-
-
-
-
-/*
-function acf_ffmpeg_available($field) {
-    $ffmpeg = new VideoProcessor();
-    if (!$ffmpeg->available) {
-        $field['wrapper']['class'] = 'hidden';
-    }else{
-        $field['wrapper']['class'] = '';
-    }
-    return $field;
-}
-add_filter('acf/load_field/name=ffmpeg_available', 'acf_ffmpeg_available');
-
-function acf_ffmpeg_not_available($field) {
-    $ffmpeg = new VideoProcessor();
-    if ($ffmpeg->available) {
-        $field['wrapper']['class'] = 'hidden';
-    }else{
-        $field['wrapper']['class'] = '';
-    }
-    return $field;
-}
-function acf_ffmpeg_not_available_message( $field ) {
-    $ffmpeg = new VideoProcessor();
-    if (!$ffmpeg->available) {
-        ob_start();
-        if ($ffmpeg->supported) {
-            $url = esc_url(admin_url('admin.php?page=video-process'));
-            echo '<div class="notice notice-warning is-dismissible" style="display: flex; align-items: center; padding: 15px;margin:0px;"><span class="dashicons dashicons-warning" style="margin-right: 10px; font-size: 24px; color: #ffba00;"></span><p><strong>Attention:</strong> To automatically generate sizes, frame thumbnails, and video poster frames for your uploaded videos, you can install the FFMpeg plugin from the <a href="'.$url.'">Video process page.</a></p></div>';
-        }else{
-            echo '<div class="notice notice-warning is-dismissible" style="display: flex; align-items: center; padding: 15px;margin:0px;"><span class="dashicons dashicons-no" style="color: #e74c3c; font-size: 24px; margin-right: 10px;"></span><p><strong>Attention:</strong> Unfortunately, your system does not support the FFMpeg plugin. Therefore, the automatic video size, frame thumbnails, and poster frame generation features are disabled.</p></div>';
-        }
-        $field['message'] = ob_get_clean();
-    }
-    return $field;
-}
-add_filter('acf/load_field/key=field_679763ca89402', 'acf_ffmpeg_not_available');
-add_filter('acf/prepare_field/key=field_679763ca89402', 'acf_ffmpeg_not_available_message');
-
-function custom_cron_schedules($schedules) {
-    $schedules['every_five_minutes'] = [
-        'interval' => 300, // 5 dakika = 300 saniye
-        'display'  => __('Every 5 Minutes')
-    ];
-    return $schedules;
-}
-add_filter('cron_schedules', 'custom_cron_schedules');
-function register_video_tasks_cron() {
-    if (!wp_next_scheduled('process_video_tasks_event')) {
-        wp_schedule_event(time(), 'every_five_minutes', 'process_video_tasks_event');
-    }
-}
-add_action('wp', 'register_video_tasks_cron');
-function deregister_video_tasks_cron() {
-    $timestamp = wp_next_scheduled('process_video_tasks_event');
-    if ($timestamp) {
-        wp_unschedule_event($timestamp, 'process_video_tasks_event');
-    }
-}
-add_action('switch_theme', 'deregister_video_tasks_cron');
-function process_video_tasks_cron() {
-    error_log("Cron Job: process_video_tasks_cron() has been strted...");
-    $args = [
-        'post_type'      => 'any',
-        'post_status'    => 'publish',
-        'meta_query'     => [
-            [
-                'key'     => 'video_tasks',
-                'compare' => 'EXISTS',
-            ],
-        ],
-        'posts_per_page' => 1,
-        'orderby'        => 'ID',
-        'order'          => 'ASC',
-    ];
-
-    $query = new WP_Query($args);
-
-    if (!$query->have_posts()) {
-        return;
-    }
-
-    $post = $query->posts[0];
-    $post_id = $post->ID;
-    $blocks = parse_blocks($post->post_content);
-
-    $video_tasks = get_post_meta($post_id, 'video_tasks', true);
-    if (empty($video_tasks) || !is_array($video_tasks)) {
-        // Eğer görevler boşsa, metayı sil
-        delete_post_meta($post_id, 'video_tasks');
-        return;
-    }
-    foreach ($video_tasks as &$task) {
-        if (isset($task['tasks']) || $task['tasks']) {
-            $current_task = $task;
-            break;
-        }
-    }
-    if (!isset($current_task)) {
-        delete_post_meta($post_id, 'video_tasks');
-        return; // Tüm görevler tamamlanmış
-    }
-    
-    $index = $current_task['index'];
-    $block_index = $current_task['block_index'];
-    $sizes = isset($current_task["tasks"]['sizes']) ? array_keys($current_task["tasks"]['sizes']) : [];
-    $thumbnails = isset($current_task["tasks"]['thumbnails']);
-    $poster = isset($current_task["tasks"]['poster']);
-
-    $video = $blocks[$block_index]['attrs']['data']['video_file_desktop'] ?? null;
-
-    if (is_numeric($video)) {
-        $video_url = wp_get_attachment_url($video);
-    } else {
-        $video_url = $video;
-    }
-
-    // Video dosyasının tam yolunu belirle
-    $upload_dir = wp_upload_dir();
-    $video_path = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $video_url);
-
-    // Eğer dosya mevcut değilse işlem yapma
-    if (!file_exists($video_path)) {
-        error_log('Video dosyası bulunamadı: ' . $video_path);
-
-        if(count($video_tasks) == 1 || count($video_tasks)-1 == $index){
-            delete_post_meta($post_id, 'video_tasks');
-        }else{
-            unset($video_tasks[$index]);
-            update_post_meta($post_id, 'video_tasks', $video_tasks);
-        }
-        unset($blocks[$block_index]['attrs']["lock"]);
-        $updated_content = serialize_blocks($blocks);
-        wp_update_post([
-            'ID'           => $post_id,
-            'post_content' => $updated_content,
-        ]);
-        $timestamp = wp_next_scheduled('process_video_tasks_event');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'process_video_tasks_event');
-            error_log("Old scheduled event cleared.");
-            wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
-        }
-        return;
-    }
-
-    // Video işleme sınıfını başlat
-    $arr = [];
-    try {
-        $video_processor = new VideoProcessor();
-        $arr = $video_processor->processVideo($post_id, $video_path, $video, $current_task);
-        if (!empty($arr)) {
-            if ($sizes) {
-                foreach ($sizes as $size) {
-                    if ($size == "480") {
-                        $blocks[$block_index]['attrs']['data']['video_file_tablet'] = $arr[$size];
-                    }
-                    if ($size == "360") {
-                        $blocks[$block_index]['attrs']['data']['video_file_phone'] = $arr[$size];
-                    }
-                }
-            }
-            if (isset($arr['720'])) {
-                $blocks[$block_index]['attrs']['data']['video_file_desktop'] = $arr['720'];
-            }
-            if ($thumbnails) {
-                $blocks[$block_index]['attrs']['data']['video_settings_vtt_thumbnails'] = $arr['vtt'];
-            }
-            if ($poster) {
-                $blocks[$block_index]['attrs']['data']['video_settings_video_image'] = $arr['poster'];
-            }
-
-            unset($blocks[$block_index]['attrs']["lock"]);
-        } else {
-            error_log('Video işlenirken bir hata oluştu.');
-        }
-    } catch (Exception $e) {
-        error_log('Hata: ' . $e->getMessage());
-    }
-
-    $updated_content = serialize_blocks($blocks);
-    wp_update_post([
-        'ID'           => $post_id,
-        'post_content' => $updated_content,
-    ]);
-}
-add_action('process_video_tasks_event', 'process_video_tasks_cron');
-
-function acf_block_video_process_on_save($post_id) {
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-        return;
-    }
-    if ($post_id === 'options') {
-        return;
-    }
-    $content = get_post_field('post_content', $post_id);
-    if (empty($content)) {
-        return;
-    }
-    $blocks = parse_blocks($content);
-
-    $tasks = [];
-    $counter = 0;
-    foreach ($blocks as $key => &$block) {
-        //error_log(print_r($block, true));
-        if(!isset($block['attrs']['data'])){
-            continue;
-        }
-        $data = $block['attrs']['data'];
-        if(!isset($data['video_file_desktop'])){
-            continue;
-        }
-        if(empty($data['video_file_desktop'])){
-            continue;
-        }
-        $process = false;
-        $task = [
-            "index" => $counter,
-            "block_index" => $key,
-            "tasks" => []
-        ];
-        
-        $desktop = $data['video_file_desktop'] ?? null;
-        $tablet  = $data['video_file_tablet'] ?? null;
-        $phone   = $data['video_file_phone'] ?? null;
-        if($desktop){
-            $sizes      = $data['ffmpeg_available_generate_sizes'] ?? 0;
-            $thumbnails = $data['ffmpeg_available_generate_thumbnails'] ?? 0;
-            $poster     = $data['ffmpeg_available_generate_poster'] ?? 0;
-
-            $task["tasks"]["sizes"]["720"] = false;
-
-            if($sizes && (!$tablet || !$phone)){
-                $process = true;
-                $task["tasks"]["sizes"] = [];
-                if(!$tablet){
-                    $task["tasks"]["sizes"]["480"] = false;
-                }
-                if(!$phone){
-                    $task["tasks"]["sizes"]["360"] = false;
-                }
-            }
-            if($thumbnails && $sizes){
-                $process = true;
-                $task["tasks"]["thumbnails"] = false;
-            }
-            if($poster && $sizes){
-                $process = true;
-                $task["tasks"]["poster"] = false;
-            }
-            if($process){
-                $tasks[] = $task;
-                $block['attrs']['lock'] = array(
-                    'move'   => true,
-                    'remove' => true,
-                );
-            }
-        }
-        $counter++;
-    }
-    if($tasks){
-        update_post_meta($post_id, 'video_tasks', $tasks);
-        //error_log(print_r($blocks, true));
-        $updated_content = serialize_blocks($blocks);
-        //error_log($updated_content);
-        wp_update_post([
-            'ID'           => $post_id,
-            'post_content' => $updated_content,
-        ]);
-        // Cron job kontrol et ve yoksa tetikle
-        $timestamp = wp_next_scheduled('process_video_tasks_event');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'process_video_tasks_event');
-            error_log("Old scheduled event cleared.");
-            wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
-        }
-        //if (!wp_next_scheduled('process_video_tasks_event')) {
-        //    wp_schedule_single_event(time() + 10, 'process_video_tasks_event');
-        //    error_log("Cron Job: process_video_tasks_cron() triggered...");
-        //}
-    }
-}
-add_action('acf/save_post', 'acf_block_video_process_on_save', 20);
-*/
-
-
-/*
-add_filter( 'rest_pre_echo_response', function( $response, $object, $request ) {
-  error_log(print_r($response, true));
-  $post_id = $response[ 'id' ];
-  return $response;
-}, 10, 3 );
-*/
