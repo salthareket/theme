@@ -480,6 +480,69 @@
 .position-absolute-fill{
 	@include absolute-fill();
 }
+@each $key, $space in $spacers {
+  .p-#{$key} > .position-absolute-fill,
+  .px-#{$key} > .position-absolute-fill {
+    left: $space;
+    right: $space;
+  }
+
+  .p-#{$key} > .position-absolute-fill,
+  .py-#{$key} > .position-absolute-fill {
+    top: $space;
+    bottom: $space;
+  }
+
+  .pt-#{$key} > .position-absolute-fill {
+    top: $space;
+  }
+
+  .pb-#{$key} > .position-absolute-fill {
+    bottom: $space;
+  }
+
+  .pl-#{$key} > .position-absolute-fill {
+    left: $space;
+  }
+
+  .pr-#{$key} > .position-absolute-fill {
+    right: $space;
+  }
+}
+@each $breakpoint, $min-width in $grid-breakpoints {
+  @media (min-width: $min-width) {
+    @each $key, $space in $spacers {
+      .p-#{$breakpoint}-#{$key} > .position-absolute-fill,
+      .px-#{$breakpoint}-#{$key} > .position-absolute-fill {
+        left: $space;
+        right: $space;
+      }
+
+      .p-#{$breakpoint}-#{$key} > .position-absolute-fill,
+      .py-#{$breakpoint}-#{$key} > .position-absolute-fill {
+        top: $space;
+        bottom: $space;
+      }
+
+      .pt-#{$breakpoint}-#{$key} > .position-absolute-fill {
+        top: $space;
+      }
+
+      .pb-#{$breakpoint}-#{$key} > .position-absolute-fill {
+        bottom: $space;
+      }
+
+      .pl-#{$breakpoint}-#{$key} > .position-absolute-fill {
+        left: $space;
+      }
+
+      .pr-#{$breakpoint}-#{$key} > .position-absolute-fill {
+        right: $space;
+      }
+    }
+  }
+}
+
 
 
 
