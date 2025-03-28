@@ -458,3 +458,25 @@ function fitToContainer() {
         iframe.style.height = container.offsetHeight + 'px';
     });
 }
+
+
+function ajaxResponseFilter(str) {
+    if (typeof str !== "string") return null;
+
+    const firstBrace = str.indexOf("{");
+    const lastBrace = str.lastIndexOf("}");
+
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+        console.error("Geçerli bir JSON bulunamadı.");
+        return null;
+    }
+
+    const possibleJson = str.substring(firstBrace, lastBrace + 1);
+
+    try {
+        return JSON.parse(possibleJson);
+    } catch (e) {
+        console.error("JSON parse hatası:", e);
+        return null;
+    }
+}

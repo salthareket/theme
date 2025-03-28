@@ -9,10 +9,8 @@ class Lcp{
 			$this->data = $data;
 		}else{
 			if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
-				if(isset(SITE_ASSETS["lcp"]["desktop"]) && SITE_ASSETS["lcp"]["desktop"] && isset(SITE_ASSETS["lcp"]["mobile"]) &&  SITE_ASSETS["lcp"]["mobile"]){
-					//error_log(" -> SITE_ASSETS tanımlı");
-					$this->data = SITE_ASSETS["lcp"];
-					//error_log(print_r($this->data, true));					
+				if(isset(SITE_ASSETS["lcp"]["desktop"]) && SITE_ASSETS["lcp"]["desktop"] && isset(SITE_ASSETS["lcp"]["mobile"]) && SITE_ASSETS["lcp"]["mobile"]){
+					$this->data = SITE_ASSETS["lcp"];				
 				}
 			}
 		}

@@ -39,8 +39,8 @@ function lcp_data(metric, type) {
 
         if (el.classList.length > 0) {
             let validClasses = Array.from(el.classList)
-                .filter(cls => cls.trim() !== "") // Boşluklu classları temizle
-                .map(cls => `.${CSS.escape(cls)}`) // Özel karakterleri uygun hale getir
+                .filter(cls => cls.trim() !== "" && !["loaded", "entered", "lazy"].includes(cls)) // Buraya filtreyi ekledim
+                .map(cls => `.${CSS.escape(cls)}`)
                 .join("");
 
             selector += validClasses;

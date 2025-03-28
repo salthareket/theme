@@ -45,12 +45,23 @@ Class Image{
             $this->not_found();
         }
 
-        if($this->args["lcp"]){
-	       $this->args["lazy"] = false;
-	       $this->args["lazy_native"] = false;
-	       $this->args["attrs"]["fetchpriority"] = "high";
-           $this->args["attrs"]["loading"] = "eager";
-	    }
+        if($this->args["preview"]){
+            $this->args["lcp"] = false;
+            $this->args["lazy"] = false;
+            $this->args["lazy_native"] = false;
+        }else{
+            if(image_is_lcp($this->args['src'])){
+                $this->args["lcp"] = false;
+                $this->args["lazy"] = false;
+                $this->args["lazy_native"] = false;
+            }
+            if($this->args["lcp"]){
+               $this->args["lazy"] = false;
+               $this->args["lazy_native"] = false;
+               $this->args["attrs"]["fetchpriority"] = "high";
+               $this->args["attrs"]["loading"] = "eager";
+            }            
+        }
 
         $this->prefix = $this->args["lazy"]?"data-":"";
 

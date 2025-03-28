@@ -803,6 +803,8 @@ class ajax_query {
                 })
                 .done(function(response) {
                     $obj.queue();
+                    response = ajaxResponseFilter(response);
+                    console.log(response)
                     response = $.parseJSON(response);
                     if(response.hasOwnProperty("error")){
                         if(response.error){
@@ -847,6 +849,9 @@ class ajax_query {
                     $("body").removeClass("loading");
                 })
                 .done(function(response) {
+                     console.log(response)
+                    response = ajaxResponseFilter(response);
+                    console.log(response)
                     if (isJson(response)) {
                         response = $.parseJSON(response);
                     }

@@ -551,6 +551,16 @@ add_filter('image_size_names_choose', 'upload_sizes_names');
 
 
 function get_image_set($args=array()){
+	if(is_admin()){
+		$args["preview"] = true;
+	}
+	if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
+		if(isset(SITE_ASSETS["lcp"]["desktop"]) && SITE_ASSETS["lcp"]["desktop"] && isset(SITE_ASSETS["lcp"]["mobile"]) && SITE_ASSETS["lcp"]["mobile"]){
+			
+		}else{
+			$args["preview"] = true;
+		}
+	}
 	$image = new SaltHareket\Image($args);
 	return $image->init();
     /*
@@ -910,7 +920,6 @@ function get_google_optimized_avif_quality() {
     // Kaliteyi min ve max değerler arasında sınırla
     return max($min_quality, min(80, $base_quality));
 }
-
 
 
 function get_embed_video_title($video_url) {
