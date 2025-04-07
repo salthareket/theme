@@ -1,0 +1,40 @@
+
+
+
+{% set notification_action = notification.action|replace({'expert_':'','client_':''}) %}
+
+<div class="tease-notification {{notification_action}} notification-{{notification.type}} d-flex align-items-center {% if notification.seen %}seen{% endif %}" id="notification-{{notification.id}}">
+	<div class="row align-items-center w-100">
+        {% set icon = false %}
+        {% set post = false %}
+        {% if notification.sender_id == 1 %}
+            {% set sender = get_user(notification.receiver_id) %}
+            {% set post = get_post(notification.post_id) %}
+            {% if post.parent %}
+                {% set post = post.parent %}
+            {% endif %}
+            {% if notification_action in ["new_project","approved_application", "new_application"] %}
+                {% set icon = "fa-regular fa-calendar-circle-plus ms-1" %}
+            {% endif %}
+            {% if notification_action in ["payment_completed"] %}
+                {% set icon = "fa-regular fa-credit-card" %}
+            {% endif %}
+            {% if notification_action in ["session_expired", "declined_application"] %}
+                {% set icon = "fa-regular fa-calendar-circle-exclamation" %}
+            {% endif %}
+        {% else %}
+            {% set sender = TimberUser(notification.sender_id, 'User') %}
+        {% endif %}
+        <div class="col-profile col-auto">
+            {% if icon %}
+                {% include "user/tease-icon-xs.twig" with { user_item: sender, post: post, icon: icon, class: "m-0" } %}
+            {% else %}
+                {% include "user/tease.twig" with { size: "xs", user_item: sender, title: false, rating: false, class: "m-0" } %}
+            {% endif %}
+        </div>
+        <div class="col-message col ps-5">{{notification.message}}</div>
+        <div class="col-auto">
+            <small class="text-muted">{{user.get_local_date(notification.created_at, "GMT", user.get_timezone())|time_ago}}</small>
+        </div>
+    </div>
+</div>

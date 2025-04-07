@@ -1,0 +1,41 @@
+{% if languages|length > 1 %}
+
+    {% if menu_type == "dropdown" %}
+        {% set menu_class =  menu_class ~ " nav-language dropdown dropdown-hover" %}
+    {% else %}
+        {% set menu_class =  menu_class ~ " nav-language" %}
+    {% endif %}
+
+    <li class="nav-item {{menu_class}}">
+    {% if menu_type == "dropdown" %}
+
+            <a aria-expanded="false" aria-haspopup="true" role="button" data-bs-toggle="dropdown" class="nav-link dropdown-toggle" href="#" id="language">
+                {{language|upper}}
+                <span class="caret"></span>
+            </a>
+            <ul id="languages" class="dropdown-menu dropdown-menu-right" aria-labelledby="language">
+                {% for item in languages %}
+                    {% if item.active != "true" %}
+                        <li class="dropdown-item" rel="{{item.name|lower}}"><a href="{{item.url}}" class="btn-loading-page">{{item.name|upper}}</a></li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+    {% else %}
+
+            <ul class="list-inline d-flex" aria-labelledby="language">
+                {% for item in languages %}
+                    {% if menu_type == "inactive" and item.active %}
+
+                    {% else %}
+                    <li class="list-inline-item" rel="{{item.name|lower}}">
+                        <a href="{{item.url}}" class="{% if item.active %}active{% endif %} btn-loading-page" title="{{item.name_long}}">{{item.name|upper}}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+
+    {% endif %}
+    </li>
+
+{% endif %}

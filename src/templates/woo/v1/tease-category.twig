@@ -1,0 +1,16 @@
+<article class="card-kampanya-tease card">
+    <div class="card-body">
+        <div class="row-body row align-items-center">
+            <div class="col-img col-xl-6" {% if aos %}data-aos="fade-{% if odd %}right{% else %}left{% endif %}"{% endif %}>
+                <div class="img-placeholder loading">
+                  <img data-src="{{post.meta('image_slider').sizes.large}}" class="img-fluid lazy" alt="{{post.title}}"/>
+                </div>
+            </div>
+            <div class="col-info col-xl-6" {% if aos %}data-aos="fade-{% if odd %}left{% else %}right{% endif %}"{% endif %}>
+                <h3 class="card-title">{{post.title}}</h3>
+                <div class="description"> {{post.description}}</div>
+                <a href="{{post.link}}" class="btn btn-primary-light btn-extend btn-loading-page">{{'ÜRÜNLERE GÖZAT'|trans}}</a>
+            </div>
+        </div>
+    </div>
+</article>

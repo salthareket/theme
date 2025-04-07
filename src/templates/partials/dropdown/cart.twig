@@ -1,0 +1,52 @@
+<li class="notification-item" data-type="{{type}}" data-id="{{post.id}}" data-key="{{post.key}}">
+    <div class="product-tease">drop
+        <a href="{{post.link}}" title="{{post.title}}">
+           <img src="{{post.image}}" class="image img-fluid" alt=""/>
+        </a>
+        <div class="detail">
+            <div class="title">
+                <a href="{{post.link}}" title="{{post.title}}">{{post.title}}</a>
+            </div>
+
+            <div class="price">
+                    {% if post.sale_price %}
+                                    
+                        <div class="current" itemprop="price">
+                            {{function('woo_get_currency_with_price', post.sale_price)}}
+                        </div>
+                        {% if post.regular_price %}
+                            <div class="old">
+                                {{function('woo_get_currency_with_price', post.regular_price)}}
+                            </div>
+                        {% endif %}
+
+                    {% else %}
+
+                        {% if post.price is iterable %}
+                            <div class="current" itemprop="price">
+                                {{function('woo_get_currency_with_price', post.price|first)}} - {{function('woo_get_currency_with_price', post.price|last)}}
+                            </div>
+                        {% else %}
+                            <div class="current" itemprop="price">
+                                {{function('woo_get_currency_with_price', post.price)}}
+                            </div>
+                        {% endif %}
+
+                    {% endif %}
+            </div>
+            <div class="text-sm text-muted">
+                {{post.quantity}} {{translate('adet')}}- 
+                {% for variation in post.variations %}
+                    {{variation}}
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <div class="action">
+            <a href="#" class="{{type}}-item-remove" data-type="{{type}}" data-id="{{post.id}}">
+                <i class="icon-close"></i>
+            </a>
+        </div>
+    </div>
+</li>

@@ -1,0 +1,47 @@
+{% if enable_cart %}
+    {% if menu_type == "dropdown" %}
+       {% set toggle = "dropdown" %}
+       {% set class =  menu_class ~ " dropdown dropdown-notifications dropdown-form" %}
+       {% set target = "" %}
+    {% else %}
+       {% set toggle = "offcanvas" %}
+       {% set class = menu_class ~ "" %}
+       {% set target = "offcanvasCart" %}
+    {% endif %}
+
+    <li class="nav-item {{class}}" data-type="cart">
+    
+        <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
+            {% set cart_count = user.cart.count %}{#function("woo_get_cart_count") #}
+            {% if cart_count > 0 %}
+                <div class="notification-count">{{cart_count}}</div>
+            {% endif %}
+            <i class="fal fa-shopping-basket"></i>
+        </a>
+
+        {% if menu_type == "dropdown" %}
+            <div class="dropdown-menu">
+                <div class="dropdown-header">
+                    <div class="title">{{'SEPETİM'|trans}}</div>
+                    <div class="action">
+                        <a href="#" data-dismiss="dropdown">{{'Kapat'|trans}}</a>
+                    </div>
+                </div>
+                <div class="dropdown-container load-container">
+                    <div class="dropdown-body scrollable">
+                        <div class="content">
+                            <div class="content-block">
+                                <i class="fal fa-shopping-basket"></i>
+                                {{'Sepetiniz boş.'|trans}}
+                                <a class="btn btn-orange btn-extend btn-sm" href="{{ function('esc_url', function('apply_filters', 'woocommerce_return_to_shop_redirect', function('wc_get_page_permalink', 'shop' ) ) ) }}">
+                                    {{'Alışverişe Başla'|trans}}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+    </li>
+{% endif %}

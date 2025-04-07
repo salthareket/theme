@@ -1,0 +1,450 @@
+
+
+<form class="form form-validate" id="form-update-profile" method="post" enctype="multipart/form-data" data-ajax-method="update_profile" autocomplete="off">
+
+    <input autocomplete="false" name="hidden" type="text" style="display:none;">
+
+    <div class="card-profile-edit card">
+    
+        <div class="card-header">
+            <h1 class="card-title">
+                {{title}}
+                <small>{{description}}</small>
+            </h1>
+
+            {% if user.profile_upgrade == "requested" %}
+            <div class="alert alert-warning mt-3 mb-0 text-center">
+                {% if user.is_profile_completed() %}
+                    Your <b>Expert</b> request is waiting approval now...
+                {% else %}
+                    Your <b>Expert</b> account request will be processed after completing your profile....
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if user.profile_upgrade == "declined" %}
+            <div class="alert alert-danger mt-3 mb-0 text-center">
+                Your <b>Expert</b> request is declined...<br>
+            </div>
+            {% endif %}
+
+            {% if user._email_temp != "" %}
+            <div class="alert alert-warning mt-3 mb-0 text-center">
+                Please check your "{{user._email_temp}}" account's inbox to verify.<br>
+                <a href="#" data-ajax-method="send_email_activation" data-id="{{user.id}}">Click here</a> to send verify email again or <a href="#" data-ajax-method="reset_email_activation" data-id="{{user.id}}">click here</a> to use your existing email "{{user.user_email}}".
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card-body pt-0">
+                    
+            <div class="profile-edit-item bg-white">
+                <div class="row gy-4">
+
+                    <div class="col-lg-6">
+                    <div class="form-group mb-0">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control" name="first_name" value="{{user.first_name}}" autocomplete="off" required/>
+                    </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control" name="last_name" value="{{user.last_name}}" autocomplete="off" required/>
+                    </div>
+                    </div>
+
+                    <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="description" value="{{user.description}}" autocomplete="off" required/>
+                    </div>
+                    </div>
+
+                    {% if user.role == "expert" %}
+                    <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Status</label>
+                        <select class="form-select form-multi-select" name="work_status" placeholder="Work Status" autocomplete="off" data-highlight="false" data-unselect="true" required>
+                            {% if work_status %}
+                                {% for item in work_status %}
+                                    <option value="{{item.term_id}}" {% if item.term_id in work_status_user %}selected{% endif %}>{{item.name}}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label class="form-label">About</label>
+                        <textarea class="form-control" name="about" autocomplete="off" required>{{user.about}}</textarea>
+                    </div>
+                    </div>
+
+                    <div class="col-12">
+                    <hr>
+                    </div>
+
+                    <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Profile Url</label>
+                        <div class="input-group">
+                            <span class="input-group-text position-relative text-muted">{{site.url}}/profile/</span>
+                            <input type="text" aria-label="Profile Url" class="form-control no-validate" name="nickname" value="{{user.generate_url_slug()}}" placeholder="Profile Url" autocomplete="off" data-remote="nickname_exist" data-remote-param="nickname" data-rule-username-rule="true" data-msg-username-rule="Only use lowercase characters, numbers and dash." data-slug rangelength ="8,25" min-length="8" maxlength="25" required>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Web Site</label>
+                        <input type="text" class="form-control" name="user_url" value="{{user.user_url}}" data-rule-url="true" autocomplete="off"/>
+                    </div>
+                    </div>
+
+                    <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Youtube Video</label>
+                        <input type="text" class="form-control" name="profile_video" value="{{user.profile_video}}" autocomplete="off"/>
+                    </div>
+                    </div>
+
+                    <div class="col-12">
+                    <label class="form-label">Social Media</label>
+                    <div class="repeater" data-show-first="true" data-unremovable-first="false" data-unique-choice="true">
+                        <div class="list-social-media" data-repeater-list="social_media">
+                            <div class="form-group " data-repeater-item data-callback--="loadDestinations">
+                                <div class="input-group">
+                                    <select class="form-select" name="brand" required>
+                                        <option value="" selected>Choose</option>
+                                        {% for item in wp_social_media %}
+                                        <option value="{{item.slug}}" data-placeholder="{{item.description}}">{{item.title}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="text" class="form-control border-start-0 pl-0" name="url" value="" placeholder="Url" aria-label="Url" autocomplete="off" data-update-placeholder required/>
+                                    <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" class="btn btn-block btn-light mt-2 w-100" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New </a>
+                    </div>
+                    {% set social_media = {} %}
+                    {% for item in wp_social_media %}
+                        {% if user.meta(item.slug) is not empty %}
+                           {% set social_media = social_media|merge([{ "brand" : item.slug, "url" : user.meta(item.slug) }]) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if social_media %}
+                    {{'<script type="text/javascript">'}}
+                        var social_media = {{social_media|json_encode}};
+                    {{'</script>'}}
+                    {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="profile-edit-item bg-white">
+                <div class="row gy-4">
+
+                    <div class="col-12">
+                       <div class="form-group mb-0">
+                           <label class="form-label">Languages</label>
+                           {% set languages_name = {} %}
+                           <select class="form-select form-multi-select" name="languages[]" multiple placeholder="Languages" data-tokens="true" data-columns="3" data-search="true" autocomplete="off" data-highlight="false" data-unselect="true" required>
+                               {% if languages %}
+                                   {% for key, item in languages %}
+                                       {% set selected = false %}
+                                       {% if key in user_languages %}
+                                          {% set selected = true %}
+                                          {% set languages_name = languages_name|merge([item]) %}
+                                       {% endif %}
+                                       <option value="{{key}}" {% if selected %}selected{% endif %}>{{item}}</option>
+                                   {% endfor %}
+                               {% endif %}
+                           </select>
+                           <input type="hidden" name="languages_name" value='{{languages_name|join(", ")}}' />
+                       </div>
+                    </div>
+
+                    {% if user.get_role() == "client" %}
+                    <div class="col-md-6">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" name="address" autocomplete="off" required>{{user.billing_address_1}}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Postcode / ZIP </label>
+                            <input type="text" class="form-control" name="postcode" value="{{user.billing_postcode}}" autocomplete="off" required/>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% set country_has_state = 0 %}
+                    <div class="col-md-6">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Country of Residence</label>
+                            <select class="selectpicker- form-select form-select-chain" name="country" data-ajax-method="get_city_options" data-chain="city" data-chain-value="{{user.billing_country}}" data-chain-on-select="false" data-live-search="true" required>
+                                <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{'Please choose your country'|trans}}</option>
+                                {% set countries = salt.localization.countries %}
+                                {% for country in countries %}
+                                    {% if country.iso2 == user.billing_country %}
+                                        {% set country_has_state = country.states|boolval %}
+                                    {% endif %}
+                                    <option value="{{country.iso2}}" data-phonecode="{{country.phonecode}}" data-states="{{country.states}}" {% if country.iso2 == user.billing_country %}selected{% endif %}>{{country.name}}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="hidden" name="states_view" value="{{country_has_state}}"/>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-0 {% if not country.states|boolval or user.city is empty %}d-none{% endif %}" data-condition="(states_view === '1' || states_view === 'true') && country" data-condition-reset="true">
+                            <label class="form-label">City/State</label>
+                            <select class="selectpicker- form-select" name="city" data-chain-value="{{user.city}}" data-live-search="true" required>
+                                <option value="" class="{% if user.city %}d-none{% endif %}">{{'Please choose your city/state'|trans}}</option>
+                                {% if user.billing_country %}
+                                    {% set cities = salt.localization.states({"country_code" : user.billing_country}) %}
+                                    {% if cities %}
+                                        {% for city in cities %}
+                                        <option value="{{city.id}}" {% if city.id == user.city %}selected{% endif %}>{{city.name}}</option>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-12 m-0 p-0"></div>
+
+                    <div class="col-md-6 {% if user.billing_country is empty %}d-none{% endif %}" data-condition="country">
+                        <div class="form-group mb-0 mt-0">
+                            <label class="form-label">Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text phone-code loading-xs position-relative">{{user.billing_phone_code}}</span>
+                                <input type="text" aria-label="Phone Number" class="form-control" name="phone" value="{{user.billing_phone}}" placeholder="Phone Number" autocomplete="off" data-phone="true" required>
+                            </div>
+                            <input type="hidden" name="phone_code" value="{{user.billing_phone_code}}" autocomplete="off">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-0 mt-0">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" name="email" value="{{user.user_email}}" data-email="true" data-rule="email" data-remote="user_exist" data-remote-param="email" data-remote-exclude="{{user.user_email}}" autocomplete="off" required/>
+                        </div>
+                        {% if user._email_temp %}
+                            <div class="form-group mb-0 mt-2 px-2 text-danger">
+                                <b>{{user._email_temp}}</b> is not verified yet!
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+            {# if user.role == "expert" %}
+            <div class="profile-edit-item bg-white">
+                <div class="row gy-4">
+                    
+                    <div class="col-12">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Industry</label>
+                            <select class="form-select form-multi-select" name="industry[]" multiple placeholder="Industry" autocomplete="off" data-columns="3" data-search="true" data-highlight="false" data-unselect="true" required>
+                            {% if industry %}
+                                {% for item in industry %}
+                                    <option value="{{item.term_id}}" {% if item.term_id in industry_user %}selected{% endif %}>{{item.name}}</option>
+                                {% endfor %}
+                            {% endif %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Expertise</label>
+                            <select class="form-select form-multi-select" name="expertise[]" multiple placeholder="Expertise" autocomplete="off" data-columns="3" data-search="true" data-highlight="false" data-unselect="true" required>
+                            {% if expertise %}
+                                {% for item in expertise %}
+                                    <option value="{{item.term_id}}" {% if item.term_id in expertise_user %}selected{% endif %}>{{item.name}}</option>
+                                {% endfor %}
+                            {% endif %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Software</label>
+                            <select class="form-select form-multi-select" name="software[]" multiple placeholder="Software" autocomplete="off" data-columns="3" data-search="true" data-highlight="false" data-unselect="true" required>
+                            {% if software %}
+                                {% for item in software %}
+                                    {% if item.children %}
+                                        <optgroup label="{{item.name}}">
+                                            {% for item_sub in item.children %}
+                                                <option value="{{item_sub.term_id}}" {% if item_sub.term_id in software_user %}selected{% endif %}>{{item_sub.name}}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% else %}
+                                        <option value="{{item.term_id}}" {% if item.term_id in software_user %}selected{% endif %}>{{item.name}}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Companies</label>
+                            <select class="form-select form-multi-select" name="company[]" multiple placeholder="Company" autocomplete="off" data-columns="3" data-search="true" data-highlight="false" data-unselect="true" required>
+                            {% if company %}
+                                {% for item in company %}
+                                    <option value="{{item.term_id}}" {% if item.term_id in company_user %}selected{% endif %}>{{item.name}}</option>
+                                {% endfor %}
+                            {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+            {% endif #}
+
+            {% if user.role == "expert" %}
+            <div class="profile-edit-item bg-white">
+                <div class="row gy-4">
+                    <div class="col-12">
+                        <div class="form-group mb-0">
+                        <label class="form-label">Integration</label>
+                            <ul class="list-group list-group-flush">
+                                {# set meetIntegration = user.get_meet_access_token_validity(user.ID) %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <div><i class="fab fa-google me-2"></i> Google Meet</div>
+                                    <input type="hidden" name="meetIntegration" value="{% if meetIntegration.status %}true{% endif %}" data-msg="Please complete integration" required/>
+                                    <a href="#" class="ms-auto btn {% if meetIntegration.status %}btn-success{% else %}btn-warning{% endif %}" {% if not meetIntegration.status %}data-ajax-method="googleMeet"{% endif %}>
+                                        {% if meetIntegration.status %}
+                                            <i class="fa fa-check me-2"></i>
+                                        {% else %}
+                                            <i class="fa fa-warning me-2"></i>
+                                        {% endif %}
+                                        {{meetIntegration.message}}
+                                    </a>
+                                </li>#}
+                                {% set zoomIntegration = user.get_zoom_access_token_validity(user.ID) %}
+                                {% if zoomIntegration %}
+                                    {% set zoom_user = function("get_zoom_user",user.id) %}
+                                {% endif %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <div><i class="fab fa-google me-2"></i> Zoom</div>
+                                    <input type="hidden" name="zoomIntegration" value="{% if zoomIntegration.status %}true{% endif %}" data-msg="Please complete integration" required/>
+                                    <div>
+                                        {{ zoom_user.display_name }}<br>
+                                        {{ zoom_user.email }}
+                                    </div>
+                                    <a href="#" class="ms-auto btn btn-primary" {% if not zoomIntegration.status %}data-ajax-method="zoomMeet"{% endif %}>
+                                        {% if zoomIntegration.status %}
+                                            <i class="fa fa-check me-2"></i>
+                                        {% else %}
+                                            <i class="fa fa-warning me-2"></i>
+                                        {% endif %}
+                                        {{zoomIntegration.message}}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div class="card-footer justify-content-end">
+            <input type="hidden" name="action" value="{{type}}"/>
+            <button type="submit" class="btn-submit btn btn-primary brn-extend">SAVE CHANGES</button>
+        </div>
+
+    </div>
+</form>
+
+{% block appendix %}
+<script>
+    $( document ).ready(function() {
+
+        $("select[name='languages[]']").on("change.select2", function(e){
+            var languages = [...$(this).find("option:selected")].map(element => element.text);
+            //var languages = $(this).find("option:selected").forEach(element => options.push(element.text))
+            debugJS(languages);
+            $("input[name='languages_name']").val(languages.join(", "));
+        });
+
+        $("select[name='country']").on("change", function(){
+            var country = $(this).val();
+            if(!IsBlank(country)){
+                var $phone_code = $(this).find("option:selected").attr("data-phonecode");
+                $("input[name='phone_code']").val($phone_code);
+                $(".phone-code").text($phone_code);
+
+                var $states_count = $(this).find("option:selected").attr("data-states");
+                var $states_view = true;
+                if($states_count == 0){
+                   $states_view = false;
+                }
+                $("input[name='states_view']").val($states_view);
+                /*var vars = {
+                    id : country
+                }
+                var query = new ajax_query();
+                    query.method = "get_phone_code";
+                    query.vars   = vars;
+                    query.before = function(){
+                    $(".phone-code").addClass("loading-process");
+                    };
+                    query.after = function(response){
+                    $(".phone-code").removeClass("loading-process").html(response);
+                    $("input[name='phone_code']").val(response);
+                    }
+                    query.request();
+                $("select[name='timezone']").val("");
+                $("select[name='timezone']").find("option:selected").prop("selected", false);
+                */
+            }
+        });
+        $("select[name='city']").on("change", function(){
+            /*var timezone = $("select[name='timezone']");
+            var continent_name = $("select[name='continent']").find("option:selected").text();
+            var city_name = $("select[name='city']").find("option:selected" ).text();
+            var timezone_value = continent_name+"/"+city_name;
+            if(IsBlank(timezone.val()) && !IsBlank(timezone_value)){
+                if(timezone.find("option[value='"+timezone_value+"']").length > 0){
+                   //.val(timezone);
+                   timezone.find("option:selected").prop("selected", false);
+                   timezone.find("option[value='"+timezone_value+"']").prop("selected", true);
+                   timezone.trigger("change");
+                }                
+            }*/
+        });
+        var $nickname = $("input[name='nickname").val();
+        $("input[name='nickname").keyup(function() {
+           $(this).removeClass("no-validate");
+           if($(this).val() == $nickname){
+              $(this).addClass("no-validate");
+           }
+        });
+        if(IsBlank($("input[name='phone_code']").val())){
+           $("select[name='country']").trigger("change");
+        }
+
+    });
+</script>
+{% endblock %}

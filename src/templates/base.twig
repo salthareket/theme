@@ -1,0 +1,225 @@
+{% block html_head_container %}
+
+    {% include 'html-header.twig' %}
+
+    {% block head %}
+    {% endblock %}
+
+    {% block opengraph %}
+    {% endblock %}
+
+    {% block schema %}
+    {% endblock %}
+
+    </head>
+{% endblock %}
+
+    {# if user.logged and user.get_role != "administrator" %}
+        {% if not user.is_profile_completed and user.get_status() %}
+            {% set page_settings = page_settings|merge({ alert: page_settings.alert|merge({position: "bottom", fixed: true, html: "<div class='container text-center'><a href='" ~ base_urls.profile ~"' class='btn btn-danger btn-extend btn-sm'>Please complete your profile</a></div>"}) }) %}
+        {% endif %}
+    {% endif #}
+
+    {# include "partials/base/user-completion.twig" #}
+    
+    {#
+            Blocks:
+                main_class
+                main_content_class
+                main_container_class
+
+            {% set  page_settings = {
+                        full : true,
+                        classes : {
+                            body : "",
+                            main : "",
+                            content : "mt-0",
+                            container : "",
+                            gap : ""
+                        },
+                        offcanvas : {
+                            size : "md"
+                        },
+                        alert : {
+                            type : "danger",
+                            title : "",
+                            message : "",
+                            position : "top",
+                fixed : false,
+                class : "",
+                html : ""
+                        }
+                    }
+            %}
+    #}
+
+    {% set body_classes = body_class ~ " " ~ page_settings.classes.body %}
+    {% if block_hero or block('hero')|trim is not empty %}
+        {% set body_classes = body_classes ~ " " ~ "has-hero" %}
+    {% endif %}
+    {% if block('header_container')|trim is empty %}
+        {% set body_classes = body_classes ~ " " ~ "pt-0" %}
+    {% endif %}
+    {% if "affix" not in page_settings.classes.body %}
+        {% if header_options.affix and header_options.fixed == "top" %}
+            {% set body_classes = body_classes ~ " " ~ "affixed" %}
+            {% if header_options.header_hide_on_scroll_down %}
+                {% set body_classes = body_classes ~ " " ~ "header-hide-on-scroll" %}
+            {% endif %}
+            {% if header_options.fixed %}
+                {% set body_classes = body_classes ~ " " ~ "header-affix-" ~ header_options.fixed %}
+            {% endif %}
+        {% endif %}
+        {% if header_options.fixed %}
+            {% set body_classes = body_classes ~ " " ~ "header-fixed-" ~ header_options.fixed %}
+        {% endif %}
+    {% else %}
+        {% if "affix" in page_settings.classes.body %}
+            {% set body_classes = body_classes ~ " " ~ "header-fixed-top" %}
+        {% endif %}
+    {% endif %}
+
+    {% set header_classes = "header" %}
+    {% if "affix" in page_settings.classes.body %}
+        {% set header_classes = header_classes ~ " " ~ "affix affixed fixed-top" %}
+    {% else %}
+        {% if header_options.fixed %}
+            {% set header_classes = header_classes ~ " " ~ "fixed-" ~ header_options.fixed %}
+            {% if header_options.fixed in ["top", "bottom-start"]  %}
+                {% if header_options.affix or header_options.fixed == "bottom-start" %}
+                    {% set header_classes = header_classes ~ " " ~ "affixed" %}
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+    
+
+  	<body class="{{body_classes}}">
+
+        {{ function('wp_body_open') }}
+
+        {% include "partials/alerts/alert-page.twig" with { alert:page_settings.alert, position : "top" } %}
+
+        {% block header_container %}
+            <header id="header" class="{{header_classes}}" itemtype="https://schema.org/WPHeader" itemscope="" role="banner" data-affix-offset="50">
+                {% block header %}
+                    {% include "partials/header/header.twig" with { container: "", equalize : "xs"} %}
+                {% endblock %}
+            </header>
+        {% endblock %}
+        
+        {% if header_options %}
+            {% set header_tools = header_options.start.tools|merge(header_options.center.tools)|merge(header_options.end.tools) %}
+            {% for item in header_tools %}
+                {% if item.menu_type == "offcanvas" %}
+                    {{include(
+                        "partials/base/offcanvas-" ~ item.menu_item ~ ".twig", 
+                        ignore_missing = true
+                    )}}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {% if not block('sidebar')|trim|raw is empty and page_settings.offcanvas.individual %}
+            {{ block('sidebar') }}
+        {% endif %}
+
+        {% block after_header %}
+        {% endblock %}
+
+        {% block hero %}
+        {% endblock %}
+
+        {% if block_hero %}
+            {{ function("render_block", block_hero) }}
+        {% endif %}
+
+        <main id="main" role="main" class="main flex-column {{page_settings.classes.main}}" {% block microdata %}{% endblock %}>
+            
+                {% if block('sidebar_toggler')|trim is not empty %}
+                   <div class="sidebar-toggler-container d-block d-{{page_settings.offcanvas.size}}-none sticky">
+                {% endif %}
+                    {% block sidebar_toggler %}
+                    {% endblock %}
+                {% if block('sidebar_toggler')|trim is not empty %}
+                   </div>
+                {% endif %}
+
+                {% block hero_header %}
+                {% endblock %}
+
+                {% if not page_settings.full and page_settings.classes.container %}
+                    <div class="{% if page_settings.classes.container %}{{page_settings.classes.container}}{% else %}{{function("block_container", "default")}}{% endif %}">
+                {% else %}
+                    {#<div class="container-fluid p-0">#}
+                {% endif %}
+                    
+                    {% if enable_ecommerce %}
+                    {% block shop_header %}
+                    {% endblock %}
+                    {% endif %}
+
+                    {% block before_container %}
+                    {% endblock %}
+
+                    {% if (not block('sidebar')|trim|raw is empty and not page_settings.offcanvas.individual) %}
+                        <div class="row h-100 {{page_settings.classes.gap|default("gx-lg--5")}} {% if page_settings.offcanvas.position == "right" %}flex-row-reverse{% endif %}">
+                            {% block sidebar %}
+                            {% endblock %}
+                            <div id="content" class="{{function("acf_offcanvas_content_classes", page_settings)}} base">
+                    {% endif %}
+                        
+                            {% block content %}
+                                Sorry, no content
+                            {% endblock %}
+
+                    {% if (not block('sidebar')|trim|raw is empty and not page_settings.offcanvas.individual) %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% if not page_settings.full and page_settings.classes.container %}
+                    </div>
+                {% else %}
+                    {#</div>#}
+                {% endif %}
+
+                {% block bottom %}
+                {% endblock %}
+        </main>
+
+        {% block offcanvas %}
+        {% endblock %}
+
+        {% block after_main %}
+        {% endblock %}
+
+        {% block footer %}
+             {% if visibility_under_construction or (not visibility_under_construction and user.get_role == "administrator") %}
+             {% include 'footer.twig' %}
+             {% endif %}
+  		{% endblock %}
+
+        {{ function('wp_footer') }}
+
+        {% if site_assets_js and not fetch %}
+        <script type="text/javascript">
+            window.addEventListener('load', function() {
+                {{ site_assets_js }}
+            });
+        </script>
+        {% endif %}
+
+        {% include "partials/alerts/alert-page.twig" with { alert:page_settings.alert, position : "bottom" } %}
+
+        {% block appendix %}
+        {% endblock %}
+
+        {% include "partials/modals/modal-home.twig" %}
+
+        {% if theme_styles.utilities.scroll_to_top.show != "no" and theme_styles.utilities.scroll_to_top.active %}
+            <a class="scroll-to-top {% if theme_styles.utilities.scroll_to_top.show != "always" %}fade{% endif %}" data-show="{{theme_styles.utilities.scroll_to_top.show}}" data-duration="{{theme_styles.utilities.scroll_to_top.duration}}" href="#" title="{{translate("Sayfa başına git")}}">{{theme_styles.utilities.scroll_to_top.icon}}</a>
+        {% endif %}
+
+  	</body>
+</html>

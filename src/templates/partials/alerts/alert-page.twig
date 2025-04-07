@@ -1,0 +1,17 @@
+{% if alert.title or alert.message or alert.html %}
+    <div class="{{alert.class}} alert alert-{{alert.type}} alert-notification alert-notification-{{alert.position}} alert-dismissible fade show rounded-{% if alert.position == "top" %}bottom{% else %}top{% endif %}-0 {% if alert.fixed %}fixed-{{alert.position}}{% endif %}" role="alert">
+        {% if alert.html %}
+            {{alert.html}}
+        {% else %}
+            {% if alert.title %}
+                <h4 class="alert-heading">{{alert.title}}</h4>
+            {% endif %}
+            {% if alert.message %}
+            <div class="alert-body">
+                {{alert.message}}
+            </div>
+            {% endif %}
+        {% endif %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endif %}

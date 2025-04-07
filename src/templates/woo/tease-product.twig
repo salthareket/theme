@@ -1,0 +1,92 @@
+{{ function('timber_set_product', post) }}
+{% set will_release = url_query_vars.action == "siradakiler" or date(post.meta("book_release_date")) > date('now') %}
+
+{% set paint_index_max = 5 %}
+{% set lazy = true %}
+{% if page == 1 and index < paint_index_max %}
+    {% set lazy = false %}
+{% endif %}
+
+<article class="tease-product card {% if size == "sm" %}sm{% endif %}" itemscope="" itemtype="https://schema.org/Book" {% if not size in ["sm", "xs"] %}data-aos="fade-up"{% endif %}>
+    {#<div class="card-body p-0 overflow-hidden">
+        {% do action('woocommerce_before_shop_loop_item_title') %}
+    </div>#}
+    <div class="card-body border {% if lazy %}loading{% endif %}" style="background-color:{{post.thumbnail.meta('average_color')|default('#000')}};">
+        <a href="{{ post.link }}" title="{{post.title}}" class="d-block img-placeholder btn-loading-page">
+            {% if not size in ["sm", "xxs"] %}
+            <div class="info" style="background-color:{{function('make_rgba', post.thumbnail.meta('average_color')|default('#000'), '.95')}};">
+                <h2 class="card-title" style="color:{{post.thumbnail.meta('contrast_color')|default('#fff')}}!important;">
+                    {{ post.title }}
+                    <small style="color:{{post.thumbnail.meta('contrast_color')|default('#fff')}}!important;">{{ post.meta("book_author_name") }}</small>
+                </h2>
+                {% if not size in ["xs", "xxs"] %}
+                <div class="release-date mt-4 {% if will_release %}next bg-danger p-3{% endif %}" style="color:{% if will_release %}#fff{% else %}{{post.thumbnail.meta('contrast_color')|default('#fff')}}{% endif %}!important;">
+                    {% if will_release %}
+                        <i class="icon fa-light fa-timer mx-0"></i>
+                        <div class="title">{{ translate("Yayımlanacağı Tarihi") }}</div>
+                    {% else %}
+                        <div class="title">{{ translate("Yayımlanma Tarihi") }}</div>
+                    {% endif %}
+                    <date class="date">{{ post.meta("book_release_date")|date('F Y') }}</date>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if post.thumbnail %}
+                {{img({
+                    post : post,
+                    lazy : lazy,
+                    srcset : {
+                        xs : 260,
+                        sm_ls : 260,
+                        sm : 260,
+                        md : 260,
+                        lg : 300,
+                        xl : 360,
+                        xxl : 300,
+                        xxxl : 360
+                    }
+                })}}
+            {% else %}
+             <div class="img-placeholder"></div>
+            {% endif %}
+        </a>
+        <meta itemprop="name" content="{{post.title}}"/>
+        <meta itemprop="image" content="{{post.thumbnail}}"/>
+    </div>
+
+    {# if querystring.orderby in ["release_date", "author_name"] or url_query_vars.action in ["siradakiler", "yeni"] #}
+    {% if not size in ["xs", "xxs"] %}
+    <div class="card-footer py-3 flex-column" data-mh="product-{% if size %}{{size}}-{% endif %}footer">
+        
+        {# if querystring.orderby == "author_name" #}
+            <h2 class="card-title">
+                <a href="{{ post.link }}" class="btn-loading-page" title="{{ post.title }}">
+                    {{ post.title }}
+                    <small>{{ post.meta("book_author_name") }}</small>
+                </a>
+            </h2>
+            {# if post.title %}
+                <h3 class="card-title"><a href="{{ post.link|variation_url_rewrite }}">{{ post.title }}</a></h3>
+            {% else %}
+                <h3 class="card-title"><a href="{{ post.link|variation_url_rewrite }}">{{ fn('the_title') }}</a></h3>
+            {% endif #}
+            {% do action( 'woocommerce_after_shop_loop_item_title' ) %}
+            {# do action( 'woocommerce_after_shop_loop_item' ) #}
+        {# endif #}
+
+        {# if querystring.orderby == "release_date" or url_query_vars.action in ["siradakiler", "yeni"] #}
+        {% if size != "sm" %}
+            <div class="release-date {% if url_query_vars.action == "siradakiler" or date(post.meta("book_release_date")) > date('now') %}next{% endif %}">
+                <span>
+                    <i class="fa-regular fa-timer"></i>
+                    {{ post.meta("book_release_date")|date('F Y') }}
+                </span>
+            </div>
+        {% endif %}
+        {# endif #}
+
+    </div>
+    {% endif %}
+    {# endif #}
+</article>

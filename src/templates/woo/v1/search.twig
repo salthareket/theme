@@ -1,0 +1,24 @@
+{% extends "base.twig" %}
+
+{% block title %}
+  <h1>{{title}}</h1>
+{% endblock %}
+
+{% block content %}
+    {{title}}
+    {% if posts %}
+        <div class="row row-centered clearfix">
+            {% for post in posts %}
+                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                    {% include "woo/tease-product.twig" with {'post' : post } %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-products">
+            {{'Üzgünüz, aradığınız kriterlere göre ürün bulunamadı.'|trans}}...
+        </div>
+    {% endif %}
+    {% include 'pagination.twig' %}
+
+{% endblock %}

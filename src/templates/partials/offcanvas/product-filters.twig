@@ -1,0 +1,46 @@
+
+
+    {% block sidebar_toggler %}
+        {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
+            <button type="button" class="sidebar-toggler btn btn-base" data-bs-toggle="offcanvas" data-bs-target="#offcanvas-{{page_settings.offcanvas.id}}" aria-label="{{page_settings.offcanvas.title}}">
+                {{page_settings.offcanvas.title}} <i class="fa fa-angle-right ms-2"></i>
+            </button>
+        {% endif %}
+    {% endblock %}
+
+
+    {% block sidebar %}
+        {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
+            <div class="sidebar sticky sticky-xl {{function("acf_offcanvas_classes", page_settings)}} offcanvas-{{page_settings.offcanvas.position}} {% if not page_settings.offcanvas.individual %}offcanvas-{{page_settings.offcanvas.size}}{% else %}offcanvas{% endif %} p-0 bg-white mh-100v-header" tabindex="-1" id="offcanvas-{{page_settings.offcanvas.id}}" data-bs-keyboard="false" data-bs-backdrop="false" data-bs-scroll="true">
+                <div class="offcanvas-header {% if not page_settings.offcanvas.title %}position-absolute{% endif %}" {% if not page_settings.offcanvas.title %}style="z-index:1;right:0;"{% endif %}>
+                    {% if page_settings.offcanvas.title %}
+                        <h4 class="offcanvas-title">{{page_settings.offcanvas.title}}</h4>
+                    {% endif %}
+                    <button type="button" class="btn-close btn-close-dark opacity-100" data-bs-toggle="offcanvas" data-bs-target="#offcanvas-{{page_settings.offcanvas.id}}" aria-label="{{translate('Kapat')}}"></button>
+                </div>
+                <div class="offcanvas-body d-block p-4">
+                    {% set shortcode = '[yith_wcan_filters slug="'~page_settings.offcanvas.filter_preset~'"]' %}
+                    {{shortcode|shortcodes}}
+                </div>
+            </div>
+        {% endif %}
+    {% endblock %}
+
+
+
+    {% block before_container %}
+        {% if page_settings.offcanvas.layout == "horizontal" %}
+            <div class="card card-reset">
+                {% if page_settings.offcanvas.title %}
+                <div class="card-header">
+                    <h4 class="card-title">{{page_settings.offcanvas.title}}</h4>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    {% set shortcode = '[yith_wcan_filters slug="'~page_settings.offcanvas.filter_preset~'"]' %}
+                    {{shortcode|shortcodes}}
+                </div>
+            </div>
+        {% endif %}
+    {% endblock %}
+

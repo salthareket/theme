@@ -1,0 +1,16 @@
+{% set chatbox = '[yobro_chatbox user_id=' ~ id ~ ']' %}
+                            {{chatbox|shortcodes}}
+                            {{'<script>'}}
+                                function hashHandler(){
+                                    this.oldQuerystring = window.location.search;
+                                    this.Check;
+                                    var that = this;
+                                    var detect = function(){
+                                        if(window.location.search.indexOf("conversationId")){
+                                            history.replaceState(null, null, that.oldQuerystring);
+                                        }
+                                    };
+                                    this.Check = setInterval(function(){ detect() }, 100);
+                                }
+                                var hashDetection = new hashHandler();
+                            {{'</script>'}}

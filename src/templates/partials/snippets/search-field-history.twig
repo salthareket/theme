@@ -1,0 +1,10 @@
+<ul class="list-inline text-center mb-4">
+    {#<li class="list-inline-item">{{title}}: </li>#}
+    {% for keyword in search_terms %}
+        <li class="list-inline-item">
+            <a href="{{vars.url}}{{keyword}}/" class="btn {{vars.class}} btn-loading-page" title="Search {{keyword}}">
+                {{ keyword }}
+            </a>
+        </li>
+    {% endfor %}
+</ul>

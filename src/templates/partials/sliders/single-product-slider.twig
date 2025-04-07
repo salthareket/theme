@@ -1,0 +1,80 @@
+{% if ids %}
+    {% set images = "" %}
+    {% for id in ids %}
+       {% set images = images ~ get_image(id) %}
+       {% if not loop.end %}
+          {% set images = images  ~ "," %}
+       {% endif %}
+    {% endfor %}
+    {% set images = images|split(",") %}
+{% endif %}
+
+
+{% if type == "variable" or type == "simple" %}
+    <div class="swiper swiper-slider" data-slider-navigation="true">
+        <div class="swiper-wrapper">
+            {% for image in images %}
+                <div class="swiper-slide">
+                    <a href="#" data-zoom="{{image}}">
+                        <img src="{{image}}" class="img-fluid" itemprop="image" alt="{{post.title}}"/>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="swiper-pagination"></div>
+    </div>
+
+    {% if images|length > 1 %}
+    <div class="slider-single-product-thumbs">
+        <div class="swiper">
+            <div class="swiper-wrapper">
+                {% for image in images %}
+                    <div class="swiper-slide">
+                        <img src="{{image|resize(150,150)}}" class="img-fluid" itemprop="image" alt="{{post.title}}"/>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% endif %}
+
+{% if type == "bundle" %}
+    <div class="swiper-slider swiper swiper-bundle-no-gallery" data-slider-autoplay="true" data-slider-navigation="true" data-slider-lazy="true" data-slider-effect="fade" data-slider-loop="true">
+        <div class="swiper-wrapper">
+            {% for bundle in product.get_bundled_items %}
+                {% set bundle_product = bundle.get_product %}
+                {% set bundle = get_post(bundle_product.get_id) %}
+                <div class="swiper-slide bg-cover">
+                    <img class="swiper-lazy" alt="{{post.title}}" data-src="{{bundle.thumbnail.src('large')}}">
+                    <div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
+                </div>
+            {% endfor %}
+        </div>
+        {% if product.get_bundled_items|length > 1 %}
+            <div class="swiper-button-prev swiper-button-black"></div>
+            <div class="swiper-button-next swiper-button-black"></div>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if type == "woosb" %}
+    {% set ids = post.meta("woosb_ids") %}
+    {{ function("woo_wpc_bundle_images", post) }}
+    <div class="swiper-slider swiper swiper-bundle-no-gallery" data-slider-autoplay="true" data-slider-navigation="true" data-slider-lazy="true" data-slider-effect="fade" data-slider-loop="true">
+        <div class="swiper-wrapper">
+            {% for id in (ids) %}
+                {% set bundle = get_post(id.id) %}
+                <div class="swiper-slide bg-cover">
+                    <img class="swiper-lazy" alt="{{bundle.title}}" src="{{bundle.thumbnail.src('large')}}" loading="lazy">
+                    <div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
+                </div>
+            {% endfor %}
+        </div>
+        {% if ids|length > 1 %}
+            <div class="swiper-button-prev swiper-button-black"></div>
+            <div class="swiper-button-next swiper-button-black"></div>
+        {% endif %}
+    </div>
+{% endif %}

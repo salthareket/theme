@@ -1,0 +1,196 @@
+
+
+{% set  page_settings = {
+            full : false,
+            classes : {
+                body : "",
+                main : "",
+                container : "",
+                gap : "",
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "bottom",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+
+
+{% block hero %}
+{% endblock %}
+
+
+{% block sidebar %}
+{% endblock %}
+
+
+{% block content %}
+<form class="form form-validate" id="form-schedule" method="post" data-ajax-method="update_profile" autocomplete="off">
+    
+    <div class="card-container card card-reset">
+        <div class="card-body"> 
+
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        {{ title }}
+                        <small class="fw-normal">{{ description }}</small>
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                    {% set days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
+
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col"></th>
+                                <th scope="col">Start</th>
+                                <th scope="col">End</th>
+                                <th scope="col">Online</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                {% for day in days %}
+                                {% set day_slug = day|sanitize %}
+                                <tr class="align-middle datepair">
+                                    <th class="col-field-lg {% if loop.last %}border-bottom-0{% endif %}" scope="row">{{day}}</th>
+                                    <td class="{% if loop.last %}border-bottom-0{% endif %}">
+                                        <div class="form-group mb-0 {% if not user.meta(day_slug~"_online") %}d-none{% endif %}" data-condition="{{day_slug}}_online === '1'" >
+                                            <input type="text" class="form-select form-control-timepicker time start" name="{{day|sanitize}}_start" id="{{day_slug}}-start" data-step="15" data-time-format="H:i" value="{{user.meta(day_slug ~ '_start')}}" required/>
+                                        </div>
+                                        <div class="form-group mb-0 {% if user.meta(day_slug~"_online") %}d-none{% endif %}" data-condition="{{day_slug}}_online !== '1'">
+                                            <input type="text" readonly class="form-control-plaintext" id="{{day_slug}}_start_none" value="-">
+                                        </div>
+                                    </td>
+                                    <td class="{% if loop.last %}border-bottom-0{% endif %}">
+                                        <div class="form-group mb-0 {% if not user.meta(day_slug~"_online") %}d-none{% endif %}" data-condition="{{day_slug}}_online === '1'">
+                                            <input type="text" class="form-select form-control-timepicker time end" name="{{day_slug}}_end" id="{{day_slug}}-end" data-step="15" data-time-format="H:i" data-max-time="23:59am" value="{{user.meta(day_slug~'_end')}}" required />
+                                        </div>
+                                        <div class="form-group mb-0 {% if user.meta(day_slug~"_online") %}d-none{% endif %}" data-condition="{{day_slug}}_online !== '1'">
+                                            <input type="text" readonly class="form-control-plaintext" id="{{day_slug}}_end_none" value="-">
+                                        </div>
+                                    </td>
+                                    <td class="text-center col-field-sm {% if loop.last %}border-bottom-0{% endif %}">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="{{day_slug}}_online" value="1" id="{{day_slug}}-online" {% if user.meta(day_slug~"_online") %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Session Settings
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                            
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label class="form-label">Break between sessions</label>
+                                <select name="session_pause" class="form-select">
+                                    {% for min in 0..60 %}
+                                    <option value="{{min}}" {% if min == user.session_pause %}selected{% endif %}>{% if min == 0 %}No break{% else %}{{min}} minute{% if min > 1 %}s{% endif %}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label class="form-label">15 minute price</label>
+                                <div class="input-group mb-0">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control" name="price_base" value="{{user.price_base}}" autocomplete="off" aria-label="15 minute price" data-numericonly required/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Offline Dates
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+
+                    <div class="form-group mb-0">
+                        <small>Çalışmayacağınız tarih aralığını burada belirtebilirsiniz.</small>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="offline" value="1" id="offline" {% if user.offline %}checked{% endif %}>
+                            <label class="form-check-label" for="offline">I will be offline for a while.</label>
+                        </div>
+                    </div>
+
+                    <div class="row gx-2 mt-4 datepair {% if not user.offline %}d-none{% endif %}" data-condition="offline">
+                        <div class="col-md-6">
+                            <div class="form-group form-floating mb-2">
+                                <input type="text" class="form-control form-control-date-min-today datepicker start date date-start" name="offline_start" id="offline-start" value="{{user.offline_start}}" data-related="#offline-end" placeholder="Choose a date" data-date-format="mm/dd/yyyy" aria-label="Date" autocomplete="off" data-update-placeholder required>
+                                <label for="offline-start">Start date</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group form-floating mb-2">
+                                <input type="text" class="form-control form-control-date-min-today datepicker end date date-end" name="offline_end" id="offline-end" value="{{user.offline_end}}" placeholder="Choose a date" data-date-format="mm/dd/yyyy" aria-label="Date" autocomplete="off" data-update-placeholder required>
+                                <label for="offline-end">End date</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group form-floating mb-0" data-condition="offline">
+                                <textarea class="form-control" name="offline_note" d="offline-note" rows="5">{{user.offline_note}}</textarea>
+                                <label for="offline-note">View a note on your profile page</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="card-footer d-flex justify-content-center pt-4">
+            <input autocomplete="false" name="hidden" type="text" style="display:none;">
+            <input type="hidden" name="action" value="{{type}}"/>
+            <button type="submit" class="btn-submit btn btn-secondary fw-bold btn-lg">SAVE CHANGES</button>
+        </div>
+    </div>
+
+</form>
+{% endblock %}
+
+
+{% block appendix %}
+    {{'<script>'}}
+        $( document ).ready(function() {
+        });
+    {{'</script>'}}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% block html_head_container %}
+
+    {% include 'html-header.twig' %}
+
+    {% block head %}
+    {% endblock %}
+
+    {% block opengraph %}
+    {% endblock %}
+
+    {% block schema %}
+    {% endblock %}
+
+    </head>
+{% endblock %}
+
+
+  	<body class="{{page_settings.classes.body}} {% if is_home %}home{% endif %} page-under-construction under-construction">
+
+        <main id="main" role="main" class="main {{page_settings.classes.main}}">
+
+            <div class="container-sm">
+                <div class="card card-reset text-center">
+                    <div class="card-header">
+                        {% if function('get_extension', logo) == "svg" %}
+                            {{function('inline_svg', logo, "logo")}}
+                        {% else %}
+                            <img src="{{logo}}" class="logo" alt="{{site.name}}" />
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+                 
+        </main>
+
+        {{ function('wp_footer') }}       
+
+  	</body>
+</html>

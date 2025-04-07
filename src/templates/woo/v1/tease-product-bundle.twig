@@ -1,0 +1,94 @@
+{% set bundle_product = post.get_product %}
+{% set bundle_product_data = post.get_data %}
+{% set bundle = get_post(bundle_product.get_id) %}
+{% set gallery_ids = bundle_product.get_gallery_image_ids %}
+
+{% set quantity_default = 0 %}
+{% set quantity_min = 0 %}
+{% set quantity_max = "" %}
+{% if bundle_product_data.optional == "no" %}
+    {% set quantity_default = bundle_product_data.quantity_default %}
+    {% set quantity_min = bundle_product_data.quantity_min %}
+    {% set quantity_max = bundle_product_data.quantity_max %}
+{% endif %}
+
+<div class="card-bundle {{class}} card shadow-sm" data-mh="bundle-item" data-title="{{bundle.title}}" data-product-default-price="{{bundle_product.get_regular_price}}" data-product-default-discounted-price="{{bundle_product.get_sale_price}}" data-quantity-default="{{quantity_default}}">
+    <div class="card-body">
+        <a href="#" class="ilightbox-gallery-js" data-gallery="gallery_{{bundle.ID}}" title="{{bundle.title}}" itemprop="url">
+            <div class="row">
+                <div class="col-image col-auto">
+                    <div class="img-placeholder">
+                        <img data-src="{{bundle.thumbnail.src('medium_large')}}" class="img-fluid lazy" alt="{{bundle.title}}" />
+                    </div>
+                </div>
+                <div class="col-content col">
+                    <ul class="list-label list-label-sm">
+                        {% if bundle_product_data.optional == "yes" %}
+                        <li>
+                            <span class="label-optional label">{{'Opsiyonel'|trans}}</span>
+                        </li>
+                        {% endif %}
+                        <li>
+                            <span class="label-quantity label"><span>{{bundle_product_data.quantity_default}}</span> {{'Adet'|trans}}</span>
+                        </li>
+                    </ul>
+                    <div class="card-header">
+                        <h3 class="card-title">{{bundle.title}}</h3>
+                        {#<div class="action">
+                            <a href="{{bundle.link}}" class="btn btn-primary-light-outline btn-extend ">{{'İNCELE'|trans}}</a>
+                            <div class="price">
+                                {{bundle_product.get_price_html}}
+                            </div>
+                        </div>#}
+                    </div>
+
+                    <div class="price">
+                        {{bundle_product.get_price_html}}
+                    </div>
+                    
+                    {% apply spaceless %}
+                    <ul class="list-dimensions list-inline">
+                    {% if bundle_product.get_length %}
+                        <li class="list-inline-item">
+                            <label>{{'UZUNLUK'|trans}}</label>
+                            {{bundle_product.get_length}}mm
+                        </li>
+                    {% endif %}
+                    {% if bundle_product.get_width %}
+                        <li class="list-inline-item">
+                            <label>{{'GENİŞLİK'|trans}}</label>
+                            {{bundle_product.get_width}}mm
+                        </li>
+                    {% endif %}
+                    {% if bundle_product.get_height %}
+                        <li class="list-inline-item">
+                            <label>{{'YÜKSEKLİK'|trans}}</label>
+                            {{bundle_product.get_height}}mm
+                        </li>
+                    {% endif %}
+                    </ul>
+                    {% endapply %}
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="card-footer">
+        <div class="form-inline justify-content-center">
+            <div class="form-group">
+                <label class="mr-3">Adet</label>
+                <input type="number" class="quantity size-md width-md" data-val="{{quantity_default}}" value="{{quantity_default}}" min="{{quantity_min}}" {% if quantity_max %}max="{{quantity_max}}"{% endif %} step="1"/>
+            </div>
+        </div>
+        {#<a href="{{bundle.thumbnail.src}}" class="ilightbox btn btn-primary-light-outline btn-extend btn-block" title="{{bundle.title}}">{{'İNCELE'|trans}}</a>#}
+    </div>
+    <script>
+        {% set arr = '' %}
+        {% for image in gallery_ids %}
+            {% set arr = arr ~ "{'url':'" ~ get_image(image) ~ "','title':'" ~ bundle.title ~ "'}" %}
+            {% if not loop.last %}
+                  {% set arr = arr ~ "," %}
+            {% endif %}
+        {% endfor %}
+        var gallery_{{bundle.ID}} = [{{arr}}];
+    </script>
+</div>

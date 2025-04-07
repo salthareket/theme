@@ -1,0 +1,72 @@
+{% set modal_home = function("_get_option", "modal_home") %}
+{% if (current_url == site.url ~"/") and modal_home.modal_type != "off" %}
+    {% if (modal_home.type == "video" and ((modal_home.video.video_type == "file" and modal_home.video.video_file|values) or (modal_home.video.video_type == "embed" and modal_home.video.video_url))) or (modal_home.type == "image" and modal_home.image.image) %}
+        <div class="modal" id="modal_home" tabindex="-1" aria-labelledby="modal_homeLabel" aria-modal="false" role="dialog">
+            <div class="modal-dialog modal-dialog-centered modal-{{modal_home.modal_size}}">
+                <div class="modal-content border-0">
+                    <button type="button" class="btn-close position-absolute fs-5 p-3 bg-white rounded-circle" data-bs-dismiss="modal" aria-label="{{translate("Kapat")}}" style="top:10px;right:10px;z-index: 9999;"></button>
+                    <div class="modal-body p-0 overflow-hidden shadow-lg {% if modal_home.type in ["image", "video"] %}rounded-3{% endif %}">
+                            
+                        {% if modal_home.type == "image" %}
+                            {% if modal_home.image.link %}
+                            <a href="{{modal_home.image.link}}" target="{% if function("is_external", modal_home.image.link) %}_blank{% else %}_self{% endif %}">
+                            {% endif %}
+                            <img src="{{modal_home.image.image}}" class="img-fluid" alt="">
+                            {% if modal_home.image.link %}
+                            </a>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if modal_home.type == "video" %}
+
+                            {% if modal_home.video.link %}
+                            <a href="{{modal_home.video.link}}" target="{% if function("is_external", modal_home.image.link) %}_blank{% else %}_self{% endif %}">
+                            {% endif %}
+                            {{video({
+                                src: modal_home.video,
+                                class: "", 
+                                init: true, 
+                                lazy: true,
+                                attrs: []
+                            })}}
+                            {% if modal_home.video.link %}
+                            </a>
+                            {% endif %}
+
+                        {% endif %}
+                                
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+                    $( document ).ready(function() {
+                        var modal = new bootstrap.Modal('#modal_home');
+                        var modalEl = document.getElementById('modal_home');
+                        modalEl.addEventListener('shown.bs.modal', function(e){
+                            $(window).trigger("resize");
+                        })
+                        modalEl.addEventListener('hidden.bs.modal', function(e){
+                            modalEl.remove();
+                        }); 
+                        function init_modal(){
+                            {% if modal_home.view == "scheduled" %}
+                            if (window.localStorage) {
+                                var nextPopup = localStorage.getItem( 'popup' );
+                                    nextPopup = new Date(nextPopup);
+                                if (nextPopup > new Date()) {
+                                    modalEl.remove();
+                                    return;
+                                }
+                                var expires = new Date();
+                                expires.setMinutes(expires.getMinutes() + {{modal_home.view_time|default(30)}});
+                                localStorage.setItem( 'popup', expires );
+                            }
+                            {% endif %}
+                            modal.show();         
+                        }
+                        init_modal();
+                    });
+        </script>
+    {% endif %}
+{% endif %}

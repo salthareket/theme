@@ -1,0 +1,10 @@
+{% set template = "reviews/tease.twig" %}
+{% for review in reviews %}
+    {% if loader == "ul" %}
+    <li class="list-group-item px-0 py-4">
+    {% endif %}
+    {% include template  %}
+    {% if loader == "ul" %}
+    </li>
+    {% endif %}
+{% endfor %}

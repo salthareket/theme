@@ -1,0 +1,11 @@
+<li class="nav-item nav-logo {{menu_class}}">
+    <div class="navbar-brand">
+        <a href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" class="mh-100" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+            {% if function('get_extension', logo) == "svg" %}
+                {{function('inline_svg', logo, "logo-svg " ~ (brand != "center"?"w-auto":""))}}
+            {% else %}
+                <img src="{{logo}}" class="logo" alt="{{site.name}}" />
+            {% endif %}
+        </a>
+    </div>
+</li>

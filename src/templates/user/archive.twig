@@ -1,0 +1,11 @@
+{% apply spaceless %}
+    {% for user_item in TimberUser(users, 'User') %}
+    {% if vars.loader == "ul" %}
+    <li class="list-group-item px-0">
+    {% endif %}
+       {% include [tease ~ ".twig", "user/tease.twig"] with { size: vars.size, class : class, show_follow: vars.show_follow|boolval } %}
+    {% if vars.loader == "ul" %}
+    </li>
+    {% endif %}
+    {% endfor %}
+{% endapply %}

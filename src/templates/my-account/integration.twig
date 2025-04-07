@@ -1,0 +1,65 @@
+
+    <div class="card-container card card-reset">
+        <div class="card-body"> 
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Integration
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+
+                        <div class="form-group mb-0">
+                            <ul class="list list-group list-group-flush">
+                                {# set meetIntegration = user.get_meet_access_token_validity(user.ID) %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <div><i class="fab fa-google me-2"></i> Google Meet</div>
+                                    <input type="hidden" name="meetIntegration" value="{% if meetIntegration.status %}true{% endif %}" data-msg="Please complete integration" required/>
+                                    <a href="#" class="ms-auto btn {% if meetIntegration.status %}btn-success{% else %}btn-warning{% endif %}" {% if not meetIntegration.status %}data-ajax-method="googleMeet"{% endif %}>
+                                        {% if meetIntegration.status %}
+                                            <i class="fa fa-check me-2"></i>
+                                        {% else %}
+                                            <i class="fa fa-warning me-2"></i>
+                                        {% endif %}
+                                        {{meetIntegration.message}}
+                                    </a>
+                                </li>#}
+                                {% set zoomIntegration = user.get_zoom_access_token_validity(user.ID) %}
+                                {% if zoomIntegration %}
+                                    {% set zoom_user = function("get_zoom_user",user.id) %}
+                                {% endif %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <div><i class="fa-solid fa-video me-2 text-secondary"></i> Zoom</div>
+                                    <input type="hidden" name="zoomIntegration" value="{% if zoomIntegration.status %}true{% endif %}" data-msg="Please complete integration" required/>
+                                    <div>
+                                        {{ zoom_user.display_name }}<br>
+                                        {{ zoom_user.email }}
+                                    </div>
+                                    <a href="#" class="ms-auto btn btn-primary" {% if not zoomIntegration.status %}data-ajax-method="zoomMeet"{% endif %}>
+                                        {% if zoomIntegration.status %}
+                                            <i class="fa fa-check me-2"></i>
+                                        {% else %}
+                                            <i class="fa fa-warning me-2"></i>
+                                        {% endif %}
+                                        {{zoomIntegration.message}}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                </div>
+            </div>
+
+
+        </div>
+
+    </div>
+</form>
+
+{% block appendix %}
+<script>
+    $( document ).ready(function() {
+    });
+</script>
+{% endblock %}

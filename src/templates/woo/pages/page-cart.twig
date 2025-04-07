@@ -1,0 +1,76 @@
+{% extends "base.twig" %}
+
+{% if not page_settings %}
+{% set  page_settings = {
+            full : true,
+            classes : {
+                body : "",
+                main : "",
+                container : "",
+                gap : ""
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "top",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+{% endif %}
+
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block hero %}
+{% endblock %}
+
+{% block hero_header %}
+    {#<div class="page-header mb-5">
+        <div class="container">
+            {{ breadcrumb }}
+            <h1 class="title m-0">
+                {% if tax[0] %}
+                    {{tax[0].name}}
+                {% elseif title is not empty %}
+                    {{title}}
+                {% else %}
+                    {{ post.title }}
+                {% endif %}
+            </h1>
+        </div>
+    </div>#}
+{% endblock %}
+
+
+{% block content %}
+    {{ post.content }}
+{% endblock %}
+
+
+{% block after_main %}
+{% endblock %}

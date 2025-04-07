@@ -1,0 +1,475 @@
+
+
+<form class="form form-validate" id="form-update-profile" method="post" enctype="multipart/form-data" data-ajax-method="update_profile" autocomplete="off">
+
+    <div class="card-container card card-reset">
+        {% if user._email_temp != "" %}
+        <div class="card-header">
+            <div class="alert alert-warning mt-3 mb-0 text-center">
+                Please check your "{{user._email_temp}}" account's inbox to verify.<br>
+                <a href="#" data-ajax-method="send_email_activation" data-id="{{user.id}}">Click here</a> to send verify email again or <a href="#" data-ajax-method="reset_email_activation" data-id="{{user.id}}">click here</a> to use your existing email "{{user.user_email}}".
+            </div>
+        </div>
+        {% endif %}
+        <div class="card-body"> 
+
+            <div class="card-container-solid card card-reset" id="industry">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Industry
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+
+                    <div class="form-group mb-0">
+                        <select class="form-select form-multi-select" name="industry[]" multiple placeholder="Industry" autocomplete="off" data-columns="3" data-search="true" data-highlight="false" data-unselect="true" required>
+                        {% if industry %}
+                            {% for item in industry %}
+                                <option value="{{item.term_id}}" {% if item.term_id in industry_user %}selected{% endif %}>{{item.name}}</option>
+                            {% endfor %}
+                        {% endif %}
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <div class="card-container-solid card card-reset" id="skills">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Skills
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="repeater" data-show-first="true" data-unremovable-first="true" data-unique-choice="true" data-remove-confirm="true">
+                        <div class="list-social-media card-merged" data-repeater-list="expertise">
+                            <div class="card p-4 px-0 border-0 border-bottom" data-repeater-item data-callback="loadExpertise">
+                                <div class="form-group mb-2">
+                                    <div class="input-group">
+                                        <select class="form-select unique" name="expertise" placeholder="Skills" autocomplete="off" required>
+                                            <option value="">Choose a skill</option>
+                                            {% if expertise %}
+                                                {% for item in expertise %}
+                                                    <option value="{{item.term_id}}" data-placeholder="{{item.name}}" {% if item.term_id in expertise_user %}selected{% endif %}>{{item.name}}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                        <select class="form-select" name="experience" required>
+                                            <option value="">Choose your experience</option>
+                                            {% for year in 1..20 %}
+                                                <option value="{{year}}{% if year == 20 %}+{% endif %}" >{{year}}{% if year == 20 %}+{% endif %} year{% if year > 1 %}s{% endif %}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                    </div>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <textarea class="form-control" name="description" autocomplete="off" placeholder="Write a description"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" class="btn btn-block btn-outline-gray rounded-5 mt-2 w-100 fw-bold" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New Expertise</a>
+                    </div>
+                    {{'<script type="text/javascript">'}}
+                        var expertise = {{expertise_user|json_encode}};
+                    {{'</script>'}}
+                </div>
+            </div>
+
+
+            <div class="card-container-solid card card-reset" id="language">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Language
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="repeater" data-show-first="true" data-unremovable-first="true" data-unique-choice="true" data-remove-confirm="true">
+                        <div class="list-social-media" data-repeater-list="language">
+                            <div class="form-group " data-repeater-item data-callback="loadLanguage__">
+                                <div class="input-group">
+                                    <select class="form-select unique" name="language" placeholder="Language" required>
+                                        <option value="" selected>Choose a language</option>
+                                        {% for item in languages %}
+                                        <option value="{{item.lang}}" data-placeholder="{{item.name}}">{{item.name}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <select class="form-select" name="level" data-update-placeholder required>
+                                        <option value="">Choose your Level</option>
+                                        {% for level in proficiency_level %}
+                                        <option value="{{level.term_id}}">{{level.level}} - {{level.name}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" class="btn btn-block btn-outline-gray rounded-5 mt-2 w-100" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New Language</a>
+                    </div>
+                    {{'<script type="text/javascript">'}}
+                        var language = {{language|json_encode}};
+                    {{'</script>'}}
+                </div>
+            </div>
+
+
+            <div class="card-container-solid card card-reset" id="software">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Software
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="repeater" data-show-first="true" data-unremovable-first="true" data-unique-choice="true" data-remove-confirm="true">
+                        <div class="list-social-media card-merged" data-repeater-list="software">
+                            <div class="card p-4 px-0 border-0 border-bottom" data-repeater-item data-callback="loadSoftware">
+                                <div class="form-group mb-2">
+                                    <div class="input-group">
+                                        <select class="form-select unique" name="software" placeholder="Software" autocomplete="off" required>
+                                            <option value="">Choose a software</option>
+                                            {% if software %}
+                                                {% for item in software %}
+                                                    {% if item.children %}
+                                                        <optgroup label="{{item.name}}">
+                                                            {% for item_sub in item.children %}
+                                                                <option value="{{item_sub.term_id}}" {% if item_sub.term_id in software_user %}selected{% endif %}>{{item_sub.name}}</option>
+                                                            {% endfor %}
+                                                        </optgroup>
+                                                    {% else %}
+                                                        <option value="{{item.term_id}}" {% if item.term_id in software_user %}selected{% endif %}>{{item.name}}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                        <select class="form-select" name="experience" required>
+                                            <option value="">Choose your experience</option>
+                                            {% for year in 1..20 %}
+                                                <option value="{{year}}{% if year == 20 %}+{% endif %}" >{{year}}{% if year == 20 %}+{% endif %} year{% if year > 1 %}s{% endif %}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group mb-0">
+                                    <textarea class="form-control" name="description" autocomplete="off" placeholder="Write a description"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" class="btn btn-block btn-outline-gray rounded-5 mt-3 w-100 fw-bold" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New Software</a>
+                   </div>
+                    {{'<script type="text/javascript">'}}
+                        var software = {{software_user|json_encode}};
+                    {{'</script>'}}
+                </div>
+            </div>
+
+
+            <div class="card-container-solid card card-reset" id="experience">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                        Experience
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="repeater" data-show-first="false" data-unremovable-first="true" data-unique-choice="false" data-remove-confirm="true">
+                        <div class="list-social-media card-merged" data-repeater-list="experience">
+                            <div class="card p-4 px-0 border-0 border-bottom" data-repeater-item data-callback="loadExperience">
+                                <div class="row gy-3">
+
+                                    <div class="col-12">
+                                        <div class="form-group mb-0">
+                                            <label class="form-label d-none">Title</label>
+                                            <input type="text" class="form-control" name="title" value="" placeholder="Job Title" autocomplete="off" required/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" name="independent" id="independent" value="on">
+                                            <label class="form-check-label" for="independent">independent Working</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12" data-condition="independent !== 'on'">
+                                        <div class="form-group mb-0">
+                                            <label class="form-label d-none">Company Name</label>
+                                            <select class="select-2" name="company" data-type="company" data-count="10" placeholder="Company" data-autocomplete="true" data-hide-selected="true" data-tags="true" data-allow-clear="true" autocomplete="off" required>
+                                            </select>
+                                            {#<input type="text" class="form-control select-2" data-query-type="company" name="company" value="" autocomplete="off" required/>#}
+                                        </div>
+                                    </div>
+
+                                    {% set country_has_state = 0 %}
+                                    <div class="col-lg-6" data-condition="independent !== 'on'">
+                                        <div class="form-group mb-0">
+                                            <label class="form-label d-none">Country of Residence</label>
+                                            <select class="form-select form-select-chain form-select-chain-init" name="country" data-method="get_city_options" data-chain="city" data-chain-value="" data-chain-on-select="false" required>
+                                                <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{translate('Country')}}</option>
+                                                {% set countries = salt.localization.countries %}
+                                                {% for country in countries %}
+                                                    {% if country.iso2 == user.billing_country %}
+                                                        {% set country_has_state = country.states|boolval %}
+                                                    {% endif %}
+                                                    <option value="{{country.iso2}}" data-states="{{country.states}}" >{{country.name}}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="hidden" name="states_view" value="{{country_has_state}}"/>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-6" data-condition="independent !== 'on'">
+                                        <div class="form-group mb-0 form-conditions-init d-none" data-condition="(states_view === '1' || states_view === 'true') && country" data-condition-reset="true">
+                                            <label class="form-label d-none">City/State</label>
+                                            <select class="form-select" name="city" data-chain-value="" required>
+                                                <option value="" class="">{{translate('City/State')}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                            
+                                    <div class="col-lg-6" data-condition="independent !== 'on'">
+                                        <div class="form-group mb-0">
+                                            <label class="form-label d-none">Employment Type</label>
+                                            <select class="form-select" name="employment-type" placeholder="Employment Type" autocomplete="off" required>
+                                                <option value="">Employment Type</option>
+                                                {% if employment_type %}
+                                                    {% for item in employment_type %}
+                                                        <option value="{{item.term_id}}">{{item.name}}</option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-6" data-condition="independent !== 'on'">
+                                        <div class="form-group mb-0">
+                                            <label class="form-label d-none">Location Type</label>
+                                            <select class="form-select" name="location-type" placeholder="Location Type" autocomplete="off" required>
+                                                <option value="">Location Type</option>
+                                                {% if location_type %}
+                                                    {% for item in location_type %}
+                                                        <option value="{{item.term_id}}">{{item.name}}</option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" name="active" id="active" value="on">
+                                            <label class="form-check-label" for="active">I am currently working in this role</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row">
+                                            <div class="col-start-date col-lg-6">
+                                                <div class="form-group mb-0">
+                                                    <label class="form-label">Start Date</label>
+                                                    <div class="input-group">
+                                                        <select class="form-select" name="start_month" placeholder="Start Month" autocomplete="off" required>
+                                                            <option value="">Month</option>
+                                                            {% for key, value in months %}
+                                                            <option value="{{key}}">{{value}}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                        <select class="form-select" name="start_year" placeholder="Start Year" autocomplete="off" required>
+                                                            <option value="">Year</option>
+                                                            {% for year in range("now"|date("Y"), "now"|date("Y")-100) %}
+                                                            <option value="{{year}}">{{year}}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-end-date col-lg-6 form-conditions-init" data-condition="active !== 'on'">
+                                                <div class="form-group mb-0">
+                                                    <label class="form-label">End Date</label>
+                                                    <div class="input-group">
+                                                        <select class="form-select" name="end_month" placeholder="End Month" autocomplete="off" required>
+                                                            <option value="">Month</option>
+                                                            {% for key, value in months %}
+                                                            <option value="{{key}}">{{value}}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                        <select class="form-select" name="end_year" placeholder="End Year" autocomplete="off" required>
+                                                            <option value="">Year</option>
+                                                            {% for year in range("now"|date("Y"), "now"|date("Y")-100) %}
+                                                            <option value="{{year}}">{{year}}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-flex justify-content-end">
+                                        <button class="btn btn-remove btn-danger text-uppercase fw-bold btn-sm" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i> Remove</button>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <a href="#" class="btn btn-block btn-outline-gray rounded-5 mt-2 w-100" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New Experience</a>
+                    </div>
+                    {{'<script type="text/javascript">'}}
+                        var experience = {{experience|json_encode}};
+                    {{'</script>'}}
+                </div>
+            </div>
+        </div>    
+        <div class="card-footer d-flex justify-content-center pt-4">
+            <input autocomplete="false" name="hidden" type="text" style="display:none;">
+            <input type="hidden" name="action" value="{{type}}"/>
+            <button type="submit" class="btn-submit btn btn-secondary fw-bold btn-lg">SAVE CHANGES</button>
+        </div>
+    </div>
+    
+</form>
+
+{% block appendix %}
+<script>
+    function repeaterConditions($obj, id, index){
+        $obj.find("input[id='"+id+"']").attr("id", id+"_"+index);
+        $obj.find("label[for='"+id+"']").attr("for", id+"_"+index);
+        var name = $obj.find("input[id='"+id+"_"+index+"']").attr("name");
+        var conditions = $obj.find("[data-condition*='"+id+"']");
+            conditions.not(".repeater-condition").each(function(){
+                var condition_text = $(this).attr("data-condition").replaceAll(id, name);
+                $(this).attr("data-condition", condition_text).removeClass("form-conditions-init");
+                $(this).addClass("repeater-condition");
+            });
+    }
+    function loadExperience($obj){
+        var repeater = $obj.closest(".repeater");
+        if(!repeater.hasClass("set-values")){
+            var index = $obj.index();
+            var country = $obj.find("select[name$='[country]'");
+
+            var city_name = country.attr("name").replace("country", "city");
+            $obj.find("input[name='"+city_name+"']").removeClass("form-select-chain-init");
+            country.attr("data-chain", city_name).removeClass("form-select-chain-init");
+
+            var states_view_name = country.attr("name").replace("country", "states_view");
+            $obj.find("input[name='states_view']").attr("name", states_view_name);
+
+            var condition_obj = $obj.find("select[name='"+city_name+"']").closest("[data-condition]");
+            var condition = condition_obj.attr("data-condition").replaceAll("states_view", states_view_name).replaceAll("country", country.attr("name"));
+            condition_obj.attr("data-condition", condition).removeClass("form-conditions-init");
+
+            repeaterConditions($obj, "active", index);
+            repeaterConditions($obj, "independent", index);
+
+            /*$obj.find("input[id='active']").attr("id", "active_"+index);
+            $obj.find("label[for='active']").attr("for", "active_"+index);
+            var active_name = $obj.find("input[id='active_"+index+"']").attr("name");
+
+            var active_conditions = $obj.find("[data-condition*='active']");
+            active_conditions.each(function(){
+                var condition_text = $(this).attr("data-condition").replace("active", active_name);
+                $(this).attr("data-condition", condition_text).removeClass("form-conditions-init");
+            });
+
+            var condition_end_date = $obj.find(".col-end-date").attr("data-condition")
+                condition_end_date = condition_end_date.replace("active", active_name);
+            $obj.find(".col-end-date").attr("data-condition", condition_end_date).removeClass("form-conditions-init");*/
+            
+            $obj.find("[data-type='company']").removeClass("select-2-init").addClass("select-2");
+            select_2();
+
+
+            var company = $obj.find("[data-type='company']");
+            var company_id = company.attr("data-value");
+            if(typeof company_id !== "undefined"){
+                var $vars = {};
+                    $vars["count"] = 1;
+                    $vars["type"] = company.attr("data-type");
+                    $vars["value"] = company_id;
+                $.ajax({
+                    type: 'POST',
+                    url: ajax_request_vars.url,
+                    data: {
+                        ajax : "query",
+                        method : "autocomplete_terms",
+                        vars :  $vars
+                    },
+                }).then(function (data) {
+                    data = $.parseJSON(data);
+                    var option = new Option(data.data.results[0].text, data.data.results[0].id, true, true);
+                    company.append(option).trigger('change');
+                    company.trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data.data.results[0]
+                        }
+                    });
+                });                
+            }
+
+            form_conditions();
+            selectChain();
+            autosize($('textarea'));
+
+            country.on("change", function(){
+                var country = $(this).val();
+                if(!IsBlank(country)){
+                    var $states_count = $(this).find("option:selected").attr("data-states");
+                    var $states_view = true;
+                    if($states_count == 0){
+                       $states_view = false;
+                    }
+                    $("input[name='"+states_view_name+"']").val($states_view);
+                }
+            });            
+        }   
+    }
+    function experience_ready($obj){
+        $obj.removeClass("set-values");
+        if(experience.length > 0 && $obj.length){
+            $obj.find("[data-repeater-item]").each(function(i){
+                //$(this).find("select[name='experience["+i+"][country]']").attr("data-chain-value", experience[i].country).removeClass("form-select-chain-init");
+                if(typeof experience[i].city !== "undefined"){
+                    $(this).find("select[name='experience["+i+"][city]']").attr("data-chain-value", experience[i].city);
+                }else{
+                    $(this).find("select[name='experience["+i+"][city]']").closest(".form-group").addClass("d-none");
+                }
+                if(typeof experience[i].company !== "undefined"){
+                    $(this).find("select[name='experience["+i+"][company]']").attr("data-value", experience[i].company);
+                }
+                loadExperience($(this));
+            });                
+        }
+    }
+
+    /*function loadLanguage($obj){
+        var repeater = $obj.closest(".repeater");
+        if(!repeater.hasClass("set-values")){
+            var index = $obj.index();
+            var language = $obj.find("select[name$='[language]'");
+            language.on("change", function(){
+                var name = $(this).val();
+                if(!IsBlank(name)){
+                    var name_label = $(this).find("option:selected").text();
+                    alert(name+" - "+name_label)
+                    $obj.find("input[name$='[name]").val(name_label);
+                }
+            });            
+        }   
+    }
+    function language_ready($obj){
+        $obj.removeClass("set-values");
+    }*/
+    $( document ).ready(function() {
+
+        /*$("select[name='languages[]']").on("change.select2", function(e){
+            var languages = [...$(this).find("option:selected")].map(element => element.text);
+            debugJS(languages);
+            $("input[name='languages_name']").val(languages.join(", "));
+        });*/
+        
+    });
+</script>
+{% endblock %}

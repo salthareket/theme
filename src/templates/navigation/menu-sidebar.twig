@@ -1,0 +1,44 @@
+{% if menu_level<1 %}
+<nav class="nav-tree" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" data-single-parent="true">
+     <ul class="nav navbar-sidebar {{class_name}} flex-column" id="sidebarMenu">
+{% endif %}
+
+    {% for item in menu %}
+
+        {% set props = item.get_properties({parent_link: parent_link, collapsible : true, nodes : nodes}) %}
+
+        
+        <li class="{{props.item.class}}" data-menu-level="{{menu_level}}" parent="{{item.menu_item_parent}}">
+            <a href="{{props.link.href}}" data-parent="#sidebarMenu" class="level-{{menu_level}} {{props.link.class}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %} {{props.link.attrs}}>
+                <span itemprop="name">{{item.title}}</span>
+            </a>            
+            {% if item.children %}
+
+                {% set last_level = true %}                
+                {% for item_m in item.children %}   
+                        {% if item_m.children %}
+                            {% set last_level = false %}    
+                        {% endif %}
+                   {% endfor %}
+                  
+                   <ul id="item-{{item.ID}}" class="nav collapse {% if active or "active" in props.item.class %}show{% endif %} {% if last_level %}level-last{% endif %}">
+                   {% include "navigation/menu-sidebar.twig" with { 
+                                                                         menu : item.children, 
+                                                                         menu_id : menu_id, 
+                                                                         is_child : item.children, 
+                                                                         menu_level : menu_level+1, 
+                                                                         hash : hash, 
+                                                                       } %}
+                   </ul>
+                  
+                {% endif %}
+            </li>
+
+
+    {% endfor %}
+
+{% if menu_level<1 %}
+    </ul>
+</nav>
+{% endif %}
+

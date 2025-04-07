@@ -1,0 +1,13 @@
+{% if menu_buttons %}
+<li class="nav-item {{menu_class}}">
+    <ul class="list-inline m-0 p-0">
+        {% for item in menu_buttons %}
+        <li class="list-inline-item">
+            {% set url   = item.outside?item.link_outside:item.link_inside %}
+            {% set attrs = item.outside?"target='_blank' rel='nofollow'":"" %}
+            <a href="{{url}}" class="btn btn{% if item.outline %}-outline{% endif %}-{{item.type}} {{item.class}} {% if not item.outside %}btn-loading-page{% endif %}" {{attrs}} title="{{item.link_text}}">{{item.link_text}}</a>
+        </li>
+    {% endfor %}
+    </ul>
+</li>
+{% endif %}

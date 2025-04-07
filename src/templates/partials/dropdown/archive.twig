@@ -1,0 +1,33 @@
+{% apply spaceless %}
+{% if type == 'cart' %}
+   {% set posts = cart.items %}
+{% endif %}
+
+<div class="dropdown-body scrollable infinite-container">
+    {% if posts %}
+        <ul class="notifications">
+        {% for post in posts %}
+            {% include 'partials/dropdown/'~type~'.twig' with { type : type } %}
+        {% endfor %}
+        </ul>
+        <div class="content-centered">
+            <div class="content-block">
+                {% include "templates/partials/dropdown/"~type~"-empty.twig" %}
+            </div>
+        </div>
+    {% else %}
+        <div class="content-centered">
+            <div class="content-block">
+                {% include "templates/partials/dropdown/"~type~"-empty.twig" %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% if posts %}
+    <div class="dropdown-footer">
+        {% include "templates/partials/dropdown/"~type~"-footer.twig" %}
+    </div>
+{% endif %}
+
+{% endapply %}

@@ -1,0 +1,91 @@
+
+{% set profile_completion = salt.profile_completion() %}
+
+<div class="row gy-3">
+    {% for key, item in profile_completion %}
+        {% if key != "success" %}
+            <div class="col-12">
+
+                <div class="card card-module card-body display-flex flex-row align-items-center">
+
+                    <div class="chart-donut chart-donut-sm chart-donut-{% if item.success %}success{% else %}danger{% endif %}" data-percent="{{item.percent}}">
+                        <div class="pie-wrapper">
+                            <span class="label">
+                                <span class="num">{{item.percent}}%</span>
+                            </span>
+                            <div class="pie">
+                                <div class="left-side half-circle"></div>
+                                <div class="right-side half-circle"></div>
+                            </div>
+                            <div class="shadow"></div>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <h5 class="m-0">{{key|capitalize}}</h5>
+                        <p class="m-0">{{item.needs|join(", ")}}</p>
+                    </div>
+                    {% if not item.success %}
+                        <a href="{{base_urls.my_account}}{{key}}/" class="btn btn-danger btn-extend ms-auto">Complete</a>
+                    {% endif %}
+          
+                </div>
+
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<div class="row">
+
+    <div class="col-lg-6">
+        <div class="card card-module">
+            <div class="card-header">
+                <h3 class="card-title">My Sessions</h3>
+            </div>
+            <div class="card-body">
+                <div class="row alifn-items-center">
+                    <div class="col-auto">
+                        <div class="fs-1">5</div>
+                    </div>
+                    <div class="col">
+                        <h4>Session</h4>
+                        <div class="text-muted">New Sessions</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-module">
+            <div class="card-header">
+                <h3 class="card-title">My Sessions</h3>
+            </div>
+            <div class="card-body">
+                <div class="row alifn-items-center">
+                    <div class="col-auto">
+                        <div class="fs-1">5</div>
+                    </div>
+                    <div class="col">
+                        <h4>Session</h4>
+                        <div class="text-muted">New Sessions</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+
+
+{% block appendix %}
+    <script>
+        $( document ).ready(function() {
+          
+        });
+    </script>
+{% endblock %}

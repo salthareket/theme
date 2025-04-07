@@ -1,0 +1,412 @@
+{# <?php #}
+{% extends "base.twig" %}
+
+{% set page_settings_default = {
+                full : true,
+                classes : {
+                    body : "page-kitaplar",
+                    main : "pb-0",
+                    container : "",
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : "",
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block before_container %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+        {{ block("before_container", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+{% set prev = post.prev() %}
+{% set next = post.next() %}
+
+{% set product_type = post.get_product_type %}
+
+{% if product_type == "simple" %}
+    {% set book_author = post.get_author() %}
+    {% set is_in_grouped = post.is_in_grouped() %}
+    {% set grouped_posts = [] %}
+    {% if is_in_grouped %}
+        {% for grouped in is_in_grouped %}
+            {% set grouped = get_post(grouped) %}
+            {% set grouped_posts = grouped_posts|merge([grouped]) %}
+        {% endfor %}
+    {% endif %}
+{% endif %}
+
+{% if product_type == "grouped" %}
+    {% set books = post.meta("_children") %}
+    {% set grouped_books = [] %}
+    {% for book in books %}
+        {% set book = get_post(book) %}
+        {% set grouped_books = grouped_books|merge([book]) %}
+    {% endfor %}
+{% endif %}
+
+{% block content %}
+
+    <div class="container">
+        <div class="row gx-lg-5">
+            <div class="col-lg-4">
+                <div class="sticky-top">
+                    <div class="row flex-column gy-0 gy-lg-4 mb-0 mb-lg-5 pb-5">
+                        <div class="col">
+                            <img src="{{ post.thumbnail.src}}" class="img-kitap img-fluid rounded-4 border" alt="{{post.title}}" width="780" height="1200"/>
+                        </div>
+                        {% if product_type == "simple" %}
+                            <div class="col text-center d-none d-lg-block">
+                                <table class="table-book-info table text-start">
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Kitap Adı") }}</td>
+                                            <td>{{ post.title }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Yazar") }}</td>
+                                            <td>{{ book_author.title }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Yayıncı") }}</td>
+                                            <td>{{ post.terms("wpc-brand")[0]}}</td>
+                                        </tr>
+                                        {% if post.book_translator %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Çeviren") }}</td>
+                                            <td>{{ post.get_translator.title }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_editor %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Editör") }}</td>
+                                            <td>{{ post.get_editor.title }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_release %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Yayım Tarihi") }}</td>
+                                            <td>{{ post.meta("book_release") }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_pages %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Sayfa Sayısı") }}</td>
+                                            <td>{{ translate_nooped_plural( translate_n_noop( '%s Sayfa', '%s Sayfa'), post.meta("book_pages"))|format(post.meta("book_pages")) }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_isbn %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("ISBN") }}</td>
+                                            <td class="clipboard">{{ post.meta("book_isbn") }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% if post.book_sale_links %}
+                            <div class="col text-center d-none d-lg-block">
+                                <a href="#" class="btn btn-secondary btn-lg px-4 border-0" data-ajax-method="template_modal" data-id="{{post.id}}" data-template="woo/modal-sale-links" data-title="{{ translate('Online Satış Linkleri') }}" data-size="md">{{ translate("Satın Al") }}</a>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                        <div class="col d-none d-lg-block">
+                           <div class="text-center fs-6 mb-n3 text-uppercase opacity-75 mt-4">{{ translate("Paylaş") }}</div>
+                           {{ '[wpsr_share_icons icons="facebook,x,linkedin,email" icon_size="64px" icon_color="#ccc" icon_bg_color="transparent" icon_shape="circle" hover_effect="fade-dark" share_counter="" center_icons="yes"]'|shortcodes }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-8">
+
+                <article class="card-kitaplar card card-reset mt-0 mt-lg-5">
+                    <div class="card-header pb-4">
+
+                        {% if date(post.meta("book_release_date")) > date('now') %}
+                        <div class="release-date alert alert-info mb-5 d-flex align-items-center">
+                            <i class="fa-regular fa-timer fa-2x me-3"></i>
+                            <span>    
+                                {{ post.meta("book_release_date")|date('j F Y') }} tarihinde yayımlanacaktır.
+                            </span>
+                        </div>
+                        {% endif %}
+
+                        <h1 class="card-title text-lg-start text-center mb-{% if product_type == "simple" %}2{% else %}0{% endif %}">{{post.title}}</h1>
+
+                        {% if product_type == "simple" %}
+                            <h2 class="card-text text-lg-start text-center"><a href="{{book_author.link}}" class="btn-loading-page" title="{{book_author.title}}">{{ post.get_author() }}</a></h2>
+                        {% endif %}
+
+                    </div>
+                    <div class="card-body">
+
+                        <div class="description">
+                            {{ post.content }}
+                        </div>
+                        
+                        {% if post.book_quotes %}
+                        <blockquote class="blockquote my-5 border-start ps-5 py-5">
+                            {{ post.meta("book_quotes") }}
+                        </blockquote>
+                        {% endif %}
+                        
+                        {% if product_type == "grouped" %}
+                        <div class="card-series-books card card-reset mt-5">
+                            <div class="card-header pb-4">
+                                <h3 class="card-title">{{ translate("Seride yer alan kitaplar") }} <span>({{ translate_nooped_plural( translate_n_noop( '%s Kitap', '%s Kitaplar'), books|length)|format(books|length)}})</span></h3>
+                            </div>
+                            <div class="card-body">
+                                {% for book in grouped_books %}
+                                    <div class="tease-product-serie mb-2 p-3 rounded-4">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto" style="min-width:150px;">
+                                                {% include "woo/tease-product.twig" with { post: book, size : "xxs" } %}
+                                            </div>
+                                            <div class="col book-info p-3">
+                                                <h4 class="title mb-0"><a href="{{book.link}}" class="btn-loading-page" title="{{book.title}}">#{{ loop.index}} {{ book.title }}</a></h4>
+                                                {% set book_author = book.get_author() %}
+                                                <a href="{{book_author.link}}" class="author btn-loading-page" title="{{book_author.title}}">{{book_author.title|upper}}</a>
+                                                <div class="meta mt-2">{{ book.book_release_date|date("Y") }}, {{ translate_nooped_plural( translate_n_noop( '%s Sayfa', '%s Sayfa'), book.book_pages)|format(book.book_pages) }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <a href="{{book.link}}" class="btn btn-outline-secondary px-4 btn-loading-page" title="{{book.title}}">{{ translate("Kitap Detayı") }}</a>
+                                                <a href="#" class="btn-buy btn btn-secondary ms-2 px-4" data-ajax-method="template_modal" data-id="{{book.id}}" data-template="woo/modal-sale-links" data-title="{{translate('Online Satış Linkleri')}}" data-size="md">{{ translate("Satın Al") }}</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if grouped_posts %}
+                            {% for grouped in grouped_posts %}
+                                {% set books = grouped.meta("_children") %}
+                                {% set book_index = books|keys|filter(item => books[item] == post.id)|first + 1 %}
+                                <div class="card-series card-book-alert card card-reset mt-5">
+                                    <div class="card-header pb-3">
+                                         <h3 class="card-title">{{ grouped.title }} : {{ translate("%s. Kitap")|format(book_index)}}</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ grouped.content }}
+                                        <div class="row row-cols-xxl-8 row-cols-lg-7 row-cols-6 g-3">
+                                        {% for book in books %}
+                                            <div class="col">
+                                                {% set book = get_post(book) %}
+                                                {% include "woo/tease-product.twig" with { post: book, size : "xs" } %}
+                                            </div>
+                                        {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="card-footer text-center pt-5">
+                                        <a href="{{grouped.link}}" class="btn btn-lg btn-outline-primary px-5 btn-loading-page" title="{{grouped.title}}">{{ translate("Seriyi İncele") }}</a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if post.book_reason %}
+                        <div class="card-reason card-book-alert card card-reset mt-5">
+                            <div class="card-header pb-3">
+                                <h3 class="card-title">
+                                    {% if product_type == "simple" %}
+                                        {{ translate("Bu kitabı neden yayımladık?") }}
+                                    {% endif %}
+                                    {% if product_type == "grouped" %}
+                                        {{ translate("Bu seriyi neden yayımladık?") }}
+                                    {% endif %}
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                {{ post.meta("book_reason") }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                    <div class="card-footer d-block d-lg-none py-4">
+                        <div class="row flex-column">
+                        {% if product_type == "simple" %}
+                            <div class="col text-center">
+                                <table class="table-book-info table text-start">
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Kitap Adı") }}</td>
+                                            <td>{{ post.title }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Yazar") }}</td>
+                                            <td>{{ book_author.title }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Yayıncı") }}</td>
+                                            <td>{{ post.terms("wpc-brand")[0]}}</td>
+                                        </tr>
+                                        {% if post.book_translator %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Çeviren") }}</td>
+                                            <td>{{ post.meta("book_translator") }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_editor %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Editör") }}</td>
+                                            <td>{{ post.meta("book_editor") }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_release %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Yayım Tarihi") }}</td>
+                                            <td>{{ post.meta("book_release") }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_pages %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("Sayfa Sayısı") }}</td>
+                                            <td>{{ translate_nooped_plural( translate_n_noop( '%s Sayfa', '%s Sayfa'), post.meta("book_pages"))|format(post.meta("book_pages")) }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if post.book_isbn %}
+                                        <tr>
+                                            <td class="text-nowrap">{{ translate("ISBN") }}</td>
+                                            <td class="clipboard">{{ post.meta("book_isbn") }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% if post.book_sale_links %}
+                            <div class="col text-center">
+                                <a href="#" class="btn btn-secondary btn-lg px-4 border-0" data-ajax-method="template_modal" data-id="{{post.id}}" data-template="woo/modal-sale-links" data-title="{{ translate('Online Satış Linkleri') }}" data-size="md">{{ translate("Satın Al") }}</a>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                            <div class="col d-block d-lg-none text-center">
+                               <div class="text-center fs-6 mb-n3 text-uppercase opacity-75 mt-5">{{ translate("Paylaş") }}</div>
+                               {{ '[wpsr_share_icons icons="facebook,x,linkedin,email" icon_size="64px" icon_color="#ccc" icon_bg_color="transparent" icon_shape="circle" hover_effect="fade-dark" share_counter="" center_icons="yes"]'|shortcodes }}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </div>
+    </div>
+    
+    {% if product_type == "simple" %}
+    <div class="book-author py-5 mt-5">
+        <div class="container">
+            <div class="row text-lg-start text-center">
+                <div class="col-12 col-lg-auto">
+                   <img data-src="{{book_author.thumbnail.src("thumbnail")}}" class="img-fluid lazy img-thumbnail shadow" alt="{{book_author.title}}" width="150" height="150"/>
+                </div>
+                <div class="col-12 col-lg pt-4">
+                    <h3 class="title mb-4">
+                        {{ translate("Yazar Hakkında") }}
+                        <small><a href="{{book_author.link}}" class="btn-loading-page" title="{{book_author.title}}">{{ book_author.title }}</a></small>
+                    </h3>
+                    <div class="description">
+                        {{ book_author.content }}
+                    </div>
+                    {% set books = book_author.get_books(post.id) %}
+                        {% if books|length > 0 %}
+                        <div class="card-books card card-reset mt-5">
+                            <div class="card-header">
+                                <h3 class="card-title">{{ translate("Yayımladığımız Diğer Kitapları") }}</h3>
+                            </div>
+                            <div class="card-body py-4">
+                                <div class="row row-cols-xxl-6 row-cols-lg-5 row-cols-md-4 row-cols-2 g-xl-5 gy-4 justify-content-lg-start justify-content-center">
+                                {% for book in books %}
+                                    <div class="col">
+                                        {% include "woo/tease-product.twig" with { post: book, size : "xs" } %}
+                                    </div>
+                                {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {#<div class="card card-reset container">
+
+    {% do action('woocommerce_before_single_product') %}
+
+    <div itemscope itemtype="http://schema.org/Product" class="product single-product-details {{ post.class }}">
+
+        <div class="entry-images">
+            {% do action('woocommerce_before_single_product_summary') %}
+            <img src="{{ post.thumbnail.src('shop_single') }}" />
+        </div>
+
+        <div class="summary entry-summary">
+            {% do action('woocommerce_single_product_summary') %}
+        </div>
+
+        {% do action('woocommerce_after_single_product_summary') %}
+
+        <meta itemprop="url" content="{{ post.link }}" />
+
+        <a href="{{author.link}}">{{ author.title }}</a>
+
+    </div>
+
+    {% include ["woo/tease-product.twig"] with { products: related_products } %}
+
+    {% do action('woocommerce_after_single_product') %}
+    </div>#}
+
+{% endblock  %}
+
+{% block appendix %}
+    <script>
+    $(document).ready(function() {
+        text2clipboard();
+    });
+    </script>
+{% endblock %}

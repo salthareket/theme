@@ -1,0 +1,94 @@
+{% set country_has_state = 0 %}
+
+                                {% if not user.first_name and not user.last_name %}
+                                <div class="col-12 mt-4" data-condition="role">
+                                    <div class="row gx-lg-2">
+                                        <div class="col-lg-6">
+                                            <div class="form-group ">
+                                                {#<label class="form-label">First Name</label>#}
+                                                <input type="text" class="form-control form-control-lg" name="first_name" value="{{user.first_name}}" placeholder="First Name" autocomplete="off" required/>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <div class="form-group ">
+                                                {#<label class="form-label">Last Name</label>#}
+                                                <input type="text" class="form-control form-control-lg" name="last_name" value="{{user.last_name}}" placeholder="Last Name" autocomplete="off" required/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div class="col-12" data-condition="role">
+                                    <div class="form-group ">
+                                        {#<label class="form-label">Country of Residence</label>#}
+                                        <select class="selectpicker- form-select form-select-lg form-select-chain" name="country" data-method="get_city_options" data-chain="city" data-chain-value="{{user.billing_country}}" data-chain-on-select="false" data-live-search="true" required>
+                                            <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{'Please choose your country'|trans}}</option>
+                                            {% set countries = salt.localization.countries %}
+                                            {% for country in countries %}
+                                                {% if country.iso2 == user.billing_country %}
+                                                    {% set country_has_state = country.states|boolval %}
+                                                {% endif %}
+                                                <option value="{{country.iso2}}" data-phonecode="{{country.phonecode}}" data-states="{{country.states}}" {% if country.iso2 == user.billing_country %}selected{% endif %}>{{country.name}}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <input type="hidden" name="states_view" value="{{country_has_state}}"/>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-group  {% if not country.states|boolval or user.city is empty %}d-none{% endif %}" data-condition="role && (states_view === '1' || states_view === 'true') && country" data-condition-reset="true">
+                                        {#<label class="form-label">City/State</label>#}
+                                        <select class="selectpicker- form-select form-select-lg" name="city" data-chain-value="{{user.city}}" data-live-search="true" required>
+                                            <option value="" class="{% if user.city %}d-none{% endif %}">{{'Please choose your city/state'|trans}}</option>
+                                            {% if user.billing_country %}
+                                                {% set cities = salt.localization.states({"country_code" : user.billing_country}) %}
+                                                {% if cities %}
+                                                    {% for city in cities %}
+                                                    <option value="{{city.id}}" {% if city.id == user.city %}selected{% endif %}>{{city.name}}</option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 {% if user.billing_country is empty %}d-none{% endif %}" data-condition="country">
+                                    <div class="form-group ">
+                                        {#<label class="form-label">Mobile Phone Number</label>#}
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text phone-code loading-xs position-relative">{{user.billing_phone_code}}</span>
+                                            <input type="text" aria-label="Phone Number" class="form-control" name="phone" value="{{user.billing_phone}}" placeholder="Mobile Phone Number" autocomplete="off" data-phone="true" data-remote="validate_phone" data-remote-param="phone" data-remote-objs='{"phone_code": "phone_code", "country":"country"}' required>
+                                        </div>
+                                        <input type="hidden" name="phone_code" value="{{user.billing_phone_code}}" autocomplete="off">
+                                    </div>
+                                </div>
+
+<script>
+    $( document ).ready(function() {
+
+        $("select[name='country']").on("change", function(){
+            var country = $(this).val();
+            if(!IsBlank(country)){
+                var $phone_code = $(this).find("option:selected").attr("data-phonecode");
+                $("input[name='phone_code']").val($phone_code).trigger("change");
+                $(".phone-code").text($phone_code);
+
+                var $states_count = parseInt($(this).find("option:selected").attr("data-states"));
+                var $states_view = true;
+                if($states_count == 0){
+                   $states_view = false;
+                }
+                $("input[name='states_view']").val($states_view).trigger("change");
+                
+                {% if enable_postcode_validation %}
+                postcode_validate(country.toUpperCase());
+                {% endif %}
+            }
+        });
+        if(IsBlank($("input[name='phone_code']").val())){
+           $("select[name='country']").trigger("change");
+        }
+
+    });
+</script>

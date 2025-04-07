@@ -1,0 +1,51 @@
+<li class="mega-menu-container hidden-sm hidden-xs">
+	<div class="container">
+		<div class="row row-10 w-100">
+
+			<div class="col-md-3">
+				<ul class="nav-mega-menu navbar-nav nav list-unstyled flex-column">
+				{% for category in menu %}
+			        <li class="{{className}} {{category.classes | join(' ')}} nav-item {% if category.current == 1 %}active{% endif %}" data-menu-level="{{menu_level}}">
+			            <a class="nav-link" href="#{{category.object}}-{{category.object_id}}" data-bs-toggle="tab" role="tab" aria-controls="{{category.object}}-{{category.object_id}}" aria-selected="{{loop.first}}">
+			                <h5 class="title">{{category.name|capitalize}}</h5>
+			            </a>
+			        </li>
+				{% endfor %}
+			    </ul>
+			</div>
+
+			<div class="col-md-9">
+				<div class="tab-content" id="myTabContent">
+					{% for category in menu %}
+					    <div class="tab-pane {% if loop.first %}active{% endif %}" id="{{category.object}}-{{category.object_id}}" role="tabpanel" aria-labelledby="{{category.object}}-{{category.object_id}}-tab">
+
+					    	<div class="card">
+					    		<div class="card-header">
+					    	       <h4 class="card-title">{{category.name}} - default</h4>
+					    	       <div class="action">
+                                        <a href="{{category.link}}" title="">View All</a>
+					    	       </div>
+					    	    </div>
+						    	<div class="card-body">
+							      	{% if category.children %}
+							      		<ul class="list-unstyled list-multi-3">
+							      		{% for item in category.children %}
+							      	       <li class="col-break">
+							      	       	   <a href="{{item.link}}" title="" class="btn-loading-page text-truncate">{{item.name}} Tours</a>
+							      	       </li>
+		                                {% endfor %}
+		                                </ul>
+		                            {% endif %}
+	                            </div>
+	                        </div>
+
+					    </div>
+					{% endfor %}
+				</div>
+			</div>
+
+       </div>
+    </div>
+</li>
+
+{# include "navigation/menu.twig" with { 'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1, 'className':'visible-sm visible-xs' } #}

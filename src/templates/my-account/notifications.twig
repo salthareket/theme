@@ -1,0 +1,24 @@
+
+
+<div class="card-container card-container-solid card card-reset ajax-paginate" data-posts_per_page="10" data-user="{{user.id}}" data-order="desc" data-load="scroll" data-set_seen="true" data-ajax-method="get_notifications">
+    <div class="card-header">
+        <h1 class="card-title">
+            {{title}}
+            {% if description %}
+            <small>{{description}}</small>
+            {% endif %}
+        </h1>
+    </div>
+    <div class="card-body list-cards pt-4 pb-2"></div>
+    <div class="card-footer justify-content-end viewport">
+        <a href="#" class="btn-next-page btn btn-light btn-extend w-100 loading" data-init="true"><span>Load <span class="item-left"></span> More</span></a>
+    </div>
+</div>
+
+{% block appendix %}
+    <script>
+        $( document ).ready(function() {
+          
+        });
+    </script>
+{% endblock %}

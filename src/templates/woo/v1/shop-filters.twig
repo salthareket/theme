@@ -1,0 +1,208 @@
+{% extends "base.twig" %}
+
+{% set  page_settings = {
+            full : false,
+            classes : {
+                body : "",
+                main : "",
+                container : "container-xl",
+                gap : "",
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "bottom",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+  
+{% block hero_header %}
+    {% if posts|length>0 %}
+    <div class="header-title">
+         <h1 class="title">{{title}}</h1>
+         {% if is_search %}
+         <div class="title-sub">{{posts|length}} {{'Results'|trans}}</div>
+         {% endif %}
+    </div>
+    {% endif %}
+{% endblock %}
+
+
+{% block sidebar_toggler %}
+    <button type="button" class="sidebar-toggler btn btn-primary" data-bs-toggle="offcanvas" data-target=".navbar-offcanvas-sidebar" data-canvas="body" data-exclude=".navbar-offcanvas-main" data-backdrop="true">
+        <i class="fa fa-bars"></i> {{'Filtreler'|trans}}
+    </button>
+{% endblock %}
+
+
+{% block sidebar %}
+
+    {% if enable_filters and found_posts > 0 %}{% endif %}
+        <div id="sidebar" class="col navbar-offcanvas-sidebar offcanvas-{{page_settings.offcanvas.size}}">
+
+            <a href="#" class="offcanvas-close" data-bs-toggle="offcanvas" data-target=".navbar-offcanvas-sidebar" data-canvas="body" data-exclude=".navbar-offcanvas-main" data-backdrop="true">
+                <i class="icon-arrow-left text-success"></i> {{'Kapat'|trans|uppertr}}
+            </a>
+                                
+            <div class="container-product-filters stick-top">
+                {% include 'woo/sidebar-product-filter.twig' %}
+            </div>
+
+        </div>
+{% endblock %}
+
+
+
+
+{% block content %}
+    shop-filters.twig
+    {% if found_posts > 0 %}
+
+        <div class="card-product-archive card">
+
+            {{query_vars|print_r}}
+
+                        {% if enable_filters and query_vars %}
+                        <div class="card-header card-header-filters">
+                            <div class="filters">
+                               <ul class="list-inline list-inline-tags">
+                                    {% for query_var in query_vars %}
+                                        {% for item in query_var.terms %}
+                                            <li class="list-inline-item">
+                                                <a href="#" class="search-option-tag" data-name="{{query_var.slug}}" data-value="{{item}}">
+                                                    <small>{{query_var.name}}</small>
+                                                    {% if query_var.slug == "fiyat" or query_var.slug == "fiyat_araligi" %}
+                                                        {{function('str_replace', '|', '-', item)}} {{ function('woo_get_currency') }}
+                                                    {% else %}
+                                                       {{item}}
+                                                    {% endif %}
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    <li class="list-inline-item">
+                                        <a href="#" class="search-option-tag-clear">Temizle</a>
+                                    </li>
+                                </ul>
+                             </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="card-header">
+                            <h1 class="card-title">
+                                {{title}}
+                                <small>{{ '%count% ürün bulundu.'|trans_plural('%count% ürün bulundu.',  found_posts)|str_replace_arr({'count': '<strong class="header-post-count">' ~ found_posts ~ '</strong>'}) }}</small>
+                            </h1>
+                            <div class="action">
+                                <select class="selectpicker" name="siralama">
+                                    <option value="isim-artan"   {% if query_vars_sorting.term == "isim-artan"   %}selected{% endif %}>Ürün Adı Artan</option>
+                                    <option value="isim-azalan"  {% if query_vars_sorting.term == "isim-azalan"  %}selected{% endif %}>Ürün Adı Azalan</option>
+                                    <option value="fiyat-artan"  {% if query_vars_sorting.term == "fiyat-artan"  %}selected{% endif %}>Fiyata Göre Artan</option>
+                                    <option value="fiyat-azalan" {% if query_vars_sorting.term == "fiyat-azalan" %}selected{% endif %}>Fiyata Göre Azalan</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+
+                            {% do action('woocommerce_before_main_content') %}
+
+                            <div class="before-shop-loop">
+                                {% do action('woocommerce_before_shop_loop') %}
+                            </div>
+
+                            {% if ajax %}
+                                <div class="list-products row {{product_settings.gap}} row-margin" data-category="{{function('get_query_var','product_cat')}}" data-keyword="{{keyword}}"></div>
+                            {% else %}
+
+                                {% if posts %}
+                                    
+                                    <div class="list-products row {{product_settings.gap}} row-margin" data-category="{{function('get_query_var','product_cat')}}" data-keyword="{{keyword}}">
+                                        {% for post in posts %}
+                                        <div class="{{product_settings.grid}}">
+                                            {% include "woo/tease-product.twig" with {'post' : post, class: 'shadow-lg' } %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                {% else %}
+
+                                   <h4>{{'Üzgünüz, aradığınız kriterlere göre ürün bulunamadı.'|trans}}...</h4>
+                                   Filtreleri <a href="#" class="search-option-tag-clear text-underline">temizleyerek</a> tekrar aramayı deneyebilirsiniz.
+
+                                {% endif %}
+                            {% endif %}
+
+                            {% do action('woocommerce_after_shop_loop') %}
+                            {% do action('woocommerce_after_main_content') %}
+                        </div>
+
+                        {% if pagination and not ajax %}
+                        <div class="card-footer">
+                           {% include 'pagination.twig' %}
+                        </div>
+                        {% endif %} 
+        </div>
+
+    {% else %}
+
+        {% set page_settings = page_settings|merge({'full': true}) %}
+           {% set page_settings_classes = page_settings.classes|merge({content : "mt-0"}) %}
+        {% set page_settings =  page_settings|merge({classes : page_settings_classes}) %}
+
+        <div class="content-full-page">
+                <div class="container-xl">
+
+           
+                    {% set categories = function('woo_get_available_categories') %}
+                    {% if categories %}
+
+                         {% set slider_args = { 
+                                title : 'Üzgünüz, aradığınız kriterlere uygun bir ürün bulamadık.'|trans, 
+                                description: "Aşağıdaki kategorileri inceleyebilirsiniz.", 
+                                url: "", 
+                                class : "products-last-viewed",
+                                item_class : "card-product-tease-sm",
+                                size : "lg", 
+                                breakpoints : {'xl' : 4, 'lg': 4, 'md' : 3, 'sm' : 2, 'xs' : 1 },
+                                gaps : {'xl' : 15, 'lg': 15, 'md' : 15, 'sm' : 15, 'xs' : 15 },  
+                                template : 'woo/tease-category.twig', 
+                                posts :  categories,
+                                more : "",
+                                slider : {
+                                    pagination : true,
+                                    loop : false,
+                                    delay : 0,
+                                    autoplay: false,
+                                    effect : "slide"                
+                                }
+                            }
+                        %}
+                        <section class="row-page row-page-lg">
+                            <div class="container-fluid">
+                                {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+                            </div>
+                        </section>
+
+                    {% endif %}
+
+                </div>
+        </div>
+
+    {% endif %}
+{% endblock %}

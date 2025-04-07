@@ -1,0 +1,51 @@
+
+
+<form class="form form-validate" id="form-update-profile" autocomplete="off" method="post" data-ajax-method="update_profile">
+
+    <div class="card-container card card-reset">
+        <div class="card-body"> 
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header">
+                    <h1 class="card-title pb-4">
+                       {{ title }}
+                    </h1>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="row g-3">
+                        {% if user.meta("password_set") %}
+                                <div class="col-md-6">
+                                    <div class="form-group mb-0">
+                                        <label class="form-label">Password</label>
+                                        <input type="password" name="password" autocomplete="new-password" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label class="form-label">New Password</label>
+                                <input type="password" id="password_1" name="password_1" value="" autocomplete="new-password" class="form-control form-control-password-toggle" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label class="form-label">Confirm New Password</label>
+                                <input type="password" id="password_2" name="password_2" value="" autocomplete="new-password" class="form-control form-control-password-toggle" data-rule-equalto="#password_1[name='password_1']" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="card-footer d-flex justify-content-center pt-4">
+            <input type="hidden" name="action" value="{{type}}"/>
+            <button type="submit" class="btn-submit btn btn-secondary fw-bold btn-lg">SAVE CHANGES</button>
+        </div>
+    </div>
+</form>
+
+{% block appendix %}
+{% endblock %}

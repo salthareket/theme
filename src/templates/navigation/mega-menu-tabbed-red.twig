@@ -1,0 +1,58 @@
+<li class="mega-menu-container mega-menu-tabbed-red d-none d-lg-block">
+	<div class="container">
+		<div class="row row-20 w-100">
+
+			<div class="col-md-3">
+				<ul class="nav-mega-menu nav list-unstyled flex-column" data-sm-skip="true">
+				{% for category in menu.children %}
+					{% set image_url =  function('get_field', 'menu_image', category.object ~ '_' ~ category.object_id) %}
+			        <li class="{{className}} {{category.classes | join(' ')}} nav-item" data-menu-level="{{menu_level}}">
+			            <a class="nav-link {% if loop.first==1 %}active{% endif %}" href="#{{category.object}}-{{category.object_id}}-{{id}}" data-bs-toggle="tab" role="tab" aria-controls="{{category.object}}-{{category.object_id}}-{{id}}" aria-selected="{{loop.first}}" data-image-url="{{image_url}}">
+			                <h5 class="title">{{category.name}}</h5>
+			            </a>
+			        </li>
+				{% endfor %}
+			    </ul>
+			</div>
+
+			<div class="col-md-9">
+				<div class="tab-content-mega-menu tab-content">
+					{% for category in menu.children %}
+					    <div class="tab-pane {% if loop.first %}active{% endif %}" id="{{category.object}}-{{category.object_id}}-{{id}}" role="tabpanel" aria-labelledby="{{category.object}}-{{category.object_id}}-{{id}}-tab">
+
+					    	<div class="card-reset card">
+					    		<div class="card-header d-flex">
+					    	       <h4 class="title card-title"><a href="{{category.link}}" title="">{{category.name}}</a></h4>
+					    	       <div class="action">
+                                        <a href="{{category.link}}" title="">View All</a>
+					    	       </div>
+					    	    </div>
+						    	<div class="card-body {% if not category.children %}not-found{% endif %}">
+							      	{% if category.children %}
+							      		<ul class="list-mega-menu list-unstyled col-multi-lg-3 col-multi-md-3">
+							      		{% for item in category.children %}
+							      	       <li class="col-break">
+							      	       	   <a href="{{item.link}}" title="" class="btn-loading-page text-truncate">{{item.name}} Tours</a>
+							      	       </li>
+		                                {% endfor %}
+		                                </ul>
+		                            {% else %}
+		                                <div class="error-person">
+			                                <img src="{{site.theme.uri}}/static/img/error-person.png" class="img-fluid" alt="Tours not found!"/>
+			                                <h5 class="title">Tours not found!</h5>
+			                            </div>
+		                            {% endif %}
+	                            </div>
+	                        </div>
+
+					    </div>
+					{% endfor %}
+				</div>
+			</div>
+
+       </div>
+    </div>
+    <div class="mega-menu-image multiply"></div>
+</li>
+
+{% include "navigation/menu.twig" with { 'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1, 'className':'d-lg-none d-block' } %}

@@ -1,0 +1,28 @@
+{% set menu_level = menu_level is empty?1:menu_level %}
+
+{% for item in menu %}
+
+    {% set props = item.get_properties({parent_link: parent_link}) %}
+
+	<li class="{{props.item.class}}" data-menu-level="{{menu_level}}">
+		<a href="{{props.link.href}}" class="text-wrap {{props.link.class}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %} {{props.link.attrs}}>
+			<span itemprop="name">{{item.title}}</span>
+            {% if item.children %}
+                <span class="sub-arrow"></span>
+            {% endif %}
+	    </a>
+		{% if item.children %}
+		<ul class="dropdown-menu {% if props.megamenu %}mega-menu mega-menu-{{item.mega_menu_template}}{% endif %} z-{{menu_level}}" {% if menu_level > 1 %}style="max-height:350px;"{% endif %}>
+		{% endif %}
+
+		{% if props.megamenu %}
+            {% include ["navigation/mega-menu-" ~ item.mega_menu_template ~ ".twig", "navigation/menu.twig"] with {'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'id':item.ID} %}
+        {% else %}
+		   	{% include "navigation/menu.twig" with {'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1} %}
+        {% endif %}
+
+		{% if item.children %}
+		</ul>
+		{% endif %}
+	</li>
+{% endfor %}

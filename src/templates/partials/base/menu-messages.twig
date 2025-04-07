@@ -1,0 +1,48 @@
+{% if enable_membership and user.logged and enable_chat %}
+    {% if menu_type == "dropdown" %}
+       {% set toggle = "dropdown" %}
+       {% set class =  menu_class ~ " dropdown dropdown-notifications dropdown-form" %}
+       {% set target = "" %}
+    {% else %}
+       {% set toggle = "offcanvas" %}
+       {% set class = menu_class ~ "" %}
+       {% set target = "offcanvasCart" %}
+    {% endif %}
+
+    <li class="nav-item {{class}}" data-type="messages">
+    
+        <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
+            {% if user.messages_count > 0 %}
+                <div class="notification-count">{{user.messages_count}}</div>
+            {% endif %}
+            <i class="fa-light fa-message-lines"></i>
+        </a>
+
+        {% if menu_type == "dropdown" %}
+            <div class="dropdown-menu flex-column">
+                <div class="dropdown-header">
+                    <div class="title">{{'MESSAGES'|trans}}</div>
+                    <div class="action">
+                        <a href="#" data-dismiss="dropdown">{{'Close'|trans}}</a>
+                    </div>
+                </div>
+                <div class="dropdown-container has-dropdown-item">
+                    <div class="dropdown-body scrollable d-flex flex-column flex-fill justify-content-center">
+                        <div class="content-centered">
+                            <div class="content-block">
+                                <i class="far fa-envelope"></i>
+                                {{'No new messages'|trans}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown-footer">
+                        <a href="{{function('get_account_endpoint_url', 'messages')}}" class="btn btn-md- btn-primary w-100">
+                            {{'VIEW ALL'|trans}}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+    </li>
+{% endif %}

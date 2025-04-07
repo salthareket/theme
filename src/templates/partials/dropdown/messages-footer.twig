@@ -1,0 +1,7 @@
+<a href="{{function('get_account_endpoint_url', 'messages')}}" class="btn btn-md- btn-base btn-block">
+            {% if posts %}
+               {{translate('VIEW ALL')}}
+            {% else %}
+               {{translate('GO TO MESSAGES')}}
+            {% endif %}
+        </a>

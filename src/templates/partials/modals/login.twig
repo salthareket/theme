@@ -1,0 +1,37 @@
+<form class="form bg-tertiary p-3 needs-validation" autocomplete="off" method="post" data-ajax-method="login_ener" novalidate>
+	<div class="modal-header border-0">
+		{{logo|inline_svg}}
+		<button type="button" class="btn-close opacity-100" data-bs-dismiss="modal" aria-label="{{translate("Kapat")}}"></button>
+	</div>
+	<div class="modal-body py-0">
+		<div class="form-group mb-3">
+			<input type="text" name="email" class="form-control" placeholder="{{translate("E-mail")}}" autocomplete="off" required/>
+		</div>
+		<div class="form-group">
+			<input type="password" name="password" class="form-control" placeholder="{{translate("Şifre")}}" autocomplete="off" required/>
+		</div>
+	</div>
+	<div class="modal-footer justify-content-end pt-0 border-0">
+		<button type="submit" class="btn-submit btn btn-nova btn-outline-primary-hover btn-extended">{{translate("Giriş Yap")}}</button>
+	</div>
+</form>
+<script>
+(() => {
+  'use strict'
+
+  // Fetch all the forms we want to apply custom Bootstrap validation styles to
+  const forms = document.querySelectorAll('.needs-validation')
+
+  // Loop over them and prevent submission
+  Array.from(forms).forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!form.checkValidity()) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+
+      form.classList.add('was-validated')
+    }, false)
+  })
+})()
+</script>

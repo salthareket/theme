@@ -1525,13 +1525,12 @@ function acf_add_field_options($field) {
         if(in_array("acf-template-custom-default", $class)){
             $field['choices'][ 'default' ] = "Default";
         }
+        $field['choices'][ 'post/tease' ] = "Post Tease (Predefined)";
         if( is_array($templates) && count($templates) > 0 ) {
             foreach( $templates as $template ) {
                 $template = str_replace(".twig", "", $template);
                 $field['choices'][ 'theme/templates/_custom/'.$template ] = $template;
             }        
-        }else{
-            $field['choices'][ 'templates/post/tease' ] = "Post Tease";
         }
     }
 

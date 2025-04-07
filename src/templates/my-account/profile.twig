@@ -1,0 +1,368 @@
+
+
+<form class="form form-validate" id="form-update-profile" method="post" enctype="multipart/form-data" data-ajax-method="update_profile" autocomplete="off">
+   
+
+   <div class="card-container card card-reset">
+        {% if user._email_temp != "" %}
+        <div class="card-header">
+            <div class="alert alert-warning mb-3 text-center">
+                Please check your "{{user._email_temp}}" account's inbox to verify.<br>
+                <a href="#" data-ajax-method="send_email_activation" data-id="{{user.id}}">Click here</a> to send verify email again or <a href="#" data-ajax-method="reset_email_activation" data-id="{{user.id}}">click here</a> to use your existing email "{{user.user_email}}".
+            </div>
+        </div>
+        {% endif %}
+        <div class="card-body"> 
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header pb-4">
+                    <h1 class="card-title">
+                        About You
+                    </h1>
+                </div>
+                <div class="card-body pt-0 pb-4">    
+                    <div class="row gy-4">
+
+                            <div class="col-lg-6">
+                            <div class="form-group mb-0">
+                                <label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="first_name" value="{{user.first_name}}" autocomplete="off" required/>
+                            </div>
+                            </div>
+
+                            <div class="col-lg-6">
+                            <div class="form-group mb-0">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="last_name" value="{{user.last_name}}" autocomplete="off" required/>
+                            </div>
+                            </div>
+
+                            <div class="col-12">
+                            <div class="form-group mb-0">
+                                <label class="form-label">Title</label>
+                                <input type="text" class="form-control" name="description" value="{{user.description}}" autocomplete="off" required/>
+                            </div>
+                            </div>
+
+                            {# if user.role == "expert" %}
+                            <div class="col-12">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select form-multi-select" name="work_status" placeholder="Work Status" autocomplete="off" data-highlight="false" data-unselect="true" required>
+                                        {% if work_status %}
+                                            {% for item in work_status %}
+                                                <option value="{{item.term_id}}" {% if item.term_id in work_status_user %}selected{% endif %}>{{item.name}}</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                            {% endif #}
+
+                            <div class="col-12">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">About</label>
+                                    <textarea class="form-control" name="about" autocomplete="off" required>{{user.about}}</textarea>
+                                </div>
+                            </div>
+
+
+                            {% if user.get_role == "client" %}
+                                <div class="col-12">
+                                    <label class="form-label">Language</label>
+                                    <div class="repeater" data-show-first="true" data-unremovable-first="true" data-unique-choice="true" data-remove-confirm="true">
+                                        <div class="list-social-media" data-repeater-list="language">
+                                            <div class="form-group form-group-xs" data-repeater-item data-callback="loadLanguage__">
+                                                <div class="input-group">
+                                                    <select class="form-select unique" name="language" placeholder="Language" required>
+                                                        <option value="" selected>Choose a language</option>
+                                                        {% for item in languages %}
+                                                        <option value="{{item.lang}}" data-placeholder="{{item.name}}">{{item.name}}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <select class="form-select" name="level" data-update-placeholder required>
+                                                        <option value="">Choose your Level</option>
+                                                        {% for level in proficiency_level %}
+                                                        <option value="{{level.term_id}}">{{level.level}} - {{level.name}}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="#" class="btn btn-block btn-outline-gray rounded-5 mt-2 w-100" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New Language</a>
+                                    </div>
+                                    {{'<script type="text/javascript">'}}
+                                        var language = {{language|json_encode}};
+                                    {{'</script>'}}
+                                </div>
+                            {% endif %}
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header pb-4">
+                    <h1 class="card-title">
+                        Contacts
+                    </h1>
+                </div>
+                <div class="card-body pt-0 pb-4">
+                    <div class="row gy-4">
+
+                            <div class="col-12">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Profile Url</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text position-relative text-muted">{{site.url}}/{{user.get_role}}/</span>
+                                        <input type="text" aria-label="Profile Url" class="form-control no-validate" name="nickname" value="{{user.generate_url_slug()}}" placeholder="Profile Url" autocomplete="off" data-remote="nickname_exist" data-remote-param="nickname" data-rule-username-rule="true" data-msg-username-rule="Only use lowercase characters, numbers and dash." data-slug rangelength ="8,25" min-length="8" maxlength="25" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Web Site</label>
+                                    <input type="text" class="form-control" name="user_url" value="{{user.user_url}}" data-rule---url="true" data-rule-url-check="true" data-msg-url----check="Url must start http:// or https://" autocomplete="off"/>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Youtube Video</label>
+                                    <input type="text" class="form-control" name="profile_video" value="{{user.profile_video}}" data-rule-youtube="true" data-msg="Please enter a valid youtube url" autocomplete="off"/>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Social Media</label>
+                                <div class="repeater" data-show-first="false" data-unremovable-first="false" data-unique-choice="true">
+                                    <div class="list-social-media" data-repeater-list="social_media">
+                                        <div class="form-group form-group-xs" data-repeater-item data-callback--="loadDestinations">
+                                            <div class="input-group">
+                                                <select class="form-select unique" name="brand" required>
+                                                    <option value="" selected>Choose</option>
+                                                    {% for item in wp_social_media %}
+                                                    <option value="{{item.slug}}" data-placeholder="{{item.description}}">{{item.title}}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <input type="text" class="form-control border-start-0 pl-0" name="url" value="" placeholder="Url" aria-label="Url" autocomplete="off" data-update-placeholder required/>
+                                                <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="#" class="btn btn-block btn-outline-gray rounded-5 mt-2 w-100" data-repeater-create><i class='fa fa-plus fa-fw'></i> Add New </a>
+                                </div>
+                                {% set social_media = {} %}
+                                {% for item in wp_social_media %}
+                                    {% if user.meta(item.slug) is not empty %}
+                                       {% set social_media = social_media|merge([{ "brand" : item.slug, "url" : user.meta(item.slug) }]) %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if social_media %}
+                                {{'<script type="text/javascript">'}}
+                                    var social_media = {{social_media|json_encode}};
+                                {{'</script>'}}
+                                {% endif %}
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card-container-solid card card-reset">
+                <div class="card-header pb-4">
+                    <h1 class="card-title">
+                        Location
+                    </h1>
+                </div>
+                <div class="card-body pt-0 pb-4">
+                    <div class="row gy-4">
+
+                            {# if user.get_role() == "client" %}
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" name="address" autocomplete="off" required>{{user.billing_address_1}}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Postcode / ZIP </label>
+                                    <input type="text" class="form-control" name="postcode" value="{{user.billing_postcode}}" autocomplete="off" data-rule-postcode="true" data-msg-postcode="Please enter a valid postcode." required/>
+                                </div>
+                            </div>
+                            {% endif #}
+
+                            {% set country_has_state = 0 %}
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Country of Residence</label>
+                                    <select class="selectpicker- form-select form-select-chain" name="country" data-method="get_city_options" data-chain="city" data-chain-value="{{user.billing_country}}" data-chain-on-select="false" data-live-search="true" required>
+                                        <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{'Please choose your country'|trans}}</option>
+                                        {% set countries = salt.localization.countries %}
+                                        {% for country in countries %}
+                                            {% if country.iso2 == user.billing_country %}
+                                                {% set country_has_state = country.states|boolval %}
+                                            {% endif %}
+                                            <option value="{{country.iso2}}" data-phonecode="{{country.phonecode}}" data-states="{{country.states}}" {% if country.iso2 == user.billing_country %}selected{% endif %}>{{country.name}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="hidden" name="states_view" value="{{country_has_state}}"/>
+                                </div>
+                            </div>
+                            
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-0 {% if not country.states|boolval or user.city is empty %}d-none{% endif %}" data-condition="(states_view === '1' || states_view === 'true') && country" data-condition-reset="true">
+                                    <label class="form-label">City/State</label>
+                                    <select class="selectpicker- form-select" name="city" data-chain-value="{{user.city}}" data-live-search="true" required>
+                                        <option value="" class="{% if user.city %}d-none{% endif %}">{{'Please choose your city/state'|trans}}</option>
+                                        {% if user.billing_country %}
+                                            {% set cities = salt.localization.states({"country_code" : user.billing_country}) %}
+                                            {% if cities %}
+                                                {% for city in cities %}
+                                                <option value="{{city.id}}" {% if city.id == user.city %}selected{% endif %}>{{city.name}}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-12 m-0 p-0"></div>
+
+                            <div class="col-md-6 {% if user.billing_country is empty %}d-none{% endif %}" data-condition="country">
+                                <div class="form-group mb-0 mt-0">
+                                    <label class="form-label">Phone Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text phone-code loading-xs position-relative">{{user.billing_phone_code}}</span>
+                                        <input type="text" aria-label="Phone Number" class="form-control" name="phone" value="{{user.billing_phone}}" placeholder="Phone Number" autocomplete="off" data-phone="true" data-remote="validate_phone" data-remote-param="phone" data-remote-objs='{"phone_code": "phone_code", "country":"country"}' data-response-view="true" required>
+                                    </div>
+                                    <input type="hidden" name="phone_code" value="{{user.billing_phone_code}}" autocomplete="off">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group mb-0 mt-0">
+                                    <label class="form-label">E-mail</label>
+                                    <input type="email" class="form-control" name="email" value="{{user.user_email}}" data-email="true" data-rule="email" data-remote="user_exist" data-remote-param="email" data-remote-exclude="{{user.user_email}}" autocomplete="off" required/>
+                                </div>
+                                {% if user._email_temp %}
+                                    <div class="form-group mb-0 mt-2 px-2 text-danger">
+                                        <b>{{user._email_temp}}</b> is not verified yet!
+                                    </div>
+                                {% endif %}
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="card-footer d-flex justify-content-center pt-4">
+            <input autocomplete="false" name="hidden" type="text" style="display:none;">
+            <input type="hidden" name="action" value="{{type}}"/>
+            <button type="submit" class="btn-submit btn btn-secondary fw-bold btn-lg">SAVE CHANGES</button>
+        </div>
+    </div>
+</form>
+
+{% block appendix %}
+<script>
+    {% if enable_postcode_validation %}
+    var postcodes = {{ postcodes|json_encode }};
+    function postcode_validate($country=""){
+            if(IsBlank(postcodes[$country])){
+                postcodes[$country] = "^\\d{5}$";
+            }
+            var regex = postcodes[$country];
+            $("input[name='postcode']")
+            .inputmask('remove')
+            .inputmask({
+                regex: regex,
+                jitMasking: true,
+                onBeforePaste: function (pastedValue, opts) {
+                    pastedValue = pastedValue.toUpperCase();
+                    return pastedValue;
+                }
+            })
+            .attr("pattern",regex);
+    }
+    {% endif %}
+
+    $( document ).ready(function() {
+        
+        {% if enable_postcode_validation %}
+        jQuery.validator.addMethod("postcode", function(value, element) {
+           var country = $("select[name='country']").val();
+           var pattern = "";
+            if(country){
+                country = country.toUpperCase();
+                if(IsBlank(postcodes[country])){
+                    postcodes[country] = "^\\d{5}$";
+                }
+                pattern = new RegExp(postcodes[country], 'gi');            
+            }
+            return this.optional( element ) || pattern.test( value );
+        });
+        var country = $("select[name='country']").val();
+            country = country.toUpperCase();
+        postcode_validate(country);
+        {% endif %}
+
+        /*$("select[name='languages[]']").on("change.select2", function(e){
+            var languages = [...$(this).find("option:selected")].map(element => element.text);
+            //var languages = $(this).find("option:selected").forEach(element => options.push(element.text))
+            debugJS(languages);
+            $("input[name='languages_name']").val(languages.join(", "));
+        });*/
+
+        $("select[name='country']").on("change", function(){
+            var country = $(this).val();
+            if(!IsBlank(country)){
+                var $phone_code = $(this).find("option:selected").attr("data-phonecode");
+                $("input[name='phone_code']").val($phone_code).trigger("change");
+                $(".phone-code").text($phone_code);
+
+                var $states_count = parseInt($(this).find("option:selected").attr("data-states"));
+                var $states_view = true;
+                if($states_count == 0){
+                   $states_view = false;
+                }
+                $("input[name='states_view']").val($states_view).trigger("change");
+                
+                {% if enable_postcode_validation %}
+                postcode_validate(country.toUpperCase());
+                {% endif %}
+            }
+        });
+        $("select[name='city']").on("change", function(){
+            /*var timezone = $("select[name='timezone']");
+            var continent_name = $("select[name='continent']").find("option:selected").text();
+            var city_name = $("select[name='city']").find("option:selected" ).text();
+            var timezone_value = continent_name+"/"+city_name;
+            if(IsBlank(timezone.val()) && !IsBlank(timezone_value)){
+                if(timezone.find("option[value='"+timezone_value+"']").length > 0){
+                   //.val(timezone);
+                   timezone.find("option:selected").prop("selected", false);
+                   timezone.find("option[value='"+timezone_value+"']").prop("selected", true);
+                   timezone.trigger("change");
+                }                
+            }*/
+        });
+        var $nickname = $("input[name='nickname").val();
+        $("input[name='nickname").keyup(function() {
+           $(this).removeClass("no-validate");
+           if($(this).val() == $nickname){
+              $(this).addClass("no-validate");
+           }
+        });
+        if(IsBlank($("input[name='phone_code']").val())){
+           $("select[name='country']").trigger("change");
+        }
+
+    });
+</script>
+{% endblock %}

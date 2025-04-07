@@ -1,0 +1,35 @@
+      
+
+      {% set chatbox = '[yobro_chatbox user_id=' ~ id ~ ']' %}
+      <div class="modal-chat modal modal-fullscreen fade" id="modal-chat" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-- --">
+              <div class="modal-content">
+                  <div class="modal-header">
+                      <h5 class="modal-title" id="staticBackdropLabel">Chat with {{name}} / {{title}}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      {{chatbox|shortcodes}}
+                  </div>
+              </div>
+          </div>
+      </div>
+      <script>
+          {% if function('get_query_var', 'chat') %}
+              $(document).ready(function() {
+                  $("#modal-chat").modal("show");
+              });
+          {% endif %}
+          function hashHandler(){
+              this.oldQuerystring = window.location.search;
+              this.Check;
+              var that = this;
+              var detect = function(){
+                  if(window.location.search.indexOf("conversationId")){
+                    history.replaceState(null, null, that.oldQuerystring);
+                  }
+              };
+              this.Check = setInterval(function(){ detect() }, 100);
+          }
+          var hashDetection = new hashHandler();
+      </script>

@@ -1,0 +1,45 @@
+{% set menu_image = menu.meta('mega_menu_image') %}
+{% if not menu_image %}
+	{% set menu_images = [] %}
+	{% for item in menu.children %}
+		{% if item.mega_menu_image %}
+            {% set img = Image(item.mega_menu_image).src %}
+		{% else %}
+			{% set img = function("_get_field", "mega_menu_image", item.object ~ "_" ~ item.object_id) %}
+		{% endif %}
+		{% if img %}
+			{% set menu_images = menu_images|merge([{"id" : item.object_id, "image" : img }]) %}
+		{% endif %}
+	{% endfor %}
+{% endif %}
+<li class="mega-menu-container d-none d-lg-block {% if menu_images %}img-multiple{% elseif menu_image %}img-single{% else %}img-none{% endif %}">
+	<div class="container-fluid px-0">
+		<div class="mega-menu-row row gx-0 w-100">
+
+		    <div class="col position-relative image">
+                {% if menu_image %}
+		    		<div class="position-absolute-fill bg-cover" style="background-image: url({{menu_image}});"></div>
+                {% elseif menu_images %}
+                    {% for img in menu_images %}
+                		<div class="position-absolute-fill bg-cover fade {% if loop.index0 > 0 %}show{% endif %}" data-image-id="{{img.id}}" style="background-image: url({{img.image}});"></div>
+                    {% endfor %}
+                {% endif %}
+			</div>
+
+			<div class="col">
+				<ul class="nav-mega-menu nav list-unstyled flex-column justify-content-center h-100" data-sm-skip="true">
+				{% for item in menu.children %}
+			        <li class="{{className}} {{item.classes | join(' ')}} nav-item" data-menu-level="{{menu_level}}">
+			            <a class="nav-link btn-loading-page" href="{{item.link}}" {% if menu_images %}data-image-id="{{item.object_id}}"{% endif %}>
+			                {{item.name}}
+			            </a>
+			        </li>
+				{% endfor %}
+			    </ul>
+			</div>
+
+       </div>
+    </div>
+</li>
+
+{% include "navigation/menu.twig" with { 'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'className':'d-lg-none d-block' } %}

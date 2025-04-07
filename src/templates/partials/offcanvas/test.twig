@@ -1,0 +1,30 @@
+{% block sidebar_toggler %}
+<button type="button" class="sidebar-toggler btn btn-base" data-bs-toggle="offcanvas" data-bs-target="#offcanvas" aria-label="Toggle menu">
+    {{function("get_post_type_object", post.post_type).label}} <i class="fa fa-angle-right ms-2"></i>
+</button>
+{% endblock %}
+
+
+{% block sidebar %}
+<div class="{{function("acf_offcanvas_classes", page_settings)}} offcanvas-{{page_settings.offcanvas.position}} {% if not page_settings.offcanvas.individual %}offcanvas-{{page_settings.offcanvas.size}}{% else %}offcanvas{% endif %} p-0 bg-tertiary" tabindex="-1" id="offcanvas" data-bs-keyboard="false" data-bs-backdrop="true" data-bs-scroll="true">
+    <div class="offcanvas-header position-absolute" style="z-index:1;right:0;">
+        <button type="button" class="btn-close btn-close-white opacity-100" data-bs-toggle="offcanvas" data-bs-target="#offcanvas" aria-label="{{translate('Close', "letar")}}"></button>
+    </div>
+    <div class="offcanvas-body d-block p-0">
+        <div class="sidebar-kimler-icin h-100v d-flex flex-column justify-content-center opacity-0--">
+            <a class="navbar-brand-sidebar d-flex align-items-center" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url">
+            {% if function('get_extension', logo) == "svg" %}
+                {{function('inline_svg', logo, "logo svg-tertiary")}}
+            {% else %}
+                <img src="{{logo}}" class="logo" alt="{{site.name}}" />
+            {% endif %}
+            </a>
+            <nav class="nav flex-column">
+                {% for item in get_posts({"post_type" : post.post_type}) %}
+                    <a href="{{item.link}}" class="nav-link btn-loading-page ps-0 {% if post.id == item.id %}active{% endif %}">{{item.title}}</a>
+                {% endfor %}
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}

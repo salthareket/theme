@@ -1,0 +1,83 @@
+{% extends 'base.twig' %}
+
+{% set page_settings_default = {
+                full : true,
+                classes : {
+                    body : "",
+                    main : "",
+                    container : "mt-0",
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : "",
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block before_container %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+        {{ block("before_container", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+{% block content %}
+
+    <div class="card card-reset container">
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : post_type, direction : "prev"} %}
+
+        <div class="card-body">
+            <div class="posts row row-cols-lg-3 row-cols-sm-2 row-cols-1 g-5">
+                {% for post in posts %}
+                    <div class="col">
+                        {% include "tease.twig" %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : post_type, direction : "next"} %}
+
+    </div>
+
+{% endblock  %}

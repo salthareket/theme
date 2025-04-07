@@ -1,0 +1,36 @@
+{% for story in posts %}
+    <!-- story -->
+    <div class="story seen {{ story.seen ? 'seen' : '' }}" data-id="{{story.id}}" data-last-updated="{{story.lastUpdated}}" data-photo="{{story.photo}}">
+        <a class="item-link" href="{{story.link}}">
+              <span class="item-preview">
+                 <img src="{{story.photo}}" />
+              </span>
+              <span class="info" itemProp="author" itemScope="" itemType="http://schema.org/Person">
+                    <strong class="name" itemProp="name">{{story.name}}</strong>
+                    <span class="time">{{story.lastUpdated}}</span>
+              </span>
+        </a>
+        
+        <ul class="items">
+            {% for storyItem in story.items %}
+                <!-- story item -->
+                <li data-id="{{storyItem.id}}" data-time="{{storyItem.time}}" class="{{storyItem.seen}}">
+                    <a href="{{storyItem.src}}"
+                    
+                     data-type="{{storyItem.type}}" 
+                     data-length="{{storyItem.length}}" 
+                     data-link="{{storyItem.link}}" 
+                     data-linkText="{{storyItem.linkText}}" 
+                     
+                     data-koko="{{storyItem.koko}}">
+                        <img src="{{storyItem.preview}}" />
+                    </a>
+                </li>
+                <!--/ story item -->
+            {% endfor %}
+            
+        </ul>
+    </div>
+    <!--/ story -->
+
+{% endfor %}

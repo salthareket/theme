@@ -1,0 +1,200 @@
+{% if post %}
+   {% set user_item = post %}
+{% endif %}
+
+<div class="tease-profile card flex-lg-row flex-column {{class}}">
+    <div class="card-body pe-lg-4 me-lg-4 border-lg-end">
+        <div class="card-inner card card-reset h-100">
+
+            <div class="card-header d-flex">
+                {% include "user/tease.twig" with { size: "md", show_rating: true, show_follow:true, show_message: true} %}
+            </div>
+
+            <div class="card-body py-4 text-lg-start text-center">
+                <ul class="list-text-block">
+                    {% set active_experience = user_item.get_active_experience() %}
+                    {% if active_experience %}
+                    <li>
+                        {% if not active_experience.independent %}
+                            {% set company_url = salt.get_search_filter_url("experts", {"company": active_experience.company}) %}
+                            {{active_experience.title}} <a href="{{company_url}}" class="btn-loading-page">@{{active_experience.company_name}}</a> since {{active_experience.start}}.
+                        {% else %}
+                            Working as an independent {{active_experience.title}} since {{active_experience.start}}.
+                        {% endif %}
+                    </li>
+                    {% endif %}
+                    <li>
+                        <ul class="list-text-label justify-content-lg-start justify-content-center">
+                            <li>
+                                <div class="item">
+                                   <i class="fa-regular fa-location-dot"></i>
+                                   {{user_item.get_location}} - UTC{{user_item.get_gmt()}}
+                                </div>
+                            </li>
+                            <li>
+                                <div class="item">
+                                    <i class="fa-regular fa-globe"></i>
+                                    {{user_item.get_languages()|join(", ")}}
+                                </div>
+                            </li>
+                            {# if user_item.get_last_login() %}
+                            <li>Last seen on {{user_item.get_last_seen()}}</li>
+                            {% endif #}
+                        </ul>
+                    </li>
+                    <li class="mt-3">
+                        {{user_item.about|truncate(15)}}
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card-footer">
+                <div class="row align-items-end gy-lg-0 gy-3">
+
+                    <div class="col-lg-auto">
+                        <div class="user-available">
+                            <h5 class="title">NEXT AVAILABLE ON</h5>
+                            <div class="item">
+                                {% set availableDate = user_item.closest_availability() %}
+                                {% if availableDate %}
+                                <div class="date">
+                                    {{ availableDate.date }}
+                                    <div class="hour">{{ availableDate.time }}
+                                        <div class="timezone">{{user.get_timezone()}} {{user.get_gmt()}}</div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                    Not Available
+                                {% endif%}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-auto">
+                        {% if user_item.get_role == "expert" %}
+                        <div class="tab-experience">
+                            {% set expertise = user_item.get_expertise() %}
+                            {% set industry = user_item.get_industry() %}
+                            {% set software = user_item.get_software() %}
+                            <ul class="nav nav-pills" id="experience" role="tablist">
+                            {% if expertise %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="expertise-tab" data-bs-toggle="tab" data-bs-target="#expertise-content-{{user_item.id}}" type="button" role="tab" aria-controls="expertise-content-{{user_item.id}}" aria-selected="true">Expertise</button>
+                                </li>
+                            {% endif %}
+                            {% if industry %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="industry-tab-{{user_item.id}}" data-bs-toggle="tab" data-bs-target="#industry-content-{{user_item.id}}" type="button" role="tab" aria-controls="industry-content-{{user_item.id}}" aria-selected="true">Industry</button>
+                            </li>
+                            {% endif %}
+                            {% if software %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="software-tab-{{user_item.id}}" data-bs-toggle="tab" data-bs-target="#software-content-{{user_item.id}}" type="button" role="tab" aria-controls="software-content-{{user_item.id}}" aria-selected="true">Software</button>
+                            </li>
+                            {% endif %}
+                            </ul>
+                            <div class="tab-content">
+                                {% if expertise %}
+                                <div class="tab-pane active" id="expertise-content-{{user_item.id}}" role="tabpanel" aria-labelledby="expertise-tab-{{user_item.id}}" tabindex="0">
+                                    {{function("wp_list_pluck", expertise, "name")|join(", ")}}
+                                </div>
+                                {% endif %}
+                                {% if industry %}
+                                <div class="tab-pane" id="industry-content-{{user_item.id}}" role="tabpanel" aria-labelledby="industry-tab-{{user_item.id}}" tabindex="0">
+                                    {{function("wp_list_pluck", industry, "name")|join(", ")}}
+                                </div>
+                                {% endif %}
+                                {% if software %}
+                                <div class="tab-pane" id="software-content-{{user_item.id}}" role="tabpanel" aria-labelledby="software-tab-{{user_item.id}}" tabindex="0">
+                                    {{function("wp_list_pluck", software, "name")|join(", ")}}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col">
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="card-inner card card-reset h-100">
+            <div class="card-header">
+                {% set stats = user_item.get_stats() %}
+                <div class="list-user-stats list-user-stats-sm">
+                    <ul class="values list-unstyled d-flex justify-content-around">
+                    {% for stat in stats %}
+                        <li>
+                           {% if stat.link %}
+                           <a href="{{stat.link}}" {{stat.link_attrs}} title="{{user_item.get_title}} - {{stat.title}}">
+                           {% endif %}
+                            <div class="item">
+                               <i class="fa-light {{stat.icon}}"></i>
+                               <div class="count count-{{stat.slug}}" data-id="{{stat.id}}">{{ stat.count }}</div>
+                            </div>
+                            <div class="title">{{ stat.title }}</div>
+                            {% if stat.link %}
+                            </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                    <div class="text">Member since {{ user_item.user_registered|date("M Y") }}</div>
+                </div>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="user-price">
+                        ${{ user_item.get_hourly_rate() }}/hour
+                        <small>Based on ${{user_item.price_base}} per 15 mins.</small>
+                    </div>
+            </div>
+            <div class="card-footer">
+                {% if user.get_role() == "client" %}
+                    {# if application %}
+                        {% if application.get_session_status("slug") == "pending" %}
+                            <a href="#" class="btn btn-warning w-100" data-ajax-method="sessions" data-action="approve" data-id="{{application.ID}}">Approve Application</a>
+                        {% endif %}
+                        {% if application.get_session_status("slug") == "upcoming" %}
+                            <a href="#" class="btn btn-warning w-100" data-ajax-method="pay_now" data-id="{{application.ID}}">Pay</a>
+                        {% endif %}
+                    {% else #}
+                        {% if user.has_saved_sessions() %}
+                            {% set saved_sessions = user.get_saved_sessions() %}
+                            <div class="btn-group w-100">
+                                <button type="button" class="btn btn-secondary fw-bold text-uppercase dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Request Session
+                                </button>
+                                <ul class="dropdown-menu pre-scrollable w-100 p-3 rounded-4">
+                                    <li>
+                                        <a class="dropdown-item btn-loading-page" href="{{base_urls.sessions}}create/{{user_item.id}}/">
+                                            <i class="fa-thin fa-star"></i> New session
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <div class="dropdown-header">Saved sessions</div>
+                                    </li>
+                                    {% for saved_session in saved_sessions %}
+                                        <li>
+                                            <a class="dropdown-item btn-loading-page" href="{{base_urls.sessions}}create/{{user_item.id}}/{{saved_session.ID}}/">
+                                                {{saved_session.post_title}}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                            <a href="{{base_urls.sessions}}create/{{user_item.id}}/" class="btn btn-secondary text-uppercase w-100 mt-2 btn-loading-page">Request Session</a>
+                        {% endif %}
+                    {# endif #}
+                {% endif %}
+                <a href="{{user_item.link}}" class="btn btn-outline-secondary fw-bold text-uppercase w-100 mt-2 btn-loading-page">View Profile</a>
+            </div>
+        </div>
+    </div>
+</div>

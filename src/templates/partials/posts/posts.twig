@@ -1,0 +1,74 @@
+{% if url_query_vars["q"] %}
+
+    {% set current_id = post.id %}
+
+    {% set post_type = url_query_vars["qpt"] %}
+    {% set post_type = post_type == ""?"any":post_type %}
+
+
+    {% set id = "posts-list-" ~ block_meta.id %}
+
+    <div class="card card-reset" id="{{id}}">
+
+        {% if url_query_vars["q"] or page_type in ["tag", "category", "page"] %}
+        <div class="card-header d-flex pb-5 text-start">
+            {% if found_posts %}
+                <h2 class="card-title">
+                    {{title|urldecode}}
+                    <small class="d-block fs-5 opacity-50 mt-2">
+                        {{ translate_nooped_plural( translate_n_noop('%s sonuç bulundu.', '%s sonuç bulundu.'), found_posts)|format(found_posts) }}
+                    </small>
+                </h2>
+                {#<div class="action">
+                   <a href="#blog-filters" class="btn btn-outline-dark" data-bs-toggle="offcanvas" role="button" aria-controls="blog-filters">Filters</a>
+                </div>#}
+            {% else %}
+                <h2 class="card-title text-center fw-normal">
+                    {{translate("%s terimini içeren sonuç bulunamadı.")|replace({'%s': '<strong>"' ~ url_query_vars["q"] ~ '"</strong>'})|urldecode}}
+                </h2>
+            {% endif %}    
+        </div>
+        {% endif %}
+
+        {% if found_posts %}
+
+            {% include "partials/pagination/pagination-advanced.twig" with { container : "#" ~ id ~ " .posts", post_type : post_type, direction : "prev", posts_per_page: fields.posts_per_page} %}
+
+            <div class="card-body">
+                <div class="posts row {{row_class|default("row-cols-xxl-3 row-cols-xl-3 row-cols-lg-2 row-cols-md-1 row-cols-sm-1 row-cols-1 gy-4")}}" {{row_attrs}}>
+                    {% for post in posts %}
+                        {% if post.id != current_id %}
+                            <div class="col">
+                            {% include [post_type ~ '/tease.twig', 'tease.twig'] %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% include "partials/pagination/pagination-advanced.twig" with { container : "#" ~ id ~ " .posts", post_type : post_type, direction : "next", posts_per_page: fields.posts_per_page} %}
+        {% else %}
+
+            <div class="text-center">
+                {% set suggestions = function("search_suggestions", url_query_vars["q"]|urldecode) %}
+                {% if suggestions %}
+                    <h5>{{translate("Bu terimlerden bazıları ilginizi çekebilir.")}}</h5>
+                    {% set url = post.link ~ "search/" %}
+                    <ul class="list-inline text-center mt-3">
+                        {% for keyword in suggestions %}
+                            <li class="list-inline-item mb-2">
+                                <a href="{{url}}{{keyword|url_encode}}/" class="btn btn-sm btn-outline-primary btn-loading-page" title="Search {{keyword}}">
+                                    {{ keyword }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+
+                {% endif %}
+            </div>
+        {% endif %}
+
+    </div>
+
+{% endif %}

@@ -1,0 +1,38 @@
+<article class="tease-search card-module card-reset card m-0 h-100">
+	<div class="row">
+		<div class="col-image col-auto d-none d-md-block">
+			<a href="{{post.link}}" title="{{post.title}}" class="btn-loading-page">
+			     <img data-src="{% if post.thumbnail %}{{post.thumbnail.src('thumbnail')}}{% endif %}" class="img-placeholder img-fluid lazy rounded-3 overflow-hidden {% if post.thumbnail and not is_preview %}loading{% else %}img-not-found{% endif %}" alt="{{post.title}}" width="150" height="150" />
+			</a>
+	    </div>
+	    <div class="col-content col">
+			<div class="card-body">
+				<ul class="list-label list-inline mb-3">
+					<li class="list-inline-item">
+						<a href="#" class="label">{{post.type.labels.name}}</a>
+					</li>
+					{# if post.post_type in post_types|keys %}
+						{% for taxonomy in post_types[post.post_type].taxonomies %}
+							{% for term in post.terms(taxonomy) %}
+		                    <li class="list-inline-item">
+		                    	<a href="#" class="label" class="btn-loading-page">{{term.title}}</a>
+		                    </li>
+							{% endfor %}
+						{% endfor %}
+					{% endif #}
+				</ul>
+				<h5 class="card-title mb-2">
+					<a href="{{post.link}}" title="{{post.title}}" class="btn-loading-page">{{post.title}}</a>
+				</h5>
+				{% if post.content %}
+					<div class="card-text">
+						<a href="{{post.link}}" title="{{post.title}}" class="btn-loading-page">
+							{{post.excerpt.length(25).read_more('')}}
+						</a>
+					</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</article>
+

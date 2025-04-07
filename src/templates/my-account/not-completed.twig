@@ -1,0 +1,26 @@
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 offset-3">
+            <div class="text-center">
+                <i class="fa-light fa-user-gear opacity-25 fa-5x"></i>
+                <h4 class="title mt-3 mb-0">Your profile is not completed!</h4>
+                <p>
+                    {{description}}
+                </p>
+                <div class="row gx-5 gy-3 justify-content-center">
+                    {% for key, item in user.profile_completion %}
+                        {% if key != "success"  %}
+                            {% if not item.success %}
+                                <div class="col-auto">
+                                    <a href="{{base_urls.account}}{{key}}/" class="btn btn-primary btn-loading-page" title="Complete {{item.title}} Form">{{item.title}}</a>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+

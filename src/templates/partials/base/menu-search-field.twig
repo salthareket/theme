@@ -1,0 +1,15 @@
+<li class="nav-item nav-search-field {{menu_class}}">
+    {% if function("class_exists", 'DGWT_WC_Ajax_Search' ) %}
+        {{ '[fibosearch]'|shortcodes }}
+    {% else %}
+        <form class="form-search form form-validate form-group m-0" action="{{site.url}}/search/" role="form" method="post">
+            {% set search_term = "" %}
+            {% set query_var = function('get_query_var','s') %}
+            <div class="input-group bg-white rounded-5 overflow-hidden p-2">
+                <input type="text" class="form-control form-control-md border-0" name="s" placeholder="{{translate("Aranacak sözcük")}}" aria-label="{{translate("Aranacak sözcük")}}" aria-describedby="search-button-offcanvas" autocomplete="off" value="{{query_var}}" data-minlength="3" minlength="3" data-msg="{{translate("Lütfen en az 3 karakter giriniz")}}" required>
+                {#<button class="btn-submit btn btn-secondary btn-nova px-5 rounded-5" type="submit" id="search-button-offcanvas">{{translate("Ara")}}</button>#}
+                <button class="btn-submit btn px-3 mt-1" type="submit" id="search-button-offcanvas"><i class="far fa-search fa-2x"></i></button>
+            </div>
+        </form>
+    {% endif %}
+</li>

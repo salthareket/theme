@@ -1,0 +1,223 @@
+{% set woocommerce_enable_myaccount_registration  = function("get_option", "woocommerce_enable_myaccount_registration")=="yes"?true:false %}
+{% set woocommerce_registration_generate_username = function("get_option", "woocommerce_registration_generate_username")=="yes"?true:false %}
+{% set woocommerce_registration_generate_password = function("get_option", "woocommerce_registration_generate_password")=="yes"?true:false %}
+
+{% do action('woocommerce_before_customer_login_form') %}
+
+<div class="container-md my-5">
+    <div class="bg-white rounded-5 shadow-sm">
+
+        <form class="card card-login-signup card-login card-reset form form-validate" id="form-login" autocomplete="off" method="post" {% if woocommerce_enable_myaccount_registration %}data-condition="form-type !== 'signup'"{% endif %}>
+		    <div class="card-header py-4 text-center">
+		    	<h2 class="card-title m-0 text-dark">{{__("Login", "woocommerce")}}</h2>
+		    </div>
+		    <div class="card-body">
+		    	<div class="row justify-content-center">
+		    		<div class="col-lg-8 col-10">
+
+		    			{% do action('woocommerce_login_form_start') %}
+
+					    {% if not post_data.username2 %}
+						<div class="form-group ">
+							<label for="username" class="form-label d-none">E-mail <span class="required">*</span></label>
+							<input type="text" class="form-control form-control-lg border-dark-subtle border rounded-5" name="username" id="username" placeholder="E-mail" autocomplete="username" value="{{post_data.username}}" required/>
+						</div>
+					    {% endif %}
+
+						<div class="form-group ">
+							<label for="password" class="form-label d-none">Password <span class="required">*</span></label>
+							<input class="form-control form-control-lg" type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required/>
+						</div>
+
+						{% do action('woocommerce_login_form') %}
+                        
+                        {% if enable_lost_password or enable_remember_login %}
+						<div class="form-group ">
+							<div class="row align-items-center">
+							    {% if enable_remember_login %}
+								<div class="col">
+									<div class="form-check">
+						                <input type="checkbox" class="form-check-input" name="rememberme" type="checkbox" id="rememberme" value="forever">
+						                <label class="form-check-label" for="rememberme">Remember me</label>
+						            </div>
+								</div>
+								{% endif %}
+								{% if enable_lost_password %}
+								<div class="col">
+							        <div class="woocommerce-LostPassword lost_password text-end">
+										<a href="#" class="btn btn-link btn-forgot-password p-0" data-ajax-method='template_modal' data-template='partials/modals/lost-password' data-size='md'>{{__( 'Lost your password?', 'woocommerce' )}}</a>
+									</div>
+								</div>
+								{% endif %}
+							</div>
+						</div>
+					    {% endif %}
+		    		
+		    		</div>
+		    	</div>
+		    </div>
+		    <div class="card-footer pb-5">
+				<div class="row justify-content-center">
+			     	<div class="col-lg-8">
+			     	    {% if post_data.username %}
+                           <input type="hidden" name="username" value="{{post_data.username}}"/>
+			     	    {% endif %}
+			     	    {{ function("wp_nonce_field", 'woocommerce-login', 'woocommerce-login-nonce' ) }}
+			            <button type="submit" class="btn btn-danger fw-bold btn-lg text-uppercase w-100 woocommerce-form-login__submit" name="login" value="{{__( 'Login', 'woocommerce' )}}">{{__( 'Login', 'woocommerce' )}}</button>
+                        
+                        {% if enable_social_login %}
+			            <div class="seperator-or">OR</div>
+
+			            {% do action('woocommerce_login_form_end') %}
+
+			            {% endif %}
+
+			            {#'[nextend_social_login provider="linkedin"]'|shortcodes}}
+			            {{'[nextend_social_login provider="google"]'|shortcodes#}
+			            
+			            {% if woocommerce_enable_myaccount_registration %}
+			            <a href="#" class="btn-form-type btn btn-outline-dark- btn-link btn-lg fw-bold text-uppercase w-100" value="signup">CREATE A NEW ACCOUNT</a>
+			            {% endif %}
+			        
+			      	</div>
+			    </div>
+		    </div>
+		</form>
+        
+        {% if woocommerce_enable_myaccount_registration %}
+	    <form class="card card-login-signup card-signup card-reset form form-validate d-none" id="form-registraton" autocomplete="off" method="post" {% do action('woocommerce_register_form_tag') %} data-condition="form-type == 'signup'">
+		    <div class="card-header py-4 text-center text-dark">
+				<h2 class="card-title m-0">Create your new account</h2>
+		    </div>
+			<div class="card-body">
+				<div class="row justify-content-center">
+				    <div class="col-lg-8 col-10">
+				    	<div class="row gx-lg-2">
+
+				            {% do action('woocommerce_register_form_start') %}
+
+							{% if not woocommerce_registration_generate_username %}
+
+							<div class="col-12" data-condition="role">
+								<div class="form-group ">
+									<label for="reg_username" class="form-label d-none">
+									     {{__( 'Username', 'woocommerce' )}} <span class="required">*</span>
+									</label>
+									<input type="text" class="form-control form-control-lg" name="username" id="reg_username" placeholder="{{__( 'Username', 'woocommerce' )}}" autocomplete="username" value="{{post_data.username}}" required/>
+								</div>
+							</div>
+
+							{% endif %}
+
+							<div class="col-12" data-condition="role">
+								<div class="form-group ">
+									<label for="reg_email" class="form-label d-none">
+										E-mail <span class="required">*</span>
+									</label>
+									<input type="email" class="form-control form-control-lg" name="email" id="reg_email" placeholder="E-mail" autocomplete="email" value="{{post_data.email}}" data-rule="email" data-remote="user_exist" data-remote-param="email" data-msg="Bu kullanıcı var" required/>
+								</div>
+							</div>
+
+							{% if not woocommerce_registration_generate_password %}
+
+								<div class="col-lg-6" data-condition="role">
+									<div class="form-group ">
+										<label class="form-label d-none" for="reg_password">Password <span class="required">*</span></label>
+										<input type="password" class="form-control form-control-lg" name="password" id="reg_password" placeholder="Password" autocomplete="new-password" required/>
+									</div>
+								</div>
+
+								<div class="col-lg-6" data-condition="role">
+									<div class="form-group ">
+										<label class="form-label d-none" for="reg_password">Password <span class="required">*</span></label>
+										<input type="password" class="form-control form-control-lg" name="password_2" id="reg_password_2" placeholder="Password (again)" data-rule-equalto="#reg_password[name='password']" data-msg="Your passwords should match!" autocomplete="new-password" required/>
+									</div>
+								</div>
+
+							{% else %}
+
+								<div class="col-12 text-center">{{__('Your password will send your e-mail address.', 'woocommerce' )}}</div>
+
+							{% endif %}
+							    
+							{% do action('woocommerce_register_form') %}
+
+							<div class="col-12 mt-5">
+				                <div class="form-group " data-condition="role">
+				                    {#<div class="form-check">
+				                        <input type="checkbox" class="form-check-input" id="newsletter" name="newsletter" value="true">
+				                        <label class="form-check-label" for="newsletter">
+				                            Yes! I'd like to receive Salt's newsletter on travel news & specials.
+				                        </label>
+				                    </div>#}
+				                    <div class="form-check">
+				                        <input type="checkbox" class="form-check-input" id="agreement" name="agreement" value="true" required>
+				                        <label class="form-check-label" for="agreement">
+				                            By clicking "submit" below, I agree to the <a href="#" class="text-primary text-underline" data-ajax-method="page_modal" data-id="terms-conditions">Terms of Use</a> and <a href="#" class="text-primary text-underline" data-ajax-method="page_modal" data-id="privacy-policy">Privacy Policy.</a>
+				                        </label>
+				                    </div>
+				                 </div>
+				            </div>
+
+				        </div>
+                    </div>
+				</div>
+			</div>
+			<div class="card-footer pb-5 text-center">
+			    <div class="row justify-content-center">
+				    <div class="col-lg-8 col-10">
+						{{ function('wp_nonce_field', 'woocommerce-register', 'woocommerce-register-nonce')}}	
+						<button type="submit" class="btn btn-danger rounded-5 w-100 fw-bold" name="register" value="SIGNUP" data-condition="role">{{__('SIGNUP', 'woocommerce' )}}</button>
+                        
+                        {% if enable_social_login %}
+						<div class="seperator-or">OR</div>
+
+						{% do action('woocommerce_register_form_end') %}
+
+					    {% endif %}
+
+						<a href="#" class="btn-form-type btn btn-outline-dark- btn-link text-uppercase rounded-5 w-100 fw-bold" value="login">I already have an account.</a>
+					</div>
+			</div>
+		</form>
+
+		<input type="hidden" name="form-type" value="" />
+	    {% endif %}
+
+    </div>
+</div>
+
+{% do action('woocommerce_after_customer_login_form') %}
+
+<script>
+	window.addEventListener("hashchange", function(){
+		alert(window.location.hash);
+        if(window.location.hash == "#form-registration"){
+	       $("#signup-method-email").prop("checked");
+	    }
+	}, false);
+    $( document ).ready(function() {
+    	if(window.location.hash == "#form-registration"){
+           $("#signup-method-email").prop("checked");
+    	}
+
+    	$(".btn-form-type").on("click", function(e){
+            e.preventDefault();
+            $("input[name='form-type']").val($(this).attr("value")).trigger("change");
+    	})
+
+
+		$("a.btn-social-facebook").on("click", function(e){
+			e.preventDefault();
+			var $form = $(this).closest("form");
+			//if($form.valid()){
+				$form.removeClass("form-changed");
+				$("a.facebook-connect").trigger("focus").trigger("click");
+			//}else{
+				$("input[name='agreement']").removeClass("ignore");
+			//}
+		});
+
+		//btn_forgot_password();
+	});
+</script>

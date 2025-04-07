@@ -1,0 +1,96 @@
+
+
+{% set  page_settings = {
+            full : true,
+            classes : {
+                body : "",
+                main : "",
+                container : "",
+                gap : "",
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "bottom",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+
+
+{% block hero %}
+{% endblock %}
+
+
+{% block sidebar %}
+{% endblock %}
+
+
+{% block content %}
+    <div class="card-container card card-reset {% if page_settings.paging %}ajax-paginate{% endif %}" data-posts_per_page="10" data-order="desc" data-load="scroll" data-session-status="{{action}}" data-action="{{type}}" data-method="sessions">
+        <div class="card-header d-flex px-4 py-3">
+            <h1 class="card-title card-title-md">
+                {{title}} {{action}}
+                <small class="item-total">{{title_sub}}</small>
+            </h1>
+            <div class="action d-flex">
+                <div class="dropdown">
+                    <a class="btn btn-secondary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {% for session_status in session_statuses if session_status.slug == action %}
+                            {{session_status.name}} ({{session_status.count}})
+                        {% endfor %}
+                    </a>
+                    <ul class="dropdown-menu">
+                    {% for session_status in session_statuses if session_status.slug != action %}
+                        <li><a class="dropdown-item btn-loading-page" href="{{base_urls.account}}sessions/{{session_status.slug}}/">{{session_status.name}} ({{session_status.count}})</a></li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% if user.get_role() == "client" %}
+                <a href="{{base_urls.sessions}}create/" class="btn btn-primary ms-3 btn-loading-page">New Session</a>
+                {% endif %}
+            </div>
+        </div>
+        {#<div class="card-header">
+            <div class="btn-group">
+            {% for session_status in session_statuses %}
+               <a href="{{base_urls.account}}sessions/{{session_status.slug}}/" class="btn btn-outline-primary btn-loading-page px-4 rounded-5 {% if session_status.slug == action %}active{% endif %}">{{session_status.name}} ({{session_status.count}})</a>
+            {% endfor %}
+            </div>
+        </div>#}
+        <div class="card-body list-cards"></div>
+        {% if page_settings.paging %}
+        <div class="card-footer justify-content-end">
+            <a href="#" class="btn-next-page btn btn-light btn-extend w-100" data-init="true"><span>Load <span class="item-left"></span> More</span></a>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+
+{% block appendix %}
+    {{'<script>'}}
+        $( document ).ready(function() {
+            {% if not page_settings.paging %}
+            $("#form-search").find("[type='submit']").on("click", function(){
+                $(".list-cards").empty();
+            });
+            $("#form-search").submit();
+            {% endif %}
+        });
+    {{'</script>'}}
+{% endblock %}

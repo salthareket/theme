@@ -1,0 +1,12 @@
+{% if pagination_terms or 
+      (posts.pagination.current < posts.pagination.total and paged < posts.pagination.total and direction == "next" and post_pagination[post_type].type in ["button", "scroll"]) or 
+      (direction == "next" and post_pagination[post_type].type in ["default"]) or
+      (paged > 1 and paged <= posts.pagination.total and direction == "prev" and post_pagination[post_type].type in ["button", "scroll"]) %}
+    <div class="{{container|replace({".":"","#":""})}}-pagination {{direction}} card-footer {% if direction == "next"%}pt-5{% else %}pb-5{% endif %}">
+        {% if pagination_terms %}
+            {% include 'partials/pagination/pagination-terms.twig' with { prefs : pagination_terms, container : container, direction : direction } %}
+        {% else %}  
+            {% include 'partials/pagination/pagination.twig' %}
+        {% endif %}
+    </div>
+{% endif %}

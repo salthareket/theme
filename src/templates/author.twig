@@ -1,0 +1,174 @@
+{% extends "base.twig" %}
+
+{% set  page_settings = {
+            full : true,
+            classes : {
+                body : "",
+                main : "my-5",
+                container : "",
+                gap : "",
+            },
+            offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "bottom",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+
+{% block hero %}
+{% endblock %}
+
+
+{% block sidebar %}
+{% endblock %}
+
+
+{% block content %}
+
+
+	<div class="container-xxl">
+	    <div class="row gy-4">
+			<div class="col-lg-3">
+			    <div class="card-container-solid card card-reset stick-top">
+                	<div id="client-{{author.id}}" class="card-header border-bottom pb-4">
+			     		{% include "user/tease.twig" with { size: "lg", user_item: author, photo_edit : true} %}
+			     		{% if not author.is_online() and author.get_last_seen() %}
+			     	        <div class="text-muted text-center mt-2">
+                                Son giriş {{ author.get_last_seen() }} önce
+			     	        </div>
+			     	    {% elseif author.is_online() %}
+			     	        <div class="text-muted text-center mt-2">
+                                <span class="text-success fw-bold ls-1">KULLANICI ONLINE</span>
+			     	        </div>
+			     	    {% endif %}
+			     	</div>
+			     	<div class="card-body pt-4">
+			     	    <ul class="list-sidebar">
+	                        <li>
+					     		{% set stats = author.get_stats() %}
+				                <div class="list-user-stats list-user-stats-lg">
+				                    <ul class="values list-unstyled d-flex justify-content-around">
+				                    {% for stat in stats %}
+				                        <li>
+				                            {% if stat.link %}
+				                            <a href="{{stat.link}}" {{stat.link_attrs}} title="{{user_item.get_title}} - {{stat.title}}">
+				                            {% endif %}
+				                            <div class="item">
+				                               <i class="fa-light {{stat.icon}}"></i>
+				                               <div class="count count-{{stat.slug}} fs-4 lh-1" data-id="{{stat.id}}">{{ stat.count }}</div>
+				                            </div>
+				                            <div class="title ls-1">{{ stat.title }}</div>
+				                            {% if stat.link %}
+				                            </a>
+				                            {% endif %}
+				                        </li>
+				                    {% endfor %}
+				                    </ul>
+				                </div>
+			                </li>
+
+		                </ul>
+
+	                </div>
+	                <div class="card-footer text-center pt-3">
+                        <a href="#" class="btn btn-success fw-bold ls-1 text-uppercase mt-2 btn-loading-page" title='{{ translate("Düzenle") }}' data-ajax-method='template_modal' data-size='md' data-template='user/modal/add_user' data-user_id="{{author.id}}" data-title='{{ translate("Düzenle") }}'>{{ translate("Düzenle") }}</a>
+			     	</div>
+
+			     </div>
+			</div>
+
+			<div class="col-lg-9">
+
+			    <div id="list-user-cells" class="card-container-solid card-reset card ajax-paginate" data-posts_per_page="20" data-orderby="date" data-order="desc" data-load="scroll" data-user_id="{{author.ID}}" data-action="get" data-ajax-method="cell" data-notfound="session/not-found/not-applied-sessions" data-page="1">
+	                <div class="card-header mb-2 d-flex flex-lg-row flex-column flex-column-reverse text-lg-start text-center">
+	                	<h1 class="card-title">
+	                        {{ author.display_name }} - {{ translate("Hücreler") }} 
+	                        <small class="item-total">{{title_sub}}</small>
+	                	</h1>
+	                	<a href="#" class="btn btn-success btn-sm text-nowrap text-uppercase fw-bold ls-1 ms-lg-auto mb-lg-0 mb-3" data-ajax-method='template_modal' data-size='md' data-template='user/modal/add_cell' data-title='{{ translate("Yeni Hücre") }}' data-user_id="{{author.id}}"><i class="fa-sharp fa-solid fa-bolt"></i> {{ translate("Yeni Hücre") }}</a>
+	                </div>
+	                <div class="card-header mb-2 pt-3">
+	                    {% if cell_types and not cell_type_selected %}
+                            <ddiv class="text-danger text-center">Kullanıcıya ait Hücre Tipi bulunamadı.</ddiv>
+	                    {% else %}
+		                    {% if cell_types %}
+					    		<select class="form-select" name="hucre_tipi_filter" placeholder="Hücre Tipi" autocomplete="off">
+	                            	<option value="">{{translate("Tüm Hücreler")}}</option>
+	                                {% for item in cell_types %}
+										{% if item.children and function("arrayMatch", item.children|pluck("term_id"), cell_type_selected) %}
+											<optgroup label="{{item.name}}">
+											{% for item_sub in item.children  %}
+												{% if item_sub.term_id in cell_type_selected %}
+												<option value="{{item_sub.term_id}}">{{item_sub.name}}</option>
+												{% endif %}
+											{% endfor %}
+											</optgroup>
+										{% else %}
+											{% if item.term_id in cell_type_selected %}
+												<option value="{{item.term_id}}">{{item.name}}</option>
+											{% endif %}
+										{% endif %}
+									{% endfor %}
+	                       		</select>
+	                        {% else %}
+	                            <div class="text-danger text-center">Sistemde <strong>Hücre Tipi</strong> kaydı bulunamadı, lütfen ekleyin.</div>
+	                        {% endif %}
+                        {% endif %}
+                    </div>
+	               	<div class="card-body pt-3">
+	                	<table class="table-cells table table-striped table-rounded table-responsive">
+					   	<tbody class="list-cards"></tbody>
+					   	</table>
+	               	</div>
+	               	<div class="card-footer text-center p-0">
+					    <a href="#" class="btn-next-page btn btn-outline-secondary position-relative text-uppercase fw-bold" data-init="true">
+					    	<span class="text">Load <span class="item-left"></span> More</span>
+					    </a>
+			        </div>
+	             </div>
+
+	        </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+
+
+{% block appendix %}
+	<script>
+	$(document).ready(function() {
+		
+	    $("select[name='hucre_tipi_filter']").on("change", function(){
+	    	var list_user_cells = $("#list-user-cells");
+			var value = $(this).val();
+			if(!IsBlank(value)){
+				list_user_cells
+				.attr("data-taxonomy", "hucre-tipi")
+				.attr("data-terms", JSON.stringify([value]));
+			}else{
+				list_user_cells
+				.removeAttr("data-taxonomy")
+				.removeAttr("data-terms")
+			}
+			ajax_paginate(list_user_cells);
+		});
+	});
+	</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+		<div class="{{vars.class}} {% if not vars.slider %}card-slider-posts-columns{% endif %} card-slider-posts-vr size-{{vars.size}} card card-reset">
+			{% if vars.title or vars.description or vars.url %}
+			<div class="card-header p-0 pb-4 {% if vars.size == 'sm' or (vars.url and vars.size=='sm') %}align-left header-sm{% endif %}">
+				<h3 class="card-title fs-4">
+					{% if vars.title  %}
+					   {% if vars.url %}
+                          <a href="{{vars.url}}">
+					   {% endif %}
+					   {{vars.title}}
+					   {% if vars.url %}
+					   	  </a>
+					   {% endif %}
+				    {% endif %}
+				    {% if vars.description %}
+					<small class="card-text">
+                        {{vars.description}}
+					</small>
+					{% endif %}
+				</h3>
+				{% if vars.url and vars.size=='sm' %}
+				<div class="action">
+                    <a href="{{vars.url}}" class="btn-view-all btn btn-warning btn-extend">{{translate('VIEW ALL')}}</a>
+				</div>
+				{% endif %}
+			</div>
+		    {% endif %}
+			<div id="{{vars.id}}" class="card-body {% if vars.slider %}loading{% endif %}">
+
+			    {% if vars.container %}
+                <div class="{{vars.container}}">
+			    {% endif %}
+
+				{% if vars.posts and not vars.ajax %}
+					{% include 'partials/sliders/slider-posts-vr-ajax.twig' with { vars : vars } %}
+				{% else %}
+				    {% if vars.ajax %}
+				    	<script>
+				    	    $( document ).ready(function() {
+				    	    	ajax_hooks["{{vars.ajax.method}}"].init({{vars|json_encode|raw}});
+				    	    });
+				    	</script>
+				    {% else %}
+				        not found
+				    {% endif %}
+				{% endif %}
+
+				{% if vars.container %}
+                </div>
+			    {% endif %}
+			</div>
+			{% if vars.slider or (vars.url and vars.button) %}
+			<div class="card-footer pb-5">
+				{% if vars.url and vars.size != 'sm' and vars.button %}
+                    <a href="{{vars.url}}" class="btn-view-all btn btn-warning btn-md btn-extended">{{translate('VIEW ALL')}}</a>
+				{% endif %}
+		    </div>
+		    {% endif %}
+		</div>

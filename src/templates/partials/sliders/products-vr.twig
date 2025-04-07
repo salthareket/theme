@@ -1,0 +1,51 @@
+
+
+
+
+<section class="section-home {{class}}">
+	<div class="container{% if container %}-{{container}}{% endif %}">
+		<div class="card card-products-vr">
+			{% if title or description or url %}
+			<div class="card-header {% if size == 'sm'or url %}align-left header-sm{% endif %}">
+				<h3 class="card-title">
+					{% if title  %}
+					{{title}}
+				    {% endif %}
+				    {% if description %}
+					<small class="card-description">
+                        {{description}}
+					</small>
+					{% endif %}
+				</h3>
+				{% if url %}
+				<div class="action">
+                    <a href="{{url}}" class="btn-view-all btn btn-orange btn-sm btn-extend">{{translate('TÜMÜ')}}</a>
+				</div>
+				{% endif %}
+			</div>
+		    {% endif %}
+			<div class="card-body loading">
+
+				<div class="card-products-slider swiper-container fade" data-breakpoints='{{breakpoints}}'>
+					<div class="swiper-wrapper">
+                        {% for post in posts %}
+						<div class="swiper-slide">
+							 {% include 'woo/tease-product.twig' with { post : post, class : class~"-item" } %}
+						</div>
+						{% endfor %}
+				    </div>
+				</div>
+				<a href="#" class="swiper-button-prev"></a>
+				<a href="#" class="swiper-button-next"></a>
+
+			</div>
+			<div class="card-footer">
+				<div class="swiper-pagination"></div>
+				{% if url %}
+                    <a href="{{url}}" class="btn-view-all btn btn-orange btn-sm btn-extend">{{translate('TÜM ÜRÜNLER')}}</a>
+				{% endif %}
+		    </div>
+
+		</div>
+	</div>
+</section>

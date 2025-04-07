@@ -1,0 +1,98 @@
+<div class="container-sm">
+
+    {% set activation_type = membership_activation_type %}
+    {% if user.activation_type and user.activation_type != activation_type %}
+       {% set activation_type = user.activation_type %}
+    {% endif %}
+
+    {% if activation_type == "email" %}
+        <div class="text-center">
+            <i class="fa-light fa-user-lock opacity-25 fa-5x"></i>
+            <h4 class="title mt-3 mb-0">Your account is not activated!</h4>
+            <p>An email has been sent to your email address <b>({{user.user_email}})</b> containing an activation link. Please click on the link to activate your account.<br><br>
+                If you do not click the link your account will remain inactive and you will not receive further emails. If you do not receive the email within a few minutes, please check your spam folder.
+            </p>
+            <a href="#" class="btn btn-primary px-5 btn-lg text-uppercase fw-bold mt-4" data-ajax-method="send_activation" data-id="{{user.id}}">Resend Activaton Code</a>
+            <p class="pt-4">If you have a problem to getting email, please try <a href="#" class="btn-link fw-bold" data-ajax-method="change_activation_method" data-user_id="{{user.id}}" data-activation_method="sms">activation with OTP.</a></p>
+        </div>
+
+    {% elseif activation_type == "sms" %}
+
+        {% if user.get_phone() is empty or user.get_title() is empty or user.billing_country is empty or user.billing_state is empty %}
+           
+           <form class="form form-validate" id="form-save-sms-requirements" method="post" data-ajax-method="update_profile" autocomplete="off">
+               <div class="card card-reset text-center">
+                    <div class="card-header">
+                        <i class="fa-light fa-message-sms opacity-25 fa-5x"></i>
+                        <h4 class="title fs-4 mt-3 mb-0">Please enter your details before send OTP</h4>
+                    </div>
+                    <div class="card-body py-4">
+                        <div class="row">
+                        {% include "partials/modals/fields-localization.twig" %}
+                        </div>
+                    </div>
+                    <div class="card-footer text-center">
+                        <input type="hidden" name="role" value="{{user.get_role()}}"/>
+                        <input type="hidden" name="action" value="save_sms_requirements"/>
+                        <input type="hidden" name="refresh" value="true"/>
+                        <button type="submit" class="btn btn-submit btn-secondary btn-lg fw-bold text-uppercase btn-fa-angle-right btn-fa-end">{{translate("Next")}}</button>
+                    </div>
+                </div>
+            </form>
+
+            <script>
+            $( document ).ready(function() {
+                $("select[name='country']").on("change", function(){
+                    var country = $(this).val();
+                    if(!IsBlank(country)){
+                        var $phone_code = $(this).find("option:selected").attr("data-phonecode");
+                        $("input[name='phone_code']").val($phone_code).trigger("change");
+                        $(".phone-code").text($phone_code);
+
+                        var $states_count = parseInt($(this).find("option:selected").attr("data-states"));
+                        var $states_view = true;
+                        if($states_count == 0){
+                           $states_view = false;
+                        }
+                        $("input[name='states_view']").val($states_view).trigger("change");
+                        
+                    }
+                });
+                if(IsBlank($("input[name='phone_code']").val())){
+                   $("select[name='country']").trigger("change");
+                }
+            });
+            </script>
+
+        {% else %}
+
+            <form class="form form-validate" id="form-otp" method="post" data-ajax-method="verify_otp" autocomplete="off">
+                <div class="card card-reset text-center">
+                    <div class="card-header">
+                        <i class="fa-light fa-message-sms opacity-25 fa-5x"></i>
+                        <h4 class="title fs-4 mt-3 mb-0">Please enter the one time password<br>to verify your account</h4>
+                        <p>
+                             A code has been sent to <strong class="text-secondary">{{user.get_phone|masked_text(4)}}</strong>
+                        </p>
+                    </div>
+                    <div class="card-body pb-4 pt-3">
+                        <div class="countdown text-danger fw-bold" data-event-end="{{user.get_local_date(user.otp_expiry,'GMT', user.get_timezone)}}" data-event-completed="Code expired."></div>
+                        <div class="form-group text-center mb-2 mt-3">
+                            <input type="text" class="form-control fs-1 input-lg rounded-5 text-center d-inline-block" name="otp_code" minlength="6" maxlength="6" number="true" autocomplete="off" style="letter-spacing:20px;max-width:320px;" required />
+                        </div>
+                    </div>
+                    <div class="card-footer text-center">
+                        <input type="hidden" name="otp_id" value="{{user.otp_id}}"/>
+                        <button type="submit" class="btn btn-submit btn-secondary btn-lg fw-bold text-uppercase">{{translate("verify code")}}</button>
+                    </div>
+                    <div class="card-footer text-center pt-4">
+                        <p>Didn't get the code <a href="#" class="btn-link fw-bold" data-ajax-method="resend_otp" data-user_id="{{user.id}}" data-otp_id="{{user.otp_id}}">Resend</a></p>
+                        <p>If you have a problem to getting OTP SMS messages, please try <a href="#" class="btn-link fw-bold" data-ajax-method="change_activation_method" data-user_id="{{user.id}}" data-activation_method="email">activation with email.</a></p>
+                    </div>
+                </div>
+            </form>
+
+        {% endif %}
+
+    {% endif %}
+</div>

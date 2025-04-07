@@ -1,0 +1,50 @@
+{% if data %}
+   {% set vars = data %}
+{% endif %}
+
+{% if vars.posts %}
+
+	{% if vars.slider %}
+	   <div class="swiper-slider swiper fade" data-slider-breakpoints='{{vars.breakpoints|json_encode|raw}}' data-slider-gaps='{{vars.gaps|json_encode|raw}}' data-slider-pagination="{{vars.slider.pagination}}" data-slider-pagination-visible="{{vars.slider.pagination_visible}}" data-slider-effect="{{vars.slider.effect}}" data-slider-delay="{{vars.slider.delay}}" data-slider-autoplay="{{vars.slider.autoplay}}" data-slider-loop="{{vars.slider.loop}}" data-slider-pagination-thumbs="false">
+	        <div class="swiper-wrapper">
+	        {% for post_item in vars.posts %}
+	            <div class="swiper-slide">
+	            	{% if vars.item %}
+		            	{% set item_vars = { post : post_item }|merge(vars.item) %}
+		         	{% else %}
+	                  {% set item_vars = { post : post_item } %}
+		         	{% endif %}
+	               {% include vars.template with item_vars  %}
+	            </div>
+	        {% endfor %}
+	        {% if vars.more %}
+	            <div class="swiper-slide">
+	                {% include more with { link : vars.url, title : vars.title, target : "_blank" } %}
+	            </div>
+	        {% endif %}
+	        </div>
+	    </div>
+	    {#<div class="swiper-button-prev"></div>
+        <div class="swiper-button-next"></div>#}
+	{% else %}
+	    {% set row_class = function('get_bs_grid_gap', vars.gaps) %}
+	    {% set col_class = function('get_bs_grid', vars.breakpoints) %}
+	    <div class="row {{row_class}} row-margin">
+	        {% for post_item in vars.posts %}
+	        <div class="{{col_class}}">
+	            {% if vars.item %}
+	            	{% set item_vars = { post : post_item }|merge(vars.item) %}
+	         	{% else %}
+                  {% set item_vars = { post : post_item } %}
+	         	{% endif %}
+	            {% include vars.template with item_vars  %}
+	        </div>
+	        {% endfor %}
+	    </div>
+	{% endif %}
+
+{% else %}
+
+Not found
+
+{% endif %}

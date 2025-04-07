@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="no-js" {{site.language_attributes}} data-bs-theme="{% if bs_theme == '' %}light{% else %}{{bs_theme}}{% endif %}">
+<head>
+    <meta charset="{{site.charset}}" />
+    <title>   
+        {% if wp_title %}
+            {% if site.name in wp_title ~ " " %}
+                {{ wp_title }}
+            {% else %}
+                {{ wp_title }} - {{ site.name }}
+            {% endif %}
+        {% else %}
+            {{ site.name }}
+        {% endif %}
+    </title>
+    {#<link rel="stylesheet" href="{{site.theme.link}}/style.css" type="text/css" media="screen" />#}
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {#<link rel="pingback" href="{{site.pingback_url}}" />#}
+    <meta name="pinterest" content="nopin" />
+    <meta name="google" value="notranslate">
+    {% if site_config %}
+    <script>
+       ajax_objs = {};
+    </script>
+    {% endif %}
+    {{function('wp_head')}}

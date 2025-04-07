@@ -1,0 +1,42 @@
+
+
+{% set chatUser = TimberUser(data.id, "User") %}
+{% if chatUser.id > 0 %}
+{% set chat_user_status = function("Salt::user_is_online", data.id) %}
+<form class="form form-validate m-0" autocomplete="off" method="post" data-ajax-method="send_profile_message">
+	<div class="modal-header border-bottom">
+		<div class="d-flex align-items-center">
+			<div class="position-relative">
+				<img src="{{chatUser.get_avatar_url(40)}}" class="rounded-circle me-1" alt="{{chatUser.get_title}}" width="40" height="40">
+			</div>
+			<div class="flex-grow-1 ps-3 lh-1">
+				<strong>
+					{{chatUser.get_title}}
+					{% if chat_user_status %}
+					    <small class="text-success text-sm d-block small fw-normal mt-1">online</small>
+				    {% else %}
+					    <small class="text-danger text-sm d-block small fw-normal mt-1">offline</small>
+				    {% endif %}
+				</strong>
+			</div>
+		</div>
+		<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="position:absolute;right:30px;"></button>
+	</div>
+	<div class="modal-body">
+		<textarea name="message" class="form-control" rows="6" required></textarea>
+	</div>
+	<div class="modal-footer justify-content-center py-3">
+		<input type="hidden" name="static" value="{{data.static}}"/>
+		<input type="hidden" name="id" value="{{data.id}}"/>
+		<input type="hidden" name="post_id" value="{{data.post_id}}"/>
+		<button type="submit" class="btn-submit btn btn-primary btn-extended">Send</button>
+	</div>
+</form>
+{% else %}
+    <div class="modal-header text-center d-block fw-bold">
+		User not found...
+	</div>
+	<div class="modal-footer justify-content-center py-3">
+		<button type="button" class="btn-submit btn btn-primary btn-extended" data-bs-dismiss="modal">Close</button>
+	</div>
+{% endif %}

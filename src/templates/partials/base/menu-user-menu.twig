@@ -1,0 +1,66 @@
+{% if enable_membership %}
+    {% if menu_type == "dropdown" %}
+       {% set toggle = "dropdown" %}
+       {% set class =  class ~ " dropdown dropdown-notifications dropdown-form" %}
+       {% set target = "" %}
+    {% else %}
+       {% set toggle = "offcanvas" %}
+       {% set class = class ~ "" %}
+       {% set target = "offcanvasUserMenu" %}
+    {% endif %}
+
+    <li class="nav-item {{class}}" data-type="account">
+        <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
+            {% if avatar %}
+                {{avatar}}
+            {% else %}
+                {% if not user.logged and enable_registration %}
+                <div class="btn btn-outline-dark">SIGNUP</div>
+                {% endif %}
+            {% endif %}
+        </a>
+
+        {% if menu_type == "dropdown" %}
+        <div class="dropdown-menu">
+            <div class="dropdown-header">
+                <div class="title">
+                    {% if user.logged %}
+                        {{user.get_title()}}
+                    {% else %}
+                        {{'YOUR ACCOUNT'|trans}}
+                    {% endif %}
+                </div>
+                <div class="action">
+                    <a href="#" data-dismiss="dropdown">{{'Close'|trans}}</a>
+                </div>
+            </div>
+            <div class="dropdown-container has-dropdown-item">
+                <div class="dropdown-body {% if not user.logged %}content-centered{% endif %}">
+                    {% if user.logged %}
+                        {% if user.menu %}
+                            {% for item in user.menu %}
+                                <a class="dropdown-item" href="{{item.url}}">{{item.title}}</a>
+                            {% endfor %}
+                        {% endif %}
+                        <a class="dropdown-item" href="{{function('get_account_endpoint_url', 'customer-logout')}}">Logout</a>
+                    {% else %}
+                        <div class="content-block">
+                            <i class="icon-account"></i>
+                            {{'Not logged'|trans}}
+                        </div>
+                    {% endif %}
+                </div>
+                {% if not user.logged and enable_registration %}
+                    {% set login_url = function('get_login_url') %}
+                    <div class="dropdown-footer no-border">
+                        <div class="btn-group input-group-gap">
+                            <a href="{{login_url}}" class="btn btn-primary">{{'SIGNUP'|trans}}</a>
+                            <a href="{{login_url}}" class="btn btn-primary">{{'LOGIN'|trans}}</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </li>
+{% endif %}

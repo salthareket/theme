@@ -1,0 +1,62 @@
+{% set tax_query = [
+	{
+		'taxonomy' : 'blok',
+		'field' : 'term_id',
+		'terms' : data.blok,
+		}
+] %}
+{% set args = {
+	'post_type' : 'daire',
+	'posts_per_page' : '-1',
+	'tax_query' : tax_query
+} %}
+{% set daireler = get_posts(args) %}
+
+{% if daireler %}
+	{% set daireler_sorted = [] %}
+	{% for daire in daireler %}
+			{% set numbers = daire.meta("no") %}
+			{% set oda = daire.terms("oda")[0].name %}
+			{% set daire_tipi = daire.terms("daire-tipi")[0].name %}
+			{% set yatay_konum = daire.terms("yatay-konum")[0].name %}
+			{% set dikey_konum = daire.terms("dikey-konum")[0].name %}
+			{% set areas = daire.meta("areas") %}
+			{% if numbers|length > 1 %}
+				{% for number in numbers %}
+					{% set daireler_sorted = daireler_sorted|merge([{no: number, oda : oda, daire_tipi : daire_tipi, yatay_konum : yatay_konum, dikey_konum : dikey_konum, net: areas.net_area, brut: areas.gross_area , genel_brut : areas.total_gross_area }]) %}
+				{% endfor %}
+			{% else %}
+				 {% set daireler_sorted = daireler_sorted|merge([{no: numbers[0], oda : oda, daire_tipi : daire_tipi, yatay_konum : yatay_konum, dikey_konum : dikey_konum, net: areas.net_area, brut: areas.gross_area , genel_brut : areas.total_gross_area }]) %}
+			{% endif %}
+	{% endfor %}
+	{% set daireler_sorted =  daireler_sorted|sort((a, b) => a.no <=> b.no) %}
+
+	{% if daireler_sorted %}
+	<div class="card card-module table-responsive p-0 m-0 border-0 rounded-0">
+		<table class="table table-sm table-striped table-hover table-module">
+			<thead>
+				<tr>
+					<th>No</th>
+					<th>Oda</th>
+					<th>Tip</th>
+					<th>Net</th>
+					<th>Brüt</th>
+					<th>Genel Brüt</th>
+				</tr>
+			</thead>
+			<tbody>
+			{% for daire in daireler_sorted %}
+				<tr>
+					<td>{{daire.no}}</td>
+					<td>{{daire.oda}}</td>
+					<td>{{daire.daire_tipi}} {{daire.yatay_konum}} {{daire.dikey_konum}}</td>
+					<td>{{daire.net}}m<sup>2</sup></td>
+					<td>{{daire.brut}}m<sup>2</sup></td>
+					<td>{{daire.genel_brut}}m<sup>2</sup></td>
+				</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	{% endif %}
+{% endif %}

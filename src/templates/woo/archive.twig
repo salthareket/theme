@@ -1,0 +1,105 @@
+{% extends 'base.twig' %}
+
+{% set page_settings_default = {
+                full : true,
+                classes : {
+                    body : "",
+                    main : "pb-5",
+                    container : "",
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : ""
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block before_container %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+        {{ block("before_container", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+{% block content %}
+
+    {% do action('woocommerce_before_main_content') %}
+
+    <div class="card card-reset container">
+        {% if enable_filters %}
+            {% set filter_labels = '[yith_wcan_active_filters_labels]'|shortcodes|spaceless %}
+            {% set filter_reset = '[yith_wcan_reset_button]'|shortcodes|spaceless %}
+            {% set filter_toggler = page_settings.add_offcanvas and page_settings.offcanvas.filter_preset and page_settings.offcanvas.layout == "default" and page_settings.offcanvas.individual %}
+            {% if filter_labels or filter_toggler %}
+            <div class="card-header">
+                <div class="row">
+                    {% if filter_labels != "" %}
+                    <div class="col">
+                        {{filter_labels}}
+                        {{filter_reset}}
+                    </div>
+                    {% endif %}
+                    {% if filter_toggler %}
+                    <div class="col">
+                       {{ offcanvas_toggler("offcanvas-" ~ page_settings.offcanvas.id, "btn btn-primary", page_settings.offcanvas.title, "") }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".products", post_type : "product", direction : "prev"} %}
+
+        <div class="card-body">
+            {% do action('woocommerce_before_shop_loop') %}
+                {{ fn("woocommerce_content") }}
+            {% do action('woocommerce_after_shop_loop') %}
+        </div>
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".products", post_type : "product", direction : "next"} %}
+ 
+    </div>
+
+    {% do action('woocommerce_after_main_content') %}
+
+{% endblock  %}

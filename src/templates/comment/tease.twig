@@ -1,0 +1,27 @@
+<div class="tease-review card card-reset">
+    <div class="card-header d-flex align-items-center">
+        {% set user_item = TimberUser(post.user_id, "User") %}
+        {% include "user/tease.twig" with { size: "xs", user_item : user_item, user_title_custom : session_title, user_description: post.comment_date|date("M d Y H:i"), application: false, review : post } %}
+        <div class="action ms-auto">
+           <div class="star-rating-readonly-ui star-rating-readonly-sm d-inline-block" data-value="{{post.meta("rating")}}"></div>
+        </div>
+    </div>
+    <div class="card-body pt-3">
+        {# if user.id == review.comment_profile or user.id == review.user_id %}
+            <h5 class="card-title">{{ review.comment_title }}</h5>
+        {% endif #}
+        {{ post.comment_content }}
+    </div>
+    {{ post.meta("comment_profile")  }}  - {{ user.ID }}
+    {% if post.meta("comment_profile") == user.ID and not disable_review_approve %}
+    <div class="card-footer text-end">
+        <a href="#" class="btn btn-{% if post.comment_approved %}danger{% else %}success{% endif %} btn-sm text-uppercase fw-bold" data-ajax-method="review_approve" data-id="{{post.comment_ID}}">
+            {% if post.comment_approved %}
+                UNPUBLISH
+            {% else %}
+                APPROVE
+            {% endif %}
+        </a>
+    </div>
+    {% endif %}
+</div>

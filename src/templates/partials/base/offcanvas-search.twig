@@ -1,0 +1,58 @@
+    {% set offcanvas = item.offcanvas_settings %}
+    {% set background = offcanvas.background_settings %}
+
+    {% set style = "" %}
+    {% if background.color %}
+       {% set style = style  ~ "background-color:"  ~  background.color ~ ";" %}
+    {% endif %}
+    {% if background.image and not background.image_filter and not background.image_blend_mode %}
+       {% set style = style  ~ "background-image:url("  ~  background.image ~ ");background-size:" ~ background.size ~ ";background-repeat:"  ~ background.repeat ~ ";" ~ "background-position:" ~ background.position_hr ~ " " ~ background.position_vr ~ ";" %}
+    {% endif %}
+
+    {% set image_style = "" %}
+    {% if background.image and (background.image_filter or background.image_blend_mode) %}
+      {% if background.image_filter %}
+         {% set image_style = image_style ~ "filter:" ~ background.image_filter ~ "(" ~ background.image_filter_amount|unit_value ~ ");" %}
+      {% endif %}
+      {% if background.image_blend_mode %}
+         {% set image_style = image_style ~ "mix-blend-mode:" ~ background.image_blend_mode ~ ";" %}
+      {% endif %}
+      {% if background.repeat != "no-repeat" %}
+         {% set image_style = image_style  ~ "background-image:url("  ~  background.image ~ ");background-size:" ~ background.size ~ ";background-repeat:"  ~ background.repeat ~ ";" ~ "background-position:" ~ background.position_hr ~ " " ~ background.position_vr ~ ";" %}
+      {% endif %}
+    {% endif %}
+
+    <div class="offcanvas offcanvas-search offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen {% if header_options.affix or header_options.fixed == "bottom-start" %}pt-header{% endif %}{% endif %}" tabindex="-1" id="offcanvasSearch" aria-labelledby="offcanvasSearchLabel" style="{{style}}">
+
+        {% if background.image and (background.image_filter or background.image_blend_mode) %}
+             <div class="bg-cover position-absolute-fill" {% if background.repeat != "no-repeat" %}style="{{image_style}}"{% endif %}>
+                {% if background.repeat == "no-repeat" %}
+                   <img src="{{background.image}}" class="object-fit-{{background.size}} w-100 h-100" alt="{{translate("Arama Yap")}}" style="{{image_style}}" />
+                {% endif %}
+             </div>
+        {% endif %}
+
+        {#<div class="offcanvas-header {% if offcanvas.fullscreen and offcanvas.container and "header" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-3{% endif %}">
+                <h5 class="offcanvas-title text-light" id="offcanvasSearchLabel">{{translate("Ara")}}</h5>
+                <button type="button" class="btn-close text-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>#}
+
+        <div class="offcanvas-body align-items-center d-flex {% if offcanvas.fullscreen and offcanvas.container and "body" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %} z-1">
+                    <div class="container-md text-center">
+                        {% if function("class_exists", 'DGWT_WC_Ajax_Search' ) %}
+                            {{ '[fibosearch]'|shortcodes }}
+                        {% endif %}
+                        <form class="form-search form form-validate mt-5 form-group" action="{{site.url}}/search/" role="form" method="post">
+                            {% set search_term = "" %}
+                            {% set query_var = function('get_query_var','s') %}
+                            <div class="input-group input-group-lg bg-white rounded-5 overflow-hidden p-2">
+                                <input type="text" class="form-control border-0" name="s" placeholder="{{translate("Aranacak sözcük")}}" aria-label="{{translate("Aranacak sözcük")}}" aria-describedby="search-button-offcanvas" autocomplete="off" value="{{query_var}}" data-minlength="3" minlength="3" data-msg="{{translate("Lütfen en az 3 karakter giriniz")}}" required>
+                                {#<button class="btn-submit btn btn-secondary btn-nova px-5 rounded-5" type="submit" id="search-button-offcanvas">{{translate("Ara")}}</button>#}
+                                <button class="btn-submit btn px-3 mt-1" type="submit" id="search-button-offcanvas"><i class="far fa-search fa-2x"></i></button>
+                            </div>
+                        </form>
+                        <button type="button" class="btn btn-outline-light btn-nova px-5 mt-5" data-bs-dismiss="offcanvas" aria-label="{{translate("Kapat")}}">{{translate("Kapat")}}</button>
+                    </div>
+        </div>
+
+    </div>

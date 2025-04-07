@@ -1,0 +1,91 @@
+{% if function("function_exists", 'timber_set_product') %}
+{{ function('timber_set_product', post) }}
+{% endif %}
+{# set post =  post.product() #}
+
+{% set product_type = post.get_product_type() %}
+
+{% set images = [] %}
+
+{% if product_type == "simple" %}
+    {% set images = images|merge([post.thumbnail.src]) %}
+    {% set images = images|merge(function("woo_get_product_gallery", post.id)) %}
+{% endif %}
+
+{% if product_type == "variable" %}
+    {% set images = function("woo_get_product_variations_thumbnails", post.id, 'color', 'full') %}
+{% endif %}
+
+{% if product_type == "variation" %}
+    {% set images = function("woo_get_product_variation_thumbnails", post.post_parent, 'color', post.attribute_pa_color, 'full') %}
+    {% if not images %}
+       {% set images = function("woo_get_product_variation_thumbnails", post.post_parent, 'beden', post.attribute_pa_beden, 'full') %}
+    {% endif %}
+{% endif %}
+
+{% if not images %}
+   {% set images = function("woo_get_product_gallery", post.id) %}
+{% endif %}
+
+{% if not images %}
+    {% set images = post.thumbnail.src('medium_large') %}
+    {% if images %}
+       {% set images = []|merge([ images ]) %}
+    {% endif %}
+{% endif %}
+
+{% if not images %}
+    {% set images = []|merge([ product_default_image ]) %}
+{% endif %}
+
+{% do action( 'woocommerce_before_shop_loop_item' ) %}
+<div class="mim card-product-tease product-{{product_type}} {{class}} card card-reset" itemscope="" itemtype="https://schema.org/Product">
+    <div class="card-body">
+    {{ product_type }}
+        {#function('woo_product_badges', post, free_shipping_min_amount, "discount,shipping"#}
+        <link itemprop="image" href="{{post.thumbnail.src}}">
+        <a href="{{post.get_variation_url}}" class="btn-loading-page" title="{{ post.title }}" itemprop="url">
+            {#<div class="img-placeholder loading-hide">
+                <img data-src="{{post.thumbnail.src('medium_large')}}" class="img-fluid lazy" alt="{{post.title}}"/>
+            </div>#}
+            <div class="swiper-slider swiper" data-view="{{product_settings.image}}">
+                              <div class="swiper-wrapper">
+                                  {% for image in images %}
+                                      <div class="swiper-slide"> 
+                                          <img class="lazy img-fluid"
+                                                src="{{post.thumbnail.src('thumbnail')}}"
+                                                data-srcset="{{ image|resize(image_size_x1)|retina(1) }} 1x,
+                                                             {{ image|resize(image_size_x2)|retina(2) }} 2x"
+                                                             alt="{{post.title}}" />
+                                      </div>
+                                  {% endfor %}
+                              </div>
+                              {% if images|length > 1 and product_settings.image == "arrow" %}
+                                 <div class="swiper-button-prev"></div>
+                                 <div class="swiper-button-next"></div>
+                              {% endif %}
+                              {% if images|length > 1 and (product_settings.image == "dots" or product_settings.image == "slide") %}
+                                 <div class="swiper-pagination"></div>
+                              {% endif %}
+                          </div>
+        </a>
+    </div>
+    <div class="card-footer">
+        <meta itemprop="priceCurrency" content="{{function('get_woocommerce_currency')}}">
+        <meta itemprop="availability" content="In Stock">
+        <meta itemprop="itemCondition" itemtype="https://schema.org/OfferItemCondition" content="https://schema.org/NewCondition">
+       <div class="category">{{category.name}}</div> {##}
+        {% do action('woocommerce_before_shop_loop_item_title') %}
+        <h4 class="card-title" itemptop="name" data-mh="product-title">
+            <a href="{{post.link}}" class="text-truncate btn-loading-page" title="{{ post.title }}" itemprop="url">
+                {{ post.title }}
+            </a>
+        </h4>
+        {% do action( 'woocommerce_after_shop_loop_item_title' ) %}
+        <div class="action">
+            {% if enable_favorites and post.type in favorite_types %}
+                <a href="#" class="btn-favorite {% if function('in_array', post.id, favorites) %}active{% endif %}" data-type="{{product_page_type}}" data-id="{{post.id}}"></a>
+            {% endif %}
+        </div>
+    </div>
+</div>

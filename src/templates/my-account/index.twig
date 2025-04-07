@@ -1,0 +1,167 @@
+{% extends "base.twig" %}
+
+{% set page_settings_full = true %}
+{% set page_settings_classes_main = "py-5" %}
+{% set page_settings_classes_container = "container-xxl" %}
+
+{% if user.logged %}
+    {% if function('getUrlEndpoint') not in ["profile", "expertise", "schedule", "financials", "notifications", "messages", "security"] %}
+        {% if (not user.get_status() or not user.profile_completed()) %}
+           {% set page_settings_classes_main = "d-flex flex-column align-items-center justify-content-center" %}
+        {% endif %}
+    {% endif %}
+
+{% else %}
+
+    {% if url_query_vars["activation-password"] %}
+        {% set page_settings_classes_main = "d-flex flex-column align-items-center justify-content-center" %}
+    {% endif %}
+
+{% endif %}
+
+{% set page_settings = {
+            full : page_settings_full,
+            classes : {
+                body : "",
+                main : page_settings_classes_main,
+                container : page_settings_classes_container,
+                gap : "",
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "bottom",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+
+{% set pageName = "my-account" %}
+
+{% block offcanvas %}
+{% endblock %}
+
+
+{% block hero %}
+   {# include 'my-account/hero-profile.twig' with { user : user } #}
+{% endblock %}
+
+{% block content %}
+
+    {% if user.logged %}
+
+        {% if user.get_role == "default" %}
+
+            <div class="container-sm">
+                <form class="form form-validate" id="form-update-profile" method="post" enctype="multipart/form-data" data-ajax-method="update_profile" autocomplete="off">
+                    <div class="card-container-solid card card-reset stick-top">
+                        <div class="card-header border-bottom pb-4">
+                            {% include "user/tease.twig" with { size: "lg", user_item: user} %}
+                        </div>
+                        <div class="card-body pt-4">
+                            <div class="form-group  text-center text-white">
+                                <label class="form-label">I'll create my account</label>
+                                {% do action('woocommerce_register_form_start') %} {# add role radio buttoons #}
+                            </div>
+
+                            {% if (enable_membership_activation and membership_activation_type == "sms") or (enable_sms_notifications and not enable_membership_activation) or (enable_sms_notifications and membership_activation_type == "email") %}
+                            <div class="row gy-3 my-4" data-condition="role">
+                                {% do action('woocommerce_register_form') %}  {# add country, city, phone #}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer d-flex justify-content-end pt-4" data-condition="role">
+                            <input autocomplete="false" name="hidden" type="text" style="display:none;">
+                            <input type="hidden" name="action" value="set_role"/>
+                            <button type="submit" class="btn-submit btn btn-secondary btn-fa-angle-right btn-fa-end fw-bold btn-lg px-5 position-relative btn-loading-page">NEXT</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        {% else %}
+
+            <div class="container-xxl">
+                <div class="row">
+                
+                    {% if type in ["profile", "expertise", "schedule", "integration", "security"] and type != "not-activated" %}
+                    <div class="col-lg-4">
+                        <div class="card-container-solid card card-reset stick-top">
+                            <div class="card-header border-bottom pb-4">
+                                {% include "user/tease.twig" with { size: "lg", user_item: user, show_rating: true, show_location: true, photo_edit: true, profile_link: true} %}
+                            </div>
+                            <div class="card-body pt-4">
+                                <ul class="nav-vr nav flex-column">
+                                {% for item in user.menu %}
+                                    <li class="nav-item {% if "is-active" in item.class %}active{% endif %}">
+                                        <a href="{{item.url}}" class="nav-link btn-fa-angle-right btn-fa-end px-0 btn-loading-page">
+                                            {{ item.title }}
+                                            {% if (item.action in ["profile", "expertise", "schedule", "integration"] and not user.profile_completion[item.action].success) %}
+                                              <i class="icon fa fa-exclamation-triangle text-danger"></i>
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                         </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col">
+                        {{post.content}}
+                    </div>
+                </div>
+            </div>
+
+        {% endif %}
+
+    {% else %}
+
+        {{post.content}}
+
+    {% endif %}
+
+{% endblock %}
+
+{% block appendix %}
+    {% if enable_membership_activation and membership_activation_type == "sms" %}
+    <script>
+        $( document ).ready(function() {
+            $("select[name='country']").on("change", function(){
+                var country = $(this).val();
+                if(!IsBlank(country)){
+                    var $phone_code = $(this).find("option:selected").attr("data-phonecode");
+                    $("input[name='phone_code']").val($phone_code).trigger("change");
+                    $(".phone-code").text($phone_code);
+
+                    var $states_count = parseInt($(this).find("option:selected").attr("data-states"));
+                    var $states_view = true;
+                    if($states_count == 0){
+                       $states_view = false;
+                    }
+                    $("input[name='states_view']").val($states_view).trigger("change");
+                    
+                }
+            });
+            if(IsBlank($("input[name='phone_code']").val())){
+               $("select[name='country']").trigger("change");
+            }
+        });
+    </script>
+    {% endif %}
+{% endblock %}

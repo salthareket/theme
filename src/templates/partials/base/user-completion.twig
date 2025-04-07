@@ -1,0 +1,29 @@
+{% if user.logged and not user.is_profile_completed and user.get_status and user.get_role != "default" %}
+    <div class="alert-profile-completion">
+        <div class="content">
+            <h5 class="title">Please complete the forms below to be <u>visible</u> in search results and <u>use other functions.</u></h5>
+            <ul>
+            {% for key, item in user.profile_completion if key != "success" %}
+                <li>
+                    <div class="bar">
+                        {{item.title}} 
+                        {% if item.success %}
+                            <i class="check fas fa-check"></i>
+                        {% else %}
+                            <span class="ms-auto opacity-50 text-sm">{{item.percent}}%</span>
+                        {% endif %}
+                        <div class="percent-container">
+                            <div class="percent" style="width:{{item.percent}}%;"></div>
+                        </div>
+                    </div>
+                    {% if not item.success %}
+                        <a href="{{base_urls.account}}{{key}}/" class="btn btn-sm btn-warning btn-loading-page" title="Complete {{item.title}} Form">COMPLETE</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+            <a href="#" class="close"><i class="fa-regular fa-times"></i></a>
+        </div>
+        <a href="#" class="open"><i class="fa-regular fa-triangle-exclamation"></i></a>
+    </div>
+    {% endif %}

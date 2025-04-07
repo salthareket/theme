@@ -1,0 +1,21 @@
+{{function('free_shipping_remaining_amount')}}
+            <table class="table-total table table-sm">
+                <tbody>
+                    <tr class="quantity">
+                        <td>{{translate('Ürün adedi')}}</td>
+                        <td>{{cart.count}}</td>
+                    </tr>
+                    <tr class="total">
+                        <td>{{translate('TOPLAM')}}</td>
+                        <td>{{cart.total}} TL</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="btn-group">
+                <a href="{{function('wc_get_cart_url')}}" class="btn btn-md- btn-base">
+                    {{translate('VIEW CART')}}
+                </a>
+                <a href="{{function('woo_checkout_url')}}" class="btn btn-md- btn-base">
+                    {{translate('PAY NOW')}}
+                </a>
+            </div>

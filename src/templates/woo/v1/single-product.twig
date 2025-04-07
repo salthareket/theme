@@ -1,0 +1,393 @@
+{% extends "base.twig" %}
+
+{% if not page_settings %}
+{% set  page_settings = {
+            full : true,
+            classes : {
+                body : "",
+                main : "",
+                container : "",
+                gap : ""
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "top",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block hero %}
+{% endblock %}
+
+{% set attributes = function("get_query_var", "variation") %}
+{% set attributes = function("woo_url_pa_parse", product, attributes) %}
+
+{% if product.get_type != "variable" %}
+    {% set gallery_ids = [post._thumbnail_id] %}
+    {% if product.get_gallery_image_ids %}
+       {% set gallery_ids = gallery_ids|merge(product.get_gallery_image_ids) %}
+    {% endif %}
+{% else %}
+    {% set images = function("woo_get_product_variation_thumbnails", post.ID, "color", attributes.color, 'full') %}
+    {# if color %}
+        {% set images = function("woo_get_product_variation_thumbnails", post.ID, "color", color, 'full') %}
+    {% else %}
+        {% set default_variation_id = function('woo_get_product_default_variation_id', product) %}
+        {% if default_variation_id %}
+            {% set images = function("woo_get_product_variation_thumbnails", post.ID, "color", "", 'full') %}
+        {% else %}
+            {% set gallery_ids = [post._thumbnail_id] %}
+            {% set gallery_ids = gallery_ids|merge(product.get_gallery_image_ids) %}
+        {% endif %}
+    {% endif #}
+{% endif %}
+
+
+{% block content %}
+
+    {{ post.meta("_children")|print_r }}
+
+    {{ post.meta("woosb_ids")|print_r }}
+
+
+    <div class="container">
+
+    {% do action('woocommerce_before_single_product') %}
+
+    <article itemscope itemtype="https://schema.org/Product" class="{{ post.class }}">
+
+        <div class="row">
+
+            <div class="product-image col-lg-7 d-none d-sm-none d-md-none d-lg-block">
+                <div class="slider-single-product shadow mb-2">
+                    {% include "partials/sliders/single-product-slider.twig" with { ids : gallery_ids, images: images, type : product.get_type } %}
+                </div>                   
+            </div>
+
+            <div class="col-content col-lg-5">
+
+                <div class="card-product-detail card summary stick-top">
+
+                    {% do action('woocommerce_before_single_product_summary') %}
+
+
+                    <div class="card-body">
+
+                                
+                    {{breadcrumb}}
+                    <h1 class="product-title product_title my-0 mt-2 mt-lg-3">{{post.title}}</h1>
+                 
+
+                    <a href="#heading-reviews" class="btn-reviews">
+                        <div class="star-rating-readonly-ui star-rating-readonly-lg star-rating-readonly-light" data-value="3.2"></div>
+                    </a>{##}
+
+                    <div class="product-detail mt-4">
+                        {% if product.get_type != "variable" %}
+                            <div class="product-attributes">
+                                <label class="form-label label title-pa_color">{{function("woo_get_product_attribute","color")}}</label>
+                            </div>
+                        {% endif %}
+                        {% do action('woocommerce_single_product_summary') %}
+                        {% do action('woocommerce_after_single_product_summary') %}
+
+                    </div>
+
+                    <div class="product-description mt-4">
+                        {{post.content}}
+                        {% if product.get_type == "variable" %}
+                            {% set default_variation = function('woo_get_product_default_variation_id', product) %}
+                            {% if default_variation %}
+                                {% set default_post = get_post(default_variation) %}
+                            {% else %}
+                                {% set default_post = post %}
+                            {% endif %}
+                        {% else %}
+                            {% set default_post = post %}
+                        {% endif %}
+
+
+                    </div>
+
+                             
+                                
+                                {% if function("class_exists", "APSS_Class") %}
+                                <div class="product-share apss-social-share-lg d-inline-block mt-5 shadow-lg">
+                                    {% apply spaceless %}
+                                    {% apply shortcodes %}
+                                        [apss_share networks='facebook, twitter, pinterest, email']
+                                    {% endapply %}
+                                    {% endapply %}
+                                </div>
+                                {% endif %}
+
+                                <meta itemprop="url" content="{{ post.link }}" />
+                        </div>
+                      
+
+                        </div>
+                       
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </article>
+
+
+
+    </div>
+
+{% endblock  %}
+
+{% block after_main %}
+
+        {% if upsell_products %}
+        {% set slider_args = { 
+                id : "slider-" ~ function('get_random_number', 111111, 999999),
+                title : translate('İlginizi Çekebilir'), 
+                description: "", 
+                url: "", 
+                class : "products-last-viewed  products-upsell", 
+                size : "lg", 
+                container : "container", 
+                template : 'woo/tease-product.twig',
+                item_class : "shadow",
+                posts :  upsell_products,
+                more :  "",
+                slider : {
+                        pagination: "bullets",
+                        pagination_visible : 3,
+                        effect: "slide",
+                        delay: 5000,
+                        autoplay: false,
+                        loop : false,
+                        centeredSlides:true,
+                        breakpoints : {'xxxl': 5 ,'xxl': 5 ,'xl' : 5, 'lg': 4, 'md' : 3, 'sm' : 2, 'xs' :1 }, 
+                        gaps : {'xxxl': 30,'xxl': 30, 'xl' : 30, 'lg': 30, 'md' : 20, 'sm' : 15, 'xs' : 15 }, 
+                }
+            }
+        %}
+        <section class="row-page row-page-lg">
+            <div class="container-fluid">
+                {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+            </div>
+        </section>
+        {% endif %}
+
+
+        {% if crosssell_products %}
+        {% set slider_args = { 
+                id : "slider-" ~ function('get_random_number', 111111, 999999),
+                title : translate('Bunları da Beğenebilirsiniz'), 
+                description: "", 
+                url: "", 
+                class : "products-last-viewed  products-crossell", 
+                size : "lg", 
+                container : "container", 
+                template : 'woo/tease-product.twig',
+                item_class : "shadow",
+                posts :  crosssell_products,
+                more :  "",
+                slider : {
+                        pagination: "bullets",
+                        pagination_visible : 3,
+                        effect: "slide",
+                        delay: 5000,
+                        autoplay: false,
+                        loop : false,
+                        centeredSlides:true,
+                        breakpoints : {'xxxl': 5 ,'xxl': 5 ,'xl' : 5, 'lg': 4, 'md' : 3, 'sm' : 2, 'xs' :1 }, 
+                        gaps : {'xxxl': 30,'xxl': 30, 'xl' : 30, 'lg': 30, 'md' : 20, 'sm' : 15, 'xs' : 15 }, 
+                },
+            }
+        %}
+        <section class="row-page row-page-lg">
+            <div class="container-fluid">
+                {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+            </div>
+        </section>
+        {% endif %}
+
+
+        {% if related_products %}
+        {% set slider_args = { 
+                id : "slider-" ~ function('get_random_number', 111111, 999999),
+                title : translate('İlişkili Ürünler'), 
+                description: "", 
+                url: "", 
+                class : "products-last-viewed products-related bg-white mt-5 pt-5 shadow-sm", 
+                size : "lg", 
+                container : "container", 
+                template : 'woo/tease-product.twig',
+                item_class : "shadow",
+                posts :  related_products,
+                more :  "",
+                slider : {
+                        pagination: "bullets",
+                        pagination_visible : 3,
+                        effect: "slide",
+                        delay: 5000,
+                        autoplay: false,
+                        loop : false,
+                        centeredSlides:true,
+                        breakpoints : {'xxxl': 5 ,'xxl': 5 ,'xl' : 5, 'lg': 4, 'md' : 3, 'sm' : 2, 'xs' :1 }, 
+                        gaps : {'xxxl': 30,'xxl': 30, 'xl' : 30, 'lg': 30, 'md' : 20, 'sm' : 15, 'xs' : 15 }, 
+                },
+            }
+        %}
+        <section class="row-page row-page-lg">
+            <div class="container-fluid">
+                {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% set slider_args = {
+                id : "slider-" ~ function('get_random_number', 111111, 999999),
+                title : translate('Son Görüntülenenler'), 
+                description: "", 
+                url: "", 
+                class : "products-last-viewed bg-white mt-5 pt-5 shadow-sm", 
+                size : "lg", 
+                container : "container", 
+                template : 'woo/tease-product.twig',
+                item_class : "card-product-tease-sm",
+                more :  "",
+                slider : {
+                        pagination: "bullets",
+                        pagination_visible : 3,
+                        effect: "slide",
+                        delay: 5000,
+                        autoplay: false,
+                        loop : false,
+                        centeredSlides:true,
+                        breakpoints : {'xxxl': 5 ,'xxl': 5 ,'xl' : 5, 'lg': 4, 'md' : 3, 'sm' : 2, 'xs' :1 }, 
+                        gaps : {'xxxl': 30,'xxl': 30, 'xl' : 30, 'lg': 30, 'md' : 20, 'sm' : 15, 'xs' : 15 }, 
+                },
+                ajax : {
+                    method : "salt_recently_viewed_products",
+                    template : 'partials/sliders/slider-posts-vr-ajax.twig'
+                }
+            }
+        %}
+        <section class="row-page row-page-lg">
+            <div class="container-fluid">
+                {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+            </div>
+        </section>
+
+    </div>
+
+{% endblock %}
+
+{% block appendix %}
+<script>
+    $( document ).ready(function() {
+        ajax_hooks["custom_track_product_view"].init({
+            post_id : "{{post.ID}}"
+        });
+
+        var variation_cache = [];
+        $("#pa_color")
+        .on('change', function (e, clickedIndex, isSelected, previousValue) {
+                debugJS(variation_cache);
+                $("input[type='number']").inputSpinner();
+                var holder = $(".slider-single-product");
+                var template = "partials/sliders/single-product-slider";
+                var vars = {
+                    product_id : $(this).closest(".variations_form").data("product_id"),
+                    attr       : $(e.target).attr("id").replace("pa_",""),
+                    attr_value : $(this).val(),
+                    size       : "full",
+                    template   : template
+                }
+                if(variation_cache.hasOwnProperty($(this).val())){
+                   var slider = holder.find(".swiper");
+                   if(slider.length>0){
+                        if(typeof slider[0].swiper !== "undefined"){
+                            slider[0].swiper.destroy(true, true);
+                        }
+                    }
+                    holder.empty();
+                    holder.html(variation_cache[$(this).val()]);
+                    holder.find(".swiper").removeClass("loading-process loading-light");
+                    init_swiper_obj(holder.find(".swiper"));
+                    holder.find(".swiper").find("[data-zoom]").each(function(){
+                      $(this).trigger('zoom.destroy').zoom({url: $(this).data("zoom")});
+                    });
+                }else{
+                    holder.find(".swiper").addClass("loading-process loading-light");
+                    $.post(ajax_request_vars.url, { ajax : "query", method:'woo_get_product_variation_thumbnails', vars:vars})
+                        .done(function( data ) {
+                            data = $.parseJSON(data);
+                            var slider = holder.find(".swiper");
+                            if(slider.length>0){
+                                if(typeof slider[0].swiper !== "undefined"){
+                                    slider[0].swiper.destroy(true, true);
+                                }
+                            }
+                            holder.empty();
+                            holder.html(data.html)
+                            holder.find(".swiper").removeClass("loading-process loading-light");
+                            init_swiper_obj(holder.find(".swiper"));
+                            holder.find(".swiper").find("[data-zoom]").each(function(){
+                              $(this).trigger('zoom.destroy').zoom({url: $(this).data("zoom")});
+                            });
+                            variation_cache[vars.attr_value] = data.html;
+                    });                 
+                }
+        });
+
+
+        //variation swatches order
+        var swatches = $("ul.single-product-variable-items");
+        if(swatches.length > 0){
+            swatches.each(function(){
+                var swatch = $(this)
+                var swatch_order = swatch.data("attribute_values");
+                $.each(swatch_order, function(index, val) {
+                    swatch.find("li[data-value='"+val+"']").attr("data-position", index);
+                });
+                swatch.find("li").sort(sort_li).appendTo(swatch);
+                function sort_li(a, b) {
+                    return ($(b).data('position')) < ($(a).data('position')) ? 1 : -1;
+                }
+            });
+        }
+
+        
+    });
+</script>
+{% endblock %}

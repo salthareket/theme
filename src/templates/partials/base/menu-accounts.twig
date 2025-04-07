@@ -1,0 +1,11 @@
+{% if accounts %}
+    <li class="nav-item {{menu_class}}">
+        <ul class="list-social list-inline" role="group" aria-label="Social Media">
+            {% for account in accounts %}
+                <li class="list-inline-item">
+                    <a href="{{account.url}}" class="btn-social-{{account.name}}-hover" target="_blank" rel="nofollow"><i class="fab fa-{{account.name}}"></i></a>
+                </li>
+            {% endfor %}
+        </ul>
+    </li>
+{% endif %}

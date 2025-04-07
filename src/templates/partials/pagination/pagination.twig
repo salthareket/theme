@@ -1,0 +1,71 @@
+{% block pagination %}
+
+	<nav class="pagination-container">
+		<ul class="pagination">
+
+		   {% if post_pagination[post_type].type in ["button", "scroll"] %}
+
+		   	    {% if direction == "next" %}
+		   	    	{% set condition = posts.pagination.next %}
+		   	    	{% set page = posts.pagination.current+1 %}
+		   	    	{% set title = translate("Sonraki Sayfa") %}
+		   	    {% else %}
+		   	    	{% set condition = posts.pagination.prev or paged > 1 %}
+		   	    	{% set page = posts.pagination.current-1 %}
+		   	    	{% set title = translate("Önceki Sayfa") %}
+		   	    {% endif %}
+
+		    	{% if condition %}
+				    <li class="page-item {{direction}} page-item-ajax {{condition|length ? '' : 'invisible'}}">
+						<a href="#" class="btn btn-primary btn-pagination-ajax {% if direction == "next" %}{{post_pagination[post_type].type|replace({"_":"-"})}}{% endif %} px-5 btn-lg rounded-5" aria-label="{{title}}" data-ajax-method="pagination_ajax" data-url="{{current_url}}" data-page="{{page}}" data-page_total="{{posts.pagination.total}}" data-container="{{container}}" data-direction="{{direction}}" data-total="{{posts.found_posts}}" data-initial="{{paged}}" data-post_type="{{post_type}}" data-query_pagination_vars="{{query_pagination_vars}}" data-query_pagination_request="{{query_pagination_request}}" data-posts_per_page="{{post_pagination[post_type].posts_per_page}}" data-paged_url="{{paged_url|default("false")}}">
+						    <span>{{title}}</span>
+						</a>
+						{% if direction == "next" and post_pagination[post_type].type == "scroll" %}
+						<script>
+						$( document ).ready(function() {
+							setTimeout(function(){
+							    var btn = $(".btn-pagination-ajax.ajax-scroll");
+								$(window).scroll(function() {
+							        if( btn.is(":in-viewport") && !btn.hasClass("loading")) {
+					                    btn.trigger("click");
+							        }
+							    });
+							    $(window).trigger("scroll");
+							}, 500);
+						});
+						</script>
+					    {% endif %}
+				    </li>
+			    {% endif %}
+
+		    {% else %}
+
+				  {% if posts.pagination.prev %}
+					  <li class="page-item prev {{posts.pagination.prev.link|length ? '' : 'invisible'}}">
+						  <a href="{{posts.pagination.prev.link}}" class="page-link" aria-label="Previous">
+							<span aria-hidden="true"></span>
+						  </a>
+					  </li>
+				  {% endif %}
+				  {% for page in posts.pagination.pages %}
+				     <li class="page-item {{page.current ? 'active' : ''}}">
+					   {% if page.link %}
+						  <a href="{{page.link}}" class="page-link {{page.class}}">{{page.title}}</a>
+					   {% else %}
+					      <span class="page-link {{page.class}}">{{page.title}}</span>
+					   {% endif %}
+					 </li>
+				  {% endfor %}
+				  {% if posts.pagination.next %}
+					<li class="page-item next {{posts.pagination.next.link|length ? '' : 'invisible'}}">
+						<a href="{{posts.pagination.next.link}}" class="page-link" aria-label="Next">
+						  <span aria-hidden="true"></span>
+						</a>
+					</li>
+				  {% endif %}
+
+		    {% endif %}
+		</ul>
+	</nav>
+
+{% endblock %}

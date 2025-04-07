@@ -1,0 +1,75 @@
+
+{#
+{% if post.thumbnail.src('woocommerce_gallery_thumbnail') %}
+    {% set image = post.thumbnail.src('woocommerce_gallery_thumbnail') %}
+{% else %}
+    {% if post.thumbnail.src('thumbnail') %}
+       {% set image = post.thumbnail.src('thumbnail') %}
+    {% else %}
+       {% set product_type = function('woo_get_product_type', post.id) %}
+       {% if product_type == "variable" %}
+          {% set image = function("woo_get_product_variations_thumbnails", post.id, 'gallery_thumbnail') %}
+          {% if image %}
+             {% set image = image[0] %}
+          {% else %}
+             {% set image = product_default_image %}
+          {% endif %}
+       {% endif %}
+    {% endif %}
+{% endif %}
+#}
+
+
+{# if post.thumbnail.src %}
+  {% set image = post.thumbnail.src('thumbnail') %}
+{% else %}
+    {% if fallback_images %}
+       {% set image = random(fallback_images).desktop.sizes.thumbnail %}
+    {% endif %}
+{% endif #}
+
+{# set image = function('get_tour_image', post.id, 'thumbnail' ) #}
+
+<li class="notification-item" data-type="{{type}}" data-id="{{post.id}}">
+    <div class="card-tour-tease product-tease">
+        <a href="{{post.link}}" title="{{post.title}}">
+           <img data-src="{{post.thumbnail.src}}" class="image img-fluid lazy" alt="{{post.title}}"/>
+        </a>
+        <div class="detail">
+            <div class="title">
+                <a href="{{post.link}}" title="{{post.title}}">{{post.title}}</a>
+            </div>
+            <div class="price">
+                    {% if post._sale_price %}
+                                    
+                        <div class="current" itemprop="price">
+                            {{function('woo_get_currency_with_price', post._sale_price)}}
+                        </div>
+                        {% if post._regular_price %}
+                            <div class="old">
+                                {{function('woo_get_currency_with_price', post._regular_price)}}
+                            </div>
+                        {% endif %}
+
+                    {% else %}
+
+                        {% if post._price is iterable %}
+                            <div class="current" itemprop="price">
+                                {{function('woo_get_currency_with_price', post._price|first)}} - {{function('woo_get_currency_with_price', post._price|last)}}
+                            </div>
+                        {% else %}
+                            <div class="current" itemprop="price">
+                                {{function('woo_get_currency_with_price', post._price)}}
+                            </div>
+                        {% endif %}
+
+                    {% endif %}
+            </div>
+        </div>
+        <div class="action">
+            <a href="#" class="{{type}}-remove" data-type="{{type}}" data-id="{{post.id}}">
+                <i class="icon-close"></i>
+            </a>
+        </div>
+    </div>
+</li>

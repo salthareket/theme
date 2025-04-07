@@ -1,0 +1,6 @@
+{% if enable_membership and not user.logged %}
+    {% set login_url = function('get_login_url') %}
+    <li class="nav-item {{menu_class}}">
+        <a href="{{login_url}}" class="btn btn-outline-light btn-loading-page">LOGIN</a>
+    </li>
+{% endif %}

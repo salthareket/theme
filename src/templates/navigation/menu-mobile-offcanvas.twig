@@ -1,0 +1,54 @@
+
+
+<div class="offcanvas offcanvas-menu offcanvas-top offcanvas-fullscreen bg-primary exclude-header" tabindex="-1" id="main-mobile"  aria-labelledby="main-mobileLabel">
+   {#<div class="offcanvas-header">
+      {% if user.logged %}
+         <a href="{{user.link}}" class="d-block py-2 px-2 w-100 btn-loading-page" title="{{user.get_title()}} Profile">
+            <div class="d-flex align-items-center py-1">
+               <div class="position-relative">
+                  <img src="{{user.get_avatar_url(40)}}" class="rounded-circle me-1" alt="{{user.get_title}}" width="40" height="40">
+               </div>
+               <div class="flex-grow-1 ps-3 lh-1">
+                  <strong>
+                     {{user.get_title}}
+                     <small class="text-warning text-sm d-block small fw-normal mt-1">{{user.get_role|capitalize}}</small>
+                  </strong>
+               </div>
+               <div>
+                  <div class="btn-group">
+                      <button type="button" class="btn text-white fs-4" data-bs-dismiss="offcanvas" aria-label="Close"><i class="fal fa-times"></i></button>
+                  </div>
+               </div>
+            </div>
+         </a>
+      {% else %}
+         <button type="button" class="btn text-white fs-4 ps-2" data-bs-dismiss="offcanvas" aria-label="Close"><i class="fal fa-times"></i></button>
+      {% endif %}
+   </div> #}
+   <div class="offcanvas-body">
+
+      <div class="nav-menu slinky-menu" id="menu">
+         <ul>
+         {% include "navigation/menu-mobile-offcanvas-menu.twig" with {'menu': menu.header.get_items, 'is_child': false } %}
+         </ul>
+      </div>
+
+   </div>
+   
+   <div class="offcanvas-footer text-center justify-content-center pb-4">
+      {% if languages|length > 1 %}
+      {% apply spaceless %}
+      <ul class="nav-language list-inline mb-0 justify-content-center" aria-labelledby="language">
+         {% for item in languages %}
+            <li class="list-inline-item" rel="{{item.name|lower}}">
+               <a href="{{item.url}}" class="btn btn-outline-primary px-3 {% if item.active %}active{% endif %}" title="{{item.name_long}}">{{item.name|upper}}</a>
+            </li>
+         {% endfor %}
+      </ul>
+      {% endapply %}                    
+      {% endif %}
+      {#<a href="{{function('get_account_endpoint_url', 'customer-logout')}}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Sign out</a>#}
+   </div>
+   
+</div>
+

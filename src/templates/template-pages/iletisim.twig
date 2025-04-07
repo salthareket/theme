@@ -1,0 +1,156 @@
+{% extends "base.twig" %}
+
+{% set page_settings_default = {
+                full : true,
+                classes : {
+                    body : "page-contact",
+                    main : "pb--5",
+                    container : "",
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : "",
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+
+{% block hero %}
+    {% if contact.contact_map_embed %}
+        {% if contact.contact_map_embed_type == "coordinate" %}
+            <div class="map-google map-google-embed embed-responsive-embed-responsive-16by9" data-lat="{{contact.contact_lat}}" data-lng="{{contact.contact_lng}}"></div>
+        {% else %}
+             <div class="map-google map-google-embed embed-responsive-embed-responsive-16by9" data-embed-url="{{contact.contact_map_url}}"></div>
+        {% endif %}
+    {% else %}
+        {% set map_marker = function('_get_option','map_marker') %}
+        {% set map = function('acf_map_data', contact.contact_map, "embed-responsive-embed-responsive-16by9", "map-"~post.id, map_marker) %}
+        {{map.embed}}
+    {% endif %}
+
+    {% if contact.meta("contact_map_type") == "google" %}
+            {% if contact.contact_map_embed %}
+                {% if contact.contact_map_embed_type == "coordinate" %}
+                    <div class="map-google map-google-embed ratio ratio-4x" data-lat="{{contact.contact_lat}}" data-lng="{{contact.contact_lng}}"></div>
+                {% else %}
+                    <div class="map-google map-google-embed ratio ratio-1x1" data-embed-url="{{contact.contact_map_url}}"></div>
+                {% endif %}
+            {% else %}
+                {% set map_marker = function('_get_option','map_marker') %}
+                {% set map = function('acf_map_data', contact.contact_map, "ratio  ratio-1x1", "map-" ~ post.id, map_marker) %}
+                {{map.embed}}
+            {% endif %}
+        {% endif %}
+        {% if contact.meta("contact_map_type") == "leaflet" %}
+            <div class="map-container stick-top--- z-1 leaflet ratio leaflet-ratio">
+                {{ contact.meta("contact_map_leaflet")}}
+            </div>
+        {% endif %}
+
+
+{% endblock %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+
+{% block content %}
+
+
+    <div class="{{'container-md'|acf_dynamic_container(page_settings)}}">
+
+        <div class="row gy-5">
+
+            <div class="col-12">
+
+                <div class="card-contact card card-reset text-center my-5 pb-5">
+                    <div class="card-header pb-3">
+                        <h2 class="card-title text-uppercase">{{contact.title}}</h2>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="address">{{contact.contact_address}}</div>
+
+                        {% for phone in contact.meta("contact_phone") %}
+                            <div class="phone">{{phone.number|phone_link}}</div>
+                        {% endfor %}
+
+                        <div class="email" itemprop="email">{{contact.contact_email|email_link}}</div>
+
+                        {{ accounts|list_social_accounts("text-center mt-3") }}
+
+                    </div>
+
+                </div>
+
+
+
+                {% set form = function('get_contact_form', "iletisim-formu") %}
+                <div class="card-contact card card-reset text-center mt-5">
+                    {% if form.title or form.description %}
+                    <div class="card-header pb-2">
+                        {% if form.title %}
+                            <h3 class="card-title text-uppercase">{{form.title}}</h3>
+                        {% endif %}
+                        {% if form.description %}
+                            <div class="card-text pb-3">
+                                {{ form.description }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="card-body pt-3 text-start">
+                        {% apply shortcodes %}
+                            [contact-form-7 id="{{form.id}}" title="{{form.title}}"]
+                        {% endapply %}
+                    </div>
+                </div>
+
+                
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}
+
+
+{% block appendix %}
+{% endblock %}

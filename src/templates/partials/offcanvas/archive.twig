@@ -1,0 +1,94 @@
+
+{% block sidebar_toggler %}
+<button type="button" class="sidebar-toggler btn btn-base" data-bs-toggle="offcanvas" data-bs-target="#offcanvas" aria-label="Toggle menu">
+    {{function("get_post_type_object", post.post_type).label}} <i class="fa fa-angle-right ms-2"></i>
+</button>
+{% endblock %}
+
+
+{% block sidebar %}
+
+{% apply spaceless %}
+{% if type == 'cart' %}
+   {% set posts = cart.items %}
+{% endif %}
+
+
+    {% if posts %}
+        <ul class="notifications list-unstyled">
+            {% for post in posts %}
+                {% include 'partials/offcanvas/'~type~'.twig' with { type : type } %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="content-centered d-flex flex-column h-100 align-items-center justify-content-center text-center">
+            <div class="content-block d-flex flex-column">
+                {% if type == "favorites" %}
+                    <i class="icon-heart-o"></i>
+                    {{'Favori listeniz boş.'|trans}}
+                    <a class="btn btn-primary btn-extend btn-sm" href="{{ function('esc_url', function('apply_filters', 'woocommerce_return_to_shop_redirect', function('wc_get_page_permalink', 'shop' ) ) ) }}">
+                        {{'Look Our Tours'|trans}}
+                    </a>
+                {% endif %}
+                {% if type == "cart" %}
+                    <i class="fal fa-shopping-basket fa-3x opacity-25"></i>
+                    {{'Sepetiniz boş.'|trans}}
+                    <a class="btn btn-primary btn-extend btn-sm mt-3" href="{{ function('esc_url', function('apply_filters', 'woocommerce_return_to_shop_redirect', function('wc_get_page_permalink', 'shop' ) ) ) }}">
+                        {{'Alışverişe Başla'|trans}}
+                    </a>
+                {% endif %}
+                {% if type == "messages" %}
+                    <i class="far fa-envelope"></i>
+                    {{'No new messages.'|trans}}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+
+
+{% if type == "cart" %}
+    {% if posts %}
+        <div class="offcanvas-footer">
+            {{function('free_shipping_remaining_amount')}}
+            <table class="table-total table table-sm">
+                <tbody>
+                    <tr class="quantity">
+                        <td>{{'Ürün adedi'|trans}}</td>
+                        <td>{{cart.count}}</td>
+                    </tr>
+                    <tr class="total">
+                        <td>{{'TOPLAM'|trans}}</td>
+                        <td>{{cart.total}} TL</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="btn-group w-100">
+                <a href="{{function('wc_get_cart_url')}}" class="btn btn-outline-primary">
+                    {{'VIEW CART'|trans}}
+                </a>
+                <a href="{{function('woo_checkout_url')}}" class="btn btn-primary">
+                    {{'PAY NOW'|trans}}
+                </a>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+
+{% if type == "messages" %}
+    <div class="offcanvas-footer">
+        <a href="{{function('wc_get_account_endpoint_url', 'messages')}}" class="btn btn-md- btn-primary btn-block">
+            {% if posts %}
+               {{'VIEW ALL'|trans}}
+            {% else %}
+               {{'GO TO MESSAGES'|trans}}
+            {% endif %}
+        </a>
+    </div>
+{% endif %}
+
+{% endapply %}
+
+
+{% endblock %}

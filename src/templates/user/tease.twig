@@ -1,0 +1,201 @@
+{% if not user_item %}
+    {% set user_item = post %}
+{% endif %}
+
+
+{% set size = size|default("sm") %}
+{% if vars.id %}
+    {% if function("get_post_type", vars.id) == "session" %}
+        {% set session = get_post(vars.id) %}
+        {% set application_id = session.get_user_application(user_item.id) %}
+        {% set application = get_post(application_id) %}
+        {% set user_description = application.get_local_date|time_ago %}
+    {% endif %}
+{% endif %}
+
+{% if not user_link %}
+    {% set user_link = user_item.link %}
+{% endif %}
+
+
+<div class="tease-user tease-user-{{size}} {% if size != "lg" %}flex-lg-row{% endif %} flex-column {{class}}">
+    <div class="image">
+        <div class="image-wrap d-flex flex-column">
+            {% if photo_edit %}
+                <form class="form form-validate m-0" id="form-profile-photo" autocomplete="off" method="post" enctype="multipart/form-data" data-ajax-method="update_profile_photo">
+                    <div class="profile-photo-main image-uploader-single">
+                        {{"<script>"}}
+                        $( document ).ready(function() {
+                            var preloaded = [
+                                {id: 1, src: "{{user_item.get_avatar_url}}"}
+                            ];
+                            $('.profile-photo-main').imageUploader({
+                                                    preloaded: preloaded,
+                                                    imagesInputName: 'profile_photo_main',
+                                                    preloadedInputName: 'old',
+                                                    extensions : ['.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG', '.png'],
+                                                    maxSize: 2 * 1024 * 1024,
+                                                    maxFiles: 1
+                            });
+                            $("input[name='profile_photo_main[]']").on("change", function(){
+                                $("#form-profile-photo").submit();
+                            });
+                        });
+                        {{"</script>"}}
+                    </div>
+                </form>
+            {% else %}
+                {% if user_item.is_online %}
+                    <span></span>
+                {% endif %}
+                {% if current_page_type != "author" %}
+                <a href="{{post.link}}" target="_blank" title="{{user_item.get_title}} Profile">
+                {% endif %}
+                    <img src="{{user_item.get_avatar_url}}" class="img-fluid" alt="{{user_item.get_title}}"/>
+                {% if current_page_type != "author" %}
+                </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    <div class="info d-flex flex-column justify-content-center">
+        
+        {% if user_title_custom %}
+            <{{heading|default("h4")}} class="title-custom">{{ user_title_custom }}</{{heading|default("h4")}}>
+        {% endif %}
+        {% if show_rating %}
+            <a href="{{user_item.link}}#reviews" title="{{user_item.get_title}} Reviews">
+                <div class="star-rating-readonly-ui star-rating-readonly-xs mb-1" data-value="{{user_item._user_rating}}"></div>
+            </a>
+        {% endif %}
+        {% if current_page_type != "author" %}
+        <a href="{{user_link}}" target="_blank" title="{{user_item.get_title}} Profile">
+        {% endif %}
+            <h3 class="title mb-0">
+                {% if user_title %}
+                    {{user_title}}
+                {% else %}
+                    {{user_item.get_title}}
+                {% endif %}
+                <small>
+                {% if user_description %}
+                    {{user_description}}
+                {% else %}
+                    {{user_item.description}}
+                {% endif %}
+                </small>
+            </h3>
+        {% if current_page_type != "author" %}
+        </a>
+        {% endif %}
+        {% if location %}
+            <div class="location">
+                <i class="fa-regular fa-location-dot"></i> {{user_item.get_location}} - UTC{{user_item.get_gmt()}}
+            </div>
+        {% endif %}
+        
+    </div>
+
+    {% set show_follow     = show_follow|boolval     and enable_follow    and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
+    {% set show_favorite   = show_favorite   and enable_favorites and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
+    {% set show_message    = show_message    and enable_chat      and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
+    {% set review_approve  = review_approve  and not disable_review_approve and user.id == user_item.id and user.logged %}
+
+    {% if show_follow or show_favorite or show_message or profile or review_approve or profile_link %}
+        <div class="action {% if not size == "lg" %}ms-lg-auto{% endif %}">
+
+            {% if show_follow %}
+                {% set is_following = user.is_following(user_item.id) %}
+                <a href="#" class="btn btn-outline-primary btn-sm btn-follow text-uppercase fw-bold {% if is_following %}active{% endif %} btn-loading-self loading-light loading-xs" data-ajax-method="follow" data-id="{{user_item.id}}" data-type="user">
+                    {% if is_following %}Unfollow{% else %}Follow{% endif %}
+                </a>
+            {% endif %}
+
+            {% if show_favorite %}
+                <a href="#" class="btn-favorite {% if user_item.id in favorites %}active{% endif %}" data-id="{{user_item.id}}" data-type="user"></a>
+            {% endif %}
+
+            {% if show_message %}
+                {% set class = "" %}
+                {% set message_url = "#" %}
+                {% set data_attrs = "data-ajax-method='template_modal' data-template='partials/modals/new-message' data-size='md' data-id='" ~ user_item.id ~ "'" %}
+                {% if message_post %}
+                    {% set data_attrs = data_attrs ~ " data-post_id='" ~ message_post ~ "'" %}
+                {% endif %}
+                {% if message_static %}
+                    {% set data_attrs = data_attrs ~ " data-static='" ~ message_static ~ "'" %}
+                {% endif %}
+                {% set conv_id = function('yobro_check_conversation_exist', 0, user.id, user_item.id, true) %}
+                {% if conv_id %}
+                    {% set message_url = base_urls.messages ~ conv_id ~ "/chat/" ~ user_item.id ~ "/" %}
+                    {% set data_attrs = "" %}
+                    {% set class = "btn-loading-page" %}
+                {% endif %}
+                <a href="{{message_url}}" class="btn btn-outline-secondary btn-sm text-uppercase fw-bold {{class}}" {{data_attrs}}>
+                    Send Message
+                </a>
+            {% endif %}
+            
+            {% if review_approve %}
+                <a href="#" class="btn btn-secondary btn-sm text-uppercase fw-bold" data-ajax-method="review_approve" data-id="{{review.comment_ID}}">
+                {% if review.comment_approved %}
+                    UNPUBLISH
+                {% else %}
+                    APPROVE
+                {% endif %}
+                </a>
+            {% endif %}
+
+            {% if profile_link %}
+                <a href="{{user_item.link}}" class="btn btn-secondary btn-sm text-uppercase fw-bold border-0 {% if not user_item.is_profile_completed() %}disabled{% endif %}" target="_blank" title="{{user_item.get_title}} public profile">View Public Profile</a>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    {% if application %}
+        {% set application_status = application.get_session_status("slug") %}
+        <div class="action application">
+            <ul>
+                <li>
+                    {% set session_date = application.get_session_date() %}
+                    {% set user_session_date = session_date %}
+                    {% if session_date.start.date == session_date.end.date %}
+                        <div class="date">
+                            {{session_date.start.date}}
+                            <div class="hour">
+                               {{session_date.start.time}} - {{session_date.end.time}}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="date">
+                            {{session_date.start.date}} <div class="hour">{{session_date.start.time}}</div> - {{session_date.end.date}} <div class="hour">{{session_date.end.time}}</div>
+                        </div>
+                    {% endif %}
+                </li>
+                {% if application._platform %}
+                <li class="text-center">
+                    <img src="{{site.theme.uri}}/static/img/icon-{{application._platform}}-sm.png" class="img-fluid" alt="{{application._platform}}"/>
+                </li>
+                {% endif %}
+                    
+                <li class="price text-center">
+                    ${{application._price}}
+                </li>
+                
+                {% set app_status_ui = application.parent.get_application_status_view(user_item, true, "w-100", false) %}
+                {% if app_status_ui %}
+                <li>
+                    {% for item in app_status_ui %}
+                        <{{ item.tag }} {% if item.link %}href="{{item.link}}"{% endif %} class="{{item.class}}" {{item.attrs|array2Attrs}}>
+                          {{ item.title }}
+                        </{{ item.tag }}>
+                    {% endfor %}
+                </li>
+                {% endif %}
+
+            </ul>
+        </div>
+        {# include "user/application.twig" #}
+    {% endif %}
+
+</div>

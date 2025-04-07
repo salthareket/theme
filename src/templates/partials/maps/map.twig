@@ -1,0 +1,18 @@
+{% if contact.meta("contact_map_type") == "google" %}
+    {% if contact.contact_map_embed %}
+        {% if contact.contact_map_embed_type == "coordinate" %}
+            <div class="map-google map-google-embed ratio ratio-4x" data-lat="{{contact.contact_lat}}" data-lng="{{contact.contact_lng}}"></div>
+        {% else %}
+            <div class="map-google map-google-embed ratio ratio-1x1" data-embed-url="{{contact.contact_map_url}}"></div>
+        {% endif %}
+    {% else %}
+        {% set map_marker = function('_get_option','map_marker') %}
+        {% set map = function('acf_map_data', contact.contact_map, "ratio  ratio-1x1", "map-" ~ post.id, map_marker) %}
+        {{map.embed}}
+    {% endif %}
+{% endif %}
+{% if contact.meta("contact_map_type") == "leaflet" %}
+    <div class="map-container stick-top z-1">
+        {{ contact.meta("contact_map_leaflet")}}
+    </div>
+{% endif %}

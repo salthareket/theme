@@ -1,0 +1,5 @@
+{% if enable_ecommerce %}
+	{% include "my-account/form-login-woo.twig" %}
+{% else %}
+	{% include "my-account/form-login-native.twig" %}
+{% endif %}

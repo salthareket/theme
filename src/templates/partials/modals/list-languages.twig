@@ -1,0 +1,129 @@
+{% set countries = function("get_languages_list") %}
+{#<div class="row row-cols-4 gy-3">
+	{% for country in countries %}
+	<div class="col">
+	   <a href="#" class="d-flex flex-row align-items-center" data-ajax-method="change_localization" data-lang="{{country.lang}}" data-country="{{country.name}}" data-country-code="{{country.code}}">
+	       <img src="{{site.theme.uri}}/static/img/flags/1x1/{{country.code}}.svg" width="20" height="20" class="me-3"/> {{country.name}}-{{ country.lang }}
+	   </a>
+	</div>
+	{% endfor %}
+</div>
+#}
+<form class="form form-validate" autocomplete="off" method="post" action="" data-ajax-method="change_localization">
+	<div class="row row-cols-2 gy-4 mt-n4">
+	    <div class="col-12 p-0-">
+	        <div class="icon z-1"></div>
+	        {%  set map =  site.theme.uri ~ "/static/img/world-map.svg" %}
+            {{map|inline_svg("world-map img-fluid position-relative")}}
+            <style>
+                .world-map .active{
+                	fill:#1c4dae;
+                }
+                .world-map .active path{
+                	fill:#1c4dae;
+                }
+                .icon{
+                	position:absolute;
+                	width: 40px;
+		            height: 40px;
+                }
+		        .icon:after {
+		            content: "";
+		            width: 40px;
+		            height: 40px;
+		            border-radius: 50%;
+		            border: 5px solid #e88612;
+		            position: absolute;
+		            //top: calc(50% - 20px);
+		            //left: calc(50% - 20px);
+		            animation: pulse 1.5s ease 0s infinite;
+		            z-index: 0;
+		        }
+		        @keyframes pulse {
+				    0% {
+				        opacity: 1;
+				        transform: scale(.5);
+				    }
+
+				    80% {
+				        opacity: 0;
+				        transform: scale(2);
+				    }
+
+				    100% {
+				        opacity: 0;
+				        transform: scale(3);
+				    }
+				}
+
+            </style>
+	    </div>
+		<div class="col">
+		    <labek class="form-label" for="country">{{ translate("Ülke") }}</labek>
+		    <select class="selectpicker" name="country" data-size="6" id="country" data-live-search="true">
+		        {% for country in countries %}
+			    <option data-content="<div class='d-flex align-items-center'><img src='{{site.theme.uri}}/static/img/flags/1x1/{{country.code}}.svg' width='20' height='15' class='me-3'/> <span>{{country.name}}</span></div>" value="{{ country.name }}" data-country-code="{{country.code}}" data-language="{{ country.lang }}" {% if data.user_country_code|lower == country.code %}selected{% endif %}>{{country.name}}</option>
+			    {% endfor %}
+			</select>
+			<input type="hidden" name="countryCode" value="{{not data.user_country_code is empty?data.user_country_code:countries[0].code}}"/>
+		</div>
+		<div class="col">
+		    <labek class="form-label" for="language">{{ translate("Dil") }}</labek>
+		    <select class="selectpicker" name="language" data-size="6" id="language">
+		        {% for lang in languages %}
+		        	<option value="{{lang.name}}" {% if data.user_language == lang.name %}selected{% endif %}>{{lang.name_long }}</option>
+		        {% endfor %}
+		    </select>
+		</div>
+		<div class="col-12 text-center">
+	        <button type="submit" class="btn btn-nova btn-outline-primary px-5">{{ translate("Uygula") }}</button>
+		</div>
+	</div>
+	<script>
+
+	$( document ).ready(function() {
+		
+
+		function iconPosition($el){
+			var icon = $(".icon")
+			var pos = $el.getBoundingClientRect();
+			var map = $(".world-map").offset();
+			var left = pos.left - map.left;
+			var top = pos.top - map.top;
+			icon
+		    .css("left", left + 20)
+		    .css("top",  top + 20);
+		}
+
+	   $("select[name='country']").on("change", function(e){
+	   	   var selected = $(this).find("option:selected");
+	   	   var language = selected.attr("data-language");
+	   	   var countryCode = selected.attr("data-country-code");
+	   	   var mapCountry = $(".world-map").find("#"+countryCode);
+
+		   $("input[name='countryCode']").val(countryCode);
+		   $("select[name='language']").selectpicker('val', language).selectpicker("render");
+	       $(".world-map").find(".active").removeClass("active");
+	       
+	       if(mapCountry.length > 0){
+		       mapCountry.addClass("active");
+		       iconPosition(mapCountry[0]);
+	       }else{
+	       	  debugJS(countryCode+" not found map");
+	       }
+	   });
+
+	   $(window).on("resize", function(){
+	   	   var selected = $("select[name='country']").find("option:selected");
+	   	   var countryCode = selected.attr("data-country-code");
+	   	   var mapCountry = $(".world-map").find("#"+countryCode);
+	   	   if(mapCountry.length > 0){
+		       mapCountry.addClass("active");
+		       iconPosition(mapCountry[0]);
+	       }else{
+	       	  debugJS(countryCode+" not found map");
+	       }
+	   }).trigger("resize");
+	});
+	</script>
+</form>

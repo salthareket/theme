@@ -1,0 +1,159 @@
+{% extends "base.twig" %}
+
+{% if not page_settings %}
+{% set  page_settings = {
+            full : true,
+            classes : {
+                body : (hero?"has-hero":""),
+                main : "pb-5",
+                container : "",
+                gap : ""
+            },
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : ""
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "top",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+  
+{% block hero_header %}
+    {% if posts|length>0 %}
+    <div class="header-title">
+         <h1 class="title">{{title}}</h1>
+         {% if is_search %}
+         <div class="title-sub">{{posts|length}} {{'Results'|trans}}</div>
+         {% endif %}
+    </div>
+    {% endif %}
+{% endblock %}
+
+
+{% block content %}
+    {% if found_posts > 0 %}
+
+        {% do action('woocommerce_before_main_content') %}
+
+        <div class="card-reset card">
+            {% set active_filters = '[yith_wcan_active_filters_labels]'|shortcodes %}
+            {% if active_filters != "" %}
+                <div class="card-header card-header-filters">
+                    <div class="filters">
+                        {{active_filters}}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="card-header before-shop-loop">
+                <button type="button" class="sidebar-toggler btn btn-base" data-bs-toggle="offcanvas" data-bs-target="#offcanvas-{{post.id}}" aria-label="Toggle menu">
+                    {{page_settings.offcanvas.title}} <i class="fa fa-angle-right ms-2"></i>
+                </button>
+                {% do action('woocommerce_before_shop_loop') %}
+            </div>
+
+            <div class="card-body">
+
+                {% if posts %}
+                                    
+                    <div class="list-products row row-cols-5" data-category="{{function('get_query_var','product_cat')}}" data-keyword="{{keyword}}">
+                        {% for post in posts %}
+                        <div class="col">
+                            {% include "woo/tease-product.twig" with {'post' : post } %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                {% else %}
+
+                    <h4>{{'Üzgünüz, aradığınız kriterlere göre ürün bulunamadı.'|trans}}...</h4>
+                    Filtreleri <a href="#" class="search-option-tag-clear text-underline">temizleyerek</a> tekrar aramayı deneyebilirsiniz.
+
+                {% endif %}
+
+            </div>
+
+            {% if pagination and not ajax %}{% endif %} 
+            <div class="card-footer">
+                {% do action('woocommerce_after_shop_loop') %}
+                {% include 'pagination.twig' %}
+            </div>
+            
+        </div>
+
+        {% do action('woocommerce_after_main_content') %}
+
+    {% else %}
+
+        {% set page_settings = page_settings|merge({'full': true}) %}
+        {% set page_settings_classes = page_settings.classes|merge({content : "mt-0"}) %}
+        {% set page_settings =  page_settings|merge({classes : page_settings_classes}) %}
+
+        <div class="content-full-page">
+                <div class="container-xl">
+
+           
+                    {% set categories = function('woo_get_available_categories') %}
+                    {% if categories %}
+
+                         {% set slider_args = { 
+                                title : 'Üzgünüz, aradığınız kriterlere uygun bir ürün bulamadık.'|trans, 
+                                description: "Aşağıdaki kategorileri inceleyebilirsiniz.", 
+                                url: "", 
+                                class : "products-last-viewed",
+                                item_class : "card-product-tease-sm",
+                                size : "lg", 
+                                breakpoints : {'xl' : 4, 'lg': 4, 'md' : 3, 'sm' : 2, 'xs' : 1 },
+                                gaps : {'xl' : 15, 'lg': 15, 'md' : 15, 'sm' : 15, 'xs' : 15 },  
+                                template : 'woo/tease-category.twig', 
+                                posts :  categories,
+                                more : "",
+                                slider : {
+                                    pagination : true,
+                                    loop : false,
+                                    delay : 0,
+                                    autoplay: false,
+                                    effect : "slide"                
+                                }
+                            }
+                        %}
+                        <section class="row-page row-page-lg">
+                            <div class="container-fluid">
+                                {% include 'partials/sliders/slider-posts-vr.twig' with { vars : slider_args } %}
+                            </div>
+                        </section>
+
+                    {% endif %}
+
+                </div>
+        </div>
+
+    {% endif %}
+{% endblock %}

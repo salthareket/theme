@@ -1,0 +1,123 @@
+{# <?php #}
+
+{% extends "base.twig" %}
+
+{% set page_settings_default = {
+            full : true,
+            classes : {
+                body : "page-search",
+                main : "py-5",
+                container : "",
+                gap : "",
+            },
+            add_offcanvas : 0,
+            offcanvas : {
+                individual : false,
+                size : "md",
+                width : 3,
+                position : "start",
+                template : "",
+                title : "",
+            },
+            alert : {
+                type : "danger",
+                title : "",
+                message : "",
+                position : "bottom",
+                fixed : false,
+                class : "",
+                html : ""
+            },
+            paging : {
+                posts_per_page : 10,
+                page : 1
+            }
+        }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block sidebar_toggler %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+        {{ block("sidebar", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block before_container %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+        {{ block("before_container", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
+{% block shop_header %}
+{% endblock %}
+
+{% block hero %}
+{% endblock %}
+
+{% block hero_header %}
+{% endblock %}
+
+{% block content %}
+
+    <div class="card-search-results card-reset card container-lg">
+        <div class="card-header d-flex pb-5 text-center">
+            <h1 class="card-title">
+                {{title}}
+                <small class="d-block">
+                    {% if found_posts %}
+                        {{ translate_nooped_plural( _n_noop( '%s içerik bulundu.', '%s içerik bulundu.'), found_posts)|format(found_posts) }}
+                    {% endif %}
+                </small>
+            </h1>
+        </div>
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : "search", direction : "prev"} %}
+
+        <div class="card-body">
+            <div class="posts row row-cols-1 gy-3">
+                {% if found_posts %} 
+                    {% for post in posts %}
+                        <div class="col">
+                            {% include "search/tease.twig" %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col py-5">
+                        <div class="d-flex flex-column text-center">
+                            <i class="fa-light fa-face-sad-sweat opacity-25 fa-5x mb-3"></i>
+                            <h4>{{ translate("İçerik bulunamadı") }}</h4>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : "search", direction : "next"} %}
+
+        {# if pagination_terms or posts.pagination.current < posts.pagination.total %}
+        <div class="products-pagination next card-footer pt-5">
+            {% if pagination_terms %}
+                {% include 'pagination-terms.twig' with { prefs : pagination_terms, ajax : post_pagination.search.ajax, container : ".posts", direction : "next" } %}
+            {% else %}  
+                {% include 'pagination.twig' with { ajax : post_pagination.search.ajax, container : ".posts", direction : "next", total : posts.found_posts, initial: paged } %}
+            {% endif %}
+        </div>
+        {% endif #}
+
+    </div>
+
+{% endblock %}
+
+
+{% block bottom %}
+{% endblock %}

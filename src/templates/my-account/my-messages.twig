@@ -1,0 +1,78 @@
+{% if url_query_vars.chat  %}
+   {% set chatUser = TimberUser(url_query_vars.chat, "User") %}
+	<div class="card-container card card-reset">
+	    <div class="card-header">
+	        <h1 class="card-title card-title-sm">
+	            <a href="{{base_urls.messages}}"><i class="fa-regular fa-angle-left"></i> {{user.get_title}} vs. {{ chatUser.get_title }}</a>
+	            {% if description %}
+	            <small>{{description}}</small>
+	            {% endif %}
+	        </h1>
+	    </div>
+	    <div class="card-body">
+			<div class="card card-container-solid card-reset p-3">
+				<div class="card-header d-flex border-bottom pt-3 py-4 px-3">
+				    {% include "user/tease.twig" with { size : "xs", user_item: chatUser, title: false, rating: true, class: "m-0", application: false } %}
+				    <div class="action ms-auto">
+						<button type="button" class="btn btn-light -dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+							<i class="fa fa-ellipsis-v"></i>
+						</button>
+						<ul class="dropdown-menu dropdown-menu-end">
+							<li><a href="{{chatUser.link}}" class="dropdown-item">View Profile</a></li>
+							<li><a href="mailto:{{chatUser.user_email}}" class="dropdown-item">Send E-Mail</a></li>
+							<li><button class="dropdown-item" type="button">Something else here</button></li>
+						</ul>
+					</div>
+				</div>
+				<div class="card-body">
+		            {% set chatbox = '[yobro_chatbox user_id=' ~ url_query_vars.chat ~ ']' %}
+		            {{chatbox|shortcodes}}
+		            {{'<script>'}}
+				          function hashHandler(){
+				              this.oldQuerystring = window.location.search;
+				              this.Check;
+				              var that = this;
+				              var detect = function(){
+				                  if(window.location.search.indexOf("conversationId")){
+				                    history.replaceState(null, null, that.oldQuerystring);
+				                  }
+				              };
+				              this.Check = setInterval(function(){ detect() }, 100);
+				          }
+				          var hashDetection = new hashHandler();
+				    {{'</script>'}}
+				</div>
+			</div>
+		</div>
+	</div>
+
+{% else %}
+
+	<div class="card-container card-container-solid card card-reset">
+	    <div class="card-header">
+	        <h1 class="card-title">
+	            {{title}}
+	            {% if description %}
+	            <small>{{description}}</small>
+	            {% endif %}
+	        </h1>
+	    </div>
+	    <div class="card-body pt-4 pb-2">
+		    {% set messages = function('yobro_get_post_conversations', 0, user.id) %}
+		    {% if messages %}
+			    {% for message in messages %}
+			        {% set chatUserId = message.sender.id %}
+			        {% if message.sender.id == user.id %}
+			           	{% set chatUserId = message.reciever.id %}
+			        {% endif %}
+			        {% set sender = TimberUser(chatUserId, "User") %}
+			        {% include "partials/messages/tease.twig" with {sender: sender, message:message} %}
+			      {% endfor %}
+			{% else %}
+		        No any messages yet...
+			{% endif %}
+	    </div>
+	</div>
+
+{% endif %}
+

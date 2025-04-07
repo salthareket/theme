@@ -1,0 +1,53 @@
+{% block pagination %}
+	<nav class="pagination-container">
+		<ul class="pagination">
+		    {% if ajax %}
+
+		    	{% if prefs.total_page > 1 %}
+				    <li class="page-item next {{prefs.page < prefs.total_page ? '' : 'invisible'}}">
+						<a href="#" class="btn btn-primary btn-pagination-ajax" aria-label="Next" data-ajax-method="pagination_ajax" data-url="{{prefs.url}}page/" data-page="{{prefs.page}}" data-page-total="{{prefs.total_page}}" data-container="{{container}}">
+						    <span>Load More</span>
+						</a>
+				    </li>
+			    {% endif %}
+
+		    {% else %}
+
+			    {% if prefs.total_page > 1 %}
+				    <li class="page-item prev {{prefs.page > 1 ? '' : 'invisible'}}">
+				        {% if (prefs.page - 1) == 1 %}
+	                        {% set url = prefs.url %}
+	                    {% else %}
+	                    	{% set url = prefs.url ~ "page/" ~ (prefs.page-1) ~ "/" %}
+			        	{% endif %}
+					    <a href="{{url}}" class="page-link" aria-label="Previous">
+						   <span aria-hidden="true"></span>
+					    </a>
+				    </li>
+			    {% endif %}
+			    {% for page in 1..prefs.total_page %}
+				    <li class="page-item {{page == prefs.page ? 'active' : ''}}">
+				        {% if prefs.page != page %}
+				        	{% if page > 1 %}
+		                       {% set url = prefs.url %}
+		                    {% else %}
+		                    	{% set url = prefs.url ~ "page/" ~ page ~ "/" %}
+				        	{% endif %}
+				        	<a href="{{url}}" class="page-link">{{page}}</a>
+						{% else %}
+						    <span class="page-link">{{page}}</span>
+						{% endif %}
+					</li>
+			    {% endfor %}
+			    {% if prefs.total_page > 1 %}
+				    <li class="page-item next {{prefs.page < prefs.total_page ? '' : 'invisible'}}">
+						<a href="{{prefs.url}}page/{{ prefs.page + 1 }}/" class="page-link" aria-label="Next">
+						  <span aria-hidden="true"></span>
+						</a>
+				    </li>
+			    {% endif %}
+
+		    {% endif %}
+		</ul>
+	</nav>
+{% endblock %}
