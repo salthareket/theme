@@ -231,8 +231,8 @@ class Update {
                     <div class="alert alert-primary d-inline-block ms-auto me-auto py-3 px-5 mt-3 rounded-4 shadow">
                         <h5 class="fw-bold">Your theme's requirements</h5>
                         <hr>
-                        <div class="d-flex justify-content-center">
-                            <div class="form-check d-flex align-items-center">
+                        <div class="d-flex text-start row row-cols-2 row-cols-lg-4 row-cols-xl-5">
+                            <div class="ms-4 form-check d-flex align-items-center">
                                 <input class="form-check-input" type="checkbox" name="plugin_types" value="multilanguage" id="multilanguageSwitch">
                                 <label class="form-check-label ms-2" for="multilanguageSwitch">Multilanguage</label>
                             </div>
