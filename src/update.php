@@ -264,6 +264,10 @@ class Update {
                                 <input class="form-check-input" type="checkbox" name="plugin_types" value="cookie" id="cookieSwitch">
                                 <label class="form-check-label ms-2" for="cookieSwitch">Cookie Consent</label>
                             </div>
+                            <div class="ms-4 form-check d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" name="plugin_types" value="security" id="securitySwitch">
+                                <label class="form-check-label ms-2" for="securitySwitch">Security</label>
+                            </div>
                         </div>
                     </div>
 

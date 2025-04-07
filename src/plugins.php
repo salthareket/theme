@@ -89,6 +89,14 @@ $required_plugins = array(
         "type" => ["cookie"],
         "name" => 'complianz-gdpr/complianz-gpdr.php'
     ),
+    array(
+        "type" => ["security"],
+        "name" => 'wordfence/wordfence.php'
+    ),
+    array(
+        "type" => ["security"],
+        "name" => 'wp-hide-security-enhancer/wp-hide.php'
+    ),
 );
 if(ACTIVATE_UNDER_CONSTRUCTION){
     //$required_plugins[] = 'underconstruction/underConstruction.php';
