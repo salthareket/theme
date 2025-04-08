@@ -181,3 +181,21 @@ function timber_add_filter($filter, $value){
 		return $value;
 	});
 }
+
+function get_timber_template_path( $path ) {
+    $locations = \Timber::$dirname;
+    foreach ( $locations as $location ) {
+        $base_path = trailingslashit( get_stylesheet_directory() ) . trailingslashit( $location );
+        $full_path = $base_path . $path;
+        if ( file_exists( $full_path ) && pathinfo( $full_path, PATHINFO_EXTENSION ) === 'twig' ) {
+            return $full_path;
+        }
+        if ( is_dir( $full_path ) ) {
+            $files = glob( trailingslashit( $full_path ) . '*.twig' );
+            if ( ! empty( $files ) ) {
+                return $full_path;
+            }
+        }
+    }
+    return false;
+}

@@ -1535,21 +1535,24 @@ function acf_add_field_options($field) {
     }
 
     if(in_array("acf-template-modal", $class)){
-        $handle = get_stylesheet_directory() . "/templates/partials/modals";
-        $templates = array();// scandir($handle);
-        if ($handle = opendir($handle)) {
-            while (false !== ($entry = readdir($handle))) {
-                if ($entry != "." && $entry != "..") {
-                    $templates[] = $entry;
+        //$handle = get_stylesheet_directory() . "/templates/partials/modals";
+        $handle = get_timber_template_path( "/partials/modals/" );
+        $templates = array();
+        if($handle){
+            if ($handle = opendir($handle)) {
+                while (false !== ($entry = readdir($handle))) {
+                    if ($entry != "." && $entry != "..") {
+                        $templates[] = $entry;
+                    }
                 }
-            }
-            closedir($handle);
+                closedir($handle);
+            }            
         }
         $field['choices'] = array();
         if( is_array($templates) ) {
             foreach( $templates as $template ) {
                 $template = str_replace(".twig", "", $template);
-                $field['choices'][ "templates/partials/modals/".$template ] = $template;
+                $field['choices'][ "/partials/modals/".$template ] = $template;
             }        
         }
     }
@@ -1939,20 +1942,23 @@ add_filter('acf/load_field', 'acf_add_field_options');
 
 add_filter('acf/load_field/key=field_6425cced6668a', 'acf_load_offcanvas_template_files');
 function acf_load_offcanvas_template_files( $field ) {
-    $handle = get_stylesheet_directory() . "/templates/partials/offcanvas/";
-    $templates = array();// scandir($handle);
-    if ($handle = opendir($handle)) {
-        while (false !== ($entry = readdir($handle))) {
-            if ($entry != "." && $entry != "..") {
-                $templates[] = $entry;
+    //$handle = get_stylesheet_directory() . "/templates/partials/offcanvas/";
+    $handle = get_timber_template_path( "/partials/offcanvas/" );
+    $templates = array();
+    if($handle){
+        if ($handle = opendir($handle)) {
+            while (false !== ($entry = readdir($handle))) {
+                if ($entry != "." && $entry != "..") {
+                    $templates[] = $entry;
+                }
             }
+            closedir($handle);
         }
-        closedir($handle);
     }
     $field['choices'] = array();
     if( is_array($templates) ) {
         foreach( $templates as $template ) {
-            $field['choices'][ "/templates/partials/offcanvas/".$template ] = $template;
+            $field['choices'][ "/partials/offcanvas/".$template ] = $template;
         }        
     }
     return $field;

@@ -65,6 +65,7 @@ $removeUnusedCss = new \Momentum81\PhpRemoveUnusedCss\RemoveUnusedCssBasic();
                 )
                 ->htmlFiles(
                     get_template_directory() . '/templates/**/*.twig',
+                    SH_PATH . '/templates/**/*.twig',
                     get_template_directory() . '/static/js/**/*.js',
                     get_template_directory() . '**/*.php',
                     WP_PLUGIN_DIR  . '**/*.php'
