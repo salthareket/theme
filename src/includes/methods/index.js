@@ -143,7 +143,3 @@ return!1}
 if(response.data.hasOwnProperty("content")){modal.find(".modal-content").html(response.data.content)}else{if(response.data.hasOwnProperty("title")){modal.find(".modal-title").html(response.data.title)}
 if(response.data.hasOwnProperty("body")){modal.find(".modal-body").html(response.data.body)}}
 modal.removeClass("loading");init_functions()}};
-ajax_hooks['custom_track_product_view'] = {init:function($vars){var query=new ajax_query();query.method="custom_track_product_view";query.vars=$vars;query.request()}};
-ajax_hooks['pay_now'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){response_view(response)}};
-ajax_hooks['salt_recently_viewed_products'] = {init:function($vars){var query=new ajax_query();query.method="salt_recently_viewed_products";query.vars=$vars;query.request()},after:function(response,vars,form,objs){$("#"+vars.id).html(response.html).removeClass("loading")
-if(response.html){init_swiper()}}};

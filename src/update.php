@@ -1449,6 +1449,9 @@ class Update {
         if (defined("WP_ROCKET_VERSION")) {
             self::wprocket_load_settings();
         }
+        if (\PluginManager::is_plugin_installed("wp-hide-security-enhancer-pro/wp-hide.php")) {
+            self::wph_load_settings();
+        }
     }
 
 
@@ -1949,6 +1952,23 @@ class Update {
         if (function_exists('rocket_regenerate_configuration')) {
             rocket_regenerate_configuration();
             error_log('WP Rocket yapılandırma dosyaları yeniden oluşturuldu!');
+        }
+    }
+    private static function wph_load_settings() {
+        $wph_settings = get_option("wph_settings");
+        $settings_path = SH_PATH . "content/wph-settings.json";
+        if ($wph_settings && file_exists($settings_path)) {
+            $settings_json = file_get_contents($settings_path);
+            $settings_data = json_decode($settings_json, true);
+            if (is_array($settings_data)) {
+                $wph_settings["module_settings"] = $settings_data;
+                update_option("wph_settings", $wph_settings);
+                error_log('WP Rocket ayarları başarıyla yüklendi!');
+            } else {
+                error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
+            }
+        } else {
+            error_log('Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
         }
     }
 
