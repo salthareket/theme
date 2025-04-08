@@ -166,18 +166,6 @@ function plyr_init($obj){
 		  	const instance = e.detail.plyr;
 		  	const config = instance.config;
 
-		  	/*if ($obj.find(".plyr__video-embed").length) {
-                //lazyLoadBg($obj.find(".plyr__poster"));
-                //lazyLoadIframe($obj);
-                const videoData = instance.source;
-			    console.log(videoData);
-			    const videoTitle = videoData.title;
-			    if (videoTitle) {
-			        const iframe = instance.elements.container.querySelector('iframe');
-			        iframe.setAttribute('title', videoTitle);
-			    }
-            }*/
-
             $obj.find(">.plyr__poster").remove();
             
             if(type == "video"){
