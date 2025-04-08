@@ -269,6 +269,30 @@
             "button_ajax": 0,
             "translations": "copy_once",
             "allow_in_bindings": 0
+        },
+        {
+            "key": "field_67f53a812dee5",
+            "label": "Set Default Security Settings",
+            "name": "wph_settings",
+            "aria-label": "",
+            "type": "acfe_button",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "button_value": "Set Default Settings",
+            "button_type": "button",
+            "button_class": "button button-secondary",
+            "button_id": "",
+            "button_before": "",
+            "button_after": "",
+            "button_ajax": 0,
+            "translations": "copy_once",
+            "allow_in_bindings": 0
         }
     ],
     "location": [
@@ -296,7 +320,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1739392458,
+    "modified": 1744126098,
     "acfe_categories": {
         "general": "General"
     }
