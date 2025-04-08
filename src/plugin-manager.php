@@ -363,7 +363,7 @@ class PluginManager {
     }
 
     // Check if a plugin is installed
-    private static function is_plugin_installed($plugin_name) {
+    public static function is_plugin_installed($plugin_name) {
         $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_name;
         if (file_exists($plugin_path)) {
             error_log("Plugin zaten yüklü: " . $plugin_name);

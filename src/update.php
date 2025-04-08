@@ -1947,28 +1947,30 @@ class Update {
                 error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
             }
         } else {
-            error_log('Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
+            error_log('WP Rocket Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
         }
         if (function_exists('rocket_regenerate_configuration')) {
             rocket_regenerate_configuration();
             error_log('WP Rocket yapılandırma dosyaları yeniden oluşturuldu!');
         }
     }
-    private static function wph_load_settings() {
+    public static function wph_load_settings() {
         $wph_settings = get_option("wph_settings");
         $settings_path = SH_PATH . "content/wph-settings.json";
         if ($wph_settings && file_exists($settings_path)) {
             $settings_json = file_get_contents($settings_path);
+            $text_domain = basename(get_template_directory());
+            $settings_json = str_replace("{text_domain}", $text_domain, $settings_json);
             $settings_data = json_decode($settings_json, true);
             if (is_array($settings_data)) {
                 $wph_settings["module_settings"] = $settings_data;
                 update_option("wph_settings", $wph_settings);
-                error_log('WP Rocket ayarları başarıyla yüklendi!');
+                error_log('WPH ayarları başarıyla yüklendi!');
             } else {
                 error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
             }
         } else {
-            error_log('Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
+            error_log('WPH Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
         }
     }
 

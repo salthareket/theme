@@ -4349,3 +4349,61 @@ add_filter('acf/load_value/key=field_66f9e4ca18b79', 'sync_acf_with_post_meta', 
 add_filter('acf/load_value/key=field_663f74df3ea87', 'sync_acf_with_post_meta', 10, 3);
 add_filter('acf/load_value/key=field_664210041992f', 'sync_acf_with_post_meta', 10, 3);
 add_filter('acf/load_value/key=field_6798cd6f61a0f', 'sync_acf_with_post_meta', 10, 3);
+
+
+
+add_filter('acf/load_field/name=wph_settings', 'acf_general_option_wph_settings');
+function acf_general_option_wph_settings($field) {
+    if (!\PluginManager::is_plugin_installed("wp-hide-security-enhancer-pro/wp-hide.php")) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
+}
+
+add_action('wp_ajax_acf_wph_settings', 'acf_wph_settings');
+add_action('wp_ajax_nopriv_acf_wph_settings', 'acf_wph_settings');
+function acf_wph_settings() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Unauthorized']);
+        exit;
+    }
+    \Update::wph_load_settings();
+    wp_send_json_success(["message" => "Settings applied!"]);
+}
+add_action('admin_footer', function () {
+    if (!is_admin()) {
+        return;
+    }
+    ?>
+    <script>
+        jQuery(document).ready(function ($) {
+            $('[data-name="wph_settings"] button').on('click', function (e) {
+                e.preventDefault();
+                var $button = $(this);
+                $button.prop('disabled', true).text('Applying...');
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'acf_wph_settings'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            alert(response.data.message);
+                        } else {
+                            alert('Error: ' + response.data.message);
+                        }
+                        $button.prop('disabled', false).text('Set Default Settings');
+                    },
+                    error: function () {
+                        alert('An unexpected error occurred.');
+                        $button.prop('disabled', false).text('Set Default Settings');
+                    }
+                });
+            });
+        });
+    </script>
+    <?php
+});
