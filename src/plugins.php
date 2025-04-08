@@ -93,10 +93,6 @@ $required_plugins = array(
         "type" => ["security"],
         "name" => 'wordfence/wordfence.php'
     ),
-    array(
-        "type" => ["security"],
-        "name" => 'wp-hide-security-enhancer/wp-hide.php'
-    ),
 );
 if(ACTIVATE_UNDER_CONSTRUCTION){
     //$required_plugins[] = 'underconstruction/underConstruction.php';
@@ -174,4 +170,11 @@ $required_plugins_local[] = array(
     "name" => "clear-cache-for-timber/clear-cache-for-timber.php",
     "file" => "clear-cache-for-timber"
 );
+$required_plugins_local[] = array(
+    "type" => ["security"],
+    "v" => "7.7.2",
+    "name" => "wp-hide-security-enhancer-pro/wp-hide.php",
+    "file" => "wp-hide-security-enhancer-pro"
+);
+
 $GLOBALS["plugins_local"] = $required_plugins_local;
