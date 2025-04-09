@@ -449,12 +449,12 @@ class RemoveUnusedCss {
 
         // Eğer selector ':' ile başlıyorsa doğrudan kabul et
         if (strpos($selector, ':') === 0) {
-            error_log("found: ".$selector);
+            //error_log("found: ".$selector);
             return true;
         }
 
         if(preg_match('/^\s*@supports\s+/i', ltrim($selector))){
-            error_log("found: ".$selector);
+            //error_log("found: ".$selector);
             return true;
         }
         
@@ -463,13 +463,13 @@ class RemoveUnusedCss {
                 $whitelist_pattern = str_replace('*', '.*', preg_quote($whitelist_class, '/'));
                 if (preg_match('/' . $whitelist_pattern . '/', $selector)) {
                     //error_log(" wildcard: ".$selector);
-                    error_log("found: ".$selector);
+                    //error_log("found: ".$selector);
                     return true;
                 }
             }
             $pattern = '/(^|\s|\+|>|\:)' . preg_quote($whitelist_class, '/') . '(\s|\+|>|\:|$)/';
             if (preg_match($pattern, $selector)) {
-                error_log("found: ".$selector);
+                //error_log("found: ".$selector);
                 return true;
             }
         }
@@ -480,9 +480,9 @@ class RemoveUnusedCss {
         $elements = $dom->find($selector);
         if (!$elements || count($elements) === 0) {
             $found = false;
-            error_log("not found: ".$selector);
+            //error_log("not found: ".$selector);
         }else{
-            error_log("found: ".$selector);
+            //error_log("found: ".$selector);
         }
         return $found;
     }
