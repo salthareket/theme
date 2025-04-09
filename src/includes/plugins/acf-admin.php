@@ -2314,14 +2314,37 @@ class UpdateFlexibleFieldLayouts {
         }
     }
 
+    public function clear_cache(){
+        if ( function_exists('acf_get_field_groups') ) {
+            // Tüm field group'ları al
+            $field_groups = acf_get_field_groups();
+            foreach ( $field_groups as $group ) {
+                if ( isset($group['key']) ) {
+                    acf_flush_field_cache( $group['key'] );
+                }
+                // Grup içindeki field'ları da al ve temizle
+                $fields = acf_get_fields( $group['key'] );
+                if ( $fields ) {
+                    foreach ( $fields as $field ) {
+                        if ( isset($field['key']) ) {
+                            acf_flush_field_cache( $field['key'], 'field' );
+                        }
+                    }
+                }
+            }
+            error_log('🔥 ACF field ve field group cache\'leri temizlendi.');
+        }
+    }
+
     public function update_cache() {
         if ($this->post_id) {
             acf_save_post_block_columns_action($this->post_id);
 
+            // ACF Cache'i temizle
+            $this->clear_cache();
+
             // Alan grubunu yeniden yükle
             if($this->field_key){
-                // ACF Cache'i temizle
-                acf_flush_field_cache($this->field_key);
                 acf_import_field_group(acf_get_field_group($this->field_key));             
             }
 
