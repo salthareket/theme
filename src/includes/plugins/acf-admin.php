@@ -2341,7 +2341,7 @@ class UpdateFlexibleFieldLayouts {
             acf_save_post_block_columns_action($this->post_id);
 
             // ACF Cache'i temizle
-            $this->clear_cache();
+            //$this->clear_cache();
 
             // Alan grubunu yeniden yükle
             if($this->field_key){
