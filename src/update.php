@@ -996,8 +996,34 @@ class Update {
     }
 
 
+    private static function allow_git_safe_directories() {
+        $vendorDir = get_template_directory() . '/vendor';
+
+        if (!is_dir($vendorDir)) {
+            return;
+        }
+
+        $directories = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($vendorDir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($directories as $dir) {
+            if ($dir->isDir() && file_exists($dir->getPathname() . '/.git')) {
+                $gitPath = $dir->getPathname();
+                exec('git config --global --add safe.directory "' . $gitPath . '"');
+                error_log("✅ Güvenli git klasörü eklendi: " . $gitPath);
+            }
+        }
+    }
+
+
+
     public static function composer($package_name="", $remove = false) {
         error_log("composer calıstıııııı -> ".$package_name);
+
+        self::allow_git_safe_directories();
+
         try {
 
             if (!file_exists(self::$composer_path)) {
