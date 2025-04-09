@@ -2318,11 +2318,10 @@ class UpdateFlexibleFieldLayouts {
         if ($this->post_id) {
             acf_save_post_block_columns_action($this->post_id);
 
-            // ACF Cache'i temizle
-            acf_flush_field_cache();
-
             // Alan grubunu yeniden yükle
             if($this->field_key){
+                // ACF Cache'i temizle
+                acf_flush_field_cache($this->field_key);
                 acf_import_field_group(acf_get_field_group($this->field_key));             
             }
 
