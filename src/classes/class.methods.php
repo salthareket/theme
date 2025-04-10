@@ -55,9 +55,11 @@ class MethodClass {
 
         // Kod hatalarını kontrol et
         $errors = [];
-        if($this->checkForSyntaxErrors($tempPhpFilePath)){
-            unlink($tempPhpFilePath);
-            $errors = $this->checkForSyntaxErrors($storeDir);
+        if(isLocalhost()){
+            if($this->checkForSyntaxErrors($tempPhpFilePath)){
+                unlink($tempPhpFilePath);
+                $errors = $this->checkForSyntaxErrors($storeDir);
+            }
         }
 
         if (!$errors) {
@@ -257,43 +259,7 @@ class MethodClass {
             return "});\n";
         }
     }
-    /*
-    public function checkForSyntaxErrors($file) {
-        $fileList = [$file];
-        chdir(get_stylesheet_directory()."/vendor/bin/");
-        //error_log(get_stylesheet_directory()."/vendor/bin/");
-        $command = 'parallel-lint';
-        $options = [
-            '-e' => 'php',
-            '--exclude' => '.git', // .git ve vendor dizinlerini hariç tut
-            '--colors' => null, // Renkli çıktı kullan
-            '--no-progress' => null, // İlerleme çubuğunu kapat
-            '--json' => null
-        ];
-        $arguments = [];
-        foreach ($options as $option => $value) {
-            if ($value === null) {
-                $arguments[] = $option;
-            } else {
-                $arguments[] = $option . ' ' . escapeshellarg($value);
-            }
-        }
-        $arguments[] = implode(' ', array_map('escapeshellarg', $fileList));
-        $output = [];
-        $returnCode = 0;
-        //error_log($command . ' ' . implode(' ', $arguments));
-        exec($command . ' ' . implode(' ', $arguments), $output, $returnCode);
-        //$outputContent = implode(PHP_EOL, $output);
-       error_log(json_encode($output));
-        $errors = [];
-        if($output && isset($output[0])){
-            $output = json_decode($output[0], true);
-            $errors = $output["results"]["errors"];            
-        }
-        error_log(json_encode($output));
-        return $errors;
-    }
-    */
+
     public function checkForSyntaxErrors($file) {
 
         $vendorPath = get_stylesheet_directory() . '/vendor/bin'; // Projenin vendor/bin dizini

@@ -73,7 +73,7 @@ class Update {
         self::check_installation();
     }
 
-    private static function check_installation(){
+    /*private static function check_installation(){
         if (!(defined('DOING_AJAX') && DOING_AJAX)) {
             $status = self::$status;
             $tasks_status = self::$tasks_status;
@@ -112,7 +112,55 @@ class Update {
                 }
             }
         }
+    }*/
+
+    private static function check_installation(){
+        if (!(defined('DOING_AJAX') && DOING_AJAX)) {
+            $status = self::$status;
+            $tasks_status = self::$tasks_status;
+
+            if (empty($status)) {
+                $status = "pending";
+                $tasks_status = [];
+                add_option('sh_theme_status', $status);
+                add_option('sh_theme_tasks_status', $tasks_status);
+            } else {
+                if (count(self::$installation_tasks) > count($tasks_status)) {
+                    $status = "pending";
+                    $tasks_status = [];
+                    update_option('sh_theme_status', $status);
+                    update_option('sh_theme_tasks_status', $tasks_status);
+                }
+            }
+
+            self::$status = $status;
+            self::$tasks_status = $tasks_status;
+
+            if ($status === 'pending' || !$status) {
+                if (is_admin()) {
+                    $current_page = $_GET['page'] ?? '';
+                    if ($current_page !== 'update-theme') {
+                        wp_safe_redirect(admin_url('admin.php?page=update-theme'));
+                        exit;
+                    }
+                } else {
+                    $uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+                    $is_asset = preg_match('/\.(js|css|jpg|jpeg|png|svg|woff2?|ttf|eot|gif|webp)$/i', $uri_path);
+                    $is_rest_api = strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false;
+
+                    if (!$is_asset && !$is_rest_api && !is_login_page()) {
+                        wp_die(
+                            sprintf(
+                                '<h2 class="text-danger">Warning</h2>The theme setup is not complete. Please complete the installation from the <a href="%s">update page</a>.',
+                                esc_url(admin_url('admin.php?page=update-theme'))
+                            )
+                        );
+                    }
+                }
+            }
+        }
     }
+
 
 
     private static function get_package_version($package_name) {
@@ -1420,6 +1468,11 @@ class Update {
         if (!file_exists($workingDir .'package.json')) {
             self::fileCopy(SH_PATH . "content/package.json", $workingDir .'package.json');
         }
+        
+        if(!isLocalhost()){
+           return true;
+        }
+
         $command = ['npm', 'install'];
         $process = new Process($command, $workingDir);
         $currentUser = getenv('USERNAME') ?: getenv('USER'); // Windows için USERNAME, diğer sistemlerde USER
@@ -2006,7 +2059,7 @@ class Update {
 
 
     private static function enqueue_update_script() {
-        wp_enqueue_script(
+        /*wp_enqueue_script(
             'theme-update-script',
             get_template_directory_uri() . '/vendor/salthareket/theme/src/js/update.js',
             ['jquery'],
@@ -2025,5 +2078,27 @@ class Update {
             $args["tasks"] = self::$update_tasks;
         }
         wp_localize_script('theme-update-script', 'updateAjax', $args);
-    }
+        */
+        $update_js_path = get_template_directory() . '/vendor/salthareket/theme/src/js/update.js';
+
+        if (file_exists($update_js_path)) {
+            echo '<script>';
+            readfile($update_js_path);
+            echo '</script>';
+        } else {
+            echo '<script>console.error("update.js not found.");</script>';
+        }
+
+        // wp_localize_script karşılığı olarak verileri göm
+        ?>
+        <script>
+            const updateAjax = {
+                ajax_url: "<?= esc_url(admin_url('admin-ajax.php')) ?>",
+                nonce: "<?= esc_js(wp_create_nonce('update_theme_nonce')) ?>",
+                status: "<?= esc_js(self::$status) ?>",
+                tasks: <?= json_encode(self::$status === 'pending' ? self::$installation_tasks : self::$update_tasks) ?>
+            };
+        </script>
+        <?php
+     }
 }

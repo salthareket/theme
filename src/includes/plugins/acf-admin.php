@@ -2847,7 +2847,7 @@ function acf_compile_js_css($value=0){
                 rocket_clean_minify();
             }
 
-            $is_development = is_admin() && ($_SERVER["SERVER_ADDR"] == "127.0.0.1" || $_SERVER["SERVER_ADDR"] == "localhost" || $_SERVER["SERVER_ADDR"] == "::1");
+            $is_development = is_admin() && isLocalhost();
     
             
             // compile js files and css files

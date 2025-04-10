@@ -366,13 +366,53 @@ function isCurrentEndpoint($url = "") {
     return Timber\URLHelper::get_params(-1)==$endpoint?true:false;
 }
 
-function isLocalhost(){
+/*function isLocalhost(){
 	$whitelist = array(
 	    '127.0.0.1',
 	    '::1'
 	);
 	return in_array($_SERVER['REMOTE_ADDR'], $whitelist);
+}*/
+
+function isLocalhost() {
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+    $serverAddr = $_SERVER['SERVER_ADDR'] ?? '';
+
+    $local_ips = [
+        '127.0.0.1',
+        '::1',
+        'localhost'
+    ];
+
+    // Private network aralıkları
+    $private_ranges = [
+        '10.0.0.0/8',
+        '172.16.0.0/12',
+        '192.168.0.0/16'
+    ];
+
+    // IP'yi CIDR aralığında kontrol eden fonksiyon
+    $inPrivateRange = function ($ip) use ($private_ranges) {
+        foreach ($private_ranges as $cidr) {
+            list($subnet, $mask) = explode('/', $cidr);
+            if ((ip2long($ip) & ~((1 << (32 - $mask)) - 1)) === (ip2long($subnet) & ~((1 << (32 - $mask)) - 1))) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    if (in_array($remoteAddr, $local_ips) || in_array($serverAddr, $local_ips)) {
+        return true;
+    }
+
+    if ($inPrivateRange($remoteAddr) || $inPrivateRange($serverAddr)) {
+        return true;
+    }
+
+    return false;
 }
+
 
 function queryStringJSON(){
 	//if(empty($querystring)){
