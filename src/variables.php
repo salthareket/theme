@@ -26,11 +26,7 @@ define('THEME_STATIC_PATH',    get_template_directory() . '/theme/static/');
 define('THEME_INCLUDES_URL',  get_template_directory_uri() . '/theme/includes/');
 define('THEME_STATIC_URL',     get_template_directory_uri() . "/theme/static/");
 
-if(isLocalhost()){
-    define('NODE_MODULES_PATH', get_home_path() .'node_modules/'); 
-}else{
-    define('NODE_MODULES_PATH', SH_STATIC_PATH .'node_modules/'); 
-}
+
 
 define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
 //define('SH_THEME_EXISTS', in_array("copy_theme", array_keys(get_option('sh_theme_tasks_status', []))));
@@ -482,6 +478,12 @@ $GLOBALS["base_urls"] = array();
     ];
 //}
 */
+
+if(isLocalhost()){
+    define('NODE_MODULES_PATH', get_home_path() .'node_modules/'); 
+}else{
+    define('NODE_MODULES_PATH', SH_STATIC_PATH .'node_modules/'); 
+}
 
 
 if(SH_THEME_EXISTS){
