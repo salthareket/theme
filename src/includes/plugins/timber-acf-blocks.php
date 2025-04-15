@@ -2596,10 +2596,10 @@ function block_bg_image($block, $fields, $block_column){
                     if($image_style){
                         $args["attrs"]["style"] = $image_style;
                     }
-                    $lcp = new \Lcp();
+                    /*$lcp = new \Lcp();
                     if($lcp->is_lcp($background["image_responsive"])){
                         $args["lcp"] = true;
-                    }
+                    }*/
                     $image .= get_image_set($args);
                 }
             }

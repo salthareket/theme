@@ -21,7 +21,30 @@ function remove_jquery_migrate($scripts) {
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
 
+
+
+function inline_css($file) {
+    $css = file_get_contents($file);
+    $uri = dirname(str_replace(get_template_directory(), get_template_directory_uri(), $file));
+    return preg_replace_callback('/url\((\'|")?(?!https?:|data:|\/)([^)\'"]+)(\'|")?\)/i', function($m) use ($uri) {
+        return "url('{$uri}/{$m[2]}')";
+    }, $css);
+}
+
+
+function delay_css_loading($html, $handle) {
+    $delayed_styles = ['icons'];
+    if (in_array($handle, $delayed_styles)) {
+    	$html = str_replace("media=''", "media='print' onload=\"this.media='all'\"", $html);
+    }
+    return $html;
+}
+add_filter('style_loader_tag', 'delay_css_loading', 10, 2);
+
+
 function frontend_header_styles(){
+
+	$print_css = true;
 
 	$css_path = get_stylesheet_directory() . '/static/css/main.css';
 	$version = filemtime($css_path);
@@ -93,37 +116,58 @@ function frontend_header_styles(){
 
     //$css_conditional = [];
 	//$css_conditional_rtl = [];
+
+
+
 	$plugin_css = false;
     if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !isset($_GET['fetch'])){
     	if(!empty(SITE_ASSETS["plugin_css"])){
-    		wp_register_style('css-conditional', STATIC_URL . SITE_ASSETS["plugin_css"], array(), $version, '');
-    		wp_register_style('css-conditional-rtl', STATIC_URL . SITE_ASSETS["plugin_css_rtl"], array(), $version, '');
     		$plugin_css = true;
     	}
     }
 
-    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS['css_page']) && !empty(SITE_ASSETS['css_page']) && file_exists(STATIC_PATH . SITE_ASSETS["css_page"])){
-        wp_register_style('main', STATIC_URL . SITE_ASSETS["css_page"], array(), $version, '');
-        wp_register_style('main-rtl', STATIC_URL . SITE_ASSETS["css_page_rtl"], array(), $version, '');
-    }else{
-    	wp_register_style('main', STATIC_URL . 'css/main-combined.css', array(), $version, '');
-    	wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
-    }
 
-    wp_enqueue_style('locale');
-    
-    if(is_rtl() || $GLOBALS["language"] == "fa"){
-		if($plugin_css){
-			wp_enqueue_style('css-conditional-rtl');
-		}
-		wp_enqueue_style('main-rtl');
-    }else{
-		if($plugin_css){
-	       wp_enqueue_style('css-conditional');
+    wp_register_style('icons', STATIC_URL . 'css/icons.css', array(), $version, '');
+    wp_enqueue_style('icons');
+
+
+
+    if(!$print_css){
+    	if($plugin_css){
+    		wp_register_style('css-conditional', STATIC_URL . SITE_ASSETS["plugin_css"], array(), $version, '');
+    		wp_register_style('css-conditional-rtl', STATIC_URL . SITE_ASSETS["plugin_css_rtl"], array(), $version, '');
+    	}
+	    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS['css_page']) && !empty(SITE_ASSETS['css_page']) && file_exists(STATIC_PATH . SITE_ASSETS["css_page"])){
+	        wp_register_style('main', STATIC_URL . SITE_ASSETS["css_page"], array(), $version, '');
+	        wp_register_style('main-rtl', STATIC_URL . SITE_ASSETS["css_page_rtl"], array(), $version, '');
+	    }else{
+	    	wp_register_style('main', STATIC_URL . 'css/main-combined.css', array(), $version, '');
+	    	wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
 	    }
-		wp_enqueue_style('main');
-
+	    wp_enqueue_style('locale');
+	    if(is_rtl() || $GLOBALS["language"] == "fa"){
+			if($plugin_css){
+				wp_enqueue_style('css-conditional-rtl');
+			}
+			wp_enqueue_style('main-rtl');
+	    }else{
+			if($plugin_css){
+		       wp_enqueue_style('css-conditional');
+		    }
+			wp_enqueue_style('main');
+	    }
+    }else{
+	    wp_register_style( 'css-conditional', false );
+		wp_enqueue_style( 'css-conditional' );
+		$code = inline_css(STATIC_URL . SITE_ASSETS["plugin_css"]);
+		wp_add_inline_style( 'css-conditional', $code); 
+		
+	    wp_register_style( 'main', false );
+		wp_enqueue_style( 'main' );
+		$code = inline_css(STATIC_URL . SITE_ASSETS["css_page"]);
+		wp_add_inline_style( 'main', $code);
     }
+
 }
 function frontend_header_scripts(){
 	wp_deregister_script('jquery');
