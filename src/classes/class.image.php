@@ -9,7 +9,7 @@ Class Image{
         'id' => null,
         'class' => '',
         'style' => '',
-        'lazy' => false,
+        'lazy' => true,
         'lazy_native' => false,
         'width' => null,
         'height' => null,
@@ -40,6 +40,10 @@ Class Image{
         $this->breakpoints = array_reverse($GLOBALS["breakpoints"]);
 
         $this->args = array_merge($this->defaults, $args);
+
+        if(!isset($this->args["attrs"])){
+            $this->args["attrs"] = [];
+        }
         
         if (empty($this->args['src'])) {
             $this->not_found();
@@ -51,16 +55,18 @@ Class Image{
             $this->args["lazy_native"] = false;
         }else{
             if(image_is_lcp($this->args['src'])){
-                $this->args["lcp"] = false;
+                $this->args["lcp"] = true;
                 $this->args["lazy"] = false;
                 $this->args["lazy_native"] = false;
+                $this->args["attrs"]["fetchpriority"] = "high";
+                $this->args["attrs"]["loading"] = "eager";
             }
-            if($this->args["lcp"]){
+            /*if($this->args["lcp"]){
                $this->args["lazy"] = false;
                $this->args["lazy_native"] = false;
                $this->args["attrs"]["fetchpriority"] = "high";
                $this->args["attrs"]["loading"] = "eager";
-            }            
+            }*/          
         }
 
         $this->prefix = $this->args["lazy"]?"data-":"";

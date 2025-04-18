@@ -42,6 +42,11 @@ class Lcp{
 	            $preload .= 'as="'.$lcp["type"].'" href="'.$lcp["url"].'" ';
 	            $preload .= 'importance="high" fetchpriority="high" media="('.($key=="mobile"?"max-width: 768px":"min-width: 769px").')">' . "\n";               
 	        }
+	        /*if(!empty($lcp["url"])){
+	            $preload .= '<link rel="preload" ';
+	            $preload .= 'as="'.$lcp["type"].'" href="'.$lcp["url"].'" ';
+	            $preload .= 'importance="high" fetchpriority="high">' . "\n";               
+	        }*/
 	    }
 	    
 	    if(!empty($preload)){

@@ -173,3 +173,24 @@ function json_attr($json){
 	$json = wp_json_encode($json);
 	return esc_attr($json);
 }
+
+
+function camel2Dashes($str, $separator = "-"){
+    if (empty($str)) {
+        return $str;
+    }
+    $str = lcfirst($str);
+    $str = preg_replace("/[A-Z]/", $separator . "$0", $str);
+    return strtolower($str);
+}
+function dashes2Camel($string, $capitalizeFirstCharacter = false) {
+	if (empty($string)) {
+        return $string;
+    }
+    $seperator = instr("-", $string)?"-":"_";
+    $str = str_replace($seperator, '', ucwords($string, $seperator));
+    if (!$capitalizeFirstCharacter) {
+        $str = lcfirst($str);
+    }
+    return $str;
+}

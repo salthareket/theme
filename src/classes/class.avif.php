@@ -42,18 +42,18 @@ class AvifConverter {
         }
         
         $converted_file = $this->convertToAvif($file['file']);
-        
         if ($converted_file) {
             $this->updateImageMeta($file['file'], $converted_file);
             $file['file'] = $converted_file;
             $file['url'] = str_replace(wp_basename($file['url']), wp_basename($converted_file), $file['url']);
-            $file['type'] = 'image/avif'; // MIME türünü AVIF olarak ayarla
+            //$file['type'] = 'image/avif'; // MIME türünü AVIF olarak ayarla
+            $file['type'] = mime_content_type($converted_file);
         }
 
         return $file;
     }
 
-    public function convertToAvif($file_path) {
+    /*public function convertToAvif($file_path) {
         $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
 
         if (in_array($extension, ['avif', 'webp'])) {
@@ -103,7 +103,82 @@ class AvifConverter {
             error_log('AVIF dönüştürme hatası: ' . $e->getMessage());
             return false;
         }
+    }*/
+
+    public function convertToAvif($file_path) {
+        $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['avif', 'webp'])) {
+            return $file_path;
+        }
+
+        if (!in_array($extension, $this->allowed_formats)) {
+            return false;
+        }
+
+        $has_alpha = false;
+
+        try {
+            if (class_exists('Imagick')) {
+                $imagick = new Imagick($file_path);
+                $has_alpha = $imagick->getImageAlphaChannel() != Imagick::ALPHACHANNEL_UNDEFINED;
+
+                // WebP mi AVIF mi?
+                $new_ext = $has_alpha ? 'webp' : 'avif';
+                $converted_path = preg_replace('/\.' . $extension . '$/', '.' . $new_ext, $file_path);
+
+                $imagick->setImageFormat($new_ext);
+                $imagick->setImageCompressionQuality($this->quality);
+
+                if ($has_alpha) {
+                    $imagick->setImageAlphaChannel(Imagick::ALPHACHANNEL_ACTIVATE);
+                    $imagick->setBackgroundColor('none');
+                }
+
+                $imagick->writeImage($converted_path);
+                $imagick->destroy();
+
+                return $converted_path;
+
+            } elseif (function_exists('imageavif') || function_exists('imagewebp')) {
+                $image = $this->createImageFromFile($file_path);
+                if (!$image) {
+                    return false;
+                }
+
+                imagealphablending($image, false);
+                imagesavealpha($image, true);
+
+                // Basit kontrol: PNG ve GIF dosyaları genelde transparandır
+                if (in_array($extension, ['png', 'gif'])) {
+                    $has_alpha = true;
+                }
+
+                $new_ext = $has_alpha ? 'webp' : 'avif';
+                $converted_path = preg_replace('/\.' . $extension . '$/', '.' . $new_ext, $file_path);
+
+                if ($has_alpha && function_exists('imagewebp')) {
+                    imagewebp($image, $converted_path, $this->quality);
+                } elseif (!$has_alpha && function_exists('imageavif')) {
+                    imageavif($image, $converted_path, $this->quality);
+                } else {
+                    imagedestroy($image);
+                    return false;
+                }
+
+                imagedestroy($image);
+                return $converted_path;
+
+            } else {
+                return false;
+            }
+
+        } catch (Exception $e) {
+            error_log('Dönüştürme hatası: ' . $e->getMessage());
+            return false;
+        }
     }
+
 
     private function createImageFromFile($file_path) {
         $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));

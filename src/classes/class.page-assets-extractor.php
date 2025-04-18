@@ -350,6 +350,7 @@ class PageAssetsExtractor {
 
             $css_page_content = str_replace("../", "../../", $css_page_content);
             file_put_contents($css_page, $css_page_content);
+            
             //rtl
             $css_page_rtl_hash = md5($this->type."-".$id."-rtl");
             $css_page_rtl = $cache_dir . $css_page_rtl_hash . '.css';

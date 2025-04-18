@@ -25,10 +25,10 @@ function get_post_type_taxonomies(){
                 $taxonomies = array_filter($taxonomies, function($taxonomy) {
                     return $taxonomy->public;
                 });
-                $options .= "<option value='' ".(empty($selected)?"":"selected").">".($taxonomies?"Don't add Taxonomies":"Not found any taxonomy")."</option>"; 
+                $options .= "<option value='' ".(empty($selected)?"sekected":"").">".($taxonomies?"Don't add Taxonomies":"Not found any taxonomy")."</option>"; 
                 foreach( $taxonomies as $taxonomy ){
                     $ids[] = $taxonomy;
-                    $options .= "<option value='".$taxonomy->name."' ".($selected?"selected":"").">".$taxonomy->label."</option>";        
+                    $options .= "<option value='".$taxonomy->name."' ".($selected && $selected == $taxonomy->name?"selected":"").">".$taxonomy->label."</option>";        
                 }                
             }  
         //break;
