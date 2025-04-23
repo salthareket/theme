@@ -29,11 +29,9 @@ class RemoveUnusedCss {
         ".scroll-down",
         ".loading",
         ".loading-*",
-        ".lenis",
-        ".lenis-*",
         ".menu-dropdown-open",
-        ".dgwt-wcas-open",
         ".menu-open",
+        ".menu-show-header",
         ".offcanvas-open",
         ".offcanvas-fullscreen-open",
         ".collapse",
@@ -48,7 +46,13 @@ class RemoveUnusedCss {
 
         ".loaded",
         ".error",
-        ".initial"
+        ".initial",
+        
+        // plugin classes
+        ".slinky-*",
+        ".lenis",
+        ".lenis-*",
+        ".dgwt-wcas-open",
     ];
 
     private $acceptable_pseudo_classes = [

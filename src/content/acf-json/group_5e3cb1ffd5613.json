@@ -144,17 +144,17 @@
                 "id": ""
             },
             "choices": {
-                "templates\/partials\/modals\/fields-localization": "fields-localization",
-                "templates\/partials\/modals\/list-languages": "list-languages",
-                "templates\/partials\/modals\/login": "login",
-                "templates\/partials\/modals\/lost-password": "lost-password",
-                "templates\/partials\/modals\/modal-blocks": "modal-blocks",
-                "templates\/partials\/modals\/modal-chat-body": "modal-chat-body",
-                "templates\/partials\/modals\/modal-chat": "modal-chat",
-                "templates\/partials\/modals\/modal-daireler": "modal-daireler",
-                "templates\/partials\/modals\/modal-home": "modal-home",
-                "templates\/partials\/modals\/modal-iframe": "modal-iframe",
-                "templates\/partials\/modals\/new-message": "new-message"
+                "\/partials\/modals\/fields-localization": "fields-localization",
+                "\/partials\/modals\/list-languages": "list-languages",
+                "\/partials\/modals\/login": "login",
+                "\/partials\/modals\/lost-password": "lost-password",
+                "\/partials\/modals\/modal-blocks": "modal-blocks",
+                "\/partials\/modals\/modal-chat-body": "modal-chat-body",
+                "\/partials\/modals\/modal-chat": "modal-chat",
+                "\/partials\/modals\/modal-daireler": "modal-daireler",
+                "\/partials\/modals\/modal-home": "modal-home",
+                "\/partials\/modals\/modal-iframe": "modal-iframe",
+                "\/partials\/modals\/new-message": "new-message"
             },
             "default_value": false,
             "return_format": "value",
@@ -648,5 +648,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1737516162
+    "modified": 1744208589
 }

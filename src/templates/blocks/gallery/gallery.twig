@@ -205,7 +205,14 @@
                 </div>
 
             {% else %}
-                {% set thumb = source[0] %}
+                {% if gallery_view == "image" %}
+                    {% set thumb = source[0] %}
+                    {% set thumb = thumb.poster?thumb.poster:thumb.src %}
+                    {% set thumb_title = thumb.title %}
+                {% else %}
+                    {% set thumb = fields.settings.custom_image.url %}
+                    {% set thumb_title = thumb.alt %}
+                {% endif %}
                 <div class="col cursor-hand position-relative">
                     {% if ratio_class %}
                     <div class="{{ratio_class}}">
@@ -215,8 +222,8 @@
                                 {{fields.settings.text}}
                             </div>
                         {% endif %}
-                        <img src="{{(thumb.poster?thumb.poster:thumb.src)|replace({"{upload_url}" : site.upload_url})}}"
-                            alt="{{thumb.title}}" 
+                        <img src="{{thumb|replace({"{upload_url}" : site.upload_url})}}"
+                            alt="{{thumb_title}}" 
                             loading="lazy"
                             class="img-fluid {{image_class}}"
                         />

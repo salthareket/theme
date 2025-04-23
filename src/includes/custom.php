@@ -123,7 +123,7 @@ class SaltBase{
         if(!is_admin()){
             //add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
         }else{
-            add_filter('acf/update_value', [$this, 'clear_cached_option'], 10, 3);
+            //add_filter('acf/update_value', [$this, 'clear_cached_option'], 10, 3);
             //add_action('admin_init', [$this, 'site_config_js'], 20 );       
         }
 
@@ -172,58 +172,6 @@ class SaltBase{
             "template"    => ""
         );
     }
-
-    public static function get_cached_query($args = []) {
-        $cache_key = 'custom_query_' . md5(serialize($args));
-        //delete_transient('custom_query_' . md5(serialize($args)));
-        $cached_data = get_transient($cache_key);
-        if (false === $cached_data) {
-            $query = new WP_Query($args);
-            $cached_data = $query;
-            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS); // 1 saat cache
-        }
-        return $cached_data;
-    }
-
-    public static function get_cached_posts($args = []) {
-        $cache_key = 'custom_query_' . md5(serialize($args));
-        //delete_transient('custom_query_' . md5(serialize($args)));
-        $cached_data = get_transient($cache_key);
-        if (false === $cached_data) {
-            $query = new WP_Query($args);
-            $cached_data = $query->posts;
-            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS); // 1 saat cache
-        }
-        return $cached_data;
-    }
-
-    public static function get_cached_option($key) {
-        $cache_key = 'acf_option_' . $key;
-        $cached_value = get_transient($cache_key);
-        //error_log("get from cache: ".$cache_key); 
-        //error_log(print_r($cached_value, true));
-        if ($cached_value !== false) {
-            return $cached_value;
-        }
-        $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
-        //error_log("set to cache: ".$cache_key); 
-        //error_log(print_r($value, true));
-        set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
-        //error_log("-----------------------------------");
-        return $value;
-    }
-
-    public function clear_cached_option($value, $post_id, $field) {
-        if ($post_id !== 'options') return $value;
-        $cache_key = 'acf_option_' . $field['name'];
-        //error_log("deleting: ".$cache_key); 
-        delete_transient($cache_key); // Sadece ilgili option’ın cache’ini sil
-        //error_log("-----------------------------------");
-        return $value;
-    }
-
-    
-
 
     public function on_post_pre_update($data){
         /*if($data["post_type"] == "page"){
@@ -1772,7 +1720,7 @@ class SaltBase{
     }
 
     public static function get_integration($slug=""){
-        $integrations = self::get_cached_option("integrations"); // Option page'den repeater'ı çek
+        $integrations = QueryCache::get_cached_option("integrations"); // Option page'den repeater'ı çek
         if ($integrations) {
             foreach ($integrations as $integration) {
                 if ($integration['name'] === $name) {
@@ -1803,13 +1751,7 @@ class SaltBase{
         }
         return false; // Hata durumunda
     }
-
-
-
 }
-
-
-
 
 // prevent woo functions
 

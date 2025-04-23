@@ -219,7 +219,7 @@
                             "max_width": "",
                             "max_height": "",
                             "max_size": "",
-                            "mime_types": "",
+                            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
                             "preview_size": "thumbnail"
                         },
                         {
@@ -1270,7 +1270,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737516178,
+    "modified": 1744208603,
     "acfe_categories": {
         "general": "General"
     }

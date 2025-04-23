@@ -3692,7 +3692,7 @@ function save_theme_styles_header_themes($header){
                 $logo_affix = empty($affix["logo"])?"null":$affix["logo"];
                 $btn_reverse = scss_variables_boolean($affix["btn_reverse"]);
 
-                $code .= $theme["class"].":not(.menu-open){\n";
+                $code .= $theme["class"].":not(.menu-open):not(.menu-show-header){\n";
                     $code .= "@include headerTheme(";
                         $code .= $color.",";
                         $code .= $color_active.",";

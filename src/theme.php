@@ -16,7 +16,7 @@ Class Theme{
     }*/
 
     function __construct(){
-        show_admin_bar(false);
+        show_admin_bar(false); 
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
         add_action("init", [$this, "global_variables"]);
         add_action("wp", [$this, "language_settings"]);
@@ -256,13 +256,14 @@ Class Theme{
 
         //error_log( var_export( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ), true ) );
 
-        $salt = $GLOBALS["salt"];
- 
         //check_and_load_translation(TEXT_DOMAIN);
-        load_theme_textdomain(
+        /*load_theme_textdomain(
             TEXT_DOMAIN,
             get_template_directory() . "/languages"
-        );
+        );*/
+
+        $salt = $GLOBALS["salt"];
+        
         lang_predefined();
 
         $user = \Timber::get_user();
@@ -363,11 +364,11 @@ Class Theme{
         }
 
         // post pagination settings
-        if(function_exists('get_field')){
-            $post_pagination = $salt->get_cached_option("post_pagination");//get_field("post_pagination", "option");//
-        }else{
-            $post_pagination = get_option("options_post_pagination");
-        }
+        //if(function_exists('get_field')){
+            $post_pagination = \QueryCache::get_cached_option("post_pagination");//get_field("post_pagination", "option");//
+        //}else{
+            //$post_pagination = get_option("options_post_pagination");
+        //}
         if(is_array($post_pagination) && count($post_pagination) > 0){
                 $post_pagination_tmp = [];
                 foreach ($post_pagination as $item) {
@@ -387,11 +388,11 @@ Class Theme{
         }
 
         // search pagination settings
-        if(function_exists('get_field')){
-            $search_pagination = $salt->get_cached_option("search_pagination");//get_field("search_pagination", "option");//
-        }else{
-            $search_pagination = get_option("options_search_pagination");
-        }
+        //if(function_exists('get_field')){
+            $search_pagination = \QueryCache::get_cached_option("search_pagination");//get_field("search_pagination", "option");//
+        //}else{
+            //$search_pagination = get_option("options_search_pagination");
+        //}
         if($search_pagination && $search_pagination["paged"]){
                 $posts_per_page = -1;
                 if($search_pagination["paged"]){
@@ -528,7 +529,7 @@ Class Theme{
                                     $term_slug = $term;
                                 }
                                 $taxonomy_slug = $taxonomy_slug."/";
-                                $taxonomy_prefix_remove = \SaltBase::get_cached_option("taxonomy_prefix_remove");//get_field("taxonomy_prefix_remove", "option");
+                                $taxonomy_prefix_remove = \QueryCache::get_cached_option("taxonomy_prefix_remove");//get_field("taxonomy_prefix_remove", "option");
                                 if($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)){
                                    $taxonomy_slug = "";
                                 }
@@ -738,13 +739,13 @@ Class Theme{
 
             error_log("site config preparing...");
         
-            $is_cached = false;
+            /*$is_cached = false;
             //if(function_exists("wprocket_is_cached")){
             if (defined("WP_ROCKET_VERSION") && function_exists("is_wp_rocket_crawling")) {
-                $is_cached = is_wp_rocket_crawling();//wprocket_is_cached();
+                $is_cached = wprocket_is_cached();// is_wp_rocket_crawling();
             }
 
-            error_log("site config is_cached => ".$is_cached);
+            error_log("site config is_cached => ".$is_cached);*/
 
             $enable_favorites =  boolval(ENABLE_FAVORITES);
             $enable_follow =  boolval(ENABLE_FOLLOW);
@@ -782,7 +783,7 @@ Class Theme{
                 "enable_ip2country"     => boolval(ENABLE_IP2COUNTRY),
                 "path"                  => $path,
                 "loaded"                => ($jsLoad==1?true:false),
-                "cached"                => boolval($is_cached),
+                "cached"                => "",
                 "logged"                => is_user_logged_in(),
                 "debug"                 => boolval(ENABLE_CONSOLE_LOGS)
             );

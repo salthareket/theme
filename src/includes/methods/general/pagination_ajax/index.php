@@ -61,9 +61,8 @@
     //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
 
     $html = "";
-    //$query = new WP_Query($post_args);
-    $query = SaltBase::get_cached_query($post_args);
 
+    $query = QueryCache::get_cached_query($post_args);
 
     $folder = $post_args["post_type"];
     if($args["post_type"] == "any" || is_array($args["post_type"])){

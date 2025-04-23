@@ -283,10 +283,9 @@ function bwp_url_to_postid($url){
 		}
 
 			// Do the query
-		    $query = SaltBase::get_cached_query($query);
-			//$query = new WP_Query($query);
-			if ( !empty($query->posts) && $query->is_singular )
-				return $query->post->ID;
+		    $query = QueryCache::get_cached_query($query, "data");
+			if ( !empty($query["posts"]) && $query["is_singular"] )
+				return $query["posts"][0]->ID;
 			else
 				return 0;
 		}

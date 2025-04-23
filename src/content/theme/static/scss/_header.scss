@@ -249,25 +249,6 @@
 
 body{
 	&.menu-open{
-	   @include headerTheme(#fff, #fff, transparent, #fff, #fff, #fff, transparent, #fff, 1046);
-	   &.loading:not(.loaded){
-			&:before{
-				z-index:1047;
-			}
-			&:after{
-				z-index:1048;
-			}
-		}
-		&.header-hide{
-			header#header{
-				top:0px!important;
-			}
-		}
-		header#header{
-			&:after{
-				display:none;
-			}
-		}
 		.nav-toggler-custom{
 			span{
 				background-color: rgba(#fff, 0)!important;
@@ -293,6 +274,27 @@ body{
 			  	  	  	right:8px;
 			  	  	}
 			  	 }
+			}
+		}
+		&.menu-show-header{
+		    @include headerTheme(#fff, #fff, transparent, #fff, #fff, #fff, transparent, #fff, 1046);
+		    &.loading:not(.loaded){
+				&:before{
+					z-index:1047;
+				}
+				&:after{
+					z-index:1048;
+				}
+			}
+			&.header-hide{
+				header#header{
+					top:0px!important;
+				}
+			}
+			header#header{
+				&:after{
+					display:none;
+				}
 			}
 		}
 	}	

@@ -35,11 +35,15 @@ class Term extends Timber\Term{
             $lang = $GLOBALS["language"];
         }
         $value = get_term_meta( $this->ID, $field, true);
-        return qtranxf_use($lang, $value, false, true );
+        if(ENABLE_MULTILANGUAGE == "qtranslate"){
+            return qtranxf_use($lang, $value, false, true );
+        }
     }
     public function lang($lang=""){
-        return $this->i18n_config["name"]["ts"][$lang];
-        //return qtrans_translate($this->name, $lang);
+        if(ENABLE_MULTILANGUAGE == "qtranslate"){
+            return $this->i18n_config["name"]["ts"][$lang];
+            //return qtrans_translate($this->name, $lang);
+        }
     }
     public function content(){
         $desc = $this->description;

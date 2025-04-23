@@ -333,8 +333,7 @@
                         [
                             {
                                 "field": "field_66b94a87a4d95",
-                                "operator": "!=",
-                                "value": "0"
+                                "operator": "!=empty"
                             }
                         ]
                     ],
@@ -356,6 +355,7 @@
                     "multiple": 0,
                     "translations": "sync",
                     "allow_null": 0,
+                    "allow_in_bindings": 1,
                     "ui": 0,
                     "ajax": 0,
                     "placeholder": "",
@@ -375,8 +375,7 @@
                         [
                             {
                                 "field": "field_66b94a87a4d95",
-                                "operator": "!=",
-                                "value": "0"
+                                "operator": "!=empty"
                             }
                         ]
                     ],
@@ -394,6 +393,7 @@
                     "multiple": 0,
                     "translations": "sync",
                     "allow_null": 0,
+                    "allow_in_bindings": 1,
                     "ui": 0,
                     "ajax": 0,
                     "placeholder": "",
@@ -413,8 +413,7 @@
                         [
                             {
                                 "field": "field_66b94a87a4d95",
-                                "operator": "!=",
-                                "value": "0"
+                                "operator": "!=empty"
                             }
                         ]
                     ],
@@ -426,6 +425,7 @@
                     "message": "",
                     "default_value": 0,
                     "translations": "sync",
+                    "allow_in_bindings": 1,
                     "ui_on_text": "",
                     "ui_off_text": "",
                     "ui": 1,
@@ -443,8 +443,7 @@
                         [
                             {
                                 "field": "field_66b94a87a4d95",
-                                "operator": "!=",
-                                "value": "0"
+                                "operator": "!=empty"
                             },
                             {
                                 "field": "field_66b95f981a531",
@@ -462,6 +461,7 @@
                     "translations": "sync",
                     "min": 1,
                     "max": "",
+                    "allow_in_bindings": 1,
                     "placeholder": "",
                     "step": "",
                     "prepend": "",
@@ -496,7 +496,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737516281,
+    "modified": 1745353531,
     "acfe_categories": {
         "general": "General"
     }

@@ -907,13 +907,13 @@
                                 "id": ""
                             },
                             "choices": {
-                                "\/templates\/partials\/offcanvas\/archive.twig": "archive.twig",
-                                "\/templates\/partials\/offcanvas\/cart.twig": "cart.twig",
-                                "\/templates\/partials\/offcanvas\/favorites.twig": "favorites.twig",
-                                "\/templates\/partials\/offcanvas\/menu.twig": "menu.twig",
-                                "\/templates\/partials\/offcanvas\/messages.twig": "messages.twig",
-                                "\/templates\/partials\/offcanvas\/product-filters.twig": "product-filters.twig",
-                                "\/templates\/partials\/offcanvas\/test.twig": "test.twig"
+                                "\/partials\/offcanvas\/archive.twig": "archive.twig",
+                                "\/partials\/offcanvas\/cart.twig": "cart.twig",
+                                "\/partials\/offcanvas\/favorites.twig": "favorites.twig",
+                                "\/partials\/offcanvas\/menu.twig": "menu.twig",
+                                "\/partials\/offcanvas\/messages.twig": "messages.twig",
+                                "\/partials\/offcanvas\/product-filters.twig": "product-filters.twig",
+                                "\/partials\/offcanvas\/test.twig": "test.twig"
                             },
                             "default_value": false,
                             "return_format": "value",
@@ -1057,7 +1057,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737516166,
+    "modified": 1744208594,
     "acfe_categories": {
         "general": "General"
     }

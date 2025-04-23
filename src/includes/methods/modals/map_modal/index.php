@@ -1,6 +1,6 @@
 <?php
 $html = "";
-$map_service = SaltBase::get_cached_option("map_service");//get_field("map_service", "option");
+$map_service = QueryCache::get_cached_option("map_service");//get_cached_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -54,7 +54,7 @@ if($id){
         'posts_per_page' => -1,
         'orderby' => 'post__in',
     );
-    $posts = SaltBase::get_cached_query($args);
+    $posts = QueryCache::get_cached_query($args, "posts");
     $posts = Timber::get_posts($posts);
 
     //$posts = Timber::get_posts($ids);

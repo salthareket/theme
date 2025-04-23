@@ -125,6 +125,46 @@
                     "parent_repeater": "field_65c2021f92ff0"
                 },
                 {
+                    "key": "field_6808224eab61f",
+                    "label": "Menu View",
+                    "name": "menu_view",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_65c2021f92ff2",
+                                "operator": "==",
+                                "value": "offcanvas"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "drill": "Drill",
+                        "collapsed": "Collapsed",
+                        "tree": "Tree"
+                    },
+                    "default_value": "drill",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "translations": "copy_once",
+                    "allow_null": 0,
+                    "allow_in_bindings": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": "",
+                    "parent_repeater": "field_65c2021f92ff0"
+                },
+                {
                     "key": "field_65ce08b8e8630",
                     "label": "Custom Code",
                     "name": "menu_custom",
@@ -5547,7 +5587,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1737516275,
+    "modified": 1745364523,
     "acfe_categories": {
         "general": "General"
     }

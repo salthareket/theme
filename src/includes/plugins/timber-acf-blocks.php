@@ -6,10 +6,9 @@ add_filter( 'timber/acf-gutenberg-blocks-templates', function () {
 
 add_filter( 'timber/acf-gutenberg-blocks-data', function( $context ){
     //$context['fields']['extra_data'] = 'New extra data';
-    if(isset($context['fields'])){
+    if ( array_key_exists('fields', $context) && is_array($context['fields']) ) {
         $upload_dir = wp_upload_dir();
-        $upload_url = $upload_dir['baseurl'];
-        $context['fields']['upload_url'] = $upload_url;        
+        $context['fields']['upload_url'] = $upload_dir['baseurl'];
     }
     return $context;
 });
@@ -272,7 +271,7 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
 }
 
 function block_container_class($container=""){
-    $default = SaltBase::get_cached_option("default_container");//get_field("default_container", "options");
+    $default = QueryCache::get_cached_option("default_container");//get_field("default_container", "options");
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " px-4 px-lg-3";
     switch($container){
         case "" :
@@ -500,7 +499,7 @@ function block_spacing($settings) {
 function generate_spacing_classes($spacing, $prefix) {
     $classes = [];
     $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
-    $default = SaltBase::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
+    $default = QueryCache::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
 
     // 'default' değerlerini doldur
     foreach ($spacing as $key => $item) {

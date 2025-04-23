@@ -96,19 +96,19 @@ class StarterSite extends Timber\Site{
         }
            
         // logo
-        $logo = $salt->get_cached_option("logo");//get_field("logo", "option");
+        $logo = QueryCache::get_cached_option("logo");//get_field("logo", "option");
         $context["logo"] = $logo;
 
-        $logo_affix = $salt->get_cached_option("logo_affix");//get_field("logo_affix", "option");
+        $logo_affix = QueryCache::get_cached_option("logo_affix");//get_field("logo_affix", "option");
         $context["logo_affix"] = $logo_affix;
 
-        $logo_mobile = $salt->get_cached_option("logo_mobile");//get_field("logo_mobile", "option");
+        $logo_mobile = QueryCache::get_cached_option("logo_mobile");//get_field("logo_mobile", "option");
         $context["logo_mobile"] = $logo_mobile;
 
-        $logo_footer = $salt->get_cached_option("logo_footer");//get_field("logo_footer", "option");
+        $logo_footer = QueryCache::get_cached_option("logo_footer");//get_field("logo_footer", "option");
         $context["logo_footer"] = $logo_footer;
 
-        $logo_icon = $salt->get_cached_option("logo_icon");//get_field("logo_icon", "option");
+        $logo_icon = QueryCache::get_cached_option("logo_icon");//get_field("logo_icon", "option");
         $context["logo_icon"] = $logo_icon;
         
         if(!is_admin() && class_exists("ACF") && !$ajax_process){
@@ -444,7 +444,7 @@ class StarterSite extends Timber\Site{
                         'paged' => $paged,
                         "posts_per_page" => $block_search_results_posts_per_page,
                     );
-                    $posts = SaltBase::get_cached_query($args);
+                    $posts = QueryCache::get_cached_query($args, "posts");
                     $posts = Timber::get_posts($args);
                     $context['posts'] = $posts;
                     $found_posts = $posts->found_posts;

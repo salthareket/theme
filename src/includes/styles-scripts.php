@@ -73,7 +73,7 @@ function frontend_header_styles(){
 	    }
     }
 
-    $remove_global_styles = SaltBase::get_cached_option("remove_global_styles");//get_field("remove_global_styles", "option");
+    $remove_global_styles = QueryCache::get_cached_option("remove_global_styles");//get_field("remove_global_styles", "option");
     if(($remove_global_styles == "auto" || $remove_global_styles) && !$has_core_block){
     	wp_deregister_style('global-styles');
     	wp_deregister_style('global-styles-inline');
@@ -81,13 +81,13 @@ function frontend_header_styles(){
        	wp_dequeue_style('global-styles');
     }
     
-    $remove_block_styles = SaltBase::get_cached_option("remove_block_styles");//get_field("remove_block_styles", "option");
+    $remove_block_styles = QueryCache::get_cached_option("remove_block_styles");//get_field("remove_block_styles", "option");
     if(($remove_block_styles == "auto" || $remove_block_styles) && !$has_core_block){
 		wp_dequeue_style( 'wp-block-library' );
 		wp_dequeue_style( 'wc-blocks-style' ); 
     }
      
-    $remove_classic_theme_styles = SaltBase::get_cached_option("remove_classic_theme_styles");//get_field("remove_classic_theme_styles", "option");
+    $remove_classic_theme_styles = QueryCache::get_cached_option("remove_classic_theme_styles");//get_field("remove_classic_theme_styles", "option");
     if($remove_classic_theme_styles){
     	wp_deregister_style('classic-theme-styles-inline');
     	wp_deregister_style('classic-theme-styles');
@@ -95,7 +95,7 @@ function frontend_header_styles(){
     	wp_dequeue_style('classic-theme-styles');
     }
    
-    $remove_woocommerce_styles = SaltBase::get_cached_option("remove_woocommerce_styles");//get_field("remove_woocommerce_styles", "option");
+    $remove_woocommerce_styles = QueryCache::get_cached_option("remove_woocommerce_styles");//get_field("remove_woocommerce_styles", "option");
 	if($remove_woocommerce_styles){
 		wp_dequeue_style('woocommerce-smallscreen');
 	    wp_dequeue_style('woocommerce-inline');
@@ -346,7 +346,7 @@ function frontend_footer_scripts(){
 	    wp_enqueue_script('locale');
 	}
 
-	$map_style = SaltBase::get_cached_option('google_maps_style');//get_field('google_maps_style', 'option');
+	$map_style = QueryCache::get_cached_option('google_maps_style');//get_field('google_maps_style', 'option');
 	if($map_style != ''){
 		$map_style = json_encode(json_decode(strip_tags($map_style)));
 		$add_map_style = "var map_style = ".$map_style.";";

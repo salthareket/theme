@@ -637,13 +637,18 @@ $( document ).ready(function() {
 		.on('show.bs.offcanvas', '.offcanvas', function (e) {
 		    var $obj = $(e.target);
 
+		    $("body").addClass("offcanvas-open");
+
 		    if($obj.hasClass("offcanvas-search")){
 		   	   $("body").addClass("search-open");
 		    }
 		    if($obj.hasClass("offcanvas-menu")){
 		   	   $("body").addClass("menu-open");
 		    }
-		    $("body").addClass("offcanvas-open");
+
+		    if($obj.hasClass("offcanvas-show-header")){
+		   	   $("body").addClass("menu-show-header");
+		    }
 
 		    if($obj.hasClass("offcanvas-fullscreen")){
 		    	$("body").addClass("offcanvas-fullscreen-open");
@@ -702,6 +707,7 @@ $( document ).ready(function() {
 		    }
 		    $("body").removeClass("offcanvas-open");
 		    $("body").removeClass("offcanvas-fullscreen-open");
+		    $("body").removeClass("menu-show-header");
 
 		    if($(".plyr--paused-manual").length > 0){
 		        var player = $(".plyr--paused-manual")[0].plyr;

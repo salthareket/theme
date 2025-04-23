@@ -38,7 +38,7 @@ class Lcp{
 	        }
 	        
 	        if(!empty($lcp["url"])){
-	            $preload .= '<link rel="preload" data-rocket-preload ';
+	            $preload .= '<link rel="preload" ';//' data-rocket-preload ';
 	            $preload .= 'as="'.$lcp["type"].'" href="'.$lcp["url"].'" ';
 	            $preload .= 'importance="high" fetchpriority="high" media="('.($key=="mobile"?"max-width: 768px":"min-width: 769px").')">' . "\n";               
 	        }

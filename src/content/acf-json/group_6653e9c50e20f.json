@@ -197,7 +197,7 @@
                             "max_width": "",
                             "max_height": "",
                             "max_size": "",
-                            "mime_types": "jpg, jpeg, png, webp, gif",
+                            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
                             "insert": "append",
                             "preview_size": "thumbnail",
                             "parent_repeater": "field_64f7a6c5a0154"
@@ -232,7 +232,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1738284475,
+    "modified": 1744208623,
     "acfe_categories": {
         "block": "Block"
     }

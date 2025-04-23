@@ -174,7 +174,8 @@
                     },
                     "choices": {
                         "default": "Default",
-                        "templates\/post\/tease": "Post Tease"
+                        "post\/tease": "Post Tease (Predefined)",
+                        "theme\/templates\/_custom\/hello-template": "hello-template"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -380,7 +381,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1738284463,
+    "modified": 1744208645,
     "acfe_categories": {
         "block": "Block"
     }

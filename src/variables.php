@@ -26,121 +26,122 @@ define('THEME_STATIC_PATH',    get_template_directory() . '/theme/static/');
 define('THEME_INCLUDES_URL',  get_template_directory_uri() . '/theme/includes/');
 define('THEME_STATIC_URL',     get_template_directory_uri() . "/theme/static/");
 
-
-
 define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
 //define('SH_THEME_EXISTS', in_array("copy_theme", array_keys(get_option('sh_theme_tasks_status', []))));
 
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
 
 
-define("PUBLISH_URL", get_option("options_publish_url"));
-define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
+include_once SH_CLASSES_PATH."class.query-cache.php";
 
-define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && get_option("options_enable_production"));
-define("ENABLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_logs"));
-define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_console_logs"));
 
-define("SEPERATE_CSS", get_option("options_seperate_css"));
-define("SEPERATE_JS",  get_option("options_seperate_js"));
+define("PUBLISH_URL", QueryCache::get_cached_option("publish_url"));
+define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && QueryCache::get_cached_option("enable_publish"));
 
-define("ENABLE_TWIG_CACHE",  get_option("options_enable_twig_cache"));
+define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && QueryCache::get_cached_option("enable_production"));
+define("ENABLE_LOGS", ENABLE_PRODUCTION && QueryCache::get_cached_option("enable_logs"));
+define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && QueryCache::get_cached_option("enable_console_logs"));
 
-$exclude_from_search = get_option("options_exclude_from_search");
+define("SEPERATE_CSS", QueryCache::get_cached_option("seperate_css"));
+define("SEPERATE_JS",  QueryCache::get_cached_option("seperate_js"));
+
+define("ENABLE_TWIG_CACHE",  QueryCache::get_cached_option("enable_twig_cache"));
+
+$exclude_from_search = QueryCache::get_cached_option("exclude_from_search");
 $exclude_from_search = $exclude_from_search?$exclude_from_search:[];
 define("EXCLUDE_FROM_SEARCH", $exclude_from_search);
 
 define("DISABLE_COMMENTS", true);
-define("DISABLE_REVIEW_APPROVE", get_option("options_disable_review_approve"));
-define("ENABLE_SEARCH_HISTORY", get_option("options_enable_search_history"));
+define("DISABLE_REVIEW_APPROVE", QueryCache::get_cached_option("disable_review_approve"));
+define("ENABLE_SEARCH_HISTORY", QueryCache::get_cached_option("enable_search_history"));
 
 define("ENABLE_ECOMMERCE", class_exists("WooCommerce"));
 
-define("ENABLE_MEMBERSHIP", get_option("options_enable_membership"));
-define("ENABLE_MEMBERSHIP_ACTIVATION", ENABLE_MEMBERSHIP && get_option("options_enable_membership_activation"));
-define("MEMBERSHIP_ACTIVATION_TYPE", ENABLE_MEMBERSHIP_ACTIVATION?get_option("options_membership_activation_settings"):"");
-define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? get_option("options_enable_activation_email_autologin") : false);
+define("ENABLE_MEMBERSHIP", QueryCache::get_cached_option("enable_membership"));
+define("ENABLE_MEMBERSHIP_ACTIVATION", ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_membership_activation"));
+define("MEMBERSHIP_ACTIVATION_TYPE", ENABLE_MEMBERSHIP_ACTIVATION?QueryCache::get_cached_option("membership_activation_settings"):"");
+define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? QueryCache::get_cached_option("enable_activation_email_autologin") : false);
 
 $enable_registration = true;
 if(ENABLE_MEMBERSHIP){
    if(ENABLE_ECOMMERCE){
       $enable_registration = get_option("woocommerce_enable_myaccount_registration")=="yes"?true:false;
    }else{
-      $enable_registration = get_option("options_enable_registration");
+      $enable_registration = QueryCache::get_cached_option("enable_registration");
    }
 }
 define("ENABLE_REGISTRATION", $enable_registration);
 
-define("ENABLE_REMEMBER_LOGIN",  ENABLE_MEMBERSHIP && get_option("options_enable_remember_login"));
-define("ENABLE_SOCIAL_LOGIN",  ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && get_option("options_enable_social_login"));
+define("ENABLE_REMEMBER_LOGIN",  ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_remember_login"));
+define("ENABLE_SOCIAL_LOGIN",  ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && QueryCache::get_cached_option("enable_social_login"));
 
-define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && get_option("options_enable_lost_password"));
-define("ENABLE_PASSWORD_RECOVER",  ENABLE_MEMBERSHIP && get_option("options_enable_password_recover"));
-define("PASSWORD_RECOVER_TYPE", ENABLE_LOST_PASSWORD||ENABLE_PASSWORD_RECOVER?get_option("options_password_recover_settings"):array());
+define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_lost_password"));
+define("ENABLE_PASSWORD_RECOVER",  ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_password_recover"));
+define("PASSWORD_RECOVER_TYPE", ENABLE_LOST_PASSWORD||ENABLE_PASSWORD_RECOVER?QueryCache::get_cached_option("password_recover_settings"):array());
 
-define("ENABLE_FAVORITES", ENABLE_MEMBERSHIP && get_option("options_enable_favorites"));
+define("ENABLE_FAVORITES", ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_favorites"));
 $favorite_types = array(
     "post_types" => array(),
     "taxonomies" => array(),
     "roles"      => array()
 );
 if(ENABLE_FAVORITES){
-    $favorite_post_types = get_option("options_favorite_types_post_types");
+    $favorite_post_types = QueryCache::get_cached_option("favorite_types_post_types");
     if($favorite_post_types){
        $favorite_types["post_types"] = $favorite_post_types;
     }
-    $favorite_taxonomies = get_option("options_favorite_types_taxonomies");
+    $favorite_taxonomies = QueryCache::get_cached_option("favorite_types_taxonomies");
     if($favorite_taxonomies){
        $favorite_types["taxonomies"] = $favorite_taxonomies;
     }
-    $favorite_user_roles = get_option("options_favorite_types_user_roles");
+    $favorite_user_roles = QueryCache::get_cached_option("favorite_types_user_roles");
     if($favorite_user_roles){
        $favorite_types["roles"] = $favorite_user_roles;
     }
 }
 define("FAVORITE_TYPES", $favorite_types);
-define("ENABLE_FOLLOW", ENABLE_MEMBERSHIP && get_option("options_enable_follow"));
+define("ENABLE_FOLLOW", ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_follow"));
 $follow_types = array(
     "post_types" => array(),
     "taxonomies" => array(),
     "roles"      => array()
 );
 if(ENABLE_FOLLOW){
-    $follow_post_types = get_option("options_follow_types_post_types");
+    $follow_post_types = QueryCache::get_cached_option("follow_types_post_types");
     if($follow_post_types){
        $follow_types["post_types"] = $follow_post_types;
     }
-    $follow_taxonomies = get_option("options_follow_types_taxonomies");
+    $follow_taxonomies = QueryCache::get_cached_option("follow_types_taxonomies");
     if($follow_taxonomies){
        $follow_types["taxonomies"] = $follow_taxonomies;
     }
-    $follow_user_roles = get_option("options_follow_types_user_roles");
+    $follow_user_roles = QueryCache::get_cached_option("follow_types_user_roles");
     if($follow_user_roles){
        $follow_types["roles"] = $follow_user_roles;
     }
 }
 define("FOLLOW_TYPES", $follow_types);
-define("ENABLE_CHAT", ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && get_option("options_enable_chat"));
-define("ENABLE_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_option("options_enable_notifications"));
-define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_option("options_enable_sms_notifications"));
+define("ENABLE_CHAT", ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && QueryCache::get_cached_option("enable_chat"));
+define("ENABLE_NOTIFICATIONS", ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_notifications"));
+define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && QueryCache::get_cached_option("enable_sms_notifications"));
 
-define("ENABLE_ROLE_THEMES", ENABLE_MEMBERSHIP && get_option("options_role_themes") && is_user_logged_in());
+define("ENABLE_ROLE_THEMES", ENABLE_MEMBERSHIP && QueryCache::get_cached_option("role_themes") && is_user_logged_in());
 
-define("ENABLE_IP2COUNTRY", get_option("options_enable_ip2country"));
-define("ENABLE_IP2COUNTRY_DB", get_option("options_ip2country_settings")=="db"?true:false);
-define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_option("options_enable_regional_posts"));
+define("ENABLE_IP2COUNTRY", QueryCache::get_cached_option("enable_ip2country"));
+define("ENABLE_IP2COUNTRY_DB", QueryCache::get_cached_option("ip2country_settings")=="db"?true:false);
+define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && QueryCache::get_cached_option("enable_regional_posts"));
 add_action('acf/init', function(){
     $regional_post_settings = array();
     if(ENABLE_REGIONAL_POSTS){
-       $regional_post_settings = SaltBase::get_cached_option('regional_post_settings');//get_field("regional_post_settings", "option");
+       $regional_post_settings = QueryCache::get_cached_option('regional_post_settings');//get_field("regional_post_settings", "option");
     }
     define("REGIONAL_POST_SETTINGS", $regional_post_settings);
 });
 
-define("ENABLE_LOCATION_DB", get_option("options_enable_location_db"));
+define("ENABLE_LOCATION_DB", QueryCache::get_cached_option("enable_location_db"));
 
 define("ACTIVATE_UNDER_CONSTRUCTION", get_option("underConstructionActivationStatus"));
-$white_pages = get_option("options_white_pages");
+$white_pages = QueryCache::get_cached_option("white_pages");
 define("WHITE_PAGES_UNDER_CONSTRUCTION", is_array($white_pages)?$white_pages:array());
 function visibility_under_construction(){
     if(defined("VISIBILITY_UNDER_CONSTRUCTION")){
@@ -180,12 +181,12 @@ function visibility_under_construction(){
     });
 }
 
-define("ENABLE_WOO_API", get_option("options_enable_woo_api"));
-define("ENABLE_CART", ENABLE_ECOMMERCE && get_option("options_enable_cart"));
-define("PAYMENT_EXPIRE_HOURS", get_option("options_payment_expire_hours"));
+define("ENABLE_WOO_API", QueryCache::get_cached_option("enable_woo_api"));
+define("ENABLE_CART", ENABLE_ECOMMERCE && QueryCache::get_cached_option("enable_cart"));
+define("PAYMENT_EXPIRE_HOURS", QueryCache::get_cached_option("payment_expire_hours"));
 define("ENABLE_FILTERS", defined( 'YITH_WCAN' ));
-define("DISABLE_DEFAULT_CAT", get_option("options_disable_default_cat"));
-define("ENABLE_POSTCODE_VALIDATION", get_option("options_enable_postcode_validation"));
+define("DISABLE_DEFAULT_CAT", QueryCache::get_cached_option("disable_default_cat"));
+define("ENABLE_POSTCODE_VALIDATION", QueryCache::get_cached_option("enable_postcode_validation"));
 
 $multilanguage = false;
 if(function_exists("qtranxf_getSortedLanguages")){
@@ -213,7 +214,7 @@ $GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
 $GLOBALS["post_id"] = get_the_ID();
 
 if (class_exists("acf")) {
-    $GLOBALS["google_maps_api_key"] = get_option("options_google_maps_api_key"); //get_post_meta
+    $GLOBALS["google_maps_api_key"] = QueryCache::get_cached_option("google_maps_api_key"); //get_post_meta
 }
 
 add_action('after_setup_theme', function () {

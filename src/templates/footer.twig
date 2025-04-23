@@ -27,7 +27,7 @@
     <div class="nav-footer bg-white py-5 ls-0 font-header">
         <div class="{{footer_options.container}}">
             <ul class="nav justify-content-lg-between justify-content-evenly row row-cols-xl-auto row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 gy-xl-0 gy-xl-4 gy-6" data-sm-skip="true">
-                {% include 'navigation/menu-collapsed.twig' with { menu : salt.get_menu(footer_options.menu.main).get_items, parent_link : false, max_level : 2 } %}
+                {% include 'navigation/menu-tree.twig' with { menu : salt.get_menu(footer_options.menu.main).get_items, parent_link : false, max_level : 2 } %}
             </ul>
         </div>
     </div>

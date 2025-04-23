@@ -22,17 +22,6 @@ add_filter( 'rocket_defer_inline_exclusions', function( $inline_exclusions_list 
 });
 
 
-function wprocket_is_cached() {
-    if (defined("WP_ROCKET_VERSION")) {
-        foreach (headers_list() as $header) {
-            if (strpos($header, 'x-rocket-nginx-serving-static') !== false) {
-                error_log("wprocket_is_cached();");
-                return true;
-            }
-        }        
-    }
-    return false;
-}
 
 function wp_rocket_post_type_url_regex(){
     global $wpdb;
@@ -178,6 +167,17 @@ function modify_cache_reject_urls( $urls, $option ) {
 }
 add_filter( 'pre_get_rocket_option_cache_reject_uri', 'modify_cache_reject_urls', 10, 2 );
 
+function wprocket_is_cached() {
+    if (defined("WP_ROCKET_VERSION")) {
+        foreach (headers_list() as $header) {
+            if (strpos($header, 'x-rocket-nginx-serving-static') !== false) {
+                error_log("wprocket_is_cached();");
+                return true;
+            }
+        }        
+    }
+    return false;
+}
 function is_wp_rocket_crawling() {
     if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket') !== false) {
         error_log("is_wp_rocket_crawling();");
@@ -185,3 +185,11 @@ function is_wp_rocket_crawling() {
     }
     return false;
 }
+
+add_filter('rocket_buffer', function ($buffer) {
+    if (!is_admin()) {
+        // Sayfanın en altına şunu basar:
+        return str_replace('"cached":""', '"cached":"1"', $buffer);
+    }
+    return $buffer;
+});
