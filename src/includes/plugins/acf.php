@@ -48,7 +48,7 @@ function acf_get_theme_styles(){
         $theme_styles = json_decode($theme_styles, true);
     }
     if(!$theme_styles){
-        $theme_styles = QueryCache::get_cached_option("theme_styles");
+        $theme_styles = SaltBase::get_cached_option("theme_styles");
     }
     if(!$theme_styles && !isset($theme_styles["header"]["themes"]) && file_exists($theme_styles_defaults)){
         $theme_styles = file_get_contents($theme_styles_defaults);
@@ -88,7 +88,7 @@ function acf_get_contacts($type=""){
 				)
 			);
 		}
-		$posts = QueryCache::get_cached_query($args, "posts");
+		$posts = SaltBase::get_cached_query($args);
 		$posts = Timber::get_posts($posts);
 		if ($posts->found_posts && $type == "main") { 
 			error_log("post var mı?");
@@ -110,7 +110,7 @@ function acf_get_contact_related($post_id=0, $post_type="post"){
 				)
 			)
 	);
-	$posts = QueryCache::get_cached_query($args, "posts");
+	$posts = SaltBase::get_cached_query($args);
 	$posts = Timber::get_posts($posts);
 	if ($posts->found_posts) { 
 	    $posts = $posts->to_array()[0]; 
@@ -126,7 +126,7 @@ function acf_get_accounts($post=array()){
 }
 function get_contact_form($slug=""){
 	$arr = array();
-	$forms = QueryCache::get_cached_option("forms");
+	$forms = SaltBase::get_cached_option("forms");
 	if($forms){
 		foreach($forms as $form){
 			if($slug ==$form["slug"]){
@@ -145,7 +145,7 @@ function get_contact_forms($slug=""){
 		return get_contact_form($slug);
 	}
 	$arr = array();
-	$forms = QueryCache::get_cached_option("forms");
+	$forms = SaltBase::get_cached_option("forms");
 	if($forms){
 		foreach($forms as $form){
 			$arr[$form["slug"]] = array(
@@ -223,7 +223,7 @@ function get_archive_field($field = "", $post_type = "post"){
 }
 
 add_filter('acf_osm_marker_icon', function( $icon ) {
-    $img = QueryCache::get_cached_option("logo_marker");
+    $img = SaltBase::get_cached_option("logo_marker");
     if(empty($img)){
         return $icon;
     }
@@ -252,7 +252,7 @@ add_filter('acf/load_value/name=map_service', 'dynamic_map_service_value', 10, 3
 
 function dynamic_map_service_update_value( $value, $post_id, $field ) {
 
-	$previous_value = QueryCache::get_cached_option("map_service");
+	$previous_value = SaltBase::get_cached_option("map_service");
 	$map_view_value = $_POST["acf"]["field_6735b65411079"];
 	$map_view_previous_value = get_field( 'map_view', 'option' );
 

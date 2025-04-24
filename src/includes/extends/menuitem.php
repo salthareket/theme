@@ -65,7 +65,7 @@ class MenuItem extends Timber\MenuItem{
 				if($modal_type == "form_modal"){
 					$form =  $this->meta("form");
 				    $linkAttrs["data-id"] = $form;
-				    $forms = QueryCache::get_cached_option("forms");//get_field("forms", "options");
+				    $forms = SaltBase::get_cached_option("forms");//get_field("forms", "options");
 				    $title = $this->title;
 				    if($forms){
 				   	   $index = array_search2d_by_field($form, $forms, "form");

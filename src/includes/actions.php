@@ -311,7 +311,7 @@ function header_has_dropdown(){
     $header_tools_dropdown = false;
     $header_contents = ["header_start", "header_center", "header_end"];
     foreach($header_contents as $header_content){
-        $header_item = QueryCache::get_cached_option($header_content);//get_field($header_content, "options");
+        $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
         if(isset($header_item["type"]) && $header_item["type"] == "tools" && !$header_tools_dropdown){
             $header_tools = $header_item["header_tools"];
             $header_tools = $header_tools["header_tools"];
@@ -331,7 +331,7 @@ function header_has_navigation(){
     $header_navigation = false;
     $header_contents = ["header_start", "header_center", "header_end"];
     foreach($header_contents as $header_content){
-        $header_item = QueryCache::get_cached_option($header_content);//get_field($header_content, "options");
+        $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
         if($header_item){
             if($header_item["type"] == "navigation" && !$header_navigation){
                 $header_navigation = true;
@@ -364,18 +364,18 @@ function header_footer_options($save = false){
 
 
         // Header Options //
-        $header_fixed = QueryCache::get_cached_option("header_fixed");//get_field("header_fixed", "options");
+        $header_fixed = SaltBase::get_cached_option("header_fixed");//get_field("header_fixed", "options");
         $header_fixed = in_array($header_fixed, ["top","bottom","bottom-start"]) ? $header_fixed : false;
         if($header_fixed == "top"){
-            $header_affix = QueryCache::get_cached_option("header_affix");//get_field("header_affix", "options");
+            $header_affix = SaltBase::get_cached_option("header_affix");//get_field("header_affix", "options");
         }else{
             $header_affix = false;
         }
 
-        $header_hide_on_scroll_down = QueryCache::get_cached_option("header_hide_on_scroll_down");//get_field("header_hide_on_scroll_down", "options");
+        $header_hide_on_scroll_down = SaltBase::get_cached_option("header_hide_on_scroll_down");//get_field("header_hide_on_scroll_down", "options");
         $header_hide_on_scroll_down = $header_affix && $header_hide_on_scroll_down ? true : false;
 
-        $header_container = QueryCache::get_cached_option("header_container");//get_field("header_container", "options");
+        $header_container = SaltBase::get_cached_option("header_container");//get_field("header_container", "options");
         $header_container = block_container($header_container);//$header_container == "default" ? "" : $header_container;
         
         $header_start_type = "";
@@ -384,7 +384,7 @@ function header_footer_options($save = false){
 
         $header_contents = ["header_start", "header_center", "header_end"];
         foreach($header_contents as $header_content){
-            $header_item = QueryCache::get_cached_option($header_content);//get_field($header_content, "options");
+            $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
 
             ${$header_content."_type"} = "";
             ${$header_content."_align"} = "";
@@ -462,11 +462,11 @@ function header_footer_options($save = false){
         );
 
         // Footer Options //
-        $footer_container = QueryCache::get_cached_option("footer_container");//get_field("footer_container", "options");
+        $footer_container = SaltBase::get_cached_option("footer_container");//get_field("footer_container", "options");
         $footer_container = block_container($footer_container);//$footer_container == "default" ? "" : $footer_container;
-        $footer_text = QueryCache::get_cached_option("footer_text");//get_field("footer_text", "options");
-        $footer_logo = QueryCache::get_cached_option("logo_footer");//get_field("logo_footer", "option");
-        $footer_menu = QueryCache::get_cached_option("footer_menu");//get_field("footer_menu", "option");
+        $footer_text = SaltBase::get_cached_option("footer_text");//get_field("footer_text", "options");
+        $footer_logo = SaltBase::get_cached_option("logo_footer");//get_field("logo_footer", "option");
+        $footer_menu = SaltBase::get_cached_option("footer_menu");//get_field("footer_menu", "option");
         
 
         if($footer_menu){

@@ -30,7 +30,7 @@ function _get_field($field, $post_id){
 	return get_field($field, $post_id);
 }
 function _get_option($field){
-	return QueryCache::get_cached_option($field);//get_field($field, 'option');
+	return SaltBase::get_cached_option($field);//get_field($field, 'option');
 }
 function _get_option_cpt($field, $post_type){
 	return get_field($field, $post_type.'_options');

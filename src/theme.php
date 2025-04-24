@@ -365,7 +365,7 @@ Class Theme{
 
         // post pagination settings
         //if(function_exists('get_field')){
-            $post_pagination = \QueryCache::get_cached_option("post_pagination");//get_field("post_pagination", "option");//
+            $post_pagination = \SaltBase::get_cached_option("post_pagination");//get_field("post_pagination", "option");//
         //}else{
             //$post_pagination = get_option("options_post_pagination");
         //}
@@ -389,7 +389,7 @@ Class Theme{
 
         // search pagination settings
         //if(function_exists('get_field')){
-            $search_pagination = \QueryCache::get_cached_option("search_pagination");//get_field("search_pagination", "option");//
+            $search_pagination = \SaltBase::get_cached_option("search_pagination");//get_field("search_pagination", "option");//
         //}else{
             //$search_pagination = get_option("options_search_pagination");
         //}
@@ -529,7 +529,7 @@ Class Theme{
                                     $term_slug = $term;
                                 }
                                 $taxonomy_slug = $taxonomy_slug."/";
-                                $taxonomy_prefix_remove = \QueryCache::get_cached_option("taxonomy_prefix_remove");//get_field("taxonomy_prefix_remove", "option");
+                                $taxonomy_prefix_remove = \SaltBase::get_cached_option("taxonomy_prefix_remove");//get_field("taxonomy_prefix_remove", "option");
                                 if($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)){
                                    $taxonomy_slug = "";
                                 }

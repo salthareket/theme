@@ -536,9 +536,9 @@ function get_map_config($fields = array(), $block_meta = array()){
 		    	if(isset($settings['marker']) && $settings['marker']){
 		    		$marker = $settings['marker'];
 		    	}else{
-		    		$marker = QueryCache::get_cached_option("map_marker");//get_field("map_marker", "option");
+		    		$marker = SaltBase::get_cached_option("map_marker");//get_field("map_marker", "option");
 		    		if(!$marker){
-		    			$marker = QueryCache::get_cached_option("logo_marker");//get_field("logo_marker", "option");
+		    			$marker = SaltBase::get_cached_option("logo_marker");//get_field("logo_marker", "option");
 		    		}
 		    	}
 		    	if($marker){

@@ -669,14 +669,12 @@ function get_user_role($user_id=0) {
 
 
 function wp_count_posts_by_query($args) {
-    $query = QueryCache::get_cached_query($args, "data");
-    return $query["found_posts"] ?? 0;
-    /*
+    $query = SaltBase::get_cached_query($args);
     if ($query->have_posts()) {
         return count($query->posts);
     } else {
         return 0;
-    }*/
+    }
 }
 
 
@@ -723,7 +721,7 @@ function get_menu_locations() {
         'header-menu' => 'Header Menu',
         'footer-menu' => 'Footer Menu',
     ];
-    $value = QueryCache::get_cached_option("menu_locations");//get_cached_field("menu_locations", "option");
+    $value = SaltBase::get_cached_option("menu_locations");//get_cached_field("menu_locations", "option");
     if (empty($value)) {
         return $locations;
     }
@@ -738,7 +736,7 @@ function get_menu_locations() {
 
 function get_menu_populate(){
     $arr = [];
-    $value = QueryCache::get_cached_option("menu_populate");//get_cached_field("menu_populate", "option");
+    $value = SaltBase::get_cached_option("menu_populate");//get_cached_field("menu_populate", "option");
     if($value){
         foreach($value as $item){
             $menu = $item["menu"];

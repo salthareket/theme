@@ -40,7 +40,7 @@ class Post extends Timber\Post{
 
     public function get_map_data($popup=false){
         $data = array();
-        $map_service = QueryCache::get_cached_option("map_service");//get_field("map_service", "option");
+        $map_service = SaltBase::get_cached_option("map_service");//get_field("map_service", "option");
         $location_data = $this->contact["map_".$map_service];
 
         if($location_data){
@@ -48,10 +48,10 @@ class Post extends Timber\Post{
             if($map_marker){
                 $marker = $map_marker;
             }else{
-                $marker = QueryCache::get_cached_option("map_marker");//get_field("map_marker", "option");
+                $marker = SaltBase::get_cached_option("map_marker");//get_field("map_marker", "option");
             }
             if(!$marker){
-                 $marker = QueryCache::get_cached_option("logo_marker");//get_field("logo_marker", "option");
+                 $marker = SaltBase::get_cached_option("logo_marker");//get_field("logo_marker", "option");
             }
             $data = array(
                 "id"        => $this->ID,

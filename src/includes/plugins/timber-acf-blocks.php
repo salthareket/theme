@@ -271,7 +271,7 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
 }
 
 function block_container_class($container=""){
-    $default = QueryCache::get_cached_option("default_container");//get_field("default_container", "options");
+    $default = SaltBase::get_cached_option("default_container");//get_field("default_container", "options");
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " px-4 px-lg-3";
     switch($container){
         case "" :
@@ -499,7 +499,7 @@ function block_spacing($settings) {
 function generate_spacing_classes($spacing, $prefix) {
     $classes = [];
     $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
-    $default = QueryCache::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
+    $default = SaltBase::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
 
     // 'default' değerlerini doldur
     foreach ($spacing as $key => $item) {

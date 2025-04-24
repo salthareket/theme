@@ -374,9 +374,8 @@ function get_category_total_post_count($taxonomy = "category", $term_id = 0){
 	    'nopaging' => true,
 	    'fields' => 'ids',
 	);
-	//$query = SaltBase::get_cached_query($args);
-	$query = QueryCache::get_cached_query($args, "data");
-	return $query["post_count"];
+	$query = SaltBase::get_cached_query($args);
+	return $query->post_count;
 }
 
 function get_term_slugs_to_ids($slugs=array(), $taxonomy=""){

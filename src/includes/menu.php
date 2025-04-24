@@ -137,7 +137,7 @@ function create_custom_menu( $items, $menu, $args ) {
 							if(isset($dynamic_menu_item["post_type"]) && $dynamic_menu_item["post_type"]["posts_per_page"] != 0){
 								$args = $dynamic_menu_item["post_type"];
 
-								$posts = QueryCache::get_cached_query($args, "posts");
+								$posts = SaltBase::get_cached_query($args);
 								$posts = Timber::get_posts($posts);
 
 								//$posts = Timber::get_posts($args);
@@ -153,65 +153,7 @@ function create_custom_menu( $items, $menu, $args ) {
 						}
 					}                                
 				}
-			}/**/
-			/*foreach ( $items as $key => $item ) {
-			    $menu_order++;
-
-			    foreach ( $dynamic_menu as $dynamic_menu_item ) {
-			        $should_replace = isset($dynamic_menu_item["post_type"]["replace"]) && $dynamic_menu_item["post_type"]["replace"] === true;
-			        $should_replace = true;
-
-			        if (isset($dynamic_menu_item["post_type"]) && ($item->object == $dynamic_menu_item["post_type"]["post_type"] || $item->object_type == $dynamic_menu_item["post_type"]["post_type"])) {
-
-			            if ($should_replace) {
-			                unset($items[$key]); // mevcut item'ı tamamen kaldırıyoruz
-			            }
-
-			            if (isset($dynamic_menu_item["taxonomy"]["taxonomy"]) && !empty($dynamic_menu_item["taxonomy"]["taxonomy"])) {
-						    $taxonomy = $dynamic_menu_item["taxonomy"];
-						    $args = array_merge($taxonomy, array('hide_empty' => false, 'parent' => 0));
-						    $terms = Timber::get_terms($args);
-
-						    foreach ($terms as $term) {
-						        // Ana item olarak ekliyoruz
-						        custom_menu_items::add_object(
-						            $menu->name,
-						            $term->term_id,
-						            'term',
-						            $menu_order,
-						            $should_replace ? 0 : $item->db_id,
-						            '',
-						            '',
-						            '',
-						            $term->name
-						        );
-
-						        // Hiyerarşi için ID veriyoruz
-						        $term->db_id = 1000000 + $menu_order + intval($item->db_id);
-						        $menu_order++;
-
-						        // Taxonomy altında recursive olarak child terms + post'ları eklemeye devam
-						        $menu_order = create_custom_menu_loop($menu, $item, $term, $menu_order, $dynamic_menu_item);
-						    }
-						} else {
-			                if (isset($dynamic_menu_item["post_type"]["posts_per_page"]) && $dynamic_menu_item["post_type"]["posts_per_page"] != 0) {
-			                    $args = $dynamic_menu_item["post_type"];
-			                    $posts = QueryCache::get_cached_query($args, "posts");
-			                    $posts = Timber::get_posts($posts);
-
-			                    if ($posts) {
-			                        foreach ($posts as $post) {
-			                            custom_menu_items::add_object($menu->name, $post->ID, 'post', $menu_order, $should_replace ? 0 : intval($item->db_id), '', '', '', $post->title);
-			                            $post->db_id = 1000000 + $menu_order + intval($item->db_id);
-			                            $menu_order++;
-			                        }
-			                    }
-			                }
-			            }
-			        }
-			    }
-			}*/
-
+			}
         }
     }
     add_filter( 'wp_get_nav_menu_items', 'create_custom_menu', 10, 3 );
@@ -246,10 +188,8 @@ function create_custom_menu_loop($menu, $item, $parent, $menu_order, $dynamic_me
 					);
 				}
 				
-				$children = QueryCache::get_cached_query($args, "posts");
+				$children = SaltBase::get_cached_query($args);
 				$children = Timber::get_posts($children);
-
-				//$children = Timber::get_posts($args);
 				if($children){
 					foreach ( $children as $child ) {
 						custom_menu_items::add_object($menu->name, $child->ID, 'post', $menu_order, intval($parent->db_id), '', '', '', $child->title);

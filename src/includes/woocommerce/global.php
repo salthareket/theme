@@ -64,7 +64,7 @@ add_filter( 'woocommerce_quantity_input_args', 'bloomer_woocommerce_quantity_cha
 function bloomer_woocommerce_quantity_changes( $args, $product ) {
 	$user = wp_get_current_user();
 	$role = empty($user->roles)?"loggedout":$user->roles[0];
-	$role_based_quantity =  QueryCache::get_cached_option('role_based_quantity');//get_field('role_based_quantity', 'option');
+	$role_based_quantity =  SaltBase::get_cached_option('role_based_quantity');//get_field('role_based_quantity', 'option');
 	$has_quantity_settings = false;
 	if($role_based_quantity){
 		foreach($role_based_quantity as $role_base){
