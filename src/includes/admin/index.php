@@ -94,7 +94,8 @@ add_filter('manage_edit-post_sortable_columns', 'make_modified_date_sortable');
 add_filter('manage_edit-page_sortable_columns', 'make_modified_date_sortable');
 // Sticky desteği olan post type'ları getir
 function get_sticky_supported_post_types() {
-$post_types = get_post_types(array('public' => true), 'names');
+$post_types = get_post_types(array('public' => true, '_builtin' => false), 'names');
+$post_types[] = 'post';
 return array_filter($post_types, function($post_type) {
 return post_type_supports($post_type, 'sticky');
 });
@@ -158,7 +159,7 @@ function update_sticky_meta_on_save($post_id) {
 if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) {
 return;
 }
-$post_types = get_post_types(array('public' => true), 'names');
+$post_types = get_post_types(array('public' => true, '_builtin' => false), 'names');
 $post_type = get_post_type($post_id);
 if(in_array($post_type, array_keys($post_types))){
 $is_sticky = is_sticky($post_id) ? 1 : 0;
@@ -446,9 +447,10 @@ $old = get_field($field["name"], "option");
 if( $value ) {
 create_my_account_page();
 }else{
-$my_account_page = get_page_by_path('my-account');
+$my_account_page = get_option("woocommerce_myaccount_page_id");//get_page_by_path('my-account');
 if ($my_account_page) {
-wp_delete_post($my_account_page->ID, true);
+wp_delete_post($my_account_page, true);
+//wp_delete_post($my_account_page->ID, true);
 }
 }
 return $value;
@@ -564,7 +566,7 @@ delete_option('under-construction-page');
 add_filter('activated_plugin', 'plugins_activated', 10, 2);
 add_filter('deactivated_plugin', 'plugins_deactivated', 10, 2);
 function create_my_account_page(){
-$my_account_page = get_page_by_path('my-account');
+$my_account_page = class_exists("WooCommerce")?get_option("woocommerce_myaccount_page_id"):get_option("options_myaccount_page_id");//get_page_by_path('my-account');
 if (!$my_account_page) {
 $args = array(
 'post_title'    => 'My Account',
@@ -574,32 +576,41 @@ $args = array(
 'page_template' => 'template-my-account.php'
 //'page_template' => 'template-my-account-native.php'
 );
-if(class_exists("WooCommerce") && $enabled_ecommerce){
+if(class_exists("WooCommerce")){
 $args["post_content"] = "[woocommerce_my_account]";
 //$args["page_template"] = 'template-my-account.php';
 }
-return wp_insert_post($args);
+$my_account_page = wp_insert_post($args);
+if (!is_wp_error($my_account_page)) {
+if(class_exists("WooCommerce")){
+update_option('woocommerce_myaccount_page_id', $my_account_page);
 }else{
-return $my_account_page->ID;
+update_option('options_myaccount_page_id', $my_account_page);
+}
+}
+return $my_account_page;
+}else{
+return $my_account_page;//$my_account_page->ID;
 }
 }
 function set_my_account_page($enabled_ecommerce=true){
 // Create My Account Page if membership is enabled but woocommerce is not exist
-$my_account_page = get_page_by_path('my-account');
+$my_account_page = $enabled_ecommerce?get_option("woocommerce_myaccount_page_id"):get_option("options_myaccount_page_id");//get_page_by_path('my-account');
 if (!$my_account_page) {
-$my_account_page_id = create_my_account_page();
+//$my_account_page_id =
+create_my_account_page();
 }else{
 $args = array(
-'ID'            => $my_account_page->ID,
+'ID'            => $my_account_page,//$my_account_page->ID,
 //'page_template' => 'template-my-account-native.php',
 'post_content'  => '[salt_my_account]'
 );
 if(class_exists("WooCommerce") && $enabled_ecommerce){
 $args["post_content"] = "[woocommerce_my_account]";
 //$args["page_template"] = 'template-my-account.php';
-$woo_my_account_page_id = get_option("woocommerce_myaccount_page_id");
-wp_delete_post($woo_my_account_page_id, true);
-update_option("woocommerce_myaccount_page_id", $my_account_page->ID);
+//$woo_my_account_page_id = get_option("woocommerce_myaccount_page_id");
+//wp_delete_post($woo_my_account_page_id, true);
+update_option("woocommerce_myaccount_page_id", $my_account_page);//$my_account_page->ID);
 }
 wp_update_post($args);
 }

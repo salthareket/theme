@@ -1,0 +1,153 @@
+.modal {
+  .modal-dialog {
+    .modal-content {
+      .modal-header {
+        border-bottom: none;
+        padding: 25px 30px;
+        flex-wrap:wrap;
+        .modal-title {
+          font-family: $font-primary;
+          flex: 1;
+          line-height: auto;
+        }
+        .close {
+          font-size: 32px;
+          opacity: 1;
+        }
+      }
+      .modal-body {
+        padding: 30px;
+        iframe{
+            width:100%;
+            height:100%;
+        }
+      }
+      .modal-footer {
+        padding: 30px;
+      }
+    }
+  }
+
+  &.modal-confirm {
+    .modal-dialog {
+      .modal-content {
+        .modal-footer {
+          flex-direction: row-reverse;
+          justify-content: flex-start;
+        }
+      }
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  .modal-xxl {
+    max-width: 800px;
+  }
+}
+
+@media (min-width: 992px) {
+  .modal-xxl {
+    max-width: 800px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .modal-xxl {
+    max-width: 1140px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .modal-xxl {
+    max-width: 1540px;
+  }
+}
+
+.modal-alert {
+  &.modal-alert-textless {
+    .modal-body {
+      display: none;
+    }
+  }
+  .modal-footer {
+  }
+}
+
+
+
+
+.modal{
+
+  &.bootbox{
+    .modal-dialog{
+      .modal-content{
+        .modal-header{
+          align-items:start;
+          .modal-title{
+
+          }
+          .close{
+            font-size: 24px;
+                        opacity: 1;
+          }
+        }
+      }
+    }
+  }
+
+
+  &.modal-map{
+    .modal-dialog{
+      .modal-content{
+        .modal-body{
+          padding:0px;
+          .map-google{
+            height:calc(100vh - 140px);
+            @media (max-width: 991px) {
+              height:calc(100vh - 80px);
+            }
+          }
+        }
+      }
+    }
+    &.loading{
+      .modal-dialog{
+        .modal-content{
+          min-height:150px;
+        }
+      }
+    }
+  }
+
+
+  &.modal-page{
+
+    .modal-dialog{
+      .modal-content{
+        .modal-header{
+          .modal-title{
+
+          }
+          .close{
+
+          }
+        }
+        .modal-body{
+
+        }
+      }
+    }
+    &.loading{
+      .modal-dialog{
+        .modal-content{
+          min-height:150px;
+        }
+      }
+    }
+
+  }
+
+
+}
+

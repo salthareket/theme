@@ -219,48 +219,48 @@
 
 .mh-100v-header{
 	@media (min-width: 1600px) {
-        @include calc(min-height, '100vh - #{$header-height-xxxl}');
+        @include calc(min-height, '100vh - var(--header-height-xxxl)');
 	}
 	@media (min-width: 1400px) and (max-width: 1599px) {
-        @include calc(min-height, '100vh - #{$header-height-xxl}');
+        @include calc(min-height, '100vh - var(--header-height-xxl)');
 	}
 	@media (min-width: 1200px) and (max-width: 1399px) {
-        @include calc(min-height, '100vh - #{$header-height-xl}');
+        @include calc(min-height, '100vh - var(--header-height-xl)');
 	}
     @media (min-width: 992px) and (max-width: 1199px) {
-        @include calc(min-height, '100vh - #{$header-height-lg}');
+        @include calc(min-height, '100vh - var(--header-height-lg)');
 	}
 	@media (min-width: 768px) and (max-width: 991px){
-        @include calc(min-height, '100vh - #{$header-height-md}');
+        @include calc(min-height, '100vh - var(--header-height-md)');
 	}
 	@media (min-width: 576px) and (max-width: 767px) {
-        @include calc(min-height, '100vh - #{$header-height-sm}');
+        @include calc(min-height, '100vh - var(--header-height-sm)');
 	}
 	@media (max-width: 575px){
-		@include calc(min-height, '100vh - #{$header-height-xs}');
+		@include calc(min-height, '100vh - var(--header-height-xs)');
 	}
 }
 .h-100v-header{
     @media (min-width: 1600px) {
-        @include calc(height, '100vh - #{$header-height-xxxl}');
+        @include calc(height, '100vh - var(--header-height-xxxl)');
     }
     @media (min-width: 1400px) and (max-width: 1599px) {
-        @include calc(height, '100vh - #{$header-height-xxl}');
+        @include calc(height, '100vh - var(--header-height-xxl)');
     }
     @media (min-width: 1200px) and (max-width: 1399px) {
-        @include calc(height, '100vh - #{$header-height-xl}');
+        @include calc(height, '100vh - var(--header-height-xl)');
     }
     @media (min-width: 992px) and (max-width: 1199px) {
-        @include calc(height, '100vh - #{$header-height-lg}');
+        @include calc(height, '100vh - var(--header-height-lg)');
     }
     @media (min-width: 768px) and (max-width: 991px){
-        @include calc(height, '100vh - #{$header-height-md}');
+        @include calc(height, '100vh - var(--header-height-md)');
     }
     @media (min-width: 576px) and (max-width: 767px) {
-        @include calc(height, '100vh - #{$header-height-sm}');
+        @include calc(height, '100vh - var(--header-height-sm)');
     }
     @media (max-width: 575px){
-        @include calc(height, '100vh - #{$header-height-xs}');
+        @include calc(height, '100vh - var(--header-height-xs)');
     }
 }
 .header-hide{
@@ -275,25 +275,25 @@
 
 .pt-header{
 	@media (min-width: 1600px) {
-        padding-top: $header-height-xxxl;
+        padding-top: var(--header-height-xxxl);
 	}
 	@media (min-width: 1400px) and (max-width: 1599px) {
-        padding-top: $header-height-xxl;
+        padding-top: var(--header-height-xxl);
 	}
 	@media (min-width: 1200px) and (max-width: 1399px) {
-        padding-top: $header-height-xl;
+        padding-top: var(--header-height-xl);
 	}
     @media (min-width: 992px) and (max-width: 1199px) {
-        padding-top: $header-height-lg;
+        padding-top: var(--header-height-lg);
 	}
 	@media (min-width: 768px) and (max-width: 991px){
-        padding-top: $header-height-md;
+        padding-top: var(--header-height-md);
 	}
 	@media (min-width: 576px) and (max-width: 767px) {
-        padding-top: $header-height-sm;
+        padding-top: var(--header-height-sm);
 	}
 	@media (max-width: 575px){
-		padding-top: $header-height-xs;
+		padding-top: var(--header-height-xs);
 	}
     &:not(.offcanvas){
         @include transition(padding-top .3s ease-out);
@@ -302,25 +302,25 @@
 .affix{
     .pt-header{
         @media (min-width: 1600px) {
-            padding-top: $header-height-xxxl-affix;
+            padding-top: var(--header-height-xxxl-affix);
         }
         @media (min-width: 1400px) and (max-width: 1599px) {
-            padding-top: $header-height-xxl-affix;
+            padding-top: var(--header-height-xxl-affix);
         }
         @media (min-width: 1200px) and (max-width: 1399px) {
-            padding-top: $header-height-xl-affix;
+            padding-top: var(--header-height-xl-affix);
         }
         @media (min-width: 992px) and (max-width: 1199px) {
-            padding-top: $header-height-lg-affix;
+            padding-top: var(--header-height-lg-affix);
         }
         @media (min-width: 768px) and (max-width: 991px){
-            padding-top: $header-height-md-affix;
+            padding-top: var(--header-height-md-affix);
         }
         @media (min-width: 576px) and (max-width: 767px) {
-            padding-top: $header-height-sm-affix;
+            padding-top: var(--header-height-sm-affix);
         }
         @media (max-width: 575px){
-            padding-top: $header-height-xs-affix;
+            padding-top: var(--hheader-height-xs-affix);
         }
         &:not(.offcanvas){
             @include transition(padding-top .3s ease-out);
@@ -330,22 +330,22 @@
 
 .mt-nheader{
     @media (min-width: 1600px) {
-        margin-top: -$header-height-xxxl;
+        margin-top: -var(--header-height-xxxl);
     }
     @media (min-width: 1400px) and (max-width: 1599px) {
-        margin-top: -$header-height-xxl;
+        margin-top: -var(--header-height-xxl);
     }
     @media (min-width: 1200px) and (max-width: 1399px) {
-        margin-top: -$header-height-xl;
+        margin-top: -var(--header-height-xl);
     }
     @media (min-width: 992px) and (max-width: 1199px) {
-        margin-top: -$header-height-lg;
+        margin-top: -var(--header-height-lg);
     }
     @media (min-width: 768px) and (max-width: 991px){
-        margin-top: -$header-height-md;
+        margin-top: -var(--header-height-md);
     }
     @media (min-width: 576px) and (max-width: 767px) {
-        margin-top: -$header-height-sm;
+        margin-top: -var(--header-height-sm);
     }
     @media (max-width: 575px){
         margin-top: -$header-height-xs;

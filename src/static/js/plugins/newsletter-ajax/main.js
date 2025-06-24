@@ -32,15 +32,19 @@ jQuery(function($){
 
                 e.preventDefault();
 
-                var messages = site_config.dictionary.newsletter;
+                var messages = site_config.dictionary//.newsletter;
+
+                alert(isLoadedJS("bootbox"))
 
                 if(IsBlank($name.val())){
-                   _alert( messages.name_error );
-                   return false; 
+                    //if(messages.hasOwnProperty("name_error")){
+                        _alert("Please write your name.")
+                    //}
+                    return false; 
                 }
 
                 if(IsBlank($surname.val())){
-                   _alert( messages.surname_error );
+                   _alert("Please wite your last name.");
                    return false; 
                 }
 
@@ -49,7 +53,7 @@ jQuery(function($){
                     var data = {};
 
                     if($accept.length>0 && !$accept.is(":checked")){
-                       _alert(  messages.privacy_error );
+                       _alert("Please accept");
                        return false;
                     }
 
@@ -59,7 +63,7 @@ jQuery(function($){
                         nonce: newsletter_ajax.ajax_nonce,
                         data: serializedData
                     }
-                    debugJS(data);
+                    //debugJS(data);
                     // send ajax request
                     $.ajax({
                         method: "POST",
@@ -74,17 +78,18 @@ jQuery(function($){
                             $submit.text($submit_text).prop( 'disabled', false );
                             if( data.status == 'success' ) {
                                 _alert(data.msg);
-                                debugJS( 'INFO: OK!' );
+                                //debugJS( 'INFO: OK!' );
                             } else {
                                 _alert(data.msg);
-                                debugJS( 'INFO: Bad response.' );
+                                //debugJS( 'INFO: Bad response.' );
                             }
                         }
                     });
 
                     debugJS( 'INFO: Email ok.' );
+
                 } else { 
-                    _alert(  messages.email_error  );
+                    _alert("Please write a valid email address" );
                 };
             });
         });

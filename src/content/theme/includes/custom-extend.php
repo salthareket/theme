@@ -466,7 +466,7 @@ class Salt extends SaltBase {
             remove_action('publish_post', [ parent::class, 'on_post_published'], 100);
         }*/
         
-        if (defined('DOING_AJAX') && DOING_AJAX) {
+        /*if (defined('DOING_AJAX') && DOING_AJAX) {
             return;
         }
         if (defined('DOING_CRON') && DOING_CRON) {
@@ -484,12 +484,12 @@ class Salt extends SaltBase {
                 return; // Eğer zaten çalıştıysa, çık
             }
 
-            self::$already_ran = true; // Flag'i ayarla
+            self::$already_ran = true; // Flag'i ayarla*/
 
             parent::on_post_published($post_id, $post, $update);
 
-            self::$already_ran = false; // Flag'i ayarla
-        }
+           /* self::$already_ran = false; // Flag'i ayarla
+        }*/
         /*add_action('save_post', [ $this, 'on_post_published'], 100, 3);
         add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
         add_action('publish_post', [ $this, 'on_post_published'], 100, 3);

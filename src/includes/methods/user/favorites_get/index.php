@@ -5,7 +5,7 @@ global $wp_query;
 $favorites = new Favorites();
 $favorites = $favorites->favorites;
 if (!$template) {
-	$template = "woo/dropdown/archive.twig";
+	$template = "product/dropdown/archive.twig";
 }
 $templates = [$template . ".twig"];
 $context = Timber::context();

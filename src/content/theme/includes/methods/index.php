@@ -364,7 +364,6 @@ unset($post_args["s"]);
 }
 //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
 $html = "";
-//$query = new WP_Query($post_args);
 $query = SaltBase::get_cached_query($post_args);
 $folder = $post_args["post_type"];
 if($args["post_type"] == "any" || is_array($args["post_type"])){
@@ -373,6 +372,8 @@ $folder = "search";
 if($post_args["post_type"] == "any" || is_array($post_args["post_type"])){
 $folder = "search";
 }
+error_log(print_r($args, true));
+error_log(print_r($query, true));
 if($args["post_type"] == "product"){
 if ($query->have_posts()) :
 while ($query->have_posts()) : $query->the_post();
@@ -580,7 +581,7 @@ die();
 break;
 case 'map_modal':
 $html = "";
-$map_service = SaltBase::get_cached_option("map_service");
+$map_service = SaltBase::get_cached_option("map_service");//get_cached_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -770,6 +771,268 @@ $output["data"] = array(
 );
 }
 echo json_encode($output);
+die();
+break;
+case 'custom_track_product_view':
+custom_track_product_view_js($vars["post_id"]);
+die();
+break;
+case 'get_cart':
+global $woocommerce;
+$cart = woo_get_cart_object();
+$context = Timber::context();
+$context["type"] = "cart";
+$context["cart"] = $cart;
+$response["data"] = array(
+"count" => $woocommerce->cart->get_cart_contents_count()
+);
+$template = "partials/".$vars["type"]."/archive.twig";
+$response["html"] = Timber::compile($template, $context);
+echo json_encode($response);
+die();
+break;
+case 'get_products':
+if (isset($vars["kategori"])) {
+$page_type = "product_cat";
+}
+if (isset($vars["keyword"])) {
+$page_type = "search";
+$GLOBALS["keyword"] = $vars["keyword"];
+add_filter("posts_where", "sku_where");
+}
+$templates = [$template . ".twig"];
+$context = Timber::context();
+//$query = new WP_Query();
+$query = [];
+$query_response = category_queries_ajax($query, $vars);
+$query = $query_response["query"];
+//$GLOBALS["query_vars"] = woo_sidebar_filter_vars($vars); //$query_response["query_vars"];
+$data["query_vars"] = $GLOBALS["query_vars"];
+$closure = function ($sql) {
+//$role = array_keys($GLOBALS["user"]->roles)[0];
+//print_r($GLOBALS['query_vars']);
+// remove single quotes around 'mt1.meta_value'
+//print_r($sql);
+// $sql = str_replace("CAST(mt2.meta_value AS SIGNED)","CAST(mt2.meta_value-(mt2.meta_value/2) AS SIGNED)", $sql);// 50% indirim
+return str_replace("'mt2.meta_value'", "mt2.meta_value", $sql);
+};
+add_filter("posts_request", $closure);
+query_posts($query);
+//$query = new WP_Query($args);
+//$posts = new WP_Query( $query );
+remove_filter("posts_request", spl_object_hash($closure));
+$posts = Timber::get_posts();
+$context["posts"] = $posts; //_new;
+//$queried_object = get_queried_object();
+if (ENABLE_FAVORITES) {
+$context["favorites"] = $GLOBALS["favorites"];
+}
+$context["pagination_type"] =
+$GLOBALS["site_config"]["pagination_type"];
+if (isset($GLOBALS["query_vars"])) {
+$query_vars = $GLOBALS["query_vars"];
+}
+global $wp_query;
+$post_count = $wp_query->found_posts;
+$page_count = $wp_query->max_num_pages;
+$page = $wp_query->query_vars["paged"];
+$context["post_count"] = $post_count;
+$context["page_count"] = $page_count;
+$context["page"] = $page;
+//if(array_key_exists( "pagination", $context['posts'] )){
+$context["pagination"] = Timber::get_pagination(); //$context['posts']->pagination;//Timber::get_pagination();
+//}
+//$context['pagination'] = Timber::get_pagination();
+//print_r($context['posts']);
+//$context['page_count'] = 1;//Timber::get_pagination(array(),$context['posts']);//floor(abs(Timber::get_pagination()["total"])/$GLOBALS['ajax_product_count']);//Timber::get_pagination();
+//echo $page;//json_encode($query_args);
+//echo json_encode(get_posts($query_args));
+//die;
+/*if ($vars["product_filters"] && ENABLE_FILTERS) {
+$data["sidebar"] = Timber::compile(
+"product/sidebar-product-filter.twig",
+woo_sidebar_filters(
+$context,
+$page_type,
+500,
+$query,
+$vars
+)
+);
+}*/
+wp_reset_postdata();
+wp_reset_query();
+break;
+case 'pay_now':
+$salt = new Salt();
+$id = $vars["id"];
+$salt->remove_cart_content();
+//$salt->update_product_price($id);
+$salt->add_to_cart($id);
+$redirect_url = woo_checkout_url();
+$output = [
+"error" => false,
+"message" => "",
+"data" => "",
+"html" => "",
+"redirect" => $redirect_url,
+];
+echo json_encode($output);
+die();
+break;
+case 'salt_recently_viewed_products':
+$data = [];
+$template = $vars["ajax"]["template"];
+$data = Timber::get_posts(salt_recently_viewed_products());
+$templates = [$template];
+//$context = Timber::context();
+//print_r($vars);
+//$context["vars"] = $vars;
+//$context["vars"]["posts"] = $data->to_array();
+$vars["posts"] = $data->to_array();
+return [
+"error" => false,
+"message" => "",
+"data" =>  $vars,
+"html" => "",
+];
+break;
+case 'wc_api_create_product':
+echo json_encode(wc_api_create_product($vars["data"]));
+die();
+break;
+case 'wc_api_create_product_variation':
+echo json_encode(
+wc_api_create_product_variation($vars["data"], $vars["id"])
+);
+die();
+break;
+case 'wc_api_filter_products':
+$args = ["tag" => "103,63"];
+echo json_encode($GLOBALS["woo_api"]->get("products", $args)); //$vars["filters"]));
+die();
+break;
+case 'wc_api_update_product':
+echo json_encode(wc_api_update_product($vars["data"]));
+die();
+break;
+case 'wc_cart_clear':
+global $woocommerce;
+$woocommerce->cart->empty_cart();
+die();
+break;
+case 'wc_cart_item_remove':
+global $woocommerce;
+$woocommerce->cart->remove_cart_item($vars["key"]);
+$cart = woo_get_cart_object();
+$context = Timber::context();
+$context["type"] = "cart";
+$context["cart"] = $cart;
+$response["data"] = array(
+"count" => $woocommerce->cart->get_cart_contents_count()
+);
+$template = "partials/".$vars["type"]."/archive.twig";
+$response["html"] = Timber::compile($template, $context);
+echo json_encode($response);
+die();
+break;
+case 'wc_cart_quantity_update':
+global $woocommerce;
+$woocommerce->cart->set_quantity($vars["key"], $vars["count"]);
+//$woocommerce->cart->get_cart_contents_count();
+echo json_encode(woo_get_cart_object());
+die();
+break;
+case 'wc_modal_page_template':
+global $woocommerce;
+$context = Timber::context();
+$context["date"] = date("d.m.Y");
+$content = apply_filters(
+"the_content",
+get_post_field("post_content", $id)
+);
+$customer_data = $woocommerce->cart->get_customer();
+$shipping_data = $customer_data->shipping;
+$customer = [
+"name" =>
+$customer_data->first_name .
+" " .
+$customer_data->last_name,
+"shipping_address" =>
+$shipping_data["address_1"] .
+" " .
+$shipping_data["city"] .
+" " .
+$shipping_data["state"] .
+" " .
+$shipping_data["postcode"] .
+" " .
+$shipping_data["country"],
+"phone" => $customer_data->billing["phone"],
+"email" => $customer_data->email,
+"ip" => $_SERVER["REMOTE_ADDR"],
+];
+$context["customer"] = $customer;
+$cart = [];
+$discount_total = 0;
+$tax_total = 0;
+$items = $woocommerce->cart->get_cart();
+foreach ($items as $item => $values) {
+$_product = wc_get_product($values["data"]->get_id());
+$getProductDetail = wc_get_product($values["product_id"]);
+//$price = get_post_meta($values['product_id'] , '_price', true);
+//echo "Regular Price: ".get_post_meta($values['product_id'] , '_regular_price', true)."<br>";
+//echo "Sale Price: ".get_post_meta($values['product_id'] , '_sale_price', true)."<br>";
+$tax = $values["line_subtotal_tax"];
+$regular_price = $_product->get_regular_price();
+//$sale_price = $_product->get_sale_price();
+//$discount = ($regular_price - $sale_price);// * $values['quantity'];
+//$discount_total += $discount;
+$tax_total += $tax;
+$cart_item = [
+"image" => $getProductDetail->get_image("thumbnail"),
+"title" => $_product->get_title(),
+"price" => woo_get_currency_with_price(
+get_post_meta($values["variation_id"], "_price", true)
+),
+"quantity" => $values["quantity"],
+"tax" => woo_get_currency_with_price($tax),
+"total_price" => woo_get_currency_with_price(
+$values["line_subtotal"]
+),
+];
+$cart[] = $cart_item;
+}
+$context["cart"] = $cart;
+$context["total_tax"] = woo_get_currency_with_price($tax_total);
+//$context["shipping_price"] = $woocommerce->cart->get_cart_shipping_total();
+//$context["discount_price"] = woo_get_currency_with_price($discount_total);
+$context["total"] = woo_get_currency_with_price(
+$woocommerce->cart->total
+);
+Timber::render_string($content, $context);
+die();
+break;
+case 'wc_order_list':
+$order_number = $vars["order_number"];
+woocommerce_order_details_table($order_number);
+die();
+break;
+case 'woo_get_product_variation_thumbnails':
+global $woocommerce;
+$images = woo_get_product_variation_thumbnails(
+$vars["product_id"],
+$vars["attr"],
+$vars["attr_value"],
+$vars["size"]
+);
+$context = Timber::context();
+$context["post"] = wc_get_product($vars["product_id"]);
+$context["type"] = $context["post"]->get_type();
+$context["images"] = $images;
+$template = $vars["template"] . ".twig";
+$response["html"] = Timber::compile($template, $context);
+echo json_encode($response);
 die();
 break;
 }

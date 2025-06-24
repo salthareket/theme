@@ -1,0 +1,37 @@
+//====================================
+// Global Imports
+//====================================
+
+// 0- Import Compass
+@import 'lib/compass';
+
+// 3 - functions, custom variables and mixins
+@import '3-base/index';
+
+// 1- Import bootstrap framework
+@import '1-frameworks/index';
+
+// 2 - Import plugins
+@import '2-plugins/index';
+
+//// 4 - Import components
+@import '4-components/index';
+
+//// 5 - Import layout  styles
+@import '5-layout/index';
+
+//// 6 - module styles
+@import '6-modules/index';
+
+/*
+@import "bscore_variables";
+@import "bscore_style";
+@import "bscore_woocommerce"; // Comment or delete this line if WooCommerce styles are not needed
+@import "bscore_custom";
+*/
+
+
+//// 7 - custom
+/*! purgecss start ignore */
+@import '#{$theme_static_path}scss/index';
+/*! purgecss end ignore */

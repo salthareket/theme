@@ -82,7 +82,6 @@ class Term extends Timber\Term{
         return $count;
     }
     public function get_posts_2($post_type="post"){
-        echo "aaa";
         return Timber::get_posts(
             array(
                 'post_type' => $post_type,

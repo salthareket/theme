@@ -18,6 +18,12 @@ if(isset($GLOBALS["plugins"])){
 
 
 
+//redirects
+$GLOBALS["woo_redirect_empty_cart"] = "";
+$GLOBALS["woo_redirect_not_logged"] = get_account_endpoint_url('my-account');
+
+
+
 
 // Üyelik oluştururken kullanılabilecek rollerin tanımlanması
 $GLOBALS["membership_roles"] = array();
@@ -185,7 +191,7 @@ $GLOBALS["templates"] = array(
 
 $GLOBALS["base_urls"] = [
     "profile" => get_account_endpoint_url("profile"),
-    "account" => get_permalink( get_page_by_path( "my-account" ) ),
+    "account" => get_permalink(get_option("woocommerce_myaccount_page_id")),//get_permalink( get_page_by_path( "my-account" ) ),
     "logged_url" => home_url(),
 ];
 

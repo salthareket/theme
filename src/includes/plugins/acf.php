@@ -189,7 +189,7 @@ function create_options_menu($options){
 				'capability'	=> 'edit_posts',
 				'redirect'		=> $redirect
 			));
-			$menu_children=$options['children'];
+			$menu_children = $options['children'];
 			if($menu_children){
 				create_options_menu_children($menu_title, $menu_children);
 			}
@@ -328,7 +328,8 @@ function acf_offcanvas_classes($page_settings=array()){
 function acf_offcanvas_content_classes($page_settings=array()){
 	$classes = "";
 	$size = $page_settings["offcanvas"]["size"];
-	$width = 12 - $page_settings["offcanvas"]["width"];
+	$width = $page_settings["offcanvas"]["width"];
+	$width = is_string($width)?"auto":(12 - $width);
 	switch ($size) {
 		case 'xs':
 		    $classes = "col-12";

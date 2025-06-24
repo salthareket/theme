@@ -510,7 +510,8 @@ class StarterSite extends Timber\Site{
             $folder = explode("/", $file);
             if($folder){
                 $folder = $folder[0];
-                if($folder != "woo"){
+                // woocommerce akrif ve urun tease template ise col ekelem, cunku default olarak var.
+                if(!(ENABLE_ECOMMERCE && $folder == "product")){ 
                     $post_types = $data["post_pagination"];
                     if($post_types){
                         $post_types = array_keys($post_types);
@@ -537,6 +538,7 @@ class StarterSite extends Timber\Site{
                 "trans_arr",
                 "printf_array",
                 "trans_plural",
+                "trans_static",
                 "uppertr",
                 "get_option",
                 "phone_link",

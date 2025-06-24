@@ -367,6 +367,17 @@ function compile_files_config($enable_production=false){
 		"whitelist" => []  
 	];
 
+	$plugins['jquery-zoom'] = [
+		"c"	=> true,
+		"admin" => false,
+		"url" => $node_path . 'jquery-zoom/jquery.zoom.js',
+		"css" => [],
+		"class" => [],
+		"attrs" => ["data-zoom"],
+		"init"     => "init_jquery_zoom",
+		"whitelist" => []  
+	];
+
 
    if(!isset($plugins["smartmenu-bs"]) && $header_has_navigation){
 	 	$plugins['smartmenus'] = [
@@ -505,10 +516,6 @@ function compile_files_config($enable_production=false){
 		    if ($key !== false) { 
 		        unset($functions[$key]); // Anahtar bulunduysa sil
 		    }
-		    $key = array_search('woo-filters.js', $functions);
-		    if ($key !== false) { 
-		        unset($functions[$key]); // Anahtar bulunduysa sil
-		    }
 		}
 		
 		foreach($functions as $file){
@@ -540,92 +547,6 @@ function compile_files_config($enable_production=false){
 
 	return $minify;
 }
-
-
-
-
-
-
-	//$plugins['bootstrap-3-typeahead'] = $node_path . 'bootstrap-3-typeahead/bootstrap3-typeahead.js';
-	//$plugins['bootstrap-select'] =     $node_path . 'bootstrap-select/dist/js/bootstrap-select.min.js';
-	//$plugins['select2'] = $node_path .'select2/dist/js/select2.full.min.js';
-	//$plugins['bootstrap-datepicker'] =  $node_path . 'bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js';
-	//$plugins['timepicker'] =  $node_path . 'timepicker/jquery.timepicker.min.js';
-	//$plugins['datepair.js'] =  $node_path . 'datepair.js/dist/jquery.datepair.min.js';
-	//$plugins['imagesloaded'] = 	$node_path . 'imagesloaded/imagesloaded.pkgd.min.js';
-	//$plugins['lazysizes-bgset'] = 	$node_path . 'lazysizes/plugins/bgset/ls.bgset.min.js';
-	//$plugins['lazysizes'] =  $node_path . 'lazysizes/lazysizes.min.js';
-	//$plugins['unitegallery'] = 	$node_path . 'unitegallery/dist/js/unitegallery.min.js';
-	//$plugins['unitegallery-theme-tiles'] =	$node_path . 'unitegallery/dist/themes/tiles/ug-theme-tiles.js';
-	//$plugins['js-cookie'] = 	$node_path . 'js-cookie/dist/js.cookie.min.js';
-	//$plugins['hc-sticky'] =  $node_path . 'hc-sticky/dist/hc-sticky.js';
-	//$plugins['autosize'] =   $node_path . 'autosize/dist/autosize.min.js';
-	//$plugins['jquery-serializejson'] = 	$node_path . 'jquery-serializejson/jquery.serializejson.js';
-	//$plugins['conditionize2'] = 	$node_path . 'conditionize2/jquery.conditionize2.min.js';
-	//$plugins['jquery-validation'] =      	$node_path . 'jquery-validation/dist/jquery.validate.js';
-	//$plugins['disableautofill'] =      	$node_path . 'disableautofill/src/jquery.disableAutoFill.min.js';
-	//$plugins['inputmask'] =      	$node_path . 'inputmask/dist/jquery.inputmask.min.js';
-	//$plugins['jquery.repeater'] = 	$node_path . 'jquery.repeater/jquery.repeater.min.js';
-	//$plugins['aos'] = 	$node_path . 'aos/dist/aos.js';
-	//$plugins['background-check'] =  $plugin_path . 'background-check/background-check.min.js';
-	//$plugins['twig'] =  $node_path . 'twig/twig.min.js';
-	//$plugins['bootstrap-input-spinner'] =  $node_path . 'bootstrap-input-spinner/src/bootstrap-input-spinner.js';
-	//$plugins['image-uploader'] =  $plugin_path . 'image-uploader/dist/image-uploader.min.js';
-	//$plugins['numeral'] =  $node_path . 'numeral/min/numeral.min.js';
-	//$plugins['lodash'] = $node_path .'lodash/lodash.min.js';
-	//$plugins['jquery-multiselect'] = $node_path .'@nobleclem/jquery-multiselect/jquery.multiselect.js';
-	//$plugins['bootstrapv5-multiselect'] = $node_path .'bootstrapv5-multiselect/dist/js/bootstrap-multiselect.js';
-	//$plugins['moment'] = $node_path . 'moment/min/moment.min.js';
-	//$plugins['moment-timezone'] = $node_path . 'moment-timezone/moment-timezone.js';moment-timezone-with-data.js
-	//$plugins['moment-timezone-data'] = $plugin_path . 'moment-timezone-data/moment-timezone-with-data.js';
-   //$plugins['jquery-countdown'] = $node_path . 'jquery-countdown/dist/jquery.countdown.min.js';
-   //$plugins['clndr'] = $node_path . 'clndr/clndr.min.js';
-   //$plugins['leaflet'] =  $node_path . 'leaflet/dist/leaflet.js';
-   //$plugins['leaflet-markercluster'] =  $node_path . 'leaflet.markercluster/dist/leaflet.markercluster.js';
-   //$plugins['autocomplete-js'] =  $node_path . 'autocomplete-js/dist/autocomplete.min.js';
-   //$plugins['simple-scrollbar'] =  $node_path . 'simple-scrollbar/simple-scrollbar.min.js';
-   //$plugins['progressbar.js'] =  $node_path . 'progressbar.js/dist/progressbar.min.js';
-   //$plugins['fancyapps'] =  $node_path . '@fancyapps/ui/dist/index.umd.js';
-   //$plugins['fancybox'] =  $node_path . '@fancyapps/ui/dist/fancybox/fancybox.umd.js';
-   //$plugins['slabtext'] =  $plugin_path . 'slabtext/js/jquery.slabtext.min.js';
-   //$plugins['easyqrcodejs'] =  $node_path . 'easyqrcodejs/dist/easy.qrcode.min.js';
-   //$plugins['print-this']   =  $node_path . 'print-this/printThis.js';
-   //$plugins['sortablejs']   =  $node_path . 'sortablejs/Sortable.min.js';
-   //$plugins['jquery-zoom']   =  $node_path . 'jquery-zoom/jquery.zoom.min.js';
-   //$plugins['toast'] = $node_path .'jquery-toast-plugin/dist/jquery.toast.min.js';
-   //$plugins['imgviewer2'] = $node_path .'imgviewer2/src/imgViewer2.js';
-   //$plugins['scrollmagic']   =  $node_path . 'scrollmagic/scrollmagic/minified/ScrollMagic.min.js';
-   if(ENABLE_FAVORITES || ENABLE_CART){
-      //$plugins['simple-scrollbar'] = $node_path .'simple-scrollbar/simple-scrollbar.min.js';
-   }
-
-
-   //$header_css['bootstrap'] = $node_path . 'bootstrap/dist/css/bootstrap.css';
-	//$header_css['smartmenu-bs'] = $node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css';
-	//$header_css['unitegallery'] = $node_path . 'unitegallery/dist/css/unite-gallery.css';
-	//$header_css['unitegallery-theme'] = $node_path . 'unitegallery/dist/themes/default/ug-theme-default.css';
-	//$header_css['animate.css'] = $node_path . 'textillate/assets/animate.css';
-	//$header_css['aos'] = 	$node_path . 'aos/dist/aos.css';
-	//$header_css['jquery-ui'] = $plugin_path .'jquery-ui/jquery-ui.min.css';
-	//$header_css['typeahead.js-bootstrap4-css'] = $node_path .'typeahead.js-bootstrap4-css/typeaheadjs.css';
-	//$header_css['select2'] = $node_path .'select2/dist/css/select2.min.css';
-	//$header_css['select2-bootstrap-5-theme'] = $node_path .'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.min.css';
-	//$header_css['image-uploader'] = $plugin_path .'image-uploader/dist/image-uploader.min.css';
-	//$header_css['bootstrap-select'] =  $node_path . 'bootstrap-select/dist/css/bootstrap-select.min.css';
-	//$header_css['multiselect'] = $node_path .'@nobleclem/jquery-multiselect/jquery.multiselect.css';
-	//$header_css['bootstrapv5-multiselect'] = $node_path .'bootstrapv5-multiselect/dist/css/bootstrap-multiselect.min.css';
-	//$header_css['timepicker'] =  $node_path . 'timepicker/jquery.timepicker.min.css';
-	//$header_css['bootstrap-datepicker'] =  $node_path . 'bootstrap-datepicker/dist/css/bootstrap-datepicker3.standalone.min.css';
-	//$header_css['leaflet'] =  $node_path . 'leaflet/dist/leaflet.css';
-	//$header_css['leaflet-markercluster'] =  $node_path . 'leaflet.markercluster/dist/MarkerCluster.css';
-	//$header_css['leaflet-markercluster-default'] =  $node_path . 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-	//$header_css['autocomplete'] =  $node_path . 'autocomplete-js/dist/autocomplete.min.css';
-	//$header_css['simple-scrollbar'] =  $node_path . 'simple-scrollbar/simple-scrollbar.css';
-	//$header_css['fancybox'] =  $node_path . '@fancyapps/ui/dist/fancybox/fancybox.css';
-	//$header_css['slabtext'] =  $plugin_path . 'slabtext/css/slabtext.css';
-	//$header_css['jquery-toast-plugin'] = $node_path .'jquery-toast-plugin/dist/jquery.toast.min.css';
-
-
 
 function combine_and_cache_files($type, $files) {
     if ($type !== 'css' && $type !== 'js') {
@@ -668,4 +589,3 @@ function combine_and_cache_files($type, $files) {
     file_put_contents($cache_file, trim($combined_content)); // Boş satırları önlemek için trim kullan
     return get_stylesheet_directory_uri() . '/static/' . $type . '/cache/' . $hash . '.' . $type;
 }
-

@@ -62,7 +62,8 @@
                 {% for body_row in table.body %}
                     <tr>
                     {% for body_column in body_row %}
-                        <td class="align-top">{{function("convertToLink", body_column.c)|nl2br}}</td>
+                        {#<td class="align-top">{{function("convertToLink", body_column.c)|nl2br}}</td>#}
+                        <td class="align-top">{{body_column.c|nl2br}}</td>
                     {% endfor %}
                     </tr>
                 {% endfor %}
@@ -70,5 +71,4 @@
             {% endif %}
             </table>
         </div>
-
 {% endblock %}

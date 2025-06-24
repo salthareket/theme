@@ -8,9 +8,12 @@ use SaltHareket\Theme;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
-function get_theme_styles($variables = array()){
+function get_theme_styles($variables = array(), $root = false){
     $theme_styles = acf_get_theme_styles();
     if($theme_styles){
+
+        $variables_mobile = [];
+        $variables_media_query = [];
 
         $path = THEME_STATIC_PATH . 'data/theme-styles';
         if(!is_dir($path)){
@@ -33,16 +36,28 @@ function get_theme_styles($variables = array()){
         $title_mobile_line_heights = [];
 
         foreach ($theme_styles["typography"]["title"] as $key => $breakpoint) {
-            $title_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            if($root){
+                $title_sizes["title-".$key] = acf_units_field_value($breakpoint);
+            }else{
+                $title_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            }
         }
 
         foreach ($theme_styles["typography"]["title_mobile"] as $key => $breakpoint) {
-            $title_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            if($root){
+                $title_mobile_sizes["title-".$key] = acf_units_field_value($breakpoint);
+            }else{
+                $title_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            }
         }
 
         foreach ($theme_styles["typography"]["title_line_height"] as $key => $breakpoint) {
             $line_height = acf_units_field_value($breakpoint);
-            $title_line_heights[] = "size: $key, line-height: $line_height";
+            if($root){
+                $title_line_heights["title-".$key."-lh"] = $line_height;
+            }else{
+                $title_line_heights[] = "size: $key, line-height: $line_height";
+            }
 
             $fs = $theme_styles["typography"]["title"][$key]["value"];
             $lh = $breakpoint["value"];
@@ -50,13 +65,25 @@ function get_theme_styles($variables = array()){
 
             if (!empty($fs) && !empty($mobile_fs) && !empty($lh)) {
                 $mobile_lh = ($mobile_fs * $lh) / $fs;
-                $title_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
+                if($root){
+                    $title_mobile_line_heights["text-".$key."-lh"] = $mobile_lh."px";
+                }else{
+                    $title_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
+                }
             }
         }
-        $variables["title_sizes"] = "(".implode("), (", $title_sizes).")";
-        $variables["title_mobile_sizes"] = "(".implode("), (", $title_mobile_sizes).")";
-        $variables["title_line_heights"] = "(".implode("), (", $title_line_heights).")";
-        $variables["title_mobile_line_heights"] = "(".implode("), (", $title_mobile_line_heights).")";
+        if($root){
+            $variables = array_merge($variables, $title_sizes);
+            $variables_mobile = array_merge($variables_mobile, $title_mobile_sizes);
+            $variables = array_merge($variables, $title_line_heights);
+            $variables_mobile = array_merge($variables_mobile, $title_mobile_line_heights);   
+        }else{
+            $variables["title_sizes"] = "(".implode("), (", $title_sizes).")";
+            $variables["title_mobile_sizes"] = "(".implode("), (", $title_mobile_sizes).")";
+            $variables["title_line_heights"] = "(".implode("), (", $title_line_heights).")";
+            $variables["title_mobile_line_heights"] = "(".implode("), (", $title_mobile_line_heights).")";            
+        }
+
 
 
 
@@ -68,16 +95,28 @@ function get_theme_styles($variables = array()){
         $text_mobile_line_heights = [];
 
         foreach ($theme_styles["typography"]["text"] as $key => $breakpoint) {
-            $text_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            if($root){
+                $text_sizes["text-".$key] = acf_units_field_value($breakpoint);
+            }else{
+                $text_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            }
         }
 
         foreach ($theme_styles["typography"]["text_mobile"] as $key => $breakpoint) {
-            $text_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            if($root){
+                $text_mobile_sizes["text-".$key] = acf_units_field_value($breakpoint);
+            }else{
+                $text_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
+            }
         }
 
         foreach ($theme_styles["typography"]["text_line_height"] as $key => $breakpoint) {
             $line_height = acf_units_field_value($breakpoint);
-            $text_line_heights[] = "size: $key, line-height: $line_height";
+            if($root){
+                $text_line_heights["text-".$key."-lh"] = $line_height;
+            }else{
+                $text_line_heights[] = "size: $key, line-height: $line_height";
+            }
 
             $fs = $theme_styles["typography"]["text"][$key]["value"];
             $lh = $breakpoint["value"];
@@ -85,20 +124,47 @@ function get_theme_styles($variables = array()){
 
             if (!empty($fs) && !empty($mobile_fs) && !empty($lh)) {
                 $mobile_lh = ($mobile_fs * $lh) / $fs;
-                $text_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
+                if($root){
+                    $text_mobile_line_heights["text-".$key."-lh"] = $mobile_lh."px";
+                }else{
+                    $text_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
+                }
             }
         }
-        $variables["text_sizes"] = "(".implode("), (", $text_sizes).")";
-        $variables["text_mobile_sizes"] = "(".implode("), (", $text_mobile_sizes).")";
-        $variables["text_line_heights"] = "(".implode("), (", $text_line_heights).")";
-        $variables["text_mobile_line_heights"] = "(".implode("), (", $text_mobile_line_heights).")";
+        if($root){
+            $variables = array_merge($variables, $text_sizes);
+            $variables_mobile = array_merge($variables_mobile, $text_mobile_sizes);
+            $variables = array_merge($variables, $text_line_heights);
+            $variables_mobile = array_merge($variables_mobile, $text_mobile_line_heights);  
+        }else{
+            $variables["text_sizes"] = "(".implode("), (", $text_sizes).")";
+            $variables["text_mobile_sizes"] = "(".implode("), (", $text_mobile_sizes).")";
+            $variables["text_line_heights"] = "(".implode("), (", $text_line_heights).")";
+            $variables["text_mobile_line_heights"] = "(".implode("), (", $text_mobile_line_heights).")";            
+        }
+
+
+
+        if($root){
+            $colors = $theme_styles["colors"];
+            $variables["primary-color"] = scss_variables_color($colors["primary"]);
+            $variables["secondary-color"] = scss_variables_color($colors["secondary"]);
+            $variables["tertiary-color"] = scss_variables_color($colors["tertiary"]);
+            $variables["quaternary-color"] = scss_variables_color($colors["quaternary"]);
+            if($colors["custom"]){
+                foreach($colors["custom"] as $color){
+                    $variables[$color["title"]] = scss_variables_color($color["color"]);
+                }
+            }
+        }
+
 
 
 
 
         // Body
         $body = $theme_styles["body"];
-        $variables["font-primary"] = scss_variables_font($body["primary_font"]);
+        $variables["font-primary"] = scss_variables_font($body["primary_font"]); //:root
         $variables["font-secondary"] = scss_variables_font($body["secondary_font"]);
         $variables["base-font-size"] = acf_units_field_value($body["font_size"]);        
         $variables["base-font-weight"] = $body["font_weight"];
@@ -106,19 +172,21 @@ function get_theme_styles($variables = array()){
         $variables["base-font-color"] = scss_variables_color($body["color"]);
         $variables["body-bg-color"] = scss_variables_color($body["bg_color"]);
         $variables["body-bg-backdrop"] = scss_variables_color($body["backdrop_color"]);
-
-        // Button Sizes
-        $buttons = $theme_styles["buttons"];
-        if ($buttons["custom"]) {
-            $button_sizes = [];
-            foreach ($buttons["custom"] as $key => $size) {
-                $button_sizes[] = "size: ".$size['size'].
-                                  ", padding_x: ".acf_units_field_value($size['padding_x']).
-                                  ", padding_y: ".acf_units_field_value($size['padding_y']).
-                                  ", font-size: ".acf_units_field_value($size['font_size']).
-                                  ", border-radius: ".acf_units_field_value($size['border_radius']);
-            }
-            $variables["button-sizes"] = "(".implode("), (", $button_sizes).")";
+        
+        if(!$root){
+            // Button Sizes
+            $buttons = $theme_styles["buttons"];
+            if ($buttons["custom"]) {
+                $button_sizes = [];
+                foreach ($buttons["custom"] as $key => $size) {
+                    $button_sizes[] = "size: ".$size['size'].
+                                      ", padding_x: ".acf_units_field_value($size['padding_x']).
+                                      ", padding_y: ".acf_units_field_value($size['padding_y']).
+                                      ", font-size: ".acf_units_field_value($size['font_size']).
+                                      ", border-radius: ".acf_units_field_value($size['border_radius']);
+                }
+                $variables["button-sizes"] = "(".implode("), (", $button_sizes).")";
+            }            
         }
 
         // Header
@@ -132,13 +200,30 @@ function get_theme_styles($variables = array()){
         $variables["header-bg-affix"] = scss_variables_color($header_general["bg_color_affix"]);
 
         $variables["header-height"] = acf_units_field_value($header_general["height"][array_keys($header_general["height"])[0]]);
+
+        $header_height = [];
         foreach($header_general["height"] as $key => $breakpoint){
-            $variables["header-height-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_height[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-height-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-height"] = $header_height;
         }
 
         $variables["header-height-affix"] = acf_units_field_value($header_general["height_affix"][array_keys($header_general["height_affix"])[0]]);
+        $header_height_affix = [];
         foreach($header_general["height_affix"] as $key => $breakpoint){
-            $variables["header-height-".$key."-affix"] = acf_units_field_value($breakpoint);;
+            if($root){
+                $header_height_affix[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-height-affix"] = $header_height_affix;
         }
 
 
@@ -152,24 +237,57 @@ function get_theme_styles($variables = array()){
             $height_header = $header_navbar["height_header"]; // is same with header
 
         $variables["header-navbar-height"] = acf_units_field_value($header_navbar["height"][array_keys($header_navbar["height"])[0]]);
+        $header_navbar_height = [];
         foreach($header_navbar["height"] as $key => $breakpoint){
-            $variables["header-navbar-height-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_navbar_height[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-navbar-height-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-height"] = $header_navbar_height;
         }
         
         $variables["header-navbar-height-affix"] = acf_units_field_value($header_navbar["height_affix"][array_keys($header_navbar["height_affix"])[0]]);
+        $header_navbar_height_affix = [];
         foreach($header_navbar["height_affix"] as $key => $breakpoint){
-            $variables["header-navbar-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_navbar_height_affix[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-navbar-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-height-affix"] = $header_navbar_height_affix;
         }
        
         $variables["header-navbar-padding"] = $header_navbar["padding"][array_keys($header_navbar["padding"])[0]];
+        $header_navbar_padding = [];
         foreach($header_navbar["padding"] as $key => $breakpoint){
-            $variables["header-navbar-padding-".$key] = scss_variables_padding($breakpoint);
+            if($root){
+                $header_navbar_padding[$key] = scss_variables_padding($breakpoint);
+            }else{
+                $variables["header-navbar-padding-".$key] = scss_variables_padding($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-padding"] = $header_navbar_padding;
         }
 
         $variables["header-navbar-padding-affix"] = $header_navbar["padding_affix"][array_keys($header_navbar["padding_affix"])[0]];
+        $header_navbar_padding_affix = [];
         foreach($header_navbar["padding_affix"] as $key => $breakpoint){
-            $variables["header-navbar-padding-".$key."-affix"] = scss_variables_padding($breakpoint);
+            if($root){
+                $header_navbar_padding_affix[$key] = scss_variables_padding($breakpoint);
+            }else{
+                $variables["header-navbar-padding-".$key."-affix"] = scss_variables_padding($breakpoint);
+            }
         }
+        if($root){
+            $variables_media_query["header-navbar-padding-affix"] = $header_navbar_padding_affix;
+        }
+
 
 
         // Nav
@@ -178,25 +296,58 @@ function get_theme_styles($variables = array()){
         $variables["header-navbar-nav-margin"] = $header_nav["margin"];
 
         $variables["header-navbar-nav-align-hr"] = $header_nav["align_hr"][array_keys($header_nav["align_hr"])[0]];
+        $header_navbar_nav_align_hr = [];
         foreach($header_nav["align_hr"] as $key => $breakpoint){
-            $variables["header-navbar-nav-align-hr-".$key] = $breakpoint;
+            if($root){
+                $header_navbar_nav_align_hr[$key] = $breakpoint;
+            }else{
+                $variables["header-navbar-nav-align-hr-".$key] = $breakpoint;
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-nav-align-hr"] = $header_navbar_nav_align_hr;
         }
 
         $variables["header-navbar-nav-align-vr"] = $header_nav["align_vr"][array_keys($header_nav["align_vr"])[0]];
+        $header_navbar_nav_align_vr = [];
         foreach($header_nav["align_vr"] as $key => $breakpoint){
-            $variables["header-navbar-nav-align-vr-".$key] = $breakpoint;
+             if($root){
+                $header_navbar_nav_align_vr[$key] = $breakpoint;
+            }else{
+                $variables["header-navbar-nav-align-vr-".$key] = $breakpoint;
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-nav-align-vr"] = $header_navbar_nav_align_vr;
         }
 
             $height_header = $header_nav["height_header"]; // is same with header
 
         $variables["header-navbar-nav-height"] = acf_units_field_value($header_nav["height"][array_keys($header_nav["height"])[0]]);
+        $header_navbar_nav_height = [];
         foreach($header_nav["height"] as $key => $breakpoint){
-            $variables["header-navbar-nav-height-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_navbar_nav_height[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-navbar-nav-height-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-nav-height"] = $header_navbar_nav_height;
         }
 
+
         $variables["header-navbar-nav-height-affix"] = acf_units_field_value($header_nav["height_affix"][array_keys($header_nav["height_affix"])[0]]);
+        $header_navbar_nav_height_affix = [];
         foreach($header_nav["height_affix"] as $key => $breakpoint){
-            $variables["header-navbar-nav-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_navbar_nav_height_affix[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-navbar-nav-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-nav-height-affix"] = $header_navbar_nav_height_affix;
         }
 
 
@@ -215,13 +366,30 @@ function get_theme_styles($variables = array()){
         $variables["header-navbar-nav-bg-color-hover"] = scss_variables_color($header_nav_item["bg_color_hover"]);
 
         $variables["header-navbar-nav-item-padding"] = $header_nav_item["padding"][array_keys($header_nav_item["padding"])[0]];
+        $header_navbar_nav_item_padding = [];
         foreach($header_nav_item["padding"] as $key => $breakpoint){
-            $variables["header-navbar-nav-item-padding-".$key] = scss_variables_padding($breakpoint);
+            if($root){
+                $header_navbar_nav_item_padding[$key] = scss_variables_padding($breakpoint);
+            }else{
+                $variables["header-navbar-nav-item-padding-".$key] = scss_variables_padding($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-nav-item-padding"] = $header_navbar_nav_item_padding;
         }
 
+
         $variables["header-navbar-nav-font-size"] = acf_units_field_value($header_nav_item["font_size"][array_keys($header_nav_item["font_size"])[0]]);
+        $header_navbar_nav_font_size = [];
         foreach($header_nav_item["font_size"] as $key => $breakpoint){
-            $variables["header-navbar-nav-font-size-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_navbar_nav_font_size[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-navbar-nav-font-size-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-nav-font-size"] = $header_navbar_nav_font_size;
         }
 
 
@@ -262,15 +430,35 @@ function get_theme_styles($variables = array()){
         $variables["header-navbar-logo-align-hr"] = $header_logo["align_hr"];
         $variables["header-navbar-logo-align-vr"] = $header_logo["align_vr"];
 
+
         $variables["header-navbar-logo-padding"] = $header_logo["padding"][array_keys($header_logo["padding"])[0]];
+        $header_navbar_logo_padding = [];
         foreach($header_logo["padding"] as $key => $breakpoint){
-            $variables["header-navbar-logo-padding-".$key] = $breakpoint;
+            if($root){
+                $header_navbar_logo_padding[$key] = $breakpoint;
+            }else{
+                $variables["header-navbar-logo-padding-".$key] = $breakpoint;
+            }
+        }
+        if($root){
+            $variables_media_query["header-navbar-logo-padding"] = $header_navbar_logo_padding;
         }
 
+
+
         $variables["header-navbar-logo-padding-affix"] = $header_logo["padding_affix"][array_keys($header_logo["padding_affix"])[0]];
+        $header_navbar_logo_padding_affix = [];
         foreach($header_logo["padding_affix"] as $key => $breakpoint){
-            $variables["header-navbar-logo-padding-".$key."-affix"] = $breakpoint;
+            if($root){
+                $header_navbar_logo_padding_affix[$key] = $breakpoint;
+            }else{
+                $variables["header-navbar-logo-padding-".$key."-affix"] = $breakpoint;
+            }
         }
+        if($root){
+            $variables_media_query["header-navbar-logo-padding-affix"] = $header_navbar_logo_padding_affix;
+        }
+
 
 
         // Footer
@@ -289,7 +477,7 @@ function get_theme_styles($variables = array()){
         $variables["breadcrumb-item-font-family"] = scss_variables_font($breadcrumb["font_family"]);
         $variables["breadcrumb-item-font-size"] = acf_units_field_value($breadcrumb["font_size"]);
         $variables["breadcrumb-item-font-weight"] = $breadcrumb["font_weight"];
-        $variables["breadcrumb-item-line-height"] = $breadcrumb["line_height"];
+        $variables["breadcrumb-item-line-height"] = $breadcrumb["line_height"] ?? "inherit";
         $variables["breadcrumb-item-letter-spacing"] = acf_units_field_value($breadcrumb["letter_spacing"]);
         $variables["breadcrumb-item-text-transform"] = $breadcrumb["text_transform"];
         $variables["breadcrumb-item-color"] = scss_variables_color($breadcrumb["color"]);
@@ -316,7 +504,7 @@ function get_theme_styles($variables = array()){
         $variables["pagination-item-border"] = $pagination_item["border"];
         $variables["pagination-item-border-hover"] = $pagination_item["border_hover"];
         $variables["pagination-item-border-active"] = $pagination_item["border_active"];
-        $variables["pagination-item-border-radius"] = $pagination_item["border_radius"];
+        $variables["pagination-item-border-radius"] = $pagination_item["border_radius"] ?? 0;
 
         $pagination_nav= $pagination["nav"];
         $variables["pagination-nav-font-family"] = scss_variables_font($pagination_nav["font_family"]);
@@ -338,8 +526,16 @@ function get_theme_styles($variables = array()){
         // Hero
         $hero = $theme_styles["hero"];
         $variables["hero-height"] = acf_units_field_value($hero["height"][array_keys($hero["height"])[0]]);
+        $hero_height = [];
         foreach($hero["height"] as $key => $breakpoint){
-            $variables["hero-height-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $hero_height[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["hero-height-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["hero-height"] = $hero_height;
         }
 
 
@@ -376,6 +572,7 @@ function get_theme_styles($variables = array()){
         $variables["offcanvas-dropdown-padding"] = $offcanvas_nav_sub["padding"];
 
         $offcanvas_nav_sub_item = $offcanvas["nav_sub_item"];
+        $variables["offcanvas-dropdown-item-font-family"] = scss_variables_font($offcanvas_nav_sub_item["font_family"]);
         $variables["offcanvas-dropdown-item-font-size"] = acf_units_field_value($offcanvas_nav_sub_item["font_size"]);
         $variables["offcanvas-dropdown-item-font-color"] = scss_variables_color($offcanvas_nav_sub_item["color"]);
         $variables["offcanvas-dropdown-item-font-color-hover"] = scss_variables_color($offcanvas_nav_sub_item["color_hover"]);
@@ -394,18 +591,42 @@ function get_theme_styles($variables = array()){
             $height_header = $header_tools_general["height_header"]; // is same with header
 
         $variables["header-tools-height"] = acf_units_field_value($header_tools_general["height"][array_keys($header_tools_general["height"])[0]]);
+        $header_tools_height = [];
         foreach($header_tools_general["height"] as $key => $breakpoint){
-            $variables["header-tools-height-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_tools_height[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-tools-height-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-tools-height"] = $header_tools_height;
         }
 
         $variables["header-tools-height-affix"] = acf_units_field_value($header_tools_general["height_affix"][array_keys($header_tools_general["height_affix"])[0]]);
+        $header_tools_height_affix = [];
         foreach($header_tools_general["height_affix"] as $key => $breakpoint){
-            $variables["header-tools-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_tools_height_affix[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-tools-height-".$key."-affix"] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-tools-height-affix"] = $header_tools_height_affix;
         }
 
         $variables["header-tools-item-gap"] = acf_units_field_value($header_tools_general["gap"][array_keys($header_tools_general["gap"])[0]]);
+        $header_tools_item_gap = [];
         foreach($header_tools_general["gap"] as $key => $breakpoint){
-            $variables["header-tools-item-gap-".$key] = acf_units_field_value($breakpoint);
+            if($root){
+                $header_tools_item_gap[$key] = acf_units_field_value($breakpoint);
+            }else{
+                $variables["header-tools-item-gap-".$key] = acf_units_field_value($breakpoint);
+            }
+        }
+        if($root){
+            $variables_media_query["header-tools-item-gap"] = $header_tools_item_gap;
         }
 
         $header_tools_social = $header_tools["social"];
@@ -481,9 +702,15 @@ function get_theme_styles($variables = array()){
         }
         update_dynamic_css_whitelist($classes);
 
+        if($root){
+            $styles = array_to_root_styles($variables, $variables_mobile, $variables_media_query);
+            file_put_contents(STATIC_PATH . "css/root.css", $styles);
+            return false;
+        }
     }
     return $variables;
 }
+
 
 function acf_set_thumbnail_condition($post_id){
     $post_types = get_post_types(); // Tüm kayıtlı post tiplerini al
@@ -528,6 +755,36 @@ add_filter('acf/load_value/type=file', function($value, $post_id, $field) {
     }
     return $value; // Eğer dosya varsa, normal değerini döndür
 }, 10, 3);
+
+
+add_action('acf/save_post', 'on_acf_post_pagination_saved', 20);
+function on_acf_post_pagination_saved($post_id) {
+    // Sadece options sayfasıysa çalış
+    if ($post_id !== 'options') {
+        return;
+    }
+
+    // Değeri güvenle al
+    $pagination_items = get_field('post_pagination', 'option');
+
+    if (is_array($pagination_items)) {
+        foreach ($pagination_items as $item) {
+            if (
+                isset($item['post_type'], $item['paged']) &&
+                $item['post_type'] === 'product' &&
+                !empty($item['paged'])
+            ) {
+                // WooCommerce seçeneklerini güncelle
+                update_option("woocommerce_catalog_columns", $item["catalog_columns"] ?? 4);
+                update_option("woocommerce_catalog_rows", $item["catalog_rows"] ?? 3);
+
+                error_log("WooCommerce ayarları güncellendi.");
+            }
+        }
+    } else {
+        error_log("post_pagination alanı boş ya da array değil.");
+    }
+}
 
 
 // Google maps
@@ -594,6 +851,18 @@ function acf_general_option_enable_cart($field) {
     return $field;
 }
 
+add_filter('acf/load_field/name=myaccount_page_id', 'acf_general_option_myaccount_page_id');
+function acf_general_option_myaccount_page_id($field) {
+    if (ENABLE_ECOMMERCE) {
+        $field['wrapper']['class'] = 'hidden';
+    }else{
+        $field['wrapper']['class'] = '';
+    }
+    return $field;
+}
+
+
+
 add_filter('acf/load_field/name=enable_woo_api', 'acf_general_option_enable_woo_api');
 function acf_general_option_enable_woo_api($field) {
     if (!ENABLE_ECOMMERCE) {
@@ -654,7 +923,7 @@ function acf_get_raw_value($post_id, $field_name, $field_group_name, $index=0){ 
     }
     global $wpdb;
     $value = $wpdb->get_var("select meta_value from wp_postmeta where post_id=".$post_id." and meta_key='".$meta_key."'");
-    if(!empty($value) && ENABLE_MULTILANGUAGE == "qtranslate"){
+    if(!empty($value) && ENABLE_MULTILANGUAGE == "qtranslate-xt"){
         $lang = qtranxf_getLanguage();
         $value = qtranxf_split($value);
         if(isset($value[$lang])){
@@ -3152,9 +3421,13 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
             }
 
 
-            function extractTranslations($filePath) {
-                $content = file_get_contents($filePath);
-
+            function extractTranslations($filePath, $string = false) {
+                if($string){
+                    $content = $filePath;
+                }else{
+                    $content = file_get_contents($filePath);
+                }
+                
                 // Regex for translate with 1 argument
                 preg_match_all('/translate\(([^)]+)\)/', $content, $translateMatches);
 
@@ -3191,7 +3464,7 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                     }
                 }
                 $translations["translate"] = $placeholders;
-            }*/ 
+            }*/
 
             // Extract translations from each file
             foreach ($files as $file) {
@@ -3214,6 +3487,34 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                     if (count($arguments) === 2) {
                         // translate_n_noop case
                         $translations['translate_n_noop'][] = $arguments;
+                    }
+                }
+            }
+
+            $newsletter_forms = get_option("newsletter_htmlforms");
+            if($newsletter_forms){
+                foreach($newsletter_forms as $form){
+                    if(!empty($form)){
+                        $matches = extractTranslations($form, true);
+                        foreach ($matches['translate'][0] as $index => $match) {
+                            // Split arguments by comma
+                            $arguments = array_map('trim', explode(',', $matches['translate'][1][$index]));
+                            
+                            if (count($arguments) === 1) {
+                                // translate case
+                                $translations['translate'][] = $arguments[0];
+                            }
+                        }
+                        
+                        foreach ($matches['translate_n_noop'][0] as $index => $match) {
+                            // Split arguments by comma
+                            $arguments = array_map('trim', explode(',', $matches['translate_n_noop'][1][$index]));
+                            
+                            if (count($arguments) === 2) {
+                                // translate_n_noop case
+                                $translations['translate_n_noop'][] = $arguments;
+                            }
+                        }                        
                     }
                 }
             }
@@ -3827,7 +4128,9 @@ function acf_theme_styles_save_hook($post_id) {
                     //update_field('theme_styles', $theme_styles, $post_id);
                     $theme_styles["theme_styles_presets"] = "";
                     $json_data = json_encode($theme_styles);
-                    file_put_contents($preset_file, $json_data); 
+                    file_put_contents($preset_file, $json_data);
+                    // save root variables
+                    get_theme_styles([], true);
                 break;
                 case 'load':
                     $filename = $theme_styles["theme_styles_presets"];
@@ -3900,7 +4203,7 @@ function acf_header_footer_options_save_hook($post_id) {
     if (isset($_POST['acf'])) {
         $current_screen = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
 
-        if ($current_screen === 'header') {
+        if ($current_screen === 'header' || $current_screen === 'footer') {
             $header_footer_options = header_footer_options(true);
             $preset_file = THEME_STATIC_PATH . 'data/header-footer-options.json';
             $json_data = json_encode($header_footer_options);
@@ -3955,22 +4258,6 @@ function acf_enable_twig_cache($new_value, $post_id, $field) {
     return $new_value;
 }
 add_filter('acf/update_value/name=enable_twig_cache', 'acf_enable_twig_cache', 10, 3);
-
-
-
-/*
-function acf_testing($new_value, $post_id, $field) {
-    if ($post_id !== 'options') {
-        return $new_value;
-    }
-    $old_value = get_field($field['name'], 'option');
-    error_log(print_r($old_value, true));
-    error_log(print_r($new_value, true));
-    return $new_value;
-}
-add_filter('acf/update_value/name=post_pagination', 'acf_testing', 10, 3);
-*/
-
 
 
 
@@ -4052,6 +4339,10 @@ function acf_ffmpeg_available($field) {
 add_filter('acf/load_field/name=ffmpeg_available', 'acf_ffmpeg_available');
 
 function acf_ffmpeg_not_available($field) {
+    $screen = get_current_screen();
+    if (!$screen || $screen->base !== 'post') {
+        return $field;
+    }
     $ffmpeg = new VideoProcessor();
     if ($ffmpeg->available) {
         $field['wrapper']['class'] = 'hidden';
@@ -4061,6 +4352,10 @@ function acf_ffmpeg_not_available($field) {
     return $field;
 }
 function acf_ffmpeg_not_available_message( $field ) {
+    $screen = get_current_screen();
+    if (!$screen || $screen->base !== 'post') {
+        return $field;
+    }
     $ffmpeg = new VideoProcessor();
     if (!$ffmpeg->available) {
         ob_start();
@@ -4435,3 +4730,13 @@ add_action('admin_footer', function () {
     </script>
     <?php
 });
+
+
+
+if(ENABLE_ECOMMERCE){
+    add_filter('acf/location/rule_values/post_type', 'acf_location_rule_values_Post');
+    function acf_location_rule_values_Post( $choices ) {
+        $choices['product_variation'] = 'Product Variation';
+        return $choices;
+    }    
+}

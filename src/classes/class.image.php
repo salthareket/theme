@@ -60,6 +60,10 @@ Class Image{
                 $this->args["lazy_native"] = false;
                 $this->args["attrs"]["fetchpriority"] = "high";
                 $this->args["attrs"]["loading"] = "eager";
+            }else{
+                $this->args["lcp"] = false;
+                $this->args["lazy"] = true;
+                $this->args["lazy_native"] = false;
             }
             /*if($this->args["lcp"]){
                $this->args["lazy"] = false;

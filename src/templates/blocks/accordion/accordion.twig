@@ -23,6 +23,7 @@
 
 {% block block_content %}
 
+
     {% if fields.post_type != "" %}
         {% if fields.categories %}
             {% set posts = function("get_posts_by_taxonomy_terms", fields.post_type) %}
@@ -31,12 +32,14 @@
             {% set posts = [{term:{}, posts:posts}] %}
         {% endif %}
     {% else %}
-        {% if fields.posts %}
-            {% if fields.custom %}
+
+        {% if (fields.custom and field.posts) or fields.posts_relation %}
+            {% if fields.custom and field.posts %}
                {% set posts = fields.posts %} 
-            {% else %}
+            {% endif %}
+            {% if fields.posts_relation %}
                 {% set post_ids = {} %}
-                {% for id in fields.posts %}
+                {% for id in fields.posts_relation %}
                     {% if id != post_id %}
                         {% set post_ids = post_ids|merge([id]) %}
                     {% endif %}
@@ -45,6 +48,7 @@
             {% endif %}
             {% set posts = [{term:{}, posts:posts}] %}
         {% endif %}
+        
     {% endif %}
 
     {% if label == "Posts" %}

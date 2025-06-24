@@ -1,9 +1,10 @@
 {
+    required : "bootbox",
     before: function(response, vars, form, objs) {
-        if(!isLoadedJS("bootbox")){
+        /*if(!isLoadedJS("bootbox")){
             alert("Bootbox required");
             return
-        }
+        }*/
         response["vars"]["url"] = objs.btn.attr("href");
         var className = "modal-page loading " + (vars.class?vars.class:'');
         var scrollable = bool(vars.scrollable, false);
@@ -42,9 +43,9 @@
         return response;
     },
     after: function(response, vars, form, objs) {
-        if(!isLoadedJS("bootbox")){
+        /*if(!isLoadedJS("bootbox")){
             return
-        }
+        }*/
         var modal = objs.modal;
         if (response.error) {
             modal.addClass("remove-on-hidden").modal("hide");

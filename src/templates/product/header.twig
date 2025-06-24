@@ -1,0 +1,59 @@
+{% set post_type = post_type|default(post.post_type) %}
+{% set header_menu = menu["books_" ~ brand].get_items %}
+<header id="header-shop" class="bg-white mb-0 mb-lg-4">
+    <div class="container">
+        <div class="row-item row">
+            
+            {% if current_page_type != "search" %}
+            <div class="col-12 {% if current_page_type not in ["search", "single"] %}col-md-6 col-lg{% if post_type in ["yazarlar", "product"] %}-8{% endif %}{% endif %} col-breadcrumb mt-4 mt-lg-0 mb-3 mb-lg-0">
+                {{ breadcrumb }}
+            </div>
+            {% endif %}
+            
+            {% if current_page_type not in ["search", "single"] %}
+            <div class="col-12 col-lg">
+                {% if url_query_vars.action not in ["seriler"] %}
+                    {{ fn("woocommerce_catalog_ordering") }}
+                {% endif %}
+                {% if post_type in ["yazarlar"] %}
+                    <form class="woocommerce-ordering m-0" method="get" onsubmit="">
+                        <select class="form-select" name="sortby" onchange="woocommerceOrderingSubmit(this)">
+                            <option value="name" {% if function("get_query_var", "sortby") == "name" or function("get_query_var", "sortby") == "" %}selected{% endif %}>{{translate("Yazar adı")}}</option>
+                            <option value="book_count" {% if function("get_query_var", "sortby") == "book_count" %}selected{% endif %}>{{translate("Kitap Sayısı")}}</option>
+                        </select>
+                    </form>
+                    <script>
+                        function woocommerceOrderingSubmit(obj){
+                            document.body.classList.add("loading-process");
+                            var currentUrl = window.location.href;
+                            var updatedUrl = currentUrl.replace(/\/page\/\d+\//, '/');
+                            history.replaceState(null, null, updatedUrl);
+                            obj.form.submit()
+                        }
+                    </script>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if header_menu|length > 0 and post_type not in ["post", "product"] %}
+        <div class="row-item row align-items-start mt-lg-0 mt-3 d-lg-flex d-none">
+
+            <div class="col-8">
+                <ul class="nav nav-pills px-0">
+                    {% for item in header_menu %}
+                    <li class="nav-item {{class}} {% if loop.index == 1 %}{% if item.current and fn("current_url") == item.link %}active{% endif %}{% else %}{% if item.current or item.current_item_parent or item.current_item_ancestor %}active{% endif %}{% endif %}">
+                        <a class="nav-link btn-loading-page" aria-current="page" href="{{item.link}}">{{item.title}}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if current_page_type not in ["search", "single"] %}
+                <div class="col-lg-4 col-12 text-center text-lg-end">
+                    {{ fn("custom_result_count") }}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</header>

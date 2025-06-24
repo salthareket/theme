@@ -18,7 +18,7 @@ if (isset($vars["kategori"])) {
             $query = [];
             $query_response = category_queries_ajax($query, $vars);
             $query = $query_response["query"];
-            $GLOBALS["query_vars"] = woo_sidebar_filter_vars($vars); //$query_response["query_vars"];
+            //$GLOBALS["query_vars"] = woo_sidebar_filter_vars($vars); //$query_response["query_vars"];
             $data["query_vars"] = $GLOBALS["query_vars"];
 
             $closure = function ($sql) {
@@ -73,9 +73,9 @@ if (isset($vars["kategori"])) {
             //echo json_encode(get_posts($query_args));
             //die;
 
-            if ($vars["product_filters"] && ENABLE_FILTERS) {
+            /*if ($vars["product_filters"] && ENABLE_FILTERS) {
                 $data["sidebar"] = Timber::compile(
-                    "woo/sidebar-product-filter.twig",
+                    "product/sidebar-product-filter.twig",
                     woo_sidebar_filters(
                         $context,
                         $page_type,
@@ -84,7 +84,7 @@ if (isset($vars["kategori"])) {
                         $vars
                     )
                 );
-            }
+            }*/
 
             wp_reset_postdata();
             wp_reset_query();

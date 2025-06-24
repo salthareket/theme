@@ -1,0 +1,136 @@
+@include media-breakpoint-up(xs) {
+  .sticky-xs {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+@include media-breakpoint-up(sm) {
+  .sticky-xs, .sticky-sm {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+@include media-breakpoint-up(md) {
+  .sticky-xs, .sticky-sm, .sticky-md {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+@include media-breakpoint-up(lg) {
+  .sticky-xs,.sticky-sm, .sticky-md, .sticky-lg {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+@include media-breakpoint-up(xl) {
+  .sticky-xs,.sticky-sm, .sticky-md, .sticky-lg, .sticky-xl {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+@include media-breakpoint-up(xxl) {
+  .sticky-xs,.sticky-sm, .sticky-md, .sticky-lg, .sticky-xl, .sticky-xxl {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+@include media-breakpoint-up(xxxl) {
+  .sticky-xs,.sticky-sm, .sticky-md, .sticky-lg, .sticky-xl, .sticky-xxl, .sticky-xxxl {
+     position: sticky;
+     align-self: flex-start;
+  }
+}
+
+[class^="sticky-"]:not(#header), [class*=" sticky-"]:not(#header) {
+    z-index: auto!important;
+}
+body{
+    &:not(.header-hide){
+        @include media-breakpoint-up(sm) {
+            [class^="sticky-"], [class*=" sticky-"] {
+                top:var(--header-height-xs);
+            }
+            &.affix{
+                [class^="sticky-"], [class*=" sticky-"] {
+                    top:var(--header-height-xs-affix);
+                }
+            }
+        }
+        @include media-breakpoint-up(sm) {
+          [class^="sticky-"], [class*=" sticky-"] {
+             top:var(--header-height-sm);
+          }
+           &.affix{
+                [class^="sticky-"], [class*=" sticky-"] {
+                    top:var(--header-height-sm-affix);
+                }
+            }
+        }
+        @include media-breakpoint-up(md) {
+          [class^="sticky-"], [class*=" sticky-"] {
+             top:var(--header-height-md);
+          }
+          &.affix{
+                [class^="sticky-"], [class*=" sticky-"] {
+                    top:var(--header-height-md-affix);
+                }
+            }
+        }
+        @include media-breakpoint-up(lg) {
+          [class^="sticky-"], [class*=" sticky-"] {
+             top:var(--header-height-lg);
+          }
+          &.affix{
+                [class^="sticky-"], [class*=" sticky-"] {
+                    top:var(--header-height-lg-affix);
+                }
+            }
+        }
+        @include media-breakpoint-up(xl) {
+          [class^="sticky-"], [class*=" sticky-"] {
+             top:var(--header-height-xl);
+          }
+          &.affix{
+                [class^="sticky-"], [class*=" sticky-"] {
+                    top:var(--header-height-xl-affix);
+                }
+            }
+        }
+        @include media-breakpoint-up(xxl) {
+          [class^="sticky-"], [class*=" sticky-"] {
+             top:var(--header-height-xxl);
+          }
+          &.affix{
+                [class^="sticky-"], [class*=" sticky-"] {
+                    top:var(--header-height-xxl-affix);
+                }
+            }
+        }
+    }
+    &.header-hide{
+        [class^="sticky-"], [class*=" sticky-"] {
+            top:0px;
+        }
+    }
+}
+
+/*! purgecss start ignore */
+[class^="sticky-"], [class*=" sticky-"] {
+    &.sticked{
+        .d-sticked{
+            display:block;
+        }
+        .d-sticked-none{
+            display:none;
+        }
+    }
+    &:not(.sticked){
+        .d-sticked{
+            display:none;
+        }
+        .d-sticked-none{
+            display:block;
+        }
+    }
+}
+/*! purgecss end ignore */

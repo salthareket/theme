@@ -79,8 +79,8 @@
 .header-sticky {
 	  width: 100%;
 	  position: sticky;
-	  top:$header-height;
-	   @media (min-width:1200px) and (max-width: 1599px){
+	  top:var(--header-height);
+	  /*@media (min-width:1200px) and (max-width: 1599px){
 	  	  top:$header-height-lg;
 	  }
 	  @media (min-width: 992px) and (max-width: 1199px){
@@ -91,7 +91,7 @@
 	  }
 	  @media (max-width: 767px){
 	  	  top:$header-height-xs;
-	  }
+	  }*/
 }
 
 .pre-scrollable{

@@ -2015,7 +2015,6 @@ class Update {
             $settings_data = json_decode($settings_json, true);
             if (is_array($settings_data)) {
                 foreach($settings_data as $key => $setting){
-                    error_log($key.":".$setting);
                     update_rocket_option( $key, $setting);
                 }
                 if (function_exists('rocket_generate_config_file')) {

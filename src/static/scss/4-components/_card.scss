@@ -10,14 +10,14 @@
 			display:flex;
 			.card-title{
 				flex:1;
-				font-family:$font-primary;
+				font-family:var(--font-primary);
 				@include font-size(36px);
 				color:$base-color;
 				font-weight:600;
 				text-align:center;
 				margin:0;
 				.card-text{
-					font-family:$font-primary;
+					font-family:var(--font-primary);
 					color:#999;
 					font-size:16px;
 					font-weight:400;

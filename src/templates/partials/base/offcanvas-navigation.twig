@@ -59,11 +59,7 @@
    </div>#}
 
    <div class="offcanvas-body {% if offcanvas.fullscreen and offcanvas.container and "body" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}}{% endif %}">
-      <div class="nav-menu {% if item.menu_view == "drill" %}slinky-menu{% endif %}" id="menu">
-         <ul>
-         {% include "navigation/menu-" ~ item.menu_view ~ ".twig" with {'menu': salt.get_menu(item.menu_nav).get_items, 'is_child': false} %}
-         </ul>
-      </div>
+      {% include "navigation/menu-" ~ item.menu_view ~ ".twig" with {'menu': salt.get_menu(item.menu_nav).get_items, 'is_child': false} %}
    </div>
    
    <div class="offcanvas-footer text-center justify-content-center pb-4 {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">

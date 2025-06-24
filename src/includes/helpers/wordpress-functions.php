@@ -748,6 +748,7 @@ function get_menu_populate(){
                 $post_type["posts_per_page"] = $item["all_post_type"] ? -1 : $item["post_per_page"];
                 $post_type["orderby"] = $item["orderby_post_type"];
                 $post_type["order"] = $item["order_post_type"];
+                $post_type["replace"] = $item["replace"];
             }
 
             if(!empty($item["menu_item_taxonomy"])){
@@ -761,7 +762,7 @@ function get_menu_populate(){
             if(isset($post_type["posts_per_page"]) && $post_type["posts_per_page"] != 0){
                 $menu_item["post_type"] = $post_type;
             }else{
-                $menu_item["post_type"] = ["post_type" => $post_type["post_type"]];
+                $menu_item["post_type"] = ["post_type" => $post_type["post_type"], "replace" => $post_type["replace"]];
             }
             if(isset($taxonomy["taxonomy"])){
                 $menu_item["taxonomy"] = $taxonomy;

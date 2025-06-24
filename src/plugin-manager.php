@@ -41,6 +41,8 @@ class Silent_Upgrader_Skin extends WP_Upgrader_Skin {
 
 class PluginManager {
 
+    public static $plugin_dir =  __DIR__ . '/content/plugins';
+
     // Yönetim paneli menüsü ve scriptleri başlatmak için kullanılır
     public static function init() {
         //add_action('admin_menu', [__CLASS__, 'add_option_page']); // Yönetim menüsüne bir sayfa ekler
@@ -67,6 +69,7 @@ class PluginManager {
         
         // Tüm pluginlerin verilerini işlemek için birleştirilmiş bir dizi oluşturuyoruz
         $plugins_data = [];
+        $plugin_depencies = [];
 
         // Repo'dan yüklenen pluginler
         foreach ($required_plugins as $plugin) {
@@ -262,10 +265,10 @@ class PluginManager {
             if ($action_type === 'install' || $action_type === 'update') {
                 if($local == "true"){
                     $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
-                    $plugin_dir = __DIR__ . '/content/plugins';
+                    //$plugin_dir = __DIR__ . '/content/plugins';
                     $plugin_info = current(array_filter($required_plugins_local, fn($plugin) => $plugin['name'] === $plugin_slug));
                     self::remove_plugin($plugin_info['file']);
-                    self::install_local_plugin($plugin_dir, $plugin_info);
+                    self::install_local_plugin($plugin_info);
                 }else{
                     self::install_plugin_from_wp_repo($plugin_slug);
                 }
@@ -346,14 +349,14 @@ class PluginManager {
     // Check and update local plugins from the $GLOBALS["plugins_local"] array
     public static function check_and_update_local_plugins($plugin_types) {
         $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
-        $plugin_dir = __DIR__ . '/content/plugins';
+        //$plugin_dir = __DIR__ . '/content/plugins';
         foreach ($required_plugins_local as $plugin) {
             $plugin_path = WP_PLUGIN_DIR . '/' . $plugin['name'];
             // Check if the plugin exists and if the version is outdated
             if (!file_exists($plugin_path) || self::is_version_outdated($plugin['v'], $plugin['name'])) {
                 self::remove_plugin($plugin['file']);
                 if(in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types))){
-                    self::install_local_plugin($plugin_dir, $plugin);
+                    self::install_local_plugin($plugin);
                 }
             }
             if (!self::is_plugin_active($plugin['name']) && (in_array("main", $plugin["type"]) || empty(array_diff($plugin["type"], $plugin_types)))) {
@@ -374,9 +377,41 @@ class PluginManager {
         }
     }
 
-    private static function install_local_plugin($plugin_dir, $plugin_info) {
+    private static function install_plugin_depencies($plugin_info, $is_local = false){
+        if($is_local){
+            if($plugin_info){
+                if(isset($plugin_info["depency"]) && !empty($plugin_info["depency"])){
+                    $depency = $plugin_info["depency"];
+                    $depency = array_values(array_filter($GLOBALS["plugins"], function($item) use ($depency){
+                        return $item['name'] === $depency;
+                    }));
+                    $depency = $depency[0] ?? null;
+                    if(!self::is_plugin_installed($depency["name"])){
+                        self::install_plugin_from_wp_repo($plugin_info["depency"]);
+                    }
+                }
+            }
+        }else{
+            $plugin_info = array_values(array_filter($GLOBALS["plugins"], function($item) use ($plugin_info){
+                return $item['name'] === $plugin_info;
+            }));
+            $plugin_info = $plugin_info[0] ?? null;
+            if(isset($plugin_info["depency"]) && !empty($plugin_info["depency"])){
+                $depency = $plugin_info["depency"];
+                $depency = array_values(array_filter($GLOBALS["plugins_local"], function($item) use ($depency) {
+                    return $item['name'] === $depency;
+                }));
+                $depency = $depency[0] ?? null;
+                if(!self::is_plugin_installed($depency["name"])){
+                    self::install_local_plugin($depency);
+                }
+            }
+        }
+    }
+
+    private static function install_local_plugin($plugin_info) {
         error_log("install_local_plugin");
-        $zip_file = $plugin_dir . '/' . $plugin_info['file'] . '.zip';
+        $zip_file = self::$plugin_dir . '/' . $plugin_info['file'] . '.zip';
 
         if (file_exists($zip_file)) {
             WP_Filesystem();
@@ -388,6 +423,7 @@ class PluginManager {
                 error_log("Plugin yüklenemedi: " . $plugin_info['name'] . " - " . $result->get_error_message());
             } else {
                 error_log("Plugin başarıyla yüklendi: " . $plugin_info['name']);
+                self::install_plugin_depencies($plugin_info, true);
             }
         } else {
             error_log("Plugin zip file not found: " . $zip_file);
@@ -422,6 +458,7 @@ class PluginManager {
             } else {
                 error_log("Plugin başarıyla yüklendi: " . $plugin_path);
             }
+            self::install_plugin_depencies($plugin_slug);
         }
     }
 

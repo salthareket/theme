@@ -99,6 +99,12 @@ function theme_rewrite_rules() {
         }
     }
 
+    /*add_rewrite_rule( 
+         $regex_start . 'product/([^/]*)/color-([^/]*)/?$',
+        'index.php?posttype=product&product=$matches[1]&attribute_pa_color=$matches[2]',
+        'top' 
+    );*/
+
     
     add_rewrite_rule(
         $regex_start . 'downloads/([^/]+)/?$',
@@ -151,8 +157,10 @@ function theme_rewrite_rules() {
         $regex_start . '([^/]+)/search/([^/]+)/([^/]+)/?$',
         'index.php?pagename=$matches[1]&qpt=$matches[2]&q=$matches[3]',
         'top'
-    );    
-/**/
+    );
+
+
+ 
 
     
 }

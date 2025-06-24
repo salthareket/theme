@@ -18,7 +18,7 @@
         > .title {
           color: #222;
           font-size: 14px;
-          font-family: $nav-font;
+          font-family: var(--nav-font);
           flex:1;
           font-weight: 600;
           .badge {
@@ -260,7 +260,7 @@
             bottom: -6px;
             left: 50%;
             margin-left: -2px;
-            background-color: $header-icon-dot-color;
+            background-color: var(--header-icon-dot-color);
           }
         }
       }
@@ -302,9 +302,9 @@
     &.dropdown-notifications {
       .dropdown-menu {
         position: fixed;
-        top: $header-height-sm;
+        top: var(--header-height-sm);
         width: 100%;
-        @include calc("height", "100vh - #{$header-height-sm}");
+        @include calc("height", "100vh - var(--header-height-sm)");
         border-radius:0px;
         > .dropdown-container {
           flex:auto;

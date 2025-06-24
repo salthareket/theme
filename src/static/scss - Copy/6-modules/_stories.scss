@@ -1,0 +1,174 @@
+.container-story{
+	position:relative;
+	padding-top:15px;
+	padding-bottom:15px;
+	&.loading{
+		height:32px;
+	}
+	.stories{
+		text-align:center;
+		.story{
+			@include transition(opacity .3s ease-out);
+			.item-link{
+				.info{
+					font-size:13px;
+					font-weight:500;
+					white-space: normal;
+				    overflow: hidden;
+				    text-overflow: unset;
+				    text-align: center;
+				    display: block;
+				    max-height: 44px;
+				    color: #333;
+				    margin-top:5px;
+				    .name{
+				    	font-size:13px;
+					    font-weight:500;
+				    }
+				}
+				
+			}
+			&:hover{
+				opacity:1;
+				.item-link{
+					.item-preview{
+						transform:scale(.9);
+					}
+				}
+			}
+		}
+		&.carousel.rtl{
+			.story{
+				margin:0px 6px;
+				&:first-child{
+				   margin-right:0px!important;
+				   margin-left:6px!important;
+				}
+				&:last-child{
+					margin-right:6px!important;
+				    margin-left:0px!important;
+				}
+			}
+		}
+	}
+}
+
+
+@media (max-width: 767px){
+	.container-story{
+		padding-top:10px;
+		padding-bottom:10px;
+		.stories{
+			padding-left:15px;
+			padding-right:15px;
+			.story{
+				.item-link{
+					.info{
+						font-size:13px;
+						font-weight:500;
+						white-space: nowrap;
+					    overflow: hidden;
+					    text-overflow: ellipsis;
+					    text-align: center;
+					    display: block;
+					    height: auto;
+					    max-height:auto;
+					    margin-top:5px;
+					}
+					
+				}
+			}
+		}
+	}
+}
+
+
+
+#zuck-modal{
+	#zuck-modal-content{
+		.slider{
+			.story-viewer{
+
+				.head{
+					.left{
+						a.back{
+
+						}
+						.item-preview{
+							.profilePhoto{
+
+							}
+						}
+						.info{
+							.name{
+
+							}
+							.time{
+
+							}
+						}
+					}
+					.right{
+						.time{
+
+						}
+						.loading{
+
+						}
+						a.close{
+
+						}
+					}
+				}
+
+				.slides-pointers{
+					.wrap{
+						span{
+							b{
+
+							}
+						}
+					}
+				}
+
+				.slides-pagination{
+					.previous{
+
+					}
+					.next{
+
+					}
+				}
+
+				.slides{
+					.item{
+						&[data-type="photo"]{
+							display:flex;
+							align-items:center;
+							justify-content:center;
+							.media{
+								max-width:100%;
+								max-height:100%;
+								height:auto;
+							}
+						}
+						.media{
+	
+						}
+						.tip{
+							&.muted{
+								bottom:50%;
+
+							}
+							&.link{
+								background-color:$primary;
+								color:#fff;
+							}
+						}
+					}
+				}
+
+			}
+		}
+	}
+}

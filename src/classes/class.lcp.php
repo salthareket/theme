@@ -151,7 +151,7 @@ class Lcp{
 		}
 		return $images;
 	}
-	public function is_lcp($image) {
+	/*public function is_lcp($image) {
 	    $lcp_images = $this->images(); // LCP image listesini alıyoruz.
 
 	    // Eğer string (image URL) verilmişse, LCP listesinde var mı kontrol edelim.
@@ -183,6 +183,50 @@ class Lcp{
 	        }
 	    }
 
+	    // Eğer numeric ID verilmişse
+	    if (is_numeric($image)) {
+	        foreach ($lcp_images as $lcp) {
+	            if ($lcp["id"] == $image) {
+	                return true;
+	            }
+	        }
+	    }
+
 	    return false; // Hiçbiri eşleşmiyorsa LCP değil.
+	}*/
+	public function is_lcp($image) {
+	    // Tüm LCP ID'lerini bir array'e çekelim.
+	    $lcp_images = $this->images();
+	    $lcp_ids    = array_column($lcp_images, 'id');
+	    $lcp_urls   = array_column($lcp_images, 'url');
+
+	    // Eğer string (URL) verilmişse
+	    if (is_string($image)) {
+	        return in_array($image, $lcp_urls, true);
+	    }
+
+	    // Eğer numeric (attachment ID) verilmişse
+	    if (is_numeric($image)) {
+	        return in_array((int)$image, $lcp_ids, true);
+	    }
+
+	    // Eğer object (image objesi) verilmişse
+	    if (is_object($image) && isset($image->id)) {
+	        return in_array((int)$image->id, $lcp_ids, true);
+	    }
+
+	    // Eğer array (breakpoint'li olabilir) verilmişse
+	    if (is_array($image)) {
+	        foreach ($image as $item) {
+	            if (is_numeric($item) && in_array((int)$item, $lcp_ids, true)) {
+	                return true;
+	            } elseif (is_array($item) && isset($item['id']) && in_array((int)$item['id'], $lcp_ids, true)) {
+	                return true;
+	            }
+	        }
+	    }
+
+	    return false;
 	}
+
 }

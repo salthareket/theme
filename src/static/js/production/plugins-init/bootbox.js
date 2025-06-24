@@ -76,6 +76,14 @@ function _alert(title, msg, size, className, btn_ok, callback, closeButton, cent
 	    	alert(title+"\n"+msg);
 	    	return false;
 	   }
+
+	   /*let sonuc = isLoadedJS("bootbox", true, function(){
+         _alert(title, msg, size, className, btn_ok, callback, closeButton, centerContent)
+      });
+      if(!sonuc){
+         return false;
+      }*/
+
 	   var options = {
        	    	className: "modal-alert text-center ",
        	    	message : ".",

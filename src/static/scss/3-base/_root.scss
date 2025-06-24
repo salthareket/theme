@@ -1,5 +1,5 @@
 :root{
-	--header-height-xxxl:#{$header-height-xxxl};
+	/*--header-height-xxxl:#{$header-height-xxxl};
 	--header-height-xxl:#{$header-height-xxl};
 	--header-height-xl:#{$header-height-xl};
 	--header-height-lg:#{$header-height-lg};
@@ -22,13 +22,14 @@
 	--hero-height-lg:#{$hero-height-lg};
 	--hero-height-md:#{$hero-height-md};
 	--hero-height-sm:#{$hero-height-sm};
-	--hero-height-xs:#{$hero-height-xs};
+	--hero-height-xs:#{$hero-height-xs};*/
 
 	--salt-colors:#{$custom-colors-list};
 
-	--font-primary:#{$font-primary};
-	--font-header:#{$header-font};
-	--font-nav:#{$nav-font};
+	//--font-primary:#{$font-primary};
+	//--font-primary:#{$font-secondary};
+	//--font-header:#{$header-font};
+	//--font-nav:#{$nav-font};
 	--font-icon:#{$icon-font};
 	--font-icon-brands:#{$icon-font-brands};
 

@@ -1,0 +1,225 @@
+/// Replace `$search` with `$replace` in `$string`
+/// @author Hugo Giraudel
+/// @param {String} $string - Initial string
+/// @param {String} $search - Substring to replace
+/// @param {String} $replace ('') - New value
+/// @return {String} - Updated string
+@function str-replace($string, $search, $replace: '') {
+  $index: str-index($string, $search);
+  @if $index {
+    @return str-slice($string, 1, $index - 1) + $replace + str-replace(str-slice($string, $index + str-length($search)), $search, $replace);
+  }
+  @return $string;
+}
+
+/*@function str-split($string, $separator) {
+    $split-arr: ();
+    $index : str-index($string, $separator);
+    @while $index != null {
+        $item: str-slice($string, 1, $index - 1);
+        $split-arr: append($split-arr, $item);
+        $string: str-slice($string, $index + 1);
+        $index : str-index($string, $separator);
+    }
+    $split-arr: append($split-arr, $string);
+    @return $split-arr;
+}*/
+
+@function custom-str-trim($string) {
+  $trimmed-start: str-slice($string, str-index($string, not space) or 0);
+  $last-non-space-index: str-index($trimmed-start, not space, -1);
+  $end-index: if($last-non-space-index != null, $last-non-space-index + 1, str-length($trimmed-start));
+  $trimmed-end: str-slice($trimmed-start, 1, $end-index);
+  @return $trimmed-end;
+}
+
+
+@function str-split($string, $separator) {
+  $split-arr: ();
+  $index: str-index($string, $separator);
+  @while $index != null {
+    $item: str-slice($string, 1, $index - 1);
+    //$item: custom-str-trim($item); // Başındaki ve sonundaki boşlukları kaldır
+    $split-arr: append($split-arr, $item);
+    $string: str-slice($string, $index + str-length($separator));
+    $index: str-index($string, $separator);
+  }
+  //$string: custom-str-trim($string); // Son parçanın başındaki ve sonundaki boşlukları kaldır
+  $split-arr: append($split-arr, $string);
+  @return $split-arr;
+}
+
+
+@function rem($size) {
+  @return str-replace($size, 'px', '') / 16px * 1rem;
+}
+
+@function add-color_old($name, $color) {
+    $new-color: (
+        base: $color,
+        dark: darken($color, 40%),
+        light: lighten($color, 60%)
+    );
+    $base-colors: map-merge($base-colors, (
+        #{$name}: $new-color
+    ));
+    @return $base-colors;
+}
+
+@function add-color($name, $color) {
+  $custom-colors: map-merge($custom-colors, (#{$name}: $color));
+  @return $custom-colors;
+}
+@function get-color($name) {
+  @if map-has-key($custom-colors, $name) {
+    @return map-get($custom-colors, $name);
+  } @else {
+    @warn "'$name' adında bir renk bulunamadı.";
+    @return null; // Veya istediğiniz bir varsayılan değer
+  }
+}
+
+
+
+@function _hex-to-dec($string) {
+  $hex: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f";
+  $string: to-lower-case($string);
+  $length: str-length($string);
+
+  $dec: 0;
+  @for $i from 1 through $length {
+    $factor: 1 + (15 * ($length - $i));
+    $index: index($hex, str-slice($string, $i, $i));
+    $dec: $dec + $factor * ($index - 1);
+  }
+
+  @return $dec;
+}
+
+@function _from-hex($string) {
+  $string-lower: to-lower-case($string);
+  $r: "";  $g: ""; $b: "";
+  $hex: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f";
+  $length: str-length($string);
+  $max: if($length == 4, 1, 2);
+
+  // Check for length accuracy
+  @if $length != 4 and $length != 7 {
+    @return $string;
+  }
+
+  // Loop from the second character (omitting #)
+  @for $i from 2 through $length {
+    $c: str-slice($string-lower, $i, $i);
+
+    // If wrong character, return
+    @if index($hex, $c) == null {
+      @return $string;
+    }
+
+    @if      str-length($r) < $max {
+      $r: $r + $c;
+    } @else if str-length($g) < $max {
+      $g: $g + $c;
+    } @else if str-length($b) < $max {
+      $b: $b + $c;
+    }
+  }
+
+  @if $length == 4 {
+    $r: $r + $r;
+    $g: $g + $g;
+    $b: $b + $b;
+  }
+
+  @return rgb(_hex-to-dec($r), _hex-to-dec($g), _hex-to-dec($b));
+}
+
+@function _color($string) {
+  @if type-of($string) == "color" {
+    @return $string;
+  }
+
+  $string-lower: to-lower-case($string);
+  $colors: transparent black silver gray white maroon red purple fuchsia green lime olive yellow navy blue teal aqua aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen;
+  $keywords: ();
+
+  // Filling $keywords with stringified color keywords
+  @each $color in $colors {
+    $keywords: append($keywords, $color + "");
+  }
+
+  // Deal with inherit keyword
+  @if $string-lower == "inherit" {
+    @return unquote($string);
+  }
+
+  @if index($keywords, $string-lower) {
+    // Deal with color keywords
+    @return nth($colors, index($keywords, $string-lower));
+  } @else if str-slice($string-lower, 1, 1) == '#' {
+    // Deal with hexadecimal triplets
+    @return _from-hex($string);
+  } @else if str-slice($string-lower, 1, 3) == 'rgb' {
+    // Deal with rgb(a) colors
+    @return _from-rgb($string);
+  } @else if str-slice($string-lower, 1, 3) == 'hsl' {
+    // Deal with hsl(a) colors
+    @return _from-hsl($string);
+  } @else {
+    // Return string
+    @return $string;
+  }
+}
+
+
+/*@function contrastText($color, $text:-1) {
+    $result: invert($color);
+    $lightness: lightness($result);
+    @if ($lightness < 49) {
+        $result: black;
+    }
+    @if ($lightness > 49) {
+        $result: white;
+    }
+    @if (type_of($text) == 'color') {
+        $result: $text;
+    }
+    @return $result;
+}
+*/
+@function contrastText($n, $text:"") {
+  $color-brightness: round((red($n)*299)+(green($n)*587)+(blue($n)*114)/1000);
+  $light-color: round((red(#ffffff)*299)+(green(#ffffff)*587)+(blue(#ffffff)*114)/1000);
+  @if abs($color-brightness) < ($light-color/2){
+    $result:  white;
+  } @else {
+    $result:  black;
+  }
+  @if ($text != "") {
+      $result: $text;
+  }
+  @return $result;
+}
+
+@function strip-unit($value) {
+  @return str-slice($value, 1, str-length($value) - 3);
+}
+
+
+
+@function parse-map($str) {
+  $map: ();
+  $pairs: str-split($str, ",");
+  @each $pair in $pairs {
+    $parts: str-split($pair, ":");
+    @if length($parts) == 2 {
+      $key: unquote(nth($parts, 1));
+      $value: unquote(nth($parts, 2));
+      $map: map-merge($map, ($key: $value));
+    } @else {
+      @warn "Invalid format for pair: #{$pair}";
+    }
+  }
+  @return $map;
+}

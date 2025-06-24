@@ -1,0 +1,25 @@
+#stripe-payment-data{
+
+	.wc-credit-card-form{
+		.form-row{
+			flex-direction:column;
+			padding:0!important;
+			label{
+				font-weight:600;
+				font-size:15px;
+				margin-bottom:4px;
+			}
+			.stripe-card-group{
+				
+			}
+			.wc-stripe-elements-field, 
+			.wc-stripe-iban-element-field{
+				border-radius:5px;
+				padding:8px;
+			}
+		}
+	}
+}
+.CardBrandIcon-container{
+   display:block!important;
+}

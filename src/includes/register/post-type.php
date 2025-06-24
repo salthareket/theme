@@ -76,7 +76,7 @@
   add_action('admin_menu', 'add_template_sub_menu');
 
   function add_template_sub_menu(){
-    add_submenu_page( 'anasayfa', 'Templates', 'Templates', 'edit_theme_options', 'edit.php?post_type=template', 'options-template' );   
+    add_submenu_page( 'anasayfa', 'Templates', 'Templates', 'edit_theme_options', 'edit.php?post_type=template&lang=all', 'options-template' );   
   }
 
 

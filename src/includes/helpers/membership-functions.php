@@ -1,5 +1,7 @@
 <?php
 
+ use Timber\Timber;
+
 // required user activation
 if(ENABLE_MEMBERSHIP_ACTIVATION){
     $activation_type = "";
@@ -261,8 +263,9 @@ function get_login_url($redirect_to=""){
 	if(ENABLE_ECOMMERCE){
         return woo_login_url($redirect_to);
 	}else{
-		$my_account_page = get_page_by_path('my-account');
-		$login_url = get_permalink( $my_account_page->ID );
+		//$my_account_page = get_page_by_path('my-account');
+		//$login_url = get_permalink( $my_account_page->ID );
+        $login_url = get_permalink(get_option('options_myaccount_page_id'));
 		if($redirect_to){
 	        $_SESSION['referer_url'] = esc_url($redirect_to);
 	    }
@@ -280,7 +283,7 @@ function get_account_endpoint_url($endpoint=""){
 	if(ENABLE_ECOMMERCE){
         return wc_get_account_endpoint_url($endpoint);
 	}else{
-		$base_url = get_permalink(get_page_by_path('my-account'));
+		$base_url = get_permalink(get_option('options_myaccount_page_id'));//get_permalink(get_page_by_path('my-account'));
 	    $endpoint_url = trailingslashit($base_url) . trailingslashit($endpoint);
 	    return esc_url($endpoint_url);
 	}
@@ -571,7 +574,8 @@ if(ENABLE_MEMBERSHIP){
     }
         
     function my_account_content_customer_logout(){
-        $logout_url = get_permalink(get_page_by_path('my-account'));
+        //$logout_url = get_permalink(get_page_by_path('my-account'));
+        $logout_url = get_permalink(get_option('options_myaccount_page_id'));
         wp_logout();
         wp_safe_redirect($logout_url);
         exit();

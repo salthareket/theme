@@ -198,7 +198,7 @@ class Favorites{
 
 function favorites_from_cookie() {
         $favorites_obj = new Favorites();
-        $favorites->check();
+        $favorites_obj->check();
         $favorites_obj->merge();
         /*foreach($GLOBALS['favorites'] as $favorite){
             $favorites_obj->add($favorite);

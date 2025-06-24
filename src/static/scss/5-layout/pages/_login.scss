@@ -34,7 +34,7 @@
 	        }
 	    }
      } @else {
-     	background-color:$base-color;
+     	background-color:var(--primary-color);
      }
 
 	>*{
@@ -49,7 +49,7 @@
 .card-login-signup{
 	>.card-header{
 	    .card-title{
-		    font-family:$header-font;
+		    font-family:var(--header-font);
 		    font-size:24px;   	
 	    }
 	}
@@ -65,7 +65,7 @@
 	    	}
 	    }
 	    .form-text{
-	    	font-family:$font-primary;
+	    	font-family:var(--font-primary);
 	    	font-size:11px;
 	    	color:#ddd;
 	    }

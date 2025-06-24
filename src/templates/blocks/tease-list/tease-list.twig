@@ -82,7 +82,7 @@
 
                                {% for item in term.posts %}
                                     <div class="{% if fields.slider %}swiper-slide{% else %}col{% endif %}">
-                                        {% include [item.post_type ~ "/tease.twig", "tease.twig"] with { post : item, heading : fields.heading, ratio : fields.ratio } %}
+                                        {% include [item.post_type ~ "/tease.twig", "tease.twig"] with { post : item, heading : fields.heading, ratio : fields.ratio, class: fields.class } %}
                                     </div>
                                {% endfor %}
                     

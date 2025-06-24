@@ -415,10 +415,13 @@ class SaltMinifier{
 			}
 		}
 
+        $updates = [];
+
 		$js_list = [];
         $js_list_all = [];
         $js_list_conditional = [];
         $js_list_conditional_version = [];
+        $js_list_conditional_set = [];
 
         $js_list[] = "jquery";
         $js_list_all[] = "jquery";
@@ -429,6 +432,13 @@ class SaltMinifier{
             }else{
                 $js_list_conditional[] = $key;
                 $js_list_conditional_version[] = $key."|".$plugin["version"];
+                
+                $js_list_conditional_set[$key] = [
+                    "js" =>       !empty($plugin["url"]) ? $this->rules["config"]["plugin_uri"] . $key.".js" : "",
+                    "css" =>      !empty($plugin["css"]) ? $this->rules["config"]["plugin_uri"] . $key.".css" : "",
+                    "js_init" =>  !empty($plugin["url"]) ? $this->rules["config"]["plugin_uri"] . $key."-init.js" : "",
+                    "init" =>     !empty($plugin["init"]) ? $plugin["init"] : ""
+                ];
             }
             $js_list_all[] = $key;
         }
@@ -456,6 +466,12 @@ class SaltMinifier{
         $js_list_conditional = json_encode($js_list_conditional);
         $js_json = get_stylesheet_directory() . '/static/js/js_files_conditional.json';
         file_put_contents($js_json, $js_list_conditional);
+
+
+        $js_list_conditional_set = json_encode($js_list_conditional_set);
+        $js_json = get_stylesheet_directory() . '/static/js/js_files_conditional_set.json';
+        file_put_contents($js_json, $js_list_conditional_set);
+
 
         $this->rtl_css();
 

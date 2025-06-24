@@ -1,6 +1,6 @@
 .swiper-slider{
     position:relative;
-    @include calc(height, '100vh - #{$header-height}');
+    @include calc(height, '100vh - var(--header-height)');
     .swiper-wrapper{
         .swiper-slide{
             display:flex;
@@ -172,7 +172,7 @@
                     //margin:0;
                     flex:0;
                     >.title{ 
-                        font-family:$font-primary;
+                        font-family:var(--font-primary);
                         color:$base-color;
                        // font-weight:800;
                         font-size:$slider-title-font-size;
@@ -192,7 +192,7 @@
                     >.description{
                          color:#222;
                          font-weight:400;
-                         font-family:$font-primary;
+                         font-family:var(--font-primary);
                          font-size:$slider-description-font-size;
                          line-height:$slider-description-font-line-height;//22px;
                          display: inline-block;

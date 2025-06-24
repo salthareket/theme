@@ -43,8 +43,7 @@ var url="";var paged_url=bool(vars.paged_url);if(vars.page>1&&paged_url){var url
 url_parts[1]=json2url(url_json)}
 var url=url_parts[0]+"page/"+vars.page+"/?"+url_parts[1]}else{var url=url_parts[0]+"page/"+vars.page+"/"}}else{var url=vars.url+"page/"+vars.page+"/"}
 if(!IsBlank(url)){history.pushState(null,document.title,url)}}
-objs.btn.removeClass("loading");if(isLoadedJS("vanilla-lazyload")){}
-if(vars.direction=="prev"){$(vars.container).prepend(response.html);if($(vars.container).hasAttr("data-masonry").length!=0){$(vars.container).masonry('prepended',response.html).masonry('reloadItems').masonry('layout')}
+objs.btn.removeClass("loading");if(vars.direction=="prev"){$(vars.container).prepend(response.html);if($(vars.container).hasAttr("data-masonry").length!=0){$(vars.container).masonry('prepended',response.html).masonry('reloadItems').masonry('layout')}
 if(1==vars.page||IsBlank(response.html)){objs.btn.remove();var pagination=$(vars.container+"-pagination.prev");if(pagination.length>0){pagination.remove()}}else{objs.btn.attr("data-page",vars.page-1);objs.btn.data("page",vars.page-1)}}
 if(vars.direction=="next"){$(vars.container).append(response.html);if($(vars.container).hasAttr("data-masonry").length!=0){$(vars.container).masonry('appended',response.html).masonry('reloadItems').masonry('layout')}
 if(vars.page_total==vars.page||IsBlank(response.html)){objs.btn.remove();var pagination=$(vars.container+"-pagination.next");if(pagination.length>0){pagination.remove()}}else{objs.btn.attr("data-page",vars.page+1);objs.btn.data("page",vars.page+1)}}
@@ -93,53 +92,47 @@ if(use_select){var val=select.data("val");var options="";for(var i in response){
 select.removeClass("d-none").removeAttr("data-required").attr("required",!0).prop("disabled",!1);select.closest(".bootstrap-select").removeClass("d-none");select.html(options).selectpicker("refresh");if(typeof response[val]!=="undefined"){select.val(val);select.selectpicker("render")}else{select.find("option").first().prop("selected",!0);select.selectpicker("render")}
 text.addClass("d-none").removeAttr("required").attr("data-required",!0).prop("disabled",!0)}else{select.html("").selectpicker("refresh");select.addClass("d-none").removeAttr("required").attr("data-required",!0).prop("disabled",!0);select.closest(".bootstrap-select").addClass("d-none");text.removeClass("d-none").removeAttr("data-required").attr("required",!0).prop("disabled",!1)}
 text.closest(".form-group").removeClass("loading");if(!text.parent().is(':visible')&&!select.parent().is(':visible')){text.attr("data-required",!0).prop("disabled",!0);select.attr("data-required",!0).prop("disabled",!0)}}};
-ajax_hooks['form_modal'] = {before:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){alert("Bootbox required");return}
-var className="modal-form loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,backdrop:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
+ajax_hooks['form_modal'] = {required:"bootbox",before:function(response,vars,form,objs){var className="modal-form loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,backdrop:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
 if(vars.modal){vars.modal.forEach(item=>{for(const[key,value]of Object.entries(item)){dialog.find("."+key).addClass(value)}})}
 dialog.data("response",response);dialog.find(".bootbox-close-button").addClass("btn-close").empty();objs.modal=dialog;response.objs={"modal":dialog,"btn":objs.btn}
 if(window["modal_"+vars.id]){window["modal_"+vars.id]()}
-return response},after:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){return}
-var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
+return response},after:function(response,vars,form,objs){var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
 return!1}
 modal.find(".modal-title").html(response.data.title);modal.find(".modal-body").html(response.data.content);initContactForm();root.form.init();if(isLoadedJS("autosize")){autosize($('textarea'))}
 if(modal.find("input[name='defaults']").length>0){var params=modal.find("input[name='defaults']").val();if(!IsBlank(params)){params=params.replaceAll("'",'"');params=$.parseJSON(params);if(Object.keys(params).length>0){for(param in params){var el=$("[name='"+param+"']");if(el.length>0){el.val(params[param]);el.closest(".defaults-"+param).removeClass("d-none")}}}
 debugJS(params)}}
 modal.removeClass("loading");if(modal.find(".selectpicker").length>0){modal.find(".selectpicker").selectpicker()}
 if(typeof recaptchaCallback!=="undefined"){recaptchaCallback()}}};
-ajax_hooks['iframe_modal'] = {before:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){alert("Bootbox required");return}
-response.vars.url=objs.btn.attr("href");var className="modal-page loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,centerVertical:!0,backdrop:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
+ajax_hooks['iframe_modal'] = {required:"bootbox",before:function(response,vars,form,objs){response.vars.url=objs.btn.attr("href");var className="modal-page loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,centerVertical:!0,backdrop:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
 if(vars.modal){vars.modal.forEach(item=>{for(const[key,value]of Object.entries(item)){dialog.find("."+key).addClass(value)}})}
 objs.modal=dialog;var id=generateCode(5);dialog.attr("id",id);response.objs={"modal":dialog,"btn":objs.btn}
-return response},after:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){return}
-var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
+return response},after:function(response,vars,form,objs){var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
 return!1}
 if(vars.hasOwnProperty("title")){modal.find(".modal-title").html(vars.title)}
 modal.find(".modal-body").html(response.html);modal.removeClass("loading")}};
-ajax_hooks['map_modal'] = {before:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){alert("Bootbox required");return}
-var className="modal-map loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:'<div></div>',message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,backdrop:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
+ajax_hooks['map_modal'] = {required:"bootbox",before:function(response,vars,form,objs){var className="modal-map loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:'<div></div>',message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,backdrop:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
 if(vars.modal){vars.modal.forEach(item=>{for(const[key,value]of Object.entries(item)){dialog.find("."+key).addClass(value)}})}
 objs.modal=dialog;var id=generateCode(5);dialog.attr("id",id);response.objs={"modal":dialog,"btn":objs.btn}
-return response},after:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){return}
-var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
+return response},after:function(response,vars,form,objs){var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
 return!1}
 if(response.data.hasOwnProperty("title")){modal.find(".modal-title").html(response.data.title)}
 modal.find(".modal-body").html(response.data.content);modal.removeClass("loading")}};
-ajax_hooks['page_modal'] = {before:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){alert("Bootbox required");return}
-var className="modal-page loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,centerVertical:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
+ajax_hooks['page_modal'] = {required:"bootbox",before:function(response,vars,form,objs){var className="modal-page loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,centerVertical:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
 if(vars.modal){vars.modal.forEach(item=>{for(const[key,value]of Object.entries(item)){dialog.find("."+key).addClass(value)}})}
 objs.modal=dialog;var id=generateCode(5);dialog.attr("id",id);response.objs={"modal":dialog,"btn":objs.btn}
-return response},after:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){return}
-var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
+return response},after:function(response,vars,form,objs){var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
 return!1}
 if(response.data.hasOwnProperty("title")){modal.find(".modal-title").html(response.data.title)}
 modal.find(".modal-body").html(response.data.content);modal.removeClass("loading")}};
-ajax_hooks['template_modal'] = {before:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){alert("Bootbox required");return}
-var className="modal-page loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,centerVertical:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
+ajax_hooks['template_modal'] = {required:"bootbox",before:function(response,vars,form,objs){var className="modal-page loading "+(vars.class?vars.class:'');var scrollable=bool(vars.scrollable,!1);var close=bool(vars.close,!0);var dialog=bootbox.dialog({className:className,title:"<div></div>",message:'<div></div>',closeButton:close,size:!IsBlank(vars.size)?vars.size:'xl',scrollable:scrollable,centerVertical:!0,buttons:{},onHidden:function(e){response.abort()}});if(vars.fullscreen){dialog.find(".modal-dialog").addClass("modal-fullscreen")}
 if(vars.modal){vars.modal.forEach(item=>{for(const[key,value]of Object.entries(item)){dialog.find("."+key).addClass(value)}})}
 objs.modal=dialog;var id=generateCode(5);dialog.attr("id",id);response.objs={"modal":dialog,"btn":objs.btn}
-return response},after:function(response,vars,form,objs){if(!isLoadedJS("bootbox")){return}
-var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
+return response},after:function(response,vars,form,objs){var modal=objs.modal;if(response.error){modal.addClass("remove-on-hidden").modal("hide");if(response.message){response_view(response)}
 return!1}
 if(response.data.hasOwnProperty("content")){modal.find(".modal-content").html(response.data.content)}else{if(response.data.hasOwnProperty("title")){modal.find(".modal-title").html(response.data.title)}
 if(response.data.hasOwnProperty("body")){modal.find(".modal-body").html(response.data.body)}}
 modal.removeClass("loading");init_functions()}};
+ajax_hooks['custom_track_product_view'] = {init:function($vars){var query=new ajax_query();query.method="custom_track_product_view";query.vars=$vars;query.request()}};
+ajax_hooks['pay_now'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){response_view(response)}};
+ajax_hooks['salt_recently_viewed_products'] = {init:function($vars){var query=new ajax_query();query.method="salt_recently_viewed_products";query.vars=$vars;query.request()},after:function(response,vars,form,objs){$("#"+vars.id).html(response.html).removeClass("loading")
+if(response.html){init_swiper()}}};

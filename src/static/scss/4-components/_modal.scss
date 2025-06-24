@@ -6,7 +6,7 @@
         padding: 25px 30px;
         flex-wrap:wrap;
         .modal-title {
-          font-family: $font-primary;
+          font-family: var(--font-primary);
           flex: 1;
           line-height: auto;
         }
@@ -89,7 +89,7 @@
           }
           .close{
             font-size: 24px;
-                        opacity: 1;
+              opacity: 1;
           }
         }
       }

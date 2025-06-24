@@ -703,18 +703,21 @@ function get_video($video_args=array()){
 		case "file" :
 		    if(isset($args["video_file"])){
 			    if(is_array($args["video_file"])){
+			    	$source_count = 0;
 			    	$sources = "";
 			    	foreach($args["video_file"] as $key => $source){
 			    		$attachment_id = get_attachment_id_by_url($source);
 			    		if($source){
 			    			$meta = get_post_meta($attachment_id, '_wp_attachment_metadata', true);
+			    			if (!is_array($meta)) continue; // 💥 EKLENDİ
 			    			$sources .= '<source '.($lazy?"":"").'src="'.$source.'" type="'.$meta["mime_type"].'" size="'.$meta["height"].'" />';
+			    			$source_count++;
 			    		}
 			    	}
 			    	if($sources){
 						$code = str_replace("{{src}}", $sources, $code);
 
-						if(empty($settings["controls"])){
+						if(empty($settings["controls"]) && $source_count > 1){
 							$settings["controls"] = 1;
 							$settings["controls_options"] = ["settings"];
 							$settings["controls_options_settings"] = ["quality"];

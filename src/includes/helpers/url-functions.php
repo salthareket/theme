@@ -297,7 +297,7 @@ function getSiteSubfolder(){
 	$url_site = get_site_url();
 	$url = parse_url($url_site);
 	//$url_local = $url["scheme"]."://".$url["host"].($url["host"] == "localhost"?":".$url["port"]:"")."/";
-	$url_local = $url["host"].($url["host"] == "localhost"?":".$url["port"]:"");//."/";
+	$url_local = $url["host"].($url["host"] == "localhost" && (isset($url["port"]) && !empty($url["port"]) && $url["port"] != "80")?":".$url["port"]:"");//."/";
 	$subFolderPath = str_replace($url["scheme"]."://", "", $url_site);
     $subFolderPath = str_replace($url_local, "", $subFolderPath);
 	//$subFolderPath = explode("/", str_replace($url_local, "", $url_site));

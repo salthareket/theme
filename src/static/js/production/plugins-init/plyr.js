@@ -69,8 +69,6 @@ function plyr_init($obj){
 			return;
 		}
 
-		console.log($obj)
-
 		var config_data = $obj.attr("data-plyr-config");
 		if(!IsBlank(config_data) && typeof config_data != "undefined"){
 			config_data = JSON.parse(config_data);
@@ -81,8 +79,9 @@ function plyr_init($obj){
 			config_data = {};
 		}
 
-		const type = $obj[0].tagName.toLowerCase() === 'div' ? 'embed' : $obj[0].tagName.toLowerCase();
-
+		//const type = $obj[0].tagName.toLowerCase() === 'div' ? 'embed' : $obj[0].tagName.toLowerCase();
+		const type = $obj.hasClass("plyr__video-embed") ? 'embed' : $obj[0].tagName.toLowerCase();
+		
 		const lazy_loaded = $obj.hasClass("lazy-loaded");
 
 		const video_bg = $obj.hasClass("video-bg");

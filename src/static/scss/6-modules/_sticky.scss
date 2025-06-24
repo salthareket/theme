@@ -46,7 +46,16 @@
 }
 body{
     &:not(.header-hide){
-        @include media-breakpoint-up(sm) {
+
+        [class^="sticky-"], [class*=" sticky-"] {
+            top:var(--header-height);
+        }
+        &.affix{
+            [class^="sticky-"], [class*=" sticky-"] {
+                top:var(--header-height-affix);
+            }
+        }
+        /*@include media-breakpoint-up(sm) {
             [class^="sticky-"], [class*=" sticky-"] {
                 top:var(--header-height-xs);
             }
@@ -105,7 +114,7 @@ body{
                     top:var(--header-height-xxl-affix);
                 }
             }
-        }
+        }*/
     }
     &.header-hide{
         [class^="sticky-"], [class*=" sticky-"] {

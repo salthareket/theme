@@ -1,0 +1,82 @@
+/*! purgecss start ignore */
+.block-slider{
+	.container{
+		min-height:inherit;
+		>*{
+			min-height:inherit;
+		}
+		.swiper{
+			&:not(.swiper-vertical){
+				min-height:inherit;
+			}
+			.swiper-wrapper{
+				//min-height:inherit;
+				.swiper-slide{
+					//min-height: inherit;
+				}
+			}
+			&:not(.swiper-vertical){
+				.swiper-wrapper{
+				    min-height:inherit;
+				    .swiper-slide{
+				    	min-height:inherit;
+				    }
+			    }
+			}
+		}
+	}
+	.swiper-slide{
+		.description{
+			line-height: 1;
+		}
+		.swiper-bg{
+			.plyr{
+				height:100%;
+				.plyr__video-wrapper{
+					height:100%;
+				}
+			}			
+		}
+		&.overlay{
+			 &:before{
+				content:"";
+				@include absolute-fill();
+				z-index:1;
+				@include transition(all .3s ease-out);
+			}
+		}
+	}
+}
+
+
+// Bootstrap Breakpoints
+$breakpoints: (
+  "xxxl": 1400px,
+  "xxl": 1200px,
+  "xl": 992px,
+  "lg": 768px,
+  "md": 576px,
+  "sm": 480px,
+  "xs": 0px
+);
+
+.swiper-slider:not(.swiper-slider-init) {
+    .swiper-wrapper {
+        display: flex;
+        gap: var(--gap-xs, 0px); // Varsayılan gap
+        .swiper-slide {
+            flex: 0 0 calc(100% / var(--col-xs, 1)); // Varsayılan column hesaplama
+        }  
+    }
+    @each $breakpoint, $size in $breakpoints {
+        @media (max-width: #{$size}) {
+            .swiper-wrapper {
+                gap: var(--gap-#{$breakpoint}, 0px);
+            }
+            .swiper-slide {
+                flex: 0 0 calc(100% / var(--col-#{$breakpoint}, 1));
+            }
+        }
+    }
+}
+/*! purgecss end ignore */

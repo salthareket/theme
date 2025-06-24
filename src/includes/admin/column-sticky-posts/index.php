@@ -2,7 +2,8 @@
 
 // Sticky desteği olan post type'ları getir
 function get_sticky_supported_post_types() {
-    $post_types = get_post_types(array('public' => true), 'names');
+    $post_types = get_post_types(array('public' => true, '_builtin' => false), 'names');
+    $post_types[] = 'post';
     return array_filter($post_types, function($post_type) {
         return post_type_supports($post_type, 'sticky');
     });
@@ -73,7 +74,7 @@ function update_sticky_meta_on_save($post_id) {
     if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) {
         return;
     }
-    $post_types = get_post_types(array('public' => true), 'names');
+    $post_types = get_post_types(array('public' => true, '_builtin' => false), 'names');
     $post_type = get_post_type($post_id);
     if(in_array($post_type, array_keys($post_types))){
         $is_sticky = is_sticky($post_id) ? 1 : 0;

@@ -47,6 +47,8 @@ class RemoveUnusedCss {
         ".loaded",
         ".error",
         ".initial",
+        ".nav-equal",
+        ".nav-equalized",
         
         // plugin classes
         ".slinky-*",
@@ -88,6 +90,9 @@ class RemoveUnusedCss {
         } else {
             throw new InvalidArgumentException("Invalid HTML input. Must be a string or HtmlDomParser object.");
         }
+
+        //error_log(print_r($this->html, true));
+
         $this->css = is_file($css) ? file_get_contents($css) : $css;
         $this->output = $output;
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
@@ -458,7 +463,7 @@ class RemoveUnusedCss {
         }
 
         if(preg_match('/^\s*@supports\s+/i', ltrim($selector))){
-            //error_log("found: ".$selector);
+           //error_log("found: ".$selector);
             return true;
         }
         

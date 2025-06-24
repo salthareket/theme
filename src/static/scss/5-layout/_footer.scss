@@ -1,24 +1,24 @@
 /*! purgecss start ignore */
 footer#footer{
 	position:relative;
-	padding:$footer-padding;
-	background-color:$footer-bg-color;
-	color:$footer-color;
+	padding:var(--footer-padding);
+	background-color:var(--footer-bg-color);
+	color:var(--footer-color);
 	//@include filter-gradient( $base-color, $base-color-dark, horizontal);
 	//@include background-image(linear-gradient(left top,  $base-color 0%, $base-color-dark  100%));
     height:auto;
 
     a:not(.btn){
-		color:$footer-color-link;
+		color:var(--footer-color-link);
 		&:hover{
-         color:$footer-color-link-hover;
+         color:var(--footer-color-link-hover);
 		}
 	}
     
     @if variable-exists("newsletter") {
 		@if $newsletter {
 		    form.newsletter{
-		    		color:$footer-color;
+		    		color:var(--footer-color);
 					.input-group-wrapper{
 			            background-color:#fff;
 			            border:3px solid #fff;
@@ -58,10 +58,10 @@ footer#footer{
 					}
 					>li{
 						a{
-							color:$footer-color-link;
+							color:var(--footer-color-link);
 							&:hover,
 							&:active{
-								color:$footer-color-link-hover;
+								color:var(--footer-color-link-hover);
 							}
 						}
 					}			   		

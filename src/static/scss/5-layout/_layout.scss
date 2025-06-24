@@ -11,13 +11,13 @@ body{
     flex-direction:column;
     min-height:100vh;
     overflow-x: hidden;
-    font-family:$font-primary;
-    @include font-size($base-font-size);
+    font-family:var(--font-primary);
+    @include font-size(var(--base-font-size));
     @include rfs($base-font-line-height, line-height);
     @include rfs($base-letter-spacing, letter-spacing);
     font-weight: $base-font-weight;
     color:$base-font-color;
-    background-color:$body-bg-color!important;
+    background-color:var(--body-bg-color)!important;
 }
 body{
     left:0px;
@@ -33,7 +33,7 @@ body{
 body{
     &:before{
        content:"";
-       background-color:rgba($body-bg-backdrop, 0);
+       background-color:rgba(var(--body-bg-backdrop-rgb), 0);
        @include transition(background-color .3s ease-out);
        position:fixed;
        top:0;//$header-navbar-height;
@@ -46,14 +46,14 @@ body{
     &.dgwt-wcas-open{
         //overflow:hidden;
         &:before{
-          background-color:rgba($body-bg-backdrop, .7);
+          background-color:rgba(var(--body-bg-backdrop-rgb), .7);
           bottom:0;
           left:0;
           right:0;
         }
     }
     &.affix{
-       padding-top:$header-height-affix;
+       padding-top:var(--header-height-affix);
     }
     &.has-hero{
         padding-top:0px!important;
@@ -65,7 +65,25 @@ body{
     }
 }
 
-@media (min-width: 1600px) {
+
+body:not(.under-construction){
+    &.affixed{
+        &.header-fixed-top{
+            padding-top: var(--header-height);
+        }
+    }
+    &.affix:not(.affixed){
+        &.header-fixed-top{
+             padding-top: var(--header-height-affix);
+        }
+    }
+    &.header-fixed-bottom{
+        padding-bottom:var(--header-height);
+    }
+}
+
+
+/*@media (min-width: 1600px) {
     body:not(.under-construction){
         &.affixed{
             &.header-fixed-top{
@@ -183,7 +201,7 @@ body{
             padding-bottom:$header-height-xs;
         }
     }
-}
+}*/
 
 body:not(.ie){
    main#main {
@@ -202,7 +220,7 @@ a:not(.text-underline){
 
 
 ::selection {
-    background-color: $base-color;
+    background-color: var(--primary-color);
     color: #fff;
 }
    

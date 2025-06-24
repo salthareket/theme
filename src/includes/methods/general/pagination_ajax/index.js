@@ -64,9 +64,9 @@
         .removeClass("loading-process");*/
         objs.btn.removeClass("loading");
 
-        if(isLoadedJS("vanilla-lazyload")){
+        //if(isLoadedJS("vanilla-lazyload")){
             //lazyLoadInstance.update();
-        }
+        //}
         if(vars.direction == "prev"){
 
             $(vars.container).prepend(response["html"]);

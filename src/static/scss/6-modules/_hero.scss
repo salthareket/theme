@@ -15,50 +15,50 @@
 	}
 	&.hero-xs{
 		min-height:200px;
-        @include calc(height, '30vh - #{$header-height}');
+        @include calc(height, '30vh - var(--header-height)');
 		@media (min-width: 1200px) and (max-width: 1599px){
-            @include calc(height, '30vh - #{$header-height-lg}');
+            @include calc(height, '30vh - var(--header-height-lg)');
 		}
 		@media (min-width: 992px) and (max-width: 1199px){
-            @include calc(height, '30vh - #{$header-height-md}');
+            @include calc(height, '30vh - var(--header-height-md)');
 		}
 		@media (min-width: 768px) and (max-width: 991px){
-            @include calc(height, '30vh - #{$header-height-sm}');
+            @include calc(height, '30vh - var(--header-height-sm)');
 		}
 		@media (max-width: 767px){
-			@include calc(height, '30vh - (#{$header-height-xs})');
+			@include calc(height, '30vh - var(--header-height-xs)');
 		}
 	}
 	&.hero-sm{
 		min-height:350px;
-		@include calc(height, '50vh - #{$header-height}');
+		@include calc(height, '50vh - var(--header-height)');
 		@media (min-width: 1200px) and (max-width: 1599px){
-            @include calc(height, '50vh - #{$header-height-lg}');
+            @include calc(height, '50vh - var(--header-height-lg)');
 		}
 		@media (min-width: 992px) and (max-width: 1199px){
-            @include calc(height, '50vh - #{$header-height-md}');
+            @include calc(height, '50vh - var(--header-height-md)');
 		}
 		@media (min-width: 768px) and (max-width: 991px){
-            @include calc(height, '50vh - #{$header-height-sm}');
+            @include calc(height, '50vh - var(--header-height-sm)');
 		}
 		@media (max-width: 767px){
-			@include calc(height, '50vh - (#{$header-height-xs})');
+			@include calc(height, '50vh - var(--header-height-xs)');
 		}
 	}
 	&.hero-md{
 		min-height:450px;
-		@include calc(height, '70vh - #{$header-height}');
+		@include calc(height, '70vh - var(--header-height)');
 		@media (min-width: 1200px) and (max-width: 1599px){
-            @include calc(height, '70vh - #{$header-height-lg}');
+            @include calc(height, '70vh - var(--header-height-lg)');
 		}
 		@media (min-width: 992px) and (max-width: 1199px){
-            @include calc(height, '70vh - #{$header-height-md}');
+            @include calc(height, '70vh - var(--header-height-md)');
 		}
 		@media (min-width: 768px) and (max-width: 991px){
-            @include calc(height, '70vh - #{$header-height-sm}');
+            @include calc(height, '70vh - var(--header-height-sm)');
 		}
 		@media (max-width: 767px){
-			@include calc(height, '70vh - (#{$header-height-xs})');
+			@include calc(height, '70vh - var(--header-height-xs)');
 		}
 	}
 	&.hero-lg{
@@ -77,33 +77,33 @@
 		    }
 		}*/
 
-		@include calc(height, '90vh - #{$header-height}');
+		@include calc(height, '90vh - var(--header-height)');
 		@media (min-width: 1200px) and (max-width: 1599px){
-            @include calc(height, '90vh - #{$header-height-lg}');
+            @include calc(height, '90vh - var(--header-height-lg)');
 		}
 		@media (min-width: 992px) and (max-width: 1199px){
-            @include calc(height, '90vh - #{$header-height-md}');
+            @include calc(height, '90vh - var(--header-height-md)');
 		}
 		@media (min-width: 768px) and (max-width: 991px){
-            @include calc(height, '90vh - #{$header-height-sm}');
+            @include calc(height, '90vh - var(--header-height-sm)');
 		}
 		@media (max-width: 767px){
-			@include calc(height, '90vh - (#{$header-height-xs})');
+			@include calc(height, '90vh - var(--header-height-xs)');
 		}
 	}
 	&.hero-xl{
-		@include calc(height, '100vh - #{$header-height}');
+		@include calc(height, '100vh - var(--header-height)');
 		@media (min-width: 1200px) and (max-width: 1599px){
-            @include calc(height, '100vh - #{$header-height-lg}');
+            @include calc(height, '100vh - var(--header-height-lg)');
 		}
 		@media (min-width: 992px) and (max-width: 1199px){
-            @include calc(height, '100vh - #{$header-height-md}');
+            @include calc(height, '100vh - var(--header-height-md)');
 		}
 		@media (min-width: 768px) and (max-width: 991px){
-            @include calc(height, '100vh - #{$header-height-sm}');
+            @include calc(height, '100vh - var(--header-height-sm)');
 		}
 		@media (max-width: 767px){
-			@include calc(height, '100vh - (#{$header-height-xs})');
+			@include calc(height, '100vh - var(--header-height-xs)');
 		}
 	}
 
@@ -153,11 +153,11 @@
 							.breadcrumb{
 								li{
 									a{
-                                        color:$base-color;
+                                        color:var(--primary-color);
                                     }
                                     &~ li{
 										&:before{
-											color:$base-color;
+											color:var(--primary-color);
 										}								
 									}
                                 }
@@ -206,7 +206,7 @@
 						max-width:50%;
 					}
 					&.background--light{
-                        color:$base-color;
+                        color:var(--primary-color);
 					}
 				}
 		}
@@ -255,7 +255,7 @@
 			   	   	}
 		   	    }
 				&.background--light{
-                    color:$base-color;
+                    color:var(--primary-color);
 				}
 			}
 		}
@@ -409,7 +409,7 @@
         }
         &.background--light{
         	.swiper-pagination-bullet{
-               border-color:$base-color;
+               border-color:var(--primary-color);
         	}
 		}
     }

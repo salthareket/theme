@@ -1,0 +1,99 @@
+.datepicker{
+		&.datepicker-dropdown{
+			padding:10px!important;
+			border-radius:8px!important;
+		}
+		.datepicker-days{
+			table{
+				thead{
+					tr{
+						th{
+
+						}					
+					}
+				}
+				tbody{
+					tr{
+						td{
+							@include transition(background-color .3s ease-out, color .3s ease-out);
+							&.day{
+								
+							}
+							&.disabled{
+								color:#ccc;
+							}
+							.active,
+							&.active{
+								background-color:$base-color;
+								&:hover{
+								   background-color: darken($base-color, 5%)!important;		
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		.datepicker-months{
+			table{
+				thead{
+					tr{
+						th{
+
+						}					
+					}
+				}
+				tbody{
+					tr{
+						td{
+							@include transition(background-color .3s ease-out, color .3s ease-out);
+							&.month{
+								
+							}
+							&.disabled{
+								color:#ccc;
+							}
+							.active,
+							&.active{
+								background-color:$base-color;
+								&:hover{
+								   background-color: darken($base-color, 5%)!important;	
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		.datepicker-years{
+			table{
+				thead{
+					tr{
+						th{
+
+						}					
+					}
+				}
+				tbody{
+					tr{
+						td{
+							@include transition(background-color .3s ease-out, color .3s ease-out);
+							&.year{
+								
+							}
+							&.disabled{
+								color:#ccc;
+							}
+							.active,
+							&.active{
+								background-color:$base-color;
+								&:hover{
+								   background-color: darken($base-color, 5%)!important;	
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}

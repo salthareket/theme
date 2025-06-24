@@ -112,7 +112,7 @@
                     "required": 0,
                     "conditional_logic": 0,
                     "wrapper": {
-                        "width": "",
+                        "width": "70",
                         "class": "",
                         "id": ""
                     },
@@ -124,7 +124,7 @@
                     "multiple": 0,
                     "ui": 0,
                     "placeholder": "Choose a post type",
-                    "translations": "sync",
+                    "allow_in_bindings": 1,
                     "choices": [],
                     "ajax": 0,
                     "search_placeholder": "",
@@ -132,6 +132,28 @@
                     "toggle": 0,
                     "allow_custom": 0,
                     "other_choice": 0,
+                    "parent_repeater": "field_66b94a30a4d93"
+                },
+                {
+                    "key": "field_680b5579fde88",
+                    "label": "Replace menu Item",
+                    "name": "replace",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "30",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1,
                     "parent_repeater": "field_66b94a30a4d93"
                 },
                 {
@@ -496,7 +518,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1745353531,
+    "modified": 1745573302,
     "acfe_categories": {
         "general": "General"
     }

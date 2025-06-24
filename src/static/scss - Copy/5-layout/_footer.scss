@@ -1,0 +1,74 @@
+/*! purgecss start ignore */
+footer#footer{
+	position:relative;
+	padding:$footer-padding;
+	background-color:$footer-bg-color;
+	color:$footer-color;
+	//@include filter-gradient( $base-color, $base-color-dark, horizontal);
+	//@include background-image(linear-gradient(left top,  $base-color 0%, $base-color-dark  100%));
+    height:auto;
+
+    a:not(.btn){
+		color:$footer-color-link;
+		&:hover{
+         color:$footer-color-link-hover;
+		}
+	}
+    
+    @if variable-exists("newsletter") {
+		@if $newsletter {
+		    form.newsletter{
+		    		color:$footer-color;
+					.input-group-wrapper{
+			            background-color:#fff;
+			            border:3px solid #fff;
+			            border-radius:8px;
+					}
+			        input{
+			            background-color:#fff;
+			            border:none;
+			            border-radius: 6px;
+			        }
+			        .btn{
+			            padding-left:30px;
+			            padding-right:30px;
+			            border-radius: 6px 6px 6px 0px;
+			            font-weight:600;
+			            font-size:16px;
+			            border:none;
+			            text-transform:uppercase;
+			            @include transition(background-color .3s ease-out);
+			        }
+			}
+		}
+	}
+
+    .nav-footer{
+		.nav{
+			color:$footer-color;
+			li{
+				ul{
+					&.dropdown-menu{
+						margin:0px;
+						--bs-dropdown-padding-x:0;
+						--bs-dropdown-padding-y:0;
+						--bs-dropdown-bg:transparent;
+						--bs-dropdown-border-width:0;
+						--bs-dropdown-box-shadow:none;
+					}
+					>li{
+						a{
+							color:$footer-color-link;
+							&:hover,
+							&:active{
+								color:$footer-color-link-hover;
+							}
+						}
+					}			   		
+				}				   		
+			}
+		}
+	 }
+
+}
+/*! purgecss end ignore */

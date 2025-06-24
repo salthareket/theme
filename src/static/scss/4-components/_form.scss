@@ -278,7 +278,7 @@ label.form-label{
 
 
 .help-block{
-    font-family:$font-primary;
+    font-family:var(--font-primary);
     &.with-errors{
         font-size:14px;
         font-style: italic;
@@ -300,7 +300,7 @@ label.form-label{
 
 em{
     &.is-invalid{
-        font-family:$font-primary;
+        font-family:var(--font-primary);
         font-size:14px;
         font-style: italic;
         display:block;
@@ -322,7 +322,7 @@ em{
         }
     }
     &.is-valid{
-        font-family:$font-primary;
+        font-family:var(--font-primary);
         font-size:14px;
         font-style: italic;
         display:block;

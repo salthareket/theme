@@ -137,6 +137,20 @@ add_action('registered_post_type', function($post_type, $post_type_object) {
         $post_type_object->labels = (object) $labels;
     }
 }, 10, 2);
+/*add_action('init', function () {
+    global $wp_post_types;
+
+    foreach ($wp_post_types as $post_type => $post_type_object) {
+        if (!empty($post_type_object->labels) && function_exists('pll__')) {
+            $labels = get_post_type_labels($post_type_object);
+            foreach ($labels as $key => &$label) {
+                $label = pll__($label);
+            }
+            $post_type_object->labels = (object) $labels;
+        }
+    }
+});*/
+
 
 // Translate taxonomy labels
 add_action('registered_taxonomy', function($taxonomy, $object_type, $args) {
@@ -149,6 +163,20 @@ add_action('registered_taxonomy', function($taxonomy, $object_type, $args) {
         $taxonomy_object->labels = (object) $labels;
     }
 }, 10, 3);
+/*add_action('init', function () {
+    global $wp_taxonomies;
+
+    foreach ($wp_taxonomies as $taxonomy => $taxonomy_object) {
+        if (!empty($taxonomy_object->labels) && function_exists('pll__')) {
+            $labels = (array) $taxonomy_object->labels;
+            foreach ($labels as $key => &$label) {
+                $label = pll__($label);
+            }
+            $taxonomy_object->labels = (object) $labels;
+        }
+    }
+});*/
+
 
 
 

@@ -72,6 +72,9 @@
         $folder = "search";
     }
 
+    error_log(print_r($args, true));
+    error_log(print_r($query, true));
+
     if($args["post_type"] == "product"){
         if ($query->have_posts()) :
             while ($query->have_posts()) : $query->the_post();

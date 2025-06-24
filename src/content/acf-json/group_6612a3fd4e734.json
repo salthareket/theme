@@ -279,6 +279,7 @@
                 "post": "Yazılar",
                 "page": "Sayfalar",
                 "attachment": "Ortam",
+                "event": "Events",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -330,7 +331,7 @@
         {
             "key": "field_6612a51d29d7e",
             "label": "Posts",
-            "name": "posts",
+            "name": "posts_relation",
             "aria-label": "",
             "type": "relationship",
             "instructions": "",
@@ -366,7 +367,6 @@
             "acfe_bidirectional": {
                 "acfe_bidirectional_enabled": "0"
             },
-            "translations": "sync",
             "min": "",
             "max": "",
             "allow_in_bindings": 1,
@@ -516,7 +516,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208617,
+    "modified": 1745586971,
     "acfe_categories": {
         "block": "Block"
     }

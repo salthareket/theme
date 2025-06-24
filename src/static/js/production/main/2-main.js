@@ -9,9 +9,9 @@
 	var is_home = root.is_home;
 
 if(!isLoadedJS("bootbox")){
-    function _alert(title, msg){
+    /*function _alert(title, msg){
         alert(title + "\n\r" + msg);
-    }
+    }*/
 }
 
 
@@ -87,10 +87,12 @@ function init_functions(){
 		function_secure("jquery.simple-text-rotator", "text_rotator");
 		function_secure("textillate", "text_effect");
 		function_secure("markerclusterer", "init_google_maps");*/
-		init_plugins();
+		//function_secure("init_plugins");
 
-        //notification_alert();
-		btn_loading();
+		 if (typeof window["init_plugins"] === 'function') {
+		 	init_plugins();
+		 }
+l
 		btn_loading_page();
 		//btn_loading_page_hide();
 		//btn_loading_self();
@@ -107,9 +109,6 @@ function init_functions(){
         	btn_favorite();
         }
         /*
-        if(site_config.enable_filters){
-	        product_filters_events();
-	    }
         
         if(site_config.enable_notifications && site_config.logged){
 		    ajax_hooks.get_notification_alerts.init();

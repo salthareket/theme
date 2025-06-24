@@ -29,13 +29,14 @@ function unicode_decode($str) {
 }, $str);
 }
 
-function hex2rgb($hex) {
-   $hex = str_replace("#", "", $hex);
+/*function hex2rgb($hex) {
+   $hex = trim(str_replace("#", "", $hex));
    if(strlen($hex) == 3) {
       $r = hexdec(substr($hex,0,1).substr($hex,0,1));
       $g = hexdec(substr($hex,1,1).substr($hex,1,1));
       $b = hexdec(substr($hex,2,1).substr($hex,2,1));
    } else {
+    error_log($hex);
       $r = hexdec(substr($hex,0,2));
       $g = hexdec(substr($hex,2,2));
       $b = hexdec(substr($hex,4,2));
@@ -43,7 +44,35 @@ function hex2rgb($hex) {
    $rgb = array($r, $g, $b);
    //return implode(",", $rgb); // returns the rgb values separated by commas
    return $rgb; // returns an array with the rgb values
+}*/
+function hex2rgb($hex) {
+    $hex = trim(str_replace("#", "", strtolower($hex)));
+
+    // "transparent" gibi özel CSS renk değerleri kontrolü
+    if ($hex === 'transparent') {
+        return [0, 0, 0]; // rgba(0, 0, 0, 0) gibi davranır
+    }
+
+    // 3 karakterli hex (örn: #fff)
+    if(strlen($hex) === 3) {
+        $r = hexdec(str_repeat(substr($hex, 0, 1), 2));
+        $g = hexdec(str_repeat(substr($hex, 1, 1), 2));
+        $b = hexdec(str_repeat(substr($hex, 2, 1), 2));
+    }
+    // 6 karakterli hex (örn: #ffffff)
+    elseif(strlen($hex) === 6) {
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+    }
+    else {
+        error_log("hex2rgb() geçersiz renk: " . $hex);
+        return null;
+    }
+
+    return [$r, $g, $b];
 }
+
 function make_rgba($hex, $alpha) {
 	  $alpha = !isset($alpha)?1:$alpha;
 	  return 'rgba('.implode(",",hex2rgb($hex)).','.$alpha.')';
@@ -1003,4 +1032,260 @@ function deleteFolder($dir) {
         is_dir($path) ? deleteFolder($path) : unlink($path);
     }
     rmdir($dir);
+}
+
+
+function array_to_root_styles_v1(array $variables, array $variables_mobile = [], array $variables_media_query = []): string {
+    $variables_mobile_added = false;
+    $breakpoints = $GLOBALS['breakpoints'];
+    $keys = array_keys($breakpoints);
+
+    $css = ":root {\n";
+    foreach ($variables as $key => $value) {
+        $css .= "    --{$key}: {$value};\n";
+    }
+    $css .= "}\n\n";
+
+    // variables_media_query yapısını breakpointlere göre gruplayalım
+    $grouped_by_breakpoint = [];
+
+    foreach ($variables_media_query as $var_name => $breakpoint_values) {
+        foreach ($breakpoint_values as $breakpoint => $value) {
+            if (!isset($breakpoints[$breakpoint])) continue;
+            $grouped_by_breakpoint[$breakpoint][$var_name] = $value;
+        }
+    }
+
+    // breakpoint sıralamasına göre media query yazalım
+    foreach ($keys as $i => $key) {
+        //if ($key === 'xs') continue; // xs mobile zaten işlendi
+        if (!isset($grouped_by_breakpoint[$key])) continue;
+
+        $vars = $grouped_by_breakpoint[$key];
+        $min = $breakpoints[$key];
+        $max = null;
+
+        if (isset($keys[$i + 1])) {
+            $next_key = $keys[$i + 1];
+            $max = $breakpoints[$next_key] - 1;
+        }
+
+        if ($key === 'xs'){
+            $css .= "@media (max-width: {$min}px) {\n";
+        }else{
+            if ($max !== null) {
+                $css .= "@media (min-width: {$min}px) and (max-width: {$max}px) {\n";
+            } else {
+                $css .= "@media (min-width: {$min}px) {\n";
+            }            
+        }
+
+        $css .= "    :root {\n";
+        if (!empty($variables_mobile) && $key === 'xs') {
+            $variables_mobile_added = true;
+            foreach ($variables_mobile as $key => $value) {
+                $css .= "        --{$key}: {$value};\n";
+            }
+        }
+        foreach ($vars as $var_name => $value) {
+            $css .= "        --{$var_name}: {$value};\n";
+        }
+        $css .= "    }\n";
+        $css .= "}\n\n";
+    }
+
+    if (!empty($variables_mobile) && !$variables_mobile_added) {
+        $css .= "@media (max-width: {$breakpoints['xs']}px) {\n";
+        $css .= "    :root {\n";
+        foreach ($variables_mobile as $key => $value) {
+            $css .= "        --{$key}: {$value};\n";
+        }
+        $css .= "    }\n";
+        $css .= "}\n\n";
+    }
+
+    return $css;
+}
+
+
+function array_to_root_styles_v2(array $variables, array $variables_mobile = [], array $variables_media_query = []): string {
+    $variables_mobile_added = false;
+    $breakpoints = $GLOBALS['breakpoints'];
+    $keys = array_keys($breakpoints);
+
+    $css = ":root {\n";
+    foreach ($variables as $key => $value) {
+        $key = str_replace("_", "-", $key);
+        $css .= "    --{$key}: {$value};\n";
+        if (str_contains($key, '-color')) {
+            $rgb = hex2rgb($value);
+            $css .= "    --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
+        }
+    }
+    $css .= "}\n\n";
+
+    $grouped_by_breakpoint = [];
+
+    foreach ($variables_media_query as $var_name => $breakpoint_values) {
+        foreach ($breakpoint_values as $breakpoint => $value) {
+            if (!isset($breakpoints[$breakpoint])) continue;
+            $grouped_by_breakpoint[$breakpoint][$var_name] = $value;
+        }
+    }
+
+    foreach ($keys as $i => $key) {
+        if (!isset($grouped_by_breakpoint[$key])) continue;
+
+        $vars = $grouped_by_breakpoint[$key];
+        $min = $breakpoints[$key];
+        $max = null;
+
+        if (isset($keys[$i + 1])) {
+            $next_key = $keys[$i + 1];
+            $max = $breakpoints[$next_key] - 1;
+        }
+
+        if ($key === 'xs') {
+            $css .= "@media (max-width: {$min}px) {\n";
+        } else {
+            if ($max !== null) {
+                $css .= "@media (min-width: {$min}px) and (max-width: {$max}px) {\n";
+            } else {
+                $css .= "@media (min-width: {$min}px) {\n";
+            }
+        }
+
+        $css .= "    :root {\n";
+
+        if (!empty($variables_mobile) && $key === 'xs') {
+            $variables_mobile_added = true;
+            foreach ($variables_mobile as $k => $v) {
+                $css .= "        --{$k}: {$v};\n";
+                if (str_contains($k, '-color')) {
+                    $rgb = hex2rgb($v);
+                    $css .= "        --{$k}-rgb: " . implode(', ', $rgb) . ";\n";
+                }
+            }
+        }
+
+        foreach ($vars as $var_name => $value) {
+            $var_name = str_replace("_", "-", $var_name);
+            $css .= "        --{$var_name}: {$value};\n";
+            if (str_contains($var_name, '-color')) {
+                $rgb = hex2rgb($value);
+                $css .= "        --{$var_name}-rgb: " . implode(', ', $rgb) . ";\n";
+            }
+        }
+
+        $css .= "    }\n";
+        $css .= "}\n\n";
+    }
+
+    if (!empty($variables_mobile) && !$variables_mobile_added) {
+        $css .= "@media (max-width: {$breakpoints['xs']}px) {\n";
+        $css .= "    :root {\n";
+        foreach ($variables_mobile as $key => $value) {
+            $key = str_replace("_", "-", $key);
+            $css .= "        --{$key}: {$value};\n";
+            if (str_contains($key, '-color')) {
+                $rgb = hex2rgb($value);
+                $css .= "        --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
+            }
+        }
+        $css .= "    }\n";
+        $css .= "}\n\n";
+    }
+
+    return $css;
+}
+
+function array_to_root_styles(array $variables, array $variables_mobile = [], array $variables_media_query = []): string {
+    $variables_mobile_added = false;
+    $breakpoints = $GLOBALS['breakpoints'];
+    $keys = array_keys($breakpoints);
+
+    $css = ":root {\n";
+    foreach ($variables as $key => $value) {
+        $key = str_replace("_", "-", $key);
+        $css .= "    --{$key}: {$value};\n";
+        if (is_hex_color($value)) {
+            $rgb = hex2rgb($value);
+            $css .= "    --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
+        }
+    }
+    $css .= "}\n\n";
+
+    $grouped_by_breakpoint = [];
+
+    foreach ($variables_media_query as $var_name => $breakpoint_values) {
+        foreach ($breakpoint_values as $breakpoint => $value) {
+            if (!isset($breakpoints[$breakpoint])) continue;
+            $grouped_by_breakpoint[$breakpoint][$var_name] = $value;
+        }
+    }
+
+    foreach ($keys as $i => $key) {
+        if (!isset($grouped_by_breakpoint[$key])) continue;
+
+        $vars = $grouped_by_breakpoint[$key];
+        $min = $breakpoints[$key];
+        $max = null;
+
+        if (isset($keys[$i + 1])) {
+            $next_key = $keys[$i + 1];
+            $max = $breakpoints[$next_key] - 1;
+        }
+
+        if ($key === 'xs') {
+            $css .= "@media (max-width: {$min}px) {\n";
+        } else {
+            if ($max !== null) {
+                $css .= "@media (min-width: {$min}px) and (max-width: {$max}px) {\n";
+            } else {
+                $css .= "@media (min-width: {$min}px) {\n";
+            }
+        }
+
+        $css .= "    :root {\n";
+
+        if (!empty($variables_mobile) && $key === 'xs') {
+            $variables_mobile_added = true;
+            foreach ($variables_mobile as $k => $v) {
+                $css .= "        --{$k}: {$v};\n";
+                if (is_hex_color($v)) {
+                    $rgb = hex2rgb($v);
+                    $css .= "        --{$k}-rgb: " . implode(', ', $rgb) . ";\n";
+                }
+            }
+        }
+
+        foreach ($vars as $var_name => $value) {
+            $var_name = str_replace("_", "-", $var_name);
+            $css .= "        --{$var_name}: {$value};\n";
+            if (is_hex_color($value)) {
+                $rgb = hex2rgb($value);
+                $css .= "        --{$var_name}-rgb: " . implode(', ', $rgb) . ";\n";
+            }
+        }
+
+        $css .= "    }\n";
+        $css .= "}\n\n";
+    }
+
+    if (!empty($variables_mobile) && !$variables_mobile_added) {
+        $css .= "@media (max-width: {$breakpoints['xs']}px) {\n";
+        $css .= "    :root {\n";
+        foreach ($variables_mobile as $key => $value) {
+            $key = str_replace("_", "-", $key);
+            $css .= "        --{$key}: {$value};\n";
+            if (is_hex_color($value)) {
+                $rgb = hex2rgb($value);
+                $css .= "        --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
+            }
+        }
+        $css .= "    }\n";
+        $css .= "}\n\n";
+    }
+
+    return $css;
 }

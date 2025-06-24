@@ -164,14 +164,17 @@
                 "sm": "Small",
                 "xs": "XSmall",
                 "auto": "Auto",
+                "100%": "100%",
                 "ratio": "Ratio",
                 "responsive": "Responsive"
             },
             "default_value": "auto",
             "return_format": "value",
             "multiple": 0,
-            "translations": "sync",
+            "acfe_settings": "",
+            "acfe_validate": "",
             "allow_null": 0,
+            "acfe_permissions": "",
             "allow_in_bindings": 1,
             "ui": 0,
             "ajax": 0,
@@ -2894,7 +2897,7 @@
     "acfe_form": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208612,
+    "modified": 1745587620,
     "acfe_categories": {
         "common": "Common"
     }

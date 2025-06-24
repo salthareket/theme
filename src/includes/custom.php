@@ -43,15 +43,18 @@ class SaltBase{
 
         error_log("new Salt()");
 
+        add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
+        add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
+
         if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin()){
             add_action('wp', [ $this, 'update_online_users_status' ]);
-            add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
+            //add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
             add_action('wp_insert_comment', 'on_insert_comment', 10, 2);
         }
         
         if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin() && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') === false){
            //add_action('init', [ $this, 'start_session'], 1); // start global session for saving the referer url
-           add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
+           //add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
            //Bypass logout confirmation on nonce verification failure
            add_action('check_admin_referer', [ $this, 'logout_without_confirmation'], 1, 2);
            add_action('login_redirect', [ $this, 'on_login_redirect' ], 10, 3);
@@ -205,7 +208,9 @@ class SaltBase{
         if ($cached_value !== false) {
             return $cached_value;
         }
-        $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
+        if(function_exists("get_field")){
+            $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
+        }
         //error_log("set to cache: ".$cache_key); 
         //error_log(print_r($value, true));
         set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
@@ -253,10 +258,10 @@ class SaltBase{
         remove_action('save_post_product', [ $this, 'on_post_published'], 100);
         remove_action('publish_post', [ $this, 'on_post_published'], 100);
 
-        if (defined('DOING_AJAX') && DOING_AJAX) {
+        if (defined('DOING_AJAX') && DOING_AJAX && !$GLOBALS['salt_ai_doing_translate']) {
             return;
         }
-        if (defined('DOING_CRON') && DOING_CRON) {
+        if (defined('DOING_CRON') && DOING_CRON && !$GLOBALS['salt_ai_doing_translate']) {
             return;
         }
         if ( wp_is_post_revision( $post_id ) ) {
@@ -372,7 +377,7 @@ class SaltBase{
         /*if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }*/
-        if ( ! session_id() ) {
+        if (session_status() === PHP_SESSION_NONE){
             session_start();
         }
         $current_ip = $_SERVER['REMOTE_ADDR'];
@@ -517,6 +522,7 @@ class SaltBase{
     }
     public function on_user_login( $user_login, $user) {
         update_user_meta( $user->ID, 'last_login', time() );
+        $this->generate_robots_txt($user);
     }
     public function on_login_redirect() {
         if (isset($_SESSION['referer_url'])) {
@@ -535,6 +541,25 @@ class SaltBase{
         if(!$result && ($action == 'log-out')){ 
             wp_safe_redirect(getLogoutUrl()); 
             exit(); 
+        }
+    }
+
+    public function generate_robots_txt($user){
+        if ( user_can($user, 'manage_options') ) {
+            $content = "User-agent: *\nDisallow:\n";
+            if ( function_exists('wpseo_sitemap_url') ) {
+                $content .= 'Sitemap: ' . wpseo_sitemap_url() . "\n";
+            } else {
+                $content .= 'Sitemap: ' . home_url('/sitemap.xml') . "\n";
+            }
+            $extra_sitemaps = ['llms.txt', 'ssms.txt'];
+            foreach ($extra_sitemaps as $file) {
+                if ( file_exists(ABSPATH . $file) ) {
+                    $content .= 'Sitemap: ' . home_url('/' . $file) . "\n";
+                }
+            }
+            file_put_contents(ABSPATH . 'robots.txt', $content);
+            error_log("Tolga'cım Debug - robots.txt dosyası oluşturuldu.");
         }
     }
     
@@ -1045,7 +1070,8 @@ class SaltBase{
             set_transient('users_online', $logged_in_users, 30 * 60);
         }else{
             if (!is_user_logged_in()){
-                wp_safe_redirect(get_page_url('my-account'));
+                //wp_safe_redirect(get_page_url('my-account'));
+                wp_safe_redirect(get_permalink(get_option('options_myaccount_page_id')));
             }
         }
     }
@@ -1716,44 +1742,74 @@ class SaltBase{
 
 
 
-    public function duplicate_post($post_id=0, $post_type="", $title=""){
-        if(empty($title)){
+    static function duplicate_post($args = []) {
+
+        $defaults = [
+            'post_id'    => 0,
+            'status'     => 'draft',
+            'title'      => '',
+            'content'    => '',
+            'post_type'  => '',
+        ];
+
+        $args = wp_parse_args($args, $defaults);
+
+        $post_id   = $args['post_id'];
+        $status    = $args['status'];
+        $title     = $args['title'];
+        $content   = $args['content'];
+        $post_type = $args['post_type'];
+
+        $oldpost = get_post($post_id);
+        if (!$oldpost) {
+            return 0; // Geçersiz post
+        }
+
+        if (empty($title)) {
             $title = get_the_title($post_id);
         }
-        $oldpost = get_post($post_id);
-        if(empty($post_type)){
-           $post_type = $oldpost->post_type;
+
+        if (empty($content)) {
+            $content = $oldpost->post_content;
         }
+
+        if (empty($post_type)) {
+            $post_type = $oldpost->post_type;
+        }
+
         $post = [
-            'post_title' => $title,
-            'post_name' => sanitize_title($title),
-            'post_content' => $oldpost->post_content,
-            'post_status' => 'draft',
-            'post_type' => $post_type,
+            'post_title'   => $title,
+            'post_name'    => sanitize_title($title),
+            'post_content' => $content,
+            'post_status'  => $status,
+            'post_type'    => $post_type,
         ];
+
         $new_post_id = wp_insert_post($post);
+
+        // Meta kopyalama
         $data = get_post_custom($post_id);
         foreach ($data as $key => $values) {
             foreach ($values as $value) {
                 add_post_meta($new_post_id, $key, maybe_unserialize($value));
             }
         }
+
+        // Taxonomy kopyalama
         $taxonomies = get_post_taxonomies($post_id);
         if ($taxonomies) {
             foreach ($taxonomies as $taxonomy) {
                 wp_set_object_terms(
                     $new_post_id,
-                    wp_get_object_terms(
-                        $post_id,
-                        $taxonomy,
-                        ['fields' => 'ids']
-                    ),
+                    wp_get_object_terms($post_id, $taxonomy, ['fields' => 'ids']),
                     $taxonomy
                 );
             }
         }
+
         return $new_post_id;
     }
+
 
     public function log($functionName="", $description=""){
         if(class_exists("Logger")){
@@ -1803,9 +1859,6 @@ class SaltBase{
         }
         return false; // Hata durumunda
     }
-
-
-
 }
 
 
@@ -1855,3 +1908,19 @@ if(!function_exists("is_cart")){
     }
 }
 
+
+
+
+
+
+add_action("admin_init", function(){
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+        return;
+    }
+    if (defined('DOING_CRON') && DOING_CRON) {
+        return;
+    }
+   //error_log(print_r(get_untranslated_terms("tr"), true));
+   //translate_post_ai(4021, 'tr');
+   //translate_post_ai(4161, 'tr');
+});

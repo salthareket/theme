@@ -715,10 +715,27 @@ class ajax_query {
                 _alert("Ajax JS Error", $obj.method + " is not defined.");
             }else{
                 console.log("Ajax JS Error", $obj.method + " is not defined.")
-                
             }
             return false;
+        }else{
+
+            var $required = "";
+            if (ajax_hooks[$obj.method].hasOwnProperty("required")){
+                $required = ajax_hooks[$obj.method].required;
+            }
+            if($required){
+                let _this = this
+                let sonuc = isLoadedJS($required, true, function(){
+                    _this.request($obj);
+                });
+                console.log(ajax_query_queue)
+                if(!sonuc){
+                    return false;
+                }
+            }
+
         }
+
         if (ajax_hooks[$obj.method].hasOwnProperty("before") && !$obj.skipBefore) {
 
             var $obj_update = true;
@@ -770,6 +787,8 @@ class ajax_query {
                            ajax_hooks[$obj.method].before($obj, $obj.vars, $obj.form, $obj.objs);
                         }*/
         }
+        
+
         if (typeof $obj.before === "function") {
             $obj.before($obj, $obj.vars, $obj.form, $obj.objs);
         }

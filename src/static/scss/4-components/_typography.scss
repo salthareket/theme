@@ -31,13 +31,13 @@ h6{
 */
 
 .font-primary{
-	font-family:$font-primary;
+	font-family:var(--font-primary);
 } 
 .font-header{
-	font-family:$header-font;
+	font-family:var(--header-font);
 } 
 .font-nav{
-	font-family:$nav-font;
+	font-family:var(--nav-font);
 }
 .font-icon{
 	font-family:$icon-font;

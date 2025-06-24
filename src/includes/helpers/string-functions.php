@@ -16,9 +16,6 @@ function trans_n_noop( $singular="", $plural="", $theme="" ) {
 	}
 	return _n_noop($singular, $plural, $theme);
 }
-
-
-
 function trans_plural($singular="", $plural="", $null="", $count=1, $theme=""){
 	if($theme==""){
 		global $text_domain;
@@ -31,6 +28,32 @@ function trans_plural($singular="", $plural="", $null="", $count=1, $theme=""){
 		$pluralized = _n( $singular, $plural, $count, $text_domain );
 	    return str_replace('{}', $count, $pluralized);
 	}
+}
+
+function trans_static($text){
+	$text =  preg_replace_callback(
+        "/\{\{translate\('([^']+)'\)\}\}/",
+        function($matches) {
+            return trans($matches[1]);
+        },
+        $text
+    );
+    return trans_functions($text);
+}
+
+function trans_functions($text) {
+    return preg_replace_callback(
+        "/\{\{function\('([^']+)'\)\}\}/",
+        function($matches) {
+            $funcName = $matches[1];
+            if (function_exists($funcName)) {
+                return $funcName();
+            } else {
+                return '';
+            }
+        },
+        $text
+    );
 }
 
 
@@ -193,4 +216,8 @@ function dashes2Camel($string, $capitalizeFirstCharacter = false) {
         $str = lcfirst($str);
     }
     return $str;
+}
+
+function is_hex_color($val): bool {
+    return is_string($val) && preg_match('/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/', $val);
 }

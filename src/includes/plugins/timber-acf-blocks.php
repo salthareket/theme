@@ -62,7 +62,14 @@ function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4
             switch($images[$index]["type"]){
                 case "image":
                     if(isset($images[$index]["img-src"])){
-                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';
+                        /*$htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';*/
+                        $args = [
+                            "src" => $images[$index]["id"], 
+                            "class" => 'img-fluid object-fit-cover object-position-center '.$class,
+                            "preview" => is_admin(),
+                            "attrs" => [],
+                        ];
+                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">'. get_image_set($args).'</div></div>';
                         $index++;                
                     }
                 break;
@@ -152,7 +159,13 @@ function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = fa
                 switch($images[$index]["type"]){
                     case "image":
                         if(isset($images[$index]["img-src"])){
-                            $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover ' . $images[$index]["class"] . ' '.$class.'"></div></div>';
+                            $args = [
+                                "src" => $images[$index]["id"], 
+                                "class" => 'img-fluid object-fit-cover object-position-center '.$class,
+                                "preview" => is_admin(),
+                                "attrs" => []
+                            ];
+                            $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">'. get_image_set($args).'</div></div>';
                             $index++;                
                         }
                     break;
@@ -423,6 +436,11 @@ function block_classes($block, $fields, $block_column){
         if(isset($fields["block_settings"]["text_align"]) && $fields["block_settings"]["text_align"]){
             $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["text_align"], "text-", ""));
         }*/
+
+        if ($fields["block_settings"]["height"] == "100%"){
+            $classes[] = "h-100";
+        }
+
 
     }
 
@@ -2916,6 +2934,11 @@ function block_css($block, $fields, $block_column){
                 $code_height = block_css_media_query($media_query);
             }
             
+
+        }elseif ($height == "100%"){
+            $css .= "#".$selector."{
+                        height:100%;
+                    }";
 
         }elseif ($height != "auto"){
             $code_inner .= ($height=="full" || $block["name"] == "acf/video"?"":"min-")."height: calc(var(--hero-height-".$height.") - 1px);";

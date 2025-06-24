@@ -1,9 +1,9 @@
 <?php
-// main, multilanguage, ecommerce, contact-forms, membership, social-share
+// main, multilanguage, ecommerce, contact-forms, membership, social-share, automation
 $required_plugins = array(
     array(
         "type" => ["main"],
-        "name" => 'acf-extended/acf-extended.php',
+        "name" => 'acf-extended/acf-extended.php'
     ),
     array(
         "type" => ["main"],
@@ -42,6 +42,10 @@ $required_plugins = array(
         "name" => "advanced-custom-fields-table-field/acf-table.php"
     ),
     array(
+        "type" => ["main", "ai"],
+        "name" => "website-llms-txt/website-llms-txt.php"
+    ),
+    array(
         "type" => ["multilanguage"],
         "name" => "acf-options-for-polylang/bea-acf-options-for-polylang.php",
     ),
@@ -60,6 +64,11 @@ $required_plugins = array(
     array(
         "type" => ["membership"],
         "name" => 'one-user-avatar/one-user-avatar.php',
+    ),
+    array(
+        "type" => ["membership"],
+        "name" => 'nextend-facebook-connect/nextend-facebook-htmleditorconnect.php',
+        "depency" => "nextend-social-login-pro/nextend-social-login-pro.php"
     ),
     array(
         "type" => ["contact-forms"],
@@ -86,6 +95,10 @@ $required_plugins = array(
         "name" => "advanced-cron-manager/advanced-cron-manager.php"
     ),
     array(
+        "type" => ["automation"],
+        "name" => "bulk-add-terms/bulk-add-terms.php"
+    ),
+    array(
         "type" => ["cookie"],
         "name" => 'complianz-gdpr/complianz-gpdr.php'
     ),
@@ -106,7 +119,7 @@ $GLOBALS["plugins"] = $required_plugins;
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.4.0.1",
+    "v" => "6.4.2",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );
@@ -175,6 +188,49 @@ $required_plugins_local[] = array(
     "v" => "7.7.2",
     "name" => "wp-hide-security-enhancer-pro/wp-hide.php",
     "file" => "wp-hide-security-enhancer-pro"
+);
+$required_plugins_local[] = array(
+    "type" => ["ecommerce"],
+    "v" => "2.3.2",
+    "name" => "woocommerce-additional-variation-images/woocommerce-additional-variation-images.php",
+    "file" => "woocommerce-additional-variation-images"
+);
+$required_plugins_local[] = array(
+    "type" => ["ecommerce"],
+    "v" => "1.0",
+    "name" => "woocommerce-variation-links/plugin.php",
+    "file" => "woocommerce-variation-links"
+);
+$required_plugins_local[] = array(
+    "type" => ["membership"],
+    "v" => "3.1.18",
+    "name" => "nextend-social-login-pro/nextend-social-login-pro.php",
+    "file" => "nextend-social-login-pro",
+    "depency" => 'nextend-facebook-connect/nextend-facebook-connect.php'
+);
+$required_plugins_local[] = array(
+    "type" => ["search", "ecommerce"],
+    "v" => "1.30.1",
+    "name" => "ajax-search-for-woocommerce-premium/ajax-search-for-woocommerce.php",
+    "file" => "ajax-search-for-woocommerce-premium"
+);
+$required_plugins_local[] = array(
+    "type" => ["ecommerce"],
+    "v" => "8.4.0",
+    "name" => "woocommerce-product-bundles/woocommerce-product-bundles.php",
+    "file" => "woocommerce-product-bundles"
+);
+$required_plugins_local[] = array(
+    "type" => ["ecommerce"],
+    "v" => "1.25.0",
+    "name" => "iconic-woo-show-single-variations/iconic-woo-show-single-variations.php",
+    "file" => "iconic-woo-show-single-variations"
+);
+$required_plugins_local[] = array(
+    "type" => ["search", "ecommerce"],
+    "v" => "5.5.0",
+    "name" => "yith-woocommerce-ajax-product-filter-premium/init.php",
+    "file" => "yith-woocommerce-ajax-product-filter-premium"
 );
 
 $GLOBALS["plugins_local"] = $required_plugins_local;

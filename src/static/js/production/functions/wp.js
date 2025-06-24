@@ -7,7 +7,7 @@ function translate($text){
     return $text;
 }
 
-function isLoadedJS($name){
+function isLoadedJS_v1($name, $load = false, $callback = ""){
     var $loaded = false;
     if(typeof required_js !== "undefined"){
         if(required_js.indexOf($name) >-1){
@@ -24,6 +24,105 @@ function isLoadedJS($name){
     return $loaded; 
 }
 
+function loadCSS(href) {
+    return new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.onload = () => resolve();
+        link.onerror = () => reject(`CSS yüklenemedi: ${href}`);
+        document.head.appendChild(link);
+    });
+}
+
+function loadJS(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(`JS yüklenemedi: ${src}`);
+        document.head.appendChild(script);
+    });
+}
+
+
+function isLoadedJS($name, $load = false, $callback = "") {
+    var $loaded = false;
+
+    if (typeof required_js !== "undefined" && required_js.indexOf($name) > -1) {
+        $loaded = true;
+    }
+
+    if (!$loaded && typeof conditional_js !== "undefined" && conditional_js.indexOf($name) > -1) {
+        $loaded = true;
+    }
+
+    // Eğer zaten yüklüyse, sadece true dön
+    if ($loaded) {
+        return true;
+    }
+
+    // Eğer yükleme istenmiyorsa, false dön
+    if (!$load) {
+        return false;
+    }
+
+    // Buradan sonrası: yükle, init et, callback’i çağır
+    const configUrl = ajax_request_vars.theme_url + "static/js/js_files_conditional_set.json";
+    fetch(configUrl)
+        .then(response => response.json())
+        .then(data => {
+            const libConfig = data[$name];
+            if (!libConfig) {
+                alert($name + " için tanım bulunamadı!");
+                return;
+            }
+
+            const promises = [];
+
+            console.log(libConfig)
+
+            if (libConfig.css) {
+                console.log(libConfig.css)
+                promises.push(loadCSS(libConfig.css));
+            }
+
+            if (libConfig.js) {
+                console.log(libConfig.js)
+                promises.push(loadJS(libConfig.js));
+            }
+
+            if (libConfig.js_init) {
+                console.log(libConfig.js_init)
+                promises.push(loadJS(libConfig.js_init));
+            }
+
+            Promise.all(promises).then(() => {
+                if (typeof conditional_js !== "undefined") {
+                    conditional_js.push($name);
+                }
+
+                if (libConfig.init && typeof window[libConfig.init] === 'function') {
+                    window[libConfig.init]();
+                }
+
+                if (typeof $callback === "function") {
+                    $callback();
+                }
+            }).catch(err => {
+                console.error(err);
+                alert($name + " yüklenirken hata oluştu!");
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Yapılandırma dosyası çekilemedi!");
+        });
+
+    return false;
+}
+
+
 function function_secure($plugin, $name, $params) {
     console.log($plugin, $name, $params)
     if (isLoadedJS($plugin)) {
@@ -36,6 +135,8 @@ function function_secure($plugin, $name, $params) {
         } else {
             console.error($name + ' is not a function...');
         }
+    } else {
+        console.error($plugin + ' is not loaded...');
     }
 }
 

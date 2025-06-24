@@ -24,7 +24,13 @@ Class Notifications{
     	}else{
     		$this->user = Timber::get_user(wp_get_current_user());
     	}
-        $this->events = json_decode(file_get_contents(get_stylesheet_directory() ."/theme/static/data/notifications.json"), true);//array();
+        $notifications_file = get_stylesheet_directory() . '/theme/static/data/notifications.json';
+		if (file_exists($notifications_file)) {
+		    $this->events = json_decode(file_get_contents($notifications_file), true);
+		} else {
+		    $this->events = []; // veya bir fallback
+		    error_log("Bildirim dosyası bulunamadı: $notifications_file");
+		}
         $this->debug = $debug;
         $this->debug_output = array();
         $this->html_path = get_stylesheet_directory() . "/theme/templates/notifications/events/";

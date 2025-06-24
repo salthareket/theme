@@ -1,0 +1,23 @@
+/*.tnp{
+	
+	&.tnp-profile{
+
+		.tnp-field{
+			@extend .form-group;
+			>label{
+				font-weight:600;
+			}
+			>input[type='text']{
+				@extend .form-control;
+			}
+			>input[type='submit']{
+				@extend .btn;
+				@extend .btn-base;
+				@extend .btn-dark;
+				@extend .btn-lg;
+			}
+		}
+
+	}
+
+}*/

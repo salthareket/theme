@@ -206,7 +206,15 @@ function pagination_query(){
             $post_type = get_query_var("qpt", $post_type);
         }
 
+        $post_type = empty($post_type)?"post":$post_type;
+        $post_type = is_array($post_type)?$post_type[0]:$post_type;
+
         //$pagination_type = $post_type=="any"?"search":$post_type;
+
+        //error_log("hoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooop");
+        
+        //error_log(print_r($post_type, true));
+        //error_log(print_r($pagination_query, true));
 
         if(isset($pagination_query['vars'][$post_type]) || isset($pagination_query['request'][$post_type])){
             $enc = new Encrypt();
@@ -786,5 +794,3 @@ function save_lcp_results() {
 
     wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return]);
 }
-
-

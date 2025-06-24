@@ -328,44 +328,52 @@ function arrayMatch($array1, $array2) {
 }
 
 function array_merge_recursive_items($array1, $array2) {
-    foreach ($array1 as $key => $value) {
-        if (is_array($value) && isset($array2[$key]) && is_array($array2[$key])) {
-            // İki dizinin alt dizileri varsa, recursive olarak birleştirin
-            $array1[$key] = array_merge_recursive_items($array1[$key], $array2[$key]);
-        } elseif (is_numeric($value) && isset($array2[$key])) {
-            if(is_numeric($array2[$key])){
-                // Eğer her ikisi de numeric ise, array2 değeri array1 değerini overwrite eder
-                $array1[$key] = $array2[$key];                
+    foreach ($array2 as $key => $value2) {
+        if (array_key_exists($key, $array1)) {
+            $value1 = $array1[$key];
+
+            // Her iki değer de array ise recursive birleştir
+            if (is_array($value1) && is_array($value2)) {
+                $array1[$key] = array_merge_recursive_items($value1, $value2);
             }
-        } elseif (empty($value) && isset($array2[$key])) {
-            // Eğer array1'deki değer boşsa ve array2'de değer varsa, array2 değeri array1 değerine atanır
-            $array1[$key] = $array2[$key];
-        } elseif (is_string($value) && isset($array2[$key])) {
-            if(is_string($array2[$key])){
-                // Eğer her iki değer de string ise ve array2 değeri dolu ise, array2 değeri array1'i overwrite eder
-                if (preg_match('/\b(xs|sm|md|lg|xl|xxl|xxxl|xxxxl|top|bottom|start|end)\b/i', $array2[$key])) {
-                    $array1[$key] = $array2[$key];
+
+            // Numeric veya boolean değerlerde direkt overwrite
+            elseif (is_numeric($value1) && is_numeric($value2)) {
+                $array1[$key] = $value2;
+            } elseif (is_bool($value1) && is_bool($value2)) {
+                $array1[$key] = $value2;
+            }
+
+            // Eğer array1 boşsa ama array2’de değer varsa
+            elseif (($value1 === null || $value1 === '') && $value2 !== null && $value2 !== '') {
+                $array1[$key] = $value2;
+            }
+
+            // İki değer de string ise
+            elseif (is_string($value1) && is_string($value2)) {
+                if (preg_match('/\b(xs|sm|md|lg|xl|xxl|xxxl|xxxxl|top|bottom|start|end)\b/i', $value2)) {
+                    $array1[$key] = $value2;
                 } else {
-                    // Aksi takdirde, değerler birleştirilir ve aralarına boşluk eklenir
-                    $array1[$key] .= ' ' . $array2[$key];
-                }                
+                    $array1[$key] = trim($value1 . ' ' . $value2);
+                }
             }
-        } elseif (is_bool($value) && isset($array2[$key])) {
-            if(is_bool($array2[$key])){
-                // Eğer her iki değer de bool ise, array2 değeri array1'i overwrite eder
-                $array1[$key] = $array2[$key];
+
+            // Diğer her durumda array2 değeri öncelikli
+            else {
+                $array1[$key] = $value2;
             }
-        }
-    }
-// Array2'de Array1'de olmayan anahtarları ekleyelim
-    foreach ($array2 as $key => $value) {
-        if (!array_key_exists($key, $array1)) {
-            $array1[$key] = $value;
+
+        } else {
+            // array1'de yoksa direkt ekle
+            $array1[$key] = $value2;
         }
     }
 
     return $array1;
 }
+
+
+
 
 
 function remove_duplicated_items($array) {

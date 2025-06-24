@@ -2,7 +2,7 @@
     function newsletter_ajax() {
         wp_enqueue_script(
             'newsletter-ajax',
-            get_stylesheet_directory_uri() . '/static/js/plugins/newsletter-ajax/main.js',
+            SH_STATIC_URL . 'js/plugins/newsletter-ajax/main.js',
             array(),
             '1.2', true
         );

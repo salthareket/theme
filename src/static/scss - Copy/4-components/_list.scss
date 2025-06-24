@@ -1,0 +1,33 @@
+.list-social{
+	margin:0px;
+	font-size:24px;
+	>li{
+		a{
+			display:inline-block;
+			color:inherit;
+			@include transition(all .2s ease-out);
+			&:hover{
+				color:inherit;
+			}
+		}
+		&:not(:first-child){
+			margin-left:15px;
+		}
+		&:not(:last-child){
+            margin-right:0px;
+		}
+	}
+}
+.rtl{
+	.list-social{
+		>li{
+			&:not(:last-child){
+				margin-right:auto;
+			}
+			&:not(:first-child){
+				margin-left:auto;
+				margin-right:15px;
+			}
+		}
+	}
+}

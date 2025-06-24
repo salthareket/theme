@@ -31,10 +31,11 @@ class PageAssetsExtractor {
 
     // Post kaydedildiğinde URL'leri fetch eder
     public function on_save_post($post_id, $post, $update) {
+        $post = empty($post)?get_post($post_id):$post;
         if ($post->post_status == 'publish' && $this->is_excluded_post_type($post->post_type) && $this->disable_hooks == false) {
             error_log("Saved post : " . $post_id . " with status: " . $post->post_status." post_type: ".$post->post_type);
             $this->type = "post"; 
-            $this->fetch_post_url($post_id);
+            return $this->fetch_post_url($post_id);
         }
     }
 
@@ -43,7 +44,7 @@ class PageAssetsExtractor {
         error_log("on_save_term : " . $term_id . " tt_id: " . $tt_id." taxonomy: ".$taxonomy);
         if ($this->is_excluded_taxonomy($taxonomy) && $this->disable_hooks == false) {
             $this->type = "term"; 
-            $this->fetch_term_url($term_id, $taxonomy);
+            return $this->fetch_term_url($term_id, $taxonomy);
         }
     }
 
@@ -70,7 +71,7 @@ class PageAssetsExtractor {
         error_log("url : ".json_encode($url));
 
         //foreach ($urls as $url) {
-            $this->fetch($url, $post_id);
+        return $this->fetch($url, $post_id);
         //}
     }
 
@@ -83,7 +84,7 @@ class PageAssetsExtractor {
         error_log("get_term_link->".$url);
 
         if (!is_wp_error($url)) {
-            $this->fetch($url, $term_id);
+            return $this->fetch($url, $term_id);
         }
     }
 
@@ -153,6 +154,7 @@ class PageAssetsExtractor {
         }
         $remover = new RemoveUnusedCss($html, $input, $output, $whitelist, $critical_css);
         return $remover->process();
+        /*return file_get_contents(STATIC_PATH ."css/main-combined.css");*/
     }
    
 
@@ -378,7 +380,7 @@ class PageAssetsExtractor {
             "plugin_css_rtl" => $plugin_css_rtl,
             "wp_js" => $wp_js,
         );
-        //error_log(print_r($result, true));
+        error_log(print_r($result, true));
         return $this->save_meta($result, $id);
     }
 
@@ -507,6 +509,7 @@ class PageAssetsExtractor {
         }
         
         $this->disable_hooks = false;
+        error_log(print_r($result, true));
         return $result;
     }
 

@@ -3,12 +3,11 @@ if (isset($vars["id"])) {
                 if (!is_numeric($vars["id"])) {
                     switch ($vars["id"]) {
                         case "privacy-policy":
-                            $post = get_post(
-                                get_option("wp_page_for_privacy_policy")
-                            );
+                            $post = get_post(get_option("wp_page_for_privacy_policy"));
                             break;
                         case "terms-conditions":
-                            $post = get_post(wc_terms_and_conditions_page_id());
+                            $post_id = ENABLE_COMMERCE? wc_terms_and_conditions_page_id() : get_option('wp_page_for_privacy_policy');
+                            $post = get_post($post_id);
                             break;
                         default:
                             global $wpdb;

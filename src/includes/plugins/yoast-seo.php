@@ -103,11 +103,17 @@ add_action( 'wp_head', 'rel_next_prev' );
 
 if(get_option("options_breadcrumb_from_menu")){
 	function custom_breadcrumb_links($links) {
-	    $menu_name = 'header';
-	    if(ENABLE_MULTILANGUAGE == "polylang"){
-	    	$menu_name .= "_".$GLOBALS["language"];
+	    $location_key = 'header-menu'; // Theme location ID
+	    $locations = get_nav_menu_locations();
+	    $lang = $GLOBALS["language"];
+	    $menu_id = $locations[$location_key] ?? 0;
+	    if (function_exists('pll_get_term') && $menu_id && $lang) {
+	        $menu_id_lang = pll_get_term($menu_id, $lang);
+	        if ($menu_id_lang) {
+	            $menu_id = $menu_id_lang;
+	        }
 	    }
-	    $menu = wp_get_nav_menu_object($menu_name);
+	    $menu = wp_get_nav_menu_object($menu_id);
 	    if($menu){
 	    	$current_url = "";
 	    	$current_post_type = get_post_type(); // Geçerli post type'ı al

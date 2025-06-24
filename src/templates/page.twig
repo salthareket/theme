@@ -53,10 +53,6 @@
 {% block hero %}
 {% endblock %}
 
-{% block shop_header %}
-    {% include "woo/header.twig" %}
-{% endblock %}
-
 {% block content %}
 
     {% if page_settings.login_required and (not user.logged or user.get_role not in page_settings.allowed_roles) %}

@@ -15,6 +15,6 @@ $messages = yobro_messages();
             ];
             if (!$template) {
                 $template = "partials/offcanvas/archive";
-                //$template = "woo/dropdown/archive";
+                //$template = "product/dropdown/archive";
                 $templates = [$template . ".twig"];
             }

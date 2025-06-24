@@ -18,15 +18,18 @@ Class Theme{
     function __construct(){
         show_admin_bar(false); 
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
+        //add_action("init", [$this, "after_setup_theme"]);
+
         add_action("init", [$this, "global_variables"]);
         add_action("wp", [$this, "language_settings"]);
         add_action("wp", [$this, "site_assets"], 1);
-        add_action("init", [$this, "language_settings"], 1);
+        add_action("init", [$this, "language_settings"], 1);            
+
         add_action("init", [$this, "increase_memory_limit"]);
         add_action("init", [$this, "register_post_types"]);
         add_action("init", [$this, "register_taxonomies"]);
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
-
+        add_filter( 'get_terms_args', [$this, "query_all_terms"], 10, 2);
 
         // Sayfalardaki bazı gereksiz ve kullanılmayan bölümlerin kaldırılması
         remove_action('wp_head', 'wp_pingback'); // Pingback linki
@@ -50,7 +53,9 @@ Class Theme{
             remove_action( 'wp_head', 'woocommerce_output_all_notices', 10 ); // WooCommerce hata mesajları
             remove_action( 'wp_head', 'wc_robots' ); // WooCommerce robots meta tag
             remove_action( 'wp_head', 'wc_oembed_add_admin_links' ); // WooCommerce oEmbed linkleri
-            remove_action( 'wp_head', 'wc_oembed_add_discovery_links' ); // WooCommerce oEmbed discovery linkleri    
+            remove_action( 'wp_head', 'wc_oembed_add_discovery_links' ); // WooCommerce oEmbed discovery linkleri
+            add_filter('woocommerce_template_path', [$this, 'wc_custom_template_path']);
+            //add_filter('woocommerce_locate_template', [$this, 'wc_multiple_template_paths'], 10, 3);  
         }
 
 
@@ -162,41 +167,58 @@ Class Theme{
         });
 
         /*add options pages to admin*/
-        if (function_exists("acf_add_options_page")) {
-            $menu = [
-                "Anasayfa",
-                "Header",
-                "Footer",
-                "Menu",
-                "Theme Styles",
-                "Ayarlar",
-                "Page Assets Update",
-                "Development",
-            ];
-            if(ENABLE_SEARCH_HISTORY){
-                $menu[] = "Search Ranks";
-            }
-            $options_menu = [
-                "title" => get_bloginfo("name"),
-                "redirect" => true,
-                "children" => $menu,
-            ];
-            if(class_exists("WPCF7")) {
-                $options_menu["children"][] = "Formlar";
-            }
-            create_options_menu($options_menu);
-
-            if(ENABLE_NOTIFICATIONS && is_admin()){
-                $notifications_menu = [
-                    "title" => "Notifications",
-                    "redirect" => false,
-                    "children" => [
-                        "Notification Events",
-                    ],
+        //add_action("init", function(){
+            if (function_exists("acf_add_options_page")) {
+                $menu = [
+                    "Anasayfa",
+                    "Header",
+                    "Footer",
+                    "Menu",
+                    "Theme Styles",
+                    "Ayarlar",
+                    "Page Assets Update",
+                    "Development",
                 ];
-                create_options_menu($notifications_menu);            
+                if(ENABLE_SEARCH_HISTORY){
+                    $menu[] = "Search Ranks";
+                }
+                $options_menu = [
+                    "title" => get_bloginfo("name"),
+                    "redirect" => true,
+                    "children" => $menu,
+                ];
+                if(class_exists("WPCF7")) {
+                    $options_menu["children"][] = "Formlar";
+                }
+                create_options_menu($options_menu);
+
+                if(ENABLE_NOTIFICATIONS && is_admin()){
+                    $notifications_menu = [
+                        "title" => "Notifications",
+                        "redirect" => false,
+                        "children" => [
+                            "Notification Events",
+                        ],
+                    ];
+                    create_options_menu($notifications_menu);            
+                }
+                if(is_admin()){
+                    add_action('admin_init', function () use ($menu) {
+                        if (!function_exists('pll_current_language')) return;
+
+                        if (isset($_GET['page']) && !isset($_GET['lang'])) {
+                            $slug = $_GET['page'];
+                            if (in_array($slug, $menu)) {
+                                $url = admin_url('admin.php?page=' . $slug . '&lang=all');
+                                wp_redirect($url);
+                                exit;
+                            }
+                        }
+                    });
+                }
             }
-        }
+        //});
+
 
         if (!is_admin()) {
             //return;
@@ -284,7 +306,7 @@ Class Theme{
         }else{
             $site_config = $GLOBALS["site_config"];
         }
-            
+
         if(ENABLE_IP2COUNTRY){
             $user->user_country = $GLOBALS["site_config"]["user_country"];
             $user->user_country_code = $GLOBALS["site_config"]["user_country_code"];
@@ -327,13 +349,13 @@ Class Theme{
                         $user->city = $city_data;
                         $user->billing_state = $city_data;  
                     }
-                    session_write_close();   
+                    session_write_close();
                 }
 
                 //date_default_timezone_set($user->get_timezone());
 
                 if (class_exists("Newsletter")) {
-                    $user->newsletter = Salt::newsletter(
+                    $user->newsletter = \SaltBase::newsletter(
                         "status",
                         $user->user_email
                     );
@@ -493,8 +515,22 @@ Class Theme{
 
                 case "polylang" :
 
+                    $paged = get_query_var('paged');
+                    $lang_default = pll_default_language();
+                    $lang_current = pll_current_language();
+                    $lang_hide_default = PLL()->options['hide_default'];
+
                     foreach (pll_the_languages(['raw' => 1]) as $language) {
-                        if (is_post_type_archive()) {
+
+                        if (function_exists('is_shop') && is_shop()) {
+
+                            $shop_page_id = wc_get_page_id('shop');
+                            $translated_shop_page_id = pll_get_post($shop_page_id, $language['slug']);
+                            $url = get_permalink($translated_shop_page_id);
+                            $lang_slug = $lang_default == $language['slug'] && $lang_hide_default ? "" : "/".$language['slug'];
+
+                        } elseif  (is_post_type_archive()) {
+
                             $post_type = get_query_var('post_type');
                             if ($post_type) {
                                 if ( pll_is_translated_post_type( $post_type )) {
@@ -502,52 +538,78 @@ Class Theme{
                                 } else {
                                     $post_type_slug = $post_type;
                                 }
-                                $hide_default = PLL()->options['hide_default'];
-                                $lang_slug = pll_default_language() == $language['slug'] && $hide_default ? "" : "/".$language['slug'];
+                                $post_type_slug = is_array($post_type_slug)?$post_type_slug[0]:$post_type_slug;
+                                $lang_slug = $lang_default == $language['slug'] && $lang_hide_default ? "" : "/".$language['slug'];
                                 $url = home_url($lang_slug."/".$post_type_slug."/");
                             } else {
                                 $url = pll_home_url($language['slug']);
                             }
 
-                        } elseif (is_tax()) {  // Taxonomy sayfası için ekleme
-
+                       } elseif (is_tax()) {
                             $taxonomy = get_query_var('taxonomy');
                             $term = get_query_var('term');
+
                             if ($taxonomy && $term) {
                                 $term_data = get_term_by('slug', $term, $taxonomy);
                                 $term_id = $term_data ? $term_data->term_id : null;
-                                if (pll_is_translated_taxonomy($taxonomy)) {
-                                    $taxonomy_slug = pll_translate_string($taxonomy, $language['slug']);
-                                    $term_id = pll_get_term($term_id, $language['slug']);//pll_translate_string($term, $language['slug']);
-                                    if($term_id){
-                                        $term_slug = get_term_by('id', $term_id, $taxonomy)->slug;
-                                    }else{
+
+                                // WooCommerce özel taxonomy'si mi kontrol et
+                                if (in_array($taxonomy, ['product_cat', 'product_tag'])) {
+
+                                    // Term ID'yi çevir
+                                    $translated_term_id = pll_get_term($term_id, $language['slug']);
+
+                                    // Çevrilmiş term varsa URL oluştur
+                                    if ($translated_term_id) {
+                                        $url = get_term_link($translated_term_id, $taxonomy);
+                                    } else {
+                                        // fallback olarak aynı URL kullan
+                                        $url = get_term_link($term_id, $taxonomy);
+                                    }
+
+                                } else {
+                                    // Diğer normal taxonomy'ler
+                                    if (pll_is_translated_taxonomy($taxonomy)) {
+                                        $translated_term_id = pll_get_term($term_id, $language['slug']);
+                                        if ($translated_term_id) {
+                                            $term_slug = get_term_by('id', $translated_term_id, $taxonomy)->slug;
+                                        } else {
+                                            $term_slug = $term;
+                                        }
+                                    } else {
                                         $term_slug = $term;
                                     }
-                                } else {
-                                    $taxonomy_slug = $taxonomy;
-                                    $term_slug = $term;
+
+                                    // Eğer taxonomy prefix kaldırılmışsa
+                                    $taxonomy_slug = $taxonomy . "/";
+                                    $taxonomy_prefix_remove = \SaltBase::get_cached_option("taxonomy_prefix_remove");
+                                    if ($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)) {
+                                        $taxonomy_slug = "";
+                                    }
+
+                                    $lang_slug = ($lang_default == $language['slug'] && $lang_hide_default) ? "" : "/" . $language['slug'];
+                                    $url = home_url($lang_slug . "/" . $taxonomy_slug . $term_slug . "/");
                                 }
-                                $taxonomy_slug = $taxonomy_slug."/";
-                                $taxonomy_prefix_remove = \SaltBase::get_cached_option("taxonomy_prefix_remove");//get_field("taxonomy_prefix_remove", "option");
-                                if($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)){
-                                   $taxonomy_slug = "";
-                                }
-                                $hide_default = PLL()->options['hide_default'];
-                                $lang_slug = pll_default_language() == $language['slug'] && $hide_default ? "" : "/".$language['slug'];
-                                $url = home_url($lang_slug."/".$taxonomy_slug.$term_slug."/");
+
                             } else {
                                 $url = pll_home_url($language['slug']);
                             }
+                            
                         } else {
+
                             $post_language = pll_get_post(get_the_ID(), $language['slug']);
                             if ($post_language) {
                                 $url = get_permalink($post_language);
                             } else {
                                 //$url = pll_home_url($language['slug']);
-                                $url = pll_home_url(pll_default_language());
+                                $url = pll_home_url($lang_default);
                             }
                         }
+
+                        if (isset($url) && $paged && $paged > 1) {
+                            $url = trailingslashit($url) . 'page/' . $paged . '/';
+                        }
+
                         $languages[] = [
                             "name" => $language['slug'],
                             "name_long" => $language['name'],
@@ -556,9 +618,9 @@ Class Theme{
                         ];
                     }
                     $GLOBALS["languages"] = $languages;
-                    $GLOBALS["language"] = pll_current_language();
-                    $GLOBALS["language_default"] = pll_default_language();
-                    $GLOBALS["language_url_view"] = PLL()->options['hide_default'] && pll_current_language() == pll_default_language()?false:true;
+                    $GLOBALS["language"] = $lang_current;
+                    $GLOBALS["language_default"] = $lang_default;
+                    $GLOBALS["language_url_view"] = $lang_hide_default && $lang_current == $lang_default?false:true;
 
                 break;
             }
@@ -586,7 +648,6 @@ Class Theme{
             !$query->is_main_query()){
                 $post_type = "search";
         }
-
 
         if($query->is_main_query()){
 
@@ -658,11 +719,72 @@ Class Theme{
            if( $query->get("post_type") == get_query_var("qpt") && !empty($query->get("s"))){
 
             }
+            
+            if(DISABLE_DEFAULT_CAT){
+                $default_cat_id = get_option( 'default_category' );
+                if ( function_exists( 'pll_get_term' ) && $default_cat_id ) {
+                    $default_cat_id = pll_get_term( $default_cat_id );
+                }
+                if ($default_cat_id ) {
+                    $tax_query = (array) $query->get( 'tax_query' );
+                    $tax_query[] = [
+                        'taxonomy' => 'category',
+                        'field'    => 'term_id',
+                        'terms'    => $default_cat_id,
+                        'operator' => 'NOT IN',
+                    ];
+                    $query->set( 'tax_query', $tax_query );
+                }
+            }
 
         }
 
         return $query;
     }
+    public function query_all_terms($args, $taxonomies){
+
+        if ( is_admin() ) return $args;
+        
+        if(DISABLE_DEFAULT_CAT){
+            foreach ( (array) $taxonomies as $taxonomy ) {
+
+                if ( ! isset( $args['exclude'] ) || ! is_array( $args['exclude'] ) ) {
+                    $args['exclude'] = [];
+                }
+
+                // Varsayılan WordPress kategorisi
+                if ( $taxonomy === 'category' ) {
+                    $default_cat_id = get_option( 'default_category' );
+
+                    if ( function_exists( 'pll_get_term' ) && $default_cat_id ) {
+                        $default_cat_id = pll_get_term( $default_cat_id );
+                    }
+
+                    if ( $default_cat_id ) {
+                        $args['exclude'][] = $default_cat_id;
+                    }
+                }
+
+                // WooCommerce ürün kategorisi
+                if ( $taxonomy === 'product_cat' && class_exists( 'WooCommerce' ) ) {
+                    $default_product_cat = get_option( 'default_product_cat' );
+
+                    if ( function_exists( 'pll_get_term' ) && $default_product_cat ) {
+                        $default_product_cat = pll_get_term( $default_product_cat );
+                    }
+
+                    if ( $default_product_cat ) {
+                        $args['exclude'][] = $default_product_cat;
+                    }
+                }
+            }
+            if ( ! empty( $args['exclude'] ) ) {
+                $args['exclude'] = array_filter( array_unique( (array) $args['exclude'] ) );
+            }
+        }
+        return $args;
+    }
+
     public function body_class( $classes ) {
         if ( is_page_template( 'template-layout.php' ) ) {
             global $post;
@@ -682,6 +804,7 @@ Class Theme{
     }
     public function site_assets(){
         if(!defined("SITE_ASSETS")){
+            $site_assets = [];
             error_log("site assets theme.php de olustu");
             if (is_singular()) {
                 $post_id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
@@ -719,6 +842,17 @@ Class Theme{
                 "meta" => [], 
                 "lcp" => []
             ];
+
+            if(!$site_assets && !isset($_GET["fetch"])){
+                $meta = self::get_meta();
+                if($meta["type"] == "post"){
+                    $site_assets = $GLOBALS["salt"]->extractor->on_save_post($meta["id"], [], false);
+                }
+                if($meta["type"] == "term"){
+                    $site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
+                }
+            }
+
             $site_assets = !empty($site_assets) ? $site_assets : $assets_data;
             
             define("SITE_ASSETS", $site_assets);
@@ -730,6 +864,45 @@ Class Theme{
         }else{
             error_log("site assets zaten var");
         }
+    }
+
+    public static function get_meta(){
+            $type = "";
+            $id = "";
+            $tax = "";
+            if (is_singular()) {
+                $type = "post";
+                $id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
+            } elseif (is_category() || is_tag() || is_tax()) {
+                $type = "term";
+                $term = get_queried_object(); // Term objesini al
+                $id = $term->term_id;
+                $tax = $term->taxonomy;
+            } elseif (is_post_type_archive()) {
+                $type = "archive";
+                if( ENABLE_MULTILANGUAGE ){
+                    $id = get_post_type()."_".ml_get_current_language();
+                }else{
+                    $id = get_post_type();
+                }
+            } elseif(is_single() && comments_open()){
+                if (isset($_GET['comment_id'])) {
+                    $comment_id = intval($_GET['comment_id']);
+                    $comment = get_comment($comment_id);
+                    if ($comment) {
+                        $type = "comment";
+                        $id = $comment_id;
+                    }
+                }
+            } elseif(is_author()){
+                $type = "user";
+                $id = get_queried_object_id();
+            }
+            return [
+                "type" => $type,
+                "id" => $id,
+                "tax" => $tax
+            ];
     }
     public static function get_site_config($jsLoad = 0, $meta = []){
 
@@ -752,7 +925,7 @@ Class Theme{
             $enable_search_history =  boolval(ENABLE_SEARCH_HISTORY);
 
             if ($enable_favorites) {
-                $favorites_obj = new Favorites();
+                $favorites_obj = new \Favorites();
                 $favorites_obj->update();
                 $favorites = $favorites_obj->favorites;
                 $favorites = json_encode($favorites, JSON_NUMERIC_CHECK);
@@ -764,7 +937,7 @@ Class Theme{
             }
 
             if($enable_search_history){
-                $search_history_obj = new SearchHistory();
+                $search_history_obj = new \SearchHistory();
                 $search_history = $search_history_obj->get_user_terms();
             }
 
@@ -912,7 +1085,6 @@ Class Theme{
             if($meta){
                 $config["meta"] = $meta;
             }
-
             error_log("site config is completed");
 
             $GLOBALS["site_config"] = $config;
@@ -942,7 +1114,9 @@ Class Theme{
             }else{
                 $args = self::get_site_config();
             }
-            $args["dictionary"] = $GLOBALS["lang_predefined"];
+            if(isset($GLOBALS["lang_predefined"])){
+                $args["dictionary"] = $GLOBALS["lang_predefined"];
+            }
 
             if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["meta"])){
                 $args["meta"] = SITE_ASSETS["meta"]; 
@@ -1046,6 +1220,28 @@ Class Theme{
             }
         }
     }
+
+
+    public function wc_custom_template_path($path) {
+        return '/theme/woocommerce/'; // yani artık şu klasöre bakacak: your-theme/theme/woocommerce/
+    }
+
+
+    public function wc_multiple_template_paths($template, $template_name, $template_path) {
+        $paths = [
+            get_template_directory() . '/woocommerce/',
+            get_template_directory() . '/theme/woocommerce/',
+        ];
+        $template_name = str_replace("_", "-", $template_name);
+        foreach ($paths as $dir) {
+            $full_path = trailingslashit($dir) . $template_name;
+            if (file_exists($full_path)) {
+                return $full_path;  // ilk bulduğunu döndür, Timber gibi
+            }
+        }
+        return $template;
+    }
+
 
     public function register_post_types(){
         //this is where you can register custom post types

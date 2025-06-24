@@ -8,7 +8,6 @@ class adminNotice {
     }
 
     public function add_notice($text = '', $type = 'success') {
-
         if (!isset($_SESSION['bric_notices'])) {
             $_SESSION['bric_notices'] = [];
         }
@@ -35,7 +34,7 @@ class adminNotice {
     }
 
     public function start_session() {
-        if (session_status() === PHP_SESSION_NONE) { // session_start() kullanmadan önce kontrol edin
+        if (session_status() === PHP_SESSION_NONE){// && !headers_sent()) { // session_start() kullanmadan önce kontrol edin
             session_start();
         }
     }
@@ -54,3 +53,9 @@ function add_admin_notice($text = '', $type = 'success') {
     global $adminNotice;
     $adminNotice->add_notice($text, $type);
 }
+
+/*function load_admin_notice_class() {
+    global $adminNotice;
+    $adminNotice = new adminNotice();
+}
+add_action('muplugins_loaded', 'load_admin_notice_class');*/

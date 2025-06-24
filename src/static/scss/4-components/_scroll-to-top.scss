@@ -8,35 +8,35 @@ a.scroll-to-top{
 	align-items:center;
 	justify-content:center;
 	text-align: center;
-	width: $scroll-to-top-width;
-	height: $scroll-to-top-height;
+	width: var(--scroll-to-top-width);
+	height: var(--scroll-to-top-height);
 	@if $scroll-to-top-hr == "left"{
-		left: $scroll-to-top-gap;
+		left: var(--scroll-to-top-gap);
 	}
 	@if $scroll-to-top-hr == "center"{
-		left: calc(50vw - #{$scroll-to-top-height});
+		left: calc(50vw - var(--scroll-to-top-height));
 	}
 	@if $scroll-to-top-hr == "right"{
-		right: $scroll-to-top-gap;
+		right: var(--scroll-to-top-gap);
 	}
 	@if $scroll-to-top-vr == "top"{
-		top: $scroll-to-top-gap;
+		top: var(--scroll-to-top-gap);
 	}
 	@if $scroll-to-top-vr == "center"{
-		top: calc(50vh - #{$scroll-to-top-height});
+		top: calc(50vh - var(--scroll-to-top-height));
 	}
 	@if $scroll-to-top-vr == "bottom"{
-		bottom: $scroll-to-top-gap;
+		bottom: var(--scroll-to-top-gap);
 	}
-	border-radius: $scroll-to-top-radius;
-	color: $scroll-to-top-color!important;
-	background-color: $scroll-to-top-bg-color;
-	font-size: $scroll-to-top-font-size;
+	border-radius: var(--scroll-to-top-radius);
+	color: var(--scroll-to-top-color)!important;
+	background-color: var(--scroll-to-top-bg-color);
+	font-size: var(--scroll-to-top-font-size);
 	padding-top: 0px;
 	z-index: 999;
 	@include transition(all .3s ease-out!important);
 	&:hover{
-		color: $scroll-to-top-color-hover!important;
-	    background-color: $scroll-to-top-bg-color-hover;
+		color: var(--scroll-to-top-color-hover)!important;
+	    background-color: var(--scroll-to-top-bg-color-hover);
 	}
 }

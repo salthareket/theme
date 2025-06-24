@@ -2,7 +2,7 @@
 	//@extend %card-raw;
 	>.card-header{
 		padding:0px;
-		border:1px solid $base-color;
+		border:1px solid var(--primary-color);
 		border-radius:6px 6px 0px 0px;
 		.nav{
 			width:100%;
@@ -21,7 +21,7 @@
 				&.active{
 					a{
 						border:none;
-						background-color:$base-color;
+						background-color:var(--primary-color);
 						color:#fff;
 						&:hover{
 					    	border:none!important;
@@ -44,9 +44,9 @@
 	>.card-body{
 		padding:0px;
 		background-color:#fff;
-		border-left:2px dashed $base-color;
-		border-right:2px dashed $base-color;
-		border-bottom:2px dashed $base-color;
+		border-left:2px dashed var(--primary-color);
+		border-right:2px dashed var(--primary-color);
+		border-bottom:2px dashed var(--primary-color);
 		border-radius: 0px 0px 6px 6px;
 	}
 }

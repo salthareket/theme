@@ -727,6 +727,7 @@ function lightGallerySource($fields) {
             $image = Timber::get_image($item["id"]);
             $image_class = $image->get_focal_point_class();
             $sources[] = [
+            	"id"        => $item["id"],
             	"type"      => $item["type"],
                 "href"      => $item["url"],//uploadUrlMigration($fields["upload_url"], $upload_url, $item["url"]),
                 "title"     => $item["alt"],
