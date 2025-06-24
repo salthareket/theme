@@ -321,7 +321,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_661e5b9b2f6b6",
@@ -369,6 +371,47 @@
             "bidirectional_target": []
         },
         {
+            "key": "field_682728e14de46",
+            "label": "Item Class",
+            "name": "class",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_669ea6955359c",
+                        "operator": "==",
+                        "value": "1"
+                    },
+                    {
+                        "field": "field_661e5b9b2f6b6",
+                        "operator": ">",
+                        "value": "0"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_661e5b9b245c8",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "15",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "translations": "sync",
+            "maxlength": "",
+            "allow_in_bindings": 0,
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
             "key": "field_661e5b9b3aad2",
             "label": "Heading Item",
             "name": "heading",
@@ -398,7 +441,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66428d7dae006",
@@ -437,7 +482,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         }
     ],
     "location": [
@@ -465,7 +512,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208618,
+    "modified": 1750785620,
     "acfe_categories": {
         "block": "Block"
     }

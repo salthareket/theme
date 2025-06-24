@@ -60,7 +60,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_67845bf40514b",
@@ -137,7 +139,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_67845bf40514b"
+                    "parent_repeater": "field_67845bf40514b",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_67845bf40514e",
@@ -227,7 +231,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208649,
+    "modified": 1750785973,
     "acfe_categories": {
         "block": "Block"
     }

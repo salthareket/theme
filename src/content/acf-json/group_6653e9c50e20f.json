@@ -60,7 +60,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_6654042ff071c",
@@ -232,7 +234,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208623,
+    "modified": 1750785783,
     "acfe_categories": {
         "block": "Block"
     }

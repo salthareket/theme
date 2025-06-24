@@ -151,7 +151,9 @@
                         "id": ""
                     },
                     "default_value": "",
+                    "translations": "sync",
                     "maxlength": "",
+                    "allow_in_bindings": 1,
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
@@ -216,7 +218,9 @@
                     "ui": 0,
                     "ajax": 0,
                     "placeholder": "",
-                    "parent_repeater": "field_6424d80819fd5"
+                    "parent_repeater": "field_6424d80819fd5",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_65f94df92602a",
@@ -459,7 +463,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_67a33ecc69092",
@@ -1598,7 +1604,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208600,
+    "modified": 1750785739,
     "acfe_categories": {
         "block": "Block"
     }

@@ -170,7 +170,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_673e873de1ebf",
@@ -202,7 +204,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_673e873de1ec0",
@@ -263,7 +267,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "translate",
+                            "translations": "sync",
                             "maxlength": "",
                             "allow_in_bindings": 0,
                             "placeholder": "",
@@ -365,7 +369,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "translate",
+                            "translations": "sync",
                             "maxlength": "",
                             "allow_in_bindings": 0,
                             "placeholder": "",
@@ -405,7 +409,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "translate",
+                            "translations": "sync",
                             "maxlength": "",
                             "allow_in_bindings": 0,
                             "placeholder": "",
@@ -444,7 +448,9 @@
                                 "class": "acf-location-posts",
                                 "id": ""
                             },
-                            "choices": [],
+                            "choices": {
+                                "1649": "Schon International Kozmetik San. ve Tic. A.Ş. (contact)"
+                            },
                             "default_value": "",
                             "return_format": "value",
                             "multiple": 1,
@@ -455,7 +461,9 @@
                             "allow_in_bindings": 0,
                             "ui": 1,
                             "ajax": 0,
-                            "search_placeholder": "Find posts"
+                            "search_placeholder": "Find posts",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_673e873de1ec8",
@@ -507,7 +515,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_673e873de1ec9",
@@ -591,7 +601,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_673e873de1ecb",
@@ -762,7 +774,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_673e873de1ecf",
@@ -860,7 +874,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "translate",
+                            "translations": "sync",
                             "maxlength": "",
                             "allow_in_bindings": 0,
                             "placeholder": "",
@@ -1055,7 +1069,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_673e873de1ed7",
@@ -1095,7 +1111,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_673e873de1ed8",
@@ -1345,8 +1363,8 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
+    "modified": 1750785005,
     "acfe_categories": {
         "general": "General"
-    },
-    "modified": 1744208646
+    }
 }
