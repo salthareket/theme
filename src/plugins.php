@@ -149,7 +149,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.18.1.3",
+    "v" => "3.19.1.1",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
