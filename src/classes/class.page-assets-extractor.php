@@ -380,9 +380,54 @@ class PageAssetsExtractor {
             "plugin_css_rtl" => $plugin_css_rtl,
             "wp_js" => $wp_js,
         );
+        $this->fix_js_data($result, ["js", "plugin_js", "wp_js"]);
         error_log(print_r($result, true));
         return $this->save_meta($result, $id);
     }
+
+    private function fix_js_data(array &$data, array $js_keys): array {
+        $fixed_keys = [];
+        foreach ($js_keys as $key) {
+            if (!isset($data[$key])) continue;
+            $value = $data[$key];
+            if (is_array($value)) {
+                foreach ($value as $index => $js_code) {
+                    if (!is_string($js_code)) continue;
+
+                    $fixed = $this->fix_js_data_selector($js_code);
+                    if ($fixed !== $js_code) {
+                        $data[$key][$index] = $fixed;
+                        $fixed_keys[] = "{$key}[$index]";
+                    }
+                }
+            }
+            // Değilse, tek bir string (örnek: js, plugin_js)
+            elseif (is_string($value)) {
+                $fixed = $this->fix_js_data_selector($value);
+                if ($fixed !== $value) {
+                    $data[$key] = $fixed;
+                    $fixed_keys[] = $key;
+                }
+            }
+        }
+        return $fixed_keys;
+    }
+    private function fix_js_data_selector(string $js): string {
+        // selector_matches içindeki değerlerde hem çift tırnak hem ters slash'ı escape et
+        $js = preg_replace_callback(
+            '/("selector_matches"\s*:\s*)"((?:[^"\\\\]|\\\\.)*)"/',
+            function ($matches) {
+                $escaped = addcslashes($matches[2], '"\\'); // sadece " ve \ karakterini kaçır
+                return $matches[1] . '"' . $escaped . '"';
+            },
+            $js
+        );
+
+        // </script> kapanmasın diye escape et
+        return str_replace('</script', '<\/script', $js);
+    }
+
+
 
     public function combine_and_cache_files($type, $files, $whitelist = []) {
         if ($type !== 'css' && $type !== 'js') {
@@ -509,7 +554,9 @@ class PageAssetsExtractor {
         }
         
         $this->disable_hooks = false;
+        error_log("start M E T A   S A V E D - - - - - - - - - - - - ");
         error_log(print_r($result, true));
+        error_log("end M E T A   S A V E D - - - - - - - - - - - - ");
         return $result;
     }
 
@@ -659,21 +706,19 @@ class PageAssetsExtractor {
                                         "url" => $url_string
                                     ];
                                 }else{
-                                    if(function_exists('pll_get_post')){
+                                    if (function_exists('pll_get_post')) {
                                         $lang = $this->get_url_language($url_string);
                                         $term = get_term_by('slug', $term_slug, $sitemap_file_name);
-                                        $term_id = pll_get_term( $term->term_id, $lang);                                        
-                                    }else{
+
+                                        if ($term && isset($term->term_id)) {
+                                            $term_id = pll_get_term($term->term_id, $lang);
+                                        } else {
+                                            $term_id = null;
+                                        }
+                                    } else {
                                         $term = get_term_by('slug', $term_slug, $sitemap_file_name);
-                                        $term_id = $term->term_id;
-                                    }
-                                    if ($term_id) {
-                                        $urls[$term_id] = [
-                                            "type" => "term",
-                                            "post_type" => $sitemap_file_name,
-                                            "url" => $url_string
-                                        ];
-                                    }                          
+                                        $term_id = $term && isset($term->term_id) ? $term->term_id : null;
+                                    }                       
                                 }
                             }else{
                                 if(in_array($sitemap_file_name, $this->get_roles())){

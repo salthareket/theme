@@ -22,7 +22,10 @@ Class Theme{
 
         add_action("init", [$this, "global_variables"]);
         add_action("wp", [$this, "language_settings"]);
-        add_action("wp", [$this, "site_assets"], 1);
+
+       add_action("wp", [$this, "site_assets"], 1);
+        // add_action("template_redirect", [$this, "site_assets"], 1);
+
         add_action("init", [$this, "language_settings"], 1);            
 
         add_action("init", [$this, "increase_memory_limit"]);
@@ -802,10 +805,21 @@ Class Theme{
         $classes[] = is_front_page()?"home":"";
         return $classes;
     }
+
     public function site_assets(){
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            return;
+        }
+        if (defined('DOING_CRON') && DOING_CRON) {
+            return;
+        }
+
+        error_log("1. site assets KONTROL");
+
         if(!defined("SITE_ASSETS")){
+            error_log("2. site assets NOT DEFINED");
             $site_assets = [];
-            error_log("site assets theme.php de olustu");
+           
             if (is_singular()) {
                 $post_id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
                 $site_assets = get_post_meta($post_id, 'assets', true);
@@ -844,6 +858,7 @@ Class Theme{
             ];
 
             if(!$site_assets && !isset($_GET["fetch"])){
+                error_log("3. site assets META IN DB IS EMPTY -> REGENERATE");
                 $meta = self::get_meta();
                 if($meta["type"] == "post"){
                     $site_assets = $GLOBALS["salt"]->extractor->on_save_post($meta["id"], [], false);
@@ -851,9 +866,11 @@ Class Theme{
                 if($meta["type"] == "term"){
                     $site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
                 }
-            }
+            }/**/
 
             $site_assets = !empty($site_assets) ? $site_assets : $assets_data;
+
+            error_log("4. site assets IS DEFINED....");
             
             define("SITE_ASSETS", $site_assets);
             

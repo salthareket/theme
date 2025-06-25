@@ -459,7 +459,8 @@ class StarterSite extends Timber\Site{
         if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
             error_log("add_to_context on startsite.php site_assets var");
             if(!empty(SITE_ASSETS["js"])){
-                $code = str_replace("{upload_url}", $this->upload_url, SITE_ASSETS["js"]);
+                $js_data = SITE_ASSETS["js"];
+                $code = str_replace("{upload_url}", $this->upload_url, $js_data);
                 $code = str_replace("{home_url}", home_url("/"), $code);
                 $context["site_assets_js"] = $code;
             }
