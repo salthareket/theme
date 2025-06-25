@@ -572,7 +572,7 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["offcanvas-dropdown-padding"] = $offcanvas_nav_sub["padding"];
 
         $offcanvas_nav_sub_item = $offcanvas["nav_sub_item"];
-        $variables["offcanvas-dropdown-item-font-family"] = scss_variables_font($offcanvas_nav_sub_item["font_family"]);
+        $variables["offcanvas-dropdown-item-font-family"] = scss_variables_font($offcanvas_nav_sub_item['font_family'] ?? null);
         $variables["offcanvas-dropdown-item-font-size"] = acf_units_field_value($offcanvas_nav_sub_item["font_size"]);
         $variables["offcanvas-dropdown-item-font-color"] = scss_variables_color($offcanvas_nav_sub_item["color"]);
         $variables["offcanvas-dropdown-item-font-color-hover"] = scss_variables_color($offcanvas_nav_sub_item["color_hover"]);

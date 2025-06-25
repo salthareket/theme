@@ -258,12 +258,20 @@ class SaltBase{
         remove_action('save_post_product', [ $this, 'on_post_published'], 100);
         remove_action('publish_post', [ $this, 'on_post_published'], 100);
 
-        if (defined('DOING_AJAX') && DOING_AJAX && !$GLOBALS['salt_ai_doing_translate']) {
+        if (
+            defined('DOING_AJAX') && DOING_AJAX &&
+            (!isset($GLOBALS['salt_ai_doing_translate']) || !$GLOBALS['salt_ai_doing_translate'])
+        ) {
             return;
         }
-        if (defined('DOING_CRON') && DOING_CRON && !$GLOBALS['salt_ai_doing_translate']) {
+
+        if (
+            defined('DOING_CRON') && DOING_CRON &&
+            (!isset($GLOBALS['salt_ai_doing_translate']) || !$GLOBALS['salt_ai_doing_translate'])
+        ) {
             return;
         }
+
         if ( wp_is_post_revision( $post_id ) ) {
             return;
         }
