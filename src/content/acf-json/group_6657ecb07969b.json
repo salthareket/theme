@@ -135,9 +135,7 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_6657ecc208ad5",
-                    "create_options": 0,
-                    "save_options": 0
+                    "parent_repeater": "field_6657ecc208ad5"
                 },
                 {
                     "key": "field_6657ecc208ad7",
@@ -184,9 +182,7 @@
                 "class": "acf-contact-accounts",
                 "id": ""
             },
-            "choices": {
-                "1649": "Schon International Kozmetik San. ve Tic. A.Ş."
-            },
+            "choices": [],
             "default_value": "",
             "return_format": "value",
             "multiple": 0,
@@ -196,9 +192,7 @@
             "ui": 0,
             "ajax": 0,
             "allow_custom": 0,
-            "search_placeholder": "",
-            "create_options": 0,
-            "save_options": 0
+            "search_placeholder": ""
         },
         {
             "key": "field_66dd8b2c4b441",
@@ -236,13 +230,13 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs - 18px",
-                        "title-sm": "title-sm - 22px",
-                        "title-md": "title-md - 32px",
-                        "title-lg": "title-lg - 42px",
-                        "title-xl": "title-xl - 52px",
-                        "title-xxl": "title-xxl - 62px",
-                        "title-xxxl": "title-xxxl - 72px",
+                        "title-xs": "title-xs - 22px",
+                        "title-sm": "title-sm - 32px",
+                        "title-md": "title-md - 42px",
+                        "title-lg": "title-lg - 52px",
+                        "title-xl": "title-xl - 62px",
+                        "title-xxl": "title-xxl - 72px",
+                        "title-xxxl": "title-xxxl - 82px",
                         "text-xs": "text-xs - 14px",
                         "text-sm": "text-sm - 16px",
                         "text-md": "text-md - 18px",
@@ -261,9 +255,7 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": "",
-                    "create_options": 0,
-                    "save_options": 0
+                    "search_placeholder": ""
                 },
                 {
                     "key": "field_66dd8b6e4b443",
@@ -333,7 +325,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750785659,
+    "modified": 1744208625,
     "acfe_categories": {
         "block": "Block"
     }

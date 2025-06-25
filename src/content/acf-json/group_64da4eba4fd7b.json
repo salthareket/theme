@@ -71,24 +71,29 @@
                     },
                     "choices": {
                         "new-account": "New Account",
+                        "new-application": "New Application",
+                        "approved-application": "Approved Application",
+                        "cancel-application": "Cancel Application",
+                        "expired-application": "Expired Application",
+                        "declined-application": "Declined Application",
+                        "new-request": "New Request",
                         "new-review": "New Review",
                         "review-approved": "Review Approved",
                         "payment-completed": "Payment Completed",
+                        "new-session": "New Session",
+                        "favorite-new-session": "Favorite New Session",
+                        "expired-session": "Expired Session",
+                        "started-session": "Started Session",
                         "new-follower": "New Follower",
-                        "new-message": "New Message",
-                        "hgh-hghgh": "hgh hghgh"
+                        "new-message": "New Message"
                     },
                     "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "placeholder": "",
-                    "translations": "copy_once",
                     "allow_null": 1,
-                    "allow_in_bindings": 1,
                     "ui": 0,
                     "ajax": 0,
-                    "create_options": 0,
-                    "save_options": 0,
                     "allow_custom": 0,
                     "search_placeholder": ""
                 }
@@ -194,26 +199,31 @@
                             },
                             "choices": {
                                 "new-account": "New Account|Yeni bir kullanıcı hesabı oluşturulduğunda gönderilir.",
+                                "new-application": "New Application|Bir session'a yeni bir application yapıldığında gönderilir.",
+                                "approved-application": "Approved Application|Bir application onaylandığında gönderilir.",
+                                "cancel-application": "Cancel Application|Bir application iptal edildiğinde gönderilir.",
+                                "expired-application": "Expired Application|Bir application'ın zamansal olarak süresi dolduğunda gönderilir.",
+                                "declined-application": "Declined Application|Bir application onaylanmadığında gönderilir.",
+                                "new-request": "New Request|Bir expert'e session request yapıldığında gönderilir.",
                                 "new-review": "New Review|Bir session sonrası yorum yapıldığında gönderilir.",
                                 "review-approved": "Review Approved|Yorum, yorum yapılan kişi tarafından onaylandığında gönderilir.",
                                 "payment-completed": "Payment Completed|Bir ödeme tamamlandığında gönderilir.",
+                                "new-session": "New Session|Yeni bir session post oluşturulduğunda gönderilir.",
+                                "favorite-new-session": "Favorite New Session|Yeni bir session oluşturulduğunda session sahibinin takipçilerine gönderilir.",
+                                "expired-session": "Expired Session|Bir session'ın zamansal olarak süresi dolduğunda gönderilir.",
+                                "started-session": "Started Session|Session'ın başlama bilgisi session katılımcılarına gönderilir.",
                                 "new-follower": "New Follower|Kullanıcıyı yeni\tbir kullanıcı takip ettiğinde gönderilir.",
-                                "new-message": "New Message|Kullanıcıya ueni bir mesaj iletildiğinde gönderilir.",
-                                "hgh-hghgh": "hgh hghgh|kjhjhkhjkkhj"
+                                "new-message": "New Message|Kullanıcıya ueni bir mesaj iletildiğinde gönderilir."
                             },
                             "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "allow_custom": 0,
                             "search_placeholder": "",
-                            "translations": "copy_once",
                             "allow_null": 0,
-                            "allow_in_bindings": 1,
                             "ui": 1,
                             "ajax": 0,
-                            "placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "placeholder": ""
                         },
                         {
                             "key": "field_64da4efd97891",
@@ -242,9 +252,7 @@
                             "allow_null": 0,
                             "ui": 1,
                             "ajax": 0,
-                            "placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "placeholder": ""
                         },
                         {
                             "key": "field_64da685f221c7",
@@ -273,9 +281,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_64da68c6221c8",
@@ -305,9 +311,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         }
                     ]
                 },
@@ -678,7 +682,7 @@
             {
                 "param": "options_page",
                 "operator": "==",
-                "value": "notifications"
+                "value": "anasayfa"
             }
         ]
     ],
@@ -688,7 +692,7 @@
     "label_placement": "top",
     "instruction_placement": "label",
     "hide_on_screen": "",
-    "active": true,
+    "active": false,
     "description": "",
     "show_in_rest": 0,
     "acfe_display_title": "",
@@ -698,7 +702,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1747916947,
+    "modified": 1744208598,
     "acfe_categories": {
         "general": "General"
     }

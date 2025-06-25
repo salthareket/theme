@@ -23,42 +23,6 @@
             "ui": 1
         },
         {
-            "key": "field_682dc1f17e432",
-            "label": "My Account Page",
-            "name": "myaccount_page_id",
-            "aria-label": "",
-            "type": "post_object",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "hidden",
-                "id": ""
-            },
-            "post_type": [
-                "page"
-            ],
-            "post_status": [
-                "publish"
-            ],
-            "taxonomy": "",
-            "return_format": "id",
-            "multiple": 0,
-            "save_custom": 0,
-            "save_post_status": "publish",
-            "translations": "copy_once",
-            "acfe_bidirectional": {
-                "acfe_bidirectional_enabled": "0"
-            },
-            "allow_null": 1,
-            "allow_in_bindings": 0,
-            "bidirectional": 0,
-            "ui": 1,
-            "bidirectional_target": [],
-            "save_post_type": ""
-        },
-        {
             "key": "field_6466727f278ea",
             "label": "Enable Membership Activation",
             "name": "enable_membership_activation",
@@ -529,9 +493,7 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_64df7033a5cd9",
-                    "create_options": 0,
-                    "save_options": 0
+                    "parent_repeater": "field_64df7033a5cd9"
                 }
             ]
         },
@@ -1033,7 +995,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "hidden",
                 "id": ""
             },
             "message": "",
@@ -1041,6 +1003,36 @@
             "ui_on_text": "",
             "ui_off_text": "",
             "ui": 1
+        },
+        {
+            "key": "field_64bfe4fa22135",
+            "label": "Payment Expire Hours",
+            "name": "payment_expire_hours",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_646e0533efef9",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "min": 0,
+            "max": "",
+            "placeholder": "",
+            "step": "0.1",
+            "prepend": "",
+            "append": "Hours"
         },
         {
             "key": "field_646e144531c3f",
@@ -1053,7 +1045,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "hidden",
                 "id": ""
             },
             "message": "",
@@ -1201,6 +1193,99 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": ""
+                }
+            ]
+        },
+        {
+            "key": "field_6690aa9f17b90",
+            "label": "Theme by rola",
+            "name": "role_themes",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_646671aaebf53",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "acfe_repeater_stylised_button": 1,
+            "layout": "table",
+            "pagination": 0,
+            "min": 0,
+            "max": 0,
+            "collapsed": "field_6690aad117b91",
+            "button_label": "Role Ekle",
+            "rows_per_page": 20,
+            "sub_fields": [
+                {
+                    "key": "field_6690aad117b91",
+                    "label": "Role",
+                    "name": "role",
+                    "aria-label": "",
+                    "type": "acfe_user_roles",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "unique",
+                        "id": ""
+                    },
+                    "user_role": "",
+                    "field_type": "select",
+                    "default_value": [],
+                    "allow_null": 0,
+                    "multiple": 0,
+                    "ui": 0,
+                    "choices": [],
+                    "ajax": 0,
+                    "placeholder": "",
+                    "search_placeholder": "",
+                    "layout": "",
+                    "toggle": 0,
+                    "allow_custom": 0,
+                    "parent_repeater": "field_6690aa9f17b90"
+                },
+                {
+                    "key": "field_6690ab0017b92",
+                    "label": "Theme",
+                    "name": "wp_themes",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "unique acf-wp-themes",
+                        "id": ""
+                    },
+                    "choices": {
+                        "dummy": "Dummy",
+                        "gedanbarai": "Gedanbarai",
+                        "salthareket": "Salthareket",
+                        "twentytwentyfive": "Twenty Twenty-Five"
+                    },
+                    "default_value": "",
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "allow_custom": 0,
+                    "search_placeholder": "",
+                    "parent_repeater": "field_6690aa9f17b90"
                 }
             ]
         },
@@ -1354,8 +1439,6 @@
                 "post": "Yazılar",
                 "page": "Sayfalar",
                 "attachment": "Ortam",
-                "looks": "Looks",
-                "product": "Ürünler",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -1368,9 +1451,7 @@
             "allow_in_bindings": 0,
             "ui": true,
             "ajax": 0,
-            "placeholder": "",
-            "create_options": 0,
-            "save_options": 0
+            "placeholder": ""
         },
         {
             "key": "field_674395e8c8f9f",
@@ -1390,10 +1471,6 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
-                "product_brand": "product_brand",
-                "product_cat": "product_cat",
-                "product_tag": "product_tag",
-                "product_shipping_class": "product_shipping_class",
                 "contact-type": "contact-type"
             },
             "default_value": "",
@@ -1406,9 +1483,7 @@
             "allow_in_bindings": 0,
             "ui": true,
             "ajax": 0,
-            "search_placeholder": "",
-            "create_options": 0,
-            "save_options": 0
+            "search_placeholder": ""
         },
         {
             "key": "field_674ad252dfbfc",
@@ -1568,7 +1643,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "hidden",
                 "id": ""
             },
             "message": "",
@@ -1589,7 +1664,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "hidden",
                 "id": ""
             },
             "message": "",
@@ -1645,9 +1720,7 @@
             "allow_in_bindings": 0,
             "ui": 0,
             "ajax": 0,
-            "placeholder": "",
-            "create_options": 0,
-            "save_options": 0
+            "placeholder": ""
         },
         {
             "key": "field_6786587e3a3c1",
@@ -1677,9 +1750,7 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": "",
-            "create_options": 0,
-            "save_options": 0
+            "search_placeholder": ""
         },
         {
             "key": "field_678658a83a3c2",
@@ -1713,7 +1784,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "hidden",
                 "id": ""
             },
             "message": "",
@@ -1749,7 +1820,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1748026665,
+    "modified": 1744208597,
     "acfe_categories": {
         "general": "General"
     }

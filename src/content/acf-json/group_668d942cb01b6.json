@@ -89,9 +89,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         }
                     ]
                 },
@@ -152,9 +150,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "courier-std": "courier-std",
-                                "anton": "Anton",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -185,9 +180,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_6636a721cd136",
@@ -255,9 +248,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_6636a75acd138",
@@ -292,9 +283,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_663764d9f883c",
@@ -543,9 +532,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "courier-std": "courier-std",
-                                "anton": "Anton",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -576,9 +562,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_6637664b929e7",
@@ -751,9 +735,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "sync",
                             "maxlength": "",
-                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": ""
@@ -773,9 +755,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "sync",
                             "maxlength": "",
-                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": ""
@@ -795,9 +775,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "sync",
                             "maxlength": "",
-                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": ""
@@ -817,9 +795,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "sync",
                             "maxlength": "",
-                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": ""
@@ -839,9 +815,7 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "sync",
                             "maxlength": "",
-                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": ""
@@ -909,7 +883,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750785366,
+    "modified": 1744208634,
     "acfe_categories": {
         "general": "General"
     }

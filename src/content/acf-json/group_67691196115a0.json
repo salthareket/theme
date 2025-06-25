@@ -240,9 +240,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_676911966c626",
@@ -485,9 +483,7 @@
                                     "allow_null": 0,
                                     "ui": 0,
                                     "ajax": 0,
-                                    "placeholder": "",
-                                    "create_options": 0,
-                                    "save_options": 0
+                                    "placeholder": ""
                                 },
                                 {
                                     "key": "field_67691196c00e3",
@@ -516,9 +512,7 @@
                                     "ajax": 0,
                                     "placeholder": "",
                                     "allow_custom": 0,
-                                    "search_placeholder": "",
-                                    "create_options": 0,
-                                    "save_options": 0
+                                    "search_placeholder": ""
                                 },
                                 {
                                     "key": "field_67691196c3b20",
@@ -535,9 +529,7 @@
                                         "id": ""
                                     },
                                     "default_value": "",
-                                    "translations": "translate",
                                     "maxlength": "",
-                                    "allow_in_bindings": 1,
                                     "placeholder": "",
                                     "prepend": "",
                                     "append": ""
@@ -557,8 +549,6 @@
                                         "id": ""
                                     },
                                     "default_value": "",
-                                    "translations": "translate",
-                                    "allow_in_bindings": 1,
                                     "tabs": "all",
                                     "toolbar": "full",
                                     "media_upload": 1,
@@ -1676,7 +1666,8 @@
                                 "id": ""
                             },
                             "choices": {
-                                "post\/tease": "Post Tease (Predefined)"
+                                "post\/tease": "Post Tease (Predefined)",
+                                "theme\/templates\/_custom\/hello-template": "hello-template"
                             },
                             "default_value": false,
                             "return_format": "value",
@@ -1688,9 +1679,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_676966ddd3262",
@@ -1753,9 +1742,7 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": "",
-                            "create_options": 0,
-                            "save_options": 0
+                            "search_placeholder": ""
                         },
                         {
                             "key": "field_676966e7d3264",
@@ -1935,7 +1922,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750848234,
+    "modified": 1744208649,
     "acfe_categories": {
         "block": "Block"
     }

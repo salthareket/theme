@@ -106,9 +106,7 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": "",
-                    "create_options": 0,
-                    "save_options": 0
+                    "search_placeholder": ""
                 },
                 {
                     "key": "field_671527ad6f836",
@@ -176,7 +174,8 @@
                     },
                     "choices": {
                         "default": "Default",
-                        "post\/tease": "Post Tease (Predefined)"
+                        "post\/tease": "Post Tease (Predefined)",
+                        "theme\/templates\/_custom\/hello-template": "hello-template"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -187,9 +186,7 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": "",
-                    "create_options": 0,
-                    "save_options": 0
+                    "search_placeholder": ""
                 },
                 {
                     "key": "field_670cc8c9c0f78",
@@ -209,9 +206,6 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
-                        "##Custom Fonts": "##Custom Fonts",
-                        "courier-std": "courier-std",
-                        "anton": "Anton",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -243,9 +237,7 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": "",
-                    "create_options": 0,
-                    "save_options": 0
+                    "search_placeholder": ""
                 },
                 {
                     "key": "field_670cc982c0f7a",
@@ -262,13 +254,13 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs - 18px",
-                        "title-sm": "title-sm - 22px",
-                        "title-md": "title-md - 32px",
-                        "title-lg": "title-lg - 42px",
-                        "title-xl": "title-xl - 52px",
-                        "title-xxl": "title-xxl - 62px",
-                        "title-xxxl": "title-xxxl - 72px",
+                        "title-xs": "title-xs - 22px",
+                        "title-sm": "title-sm - 32px",
+                        "title-md": "title-md - 42px",
+                        "title-lg": "title-lg - 52px",
+                        "title-xl": "title-xl - 62px",
+                        "title-xxl": "title-xxl - 72px",
+                        "title-xxxl": "title-xxxl - 82px",
                         "text-xs": "text-xs - 14px",
                         "text-sm": "text-sm - 16px",
                         "text-md": "text-md - 18px",
@@ -286,9 +278,7 @@
                     "ui": 0,
                     "ajax": 0,
                     "allow_custom": 0,
-                    "search_placeholder": "",
-                    "create_options": 0,
-                    "save_options": 0
+                    "search_placeholder": ""
                 },
                 {
                     "key": "field_670cc993c0f7b",
@@ -334,7 +324,6 @@
                 "id": ""
             },
             "default_value": "",
-            "translations": "translate",
             "allow_in_bindings": 1,
             "tabs": "all",
             "toolbar": "full",
@@ -392,7 +381,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750847529,
+    "modified": 1744208645,
     "acfe_categories": {
         "block": "Block"
     }

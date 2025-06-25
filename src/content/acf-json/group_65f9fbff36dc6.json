@@ -191,7 +191,8 @@
             },
             "choices": {
                 "default": "Default",
-                "post\/tease": "Post Tease (Predefined)"
+                "post\/tease": "Post Tease (Predefined)",
+                "theme\/templates\/_custom\/hello-template": "hello-template"
             },
             "default_value": "default",
             "return_format": "value",
@@ -202,9 +203,7 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": "",
-            "create_options": 0,
-            "save_options": 0
+            "search_placeholder": ""
         },
         {
             "key": "field_65f9fc1b3ef9a",
@@ -295,8 +294,6 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "translations": "translate",
-                            "allow_in_bindings": 1,
                             "tabs": "all",
                             "toolbar": "full",
                             "media_upload": 0,
@@ -348,7 +345,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750847997,
+    "modified": 1744208613,
     "acfe_categories": {
         "block": "Block"
     }

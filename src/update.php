@@ -1457,6 +1457,7 @@ class Update {
             $cache = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $post_name);
             $cache->update_cache();
         }
+        get_theme_styles([], true);
     }
     private static function npm_install(): string{
         $workingDir = ABSPATH;
@@ -1510,6 +1511,7 @@ class Update {
         $theme_styles = acf_get_theme_styles();
         save_theme_styles_colors($theme_styles);
         save_theme_styles_header_themes($theme_styles["header"]);
+        get_theme_styles([], true);
     }
     private static function compile_js_css(){
         acf_compile_js_css();
