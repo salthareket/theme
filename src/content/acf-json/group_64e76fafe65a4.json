@@ -509,7 +509,9 @@
                                 "id": ""
                             },
                             "default_value": "",
+                            "translations": "translate",
                             "maxlength": "",
+                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": ""
@@ -529,6 +531,8 @@
                                 "id": ""
                             },
                             "default_value": "",
+                            "translations": "translate",
+                            "allow_in_bindings": 1,
                             "tabs": "all",
                             "toolbar": "full",
                             "media_upload": 1,
@@ -1604,7 +1608,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750785739,
+    "modified": 1750848157,
     "acfe_categories": {
         "block": "Block"
     }

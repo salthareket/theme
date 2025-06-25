@@ -222,7 +222,9 @@
                         "id": ""
                     },
                     "default_value": "",
+                    "translations": "translate",
                     "maxlength": "",
+                    "allow_in_bindings": 1,
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
@@ -244,6 +246,7 @@
                     },
                     "default_value": "",
                     "acfe_textarea_code": 0,
+                    "translations": "translate",
                     "maxlength": "",
                     "allow_in_bindings": 1,
                     "rows": "",
@@ -522,7 +525,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750786091,
+    "modified": 1750847643,
     "acfe_categories": {
         "block": "Block"
     }
