@@ -42,6 +42,7 @@ class Update {
     ];
 
     public static $update_tasks = [
+        ["id" => "install_local_plugins", "name" => "Updating local plugins"],
         ["id" => "copy_fields", "name" => "Copying ACF Fields"],
         ["id" => "register_fields", "name" => "Registering ACF Fields"],
         ["id" => "update_fields", "name" => "Updating ACF Fields"]
