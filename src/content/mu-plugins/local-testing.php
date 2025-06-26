@@ -21,18 +21,17 @@ $replaces = ['http://localhost', 'https://localhost', 'localhost'];
 
 function lip_replace_url($value) {
     global $replaces, $full_host;
-    if (is_string($value)) {
-        foreach ($replaces as $search) {
-            if (strpos($value, $search) !== false) {
-                return str_replace($search, $full_host, $value);
-            }
+    if (!is_string($value)) return $value;
+    foreach ($replaces as $search) {
+        if (strpos($value, $search) !== false) {
+            return str_replace($search, $full_host, $value);
         }
     }
     return $value;
 }
 
 function lip_recursive_replace(&$data) {
-    global $replaces, $full_host;
+    if (!is_array($data)) return;
     array_walk_recursive($data, function (&$v) {
         $v = lip_replace_url($v);
     });
@@ -68,6 +67,7 @@ if (function_exists('pll_home_url')) {
 
 // Menü linkleri
 add_filter('wp_get_nav_menu_items', function ($items) {
+    if (!is_array($items)) return $items;
     foreach ($items as $item) {
         if (isset($item->url)) {
             $item->url = lip_replace_url($item->url);
@@ -91,6 +91,4 @@ add_filter('acf/load_value', function ($value) {
 }, 99);
 
 // Canonical yönlendirme kapalı
-add_filter('redirect_canonical', function ($redirect_url, $requested_url) {
-    return false;
-}, 99, 2);
+add_filter('redirect_canonical', '__return_false', 99);
