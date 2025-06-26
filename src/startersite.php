@@ -10,7 +10,6 @@ class StarterSite extends Timber\Site{
         add_filter('timber/post/image_extensions', [$this, "timber_post_image_extensions"]);
         add_action("timber/output", [$this, "timber_output"], 2, 9999);
         parent::__construct();
-        
     }
 
     function add_to_context($context){

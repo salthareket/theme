@@ -202,12 +202,13 @@ if (ENABLE_MULTILANGUAGE){
 
 define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
 
-$theme = wp_get_theme();
-define("TEXT_DOMAIN", $theme->get('TextDomain'));
-$GLOBALS["is_admin"] = is_admin();
-$GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
-
-$GLOBALS["post_id"] = get_the_ID();
+add_action('init', function () {
+    $theme = wp_get_theme();
+    define("TEXT_DOMAIN", $theme->get('TextDomain'));
+    $GLOBALS["is_admin"] = is_admin();
+    $GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
+    $GLOBALS["post_id"] = get_the_ID();
+});
 
 if (class_exists("acf")) {
     $GLOBALS["google_maps_api_key"] = get_option("options_google_maps_api_key"); //get_post_meta

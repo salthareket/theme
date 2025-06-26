@@ -18,13 +18,18 @@ Class Theme{
     function __construct(){
         show_admin_bar(false); 
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
+
+        add_action("acf/init", [$this, "menu_actions"]);
+
         //add_action("init", [$this, "after_setup_theme"]);
 
         add_action("init", [$this, "global_variables"]);
         add_action("wp", [$this, "language_settings"]);
 
-       add_action("wp", [$this, "site_assets"], 1);
-        // add_action("template_redirect", [$this, "site_assets"], 1);
+      // add_action("wp", [$this, "site_assets"], 1);
+         add_action("template_redirect", [$this, "site_assets"], 1);
+
+         add_action("plugins_loaded", [$this, "plugins_loaded"]);
 
         add_action("init", [$this, "language_settings"], 1);            
 
@@ -156,22 +161,9 @@ Class Theme{
         }, 999); // Geç bir öncelik ile çalıştır
     }
 
-    public function after_setup_theme(){
-        if (class_exists("WooCommerce")) {
-            add_theme_support("woocommerce");
-        }
-
-        if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
-            \Schema_Breadcrumbs::instance();
-        }
-
-        add_action("acf/init", function(){
-            register_nav_menus(get_menu_locations());
-        });
-
-        /*add options pages to admin*/
-        //add_action("init", function(){
-            if (function_exists("acf_add_options_page")) {
+    public function menu_actions(){
+        register_nav_menus(get_menu_locations());
+        if (function_exists("acf_add_options_page")) {
                 $menu = [
                     "Anasayfa",
                     "Header",
@@ -219,7 +211,73 @@ Class Theme{
                         }
                     });
                 }
-            }
+        }
+    }
+
+    public function after_setup_theme(){
+        if (class_exists("WooCommerce")) {
+            add_theme_support("woocommerce");
+        }
+
+        if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
+            \Schema_Breadcrumbs::instance();
+        }
+
+        /*add_action("acf/init", function(){
+            register_nav_menus(get_menu_locations());
+        });*/
+
+        /*add options pages to admin*/
+        //add_action("init", function(){
+       /*     if (function_exists("acf_add_options_page")) {
+                $menu = [
+                    "Anasayfa",
+                    "Header",
+                    "Footer",
+                    "Menu",
+                    "Theme Styles",
+                    "Ayarlar",
+                    "Page Assets Update",
+                    "Development",
+                ];
+                if(ENABLE_SEARCH_HISTORY){
+                    $menu[] = "Search Ranks";
+                }
+                $options_menu = [
+                    "title" => get_bloginfo("name"),
+                    "redirect" => true,
+                    "children" => $menu,
+                ];
+                if(class_exists("WPCF7")) {
+                    $options_menu["children"][] = "Formlar";
+                }
+                create_options_menu($options_menu);
+
+                if(ENABLE_NOTIFICATIONS && is_admin()){
+                    $notifications_menu = [
+                        "title" => "Notifications",
+                        "redirect" => false,
+                        "children" => [
+                            "Notification Events",
+                        ],
+                    ];
+                    create_options_menu($notifications_menu);            
+                }
+                if(is_admin()){
+                    add_action('admin_init', function () use ($menu) {
+                        if (!function_exists('pll_current_language')) return;
+
+                        if (isset($_GET['page']) && !isset($_GET['lang'])) {
+                            $slug = $_GET['page'];
+                            if (in_array($slug, $menu)) {
+                                $url = admin_url('admin.php?page=' . $slug . '&lang=all');
+                                wp_redirect($url);
+                                exit;
+                            }
+                        }
+                    });
+                }
+            }*/
         //});
 
 
@@ -277,19 +335,19 @@ Class Theme{
             "audio",
         ]);
     }
-    public function global_variables(){
-
-        //error_log( var_export( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ), true ) );
-
+    public function plugins_loaded(){
         //check_and_load_translation(TEXT_DOMAIN);
-        /*load_theme_textdomain(
+        load_theme_textdomain(
             TEXT_DOMAIN,
             get_template_directory() . "/languages"
-        );*/
+        );
+        lang_predefined();
+    }
+    public function global_variables(){
 
         $salt = $GLOBALS["salt"];
         
-        lang_predefined();
+        //
 
         $user = \Timber::get_user();
         if(!$user){
@@ -813,7 +871,9 @@ Class Theme{
         if (defined('DOING_CRON') && DOING_CRON) {
             return;
         }
-
+        if (defined('SITE_ASSETS')) {
+            return;
+        }
         error_log("1. site assets KONTROL");
 
         if(!defined("SITE_ASSETS")){
@@ -858,6 +918,7 @@ Class Theme{
             ];
 
             if(!$site_assets && !isset($_GET["fetch"])){
+                error_log(print_r($site_assets, true));
                 error_log("3. site assets META IN DB IS EMPTY -> REGENERATE");
                 $meta = self::get_meta();
                 if($meta["type"] == "post"){
@@ -1291,13 +1352,15 @@ Class Theme{
         return $wpscss_compiler->get_compile_errors();
     }
 	public function init(){
-        if(is_admin()){
-            add_action("init", function(){
-                \PluginManager::init();
-                \Update::init();
-                new \AvifConverter(50);
-            });
-        }
-        new \starterSite(); 
+        add_action("init", function () {
+            if(is_admin()){
+                add_action("init", function(){
+                    \PluginManager::init();
+                    \Update::init();
+                    new \AvifConverter(50);
+                });
+            }
+            new \starterSite();
+        }); 
 	}
 }
