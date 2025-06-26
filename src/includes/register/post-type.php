@@ -34,15 +34,15 @@
   add_action('admin_menu', 'add_contact_sub_menu');
 
   function add_contact_sub_menu(){
-	  add_submenu_page( 'anasayfa', 'İletişim Bilgileri', 'İletişim Bilgileri', 'edit_theme_options', 'edit.php?post_type=contact', 'options-contact' );
-	  add_submenu_page( 'anasayfa', 'İletişim Kategorileri', 'İletişim Kategorileri', 'edit_theme_options', 'edit-tags.php?taxonomy=contact-type&post_type=contact', 'options-contact' );  	
+	  add_submenu_page( 'anasayfa', 'İletişim Bilgileri', 'İletişim Bilgileri', 'edit_theme_options', 'edit.php?post_type=contact', 'options-contact', 10 );
+	  add_submenu_page( 'anasayfa', 'İletişim Kategorileri', 'İletişim Kategorileri', 'edit_theme_options', 'edit-tags.php?taxonomy=contact-type&post_type=contact', 'options-contact', 11 );  	
   }
 
   
 
 
 
-    $labels = array(
+  $labels = array(
         'name' => 'Templates',
         'singular_name' => 'Template',
         'add_new' => 'Add New',
@@ -76,7 +76,7 @@
   add_action('admin_menu', 'add_template_sub_menu');
 
   function add_template_sub_menu(){
-    add_submenu_page( 'anasayfa', 'Templates', 'Templates', 'edit_theme_options', 'edit.php?post_type=template&lang=all', 'options-template' );   
+    add_submenu_page( 'anasayfa', 'Templates', 'Templates', 'edit_theme_options', 'edit.php?post_type=template&lang=all', 'options-template', 12 );   
   }
 
 

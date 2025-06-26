@@ -122,16 +122,6 @@ Class Theme{
             90 // Menü sırası
         );
 
-        // Plugin Yönetimi alt menüsünü ekle
-        add_submenu_page(
-            'theme-settings', // Ana menü slug'ı
-            'Plugin Manager',
-            'Plugin Manager',
-            'manage_options',
-            'plugin-manager',
-            ["PluginManager", 'render_option_page'] // Plugin Yönetimi içeriğini render et
-        );
-
         // Theme Update alt menüsünü ekle
         add_submenu_page(
             'theme-settings', // Ana menü slug'ı
@@ -139,8 +129,21 @@ Class Theme{
             'Theme Update',
             'manage_options',
             'update-theme',
-            ['Update', 'render_page'] // Theme Update içeriğini render et
+            ['Update', 'render_page'], // Theme Update içeriğini render et
+            1
         );
+
+        // Plugin Yönetimi alt menüsünü ekle
+        add_submenu_page(
+            'theme-settings', // Ana menü slug'ı
+            'Plugin Manager',
+            'Plugin Manager',
+            'manage_options',
+            'plugin-manager',
+            ["PluginManager", 'render_option_page'], // Plugin Yönetimi içeriğini render et
+            2
+        );
+
 
         add_submenu_page(
             'theme-settings', // Ana menü slug'ı
@@ -148,7 +151,8 @@ Class Theme{
             'Video Process',
             'manage_options',
             'video-process',
-            ['Update', 'render_video_process_page'] // Theme Update içeriğini render et
+            ['Update', 'render_video_process_page'], // Theme Update içeriğini render et
+            3
         );
 
         // Gereksiz alt menüyü kaldır
@@ -223,120 +227,8 @@ Class Theme{
             \Schema_Breadcrumbs::instance();
         }
 
-        /*add_action("acf/init", function(){
-            register_nav_menus(get_menu_locations());
-        });*/
-
-        /*add options pages to admin*/
-        //add_action("init", function(){
-       /*     if (function_exists("acf_add_options_page")) {
-                $menu = [
-                    "Anasayfa",
-                    "Header",
-                    "Footer",
-                    "Menu",
-                    "Theme Styles",
-                    "Ayarlar",
-                    "Page Assets Update",
-                    "Development",
-                ];
-                if(ENABLE_SEARCH_HISTORY){
-                    $menu[] = "Search Ranks";
-                }
-                $options_menu = [
-                    "title" => get_bloginfo("name"),
-                    "redirect" => true,
-                    "children" => $menu,
-                ];
-                if(class_exists("WPCF7")) {
-                    $options_menu["children"][] = "Formlar";
-                }
-                create_options_menu($options_menu);
-
-                if(ENABLE_NOTIFICATIONS && is_admin()){
-                    $notifications_menu = [
-                        "title" => "Notifications",
-                        "redirect" => false,
-                        "children" => [
-                            "Notification Events",
-                        ],
-                    ];
-                    create_options_menu($notifications_menu);            
-                }
-                if(is_admin()){
-                    add_action('admin_init', function () use ($menu) {
-                        if (!function_exists('pll_current_language')) return;
-
-                        if (isset($_GET['page']) && !isset($_GET['lang'])) {
-                            $slug = $_GET['page'];
-                            if (in_array($slug, $menu)) {
-                                $url = admin_url('admin.php?page=' . $slug . '&lang=all');
-                                wp_redirect($url);
-                                exit;
-                            }
-                        }
-                    });
-                }
-            }*/
-        //});
-
-
-        if (!is_admin()) {
-            //return;
-        }
-
-        // Add default posts and comments RSS feed links to head.
-        //add_theme_support("automatic-feed-links");
-        add_theme_support("menus");
-        add_theme_support("custom-logo");
-        add_theme_support("widgets");
-        add_theme_support("customize-selective-refresh-widgets");
-
-        add_post_type_support( 'page', 'excerpt' );
-
-        /*
-         * Let WordPress manage the document title.
-         * By adding theme support, we declare that this theme does not use a
-         * hard-coded <title> tag in the document head, and expect WordPress to
-         * provide it for us.
-         */
-        //add_theme_support("title-tag");
-
-        /*
-         * Enable support for Post Thumbnails on posts and pages.
-         *
-         * @link https://developer.wordpress.org/themes/functionality/featured-images-post-thumbnails/
-         */
-        add_theme_support("post-thumbnails");
-
-        /*
-         * Switch default core markup for search form, comment form, and comments
-         * to output valid HTML5.
-         */
-        add_theme_support("html5", [
-            "comment-form",
-            "comment-list",
-            "gallery",
-            "caption",
-        ]);
-
-        /*
-         * Enable support for Post Formats.
-         *
-         * See: https://codex.wordpress.org/Post_Formats
-         */
-        add_theme_support("post-formats", [
-            "aside",
-            "image",
-            "video",
-            "quote",
-            "link",
-            "gallery",
-            "audio",
-        ]);
     }
     public function plugins_loaded(){
-        //check_and_load_translation(TEXT_DOMAIN);
         load_theme_textdomain(
             TEXT_DOMAIN,
             get_template_directory() . "/languages"
@@ -346,8 +238,6 @@ Class Theme{
     public function global_variables(){
 
         $salt = $GLOBALS["salt"];
-        
-        //
 
         $user = \Timber::get_user();
         if(!$user){
@@ -847,6 +737,9 @@ Class Theme{
     }
 
     public function body_class( $classes ) {
+        if (is_admin()) {
+            return $classes;
+        }
         if ( is_page_template( 'template-layout.php' ) ) {
             global $post;
             $classes[] = 'page-'.$post->post_name;
@@ -865,6 +758,9 @@ Class Theme{
     }
 
     public function site_assets(){
+        if (is_admin()) {
+            return;
+        }
         if (defined('DOING_AJAX') && DOING_AJAX) {
             return;
         }
