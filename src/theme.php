@@ -1354,11 +1354,9 @@ Class Theme{
 	public function init(){
         add_action("init", function () {
             if(is_admin()){
-                add_action("init", function(){
-                    \PluginManager::init();
-                    \Update::init();
-                    new \AvifConverter(50);
-                });
+                \PluginManager::init();
+                \Update::init();
+                new \AvifConverter(50);
             }
             new \starterSite();
         }); 
