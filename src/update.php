@@ -1503,7 +1503,7 @@ class Update {
     }
     private static function install_mu_plugins(){
         $srcDir = SH_PATH . 'content/mu-plugins';
-        $target_dir = WP_PLUGIN_DIR . '/mu-plugins';
+        $target_dir = WP_CONTENT_DIR . '/mu-plugins';
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true); 
         }
