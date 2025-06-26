@@ -1611,6 +1611,12 @@ class Update {
                     $tasks_status = json_encode(self::$tasks_status);
                     wp_send_json_success(['message' => 'ACF fields updated successfully', 'tasks_status' => $tasks_status ]);
                     break;
+                case "install_mu_plugins":
+                    self::install_mu_plugins();
+                    self::update_task_status('install_mu_plugins', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Must Use plugins updated successfully', 'tasks_status' => $tasks_status ]);
+                    break;
                 case 'install_wp_plugins':
                     ob_start();
                     self::install_wp_plugins($plugin_types);
