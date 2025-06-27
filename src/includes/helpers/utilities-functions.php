@@ -1213,6 +1213,7 @@ function array_to_root_styles(array $variables, array $variables_mobile = [], ar
             $css .= "    --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
         }
     }
+    $css .= "--hero-height-full: 100vh;\n";
     $css .= "}\n\n";
 
     $grouped_by_breakpoint = [];

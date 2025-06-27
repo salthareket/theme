@@ -35,7 +35,7 @@ menu_type.find("select option").prop('selected',!1);if(menu_type_val==""){menu_t
 menu_type.trigger("change");debugJS(val)
 debugJS(menu_type)
 debugJS(menu_type_val)
-debugJS(menu_type.find("select"));debugJS(menu_type.find("select option").not(".d-none").first())}).trigger("change")})}}(function($){if($(".acf-repeater-add-row").length>0){$(".acf-repeater-add-row").on("click",function(){debugJS("add row klik")
+debugJS(menu_type.find("select"));debugJS(menu_type.find("select option").not(".d-none").first())}).trigger("change")})}}(function($){if($(".acf-repeater-add-row").length>0){if(!window.location.search.includes('page=header'))return;$(".acf-repeater-add-row").on("click",function(){debugJS("add row klik")
 var obj=$(this);setTimeout(function(){header_tools_condition(obj.closest(".acf-repeater").find(".acf-row").not(".acf-clone"))},1500)})
 header_tools_condition($(".acf-repeater").find(".acf-row").not(".acf-clone"))}})(jQuery)
 text2clipboard()

@@ -232,5 +232,11 @@ $required_plugins_local[] = array(
     "name" => "yith-woocommerce-ajax-product-filter-premium/init.php",
     "file" => "yith-woocommerce-ajax-product-filter-premium"
 );
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "1.0.0",
+    "name" => "acf-gradient-picker/acf-gradient-picker.php",
+    "file" => "acf-gradient-picker"
+);
 
 $GLOBALS["plugins_local"] = $required_plugins_local;

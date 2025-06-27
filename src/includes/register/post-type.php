@@ -38,10 +38,6 @@
 	  add_submenu_page( 'anasayfa', 'İletişim Kategorileri', 'İletişim Kategorileri', 'edit_theme_options', 'edit-tags.php?taxonomy=contact-type&post_type=contact', 'options-contact', 11 );  	
   }
 
-  
-
-
-
   $labels = array(
         'name' => 'Templates',
         'singular_name' => 'Template',

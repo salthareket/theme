@@ -73,7 +73,9 @@
                     {% if slide.add_content %}
                         {% set content = slide.content %}
                         {% if content.title or content.description %}
-                            <div class="content {{block_meta.container_slider}} py-3 {% if fields.slider_settings.autoheight %}position-absolute{% endif %} {% if block_meta.settings.stretch_height %}h-100{% endif %}">
+
+                            <div class="content d-flex {{function("block_align", block_meta.settings.align, true)}} {{block_meta.container_slider}} py-3 {% if fields.slider_settings.autoheight %}position-absolute{% endif %} {% if block_meta.settings.stretch_height %}h-100{% endif %}">
+
                                 <div class="row justify-content-{{content.align}} {% if fields.block_settings.stretch_height %}h-100{% endif %}">
                                     <div class="col-lg-{{content.column}} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
                                     {% if content.title %}
@@ -86,7 +88,9 @@
                                     {% endif %}
                                     </div>
                                 </div>
+
                             </div>
+
                         {% endif %}
                     {% endif %}
                     {% if slide.add_media %}

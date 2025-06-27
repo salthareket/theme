@@ -325,9 +325,9 @@ function block_ratio_padding($ratio=""){
     $ratio_val[0] = $ratio_val[0] == 235 ? 2.35 : $ratio_val[0];
     return (number_format(($ratio_val[1]/$ratio_val[0]), 2) * 100);
 }
-function block_align($align, $block_column = []){
+function block_align($align, $block_column = [], $slide=false){
     $classes = [];
-    if(!empty($block_column)){
+    if(!empty($block_column) || $slide){
         $direction_hr = "align-items-";
         $direction_vr = "justify-content-";
     }else{
@@ -3049,7 +3049,7 @@ function block_css($block, $fields, $block_column){
     }
 
     $slide_css_code = "";
-    if(isset($fields["slider___"]) && $fields["slider"] && is_array($fields["slider"])){
+    if(isset($fields["slider"]) && $fields["slider"] && is_array($fields["slider"])){ /// bilmiyom bu aktf olsunmu
         if(count($fields["slider"]) > 0){
             foreach($fields["slider"] as $key => $slide){
 
