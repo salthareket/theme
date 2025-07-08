@@ -697,7 +697,7 @@ function get_video($video_args=array()){
 	        	$code = str_replace("{{poster}}", "", $code);
 	        }
 	        $title = empty($title)?$data["title"]:$title;
-	        $code = str_replace("{{title}}", $title, $code);
+	        $code = str_replace("{{title}}", $title ?? '', $code);
 		break;
 
 		case "file" :

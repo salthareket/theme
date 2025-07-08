@@ -116,6 +116,7 @@ class MenuItem extends Timber\MenuItem{
 		        		}else{
 				        	$itemClass[] = "dropdown";
 				        	$linkClass[] = "dropdown-toggle";
+				        	$linkAttrs["data-bs-toggle"] = "dropdown";
 					        if($args["parent_link"]){
 					        	$properties["link"]["href"] = make_onepage_url($this, $this->get_link);
 					            $linkTarget = $this->_menu_item_target && (!str_contains($this->get_link(), "#") ? $this->_menu_item_target : $properties["link"]["target"]);

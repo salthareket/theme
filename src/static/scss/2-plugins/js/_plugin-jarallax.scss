@@ -1,5 +1,8 @@
 /*! purgecss start ignore */
 .jarallax-container{
     background-color:inherit;
+    >*{
+        min-height: 100%;
+    }
 }
 /*! purgecss end ignore */

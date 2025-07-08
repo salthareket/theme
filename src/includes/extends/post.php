@@ -192,12 +192,12 @@ class Post extends Timber\Post{
                 ); 
             }
             
-            if(!isset($_GET["fetch"]) ) { 
+            if(!isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS)) { 
                 $tags = "";
                 if(SEPERATE_CSS){
                     $tags = "<style>";
                 }
-                if(SEPERATE_CSS){
+                if(SEPERATE_JS){
                     $tags .= "<script>";
                 }
                 if(!empty($tags)){

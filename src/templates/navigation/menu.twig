@@ -16,7 +16,7 @@
 		{% endif %}
 
 		{% if props.megamenu %}
-            {% include ["navigation/mega-menu-" ~ item.mega_menu_template ~ ".twig", "navigation/menu.twig"] with {'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'id':item.ID} %}
+            {% include ["navigation/mega-menu-" ~ item.mega_menu_template ~ ".twig", "navigation/mega-menu-default.twig"] with {'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'id':item.ID} %}
         {% else %}
 		   	{% include "navigation/menu.twig" with {'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1} %}
         {% endif %}

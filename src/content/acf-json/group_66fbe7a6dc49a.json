@@ -206,7 +206,9 @@
                     "allow_in_bindings": 1,
                     "ui": 1,
                     "ajax": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66fbe7a74e0c1",
@@ -250,7 +252,9 @@
                     "allow_in_bindings": 1,
                     "ui": 1,
                     "ajax": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66fbe7a7590b8",
@@ -352,7 +356,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208643,
+    "modified": 1750983334,
     "acfe_categories": {
         "common": "Common"
     }

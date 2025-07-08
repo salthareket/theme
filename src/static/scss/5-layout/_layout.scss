@@ -13,10 +13,10 @@ body{
     overflow-x: hidden;
     font-family:var(--font-primary);
     @include font-size(var(--base-font-size));
-    @include rfs($base-font-line-height, line-height);
-    @include rfs($base-letter-spacing, letter-spacing);
-    font-weight: $base-font-weight;
-    color:$base-font-color;
+    @include rfs(var(--base-font-line-height), line-height);
+    @include rfs(var(--base-letter-spacing), letter-spacing);
+    font-weight: var(--base-font-weight);
+    color: var(--base-font-color);
     background-color:var(--body-bg-color)!important;
 }
 body{

@@ -69,7 +69,7 @@
 
                 {% if slide.acf_fc_layout == "static" %}
 
-                    <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
+                    <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if (slide.overlay.color or slide.overlay.gradient_color) and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
                     {% if slide.add_content %}
                         {% set content = slide.content %}
                         {% if content.title or content.description %}
@@ -79,7 +79,7 @@
                                 <div class="row justify-content-{{content.align}} {% if fields.block_settings.stretch_height %}h-100{% endif %}">
                                     <div class="col-lg-{{content.column}} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
                                     {% if content.title %}
-                                        <{% if loop.index == 1 %}{{fields.slider_settings.heading}}{% else %}div{% endif %} class="title">{{ content.title }}</{% if loop.index == 1 %}{{fields.slider_settings.heading}}{% else %}div{% endif %}>
+                                        <{% if loop.index == 1 %}{{fields.slider_settings.heading}}{% else %}div{% endif %} class="title {{function("block_title_size", content.title_size)}}">{{ content.title }}</{% if loop.index == 1 %}{{fields.slider_settings.heading}}{% else %}div{% endif %}>
                                     {% endif %}
                                     {% if content.description %}
                                         <div class="description my-auto">
@@ -136,9 +136,9 @@
                         {% endif %}
                     {% endif %}
                     </div>
-                    {% if slide.overlay and not slide.video.video_settings.controls %}
+                    {#% if slide.overlay and not slide.video.video_settings.controls %}
                         {% set slide_overlays = slide_overlays|merge([{index: slide_index, overlay_position:slide.overlay_position, overlay_color: slide.overlay_color, overlay_color_alpha: slide.overlay_color_alpha}]) %}
-                    {% endif %}
+                    {% endif %#}
                     {% set slide_index = slide_index + 1 %}
 
                 {% elseif slide.acf_fc_layout == "dynamic" %}
@@ -152,9 +152,9 @@
                     {% for post in posts %}
                     <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
                         {% include slide.template ~ ".twig" with { post : post, container : block_meta.container_slider } %}
-                        {% if slide.overlay and not slide.video.video_settings.controls %}
+                        {#% if slide.overlay and not slide.video.video_settings.controls %}
                             {% set slide_overlays = slide_overlays|merge([{index: slide_index, overlay_position:slide.overlay_position, overlay_color: slide.overlay_color, overlay_color_alpha: slide.overlay_color_alpha}]) %}
-                        {% endif %}
+                        {% endif %#}
                         {% set slide_index = slide_index + 1 %}
                     </div>
                     {% endfor %}
@@ -164,9 +164,28 @@
         </div>
         {#<div class="swiper-pagination"></div>#}
     </div>
-
     
-    {% if slide_overlays %}
+    <style type="text/css">
+    {% for index, slide in fields.slider %}
+        {% if slide.acf_fc_layout == "static" %}
+            {% if slide.add_content and slide.content.title_color %}
+                #{{block_meta.id}} .slide-{{index + 1}} .title{
+                    color:{{ slide.content.title_color }};
+                }
+            {% endif %}
+            {% if not slide.content.title_color %}
+                #{{block_meta.id}} .slide-light .title{
+                    color:{{ fields.slider_settings.color_dark }};
+                }
+            {% endif %}
+            #{{block_meta.id}} .slide-dark .description{
+                color:{{ fields.slider_settings.color_light }};
+            }
+        {% endif %}
+    {% endfor %}
+    </style>
+    
+    {#% if slide_overlays %}
     <style type="text/css">
         {% for slide in slide_overlays %}
 
@@ -197,7 +216,7 @@
             {% endif %}
         {% endfor %}
     </style>
-    {% endif %}
+    {% endif %#}
     
     
     {% if fields.slider_parallax %}

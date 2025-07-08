@@ -72,8 +72,7 @@
             },
             "choices": {
                 "default": "Default",
-                "post\/tease": "Post Tease (Predefined)",
-                "theme\/templates\/_custom\/hello-template": "hello-template"
+                "post\/tease": "Post Tease (Predefined)"
             },
             "default_value": false,
             "return_format": "value",
@@ -84,7 +83,9 @@
             "ui": 0,
             "ajax": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66fbebaeb3307",
@@ -132,7 +133,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208644,
+    "modified": 1750983334,
     "acfe_categories": {
         "block": "Block"
     }

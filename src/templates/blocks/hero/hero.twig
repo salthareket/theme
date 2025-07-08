@@ -31,10 +31,10 @@
         {% endif %}
 
             {% if fields.show_breadcrumb %}
-                {{ breadcrumb|default(block_meta.data.breadcrumb)|replace({"{{class}}" : "justify-content-center justify-content-lg-start"}) }}
+                {{ breadcrumb|default(block_meta.data.breadcrumb)|replace({"{{class}}" : "justify-content-center justify-content-lg-center"}) }}
             {% endif %}
             {% if fields.page_title %}
-                <h1 class="title">{{ is_preview?function("get_the_title", block_meta.data.post_id):post.title|default(block_meta.data.title) }}</h1>
+                <h1 class="title title-fluid">{{ is_preview?function("get_the_title", block_meta.data.post_id):post.title|default(block_meta.data.title) }}</h1>
             {% endif %}
             {% if fields.description %}
             <div class="description">

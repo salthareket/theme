@@ -302,16 +302,36 @@ class SaltMinifier{
 
 	public function plugins(){
 		if ($this->rules["js"]["plugins"]) {
+            $plugin_min_files = [];
             foreach ($this->rules["js"]["plugins"] as $key => $item) {
-            	$item["url"] = $this->removeComments($item["url"]);
-                $item_local = $this->save_as_local($key, $item["url"]);
+                
+                $content = "";
+                $is_min = false;
+                foreach ($item["url"] as $url_key => $url) {
+                    if (!file_exists($url)) {
+                        continue;
+                    }
+                    $is_min = strpos($url, ".min.");
+                    $url = $this->removeComments($url);
+                    $content .= file_get_contents($url);
+                }
+                $file_path = $this->output["plugins"] . $key . ($is_min?".min":"") . '.js';
+                file_put_contents($file_path, $content);
+                $item_local = $this->save_as_local($key, $file_path);
+                if(!$item["c"]){
+                    $plugin_min_files[] = $item_local;
+                }
+
+            	//$item["url"] = $this->removeComments($item["url"]);
+                //$item_local = $this->save_as_local($key, $item["url"]);
+
                 $item_init = $this->output["plugins_init"] . $key . '.js';
                 if (!file_exists($item_init)) {
                     file_put_contents($item_init, '');
                 }
                 $this->minify_js([$item_init], $this->output["plugins"] . $key . '-init.js');
                 if(!$item["c"]){
-	                $plugin_min_files[] = $item_local;
+	                //$plugin_min_files[] = $item_local;
 	            }else{
 	            	if($item["css"]){
 	            		$this->minify_css($item["css"], $this->output["plugins"] . $key . '.css', $key);

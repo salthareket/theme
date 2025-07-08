@@ -125,7 +125,7 @@ class OembedVideo {
 
     private function title() {
         $this->getApi();
-        return $this->api->title;
+        return isset($this->api->title) ? $this->api->title : '';
     }
 
     private function poster($video_uri = "", $image_size = 0) {

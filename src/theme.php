@@ -813,7 +813,7 @@ Class Theme{
                 "lcp" => []
             ];
 
-            if(!$site_assets && !isset($_GET["fetch"])){
+            if(!$site_assets && !isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS)){
                 error_log(print_r($site_assets, true));
                 error_log("3. site assets META IN DB IS EMPTY -> REGENERATE");
                 $meta = self::get_meta();

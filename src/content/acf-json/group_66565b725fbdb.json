@@ -21,30 +21,110 @@
             "selected": 0
         },
         {
-            "key": "field_66565b8dc73a1",
+            "key": "field_6865b8b4fa785",
             "label": "Background Color",
-            "name": "color",
+            "name": "background",
             "aria-label": "",
-            "type": "color_picker",
+            "type": "group",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "20",
+                "width": "50",
                 "class": "",
                 "id": ""
             },
-            "default_value": "",
-            "enable_opacity": 0,
-            "return_format": "string",
-            "allow_in_bindings": 1
+            "layout": "block",
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "sub_fields": [
+                {
+                    "key": "field_6865b8b4fa786",
+                    "label": "",
+                    "name": "color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_6865b8b4fa788",
+                                "operator": "!=",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "65",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "translations": "sync",
+                    "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_6865b8b4fa787",
+                    "label": "",
+                    "name": "gradient_color",
+                    "aria-label": "",
+                    "type": "gradient_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_6865b8b4fa788",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "65",
+                        "class": "",
+                        "id": ""
+                    },
+                    "translations": "sync",
+                    "allow_in_bindings": 0,
+                    "default_value": ""
+                },
+                {
+                    "key": "field_6865b8b4fa788",
+                    "label": "Use Gradient",
+                    "name": "gradient",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "35",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "translations": "sync",
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                }
+            ],
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         },
         {
             "key": "field_66d909a93dedd",
             "label": "Overlay Color",
             "name": "overlay",
             "aria-label": "",
-            "type": "color_picker",
+            "type": "group",
             "instructions": "",
             "required": 0,
             "conditional_logic": [
@@ -124,15 +204,94 @@
                 ]
             ],
             "wrapper": {
-                "width": "20",
+                "width": "50",
                 "class": "",
                 "id": ""
             },
-            "default_value": "",
-            "enable_opacity": 1,
-            "return_format": "string",
-            "translations": "copy_once",
-            "allow_in_bindings": 1
+            "layout": "block",
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "sub_fields": [
+                {
+                    "key": "field_6865c1c7d7cc9",
+                    "label": "",
+                    "name": "color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_6865c1f7d7ccb",
+                                "operator": "!=",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "65",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "translations": "sync",
+                    "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_6865c1e6d7cca",
+                    "label": "",
+                    "name": "gradient_color",
+                    "aria-label": "",
+                    "type": "gradient_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_6865c1f7d7ccb",
+                                "operator": "==",
+                                "value": "1"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "65",
+                        "class": "",
+                        "id": ""
+                    },
+                    "translations": "sync",
+                    "allow_in_bindings": 0,
+                    "default_value": ""
+                },
+                {
+                    "key": "field_6865c1f7d7ccb",
+                    "label": "Use Gradient",
+                    "name": "gradient",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "35",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "translations": "sync",
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
+                }
+            ],
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         },
         {
             "key": "field_670d60a7b9665",
@@ -184,7 +343,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66565b8dc73a2",
@@ -634,6 +795,13 @@
                         "operator": ">",
                         "value": "0"
                     }
+                ],
+                [
+                    {
+                        "field": "field_66d876dc1d556",
+                        "operator": "==",
+                        "value": "image_responsive"
+                    }
                 ]
             ],
             "wrapper": {
@@ -676,6 +844,13 @@
                         "operator": ">",
                         "value": "0"
                     }
+                ],
+                [
+                    {
+                        "field": "field_66d876dc1d556",
+                        "operator": "==",
+                        "value": "image_responsive"
+                    }
                 ]
             ],
             "wrapper": {
@@ -694,11 +869,14 @@
             "multiple": 0,
             "allow_custom": 0,
             "search_placeholder": "",
+            "translations": "sync",
             "allow_null": 0,
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66565b8dc73a4",
@@ -761,7 +939,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66565b8dc73a5",
@@ -823,7 +1003,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66565b8dc73a6",
@@ -885,7 +1067,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_670d6130b9666",
@@ -1098,7 +1282,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_66ace9902a7f5",
@@ -2016,7 +2202,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_670d6147b9667",
@@ -2272,7 +2460,9 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66d8dd05364a9",
@@ -2383,7 +2573,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_671e5a38ad189",
@@ -2422,7 +2614,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_671e5a46ad18b",
@@ -2460,7 +2654,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_671e5a3cad18a",
@@ -2498,7 +2694,9 @@
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_671e5dea99f04",
@@ -2622,7 +2820,9 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_671e7ba30d783",
@@ -2662,7 +2862,9 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_671e7ba30d784",
@@ -2702,7 +2904,9 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_671e7ba30d785",
@@ -2742,7 +2946,9 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 }
             ]
         }
@@ -2772,7 +2978,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208625,
+    "modified": 1751500269,
     "acfe_categories": {
         "common": "Common"
     }

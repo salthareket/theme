@@ -14,6 +14,7 @@ function get_theme_styles($variables = array(), $root = false){
 
         $variables_mobile = [];
         $variables_media_query = [];
+        $variables_media_query_set = [];
 
         $path = THEME_STATIC_PATH . 'data/theme-styles';
         if(!is_dir($path)){
@@ -30,119 +31,86 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["typography_".$key."_weight"] = $heading["font_weight"];
         }
 
+        
         $title_sizes = [];
-        $title_mobile_sizes = [];
-        $title_line_heights = [];
-        $title_mobile_line_heights = [];
-
         foreach ($theme_styles["typography"]["title"] as $key => $breakpoint) {
             if($root){
-                $title_sizes["title-".$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["title-fs"][$key] = acf_units_field_value($breakpoint);
+                $variables_media_query_set["title"][$key]["fs"] = acf_units_field_value($breakpoint);
             }else{
                 $title_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
             }
         }
 
+
+        $title_mobile_sizes = [];
         foreach ($theme_styles["typography"]["title_mobile"] as $key => $breakpoint) {
             if($root){
-                $title_mobile_sizes["title-".$key] = acf_units_field_value($breakpoint);
+                $variables_mobile["title-fs-".$key] = acf_units_field_value($breakpoint);
             }else{
                 $title_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
             }
         }
 
+        
+        $title_line_heights = [];
         foreach ($theme_styles["typography"]["title_line_height"] as $key => $breakpoint) {
             $line_height = acf_units_field_value($breakpoint);
+            $line_height = isset($line_height) && !empty($line_height) ? trim($line_height) : '1.2';
             if($root){
-                $title_line_heights["title-".$key."-lh"] = $line_height;
+                $variables_media_query["title-lh"][$key] = $line_height;
+                $variables_media_query_set["title"][$key]["lh"] = $line_height;
+                $variables_mobile["title-lh-".$key] = $line_height;
             }else{
                 $title_line_heights[] = "size: $key, line-height: $line_height";
             }
-
-            $fs = $theme_styles["typography"]["title"][$key]["value"];
-            $lh = $breakpoint["value"];
-            $mobile_fs = $theme_styles["typography"]["title_mobile"][$key]["value"];
-
-            if (!empty($fs) && !empty($mobile_fs) && !empty($lh)) {
-                $mobile_lh = ($mobile_fs * $lh) / $fs;
-                if($root){
-                    $title_mobile_line_heights["text-".$key."-lh"] = $mobile_lh."px";
-                }else{
-                    $title_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
-                }
-            }
         }
-        if($root){
-            $variables = array_merge($variables, $title_sizes);
-            $variables_mobile = array_merge($variables_mobile, $title_mobile_sizes);
-            $variables = array_merge($variables, $title_line_heights);
-            $variables_mobile = array_merge($variables_mobile, $title_mobile_line_heights);   
-        }else{
+        if(!$root){
             $variables["title_sizes"] = "(".implode("), (", $title_sizes).")";
             $variables["title_mobile_sizes"] = "(".implode("), (", $title_mobile_sizes).")";
             $variables["title_line_heights"] = "(".implode("), (", $title_line_heights).")";
-            $variables["title_mobile_line_heights"] = "(".implode("), (", $title_mobile_line_heights).")";            
+            //$variables["title_mobile_line_heights"] = "(".implode("), (", $title_mobile_line_heights).")";            
         }
-
-
-
 
 
 
         $text_sizes = [];
-        $text_mobile_sizes = [];
-        $text_line_heights = [];
-        $text_mobile_line_heights = [];
-
         foreach ($theme_styles["typography"]["text"] as $key => $breakpoint) {
             if($root){
-                $text_sizes["text-".$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["text-fs"][$key] = acf_units_field_value($breakpoint);
+                $variables_media_query_set["text"][$key]["fs"] = acf_units_field_value($breakpoint);
             }else{
                 $text_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
             }
         }
 
+        $text_mobile_sizes = [];
         foreach ($theme_styles["typography"]["text_mobile"] as $key => $breakpoint) {
             if($root){
-                $text_mobile_sizes["text-".$key] = acf_units_field_value($breakpoint);
+                $variables_mobile["text-fs-".$key] = acf_units_field_value($breakpoint);
             }else{
                 $text_mobile_sizes[] = "size: $key, font-size: ".acf_units_field_value($breakpoint);
             }
         }
 
+        $text_line_heights = [];
         foreach ($theme_styles["typography"]["text_line_height"] as $key => $breakpoint) {
             $line_height = acf_units_field_value($breakpoint);
+            $line_height = isset($line_height) && !empty($line_height) ? trim($line_height) : '1.2';
             if($root){
-                $text_line_heights["text-".$key."-lh"] = $line_height;
+                $variables_media_query["text-lh"][$key] = $line_height;
+                $variables_mobile["text-lh-".$key] = $line_height;
+                $variables_media_query_set["text"][$key]["lh"] = $line_height;
             }else{
                 $text_line_heights[] = "size: $key, line-height: $line_height";
             }
-
-            $fs = $theme_styles["typography"]["text"][$key]["value"];
-            $lh = $breakpoint["value"];
-            $mobile_fs = $theme_styles["typography"]["text_mobile"][$key]["value"];
-
-            if (!empty($fs) && !empty($mobile_fs) && !empty($lh)) {
-                $mobile_lh = ($mobile_fs * $lh) / $fs;
-                if($root){
-                    $text_mobile_line_heights["text-".$key."-lh"] = $mobile_lh."px";
-                }else{
-                    $text_mobile_line_heights[] = "size: $key, line-height: ".($mobile_lh)."px";
-                }
-            }
         }
-        if($root){
-            $variables = array_merge($variables, $text_sizes);
-            $variables_mobile = array_merge($variables_mobile, $text_mobile_sizes);
-            $variables = array_merge($variables, $text_line_heights);
-            $variables_mobile = array_merge($variables_mobile, $text_mobile_line_heights);  
-        }else{
+        if(!$root){
             $variables["text_sizes"] = "(".implode("), (", $text_sizes).")";
             $variables["text_mobile_sizes"] = "(".implode("), (", $text_mobile_sizes).")";
             $variables["text_line_heights"] = "(".implode("), (", $text_line_heights).")";
-            $variables["text_mobile_line_heights"] = "(".implode("), (", $text_mobile_line_heights).")";            
+            //$variables["text_mobile_line_heights"] = "(".implode("), (", $text_mobile_line_heights).")";            
         }
-
 
 
         if($root){
@@ -156,9 +124,12 @@ function get_theme_styles($variables = array(), $root = false){
                     $variables[$color["title"]] = scss_variables_color($color["color"]);
                 }
             }
+            if($colors["custom_gradients"]){
+                foreach($colors["custom_gradients"] as $color){
+                    $variables["gradient-".$color["title"]] = $color["color"];
+                }
+            }
         }
-
-
 
 
 
@@ -168,10 +139,13 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["font-secondary"] = scss_variables_font($body["secondary_font"]);
         $variables["base-font-size"] = acf_units_field_value($body["font_size"]);        
         $variables["base-font-weight"] = $body["font_weight"];
+        $variables["base-font-line-height"] = acf_units_field_value($body["line_height"]) ?? "inherit";
         $variables["base-letter-spacing"] = acf_units_field_value($body["letter_spacing"]);
         $variables["base-font-color"] = scss_variables_color($body["color"]);
         $variables["body-bg-color"] = scss_variables_color($body["bg_color"]);
         $variables["body-bg-backdrop"] = scss_variables_color($body["backdrop_color"]);
+        $variables["icon-font"] = scss_variables_font($body["icon-font"]); //:root
+        $variables["icon-font-brands"] = scss_variables_font($body["icon-font-brands"]); //:root
         
         if(!$root){
             // Button Sizes
@@ -192,38 +166,31 @@ function get_theme_styles($variables = array(), $root = false){
         // Header
         $header = $theme_styles["header"];
         $header_general = $header["header"];
-        //$variables["header-fixed"] = scss_variables_boolean($header_general["fixed"]);
-        $variables["header-dropshadow"] = scss_variables_boolean($header_general["dropshadow"]);
-        //$variables["header-hide-on-scroll-down"] = scss_variables_boolean($header_general["hide_on_scroll_down"]);
+        $variables["header-dropshadow"] = $header_general["dropshadow"]?"block":"none";
         $variables["header-z-index"] = $header_general["z_index"];
         $variables["header-bg"] = scss_variables_color($header_general["bg_color"]);
         $variables["header-bg-affix"] = scss_variables_color($header_general["bg_color_affix"]);
-
         $variables["header-height"] = acf_units_field_value($header_general["height"][array_keys($header_general["height"])[0]]);
 
-        $header_height = [];
+
         foreach($header_general["height"] as $key => $breakpoint){
             if($root){
-                $header_height[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-height"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-height-".$key] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-height"] = $header_height;
-        }
 
-        $variables["header-height-affix"] = acf_units_field_value($header_general["height_affix"][array_keys($header_general["height_affix"])[0]]);
-        $header_height_affix = [];
+        
         foreach($header_general["height_affix"] as $key => $breakpoint){
             if($root){
-                $header_height_affix[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-height-affix"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-height-".$key."-affix"] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-height-affix"] = $header_height_affix;
+        if(!$root){
+            $variables["header-height-affix"] = acf_units_field_value($header_general["height_affix"][array_keys($header_general["height_affix"])[0]]);
         }
 
 
@@ -235,57 +202,52 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-align-vr"] = $header_navbar["align_vr"];
 
             $height_header = $header_navbar["height_header"]; // is same with header
-
-        $variables["header-navbar-height"] = acf_units_field_value($header_navbar["height"][array_keys($header_navbar["height"])[0]]);
-        $header_navbar_height = [];
+        
         foreach($header_navbar["height"] as $key => $breakpoint){
             if($root){
-                $header_navbar_height[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-navbar-height"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-navbar-height-".$key] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-height"] = $header_navbar_height;
+        if(!$root){
+            $variables["header-navbar-height"] = acf_units_field_value($header_navbar["height"][array_keys($header_navbar["height"])[0]]);
         }
         
-        $variables["header-navbar-height-affix"] = acf_units_field_value($header_navbar["height_affix"][array_keys($header_navbar["height_affix"])[0]]);
-        $header_navbar_height_affix = [];
+        
         foreach($header_navbar["height_affix"] as $key => $breakpoint){
             if($root){
-                $header_navbar_height_affix[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-navbar-height-affix"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-navbar-height-".$key."-affix"] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-height-affix"] = $header_navbar_height_affix;
+        if(!$root){
+            $variables["header-navbar-height-affix"] = acf_units_field_value($header_navbar["height_affix"][array_keys($header_navbar["height_affix"])[0]]);
         }
        
-        $variables["header-navbar-padding"] = $header_navbar["padding"][array_keys($header_navbar["padding"])[0]];
-        $header_navbar_padding = [];
+        
         foreach($header_navbar["padding"] as $key => $breakpoint){
             if($root){
-                $header_navbar_padding[$key] = scss_variables_padding($breakpoint);
+                $variables_media_query["header-navbar-padding"][$key] = scss_variables_padding($breakpoint);
             }else{
                 $variables["header-navbar-padding-".$key] = scss_variables_padding($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-padding"] = $header_navbar_padding;
+        if(!$root){
+            $variables["header-navbar-padding"] = $header_navbar["padding"][array_keys($header_navbar["padding"])[0]];
         }
 
-        $variables["header-navbar-padding-affix"] = $header_navbar["padding_affix"][array_keys($header_navbar["padding_affix"])[0]];
-        $header_navbar_padding_affix = [];
+        
         foreach($header_navbar["padding_affix"] as $key => $breakpoint){
             if($root){
-                $header_navbar_padding_affix[$key] = scss_variables_padding($breakpoint);
+                $variables_media_query["header-navbar-padding-affix"][$key] = scss_variables_padding($breakpoint);
             }else{
                 $variables["header-navbar-padding-".$key."-affix"] = scss_variables_padding($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-padding-affix"] = $header_navbar_padding_affix;
+        if(!$root){
+            $variables["header-navbar-padding-affix"] = $header_navbar["padding_affix"][array_keys($header_navbar["padding_affix"])[0]];
         }
 
 
@@ -295,59 +257,53 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-nav-width"] = $header_nav["width"];
         $variables["header-navbar-nav-margin"] = $header_nav["margin"];
 
-        $variables["header-navbar-nav-align-hr"] = $header_nav["align_hr"][array_keys($header_nav["align_hr"])[0]];
-        $header_navbar_nav_align_hr = [];
         foreach($header_nav["align_hr"] as $key => $breakpoint){
             if($root){
-                $header_navbar_nav_align_hr[$key] = $breakpoint;
+                $variables_media_query["header-navbar-nav-align-hr"][$key] = $breakpoint;
             }else{
                 $variables["header-navbar-nav-align-hr-".$key] = $breakpoint;
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-nav-align-hr"] = $header_navbar_nav_align_hr;
+        if(!$root){
+            $variables["header-navbar-nav-align-hr"] = $header_nav["align_hr"][array_keys($header_nav["align_hr"])[0]];
         }
 
-        $variables["header-navbar-nav-align-vr"] = $header_nav["align_vr"][array_keys($header_nav["align_vr"])[0]];
-        $header_navbar_nav_align_vr = [];
+        
         foreach($header_nav["align_vr"] as $key => $breakpoint){
-             if($root){
-                $header_navbar_nav_align_vr[$key] = $breakpoint;
+            if($root){
+                $variables_media_query["header-navbar-nav-align-vr"][$key] = $breakpoint;
             }else{
                 $variables["header-navbar-nav-align-vr-".$key] = $breakpoint;
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-nav-align-vr"] = $header_navbar_nav_align_vr;
+        if(!$root){
+            $variables["header-navbar-nav-align-vr"] = $header_nav["align_vr"][array_keys($header_nav["align_vr"])[0]];
         }
 
             $height_header = $header_nav["height_header"]; // is same with header
 
-        $variables["header-navbar-nav-height"] = acf_units_field_value($header_nav["height"][array_keys($header_nav["height"])[0]]);
-        $header_navbar_nav_height = [];
+        
         foreach($header_nav["height"] as $key => $breakpoint){
             if($root){
-                $header_navbar_nav_height[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-navbar-nav-height"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-navbar-nav-height-".$key] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-nav-height"] = $header_navbar_nav_height;
+        if(!$root){
+            $variables["header-navbar-nav-height"] = acf_units_field_value($header_nav["height"][array_keys($header_nav["height"])[0]]);
         }
 
 
-        $variables["header-navbar-nav-height-affix"] = acf_units_field_value($header_nav["height_affix"][array_keys($header_nav["height_affix"])[0]]);
-        $header_navbar_nav_height_affix = [];
         foreach($header_nav["height_affix"] as $key => $breakpoint){
             if($root){
-                $header_navbar_nav_height_affix[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-navbar-nav-height-affix"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-navbar-nav-height-".$key."-affix"] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-nav-height-affix"] = $header_navbar_nav_height_affix;
+        if(!$root){
+            $variables["header-navbar-nav-height-affix"] = acf_units_field_value($header_nav["height_affix"][array_keys($header_nav["height_affix"])[0]]);
         }
 
 
@@ -365,43 +321,48 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-nav-bg-color"] = scss_variables_color($header_nav_item["bg_color"]);
         $variables["header-navbar-nav-bg-color-hover"] = scss_variables_color($header_nav_item["bg_color_hover"]);
 
-        $variables["header-navbar-nav-item-padding"] = $header_nav_item["padding"][array_keys($header_nav_item["padding"])[0]];
+        
         $header_navbar_nav_item_padding = [];
         foreach($header_nav_item["padding"] as $key => $breakpoint){
             if($root){
-                $header_navbar_nav_item_padding[$key] = scss_variables_padding($breakpoint);
+                $variables_media_query["header-navbar-nav-item-padding"][$key] = scss_variables_padding($breakpoint);
             }else{
                 $variables["header-navbar-nav-item-padding-".$key] = scss_variables_padding($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-nav-item-padding"] = $header_navbar_nav_item_padding;
+        if(!$root){
+            $variables["header-navbar-nav-item-padding"] = $header_nav_item["padding"][array_keys($header_nav_item["padding"])[0]];
         }
 
 
-        $variables["header-navbar-nav-font-size"] = acf_units_field_value($header_nav_item["font_size"][array_keys($header_nav_item["font_size"])[0]]);
+        
         $header_navbar_nav_font_size = [];
         foreach($header_nav_item["font_size"] as $key => $breakpoint){
             if($root){
-                $header_navbar_nav_font_size[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-navbar-nav-font-size"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-navbar-nav-font-size-".$key] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-nav-font-size"] = $header_navbar_nav_font_size;
+        if(!$root){
+            $variables["header-navbar-nav-font-size"] = acf_units_field_value($header_nav_item["font_size"][array_keys($header_nav_item["font_size"])[0]]);
         }
 
 
         // Dropdown
         $header_dropdown = $header["dropdown"];
         $header_dropdown_arrow = $header_dropdown["arrow"];
-        $variables["header-navbar-nav-dropdown-root-arrow"] = scss_variables_boolean($header_dropdown_arrow["arrow"]);
+        $variables["header-navbar-nav-dropdown-root-arrow"] = scss_variables_boolean($header_dropdown_arrow["arrow"])?"block":"none";
         $variables["header-navbar-nav-dropdown-root-arrow-top"] = $header_dropdown_arrow["top"];
         $variables["header-navbar-nav-dropdown-root-arrow-left"] = $header_dropdown_arrow["left"];
 
         $header_dropdown_general = $header_dropdown["dropdown"];
         $variables["header-navbar-nav-dropdown-align"] = $header_dropdown_general["align_vr"];
+        $variables["header-navbar-nav-dropdown-root-arrow-transform"] = "none";
+        if($header_dropdown_general["align_vr"] == "center"){
+            $variables["header-navbar-nav-dropdown-root-arrow-left"] = "50%";
+            $variables["header-navbar-nav-dropdown-root-arrow-transform"] = "translateX(-50%)";
+        }
         $variables["header-navbar-nav-dropdown-bg"] = scss_variables_color($header_dropdown_general["bg_color"]);
         $variables["header-navbar-nav-dropdown-width"] = $header_dropdown_general["width"];
         $variables["header-navbar-nav-dropdown-margin"] = $header_dropdown_general["margin"];
@@ -431,32 +392,32 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-logo-align-vr"] = $header_logo["align_vr"];
 
 
-        $variables["header-navbar-logo-padding"] = $header_logo["padding"][array_keys($header_logo["padding"])[0]];
+        
         $header_navbar_logo_padding = [];
         foreach($header_logo["padding"] as $key => $breakpoint){
             if($root){
-                $header_navbar_logo_padding[$key] = $breakpoint;
+                $variables_media_query["header-navbar-logo-padding"][$key] = $breakpoint;
             }else{
                 $variables["header-navbar-logo-padding-".$key] = $breakpoint;
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-logo-padding"] = $header_navbar_logo_padding;
+        if(!$root){
+            $variables["header-navbar-logo-padding"] = $header_logo["padding"][array_keys($header_logo["padding"])[0]];
         }
 
 
 
-        $variables["header-navbar-logo-padding-affix"] = $header_logo["padding_affix"][array_keys($header_logo["padding_affix"])[0]];
+        
         $header_navbar_logo_padding_affix = [];
         foreach($header_logo["padding_affix"] as $key => $breakpoint){
             if($root){
-                $header_navbar_logo_padding_affix[$key] = $breakpoint;
+                $variables_media_query["header-navbar-logo-padding-affix"][$key] = $breakpoint;
             }else{
                 $variables["header-navbar-logo-padding-".$key."-affix"] = $breakpoint;
             }
         }
-        if($root){
-            $variables_media_query["header-navbar-logo-padding-affix"] = $header_navbar_logo_padding_affix;
+        if(!$root){
+            $variables["header-navbar-logo-padding-affix"] = $header_logo["padding_affix"][array_keys($header_logo["padding_affix"])[0]];
         }
 
 
@@ -506,7 +467,7 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["pagination-item-border-active"] = $pagination_item["border_active"];
         $variables["pagination-item-border-radius"] = $pagination_item["border_radius"] ?? 0;
 
-        $pagination_nav= $pagination["nav"];
+        $pagination_nav = $pagination["nav"];
         $variables["pagination-nav-font-family"] = scss_variables_font($pagination_nav["font_family"]);
         $variables["pagination-nav-font-size"] = acf_units_field_value($pagination_nav["font_size"]);
         $variables["pagination-nav-color"] = scss_variables_color($pagination_nav["color"]);
@@ -525,17 +486,14 @@ function get_theme_styles($variables = array(), $root = false){
 
         // Hero
         $hero = $theme_styles["hero"];
-        $variables["hero-height"] = acf_units_field_value($hero["height"][array_keys($hero["height"])[0]]);
-        $hero_height = [];
         foreach($hero["height"] as $key => $breakpoint){
             if($root){
-                $hero_height[$key] = acf_units_field_value($breakpoint);
+                $variables_mobile["hero-height-".$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["hero-height"][$key] = acf_units_field_value($breakpoint);// adds each query withput breakpoint
+                $variables_media_query_set["hero"][$key]["height"] = acf_units_field_value($breakpoint);
             }else{
                 $variables["hero-height-".$key] = acf_units_field_value($breakpoint);
             }
-        }
-        if($root){
-            $variables_media_query["hero-height"] = $hero_height;
         }
 
 
@@ -590,43 +548,39 @@ function get_theme_styles($variables = array(), $root = false){
 
             $height_header = $header_tools_general["height_header"]; // is same with header
 
-        $variables["header-tools-height"] = acf_units_field_value($header_tools_general["height"][array_keys($header_tools_general["height"])[0]]);
-        $header_tools_height = [];
         foreach($header_tools_general["height"] as $key => $breakpoint){
             if($root){
-                $header_tools_height[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-tools-height"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-tools-height-".$key] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-tools-height"] = $header_tools_height;
+        if(!$root){
+            $variables["header-tools-height"] = acf_units_field_value($header_tools_general["height"][array_keys($header_tools_general["height"])[0]]);
         }
 
-        $variables["header-tools-height-affix"] = acf_units_field_value($header_tools_general["height_affix"][array_keys($header_tools_general["height_affix"])[0]]);
-        $header_tools_height_affix = [];
+    
         foreach($header_tools_general["height_affix"] as $key => $breakpoint){
             if($root){
-                $header_tools_height_affix[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-tools-height-affix"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-tools-height-".$key."-affix"] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-tools-height-affix"] = $header_tools_height_affix;
+        if(!$root){
+            $variables["header-tools-height-affix"] = acf_units_field_value($header_tools_general["height_affix"][array_keys($header_tools_general["height_affix"])[0]]);
         }
 
-        $variables["header-tools-item-gap"] = acf_units_field_value($header_tools_general["gap"][array_keys($header_tools_general["gap"])[0]]);
-        $header_tools_item_gap = [];
+        
         foreach($header_tools_general["gap"] as $key => $breakpoint){
             if($root){
-                $header_tools_item_gap[$key] = acf_units_field_value($breakpoint);
+                $variables_media_query["header-tools-item-gap"][$key] = acf_units_field_value($breakpoint);
             }else{
                 $variables["header-tools-item-gap-".$key] = acf_units_field_value($breakpoint);
             }
         }
-        if($root){
-            $variables_media_query["header-tools-item-gap"] = $header_tools_item_gap;
+        if(!$root){
+            $variables["header-tools-item-gap"] = acf_units_field_value($header_tools_general["gap"][array_keys($header_tools_general["gap"])[0]]);
         }
 
         $header_tools_social = $header_tools["social"];
@@ -678,11 +632,11 @@ function get_theme_styles($variables = array(), $root = false){
         $scroll_to_top = $theme_styles["utilities"]["scroll_to_top"];
         $variables["scroll-to-top-active"] = $scroll_to_top["active"];
         if($scroll_to_top["active"]){
-            $variables["scroll-to-top-show"] = $scroll_to_top["show"];
+            $variables["scroll-to-top-show"] = scss_variables_boolean($scroll_to_top["show"])?"block":"none";
             $variables["scroll-to-top-hr"] = $scroll_to_top["position_hr"];
             $variables["scroll-to-top-vr"] = $scroll_to_top["position_vr"];
             $variables["scroll-to-top-bg-color"] = $scroll_to_top["bg_color"];
-            $variables["scroll-to-top-bg-color-hover"] = $scroll_to_top["bg_color_hover"];
+            $variables["scroll-to-top-bg-color-hover"] = scss_variables_color($scroll_to_top["bg_color_hover"]);
             $variables["scroll-to-top-color"] = $scroll_to_top["color"];
             $variables["scroll-to-top-color-hover"] = $scroll_to_top["color_hover"];
             $variables["scroll-to-top-width"] = $scroll_to_top["width"];
@@ -703,13 +657,265 @@ function get_theme_styles($variables = array(), $root = false){
         update_dynamic_css_whitelist($classes);
 
         if($root){
-            $styles = array_to_root_styles($variables, $variables_mobile, $variables_media_query);
+            // $variables                 : Direkt root'a yazılır.
+            // $variables_mobile          : Max width 575'e yazılır (mobile).
+            // $variables_media_query     : Tüm media query^lere yazılır.
+            // $variables_media_query_set : Özeleştirilmiş olarak mobile dışındaki media query'lere
+            $rootVariables = new FluidCss($variables, $variables_mobile, $variables_media_query, $variables_media_query_set);
+            $styles = $rootVariables->generate();
+            $header_themes = save_theme_styles_header_themes($theme_styles["header"]);
+            if(!empty($header_themes)){
+                $styles .= "\n".$header_themes;
+            }
             file_put_contents(STATIC_PATH . "css/root.css", $styles);
             return false;
         }
     }
     return $variables;
 }
+
+function save_theme_styles_header_themes($header){
+        $header_themes = $header["themes"];
+        if($header_themes){
+            $dom_elements = ["body", "header"];
+            $code = "";
+            $header_theme_scss = SH_STATIC_PATH . "data/header-theme.scss";
+            if (file_exists($header_theme_scss)) {
+                $code .= file_get_contents($header_theme_scss);
+                foreach($header["themes"] as $theme){
+                    $selector = in_array($theme["class"], $dom_elements)?$theme["class"]:".".$theme["class"];
+                    $z_index = empty($theme["z-index"])?"null":$theme["z-index"];
+
+                    $default = $theme["default"];
+                    $color = empty($default["color"])?"null":$default["color"];
+                    $color_active = empty($default["color_active"])?"null":$default["color_active"];
+                    $bg_color = empty($default["bg_color"])?"null":$default["bg_color"];
+                    $logo = empty($default["logo"])?"null":$default["logo"];
+                    
+                    $affix = $theme["affix"];
+                    $color_affix = empty($affix["color"])?"null":$affix["color"];
+                    $color_active_affix = empty($affix["color_active"])?"null":$affix["color_active"];
+                    $bg_color_affix = empty($affix["bg_color"])?"null":$affix["bg_color"];
+                    $logo_affix = empty($affix["logo"])?"null":$affix["logo"];
+                    $btn_reverse = scss_variables_boolean($affix["btn_reverse"]);
+
+                    $code .= $selector.":not(.menu-open):not(.menu-show-header){\n";
+                        $code .= "@include headerTheme(";
+                            $code .= $color.",";
+                            $code .= $color_active.",";
+                            $code .= $bg_color.",";
+                            $code .= $logo.",";
+                            $code .= $color_affix.",";
+                            $code .= $color_active_affix.",";
+                            $code .= $bg_color_affix.",";
+                            $code .= $logo_affix.",";
+                            $code .= $z_index.",";
+                            $code .= $btn_reverse;
+                        $code .= ");\n";
+                    $code .= "}\n";
+                }
+                $wpscss_compiler = new SCSSCompiler();
+                $code = $wpscss_compiler->compile_string($code);
+                error_log(print_r($wpscss_compiler->get_compile_errors(), true));
+            }
+            return $code;
+        }
+}
+
+function acf_theme_styles_save_hook($post_id) {
+    if (have_rows('theme_styles', $post_id)) {
+        $theme_styles = get_field('theme_styles', 'option');
+        //print_r($theme_styles);
+        //die;
+        if($theme_styles){
+            $action = $theme_styles["theme_styles_action"];
+            $path = THEME_STATIC_PATH . 'data/theme-styles';
+            $create_root_css = false;
+            if(!is_dir($path)){
+                mkdir($path, 0755, true);
+            }
+            switch ($action) {
+                case 'revert':
+                    $preset_file = SH_STATIC_PATH . 'data/theme-styles-default.json';
+                    $json_file = file_get_contents($preset_file);
+                    $theme_styles = json_decode($json_file, true);
+                    $theme_styles["theme_styles_action"] = "";
+                    $theme_styles["theme_styles_filename"] = "";
+                    update_field('theme_styles', $theme_styles, $post_id);
+                break;
+                case 'save':
+                    $timestamp = time();
+                    $filename = sanitize_title($theme_styles["theme_styles_filename"]);//.".".$timestamp;
+                    $preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
+                    //$theme_styles["theme_styles_action"] = "";
+                    //$theme_styles["theme_styles_filename"] = "";
+                    //update_field('theme_styles', $theme_styles, $post_id);
+                    $theme_styles["theme_styles_presets"] = "";
+                    $json_data = json_encode($theme_styles);
+                    file_put_contents($preset_file, $json_data);
+                    // save root variables
+                    //get_theme_styles([], true);
+                    $create_root_css = true;
+                break;
+                case 'load':
+                    $filename = $theme_styles["theme_styles_presets"];
+                    if(!empty($filename)){
+                        $preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
+                        $json_file = file_get_contents($preset_file);
+                        $theme_styles = json_decode($json_file, true);
+                        $theme_styles["theme_styles_action"] = "save";
+                        $theme_styles["theme_styles_filename"] = $filename;
+                        $theme_styles["theme_styles_presets"] = "";
+                        update_field('theme_styles', $theme_styles, $post_id);
+                    }
+                break;
+            }
+            // save latest
+            $preset_file = THEME_STATIC_PATH . 'data/theme-styles/latest.json';
+            $json_data = json_encode($theme_styles);
+            file_put_contents($preset_file, $json_data); 
+
+            //save colors
+            $custom_colors_list = save_theme_styles_colors($theme_styles);
+            //save_theme_styles_header_themes($theme_styles["header"]);
+
+            if($create_root_css && $custom_colors_list){
+                get_theme_styles(["custom-colors-list" => $custom_colors_list], true);
+            }
+            delete_transient('theme_styles');
+        }
+    }
+}
+add_action('acf/save_post', 'acf_theme_styles_save_hook', 10);
+
+function acf_theme_styles_load_presets( $field ) {
+    $path = THEME_STATIC_PATH . 'data/theme-styles/';
+    if(is_dir($path)){
+        $handle = $path;
+        $templates = array();// scandir($handle);
+        if ($handle = opendir($handle)) {
+            while (false !== ($entry = readdir($handle))) {
+                if ($entry != "." && $entry != "..") {
+                    $templates[] = $entry;
+                }
+            }
+            closedir($handle);
+        }        
+    }else{
+        $path = SH_STATIC_PATH . 'data/';
+        $templates = ["theme-styles-default.json"];
+    }
+    $field['choices'] = array();
+    if( is_array($templates) ) {
+        foreach( $templates as $template ) {
+            $filepath = $path . $template;
+            if (file_exists($filepath)) {
+                $save_date = date("d.m.Y H:i", filemtime($filepath));
+                $template = str_replace(".json", "", $template);
+                $field['choices'][ $template ] = $template." [".$save_date."]";
+            }
+        }        
+    }
+    if(count($field["choices"]) == 0){
+        $field['choices'][""] = "Not found any preset";
+    }
+    return $field;
+}
+add_filter('acf/load_field/name=theme_styles_presets', 'acf_theme_styles_load_presets');
+
+
+
+
+
+function acf_save_menu_safelist_classes($post_id) {
+
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+
+    // if (get_post_type($post_id) !== 'your_post_type') return;
+    $menu_classes = array();
+    if (have_rows('header_tools_start', $post_id)) {
+        while (have_rows('header_tools_start', $post_id)) {
+            the_row();
+            $menu_class = get_sub_field('menu_class');
+            $classes = array_map('trim', array_filter(explode(' ', $menu_class)));
+            $menu_classes[] = $classes;
+        }
+    }
+    if (have_rows('header_tools_center', $post_id)) {
+        while (have_rows('header_tools_center', $post_id)) {
+            the_row();
+            $menu_class = get_sub_field('menu_class');
+            $classes = array_map('trim', array_filter(explode(' ', $menu_class)));
+            $menu_classes[] = $classes;
+        }
+    }
+    if (have_rows('header_tools_end', $post_id)) {
+        while (have_rows('header_tools_end', $post_id)) {
+            the_row();
+            $menu_class = get_sub_field('menu_class');
+            $classes = array_map('trim', array_filter(explode(' ', $menu_class)));
+            $menu_classes[] = $classes;
+        }
+    }
+    if (have_rows('theme_styles', $post_id)) {
+        $theme_styles = get_field("theme_styles", $post_id);
+        if($theme_styles){
+            $header_themes = $theme_styles["header"]["themes"];
+            if($header_themes){
+                foreach($header_themes as $theme){
+                    $class = $theme["class"];
+                    if(!in_array($class, ["body", "html"])){
+                        $classes = array_map('trim', array_filter(explode(' ', $class)));
+                        //$menu_classes[] = $classes;
+                        $menu_classes[] = $classes;                            
+                    }
+                }
+            }
+        }
+    }
+
+
+    // ACF block'larındaki class'ları kontrol et
+    $blocks = parse_blocks(get_post_field('post_content', $post_id));
+    if($blocks){
+        foreach ($blocks as $block) {
+            if ($block['blockName'] === 'acf/social-media') {
+                if (isset($block['attrs']['data'])) {
+                    $block_data = $block['attrs']['data'];
+                    if($block_data["add_accounts_from"] == "custom"){
+                        $account_count = $block_data['social_accounts_custom'];
+                        for ($i = 0; $i < $account_count; $i++) {
+                            $account_name = isset($block_data["social_accounts_custom_{$i}_name"]) ? $block_data["social_accounts_custom_{$i}_name"] : '';
+                            if ($account_name) {
+                                $class = "fa-".$account_name;
+                                $classes = array_map('trim', array_filter(explode(' ', $class)));
+                                $menu_classes[] = $classes;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    if($menu_classes){
+        $merged_menu_classes = array_map('trim', array_filter(array_unique(array_merge(...$menu_classes))));
+        $json_data = array_values($merged_menu_classes);
+        update_dynamic_css_whitelist($json_data);
+
+        /*$merged_menu_classes = array_map('trim', array_filter(array_unique(array_merge(...$menu_classes))));
+        $json_data = json_encode(['dynamicSafelist' => array_values($merged_menu_classes)], JSON_PRETTY_PRINT);
+        $file_path = HEME_STATIC_PATH . 'data/css_safelist.json';
+        file_put_contents($file_path, $json_data);*/
+    }
+}
+add_action('acf/save_post', 'acf_save_menu_safelist_classes', 20);
+
+
+
 
 
 function acf_set_thumbnail_condition($post_id){
@@ -975,6 +1181,22 @@ function acf_admin_colors_footer() {
     </script>
 <?php }
 add_action('acf/input/admin_footer', 'acf_admin_colors_footer');
+
+
+function acf_admin_colors_gradients_footer() { 
+    $colors = [];
+    $colors_file = THEME_STATIC_PATH . 'data/colors_gradients.json';
+    if(file_exists($colors_file)){
+        $colors = file_get_contents($colors_file);
+        $colors = json_decode($colors, true);
+        if($colors){
+            return $colors;
+        }
+    }
+}
+add_filter('acf_custom_gradients', 'acf_admin_colors_gradients_footer');
+
+
 
 
 
@@ -1560,7 +1782,6 @@ function acf_add_field_options($field) {
             $field['choices'][$label] = $label;
         }
     }
-
     
     if(in_array("acf-plyr-video-options", $class) || in_array("acf-plyr-audio-options", $class)){
         $field["allow_custom"] = 0;
@@ -1905,7 +2126,6 @@ function acf_add_field_options($field) {
         }
     }
 
-
     if(in_array("acf-menu-locations", $class)){
         $field["allow_custom"] = 0;
         $field["default_value"] = "";
@@ -1978,7 +2198,7 @@ function acf_add_field_options($field) {
         }
     }
 
-     if(in_array("acf-mt", $class) || in_array("acf-mb", $class) || in_array("acf-ms", $class) || in_array("acf-me", $class) || in_array("acf-pt", $class) || in_array("acf-pb", $class) || in_array("acf-ps", $class) || in_array("acf-ee", $class)){
+    if(in_array("acf-mt", $class) || in_array("acf-mb", $class) || in_array("acf-ms", $class) || in_array("acf-me", $class) || in_array("acf-pt", $class) || in_array("acf-pb", $class) || in_array("acf-ps", $class) || in_array("acf-ee", $class)){
         $field["allow_custom"] = 0;
         $field["default_value"] = "";
         $field["type"] = "select";
@@ -2182,6 +2402,53 @@ function acf_add_field_options($field) {
         ];
         $field['choices'] = array();
         foreach($apis as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+
+    if(in_array("acf-title-sizes", $class) || in_array("acf-title-sizes-default", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "default";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array();
+        if(in_array("acf-title-sizes", $class)){
+            $options["default"] = "Default";
+        }
+        $options["title-fluid"] = "Fluid";
+        foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+            $options["title-".$key] = "Title ".$key;
+        }
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
+            $field['choices'][$key] = $label;
+        }
+    }
+    if(in_array("acf-text-sizes", $class) || in_array("acf-text-sizes-default", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "default";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 0;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $options = array();
+        if(in_array("acf-text-sizes", $class)){
+            $options["default"] = "Default";
+        }
+        $options["text-fluid"] = "Fluid";
+        foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+            $options["text-".$key] = "Text ".$key;
+        }
+        $field['choices'] = array();
+        foreach($options as $key => $label) {
             $field['choices'][$key] = $label;
         }
     }
@@ -3931,16 +4198,19 @@ function acf_json_to_db($acf_json_path = "", $overwrite = true) {
 
 
 
-
+/*
 function save_theme_styles_colors($theme_styles){
         // Colors
         $colors_list_default = ["primary", "secondary", "tertiary","quaternary", "gray", "danger", "info", "success", "warning", "light", "dark"];
         $colors_list_file = THEME_STATIC_PATH . 'data/colors.json';
         $colors_mce_file = THEME_STATIC_PATH . 'data/colors_mce.json';
         $colors_file = THEME_STATIC_PATH . 'scss/_colors.scss';
+        $colors_gradients_file = THEME_STATIC_PATH . 'data/colors_gradients.json';
         file_put_contents($colors_file, "");
         $colors_code = "";
+        $colors_only = "";
         $colors_mce = [];
+        $colors_gradients = [];
         $custom_colors = "$"."custom-colors: (\n";
         $colors_list = "$"."custom-colors-list: ";
         $colors = $theme_styles["colors"];
@@ -3949,9 +4219,12 @@ function save_theme_styles_colors($theme_styles){
                 $colors_code .= "$".$color.": ".scss_variables_color($colors[$color]).";\n";
                 $custom_colors .= "\t".$color.": ".scss_variables_color($colors[$color]).",\n";
                 $colors_list .= $color.",";
+                $colors_only .= $color.",";
                 $colors_mce[scss_variables_color($colors[$color])] = $color;
             }
         }
+        $colors_list = rtrim($colors_list, ',') . ";\n";
+        $colors_only = rtrim($colors_only, ',');
         if($colors["custom"]){
             foreach($colors["custom"] as $key => $color){
                 $colors_code .= "$".$color["title"].": ".scss_variables_color($color["color"]).";\n";
@@ -3963,235 +4236,93 @@ function save_theme_styles_colors($theme_styles){
         }
         $custom_colors .= ");\n";
         $colors_list .= ";\n";
+
+        if($colors["custom_gradients"]){
+            $colors_gradient = [];
+             foreach($colors["custom_gradients"] as $color){
+                $colors_gradients[] = [
+                    "name" => $color["title"],
+                    "gradient" => $color["color"]
+                ];
+            }
+        }
+
         file_put_contents($colors_file, $colors_code.$custom_colors.$colors_list);
         file_put_contents($colors_list_file, json_encode($colors_list_default)); 
-        file_put_contents($colors_mce_file, json_encode($colors_mce)); 
+        file_put_contents($colors_mce_file, json_encode($colors_mce));
+        file_put_contents($colors_gradients_file, json_encode($colors_gradients));
+        return $colors_only;
+}
+*/
+
+function save_theme_styles_colors($theme_styles){
+    // Varsayılan renk isimleri
+    $colors_list_default = ["primary", "secondary", "tertiary","quaternary", "gray", "danger", "info", "success", "warning", "light", "dark"];
+    
+    // Dosya yolları
+    $colors_list_file = THEME_STATIC_PATH . 'data/colors.json';
+    $colors_mce_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+    $colors_file = THEME_STATIC_PATH . 'scss/_colors.scss';
+    
+    // Kod stringlerini başlat
+    $colors_code = "";
+    $colors_only = "";
+    $colors_mce = [];
+    $custom_colors = "$" . "custom-colors: (\n";
+    $colors_list_items = [];
+
+    $colors = $theme_styles["colors"];
+
+    // 1) Primary, Secondary, Tertiary, Quaternary
+    foreach(["primary", "secondary","tertiary", "quaternary"] as $color){
+        if(!empty($colors[$color])){
+            $value = scss_variables_color($colors[$color]);
+            $colors_code .= "$" . $color . ": " . $value . ";\n";
+            $custom_colors .= "\t" . $color . ": " . $value . ",\n";
+            $colors_list_items[] = $color;
+            $colors_only .= $color . ",";
+            $colors_mce[$value] = $color;
+        }
+    }
+
+    // 2) Custom Colors
+    if (!empty($colors["custom"])) {
+        foreach($colors["custom"] as $color){
+            $key = $color["title"];
+            $value = scss_variables_color($color["color"]);
+            $colors_code .= "$" . $key . ": " . $value . ";\n";
+            $custom_colors .= "\t" . $key . ": " . $value . ",\n";
+            $colors_list_items[] = $key;
+            $colors_list_default[] = $key;
+            $colors_mce[$value] = $key;
+        }
+    }
+
+    $custom_colors = rtrim($custom_colors, ",\n") . "\n);\n";
+    $colors_only = rtrim($colors_only, ",");
+
+    // Listeyi düzgün virgül ayırarak oluştur
+    $colors_list = "$" . "custom-colors-list: " . implode(",", $colors_list_items) . ";\n";
+
+    // SCSS dosyasına yaz
+    $scss_output = $colors_code . $custom_colors . $colors_list;
+    file_put_contents($colors_file, $scss_output);
+
+    // JSON dosyalarına yaz
+    file_put_contents($colors_list_file, json_encode($colors_list_default));
+    file_put_contents($colors_mce_file, json_encode($colors_mce));
+
+    return $colors_only;
 }
 
-function save_theme_styles_header_themes($header){
-    // Header Themes
-        $header_themes_file = THEME_STATIC_PATH . 'scss/_header-themes.scss';
-        file_put_contents($header_themes_file, ""); 
-        $header_themes = $header["themes"];
-        if($header_themes){
-            $dom_elements = ["body", "header"];
-            $code = "";
-            foreach($header["themes"] as $theme){
-                $theme["class"] = in_array($theme["class"], $dom_elements)?$theme["class"]:".".$theme["class"];
-                $z_index = empty($theme["z-index"])?"null":$theme["z-index"];
-
-                $default = $theme["default"];
-                $color = empty($default["color"])?"null":$default["color"];
-                $color_active = empty($default["color_active"])?"null":$default["color_active"];
-                $bg_color = empty($default["bg_color"])?"null":$default["bg_color"];
-                $logo = empty($default["logo"])?"null":$default["logo"];
-                
-                $affix = $theme["affix"];
-                $color_affix = empty($affix["color"])?"null":$affix["color"];
-                $color_active_affix = empty($affix["color_active"])?"null":$affix["color_active"];
-                $bg_color_affix = empty($affix["bg_color"])?"null":$affix["bg_color"];
-                $logo_affix = empty($affix["logo"])?"null":$affix["logo"];
-                $btn_reverse = scss_variables_boolean($affix["btn_reverse"]);
-
-                $code .= $theme["class"].":not(.menu-open):not(.menu-show-header){\n";
-                    $code .= "@include headerTheme(";
-                        $code .= $color.",";
-                        $code .= $color_active.",";
-                        $code .= $bg_color.",";
-                        $code .= $logo.",";
-                        $code .= $color_affix.",";
-                        $code .= $color_active_affix.",";
-                        $code .= $bg_color_affix.",";
-                        $code .= $logo_affix.",";
-                        $code .= $z_index.",";
-                        $code .= $btn_reverse;
-                    $code .= ");\n";
-                $code .= "}\n";
-            }
-            file_put_contents($header_themes_file, $code); 
-        }
-}
-
-function acf_save_menu_safelist_classes($post_id) {
-
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-        return;
-    }
-
-    // if (get_post_type($post_id) !== 'your_post_type') return;
-    $menu_classes = array();
-    if (have_rows('header_tools_start', $post_id)) {
-        while (have_rows('header_tools_start', $post_id)) {
-            the_row();
-            $menu_class = get_sub_field('menu_class');
-            $classes = array_map('trim', array_filter(explode(' ', $menu_class)));
-            $menu_classes[] = $classes;
-        }
-    }
-    if (have_rows('header_tools_center', $post_id)) {
-        while (have_rows('header_tools_center', $post_id)) {
-            the_row();
-            $menu_class = get_sub_field('menu_class');
-            $classes = array_map('trim', array_filter(explode(' ', $menu_class)));
-            $menu_classes[] = $classes;
-        }
-    }
-    if (have_rows('header_tools_end', $post_id)) {
-        while (have_rows('header_tools_end', $post_id)) {
-            the_row();
-            $menu_class = get_sub_field('menu_class');
-            $classes = array_map('trim', array_filter(explode(' ', $menu_class)));
-            $menu_classes[] = $classes;
-        }
-    }
-    if (have_rows('theme_styles', $post_id)) {
-        $theme_styles = get_field("theme_styles", $post_id);
-        if($theme_styles){
-            $header_themes = $theme_styles["header"]["themes"];
-            if($header_themes){
-                foreach($header_themes as $theme){
-                    $class = $theme["class"];
-                    if(!in_array($class, ["body", "html"])){
-                        $classes = array_map('trim', array_filter(explode(' ', $class)));
-                        //$menu_classes[] = $classes;
-                        $menu_classes[] = $classes;                            
-                    }
-                }
-            }
-        }
-    }
 
 
-    // ACF block'larındaki class'ları kontrol et
-    $blocks = parse_blocks(get_post_field('post_content', $post_id));
-    if($blocks){
-        foreach ($blocks as $block) {
-            if ($block['blockName'] === 'acf/social-media') {
-                if (isset($block['attrs']['data'])) {
-                    $block_data = $block['attrs']['data'];
-                    if($block_data["add_accounts_from"] == "custom"){
-                        $account_count = $block_data['social_accounts_custom'];
-                        for ($i = 0; $i < $account_count; $i++) {
-                            $account_name = isset($block_data["social_accounts_custom_{$i}_name"]) ? $block_data["social_accounts_custom_{$i}_name"] : '';
-                            if ($account_name) {
-                                $class = "fa-".$account_name;
-                                $classes = array_map('trim', array_filter(explode(' ', $class)));
-                                $menu_classes[] = $classes;
-                            }
-                        }
-                    }
-                }
-                break;
-            }
-        }
-    }
 
-    if($menu_classes){
-        $merged_menu_classes = array_map('trim', array_filter(array_unique(array_merge(...$menu_classes))));
-        $json_data = array_values($merged_menu_classes);
-        update_dynamic_css_whitelist($json_data);
 
-        /*$merged_menu_classes = array_map('trim', array_filter(array_unique(array_merge(...$menu_classes))));
-        $json_data = json_encode(['dynamicSafelist' => array_values($merged_menu_classes)], JSON_PRETTY_PRINT);
-        $file_path = HEME_STATIC_PATH . 'data/css_safelist.json';
-        file_put_contents($file_path, $json_data);*/
-    }
-}
-add_action('acf/save_post', 'acf_save_menu_safelist_classes', 20);
 
-function acf_theme_styles_save_hook($post_id) {
-    if (have_rows('theme_styles', $post_id)) {
-        $theme_styles = get_field('theme_styles', 'option');
-        //print_r($theme_styles);
-        //die;
-        if($theme_styles){
-            $action = $theme_styles["theme_styles_action"];
-            $path = THEME_STATIC_PATH . 'data/theme-styles';
-            if(!is_dir($path)){
-                mkdir($path, 0755, true);
-            }
-            switch ($action) {
-                case 'revert':
-                    $preset_file = SH_STATIC_PATH . 'data/theme-styles-default.json';
-                    $json_file = file_get_contents($preset_file);
-                    $theme_styles = json_decode($json_file, true);
-                    $theme_styles["theme_styles_action"] = "";
-                    $theme_styles["theme_styles_filename"] = "";
-                    update_field('theme_styles', $theme_styles, $post_id);
-                break;
-                case 'save':
-                    $timestamp = time();
-                    $filename = sanitize_title($theme_styles["theme_styles_filename"]);//.".".$timestamp;
-                    $preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
-                    //$theme_styles["theme_styles_action"] = "";
-                    //$theme_styles["theme_styles_filename"] = "";
-                    //update_field('theme_styles', $theme_styles, $post_id);
-                    $theme_styles["theme_styles_presets"] = "";
-                    $json_data = json_encode($theme_styles);
-                    file_put_contents($preset_file, $json_data);
-                    // save root variables
-                    get_theme_styles([], true);
-                break;
-                case 'load':
-                    $filename = $theme_styles["theme_styles_presets"];
-                    if(!empty($filename)){
-                        $preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
-                        $json_file = file_get_contents($preset_file);
-                        $theme_styles = json_decode($json_file, true);
-                        $theme_styles["theme_styles_action"] = "save";
-                        $theme_styles["theme_styles_filename"] = $filename;
-                        $theme_styles["theme_styles_presets"] = "";
-                        update_field('theme_styles', $theme_styles, $post_id);
-                    }
-                break;
-            }
-            // save latest
-            $preset_file = THEME_STATIC_PATH . 'data/theme-styles/latest.json';
-            $json_data = json_encode($theme_styles);
-            file_put_contents($preset_file, $json_data); 
-            //save colors
-            save_theme_styles_colors($theme_styles);
-            save_theme_styles_header_themes($theme_styles["header"]);
-            delete_transient('theme_styles');
-        }
-    }
-}
-add_action('acf/save_post', 'acf_theme_styles_save_hook', 10);
 
-function acf_theme_styles_load_presets( $field ) {
-    $path = THEME_STATIC_PATH . 'data/theme-styles/';
-    if(is_dir($path)){
-        $handle = $path;
-        $templates = array();// scandir($handle);
-        if ($handle = opendir($handle)) {
-            while (false !== ($entry = readdir($handle))) {
-                if ($entry != "." && $entry != "..") {
-                    $templates[] = $entry;
-                }
-            }
-            closedir($handle);
-        }        
-    }else{
-        $path = SH_STATIC_PATH . 'data/';
-        $templates = ["theme-styles-default.json"];
-    }
-    $field['choices'] = array();
-    if( is_array($templates) ) {
-        foreach( $templates as $template ) {
-            $filepath = $path . $template;
-            if (file_exists($filepath)) {
-                $save_date = date("d.m.Y H:i", filemtime($filepath));
-                $template = str_replace(".json", "", $template);
-                $field['choices'][ $template ] = $template." [".$save_date."]";
-            }
-        }        
-    }
-    if(count($field["choices"]) == 0){
-        $field['choices'][""] = "Not found any preset";
-    }
-    return $field;
-}
-add_filter('acf/load_field/name=theme_styles_presets', 'acf_theme_styles_load_presets');
+
+
 
 function acf_header_footer_options_save_hook($post_id) {
     // Sadece options sayfası kaydedildiğinde çalışsın
@@ -4236,6 +4367,7 @@ add_action('acf/save_post', 'acf_clear_wp_cache', 10);
 
 add_filter('acf/update_value/name=modal_home', function ($value, $post_id, $field) {
     $home_id = get_option('page_on_front');
+    error_log(" -----------  updated home: ".$home_id);
     if ($home_id) {
         wp_update_post([
             'ID' => $home_id,

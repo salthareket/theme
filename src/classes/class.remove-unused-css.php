@@ -25,6 +25,7 @@ class RemoveUnusedCss {
         ".show",
         ".affix",
         ".header-hide",
+        ".fixed-*",
         ".resizing",
         ".scroll-down",
         ".loading",
@@ -451,7 +452,6 @@ class RemoveUnusedCss {
         return $selector;
     }
 
-
     private function selectorExists($dom, $selector) {
         $selector = trim($selector);
         if (empty($selector)) return false;
@@ -547,7 +547,6 @@ class RemoveUnusedCss {
             $data = remove_duplicated_items($data);
             $this->white_list = $data;
         }
-
     }
 
     private function isWhitelisted($dom, $selector) {

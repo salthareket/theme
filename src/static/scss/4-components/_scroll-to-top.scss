@@ -1,8 +1,9 @@
 
 a.scroll-to-top{
-	@if $scroll-to-top-show == "no" {
-		display:none;
-	}
+	//@if $scroll-to-top-show == "no" {
+	//	display:none;
+	//}
+	display: var(--scroll-to-top-show);
 	position: fixed;
 	display: flex;
 	align-items:center;
@@ -37,6 +38,6 @@ a.scroll-to-top{
 	@include transition(all .3s ease-out!important);
 	&:hover{
 		color: var(--scroll-to-top-color-hover)!important;
-	    background-color: var(--scroll-to-top-bg-color-hover);
+	    background-color: var(--scroll-to-top-bg-color-hover)!important;
 	}
 }

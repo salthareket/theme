@@ -7,17 +7,17 @@
             {% if header_options.start.type == "brand" %}
                 <div class="{{header_options.start.class|replace({ '{{equalize}}' : equalize })}} {% if header_options.start.logo_height %}h-100{% else %}h-inherit{% endif %}">
                     <div class="navbar-brand align-items-{{header_options.start.align}} d-flex {% if logo_affix %}has-logo-affix{% endif %} {% if logo_mobile %}has-logo-mobile{% endif %}">
-                        <a href="{{site.url}}" class="mh-100 d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+                        <a href="{{site.url}}" class="mh-100 h-auto d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
                             {% if function('get_extension', logo) == "svg" %}
-                                {{function('inline_svg', logo, "logo-svg w-auto h-inherit ")}}
+                                {{function('inline_svg', logo, "logo-svg w-auto h-inherit-- ")}}
                             {% else %}
-                                <img src="{{logo}}" class="logo h-inherit" alt="{{site.name}}" />
+                                <img src="{{logo}}" class="logo h-inherit--" alt="{{site.name}}" />
                             {% endif %}
                             {% if logo_affix != "" %}
                                 {% if function('get_extension', logo_affix) == "svg" %}
-                                    {{function('inline_svg', logo_affix, "logo-svg logo-affix w-auto h-inherit")}}
+                                    {{function('inline_svg', logo_affix, "logo-svg logo-affix w-auto h-inherit--")}}
                                 {% else %}
-                                    <img src="{{logo_affix}}" class="logo logo-affix h-inherit" alt="{{site.name}}" />
+                                    <img src="{{logo_affix}}" class="logo logo-affix h-inherit--" alt="{{site.name}}" />
                                 {% endif %}
                             {% endif %}
                             {% if logo_mobile != "" %}
@@ -33,7 +33,7 @@
             {% elseif header_options.start.type == "navigation" %}
                 <div class="{{header_options.start.class|replace({ '{{equalize}}' : equalize })}} h-100">
                     <div id="navigation" class="navbar-container d-xl-flex d-none h-100 justify-content-{{header_options.start.align}}">
-                        <ul class="navbar-nav-main nav navbar-nav--" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
+                        <ul class="smartmenu navbar-nav-main nav navbar-nav--" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
                             {% include "navigation/menu.twig" with {'menu': salt.get_menu(header_options.start.menu).get_items, 'parent_link' : header_options.start.parent_link} %}
                         </ul>
                     </div>
@@ -52,17 +52,17 @@
             {% if header_options.center.type == "brand" %}
                 <div class="{{header_options.center.class|replace({ '{{equalize}}' : equalize })}} {% if header_options.start.logo_height %}h-100{% else %}h-inherit{% endif %}">
                     <div class="navbar-brand align-items-{{header_options.center.align}} d-flex {% if logo_affix %}has-logo-affix{% endif %} {% if logo_mobile %}has-logo-mobile{% endif %}">
-                        <a href="{{site.url}}" class="mh-100 d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+                        <a href="{{site.url}}" class="mh-100 h-auto d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
                             {% if function('get_extension', logo) == "svg" %}
-                                {{function('inline_svg', logo, "logo-svg w-auto h-inherit ")}}
+                                {{function('inline_svg', logo, "logo-svg w-auto h-inherit-- ")}}
                             {% else %}
-                                <img src="{{logo}}" class="logo h-inherit" alt="{{site.name}}" />
+                                <img src="{{logo}}" class="logo h-inherit--" alt="{{site.name}}" />
                             {% endif %}
                             {% if logo_affix != "" %}
                                 {% if function('get_extension', logo_affix) == "svg" %}
-                                    {{function('inline_svg', logo_affix, "logo-svg logo-affix w-auto h-inherit")}}
+                                    {{function('inline_svg', logo_affix, "logo-svg logo-affix w-auto h-inherit--")}}
                                 {% else %}
-                                    <img src="{{logo_affix}}" class="logo logo-affix h-inherit" alt="{{site.name}}" />
+                                    <img src="{{logo_affix}}" class="logo logo-affix h-inherit--" alt="{{site.name}}" />
                                 {% endif %}
                             {% endif %}
                             {% if logo_mobile != "" %}
@@ -78,7 +78,7 @@
             {% elseif header_options.center.type == "navigation" %}
                 <div class="{{header_options.center.class|replace({ '{{equalize}}' : equalize })}} h-100">
                     <div id="navigation" class="navbar-container d-xl-flex d-none h-100 justify-content-{{header_options.center.align}}">
-                        <ul class="navbar-nav-main nav navbar-nav--" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
+                        <ul class="smartmenu navbar-nav-main nav navbar-nav--" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
                             {% include "navigation/menu.twig" with {'menu': salt.get_menu(header_options.center.menu).get_items, 'parent_link' : header_options.center.parent_link } %}
                         </ul>
                     </div>
@@ -96,7 +96,7 @@
             {% if header_options.end.type == "brand" %}
                 <div class="{{header_options.end.class|replace({ '{{equalize}}' : equalize })}} {% if header_options.start.logo_height %}h-100{% else %}h-inherit{% endif %}">
                     <div class="navbar-brand align-items-{{header_options.end.align}} d-flex {% if logo_affix %}has-logo-affix{% endif %} {% if logo_mobile %}has-logo-mobile{% endif %}">
-                        <a href="{{site.url}}" class="mh-100 d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+                        <a href="{{site.url}}" class="mh-100 h-auto d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
                             {% if function('get_extension', logo) == "svg" %}
                                 {{function('inline_svg', logo, "logo-svg w-auto h-inherit ")}}
                             {% else %}
@@ -122,7 +122,7 @@
             {% elseif header_options.end.type == "navigation" %}
                 <div class="{{header_options.end.class|replace({ '{{equalize}}' : equalize })}} h-100">
                     <div id="navigation" class="navbar-container d-xl-flex d-none h-100 justify-content-{{header_options.end.align}}">
-                        <ul class="navbar-nav-main nav navbar-nav--" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
+                        <ul class="smartmenu navbar-nav-main nav navbar-nav--" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
                             {% include "navigation/menu.twig" with {'menu': salt.get_menu(header_options.end.menu).get_items, 'parent_link' : header_options.end.parent_link } %}
                         </ul>
                     </div>

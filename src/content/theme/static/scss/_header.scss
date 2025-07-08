@@ -95,16 +95,18 @@
 						.header-tools{
 							>.nav{
 								>.nav-item{
-									a:not(.btn){
-										color:$color!important;
-										&:hover{
+									div:not(.navbar-container){
+										a:not(.btn){
 											color:$color!important;
+											&:hover{
+												color:$color!important;
+												>i{
+													color:$color!important;
+												}
+											}
 											>i{
 												color:$color!important;
 											}
-										}
-										>i{
-											color:$color!important;
 										}
 									}
 									.nav-toggler-custom{
@@ -168,35 +170,36 @@
 						.header-tools{
 							>.nav{
 								>.nav-item{
-									a:not(.btn){
-										color:$colorAffix!important;
-										&:hover{
+									div:not(.navbar-container){
+										a:not(.btn){
 											color:$colorAffix!important;
+											&:hover{
+												color:$colorAffix!important;
+												>i{
+													color:$colorAffix!important;
+												}
+											}
 											>i{
 												color:$colorAffix!important;
 											}
 										}
-										>i{
-											color:$colorAffix!important;
+										@if $bgColor != $bgColorAffix and $btnAffixReverse == true {
+											a.btn{
+	                                            @extend .btn-reverse;
+											}
 										}
-									}
-									@if $bgColor != $bgColorAffix and $btnAffixReverse == true {
-										a.btn{
-                                            @extend .btn-reverse;
-										}
-									}
 
-									@if $bgColor != $bgColorAffix and $btnAffixReverse != true {
-										a.btn{
-											&[class*=" btn-outline-"] {
-												@include button-outline-variant($colorAffix);
-                                            }
-										    &:not([class*=" btn-outline-"]) {
-										        @include button-variant($colorAffix, $colorAffix);
-										    }
+										@if $bgColor != $bgColorAffix and $btnAffixReverse != true {
+											a.btn{
+												&[class*=" btn-outline-"] {
+													@include button-outline-variant($colorAffix);
+	                                            }
+											    &:not([class*=" btn-outline-"]) {
+											        @include button-variant($colorAffix, $colorAffix);
+											    }
+											}
 										}
 									}
-
 									.nav-toggler-custom{
 										span{
 											background-color:$colorAffix;
@@ -245,7 +248,7 @@
 		}
 	}
 }
-@import 'header-themes';
+/*@import 'header-themes';*/
 
 body{
 	&.menu-open{
@@ -346,7 +349,7 @@ body{
 header#header{
 	.logo,
 	.logo-svg{
-		filter: drop-shadow(0px 2px 20px rgba(#000,.3));
+		//filter: drop-shadow(0px 2px 20px rgba(#000,.3));
 	}
 	.navbar-nav-main{
 		>li{
@@ -359,9 +362,9 @@ header#header{
 							position:absolute;
 							left:0;
 							right:0;
-							bottom:-4px;
+							bottom:-8px;
 							height:2px;
-							background-color:var(--bs-turkis);
+							background-color:var(--yellow);
 							border-radius:3px;
 						}
 					}
@@ -376,7 +379,7 @@ header#header{
 							position:absolute;
 							left:0;
 							right:0;
-							bottom:-4px;
+							bottom:-8px;
 							height:2px;
 							background-color:#fff;
 							border-radius:3px;
@@ -402,7 +405,7 @@ header#header{
 					> span:not(.sub-arrow){
 						position:relative;
 						&:after{
-							background-color:var(--bs-turkis);
+							background-color:var(--yellow);
 						}
 					}
 				}
@@ -419,7 +422,7 @@ body:not(.has-hero){
 						> span:not(.sub-arrow){
 							position:relative;
 							&:after{
-								background-color:var(--bs-turkis);
+								background-color:var(--yellow);
 							}
 						}
 					}

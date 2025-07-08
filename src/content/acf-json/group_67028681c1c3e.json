@@ -80,7 +80,9 @@
                             "placeholder": "",
                             "allow_custom": 0,
                             "search_placeholder": "",
-                            "parent_repeater": "field_67028681e13b1"
+                            "parent_repeater": "field_67028681e13b1",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_67028681f07b5",
@@ -252,7 +254,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208644,
+    "modified": 1750983334,
     "acfe_categories": {
         "general": "General"
     }

@@ -68,12 +68,13 @@ function compile_files_config($enable_production=false){
 
 	$header_has_navigation = header_has_navigation();
 
-
 	$plugins = array();
 	$plugins['bootstrap'] = [
 		"c"   => false,
 		"admin" => false,
-		"url" => $node_path . 'bootstrap/dist/js/bootstrap.bundle.min.js',
+		"url" => [
+			$node_path . 'bootstrap/dist/js/bootstrap.bundle.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
@@ -81,21 +82,25 @@ function compile_files_config($enable_production=false){
 		"whitelist" => []
 	];
 	$plugins['jquery-slinky'] = [
-		"c"   => false,
+		"c"   => true,
 		"admin" => false,
-		"url" => $node_path . 'jquery-slinky/dist/slinky.min.js',
+		"url" => [
+			$node_path . 'jquery-slinky/dist/slinky.min.js'
+		],
 		"css" => [
 			$node_path . 'jquery-slinky/dist/slinky.min.css'
 		],
-		"class" => [],
+		"class" => ["slinky-menu"],
 		"attrs" => [],
-		"init"  => "",
+		"init"  => "init_slinky",
 		"whitelist" => []
 	];
 	$plugins['bootbox'] = [
 		"c"   => true,
 		"admin" => false,
-		"url" => $node_path . 'bootbox/dist/bootbox.all.min.js',
+		"url" => [
+			$node_path . 'bootbox/dist/bootbox.all.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs"  => [
@@ -112,7 +117,9 @@ function compile_files_config($enable_production=false){
 	$plugins['aos'] = [
 		"c"   => true,
 		"admin" => false,
-		"url" => $node_path . 'aos/dist/aos.js',
+		"url" => [
+			$node_path . 'aos/dist/aos.js'
+		],
 		"css" => [
 			$node_path . 'aos/dist/aos.css'
 		],
@@ -126,7 +133,9 @@ function compile_files_config($enable_production=false){
 	$plugins['plyr'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'plyr/dist/plyr.min.js',
+		"url" => [
+			$node_path . 'plyr/dist/plyr.min.js'
+		],
 		"css" => [
 			$node_path . 'plyr/dist/plyr.css'
 		],
@@ -138,7 +147,9 @@ function compile_files_config($enable_production=false){
 	$plugins['swiper'] = [
 		"c"   => true,
 		"admin" => true,
-		"url" => $node_path . 'swiper/swiper-bundle.min.js',
+		"url" => [
+			$node_path . 'swiper/swiper-bundle.min.js'
+		],
 		"css" => [
 			$node_path .'swiper/swiper-bundle.min.css'
 		],
@@ -150,7 +161,9 @@ function compile_files_config($enable_production=false){
 	$plugins['vanilla-lazyload'] = [
 		"c"   => false,
 		"admin" => true,
-		"url" => $node_path . 'vanilla-lazyload/dist/lazyload.min.js',
+		"url" => [
+			$node_path . 'vanilla-lazyload/dist/lazyload.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
@@ -160,7 +173,9 @@ function compile_files_config($enable_production=false){
 	$plugins['justifiedGallery'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+		"url" => [
+			$node_path . 'justifiedGallery/dist/js/jquery.justifiedGallery.min.js'
+		],
 		"css" => [
 			$node_path . 'justifiedGallery/dist/css/justifiedGallery.min.css'
 		],
@@ -172,7 +187,9 @@ function compile_files_config($enable_production=false){
 	$plugins['lightgallery'] = [
 		"c"   => true,
 		"admin" => false,
-		"url" => $node_path . 'lightgallery/lightgallery.min.js',
+		"url" => [
+			$node_path . 'lightgallery/lightgallery.min.js'
+		],
 		"css" => [
 			$node_path . 'lightgallery/css/lightgallery-bundle.min.css'
 		],
@@ -184,7 +201,9 @@ function compile_files_config($enable_production=false){
 	$plugins['lightgallery-video'] = [
 		"c"   => true,
 		"admin" => false,
-		"url" => $node_path . 'lightgallery/plugins/video/lg-video.min.js',
+		"url" => [
+			$node_path . 'lightgallery/plugins/video/lg-video.min.js'
+		],
 		"css" => [],
 		"class" => ["lightgallery"],
 		"attrs" => [],
@@ -194,7 +213,9 @@ function compile_files_config($enable_production=false){
 	$plugins['jquery-match-height'] = [
 		"c" => false,
 		"admin" => true,
-		"url" => $node_path . 'jquery-match-height/dist/jquery.matchHeight-min.js',
+		"url" => [
+			$node_path . 'jquery-match-height/dist/jquery.matchHeight-min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
@@ -204,7 +225,9 @@ function compile_files_config($enable_production=false){
 	$plugins['scrollpos-styler'] = [
 		"c"	=> false,
 		"admin" => false,
-		"url" => $node_path . 'scrollpos-styler/scrollPosStyler.min.js',
+		"url" => [
+			$node_path . 'scrollpos-styler/scrollPosStyler.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
@@ -214,7 +237,9 @@ function compile_files_config($enable_production=false){
 	$plugins['is-in-viewport'] = [
 		"c"	=> false,
 		"admin" => true,
-		"url" => $node_path . 'is-in-viewport/lib/isInViewport.min.js',
+		"url" => [
+			$node_path . 'is-in-viewport/lib/isInViewport.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
@@ -224,7 +249,9 @@ function compile_files_config($enable_production=false){
 	$plugins['letteringjs'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'letteringjs/jquery.lettering.js',
+		"url" => [
+			$node_path . 'letteringjs/jquery.lettering.js'
+		],
 		"css" => [],
 		"class" => ["text-effect"],
 		"attrs" => [],
@@ -234,7 +261,9 @@ function compile_files_config($enable_production=false){
 	$plugins['textillate'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'textillate/jquery.textillate.js',
+		"url" => [
+			$node_path . 'textillate/jquery.textillate.js'
+		],
 		"css" => [
 			$node_path . 'animate.css/animate.compat.css'
 		],
@@ -246,7 +275,9 @@ function compile_files_config($enable_production=false){
     $plugins['jarallax'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path . 'jarallax/dist/jarallax.min.js',
+		"url" => [
+			$node_path . 'jarallax/dist/jarallax.min.js'
+		],
 		"css" => [
 			$node_path .'jarallax/dist/jarallax.min.css'
 		],
@@ -258,7 +289,9 @@ function compile_files_config($enable_production=false){
     $plugins['lenis'] = [
    		"c"	=> false,
    		"admin" => false,
-		"url" => $node_path . 'lenis/dist/lenis.min.js',
+		"url" => [
+			$node_path . 'lenis/dist/lenis.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
@@ -268,7 +301,9 @@ function compile_files_config($enable_production=false){
     $plugins['jquery.simple-text-rotator'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path .'jquery.simple-text-rotator/jquery.simple-text-rotator.min.js',
+		"url" => [
+			$node_path .'jquery.simple-text-rotator/jquery.simple-text-rotator.min.js'
+		],
 		"css" => [
 			$node_path .'jquery.simple-text-rotator/simpletextrotator.css'
 		],
@@ -280,7 +315,9 @@ function compile_files_config($enable_production=false){
 	$plugins['masonry-layout'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path .'masonry-layout/dist/masonry.pkgd.min.js',
+		"url" => [
+			$node_path .'masonry-layout/dist/masonry.pkgd.min.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => ["data-masonry"],
@@ -290,7 +327,9 @@ function compile_files_config($enable_production=false){
 	$plugins['twig'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path . 'twig/twig.min.js',
+		"url" => [
+			$node_path . 'twig/twig.min.js'
+		],
 		"css" => [],
 		"class" => ["leaflet-custom", "googlemaps-custom"],
 		"attrs" => [],
@@ -301,9 +340,14 @@ function compile_files_config($enable_production=false){
 	$plugins['leaflet'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path . 'leaflet/dist/leaflet.js',
+		"url" => [
+			$node_path . 'leaflet/dist/leaflet.js',
+			$node_path . 'leaflet.markercluster/dist/leaflet.markercluster.js'
+		],
 		"css" => [
 			$node_path . 'leaflet/dist/leaflet.css',
+			$node_path . 'leaflet.markercluster/dist/MarkerCluster.css',
+			$node_path . 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 		],
 		"class" => ["leaflet-custom"],
 		"attrs" => [
@@ -313,10 +357,12 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_leaflet",
 		"whitelist" => []
 	];
-	$plugins['leaflet.markercluster'] = [
+	/*$plugins['leaflet.markercluster'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path . 'leaflet.markercluster/dist/leaflet.markercluster.js',
+		"url" => [
+			$node_path . 'leaflet.markercluster/dist/leaflet.markercluster.js'
+		],
 		"css" => [
 			$node_path . 'leaflet.markercluster/dist/MarkerCluster.css',
 			$node_path . 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -328,11 +374,13 @@ function compile_files_config($enable_production=false){
 		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "leaflet" ? 1: 0,
 		"init"     => "",
 		"whitelist" => []
-	];
+	];*/
 	$plugins['markerclusterer'] = [
    		"c"	=> true,
    		"admin" => false,
-		"url" => $node_path . '@googlemaps/markerclusterer/dist/index.umd.js',
+		"url" => [
+			$node_path . '@googlemaps/markerclusterer/dist/index.umd.js'
+		],
 		"css" => [],
 		"class" => ["googlemaps-custom"],
 		"attrs"  => [
@@ -346,7 +394,9 @@ function compile_files_config($enable_production=false){
 	$plugins['smarquee'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'smarquee/dist/smarquee.min.js',
+		"url" => [
+			$node_path . 'smarquee/dist/smarquee.min.js'
+		],
 		"css" => [],
 		"class" => ["smarquee"],
 		"attrs" => [],
@@ -357,7 +407,9 @@ function compile_files_config($enable_production=false){
 	$plugins['locomotive-scroll'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'locomotive-scroll/bundled/locomotive-scroll.min.js',
+		"url" => [
+			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.min.js'
+		],
 		"css" => [
 			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.css',
 		],
@@ -370,7 +422,9 @@ function compile_files_config($enable_production=false){
 	$plugins['jquery-zoom'] = [
 		"c"	=> true,
 		"admin" => false,
-		"url" => $node_path . 'jquery-zoom/jquery.zoom.js',
+		"url" => [
+			$node_path . 'jquery-zoom/jquery.zoom.js'
+		],
 		"css" => [],
 		"class" => [],
 		"attrs" => ["data-zoom"],
@@ -378,30 +432,40 @@ function compile_files_config($enable_production=false){
 		"whitelist" => []  
 	];
 
-
-   if(!isset($plugins["smartmenu-bs"]) && $header_has_navigation){
+   if(!isset($plugins["smartmenus"]) && $header_has_navigation){
 	 	$plugins['smartmenus'] = [
-	 		"c"   => false,
+	 		"c"   => true,
 	 		"admin" => false,
-			"url" => $node_path . 'smartmenus/dist/jquery.smartmenus.min.js',
-			"css" => [],
-			"class" => [],
-			"attrs" => [],
-			"init"     => "",
-		    "whitelist" => []
-		];
-	   $plugins['smartmenus-bs'] = [
-	   		"c"   => false, 
-	   		"admin" => false,
-			"url" => $node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.min.js',
+			"url" => [
+				$node_path . 'smartmenus/dist/jquery.smartmenus.min.js',
+				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.min.js'
+			],
 			"css" => [
 				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css'
 			],
-			"class" => [],
+			"class" => ["smartmenu"],
 			"attrs" => [],
-			"init"     => "",
-		    "whitelist" => []
+			"init"     => "init_smartmenus",
+		    "whitelist" => [
+		    	".highlighted"
+		    ]
 		];
+	    /*$plugins['smartmenus-bs'] = [
+	   		"c"   => true, 
+	   		"admin" => false,
+			"url" => [
+				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.min.js'
+			],
+			"css" => [
+				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css'
+			],
+			"class" => ["smartmenu"],
+			"attrs" => [],
+			"init"     => "init_smartmenus_bs",
+		    "whitelist" => [
+		    	".highlighted"
+		    ]
+		];*/
 	}
     
     if(function_exists("compile_files_plugins")){

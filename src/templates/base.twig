@@ -61,7 +61,7 @@
         {% set body_classes = body_classes ~ " " ~ "pt-0" %}
     {% endif %}
     {% if "affix" not in page_settings.classes.body %}
-        {% if header_options.affix and header_options.fixed == "top" %}
+        {% if header_options.affix and (header_options.fixed == "top" or header_options.fixed == "bottom-start") %}
             {% set body_classes = body_classes ~ " " ~ "affixed" %}
             {% if header_options.header_hide_on_scroll_down %}
                 {% set body_classes = body_classes ~ " " ~ "header-hide-on-scroll" %}
@@ -74,9 +74,7 @@
             {% set body_classes = body_classes ~ " " ~ "header-fixed-" ~ header_options.fixed %}
         {% endif %}
     {% else %}
-        {% if "affix" in page_settings.classes.body %}
-            {% set body_classes = body_classes ~ " " ~ "header-fixed-top" %}
-        {% endif %}
+        {% set body_classes = body_classes ~ " " ~ "header-fixed-top" %}
     {% endif %}
 
     {% set header_classes = "header" %}
@@ -88,6 +86,7 @@
             {% if header_options.fixed in ["top", "bottom-start"]  %}
                 {% if header_options.affix or header_options.fixed == "bottom-start" %}
                     {% set header_classes = header_classes ~ " " ~ "affixed" %}
+
                 {% endif %}
             {% endif %}
         {% endif %}

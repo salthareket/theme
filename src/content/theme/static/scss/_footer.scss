@@ -1,30 +1,4 @@
 footer#footer{
-
-	/*.address{
-		@include font-size(24px);
-		line-height:1.4;
-		.list-social{
-			@include font-size(28px);
-			li{
-				a{
-					opacity:.7;
-					&:hover{
-						opacity: 1;
-					}
-				}
-				&:not(:first-child){
-					margin-left:20px;
-				}
-			}
-		}
-		@include media-breakpoint-down(xl) {
-			@include font-size(20px);
-			.list-social{
-				@include font-size(24px);
-			}
-        }
-	}*/
-
 	.nav-footer{
 		font-weight:400;
 		.nav{

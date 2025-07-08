@@ -274,54 +274,14 @@
 }
 
 .pt-header{
-	@media (min-width: 1600px) {
-        padding-top: var(--header-height-xxxl);
-	}
-	@media (min-width: 1400px) and (max-width: 1599px) {
-        padding-top: var(--header-height-xxl);
-	}
-	@media (min-width: 1200px) and (max-width: 1399px) {
-        padding-top: var(--header-height-xl);
-	}
-    @media (min-width: 992px) and (max-width: 1199px) {
-        padding-top: var(--header-height-lg);
-	}
-	@media (min-width: 768px) and (max-width: 991px){
-        padding-top: var(--header-height-md);
-	}
-	@media (min-width: 576px) and (max-width: 767px) {
-        padding-top: var(--header-height-sm);
-	}
-	@media (max-width: 575px){
-		padding-top: var(--header-height-xs);
-	}
+    padding-top: var(--header-height);
     &:not(.offcanvas){
         @include transition(padding-top .3s ease-out);
     }
 }
 .affix{
     .pt-header{
-        @media (min-width: 1600px) {
-            padding-top: var(--header-height-xxxl-affix);
-        }
-        @media (min-width: 1400px) and (max-width: 1599px) {
-            padding-top: var(--header-height-xxl-affix);
-        }
-        @media (min-width: 1200px) and (max-width: 1399px) {
-            padding-top: var(--header-height-xl-affix);
-        }
-        @media (min-width: 992px) and (max-width: 1199px) {
-            padding-top: var(--header-height-lg-affix);
-        }
-        @media (min-width: 768px) and (max-width: 991px){
-            padding-top: var(--header-height-md-affix);
-        }
-        @media (min-width: 576px) and (max-width: 767px) {
-            padding-top: var(--header-height-sm-affix);
-        }
-        @media (max-width: 575px){
-            padding-top: var(--hheader-height-xs-affix);
-        }
+        padding-top: var(--header-height-affix);
         &:not(.offcanvas){
             @include transition(padding-top .3s ease-out);
         }
@@ -329,27 +289,7 @@
 }
 
 .mt-nheader{
-    @media (min-width: 1600px) {
-        margin-top: -var(--header-height-xxxl);
-    }
-    @media (min-width: 1400px) and (max-width: 1599px) {
-        margin-top: -var(--header-height-xxl);
-    }
-    @media (min-width: 1200px) and (max-width: 1399px) {
-        margin-top: -var(--header-height-xl);
-    }
-    @media (min-width: 992px) and (max-width: 1199px) {
-        margin-top: -var(--header-height-lg);
-    }
-    @media (min-width: 768px) and (max-width: 991px){
-        margin-top: -var(--header-height-md);
-    }
-    @media (min-width: 576px) and (max-width: 767px) {
-        margin-top: -var(--header-height-sm);
-    }
-    @media (max-width: 575px){
-        margin-top: -$header-height-xs;
-    }
+    margin-top: -var(--header-height);
     &:not(.offcanvas){
         @include transition(margin-top .3s ease-out);
     }

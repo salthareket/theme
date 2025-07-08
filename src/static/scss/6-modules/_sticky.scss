@@ -55,66 +55,6 @@ body{
                 top:var(--header-height-affix);
             }
         }
-        /*@include media-breakpoint-up(sm) {
-            [class^="sticky-"], [class*=" sticky-"] {
-                top:var(--header-height-xs);
-            }
-            &.affix{
-                [class^="sticky-"], [class*=" sticky-"] {
-                    top:var(--header-height-xs-affix);
-                }
-            }
-        }
-        @include media-breakpoint-up(sm) {
-          [class^="sticky-"], [class*=" sticky-"] {
-             top:var(--header-height-sm);
-          }
-           &.affix{
-                [class^="sticky-"], [class*=" sticky-"] {
-                    top:var(--header-height-sm-affix);
-                }
-            }
-        }
-        @include media-breakpoint-up(md) {
-          [class^="sticky-"], [class*=" sticky-"] {
-             top:var(--header-height-md);
-          }
-          &.affix{
-                [class^="sticky-"], [class*=" sticky-"] {
-                    top:var(--header-height-md-affix);
-                }
-            }
-        }
-        @include media-breakpoint-up(lg) {
-          [class^="sticky-"], [class*=" sticky-"] {
-             top:var(--header-height-lg);
-          }
-          &.affix{
-                [class^="sticky-"], [class*=" sticky-"] {
-                    top:var(--header-height-lg-affix);
-                }
-            }
-        }
-        @include media-breakpoint-up(xl) {
-          [class^="sticky-"], [class*=" sticky-"] {
-             top:var(--header-height-xl);
-          }
-          &.affix{
-                [class^="sticky-"], [class*=" sticky-"] {
-                    top:var(--header-height-xl-affix);
-                }
-            }
-        }
-        @include media-breakpoint-up(xxl) {
-          [class^="sticky-"], [class*=" sticky-"] {
-             top:var(--header-height-xxl);
-          }
-          &.affix{
-                [class^="sticky-"], [class*=" sticky-"] {
-                    top:var(--header-height-xxl-affix);
-                }
-            }
-        }*/
     }
     &.header-hide{
         [class^="sticky-"], [class*=" sticky-"] {

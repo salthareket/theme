@@ -41,6 +41,8 @@ define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_co
 
 define("SEPERATE_CSS", get_option("options_seperate_css"));
 define("SEPERATE_JS",  get_option("options_seperate_js"));
+define("INLINE_CSS", SEPERATE_CSS && get_option("options_inline_css"));
+define("INLINE_JS",  SEPERATE_JS && get_option("options_inline_js"));
 
 define("ENABLE_TWIG_CACHE",  get_option("options_enable_twig_cache"));
 
@@ -437,6 +439,9 @@ include_once SH_INCLUDES_PATH . "custom.php";
 if(!is_admin()){
    include_once SH_CLASSES_PATH . "class.custom-menu-items.php";
    include_once SH_INCLUDES_PATH . "menu.php"; 
+}
+if(is_admin()){
+    include_once SH_CLASSES_PATH . "class.fluidcss.php";
 }
 
 if(ENABLE_REGIONAL_POSTS){

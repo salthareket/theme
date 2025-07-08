@@ -123,7 +123,7 @@ function scss_variables_array($array=array()){
 }
 function scss_variables_font($font = ""){
     if(!empty($font)){
-        $font = str_replace("|", "", $font);
+        $font = '"'.str_replace("|", "", $font).'"';
     }
     return $font;
 }

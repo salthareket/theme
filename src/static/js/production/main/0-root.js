@@ -71,6 +71,8 @@ var root = {
         arr['header-height-sm-affix'] = parseFloat(obj.getPropertyValue('--header-height-sm-affix').trim());
         arr['header-height-xs-affix'] = parseFloat(obj.getPropertyValue('--header-height-xs-affix').trim());
 
+        arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
+        arr['hero-height-xxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxl').trim());
         arr['hero-height-xl'] = parseFloat(obj.getPropertyValue('--hero-height-xl').trim());
         arr['hero-height-lg'] = parseFloat(obj.getPropertyValue('--hero-height-lg').trim());
         arr['hero-height-md'] = parseFloat(obj.getPropertyValue('--hero-height-md').trim());

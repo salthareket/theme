@@ -591,7 +591,9 @@
                     "allow_in_bindings": 1,
                     "ui": 1,
                     "ajax": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_663f74df3ea85",
@@ -636,7 +638,9 @@
                     "allow_in_bindings": 1,
                     "ui": 1,
                     "ajax": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_6798cdb061a10",
@@ -738,7 +742,9 @@
                     "ajax": 0,
                     "placeholder": "",
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_663f74df3ea86",
@@ -1003,7 +1009,9 @@
                             "placeholder": "",
                             "allow_custom": 0,
                             "search_placeholder": "",
-                            "parent_repeater": "field_664210041992f"
+                            "parent_repeater": "field_664210041992f",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_6642105b439ca",
@@ -1093,7 +1101,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208622,
+    "modified": 1750983321,
     "acfe_categories": {
         "common": "Common"
     }

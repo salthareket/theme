@@ -1,11 +1,17 @@
-$primary: #293a44;
-$secondary: #091747;
-$tertiary: #edeeed;
-$quaternary: #e5f4ff;
+$primary: #5dbe99;
+$secondary: #507ea4;
+$tertiary: #bdbfc1;
+$quaternary: #656465;
+$green-medium: #269c7a;
+$green-dark: #1b6e56;
+$yellow: #e6de9c;
 $custom-colors: (
-	primary: #293a44,
-	secondary: #091747,
-	tertiary: #edeeed,
-	quaternary: #e5f4ff,
+	primary: #5dbe99,
+	secondary: #507ea4,
+	tertiary: #bdbfc1,
+	quaternary: #656465,
+	green-medium: #269c7a,
+	green-dark: #1b6e56,
+	yellow: #e6de9c
 );
-$custom-colors-list: primary,secondary,tertiary,quaternary,;
+$custom-colors-list: primary,secondary,tertiary,quaternary,green-medium,green-dark,yellow;

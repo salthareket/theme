@@ -100,7 +100,9 @@
                     "ajax": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93"
+                    "parent_repeater": "field_66b94a30a4d93",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66b94a65a4d94",
@@ -205,7 +207,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93"
+                    "parent_repeater": "field_66b94a30a4d93",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66b95e6e0be08",
@@ -242,7 +246,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93"
+                    "parent_repeater": "field_66b94a30a4d93",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66b95f051a52d",
@@ -341,7 +347,9 @@
                     "ajax": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93"
+                    "parent_repeater": "field_66b94a30a4d93",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66b957b76f548",
@@ -383,7 +391,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93"
+                    "parent_repeater": "field_66b94a30a4d93",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66b95e500be07",
@@ -421,7 +431,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93"
+                    "parent_repeater": "field_66b94a30a4d93",
+                    "create_options": 0,
+                    "save_options": 0
                 },
                 {
                     "key": "field_66b95f981a531",
@@ -518,7 +530,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1745573302,
+    "modified": 1750983332,
     "acfe_categories": {
         "general": "General"
     }

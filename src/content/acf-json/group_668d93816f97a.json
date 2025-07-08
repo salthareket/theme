@@ -254,7 +254,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_660ffbc53f6e0",
@@ -283,7 +285,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_663627469491c",
@@ -539,7 +543,9 @@
                             "choices": {
                                 "auto": "auto",
                                 "100%": "100%"
-                            }
+                            },
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_6636a0b457fb8",
@@ -732,6 +738,8 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "Cabin": "Cabin",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -762,7 +770,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_660fffe2718a6",
@@ -797,7 +807,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_6610003c718a8",
@@ -832,7 +844,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_66100059718a9",
@@ -869,7 +883,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_661000c8718aa",
@@ -1240,7 +1256,9 @@
                                     "choices": {
                                         "auto": "auto",
                                         "100%": "100%"
-                                    }
+                                    },
+                                    "create_options": 0,
+                                    "save_options": 0
                                 },
                                 {
                                     "key": "field_66380a87da57b",
@@ -1309,7 +1327,9 @@
                                     "ajax": 0,
                                     "placeholder": "",
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "create_options": 0,
+                                    "save_options": 0
                                 },
                                 {
                                     "key": "field_66380bd3da580",
@@ -1496,7 +1516,9 @@
                                     "ajax": 0,
                                     "placeholder": "",
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "create_options": 0,
+                                    "save_options": 0
                                 },
                                 {
                                     "key": "field_66380cddda588",
@@ -1531,7 +1553,9 @@
                                     "ajax": 0,
                                     "placeholder": "",
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "create_options": 0,
+                                    "save_options": 0
                                 },
                                 {
                                     "key": "field_66380cf9da589",
@@ -1568,7 +1592,9 @@
                                     "ajax": 0,
                                     "placeholder": "",
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "create_options": 0,
+                                    "save_options": 0
                                 },
                                 {
                                     "key": "field_663815239c842",
@@ -1772,7 +1798,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_66369d30fb95d",
@@ -1801,7 +1829,9 @@
                             "ajax": 0,
                             "placeholder": "",
                             "allow_custom": 0,
-                            "search_placeholder": ""
+                            "search_placeholder": "",
+                            "create_options": 0,
+                            "save_options": 0
                         },
                         {
                             "key": "field_66369d4ffb95e",
@@ -2178,8 +2208,8 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
+    "modified": 1751415351,
     "acfe_categories": {
         "general": "General"
-    },
-    "modified": 1744208632
+    }
 }

@@ -491,7 +491,7 @@ class StarterSite extends Timber\Site{
         }
         $context["all_js"] = $plugins;
 
-        $context["fetch"] = isset($_GET["fetch"])?true:false;
+        $context["fetch"] = isset($_GET["fetch"]) || (!SEPERATE_CSS && !SEPERATE_JS)?true:false;
 
         $context["salt"] = $salt;
         $context["user"] = $user;

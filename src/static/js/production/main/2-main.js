@@ -92,7 +92,7 @@ function init_functions(){
 		 if (typeof window["init_plugins"] === 'function') {
 		 	init_plugins();
 		 }
-l
+
 		btn_loading_page();
 		//btn_loading_page_hide();
 		//btn_loading_self();
@@ -158,23 +158,24 @@ $( document ).ready(function() {
 	    	});
 	    });
 
-        if(isLoadedJS("smartmenus")){
-        	/*const navbar = new SmartMenus($('#navigation').find(".nav")[0], {
+        /*if(isLoadedJS("smartmenus")){
+        	const navbar = new SmartMenus($('#navigation').find(".nav")[0], {
 			  dropdownsShowTrigger: 'mouseover',
 			  dropdownsHideTrigger: 'mouseout',
 			  dropdownsKeepInViewport: true
-			});*/ 
+			});
+
 		    $('#navigation').find(".nav").smartmenus({
 				showOnClick : false,
 				hideOnClick:false,
 				bootstrapHighlightClasses : "show",
 				keepHighlighted : true,
 				subIndicators : false
-			});   	
+			});  	
         }
 
 
-		/*$(".mega-menu .nav-mega-menu > li > a[data-bs-toggle='tab']").on("click", function(e){
+		$(".mega-menu .nav-mega-menu > li > a[data-bs-toggle='tab']").on("click", function(e){
 			var $image = $(this).data("image-url");
 			var $container = $(this).closest(".mega-menu").find(".mega-menu-image");
 			var $bgColor = $container.css("background-color");
@@ -221,14 +222,14 @@ $( document ).ready(function() {
                 }
         });
 
-        /*$('.navbar-nav-main').on('show.smapi', function(e, menu) {
+        /**/$('.navbar-nav-main').on('show.smapi', function(e, menu) {
              var opened = $('.navbar-nav-main').find(".dropdown.show").find(".dropdown-menu").not($(menu));
              if(opened.length>0){
              	opened.closest(".show").find(".dropdown-toggle").trigger("click")
              }
-        });*/
+        });
         
-        if($(".slinky-menu").length>0){
+        /*if($(".slinky-menu").length>0){
 	        if(!$(".slinky-menu").hasClass("slinky-menu-inited")){
 	            var slinky = $('.slinky-menu').slinky({
 	                title : true,
@@ -243,7 +244,7 @@ $( document ).ready(function() {
 	            });
 	            $('.slinky-menu').addClass("slinky-menu-inited");
 	        }           
-	    }
+	    }*/
 
 		
 

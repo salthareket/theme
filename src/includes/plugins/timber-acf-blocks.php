@@ -313,6 +313,16 @@ function block_container($container="", $stretch_height = false){
     }
     return $container;
 }
+function block_title_size($size=""){
+    $default = get_option("options_default_title_size");
+    $default = empty($default) ? "title-fluid" : $default;
+    return ($size == "default" || empty($size) ? $default : $size);
+}
+function block_text_size($size=""){
+    $default = get_option("options_default_text_size");
+    $default = empty($default) ? "text-fluid" : $default;
+    return ($size == "default" || empty($size) ? $default : $size);
+}
 function block_ratio($ratio=""){
     $default = get_option("options_default_ratio");
     $default = empty($default) ? "16x9" : $default;
@@ -2539,7 +2549,15 @@ function block_bg_image($block, $fields, $block_column){
     $image_style = [];
     if(isset($fields["block_settings"])){
         $background = $fields["block_settings"]["background"];
-        $background_color = $fields["block_settings"]["background"]["color"];
+        //$background_color = $fields["block_settings"]["background"]["color"];
+
+        if(isset($background["background"]) && !empty($background["background"]["color"])){
+            $background_color = $background["background"]["color"];
+        }
+
+        if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
+            $background_color = $background["background"]["gradient_color"];
+        }
 
         if(!empty($background["image"]) || !empty($background["image_responsive"])){// && (!empty($background["image_filter"]) || !empty($background["image_blend_mode"]))){
             if(!empty($background["image_filter"])){
@@ -2592,7 +2610,7 @@ function block_bg_image($block, $fields, $block_column){
                 $image_class = " jarallax-img ";
                 $image .= ' data-jarallax data-speed="'.$background["parallax_settings"]["speed"].'" data-type="'.$background["parallax_settings"]["type"].'" data-img-size="'. $background["size"] .'" data-img-repeat="'. $background["repeat"] .'" data-img-position="'. block_bg_position_val($background["position_vr"]) ." " . block_bg_position_val($background["position_hr"]) .'" ';
                 if(!empty($background_color)){
-                   $image .= "style='background-color:".$background_color.";'";
+                   $image .= "style='background:".$background_color.";'";
                 }
             }
 
@@ -2631,7 +2649,16 @@ function block_bg_video($block, $fields, $block_column){
     $image_style = [];
     if(isset($fields["block_settings"])){
         $background = $fields["block_settings"]["background"];
-        $background_color = $fields["block_settings"]["background"]["color"];
+        //$background_color = $fields["block_settings"]["background"]["color"];
+
+        if(isset($background["background"]) && !empty($background["background"]["color"])){
+            $background_color = $background["background"]["color"];
+        }
+
+        if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
+            $background_color = $background["background"]["gradient_color"];
+        }
+
         if(!empty($background["video_file"]) || !empty($background["video_url"])){
             $video = !empty($background["video_file"])?$background["video_file"]:$background["video_url"];
             if(!empty($background["image_filter"])){
@@ -2661,7 +2688,7 @@ function block_bg_video($block, $fields, $block_column){
                     $video_class = "jarallax-img";
                 }
                 if($background_color){
-                    $image_style[] = "background-color:".$background_color;
+                    $image_style[] = "background:".$background_color;
                 }
                 //$image = '<div class="jarallax" data-jarallax data-video-src="' . $video . '" data-jarallax data-speed="'.$background["parallax_settings"]["speed"].'" data-type="'.$background["parallax_settings"]["type"].'" ></div>';
             }
@@ -2714,7 +2741,17 @@ function block_bg_slider($block, $fields, $block_column){
     $slider_style = [];
     if(isset($fields["block_settings"])){
         $background = $fields["block_settings"]["background"];
-        $background_color = $fields["block_settings"]["background"]["color"];
+        //$background_color = $fields["block_settings"]["background"]["color"];
+
+        if(isset($background["background"]) && !empty($background["background"]["color"])){
+            $background_color = $background["background"]["color"];
+        }
+
+        if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
+            $background_color = $background["background"]["gradient_color"];
+        }
+
+
         if(!empty($background["slider"])){
             if(!empty($background["image_filter"])){
                 if(is_array($background["image_filter_amount"])){
@@ -2747,7 +2784,7 @@ function block_bg_slider($block, $fields, $block_column){
                 $image_class = " jarallax-img "; 
                 $image .= ' data-jarallax data-speed="'.$background["parallax_settings"]["speed"].'" data-type="'.$background["parallax_settings"]["type"].'" data-img-size="'. $background["size"] .'" data-img-position="'. block_bg_position_val($background["position_hr"]) ." " . block_bg_position_val($background["position_vr"]) .'" ';
                 if(!empty($background_color)){
-                   $image .= "style='background-color:".$background_color.";'";
+                   $image .= "style='background:".$background_color.";'";
                 }
             }
 
@@ -2795,12 +2832,21 @@ function block_bg_media($block, $fields, $block_column){
                 }
             break;
         }
-        if(!empty($background["overlay"])){
+        /*if(!empty($background["overlay"])){
             $selector = $block["id"];
             if($block_column){
                 $selector = $block_column["id"];
             }
             $result .= "<style>#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background-color:".$background["overlay"].";z-index:2;}</style>";
+        }*/
+
+        if(isset($background["overlay"]) && (!empty($background["overlay"]["gradient_color"]) && $background["overlay"]["gradient"]) || !empty($background["overlay"]["color"])){
+            $overlay_color =($background["overlay"]["gradient"])?$background["overlay"]["gradient_color"]:$background["overlay"]["color"];
+            $selector = $block["id"];
+            if($block_column){
+                $selector = $block_column["id"];
+            }
+            $result .= "<style>#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background-color:".$overlay_color.";z-index:2;}</style>";
         }
     }
     return $result;
@@ -2811,6 +2857,7 @@ function block_css($block, $fields, $block_column){
     $code_bg = "";
     $code_bg_color = "";
     $code_height = "";
+    $code_svg = "";
     $media_query = [];
 
     $background = isset($fields["block_settings"]["background"])?$fields["block_settings"]["background"]:[];
@@ -2895,7 +2942,7 @@ function block_css($block, $fields, $block_column){
                 }else{
                     if($value["height"] != "auto"){
                         $css = "#".$selector."{
-                            ".($value["height"]=="full" || $block["name"] == "acf/video"?"":"min-")."height: calc(var(--hero-height-".$value["height"].") - 1px);
+                            ".($value["height"]=="full" || $block["name"] == "acf/video"?"":"min-")."height: var(--hero-height-".$value["height"].");
                         }";
                         if($block["name"] == "acf/slider" || $block["name"] == "acf/slider-advanced" || $block["name"] == "acf/archive"){
                             $css .= "#".$selector."{
@@ -2941,37 +2988,54 @@ function block_css($block, $fields, $block_column){
                     }";
 
         }elseif ($height != "auto"){
-            $code_inner .= ($height=="full" || $block["name"] == "acf/video"?"":"min-")."height: calc(var(--hero-height-".$height.") - 1px);";
+            $code_inner .= ($height=="full" || $block["name"] == "acf/video"?"":"min-")."height: var(--hero-height-".$height.");";
             /*$code_height .= "#".$selector." {
                 min-height: var(--hero-height-".$height.");
             }";*/
             
         }
     }
-   
+
     $gradient = "";
-    if(!$block_column || (isset($block_column["index"]) && $block_column["index"] == -1)){
+    if( 
+        (!$block_column || (isset($block_column["index"]) && ($block_column["index"] == -1 || $block_column["index"] == "-1")) || $block_column["block"] == "bootstrap-columns")
+    ){
 
         if(isset($block["style"]["color"]["text"]) && !empty($block["style"]["color"]["text"])){
             $code_inner .= "color:".$block["style"]["color"]["text"].";";
         }
 
-        if(isset($block["backgroundColor"]) && !empty($block["backgroundColor"])){
+        /*if(isset($block["backgroundColor"]) && !empty($block["backgroundColor"])){
             $code_inner .= "background-color:var(".$block["backgroundColor"].");";
         }elseif(isset($block["style"]["color"]["background"]) && !empty($block["style"]["color"]["background"])){
             $code_inner .= "background-color:".$block["style"]["color"]["background"].";";
         }
+
+        if(isset($block["style"]["color"]["background"]) && !empty($block["style"]["color"]["background"])){
+            $code_inner .= "background-color:".$block["style"]["color"]["background"].";";
+        }*/
         
         
-        if(isset($block["gradient"]) && !empty($block["gradient"])){
+        /*if(isset($block["gradient"]) && !empty($block["gradient"])){
             $gradient .= "background:var(".$block["gradient"].");";
         }elseif(isset($block["style"]["color"]["gradient"]) && !empty($block["style"]["color"]["gradient"])){
             $gradient .= "background:".$block["style"]["color"]["gradient"].";";
+        }*/
+
+
+        if(isset($background["background"]) && !empty($background["background"]["color"])){
+            $code_inner .=  "background-color: ".$background["background"]["color"].";";
+        }
+
+        if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
+            $gradient .= "background: ".$background["background"]["gradient_color"].";";
+            $code_inner .=  $gradient;
         }
 
         if(!empty($gradient) && !$background["gradient_mask"] && !$block_column){
             $code_inner .= $gradient;
-        }            
+        }   
+
     }
 
     $color = isset($fields["block_settings"]["text_color"])?$fields["block_settings"]["text_color"]:"";
@@ -2980,8 +3044,12 @@ function block_css($block, $fields, $block_column){
     }
     
     if($background){
-        if(!empty($background["color"])){
-            $code_inner .= "background-color:".$background["color"].";";
+        if(isset($background["background"]) && !empty($background["background"]["color"])){
+            $code_inner .=  "background-color: ".$background["background"]["color"].";";
+        }
+        if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
+            $gradient .= "background: ".$background["background"]["gradient_color"].";";
+            $code_inner .=  $gradient;
         }
         if($block["name"] != "acf/hero"){
             if(!empty($background["image"])){
@@ -3020,7 +3088,7 @@ function block_css($block, $fields, $block_column){
 
                 $code_bg .= "mask: url(".$background["image_mask"].");-webkit-mask: url(".$background["image_mask"].")";
                 $code_bg .= $mask_position;
-
+                
             }else{
 
                 $code_bg_color .= "mask: url(".$background["image_mask"].");-webkit-mask: url(".$background["image_mask"].");";
@@ -3046,6 +3114,7 @@ function block_css($block, $fields, $block_column){
 
             }
         }
+
     }
 
     $slide_css_code = "";
@@ -3058,22 +3127,22 @@ function block_css($block, $fields, $block_column){
                 //filters
                 if(isset($slide["filters"])){
                     $filters = $slide["filters"];
-                    if(!empty($filters["image_filter"]) || !empty($filters["image_blend_mode"])){
-                        if(!empty($filters["image_filter"])){
-                            if(is_array($filters["image_filter_amount"])){
-                               $image_filter_amount = unit_value($filters["image_filter_amount"]);
+                    if(!empty($filters["filter"]) || !empty($filters["blend_mode"])){
+                        if(!empty($filters["filter"])){
+                            if(is_array($filters["amount"])){
+                               $image_filter_amount = unit_value($filters["amount"]);
                             }else{
-                               $image_filter_amount = $filters["image_filter_amount"]."%";
+                               $image_filter_amount = $filters["amount"]."%";
                             }
-                            if($filters["image_filter"] == "opacity"){
+                            if($filters["filter"] == "opacity"){
                                 $slide_css[] = "opacity:" . $image_filter_amount;
                             }else{
-                                $slide_css[] = "filter:" . $filters["image_filter"] . "(" . $image_filter_amount . ")";
+                                $slide_css[] = "filter:" . $filters["filter"] . "(" . $image_filter_amount . ")";
                             }
                             
                         }
-                        if(!empty($filters["image_blend_mode"])){
-                            $slide_css[] = "mix-blend-mode:" . $filters["image_blend_mode"];
+                        if(!empty($filters["blend_mode"])){
+                            $slide_css[] = "mix-blend-mode:" . $filters["blend_mode"];
                         }
                     }else{
                         if($slide["media_type"] == "image" && isset($slide["image"]["id"]) && empty($background["color"])){
@@ -3096,26 +3165,9 @@ function block_css($block, $fields, $block_column){
 
                 //overlay
                 $slide_overlay_css = [];
-                if($slide["overlay"]){
-                    $overlay_color = isset($slide["overlay_color"]) && !empty($slide["overlay_color"])?$slide["overlay_color"]:"rgba(0,0,0,0)";
-                    $overlay_color_alpha = isset($slide["overlay_color_alpha"]) && !empty($slide["overlay_color_alpha"])?$slide["overlay_color_alpha"]:"rgba(0,0,0,0)";
-                    switch($slide["overlay_position"]){
-                        case "top":
-                            $slide_overlay_css[] = "background: linear-gradient(to bottom, ".$overlay_color." 0%, ".$overlay_color_alpha." 33.333%)";
-                        break;
-                        case "bottom":
-                            $slide_overlay_css[] = "background: linear-gradient(to bottom, ".$overlay_color_alpha." 0%, ".$overlay_color." 33.333%)";
-                        break;
-                        case "left":
-                            $slide_overlay_css[] = "background: linear-gradient(to right, ".$overlay_color." 0%, ".$overlay_color_alpha." 33.333%)";
-                        break;
-                        case "right":
-                            $slide_overlay_css[] = "background: linear-gradient(to right, ".$overlay_color_alpha." 0%, ".$overlay_color." 33.333%)";
-                        break;
-                        case "full":
-                            $slide_overlay_css[] = "background: ".$overlay_color;
-                        break;
-                    }
+                if(isset($slide["overlay"]) && (!empty($slide["overlay"]["gradient_color"]) && $slide["overlay"]["gradient"]) || !empty($slide["overlay"]["color"])){
+                    $overlay_color =($slide["overlay"]["gradient"])?$slide["overlay"]["gradient_color"]:$slide["overlay"]["color"];
+                    $slide_overlay_css[] = "background: ".$overlay_color;
                 }
 
                 if($slide_overlay_css){
@@ -3125,15 +3177,27 @@ function block_css($block, $fields, $block_column){
                     $slide_css_code .= "}";
                 }
 
+                $slide_bg_css = [];
+                if(isset($slide["background"]) && (!empty($slide["background"]["gradient_color"]) && $slide["background"]["gradient"]) || !empty($slide["background"]["color"])){
+                    $background_color = $slide["background"]["gradient"]?$slide["background"]["gradient_color"]:$slide["background"]["color"];
+                    $slide_bg_css[] = "background: ".$background_color;
+                }else{
+                    /*if($background){
+                        if(!empty($background["color"])){
+                            $slide_bg_css[] = "background: ".$background["color"];
+                        }
+                    }*/
+                }
+
+                if($slide_bg_css){
+                    $slide_bg_css = implode(";", $slide_bg_css);
+                    $slide_css_code .= "#".$selector." .slide-".($key + 1)." .swiper-bg{";
+                       $slide_css_code .= $slide_bg_css;
+                    $slide_css_code .= "}";
+                }
+
                 if($slide_css){
                     $slide_css = implode(";", $slide_css);
-                    if($background){
-                        if(!empty($background["color"])){
-                            $slide_css_code .= "#".$selector." .slide-".($key + 1)." .swiper-bg{";
-                                $slide_css_code .= "background-color:".$background["color"];
-                            $slide_css_code .= "}";
-                        }                        
-                    }
                     $slide_css_code .= "#".$selector." .slide-".($key + 1)." .swiper-bg > *{";
                        $slide_css_code .= $slide_css;
                     $slide_css_code .= "}";
@@ -3141,7 +3205,15 @@ function block_css($block, $fields, $block_column){
             }
         }
     }
-     
+
+    if(isset($block["name"]) && in_array($block["name"], ["acf/icons"])){
+        foreach($fields["icons"] as $icon_index => $icon){
+            if(!empty($icon["content"]["icon_color"])){
+                $code .= block_svg_color("#".$selector." .icon-".$icon_index." .image", $icon["content"]["icon_color"]);
+            }
+        }
+    }
+
     if(!empty($code_height)){
         $code .= $code_height;
     }
@@ -3154,7 +3226,7 @@ function block_css($block, $fields, $block_column){
     }
 
     if(!empty($code_bg_color)){
-        $code .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;z-index:1;".$code_bg_color."}";
+       $code .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;z-index:1;".$code_bg_color."}";
     }
 
     if(!empty($slide_css_code)){
@@ -3238,6 +3310,26 @@ function block_css_media_query($query = []) {
     return $css;
 }
 
+function block_svg_color($selector = "", $color = "") {
+    if (empty($color) || empty($selector)) {
+        return;
+    }
+
+    return "{$selector} path[fill]:not([stroke]),
+        {$selector} rect[fill]:not([stroke]),
+        {$selector} polygon[fill]:not([stroke]) {
+            fill: {$color} !important;
+        }
+
+        {$selector} line[stroke],
+        {$selector} path[stroke],
+        {$selector} rect[stroke],
+        {$selector} polygon[stroke] {
+            stroke: {$color} !important;
+        }";
+}
+
+
 function block_meta($block_data=array(), $fields = array(), $extras = array(), $block_column = "", $block_column_index = -1){
     $meta = array(
         "index"     => 0,
@@ -3293,6 +3385,7 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
             "fullHeight" => $block_data["fullHeight"]
         );
        $meta["css"]               = block_css($block_data, $fields, $block_column);
+
        if(isset($fields["aos_settings"])){
             $meta["aos"] = block_aos($fields["aos_settings"]);
        }

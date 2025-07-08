@@ -1,9 +1,4 @@
-h1,h2,h3,h4,h5,h6{
-	//line-height:1.2;
-	strong,b{
-		//font-weight:inherit;
-	}
-}
+
 /*h1{
 	@include font-size($typography_h1_size);
 	font-weight:$typography_h1_weight;
@@ -40,10 +35,10 @@ h6{
 	font-family:var(--nav-font);
 }
 .font-icon{
-	font-family:$icon-font;
+	font-family:var(--icon-font);
 }
 .font-icon-brands{
-	font-family:$icon-font-brands;
+	font-family:var(--icon-font-brands);
 }
 
 @for $i from 1 through 9 {
@@ -52,72 +47,24 @@ h6{
 	}
 }
 
-
-
-// Title Sizes
-@if variable-exists(title_sizes) {
-    @each $title in $title_sizes {
-        $size: map-get($title, size);
-        $font-size: map-get($title, font-size);
-        .title-#{$size} {
-            @include media-breakpoint-up(sm) {
-            	@include font-size($font-size);
-            }
-            @include media-breakpoint-down(sm) {
-            	font-size: var(--title-#{$size});
-            }
-            //font-size: var(--title-#{$size});
-        }
-    }
+.title-fluid{
+	font-size: var(--title-fs)!important;
+	line-height: var(--title-lh);
 }
-@if variable-exists(title_line_heights) {
-    @each $title in $title_line_heights {
-        $size: map-get($title, size);
-        $line-height: map-get($title, line-height);
-        @if $line-height != 0 {
-	        .title-#{$size} {
-	           @include media-breakpoint-up(sm) {
-	               @include rfs($line-height, line-height);
-	           }
-	           @include media-breakpoint-down(sm) {
-	           	   line-height: var(--title-#{$size}-lh);
-	           }
-	        }
-        }
-    }
+.text-fluid{
+	font-size: var(--text-fs)!important;
+	line-height: var(--text-lh);
 }
 
-
-
-// Text Sizes
-@if variable-exists(text_sizes) {
-    @each $text in $text_sizes {
-        $size: map-get($text, size);
-        $font-size: map-get($text, font-size);
-        .text-#{$size} {
-        	@include media-breakpoint-up(sm) {
-            	@include font-size($font-size);
-            }
-            @include media-breakpoint-down(sm) {
-            	font-size: var(--text-#{$size});
-            }
-            //font-size: var(--text-#{$size});
-        }
-    }
-}
-@if variable-exists(text_line_heights) {
-    @each $text in $text_line_heights {
-        $size: map-get($text, size);
-        $line-height: map-get($text, line-height);
-        @if $line-height != 0 {
-	        .text-#{$size} {
-	           @include media-breakpoint-up(sm) {
-	               @include rfs($line-height, line-height);
-	           }
-	           @include media-breakpoint-down(sm) {
-	           	   line-height: var(--text-#{$size}-lh);
-	           }
-	        }
-        }
+@if variable-exists(grid-breakpoints) {
+	@each $breakpoint-name, $breakpoint-value in $grid-breakpoints {
+	    .title-#{$breakpoint-name}{
+	         font-size: var(--title-fs-#{$breakpoint-name})!important;
+	         line-height: var(--title-lh-#{$breakpoint-name});
+	    }
+	    .text-#{$breakpoint-name}{
+	         font-size: var(--text-fs-#{$breakpoint-name})!important;
+	         line-height: var(--text-lh-#{$breakpoint-name});
+	    }
     }
 }

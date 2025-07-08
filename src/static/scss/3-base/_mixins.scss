@@ -229,7 +229,7 @@
 }
 
 
-@mixin svgColor($color:white){
+/*@mixin svgColor($color:white){
     @if type-of($color) == 'map' {
         @each $id, $id_color in $color {
             ##{$id}{
@@ -259,6 +259,39 @@
         polygon[stroke]{
             stroke:$color!important;
             //fill:transparent!important;
+        }        
+    }
+}
+*/
+@mixin svgColor($color:white){
+    // Eğer $color CSS variable ise (var(--...)), Sass type-of bunu "string" görmez. Bu yüzden map kontrolünden önce CSS var string kontrolü yapmalıyız.
+    @if type-of($color) == 'map' {
+        @each $id, $id_color in $color {
+            ##{$id}{
+                path[fill]:not([stroke]),
+                rect[fill]:not([stroke]),
+                polygon[fill]:not([stroke]){
+                    fill: #{$id_color} !important;
+                }
+                line[stroke],
+                path[stroke],
+                rect[stroke],
+                polygon[stroke]{
+                    stroke: #{$id_color} !important;
+                } 
+            }
+        }
+    } @else {
+        path[fill]:not([stroke]),
+        rect[fill]:not([stroke]),
+        polygon[fill]:not([stroke]){
+            fill: #{$color} !important;
+        }
+        line[stroke],
+        path[stroke],
+        rect[stroke],
+        polygon[stroke]{
+            stroke: #{$color} !important;
         }        
     }
 }

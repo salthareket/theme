@@ -15,11 +15,11 @@
 @import 'list';
 @import 'typography';
 
-@if variable-exists("scroll-to-top-active") {
-	@if $scroll-to-top-active {
+//@if variable-exists("scroll-to-top-active") {
+//	@if $scroll-to-top-active {
 		@import "scroll-to-top";
-	}
-}
+//	}
+//}
 
 @if variable-exists("enable_favorites") or variable-exists("enable_chat") or variable-exists("enable_notifications") {
 	@if $enable_favorites or $enable_chat or $enable_notifications {

@@ -191,8 +191,7 @@
             },
             "choices": {
                 "default": "Default",
-                "post\/tease": "Post Tease (Predefined)",
-                "theme\/templates\/_custom\/hello-template": "hello-template"
+                "post\/tease": "Post Tease (Predefined)"
             },
             "default_value": "default",
             "return_format": "value",
@@ -203,7 +202,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_65f9fc1b3ef9a",
@@ -314,6 +315,33 @@
                                 "id": ""
                             },
                             "return_format": "array"
+                        },
+                        {
+                            "key": "field_686be55a2fee8",
+                            "label": "Icon Color",
+                            "name": "icon_color",
+                            "aria-label": "",
+                            "type": "color_picker",
+                            "instructions": "Only for svg files",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_65f9fc573ef9b",
+                                        "operator": "!=empty"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "enable_opacity": 0,
+                            "return_format": "string",
+                            "translations": "sync",
+                            "allow_in_bindings": 0
                         }
                     ]
                 }
@@ -345,7 +373,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208613,
+    "modified": 1751901618,
     "acfe_categories": {
         "block": "Block"
     }

@@ -7,7 +7,7 @@ function header_tools_condition($el){
             "notifications" : ["offcanvas", "dropdown"],
             "cart"          : ["offcanvas", "dropdown"],
             "user-menu"     : ["offcanvas", "dropdown"],
-            "navigation"    : ["offcanvas"],
+            "navigation"    : ["offcanvas", "dropdown"],
             "search"        : ["offcanvas"]
     };
     if($el.length > 0){

@@ -170,6 +170,8 @@ class PageAssetsExtractor {
         $plugin_css = "";
         $plugin_css_rtl = "";
 
+        /*
+        $header_content = $html_content->findOne('#header') ? $html_content->findOne('#header')->outerHtml() : '';
 
         // <main> tagini bul
         $main_content = $html_content->findOne('main') ? $html_content->findOne('main')->outerHtml() : '';
@@ -180,7 +182,50 @@ class PageAssetsExtractor {
         if($block){
             $block_content = $block->outerHtml();
         }
-        $html = HtmlDomParser::str_get_html($main_content . $block_content);
+        $html = HtmlDomParser::str_get_html($header_content . $main_content . $block_content);
+        */
+
+
+        $html_temp = HtmlDomParser::str_get_html($html_content->__toString());
+
+        // <#header> tagini bul
+        $header_node = $html_temp->findOne('#header');
+        $header_content = '';
+        if ($header_node) {
+            $header_content = $header_node->outerHtml();
+            $header_node->delete();
+        }
+
+        // <main> tagini bul
+        $main_node = $html_temp->findOne('main');
+        $main_content = '';
+        if ($main_node) {
+            $main_content = $main_node->outerHtml();
+            $main_node->delete();
+        }
+
+        // block-* classına sahip divleri bul
+        $block_content = '';
+        $block_node = $html_temp->findOne('.block--hero');
+        if ($block_node) {
+            $block_content = $block_node->outerHtml();
+            $block_node->delete();
+        }
+
+        // offcanvas parçalarını topla
+        $offcanvas_html = [];
+        $offcanvas_elements = $html_temp->findMulti('.offcanvas');
+        if (!empty($offcanvas_elements)) {
+            foreach ($offcanvas_elements as $el) {
+                $offcanvas_html[] = $el->outerHtml();
+            }
+        }
+        $offcanvas_string = implode("\n", $offcanvas_html);
+        $html_temp = null;
+
+        // final HTML string oluştur
+        $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string;
+        $html = HtmlDomParser::str_get_html($final_html_string);
 
         // <style> ve <script> etiketlerini $main ve $block içinde ara
         if ($html) {
@@ -255,7 +300,7 @@ class PageAssetsExtractor {
                         $condition = $plugin['condition'];
                     }
                     foreach ($plugin['class'] as $class) {
-                        //error_log($key." için ".$class." varmı = ".(strpos($html, $class) !== false));
+                        error_log($key." için ".$class." varmı = ".(strpos($html, $class) !== false));
                         
                         if (strpos($html, $class) !== false && $condition) {
                             $plugins[] = $key;
@@ -344,6 +389,10 @@ class PageAssetsExtractor {
             $css_page_hash = md5($this->type."-".$id);
             $css_page = $cache_dir . $css_page_hash . '.css';
 
+            if (file_exists($css_page)) {
+                unlink($css_page);
+            }
+
             $css_page_content = $this->remove_unused_css($html_content);
 
             /*$css_page_content = $this->remove_unused_css($html_content, "", "", [], true);//, $css_page);
@@ -356,6 +405,11 @@ class PageAssetsExtractor {
             //rtl
             $css_page_rtl_hash = md5($this->type."-".$id."-rtl");
             $css_page_rtl = $cache_dir . $css_page_rtl_hash . '.css';
+
+            if (file_exists($css_page_rtl)) {
+                unlink($css_page_rtl);
+            }
+
             $parser = new Sabberworm\CSS\Parser($css_page_content);
             $tree = $parser->parse();
             $rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
@@ -433,6 +487,9 @@ class PageAssetsExtractor {
         if ($type !== 'css' && $type !== 'js') {
             return false;
         }
+        error_log($type. " files:");
+        error_log(print_r($files, true));
+
         
         if($type == "js"){
             $containsInit = "";
@@ -466,7 +523,7 @@ class PageAssetsExtractor {
         $cache_file = $cache_dir . $hash . '.' . $type;
 
         if (file_exists($cache_file)) {
-            return STATIC_URL . $type . '/cache/' . $hash . '.' . $type;
+           // return STATIC_URL . $type . '/cache/' . $hash . '.' . $type;
         } else {
             if (!file_exists($cache_dir)) {
                 mkdir($cache_dir, 0755, true);
@@ -478,8 +535,11 @@ class PageAssetsExtractor {
             // Dosyanın tam yolunu kullan
             $plugin_name = basename($file);
             $file_system_path = STATIC_PATH . 'js/plugins/' . $plugin_name;
+
+            error_log("--------------------".$file_system_path);
             
             if (file_exists($file_system_path)) {
+                error_log($file_system_path." var.");
                 $content = file_get_contents($file_system_path);
                 if ($content !== false) {
                     if($type == "css"){
@@ -506,6 +566,11 @@ class PageAssetsExtractor {
         $combined_content = str_replace("}(jQuery))", "", $combined_content);
 
         file_put_contents($cache_file, trim($combined_content));
+
+        error_log(print_r($files, true));
+        error_log($type . '/cache/' . $hash . '.' . $type);
+
+        error_log("-----------------");
 
         return $type . '/cache/' . $hash . '.' . $type;
     }

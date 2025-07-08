@@ -159,6 +159,73 @@
                             "parent_repeater": "field_660fe90f903d4"
                         }
                     ]
+                },
+                {
+                    "key": "field_6865d7ce35923",
+                    "label": "Custom (Gradients)",
+                    "name": "custom_gradients",
+                    "aria-label": "",
+                    "type": "repeater",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "acfe_repeater_stylised_button": 1,
+                    "layout": "table",
+                    "pagination": 0,
+                    "min": 0,
+                    "max": 0,
+                    "collapsed": "",
+                    "button_label": "Add Colors",
+                    "rows_per_page": 20,
+                    "sub_fields": [
+                        {
+                            "key": "field_6865d7ce35924",
+                            "label": "Title",
+                            "name": "title",
+                            "aria-label": "",
+                            "type": "acfe_slug",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "30",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "maxlength": "",
+                            "translations": "sync",
+                            "allow_in_bindings": 1,
+                            "parent_repeater": "field_6865d7ce35923"
+                        },
+                        {
+                            "key": "field_6865d7ce35925",
+                            "label": "Color",
+                            "name": "color",
+                            "aria-label": "",
+                            "type": "gradient_picker",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "70",
+                                "class": "",
+                                "id": ""
+                            },
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "default_value": "",
+                            "parent_repeater": "field_6865d7ce35923"
+                        }
+                    ]
                 }
             ]
         }
@@ -188,7 +255,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208627,
+    "modified": 1751504881,
     "acfe_categories": {
         "general": "General"
     }

@@ -140,6 +140,30 @@ function function_secure($plugin, $name, $params) {
     }
 }
 
+/*function function_secure($plugin, $name, $params) { // yenisi
+    console.log($plugin, $name, $params);
+
+    if (isLoadedJS($plugin)) {
+        var fn = window[$name];
+        if (typeof fn === 'function') {
+            try {
+                if (Array.isArray($params)) {
+                    fn.apply(null, $params);
+                } else {
+                    fn($params);
+                }
+            } catch (e) {
+                console.error('Error calling function:', $name, e);
+            }
+        } else {
+            console.warn($name + ' is not a function. Skipping...');
+        }
+    } else {
+        console.warn($plugin + ' is not loaded. Skipping...');
+    }
+}*/
+
+
 function initContactForm(){
     var obj = wpcf7;
         obj.initForm = function ( el ) { 

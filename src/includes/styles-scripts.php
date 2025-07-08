@@ -41,6 +41,38 @@ function inline_css_add($name="", $url="", $rtl=false){
 }
 
 
+function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {
+    if (empty($name) || empty($url)) {
+        return;
+    }
+    $path = str_replace(get_template_directory_uri(), get_template_directory(), $url);
+    if (!file_exists($path)) {
+        return;
+    }
+    $code = file_get_contents($url);
+    if($attrs){
+    	//add_action('wp_footer', function() use ($code, $attrs){
+		    $attr_str = '';
+		    foreach ($attrs as $key => $value) {
+		        if (is_bool($value)) {
+		            $attr_str .= $value ? " {$key}" : '';
+		        } else {
+		            $attr_str .= " {$key}=\"{$value}\"";
+		        }
+		    }
+		    echo "<script{$attr_str}>{$code}</script>";
+		//});
+    }else{
+	    wp_register_script($name, false, [], false, $in_footer); // $in_footer true olursa footer'a eklenir
+	    wp_enqueue_script($name);
+	    wp_add_inline_script($name, $code);
+    }
+}
+
+
+
+
+
 function delay_css_loading($html, $handle) {
     $delayed_styles = ['icons'];
     if (in_array($handle, $delayed_styles)) {
@@ -53,7 +85,7 @@ add_filter('style_loader_tag', 'delay_css_loading', 10, 2);
 
 function frontend_header_styles(){
 
-	$print_css = false;
+	$print_css = INLINE_CSS;
 	if(isset($_GET['fetch'])){
 		$print_css = false;
 	}
@@ -126,8 +158,7 @@ function frontend_header_styles(){
 		        wp_dequeue_style( 'brands-styles' );
 		        wp_deregister_style( 'brands-styles' );
 		    }
-		}
-	    	
+		}	
     }
 	
 	wp_dequeue_style('toggle-switch');
@@ -182,6 +213,9 @@ function frontend_header_styles(){
 
     wp_register_style('root', STATIC_URL . 'css/root.css', array(), $version, '');
     wp_enqueue_style('root');
+
+    //wp_register_style('header-themes', STATIC_URL . 'css/header-themes.css', array(), $version, ''); //merged with root.css
+    //wp_enqueue_style('header-themes');
 
 	if($plugin_css || $css_page){
 	    if(!$print_css){
@@ -351,28 +385,40 @@ function frontend_footer_scripts(){
 
     }else{
 
-        wp_register_script('functions', STATIC_URL . 'js/functions.min.js', array( ), null, true);
+	    $print_js = INLINE_JS;
+		if(isset($_GET['fetch'])){
+			$print_js = false;
+		}
+
+        wp_register_script('functions', STATIC_URL . 'js/functions.min.js', array(), null, true);
 		wp_enqueue_script('functions');
 
 	    wp_register_script('plugins', STATIC_URL . 'js/plugins.min.js', array(), null, true);
 	    wp_enqueue_script('plugins');
 
-	    
 	    $plugin_js = "";
 	    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["plugin_js"]) && !isset($_GET['fetch'])){
 	    	$plugin_js = SITE_ASSETS["plugin_js"];//apply_filters("salt_conditional_plugins", []);
 	    }
 
 	    if(!empty($plugin_js)){
-	        wp_register_script('plugins-conditional', STATIC_URL . $plugin_js, array('jquery' ), null, true);
-	        wp_enqueue_script('plugins-conditional');
+	    	if(!$print_js){
+		        wp_register_script('plugins-conditional', STATIC_URL . $plugin_js, array('jquery' ), null, true);
+		        wp_enqueue_script('plugins-conditional');
+	    	}else{
+	    		inline_js_add('plugins-conditional', STATIC_URL . $plugin_js); 
+	    	}
 	    }
-
-	    wp_register_script('main', STATIC_URL . 'js/main.min.js', array( ), null, true);
-	    wp_enqueue_script('main');
+        
+        if(!$print_js){
+		    wp_register_script('main', STATIC_URL . 'js/main.min.js', array( ), null, true);
+		    wp_enqueue_script('main');
+		}else{
+			inline_js_add('main', STATIC_URL . 'js/main.min.js');  
+		}
 
 	    $plugins = $files["js"]["plugins"];
-    	foreach($plugins as $key => $file){
+    	foreach($plugins as $plugin => $file){
     		if(!$file["c"]){
 			    if(!empty($file["init"])){
 			    	$init_functions[$plugin] = $file["init"];

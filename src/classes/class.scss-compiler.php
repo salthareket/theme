@@ -14,7 +14,7 @@ class SCSSCompiler {
     private string $sourcemaps;
 
     //public function __construct(array $scss_dirs, string $css_dir, string $sourcemaps, OutputStyle $compile_method = OutputStyle::COMPRESSED) { v2.0.0
-    public function __construct(array $scss_dirs, string $css_dir, string $sourcemaps, string $compile_method = "compressed") {
+    public function __construct(array $scss_dirs = [], string $css_dir = "", string $sourcemaps = "", string $compile_method = "compressed") {
         $this->scss_dirs = $scss_dirs;
         $this->css_dir = $css_dir;
         $this->compile_errors = [];
@@ -78,6 +78,16 @@ class SCSSCompiler {
                 ];
                 $this->compile_errors[] = $errors;
             }
+        }
+    }
+
+    public function compile_string(string $scss_string): string {
+        try {
+            $compilationResult = $this->scssc->compileString($scss_string);
+            return $compilationResult->getCss();
+        } catch (Exception $e) {
+            error_log("SCSS compile_string error: " . $e->getMessage());
+            return ""; // veya istersen false dönebilirsin
         }
     }
 
@@ -159,6 +169,18 @@ class SCSSCompiler {
         global $wpscss_compiler;
         $variables = apply_filters('wp_scss_variables', []);
         foreach ($variables as $variable_key => $variable_value) {
+            if(is_array($variable_value)){
+                error_log("array -> ".$variable_key);
+                error_log(print_r($variable_value, true));
+                unset($variables[$variable_key]);
+                continue;
+            }
+            if(empty($variable_value)){
+                error_log("empty -> ".$variable_key);
+                error_log(print_r($variable_value, true));
+                unset($variables[$variable_key]);
+                continue;
+            }
             if (strlen(trim($variable_value)) == 0) {
                 unset($variables[$variable_key]);
             }

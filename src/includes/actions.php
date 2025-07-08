@@ -336,29 +336,27 @@ function header_has_dropdown(){
     return $header_tools_dropdown;
 }
 function header_has_navigation(){
-    $header_navigation = false;
     $header_contents = ["header_start", "header_center", "header_end"];
     foreach($header_contents as $header_content){
         $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
         if($header_item){
-            if($header_item["type"] == "navigation" && !$header_navigation){
-                $header_navigation = true;
+            if($header_item["type"] == "navigation"){
+                return true;
             }
-            if($header_item["type"] == "tools" && !$header_navigation){
+            if($header_item["type"] == "tools"){
                 $header_tools = $header_item["header_tools"];
                 $header_tools = $header_tools["header_tools"];
                 if($header_tools){
                     foreach($header_tools as $header_tool){
-                        if($header_tool["menu_type"] == "navigation"){
-                            $header_navigation = true;
-                            continue;
+                        if($header_tool["menu_item"] == "navigation" && $header_tool["menu_type"] == "dropdown"){
+                            return true;
                         }
                     }
                 }
             }
         }
     }
-    return $header_navigation;
+    return false;
 }
 function header_footer_options($save = false){
 
@@ -794,3 +792,9 @@ function save_lcp_results() {
 
     wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return]);
 }
+
+
+
+add_action('send_headers', function(){
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://unpkg.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';");
+});

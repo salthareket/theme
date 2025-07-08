@@ -27,17 +27,17 @@
                     color: var(--bs-quaternary);
 
                     .title {
-                        @include font-size(44px);
+                        /*@include font-size(44px);
                         font-weight: 700;
                         color: var(--bs-tertiary);
-                        line-height: 100%;
+                        line-height: 100%;*/
                     }
 
                     .description {
-                        @include font-size(16px);
+                        /*@include font-size(16px);
                         @include rfs(36px, line-height);
                         font-weight: 400;
-                        color: #fff;
+                        color: #fff;*/
                     }
 
                     form {

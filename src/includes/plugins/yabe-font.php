@@ -17,7 +17,7 @@ function yabe_get_fonts(){
 	        $item = array(
 	        	"family" => $result->family,
 	        	"title"  => $result->title,
-	        	"selector"  => $metadata["selector"],
+	        	"selector"  => isset($metadata["selector"]) ? $metadata["selector"] : "",
 	        	"files"  => array()
 	        );
 	        if($font_faces){

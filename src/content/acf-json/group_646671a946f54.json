@@ -493,7 +493,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_64df7033a5cd9"
+                    "parent_repeater": "field_64df7033a5cd9",
+                    "create_options": 0,
+                    "save_options": 0
                 }
             ]
         },
@@ -1271,10 +1273,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "dummy": "Dummy",
-                        "gedanbarai": "Gedanbarai",
-                        "salthareket": "Salthareket",
-                        "twentytwentyfive": "Twenty Twenty-Five"
+                        "twentytwentyfive": "Twenty Twenty-Five",
+                        "xekos": "Xekos"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1285,7 +1285,9 @@
                     "placeholder": "",
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_6690aa9f17b90"
+                    "parent_repeater": "field_6690aa9f17b90",
+                    "create_options": 0,
+                    "save_options": 0
                 }
             ]
         },
@@ -1436,9 +1438,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -1451,7 +1453,9 @@
             "allow_in_bindings": 0,
             "ui": true,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_674395e8c8f9f",
@@ -1483,7 +1487,9 @@
             "allow_in_bindings": 0,
             "ui": true,
             "ajax": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_674ad252dfbfc",
@@ -1508,6 +1514,36 @@
             "ui": 1
         },
         {
+            "key": "field_68632523ae557",
+            "label": "Add Inline CSS",
+            "name": "inline_css",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_674ad252dfbfc",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
             "key": "field_674ad2a0dfbfd",
             "label": "Seperate Block Inline JS",
             "name": "seperate_js",
@@ -1516,6 +1552,36 @@
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_68632550ae558",
+            "label": "Add Inline JS",
+            "name": "inline_js",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_674ad2a0dfbfd",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
             "wrapper": {
                 "width": "",
                 "class": "",
@@ -1720,7 +1786,9 @@
             "allow_in_bindings": 0,
             "ui": 0,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_6786587e3a3c1",
@@ -1750,7 +1818,9 @@
             "ajax": 0,
             "placeholder": "",
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "create_options": 0,
+            "save_options": 0
         },
         {
             "key": "field_678658a83a3c2",
@@ -1820,7 +1890,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1744208597,
+    "modified": 1751328227,
     "acfe_categories": {
         "general": "General"
     }

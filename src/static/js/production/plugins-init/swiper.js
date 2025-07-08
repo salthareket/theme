@@ -1,84 +1,3 @@
-/*
-function getAverageLuminance(element) {
-    return new Promise((resolve) => {
-        // Eğer element 'swiper-slide-video' classına sahipse, poster frame'ini kullan
-        if (element.classList.contains('swiper-slide-video')) {
-            const posterElement = element.querySelector('.plyr__poster');
-            if (posterElement) {
-                const bgImage = getComputedStyle(posterElement).backgroundImage;
-                const imageUrlMatch = bgImage.match(/url\("?(.*?)"?\)/);
-                if (imageUrlMatch && imageUrlMatch[1]) {
-                    const imageUrl = imageUrlMatch[1];
-                    return getImageLuminance(imageUrl).then(resolve);
-                }
-            }
-        }
-        
-        const img = element.querySelector('img');
-        if (!img) {
-            resolve(getComputedLuminance(element)); // Eğer görsel yoksa arka planı kontrol et
-            return;
-        }
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
-        const imageData = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
-        const data = imageData.data;
-        
-        let sumLuminance = 0;
-        const totalPixels = data.length / 4;
-
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            
-            const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-            sumLuminance += luminance;
-        }
-        
-        resolve(sumLuminance / totalPixels);
-    });
-}
-function getImageLuminance(imageUrl) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.src = imageUrl;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-            
-            const imageData = ctx.getImageData(0, 0, img.width, img.height);
-            const data = imageData.data;
-            
-            let sumLuminance = 0;
-            const totalPixels = data.length / 4;
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-                sumLuminance += luminance;
-            }
-            resolve(sumLuminance / totalPixels);
-        };
-    });
-}
-function getComputedLuminance(element) {
-    const style = getComputedStyle(element);
-    const bgColor = style.backgroundColor;
-    const rgb = bgColor.match(/\d+/g)?.map(Number) || [255, 255, 255]; // Varsayılan beyaz
-    const [r, g, b] = rgb;
-    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-}
-*/
 function getAverageLuminance(element) {
     return new Promise((resolve) => {
         if (!element) {
@@ -123,7 +42,6 @@ function getAverageLuminance(element) {
         processImage(img, resolve);
     });
 }
-
 function processImage(img, resolve) {
     try {
         if (img.naturalWidth === 0 || img.naturalHeight === 0) {
@@ -168,7 +86,6 @@ function processImage(img, resolve) {
         resolve(1); // Beyaz olarak varsayılan parlaklık
     }
 }
-
 function getImageLuminance(imageUrl) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -183,7 +100,6 @@ function getImageLuminance(imageUrl) {
         };
     });
 }
-
 function getComputedLuminance(element) {
     const style = getComputedStyle(element);
     const bgColor = style.backgroundColor;
@@ -191,11 +107,18 @@ function getComputedLuminance(element) {
     const [r, g, b] = rgb;
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
-
 async function updateSlideColors(slider) {
 
-    const activeSlide = slider.querySelector('.swiper-slide-active');
-    if (!activeSlide) return;
+    //const activeSlide = slider.querySelector('.swiper-slide-active');
+    //if (!activeSlide) return;
+
+    let activeSlide = slider.querySelector('.swiper-slide-active');
+
+    if (!activeSlide) {
+        activeSlide = slider.querySelector('.swiper-slide');
+    }
+
+    if (!activeSlide) return; // hiç slide yoksa, güvenlik için çık
 
     slider.classList.remove("slide-light");
     slider.classList.remove("slide-dark");
@@ -210,10 +133,72 @@ async function updateSlideColors(slider) {
         return;
     }
     const luminance = await getAverageLuminance(activeSlide);
-    const isDark = luminance < 0.5; // 0.5 eşik değeri
+    console.log(luminance);
+    //const isDark = luminance < 0.6; // 0.5 eşik değeri
+    const isDark = luminance === 0 ? false : luminance < 0.6;
     activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
     slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
 }
+/*
+async function updateSlideColors(slider) {
+
+    let activeSlide = slider.querySelector('.swiper-slide-active');
+
+    if (!activeSlide) {
+        activeSlide = slider.querySelector('.swiper-slide');
+    }
+
+    if (!activeSlide) return;
+
+    slider.classList.remove("slide-light");
+    slider.classList.remove("slide-dark");
+
+    if (activeSlide.classList.contains('slide-dark') || activeSlide.classList.contains('slide-light')) {
+        if(activeSlide.classList.contains('slide-dark')){
+            slider.classList.add("slide-dark");
+        }
+        if(activeSlide.classList.contains('slide-light')){
+            slider.classList.add("slide-light");
+        }
+        return;
+    }
+
+    const img = activeSlide.querySelector('img');
+
+    if (img) {
+        // Lazy-load kontrolü
+        if (img.classList.contains('lazy')) {
+
+            // Vanilla-Lazy-Load, img yüklendiğinde "load" event'ini tetikler
+            if (img.complete && img.naturalWidth !== 0) {
+                // zaten yüklenmiş
+                await analyzeAndSet();
+            } else {
+                img.addEventListener('load', analyzeAndSet, { once: true });
+            }
+
+        } else {
+            // Lazy değil → klasik img yüklenmesini bekle
+            if (img.complete && img.naturalWidth !== 0) {
+                await analyzeAndSet();
+            } else {
+                img.addEventListener('load', analyzeAndSet, { once: true });
+            }
+        }
+    } else {
+        await analyzeAndSet();
+    }
+
+    async function analyzeAndSet() {
+        const luminance = await getAverageLuminance(activeSlide);
+        console.log(luminance)
+        const isDark = luminance < 0.6;
+
+        activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
+        slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
+    }
+}
+*/
 
 
 function init_swiper_video_slide(swiper, obj){
@@ -354,6 +339,7 @@ function init_swiper_obj($obj) {
         if ($obj.closest(".loading").length > 0) {
             $obj.closest(".loading").removeClass("loading");
         }
+        updateSlideColors($obj[0]);
         return;
     }
   
@@ -370,7 +356,7 @@ function init_swiper_obj($obj) {
         var pagination_visible = $obj.data("slider-pagination-visible")||0;
         var pagination_thumbs = bool($obj.data("slider-pagination-thumbs"), false);
         var autoplay = bool($obj.data("slider-autoplay"), false);
-        var autoplay_pause = bool($obj.data("slider-autoplay-pause"), true);
+        var autoplay_pause = bool($obj.data("slider-autoplay-pause"), false);
         var delay = $obj.data("slider-delay") ?? (autoplay ? 5000 : 0);
         var speed = $obj.data("slider-speed") ?? 750;
         var loop = bool($obj.data("slider-loop"), false);
@@ -778,7 +764,7 @@ function init_swiper_obj($obj) {
                 enabled: autoplay,
                 delay: delay,
             }
-            if(!autoplay_pause){
+            if(autoplay_pause){
                 options["autoplay"]["disableOnInteraction"] = false;
                 options["autoplay"]["pauseOnMouseEnter"] = autoplay_pause;
             }
