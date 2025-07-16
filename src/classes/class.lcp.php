@@ -3,7 +3,9 @@
 class Lcp{
 	// lcp: type, tag, code, url, id
     Private $data = [];
+    Private $view_type = "";
 	public function __construct($data = []) {
+		$this->view_type = "code";//"js";
 		if($data){
 			//error_log(" -> data var");
 			$this->data = $data;
@@ -29,19 +31,28 @@ class Lcp{
 	public function preloadCode(){
 	    $preload = "";
 	    $css = "";
+	    $desktop = "";
+	    $mobile = "";
 	    
 	    foreach($this->data as $key => $lcp){
+	    	if($key == "mobile"){
+	    		$mobile = $lcp["url"];
+	    	}else{
+	    		$desktop = $lcp["url"];
+	    	}
+
 	        if(!empty($lcp["code"])){
 	            $css .= "@media (".($key=="mobile"?"max-width: 768px":"min-width: 769px").") {\n";
 	            $css .= $lcp["code"] . "\n";
 	            $css .= "}\n";
 	        }
 	        
-	        if(!empty($lcp["url"])){
+	        if(!empty($lcp["url"]) && $this->view_type == "code"){
 	            $preload .= '<link rel="preload" ';//' data-rocket-preload ';
 	            $preload .= 'as="'.$lcp["type"].'" href="'.$lcp["url"].'" ';
 	            $preload .= 'importance="high" fetchpriority="high" media="('.($key=="mobile"?"max-width: 768px":"min-width: 769px").')">' . "\n";               
 	        }
+
 	        /*if(!empty($lcp["url"])){
 	            $preload .= '<link rel="preload" ';
 	            $preload .= 'as="'.$lcp["type"].'" href="'.$lcp["url"].'" ';
@@ -51,6 +62,25 @@ class Lcp{
 	    
 	    if(!empty($preload)){
 	        echo $preload;
+	    }elseif(!empty($mobile) && !empty($desktop)){
+	    	?>
+	    	<script>
+	    	(function() {
+			    const link = document.createElement('link');
+			    link.rel = 'preload';
+			    link.as = 'image';
+			    link.fetchPriority = 'high';
+
+			    const isMobile = window.innerWidth <= 768; // kırılma noktan neyse
+
+			    link.href = isMobile
+			        ? "<?php echo $mobile; ?>"
+			        : "<?php echo $desktop; ?>";
+
+			    document.head.appendChild(link);
+			})();
+		    </script>
+			<?php
 	    }
 	    
 	    if(!empty($css)){
@@ -151,54 +181,16 @@ class Lcp{
 		}
 		return $images;
 	}
-	/*public function is_lcp($image) {
-	    $lcp_images = $this->images(); // LCP image listesini alıyoruz.
-
-	    // Eğer string (image URL) verilmişse, LCP listesinde var mı kontrol edelim.
-	    if (is_string($image)) {
-	        foreach ($lcp_images as $lcp) {
-	            if ($lcp["url"] === $image) {
-	                return true;
-	            }
-	        }
-	    }
-
-	    // Eğer array verilmişse (breakpoint array olabilir)
-	    if (is_array($image)) {
-	        foreach ($image as $breakpoint => $attachment_id) {
-	            foreach ($lcp_images as $lcp) {
-	                if ($lcp["id"] == $attachment_id) {
-	                    return true;
-	                }
-	            }
-	        }
-	    }
-
-	    // Eğer object verilmişse (image objesi olabilir)
-	    if (is_object($image) && isset($image->id)) {
-	        foreach ($lcp_images as $lcp) {
-	            if ($lcp["id"] == $image->id) {
-	                return true;
-	            }
-	        }
-	    }
-
-	    // Eğer numeric ID verilmişse
-	    if (is_numeric($image)) {
-	        foreach ($lcp_images as $lcp) {
-	            if ($lcp["id"] == $image) {
-	                return true;
-	            }
-	        }
-	    }
-
-	    return false; // Hiçbiri eşleşmiyorsa LCP değil.
-	}*/
 	public function is_lcp($image) {
 	    // Tüm LCP ID'lerini bir array'e çekelim.
 	    $lcp_images = $this->images();
-	    $lcp_ids    = array_column($lcp_images, 'id');
+	    $lcp_ids    = array_map('intval', array_column($lcp_images, 'id'));
 	    $lcp_urls   = array_column($lcp_images, 'url');
+        
+        error_log("image");
+	    error_log(print_r($image, true));
+	    error_log("lcps");
+	    error_log(print_r($lcp_ids, true));
 
 	    // Eğer string (URL) verilmişse
 	    if (is_string($image)) {

@@ -52,7 +52,6 @@ class RemoveUnusedCss {
         ".nav-equalized",
         
         // plugin classes
-        ".slinky-*",
         ".lenis",
         ".lenis-*",
         ".dgwt-wcas-open",
@@ -79,7 +78,7 @@ class RemoveUnusedCss {
        ':only-child', 
        ':only-of-type', 
        ':empty'
-   ];
+    ];
 
     public function __construct($html, $css, $output = "", $additional_whitelist = [], $critical_css = false) {
         if (is_string($html)) {
@@ -89,7 +88,9 @@ class RemoveUnusedCss {
             // Eğer $html zaten HtmlDomParser nesnesiyse, direkt kullan
             $this->html = $html;
         } else {
-            throw new InvalidArgumentException("Invalid HTML input. Must be a string or HtmlDomParser object.");
+            if(!$critical_css){
+                throw new InvalidArgumentException("Invalid HTML input. Must be a string or HtmlDomParser object.");
+            }
         }
 
         //error_log(print_r($this->html, true));
@@ -97,7 +98,18 @@ class RemoveUnusedCss {
         $this->css = is_file($css) ? file_get_contents($css) : $css;
         $this->output = $output;
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
+        //error_log(print_r($this->white_list, true));
         $this->critical_css = $critical_css;
+    }
+
+    private function cleanDom($dom) {
+        $removeTags = ['script', 'style', 'noscript', 'template', 'svg', 'canvas'];
+        foreach ($removeTags as $tag) {
+            foreach ($dom->find($tag) as $node) {
+                $node->outertext = '';
+            }
+        }
+        return $dom;
     }
 
     public function process() {
@@ -127,7 +139,7 @@ class RemoveUnusedCss {
         }
     }
 
-    public function extract_critical_css(HtmlDomParser $dom, string $css): array {
+    /*public function extract_critical_css(HtmlDomParser $dom, string $css): array {
         $usedSelectors = [];
 
         // Sayfadaki tüm class ve ID'leri topla
@@ -181,7 +193,87 @@ class RemoveUnusedCss {
             'css' => $remainingCSS,
             'critical_css' => $criticalCSS
         ];
+    }*/
+    private function isCriticalSelector($selector, array $usedSelectors): bool {
+        foreach ($usedSelectors as $used) {
+            $used = trim($used);
+            // Direkt tam eşleşme
+            if ($selector === $used) {
+                return true;
+            }
+
+            // Nokta ile başlayan class eşleşmesi
+            if (preg_match('/(^|\s|,)' . preg_quote($used, '/') . '($|\s|,|:)/', $selector)) {
+                return true;
+            }
+        }
+        return false;
     }
+    private function cleanSelector($selector) {
+        // Tüm pseudo-class ve element’leri uçur
+        return preg_replace('/:(hover|focus|active|visited|checked|disabled|enabled|invalid|valid|target|focus-visible|focus-within|empty|selection|is\([^)]+\)|where\([^)]+\)|has\([^)]+\)|not\([^)]+\)|before|after)/', '', $selector);
+    }
+    public function generate_critical_css(array $selectors) {
+        $this->removeUnnecessaryLines();
+        $this->removeComments();
+        $this->extractMediaQueries();
+        $this->extractRootVariables();
+        $this->extractKeyframes();
+        $this->extractFonts();
+        $this->extractStyles();
+
+        $criticalCSS = "";
+
+        foreach ($this->css_structure["styles"] as $style) {
+            $cleaned_selectors = array_map([$this, 'cleanSelector'], $style["selectors"]);
+            foreach ($cleaned_selectors as $selector) {
+                if ($this->isCriticalSelector($selector, $selectors)) {
+                    $criticalCSS .= implode(", ", $cleaned_selectors) . " { " . $style["code"] . " }\n";
+                    $this->trackUsedItems($style["code"]);
+                    break;
+                }
+            }
+        }
+
+        foreach ($this->css_structure["media_queries"] as $media => $rules) {
+            $media_block = "";
+            foreach ($rules as $selector => $rule) {
+                $cleaned = $this->cleanSelector($selector);
+                if ($this->isCriticalSelector($cleaned, $selectors)) {
+                    $media_block .= "$cleaned { $rule }\n";
+                }
+            }
+            if (!empty($media_block)) {
+                $criticalCSS .= "$media {\n$media_block}\n";
+            }
+        }
+
+        // Overlay/Modal gibi yapıları sakla
+        $criticalCSS .= "body.offcanvas-open, .offcanvas, .modal, .bootbox, .backdrop, .overlay { display: none !important; }\n";
+
+        // Görsel efekt override'ları
+        $criticalCSS .= "img, picture, source {
+            opacity: 1 !important;
+            mix-blend-mode: normal !important;
+            filter: none !important;
+        }\n";
+
+        // Minify
+        $minifier = new Minify\CSS($criticalCSS);
+        $criticalCSS = $minifier->minify();
+        $criticalCSS = str_replace("../", "../../", $criticalCSS);
+
+        if (!empty($this->output)) {
+            file_put_contents($this->output, $criticalCSS);
+        } else {
+            return $criticalCSS;
+        }
+    }
+
+
+
+
+
 
     private function removeUnnecessaryLines() {
         $this->css = preg_replace('/@charset[^;]+;/', '', $this->css);
@@ -266,6 +358,7 @@ class RemoveUnusedCss {
             error_log("Error parsing HTML");
             return;
         }
+        //$dom = $this->cleanDom($dom);
         $this->updateWhiteList($dom);
         //error_log(print_r($this->white_list, true));
         $this->processFonts();
@@ -319,7 +412,7 @@ class RemoveUnusedCss {
         }
     }
 
-    private function processStyles($dom) {
+    /*private function processStyles($dom) {
         foreach ($this->css_structure["styles"] as $style) {
             $selectors = $style["selectors"];
             $found = false;
@@ -337,6 +430,199 @@ class RemoveUnusedCss {
             
             if ($found) {
                 $this->css_temp .= implode(", ", $selectors) . " { " . $style["code"] . " }\n";
+                $this->trackUsedItems($style["code"]);
+            }
+        }
+    }*/
+
+    /*private function processStyles($dom) {
+        foreach ($this->css_structure["styles"] as $style) {
+            $selectors = $style["selectors"];
+            $keptSelectors = [];
+
+            foreach ($selectors as $selector) {
+                $keep = false;
+
+                // Acceptable pseudo-class varsa tut
+                foreach ($this->acceptable_pseudo_classes as $pseudo) {
+                    if (strpos($selector, $pseudo) !== false) {
+                        error_log($selector." pseudo:".$pseudo);
+                        $keep = true;
+                        break;
+                    }
+                }
+
+                // Acceptable değilse normal selectorExists testi
+                if (!$keep) {
+                    if ($this->isWhitelisted($dom, $selector) || 
+                        strpos($selector, '*') !== false || 
+                        strpos($selector, '~') !== false ||
+                        $this->selectorExists($dom, $selector)) {
+                        error_log($selector." is exist");
+                        $keep = true;
+                    }
+                }
+
+                if ($keep) {
+                    $keptSelectors[] = $selector;
+                }
+            }
+
+            if (!empty($keptSelectors)) {
+                $this->css_temp .= implode(", ", $keptSelectors) . " { " . $style["code"] . " }\n";
+                $this->trackUsedItems($style["code"]);
+            }
+        }
+    }
+
+    private function processStyles($dom) {
+        foreach ($this->css_structure["styles"] as $style) {
+            $selectors = $style["selectors"];
+            $keptSelectors = [];
+
+            foreach ($selectors as $selector) {
+
+                if (empty($selector)) {
+                    continue;
+                }
+                
+                // Unclosed attribute selector
+                if (preg_match('/\[\s*[^\]]*$/', $selector)) {
+                    continue;
+                }
+
+                $keep = false;
+
+                // 1) Pseudo-class varsa işaretle
+                $hasPseudo = false;
+                foreach ($this->acceptable_pseudo_classes as $pseudo) {
+                    if (strpos($selector, $pseudo) !== false) {
+                        $hasPseudo = true;
+                        break;
+                    }
+                }
+
+                if ($hasPseudo) {
+                    // Kökteki selector'u ayıkla
+                    preg_match(
+                        '/^(
+                            (?:\[[^\]]+\]         # attribute selector
+                            | [.#][\w\-]+         # class veya id
+                            | \w+ )               # tag
+                            (?: [.#][\w\-]+       # ek class veya id
+                            | \[[^\]]+\] )*       # ek attribute
+                        )/x',
+                        $selector,
+                        $matches
+                    );
+                    $rootSelector = $matches[1] ?? null;
+
+                    if ($rootSelector) {
+                        if (
+                            $this->isWhitelisted($dom, $rootSelector) ||
+                            $this->selectorExists($dom, $rootSelector)
+                        ) {
+                            $keep = true;
+                        } else {
+                            $keep = false;
+                        }
+                    } else {
+                        // kök selector yoksa riskli → sil
+                        $keep = false;
+                    }
+                } else {
+                    // normal selector testi
+                    if (
+                        $this->isWhitelisted($dom, $selector) ||
+                        strpos($selector, '*') !== false ||
+                        strpos($selector, '~') !== false ||
+                        $this->selectorExists($dom, $selector)
+                    ) {
+                        $keep = true;
+                    }
+                }
+
+                if ($keep) {
+                    $keptSelectors[] = $selector;
+                }
+            }
+
+            if (!empty($keptSelectors)) {
+                $this->css_temp .= implode(", ", $keptSelectors) . " { " . $style["code"] . " }\n";
+                $this->trackUsedItems($style["code"]);
+            }
+        }
+    }*/
+
+    private function processStyles($dom) {
+        foreach ($this->css_structure["styles"] as $style) {
+            $selectors = $style["selectors"];
+            $keptSelectors = [];
+
+            foreach ($selectors as $selector) {
+                if (empty($selector)) {
+                    continue;
+                }
+
+                // Skip unclosed attribute selector (ör: [class*=")
+                if (preg_match('/\[\s*[^\]]*$/', $selector)) {
+                    error_log("Skipping incomplete attribute selector: $selector");
+                    continue;
+                }
+
+                $keep = false;
+
+                // 1) Acceptable pseudo-class içeriyor mu?
+                $hasPseudo = false;
+                foreach ($this->acceptable_pseudo_classes as $pseudo) {
+                    if (strpos($selector, $pseudo) !== false) {
+                        $hasPseudo = true;
+                        break;
+                    }
+                }
+
+                if ($hasPseudo) {
+                    // Kök selector'u bul
+                    preg_match(
+                        '/^(
+                            (?:\[[^\]]+\]
+                            | [.#][\w\-]+
+                            | \w+ )
+                            (?: [.#][\w\-]+
+                            | \[[^\]]+\] )*
+                        )/x',
+                        $selector,
+                        $matches
+                    );
+                    $rootSelector = $matches[1] ?? null;
+
+                    if ($rootSelector) {
+                        if (
+                            $this->isWhitelisted($dom, $rootSelector) ||
+                            $this->selectorExists($dom, $rootSelector)
+                        ) {
+                            $keep = true;
+                        }
+                    }
+                } else {
+                    // Normal selector testi
+                    if (
+                        $this->isWhitelisted($dom, $selector) ||
+                        strpos($selector, '*') !== false ||
+                        strpos($selector, '~') !== false ||
+                        $this->selectorExists($dom, $selector)
+                    ) {
+                        $keep = true;
+                    }
+                }
+
+                if ($keep) {
+                    $keptSelectors[] = $selector;
+                }
+            }
+
+            if (!empty($keptSelectors)) {
+                $this->css_temp .= implode(", ", $keptSelectors) . " { " . $style["code"] . " }\n";
                 $this->trackUsedItems($style["code"]);
             }
         }
@@ -456,6 +742,12 @@ class RemoveUnusedCss {
         $selector = trim($selector);
         if (empty($selector)) return false;
 
+        // CSS selector mı kontrol et (çok temel bir örnek, genişletilebilir)
+        if (preg_match('/^[a-zA-Z.#:\[]/', trim($selector)) === 0) {
+            error_log('[RemoveUnusedCss] Skipping invalid selector: ' . $selector);
+            return false;
+        }
+
         // Eğer selector ':' ile başlıyorsa doğrudan kabul et
         if (strpos($selector, ':') === 0) {
             //error_log("found: ".$selector);
@@ -471,7 +763,7 @@ class RemoveUnusedCss {
             if (strpos($whitelist_class, '*') !== false) {
                 $whitelist_pattern = str_replace('*', '.*', preg_quote($whitelist_class, '/'));
                 if (preg_match('/' . $whitelist_pattern . '/', $selector)) {
-                    //error_log(" wildcard: ".$selector);
+                    //error_log(" wildcard: ".$selector);//
                     //error_log("found: ".$selector);
                     return true;
                 }
@@ -484,6 +776,8 @@ class RemoveUnusedCss {
         }
         
         $selector = $this->cleanWhitelistClasses($selector);
+
+        //error_log("found: ".$selector);
 
         $found = true;
         $elements = $dom->find($selector);
@@ -546,6 +840,16 @@ class RemoveUnusedCss {
             $data = array_merge($data, $this->white_list);
             $data = remove_duplicated_items($data);
             $this->white_list = $data;
+            /*$white_list = array_map(function($item) {
+                $name = ltrim($item, '.');
+                if (str_ends_with($name, '-*')) {
+                    $prefix = substr($name, 0, -2);
+                    return '/^' . preg_quote($prefix, '/') . '-/';
+                }
+                return $name;
+            }, $this->white_list);
+            error_log(print_r($white_list, true));
+            update_dynamic_css_whitelist($white_list);*/
         }
     }
 

@@ -480,3 +480,11 @@ function ajaxResponseFilter(str) {
         return null;
     }
 }
+
+function resizeDebounce(func, wait) {
+	let timeout;
+	return function(...args) {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(this, args), wait);
+	};
+}

@@ -29,7 +29,7 @@
                 .header-tools {
                     > .nav {
                         > .nav-item {
-                           &:not(.navbar-container) {*
+                           &:not(.navbar-container) {
                                 a:not(.btn) {
                                     color: $color !important;
                                     &:hover {

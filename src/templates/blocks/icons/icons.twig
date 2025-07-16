@@ -22,6 +22,8 @@
 
 {% block block_content %}
 
+    {% set align_item = function("block_align", fields.align_item, true, fields.slider) %}
+
     {% if fields.slider %}
         <div class="swiper-slider swiper {{block_meta.row.class}}" {{block_meta.row.attrs}}>
              <div class="swiper-wrapper">
@@ -41,7 +43,7 @@
                     {% set link_start = "<a href='" ~ item.content.url.url ~ "' class='" ~ (not is_external?"btn-loading-page":"") ~" d-flex flex-column" ~ (fields.reverse?"-reverse":"") ~ "' "  ~ attrs ~ " title='" ~ (button.link_text|default(item.title)) ~"'>" %}
                 {% endif %}
 
-                <div class="icon-{{ key }} d-flex flex-column {% if fields.reverse and not link_start %}flex-column-reverse{% endif %} {{block_meta.row.class}}" data-mh="icon-list-{{block_meta.id}}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                <div class="icon-{{ key }} d-flex flex-column {% if fields.reverse and not link_start %}flex-column-reverse{% endif %} {{align_item}}" data-mh="icon-list-{{block_meta.id}}">
                     
                     {% if link_start  %}
                         {{ link_start }}
@@ -51,20 +53,24 @@
                             {% include fields.template ~ ".twig" with { post: item } %}
                         {% else %}
 
-                            {% if item.image %}
-                            <div class="icon w-100">
-                                {% if function('get_extension', item.image.url) == "svg" %}
-                                    {{item.image.url|inline_svg("image img-fluid")}}
+                            {% if item.icon.image %}
+                            <div class="icon w-100 {% if fields.reverse %}{% if item.icon.margin.margin and item.icon.margin.margin != "default" %}mt-{{ item.icon.margin.margin }}{% endif %}{% else %}{% if item.icon.margin.margin and item.icon.margin.margin != "default" %}mb-{{ item.icon.margin.margin }}{% endif %}{% endif %}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                                {% if function('get_extension', item.icon.image.url) == "svg" %}
+                                    {{item.icon.image.url|inline_svg("image img-fluid")}}
                                 {% else %}
-                                    <img {% if not is_preview %}data-{% endif %}src="{{item.image.sizes.medium}}" class="image img-fluid shadow-sm {% if not is_preview %}lazy{% endif %}" alt="{{ item.title }}" width="{{item.image.width}}" height="{{item.image.height}}"/>
+                                    <img {% if not is_preview %}data-{% endif %}src="{{item.icon.image.sizes.medium}}" class="image img-fluid shadow-sm {% if not is_preview %}lazy{% endif %}" alt="{{ item.title }}" width="{{item.icon.image.width}}" height="{{item.icon.image.height}}"/>
                                 {% endif %}
                             </div>
                             {% endif %}
-                            {% if item.content.title %}
-                                <h3 class="title w-100">{{ item.content.title }}</h3>
-                            {% endif %}
                             {% if item.content.description %}
-                                <div class="description w-100">{{ item.content.description }}</div>
+                                {% set aos_clone = "" %}
+                                {% if block_meta.aos != "" and item.icon.image %}
+                                    {% set aos_clone = function("block_aos_animation", block_meta.aos, "fade") %}
+                                    {% set aos_clone = function("block_aos_delay", aos_clone, 100 + (50*loop.index0)) %}
+                                {% else %}
+                                    {% set aos_clone = function("block_aos_delay", block_meta.aos, (50*loop.index0)) %}
+                                {% endif %}
+                                <div class="description w-100" {{aos_clone}}>{{ item.content.description }}</div>
                             {% endif %}
 
                         {% endif %}

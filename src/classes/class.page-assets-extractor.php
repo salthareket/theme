@@ -157,8 +157,6 @@ class PageAssetsExtractor {
         /*return file_get_contents(STATIC_PATH ."css/main-combined.css");*/
     }
    
-
-
     // JS ve CSS assetlerini bul
     public function extract_assets($html_content, $id) {
         $js = [];
@@ -299,18 +297,30 @@ class PageAssetsExtractor {
                     if(isset($plugin['condition'])){
                         $condition = $plugin['condition'];
                     }
+
                     foreach ($plugin['class'] as $class) {
-                        error_log($key." için ".$class." varmı = ".(strpos($html, $class) !== false));
-                        
-                        if (strpos($html, $class) !== false && $condition) {
+                        $pattern = '/class\s*=\s*["\'][^"\']*\b' . preg_quote($class, '/') . '\b[^"\']*["\']/i';
+                        error_log($key." için ".$class." varmı = ".(preg_match($pattern, $html) ? 'true' : 'false'));
+                        if (preg_match($pattern, $html) && $condition) {
                             $plugins[] = $key;
                             break;
                         }
                     }
+
                     foreach ($plugin['attrs'] as $attr) {
-                        if (strpos($html, $attr) !== false && $condition) {
-                            $plugins[] = $key;
-                            break;
+                        if (strpos($attr, '=') !== false) {
+                            $exists = strpos($html, $attr) !== false;
+                            if ($exists && $condition) {
+                                $plugins[] = $key;
+                                break;
+                            }
+                        } else {
+                            $pattern = '/\s' . preg_quote($attr, '/') . '\s*=\s*["\'].*?["\']/i';
+                            $exists = preg_match($pattern, $html);
+                            if ($exists && $condition) {
+                                $plugins[] = $key;
+                                break;
+                            }
                         }
                     }
                 }
@@ -334,14 +344,14 @@ class PageAssetsExtractor {
             if($plugins){
 
                 //plugin css
-                $plugin_files_whitelist = [];
                 $plugin_files_css = [];
                 $plugin_files_css_rtl = [];
+                $plugin_files_whitelist = [];
                 foreach($plugins as $plugin){
                     if($files["js"]["plugins"][$plugin]["css"]){
                         $plugin_files_css[] = STATIC_URL . 'js/plugins/'.$plugin.".css";
                         $plugin_files_css_rtl[] = STATIC_URL . 'js/plugins/'.$plugin."-rtl.css";
-                        $plugin_files_whitelist[] = $files["js"]["plugins"][$plugin]["whitelist"];
+                        $plugin_files_whitelist = array_merge($plugin_files_whitelist, $files["js"]["plugins"][$plugin]["whitelist"]);
                     }
                 }
                 if($plugin_files_css){
@@ -389,17 +399,29 @@ class PageAssetsExtractor {
             $css_page_hash = md5($this->type."-".$id);
             $css_page = $cache_dir . $css_page_hash . '.css';
 
+            //$css_page_critical = $cache_dir . $css_page_hash . '-critical.css';
+
             if (file_exists($css_page)) {
                 unlink($css_page);
             }
 
-            $css_page_content = $this->remove_unused_css($html_content);
+            
 
             /*$css_page_content = $this->remove_unused_css($html_content, "", "", [], true);//, $css_page);
             $css = $css_page_content["critical_css"].$css;
             $css_page_content = $css_page_content["css"];*/
 
+            $css_page_content = $this->remove_unused_css($html_content);
+            //$css_page_content = $this->remove_unused_css($html_content, "", "", [], true);
+
+            //$css_critical = $css_page_content["critical_css"];
+            //$css_critical = str_replace("../", "../../", $css_critical);
+
+            //$css_page_content = $css_page_content["css"];
             $css_page_content = str_replace("../", "../../", $css_page_content);
+
+            //file_put_contents($css_page_critical, $css_critical);
+
             file_put_contents($css_page, $css_page_content);
             
             //rtl
@@ -487,10 +509,7 @@ class PageAssetsExtractor {
         if ($type !== 'css' && $type !== 'js') {
             return false;
         }
-        error_log($type. " files:");
-        error_log(print_r($files, true));
 
-        
         if($type == "js"){
             $containsInit = "";
             $containsInit = array_filter($files, function($file) {
@@ -532,23 +551,14 @@ class PageAssetsExtractor {
 
         $combined_content = '';
         foreach ($files as $key => $file) {
-            // Dosyanın tam yolunu kullan
             $plugin_name = basename($file);
             $file_system_path = STATIC_PATH . 'js/plugins/' . $plugin_name;
-
-            error_log("--------------------".$file_system_path);
-            
             if (file_exists($file_system_path)) {
-                error_log($file_system_path." var.");
                 $content = file_get_contents($file_system_path);
                 if ($content !== false) {
                     if($type == "css"){
                         $content = str_replace(STATIC_URL, "../../", $content);// read assets from cache folder
                         $content = str_replace("[STATIC_URL]", "../../", $content);// read assets from cache folder
-                    }
-                    // remove unused css from plugin's css file
-                    if($type == "css" && $whitelist[$key]){
-                        $content = $this->remove_unused_css($this->html, $content, "", $whitelist[$key]);
                     }
                     $combined_content .= $content . PHP_EOL; // Sonuna yeni satır ekleniyor
                 } else {
@@ -559,6 +569,10 @@ class PageAssetsExtractor {
             }
         }
 
+        if(!empty($combined_content) && $type == "css"){
+            $combined_content = $this->remove_unused_css($this->html, $combined_content, "", $whitelist);
+        }
+
         // Birleştirilen içeriği dosyaya yaz
         $combined_content = str_replace("(function($) {", "", $combined_content);
         $combined_content = str_replace("(function($){", "", $combined_content);
@@ -566,11 +580,6 @@ class PageAssetsExtractor {
         $combined_content = str_replace("}(jQuery))", "", $combined_content);
 
         file_put_contents($cache_file, trim($combined_content));
-
-        error_log(print_r($files, true));
-        error_log($type . '/cache/' . $hash . '.' . $type);
-
-        error_log("-----------------");
 
         return $type . '/cache/' . $hash . '.' . $type;
     }

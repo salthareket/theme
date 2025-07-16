@@ -228,8 +228,6 @@ class SaltBase{
     }
 
     
-
-
     public function on_post_pre_update($data){
         /*if($data["post_type"] == "page"){
            $menu_order = wp_count_posts("page")->publish;
@@ -1189,7 +1187,9 @@ class SaltBase{
     }
     public function get_favorites_count(){
         $favorites = new Favorites();
-        return $favorites->count();
+        $count = $favorites->count();
+        if (empty($count)) $count = 0;
+        return $count;
     }
 
 

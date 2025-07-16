@@ -48,6 +48,7 @@ class FluidCss {
             }
         }
         $css .= "--hero-height-full: 100vh;\n";
+        $css .= "--hero-height-full-min: 100dvh;\n";
         if(isset($this->variables["custom-colors-list"])){
             $css .= "--salt-colors: ".$this->variables["custom-colors-list"].";\n";
         }
@@ -93,20 +94,32 @@ class FluidCss {
             if (!empty($this->variables_mobile) && $key === 'xs') {
                 $this->variables_mobile_added = true;
                 foreach ($this->variables_mobile as $k => $v) {
-                    $css .= "        --{$k}: {$v};\n";
+                    //$css .= "        --{$k}: {$v};\n";
                     if (is_hex_color($v)) {
                         $rgb = hex2rgb($v);
                         $css .= "        --{$k}-rgb: " . implode(', ', $rgb) . ";\n";
+                    }elseif(strpos($k, 'hero-height') === 0){
+                        $css .= "        --{$k}:{$v};\n";
+                        $v = str_replace("vh", "dvh", $v);
+                        $css .= "        --{$k}-min:{$v};\n";
+                    }else{
+                        $css .= "        --{$k}: {$v};\n";
                     }
                 }
             }
 
             foreach ($vars as $var_name => $value) {
                 $var_name = str_replace("_", "-", $var_name);
-                $css .= "        --{$var_name}: {$value};\n";
+                //$css .= "        --{$var_name}: {$value};\n";
                 if (is_hex_color($value)) {
                     $rgb = hex2rgb($value);
                     $css .= "        --{$var_name}-rgb: " . implode(', ', $rgb) . ";\n";
+                }elseif(strpos($var_name, 'hero-height') === 0){
+                    $css .= "        --{$var_name}: {$value};\n";
+                    $value = str_replace("vh", "dvh", $value);
+                    $css .= "        --{$var_name}-min:{$value};\n";
+                }else{
+                    $css .= "        --{$var_name}: {$value};\n";
                 }
             }
 
@@ -119,10 +132,16 @@ class FluidCss {
             $css .= "    :root {\n";
             foreach ($this->variables_mobile as $key => $value) {
                 $key = str_replace("_", "-", $key);
-                $css .= "        --{$key}: {$value};\n";
+                //$css .= "        --{$key}: {$value};\n";
                 if (is_hex_color($value)) {
                     $rgb = hex2rgb($value);
                     $css .= "        --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
+                }elseif(strpos($key, 'hero-height') === 0){
+                    $css .= "        --{$key}: {$value};\n";
+                    $value = str_replace("vh", "dvh", $value);
+                    $css .= "        --{$key}-min:{$value};\n";
+                }else{
+                    $css .= "        --{$key}: {$value};\n";
                 }
             }
             $css .= "    }\n";
@@ -175,7 +194,14 @@ class FluidCss {
                     foreach ($val_arr as $val_name => $val) {
                         $curr_val = isset($val) ? ($val) : null;
                         if (!$curr_val) continue;
-                        $css .= "    --{$type}-{$val_name}-{$size_key}: {$curr_val};\n";
+                        if(strpos($type."-".$val_name, 'hero-height') === 0){
+                            $css .= "    --{$type}-{$val_name}-{$size_key}: {$curr_val};\n";
+                            $curr_val = str_replace("vh", "dvh", $curr_val);
+                            $css .= "        --{$type}-{$val_name}-{$size_key}-min:{$curr_val};\n";
+                        }else{
+                            $css .= "    --{$type}-{$val_name}-{$size_key}: {$curr_val};\n";
+                        }
+                        
                     }
                 }
             }
@@ -192,8 +218,8 @@ class FluidCss {
         preg_match('/([\d\.]+)([a-z%]*)/', trim($min_value), $min_matches);
         preg_match('/([\d\.]+)([a-z%]*)/', trim($max_value), $max_matches);
 
-        error_log(print_r($min_matches, true));
-        error_log(print_r($max_matches, true));
+        //error_log(print_r($min_matches, true));
+        //error_log(print_r($max_matches, true));
 
         $min_num = isset($min_matches[1]) ? floatval($min_matches[1]) : 0;
         $min_unit = isset($min_matches[2]) && $min_matches[2] !== '' ? $min_matches[2] : 'px';

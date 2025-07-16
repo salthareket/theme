@@ -6,11 +6,14 @@ var root = {
 
     host: location.protocol + "//" + window.location.hostname + (window.location.port > 80 ? ":" + window.location.port + "/" : "/") + (!IsBlank(window.location.pathname) ? window.location.pathname.split("/")[1] + "/" : ""),
 
+    get_host: function(){
+      return location.protocol + "//" + window.location.hostname + 
+        (window.location.port && window.location.port != 80 && window.location.port != 443 ? ":" + window.location.port : "") + "/";
+    },
+
     hash: window.location.hash,
 
-    Date : function now(){
-        return Date.now();
-    },
+    Date : Date.now,
 
     is_home: function() {
         return this.classes.hasClass(document.body, "home")
@@ -45,7 +48,7 @@ var root = {
             }
         },
         hasClass: function($obj, $class) {
-            return (' ' + $obj.className + ' ').indexOf(' ' + $class + ' ') > -1;
+            return $obj.classList.contains($class);
         }
     },
 
@@ -54,22 +57,26 @@ var root = {
     get_css_vars: function() {
         var arr = {};
         var obj = getComputedStyle(document.documentElement);
-        arr['header-height-xxxl'] = parseFloat(obj.getPropertyValue('--header-height-xxxl').trim());
+        /*arr['header-height-xxxl'] = parseFloat(obj.getPropertyValue('--header-height-xxxl').trim());
         arr['header-height-xxl'] = parseFloat(obj.getPropertyValue('--header-height-xxl').trim());
         arr['header-height-xl'] = parseFloat(obj.getPropertyValue('--header-height-xl').trim());
         arr['header-height-lg'] = parseFloat(obj.getPropertyValue('--header-height-lg').trim());
         arr['header-height-md'] = parseFloat(obj.getPropertyValue('--header-height-md').trim());
         arr['header-height-sm'] = parseFloat(obj.getPropertyValue('--header-height-sm').trim());
-        arr['header-height-xs'] = parseFloat(obj.getPropertyValue('--header-height-xs').trim());
+        arr['header-height-xs'] = parseFloat(obj.getPropertyValue('--header-height-xs').trim());*/
 
-        arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
+        arr['header-height'] = parseFloat(obj.getPropertyValue('--header-height').trim());
+
+        /*arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
         arr['header-height-xxxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxxl-affix').trim());
         arr['header-height-xxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxl-affix').trim());
         arr['header-height-xl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xl-affix').trim());
         arr['header-height-lg-affix'] = parseFloat(obj.getPropertyValue('--header-height-lg-affix').trim());
         arr['header-height-md-affix'] = parseFloat(obj.getPropertyValue('--header-height-md-affix').trim());
         arr['header-height-sm-affix'] = parseFloat(obj.getPropertyValue('--header-height-sm-affix').trim());
-        arr['header-height-xs-affix'] = parseFloat(obj.getPropertyValue('--header-height-xs-affix').trim());
+        arr['header-height-xs-affix'] = parseFloat(obj.getPropertyValue('--header-height-xs-affix').trim());*/
+
+        arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
 
         arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
         arr['hero-height-xxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxl').trim());
@@ -79,6 +86,11 @@ var root = {
         arr['hero-height-sm'] = parseFloat(obj.getPropertyValue('--hero-height-sm').trim());
         arr['hero-height-xs'] = parseFloat(obj.getPropertyValue('--hero-height-xs').trim());
         root.css_vars = arr;
+    },
+
+    get_css_var: function($var) {
+        var obj = getComputedStyle(document.documentElement);
+        return parseFloat(obj.getPropertyValue('--' + $var).trim());
     },
 
     browser: {
@@ -123,7 +135,8 @@ var root = {
                         root.classes.addClass(bodyObj, "size-xs");
                         var size = root.browser.size();
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xs"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xs"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -134,7 +147,8 @@ var root = {
                     match: function() {
                         root.classes.addClass(bodyObj, "size-sm");
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-sm"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-sm"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -146,7 +160,8 @@ var root = {
                     match: function() {
                         root.classes.addClass(bodyObj, "size-md");
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-md"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-md"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -158,7 +173,8 @@ var root = {
                     match: function() {
                         root.classes.addClass(bodyObj, "size-lg");
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-lg"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-lg"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -170,7 +186,8 @@ var root = {
                     match: function() {
                         root.classes.addClass(bodyObj, "size-xl");
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xl"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xl"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -182,7 +199,8 @@ var root = {
                     match: function() {
                         root.classes.addClass(bodyObj, "size-xxl");
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xxl"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xxl"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -194,7 +212,13 @@ var root = {
                     match: function() {
                         root.classes.addClass(bodyObj, "size-xxxl");
                         $(window).on("resize", function(){
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xxxl"]);
+                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xxxl"]);
+                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
+                            /*setTimeout(function(){
+                                if($("header#header.fixed-bottom-start").hasClass("affix")){
+                                    $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height-affix"));
+                                }
+                            }, 100);*/
                         }).trigger("resize");
                     },
                     unmatch: function() {
@@ -374,8 +398,8 @@ var root = {
 
         offset_top: function() {
             var size = root.browser.size();
-            var headerHeight = root.css_vars["header-height-" + size];
-            var headerHeightAffix = root.css_vars["header-height-" + size +-"-affix"];
+            var headerHeight = root.get_css_var("header-height");
+            var headerHeightAffix = root.get_css_var("header-height-affix");
             if ($("header#header").hasClass("affix") || $("header#header").hasClass("fixed-top")) {
                 return headerHeight;
             } else {
@@ -384,42 +408,39 @@ var root = {
         },
 
         scroll_dedect: function(up, down) {
-            var scrollPos = 0;
+            var scrollPos = window.pageYOffset || document.documentElement.scrollTop;
             var header_hide = $("body").hasClass("header-hide-on-scroll");
             $("body").addClass("scroll-dedect");
+            var sticky_tops = document.querySelectorAll('.sticky-top');
             window.addEventListener('scroll', function() {
-
-                // sticky elements control
-                var sticky_tops = document.querySelectorAll('.sticky-top');
+                var currentPos = window.pageYOffset || document.documentElement.scrollTop;
 
                 sticky_tops.forEach(function(sticky_top) {
                     var sticky_top_style = window.getComputedStyle(sticky_top);
                     var top = parseInt(sticky_top_style.top);
-                    
-                    window.addEventListener('scroll', function() {
-                        if (sticky_top.getBoundingClientRect().top === top) {
-                            sticky_top.classList.add('sticked');
-                        } else {
-                            sticky_top.classList.remove('sticked');
-                        }
-                    });
+
+                    if (sticky_top.getBoundingClientRect().top === top) {
+                        sticky_top.classList.add('sticked');
+                    } else {
+                        sticky_top.classList.remove('sticked');
+                    }
                 });
 
-                if ((document.body.getBoundingClientRect()).top >= scrollPos) {
+                if (currentPos <= scrollPos) {
                     $("body").removeClass("header-hide").removeClass("scroll-down").addClass("scroll-up");
                     if (!IsBlank(up)) {
                         if (typeof up === "function") {
                             up(scrollPos);
                         }
                     }
-                    if ((document.body.getBoundingClientRect()).top >= 0) {
+                    if (currentPos <= 0) {
                         $("body").removeClass("scroll-down").removeClass("scroll-up");
                     }
                 } else {
                     $("body").removeClass("scroll-up").addClass("scroll-down");
-                    if (scrollPos <= (0 - $("header#header").height())) {
-                        if(header_hide){
-                            $("body").addClass("header-hide");                            
+                    if (currentPos > $("header#header").height()) {
+                        if (header_hide) {
+                            $("body").addClass("header-hide");
                         }
                         $(window).trigger("resize");
                     }
@@ -429,9 +450,10 @@ var root = {
                         }
                     }
                 }
-                scrollPos = (document.body.getBoundingClientRect()).top;
+                scrollPos = currentPos;
             });
         },
+
 
         scroll_top: function() {
             if ($('.scroll-to-top').length > 0) {
@@ -518,8 +540,8 @@ var root = {
                     var posY = $(target).offset().top;
 
                     var size = root.browser.size();
-                    var headerHeight = root.css_vars["header-height-" + size];
-                    var headerHeightAffix = root.css_vars["header-height-" + size + "-affix"];
+                    var headerHeight = root.get_css_var("header-height");
+                    var headerHeightAffix = root.get_css_var("header-height-affix");
 
                     if($(".offcanvas.show").length > 0){
                          $(".offcanvas.show").offcanvas("hide");
@@ -637,7 +659,8 @@ var root = {
         },
 
         scroll_to_actions: function() {
-            $("a").not("[data-bs-toggle]").not("[data-ajax-method]").not(".scroll-to-init").on("click", function(e) {
+            //$("a").not("[data-bs-toggle]").not("[data-ajax-method]").not(".scroll-to-init").on("click", function(e) {
+            $(document).on("click", "a:not([data-bs-toggle]):not([data-ajax-method]):not(.scroll-to-init)", function(e){
                 var btn = $(this);
                 btn.addClass("scroll-to-init");
                 var target = this.hash;
@@ -664,7 +687,7 @@ var root = {
            });
         },
 
-        prev_next: function() {
+        /*prev_next: function() {
             $(document).keydown(function(e) {
                 var prev = $("link[rel=prev]").attr("href");
                 var next = $("link[rel=next]").attr("href");
@@ -696,9 +719,53 @@ var root = {
                     e.preventDefault();
                 }
             });
+        },*/
+
+        prev_next: function() {
+            $(document).keydown(function(e) {
+
+                // Input ve textarea focus kontrolü
+                if ($(e.target).is('input, textarea')) {
+                    return;
+                }
+
+                var prev = $("link[rel=prev]").attr("href");
+                var next = $("link[rel=next]").attr("href");
+                if (prev || next) {
+                    switch (e.which) {
+                        case 37: // left
+                            if (!IsBlank(prev)) {
+                                if (prev.indexOf("#") < 0) {
+                                    pageLoadUrl(prev);
+                                } else {
+                                    window.location.href = prev;
+                                }
+                            }
+                            break;
+                        case 38: // up
+                            break;
+                        case 39: // right
+                            if (!IsBlank(next)) {
+                                if (next.indexOf("#") < 0) {
+                                    pageLoadUrl(next);
+                                } else {
+                                    window.location.href = next;
+                                }
+                            }
+                            break;
+                        case 40: // down
+                            break;
+                        default:
+                            return;
+                    }
+                    e.preventDefault();
+                }
+            });
         },
 
-        resizing : function(){
+
+
+        /*resizing : function(){
             timer = 0;
             function start() {
                 $("body").addClass("resizing");
@@ -713,7 +780,19 @@ var root = {
                 timer = setTimeout(stop, 1000);
                 start();
             });
+        },*/
+
+        resizing : function(){
+            let timer;
+            function start() { $("body").addClass("resizing"); }
+            function stop() { $("body").removeClass("resizing"); }
+            $(window).on("resize", function(){
+                start();
+                clearTimeout(timer);
+                timer = setTimeout(stop, 250);
+            });
         },
+
 
         tree_menu : function(){
             var obj = $(".nav-tree");
@@ -959,9 +1038,15 @@ var root = {
             //root.responsive.tab();
 
             function onResize() {
-                for (var func in root.on_resize) {
+                /*for (var func in root.on_resize) {
                     root.on_resize[func]();
+                }*/
+                for (var func in root.on_resize) {
+                    if (root.on_resize.hasOwnProperty(func)) {
+                        root.on_resize[func]();
+                    }
                 }
+
                 if (!IsBlank(root.hash)) {
                     //root.ui.scroll_to(root.hash, false);
                 }

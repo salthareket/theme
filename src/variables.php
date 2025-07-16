@@ -142,7 +142,7 @@ define("ENABLE_LOCATION_DB", get_option("options_enable_location_db"));
 define("ACTIVATE_UNDER_CONSTRUCTION", get_option("underConstructionActivationStatus"));
 $white_pages = get_option("options_white_pages");
 define("WHITE_PAGES_UNDER_CONSTRUCTION", is_array($white_pages)?$white_pages:array());
-function visibility_under_construction(){
+/*function visibility_under_construction(){
     if(defined("VISIBILITY_UNDER_CONSTRUCTION")){
         return;
     }
@@ -178,7 +178,28 @@ function visibility_under_construction(){
         }
         return $status;
     });
+}*/
+
+function visibility_under_construction() {
+    if (defined("VISIBILITY_UNDER_CONSTRUCTION")) return;
+
+    $page_id = url_to_postid(current_url()); 
+    $whitelisted = in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION);
+    $is_admin = current_user_can("administrator");
+    
+    $visible = true;
+
+    if (!is_admin()) {
+        $visible = !ACTIVATE_UNDER_CONSTRUCTION || $whitelisted || $is_admin;
+    }
+
+    define("VISIBILITY_UNDER_CONSTRUCTION", $visible);
+    
+    add_filter("option_underConstructionActivationStatus", function ($status) use ($visible) {
+        return ($status == "1" && !$visible) ? "0" : $status;
+    });
 }
+
 
 define("ENABLE_WOO_API", get_option("options_enable_woo_api"));
 define("ENABLE_CART", ENABLE_ECOMMERCE && get_option("options_enable_cart"));
@@ -209,7 +230,7 @@ add_action('init', function () {
     define("TEXT_DOMAIN", $theme->get('TextDomain'));
     $GLOBALS["is_admin"] = is_admin();
     $GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
-    $GLOBALS["post_id"] = get_the_ID();
+    $GLOBALS["post_id"] = is_singular() ? get_the_ID() : 0;
 });
 
 if (class_exists("acf")) {
@@ -323,10 +344,6 @@ if (class_exists("ACF")) {
     if(is_admin()){
         include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
     }
-    //include_once SH_INCLUDES_PATH . "acf-field-groups.php";
-    
-}else{
-    //include_once SH_INCLUDES_PATH . "plugins/acf-fallback.php";
 }
 
 if (class_exists("WPCF7")) {

@@ -1,4 +1,51 @@
 <?php
+function generateFontPreloadTags($font_faces_path) {
+    if (!file_exists($font_faces_path)) {
+        return '';
+    }
+
+    $content = file_get_contents($font_faces_path);
+    preg_match_all('/src:\s*url\(([^)]+)\)\s*format\("([^"]+)"\)/i', $content, $matches, PREG_SET_ORDER);
+
+    $preloads = [];
+
+    foreach ($matches as $match) {
+        $url = trim($match[1], '\'"');
+        $url = str_replace("../", STATIC_URL, $url);
+        $url = to_relative_url($url);
+        $format = strtolower($match[2]);
+
+        $type = match ($format) {
+            'woff2' => 'font/woff2',
+            'woff'  => 'font/woff',
+            'truetype', 'ttf' => 'font/ttf',
+            default => 'font/woff2',
+        };
+
+        $preloads[] = sprintf(
+            '<link rel="preload" as="font" href="%s" type="%s" crossorigin>',
+            htmlspecialchars($url),
+            $type
+        );
+    }
+
+    return implode("\n", array_unique($preloads));
+}
+
+add_action('wp_head', function () {
+    $preload = generateFontPreloadTags(get_stylesheet_directory() . '/static/css/font-faces.css');
+    if ($preload) {
+        echo "\n<!-- Preload Font Faces -->\n" . $preload . "\n";
+    }
+    //echo "<link rel='preload' href='" . get_template_directory_uri() . "/static/css/root.css' as='style'>";
+    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !isset($_GET['fetch'])){
+    	if(!empty(SITE_ASSETS["css_critical"])){
+    		inline_css_add('css-critical', STATIC_URL . SITE_ASSETS["css_critical"]);
+    	}
+    }
+}, 0); // 0 ile en başta bassın
+
+
 
 function dequeue_theme_styles() {
     wp_dequeue_style('theme-style'); // 'theme-style' yerine kendi temanızın style.css dosyasının kayıt adını kullanın
@@ -8,7 +55,6 @@ function dequeue_theme_styles() {
     }
 }
 add_action('wp_enqueue_scripts', 'dequeue_theme_styles', 999);
-
 
 function remove_jquery_migrate($scripts) {
     if (!is_admin() && isset($scripts->registered['jquery'])) {
@@ -20,15 +66,32 @@ function remove_jquery_migrate($scripts) {
 }
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
-
 function inline_css($file) {
     $css = file_get_contents($file);
-    $uri = dirname(str_replace(get_template_directory(), get_template_directory_uri(), $file));
-    return preg_replace_callback('/url\((\'|")?(?!https?:|data:|\/)([^)\'"]+)(\'|")?\)/i', function($m) use ($uri) {
-        return "url('{$uri}/{$m[2]}')";
-    }, $css);
-}
 
+    $theme_dir = wp_normalize_path(get_template_directory());
+    $theme_uri = wp_normalize_path(get_template_directory_uri());
+    $base_path = wp_normalize_path(dirname($file));
+    $subfolder = rtrim(getSiteSubfolder(), '/');
+
+    return preg_replace_callback(
+        '/url\((["\']?)(?!https?:|data:|\/)([^)\'"]+)\1\)/i',
+        function($m) use ($base_path, $theme_dir, $subfolder) {
+            $original_path = wp_normalize_path($m[2]);
+            $abs_path = wp_normalize_path(realpath($base_path . DIRECTORY_SEPARATOR . $original_path));
+
+            if (!$abs_path || !str_starts_with($abs_path, $theme_dir)) {
+                return $m[0]; // geçersizse elleme
+            }
+
+            $rel_path = str_replace($theme_dir, '', $abs_path);
+            $rel_path = ltrim(str_replace('\\', '/', $rel_path), '/');
+
+            return "url('{$subfolder}/wp-content/themes/" . basename($theme_dir) . "/{$rel_path}')";
+        },
+        $css
+    );
+}
 function inline_css_add($name="", $url="", $rtl=false){
 	if(empty($name) || empty($url)){
 		return;
@@ -39,8 +102,6 @@ function inline_css_add($name="", $url="", $rtl=false){
 	$code = inline_css($url);
 	wp_add_inline_style( $name, $code);
 }
-
-
 function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {
     if (empty($name) || empty($url)) {
         return;
@@ -69,18 +130,16 @@ function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {
     }
 }
 
+function delay_css_loading($tag, $handle, $href, $media) {
+    $async_handles = ['root', 'main', 'css-conditional', 'css-page', 'locale'];
 
-
-
-
-function delay_css_loading($html, $handle) {
-    $delayed_styles = ['icons'];
-    if (in_array($handle, $delayed_styles)) {
-    	$html = str_replace("media=''", "media='print' onload=\"this.media='all'\"", $html);
+    if (in_array($handle, $async_handles)) {
+        return "<link id='{$handle}' rel='preload' href='{$href}' as='style' onload=\"this.onload=null;this.rel='stylesheet'\">\n" .
+               "<noscript><link rel='stylesheet' href='{$href}'></noscript>\n";
     }
-    return $html;
+    return $tag;
 }
-add_filter('style_loader_tag', 'delay_css_loading', 10, 2);
+add_filter('style_loader_tag', 'delay_css_loading', 10, 4);
 
 
 function frontend_header_styles(){
@@ -89,6 +148,8 @@ function frontend_header_styles(){
 	if(isset($_GET['fetch'])){
 		$print_css = false;
 	}
+
+	inline_css_add("font-faces", get_stylesheet_directory() . '/static/css/font-faces.css');
 
 	$css_path = get_stylesheet_directory() . '/static/css/main.css';
 	$version = filemtime($css_path);
@@ -390,12 +451,12 @@ function frontend_footer_scripts(){
 			$print_js = false;
 		}
 
-        wp_register_script('functions', STATIC_URL . 'js/functions.min.js', array(), null, true);
-		wp_enqueue_script('functions');
+        //wp_register_script('functions', STATIC_URL . 'js/functions.min.js', array(), null, true);
+		//wp_enqueue_script('functions');
 
-	    wp_register_script('plugins', STATIC_URL . 'js/plugins.min.js', array(), null, true);
-	    wp_enqueue_script('plugins');
-
+	    //wp_register_script('plugins', STATIC_URL . 'js/plugins.min.js', array(), null, true);
+	    //wp_enqueue_script('plugins');
+	    
 	    $plugin_js = "";
 	    if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["plugin_js"]) && !isset($_GET['fetch'])){
 	    	$plugin_js = SITE_ASSETS["plugin_js"];//apply_filters("salt_conditional_plugins", []);
@@ -409,13 +470,17 @@ function frontend_footer_scripts(){
 	    		inline_js_add('plugins-conditional', STATIC_URL . $plugin_js); 
 	    	}
 	    }
+
+	    wp_register_script('main', STATIC_URL . 'js/main-combined.min.js', array(), null, true);
+	    wp_enqueue_script('main');
+
         
-        if(!$print_js){
+        /*if(!$print_js){
 		    wp_register_script('main', STATIC_URL . 'js/main.min.js', array( ), null, true);
 		    wp_enqueue_script('main');
 		}else{
 			inline_js_add('main', STATIC_URL . 'js/main.min.js');  
-		}
+		}*/
 
 	    $plugins = $files["js"]["plugins"];
     	foreach($plugins as $plugin => $file){
@@ -493,3 +558,16 @@ function load_admin_files() {
     admin_header_scripts();
     admin_footer_scripts();
 }
+
+add_action('wp_footer', function () {
+    ?>
+    <script>
+    window.addEventListener('load', () => {
+        const criticalStyle = document.getElementById('css-critical-inline-css');
+        if (criticalStyle && criticalStyle.parentNode) {
+            criticalStyle.parentNode.removeChild(criticalStyle);
+        }
+    });
+    </script>
+    <?php
+}, 100);

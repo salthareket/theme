@@ -1,11 +1,3 @@
-function resizeDebounce(func, wait) {
-	let timeout;
-	return function(...args) {
-		clearTimeout(timeout);
-		timeout = setTimeout(() => func.apply(this, args), wait);
-	};
-}
-
 $.fn.fitEmbedBackground = function() {
         return this.each(function() {
             var container = $(this),
@@ -162,8 +154,8 @@ function plyr_init($obj){
 
 	    $obj
 	    .on('ready', (e) => {
-		  	const instance = e.detail.plyr;
-		  	const config = instance.config;
+		  	const instance = e.detail?.plyr;
+		  	const config = instance?.config;
 
             $obj.find(">.plyr__poster").remove();
             
@@ -182,25 +174,34 @@ function plyr_init($obj){
 		  		video.restart();
 		  	}
 
-			  	if (document.hidden) {
-			  		video_container.addClass("viewport-paused");
-		            instance.pause();
-		        } else if (!config.autoplay) {
-		        	video_container.removeClass("viewport-paused")
-		            video_container.addClass("paused");
-		        }
+			if (document.hidden) {
+				video_container.addClass("viewport-paused");
+				instance.pause();
+			} else if (!config?.autoplay) {
+				video_container.removeClass("viewport-paused")
+				video_container.addClass("paused");
+			}
 
-	        	if(!config.autoplay){
-					video_container.addClass("paused");
-					console.log("pausedddddd")
-				}else{
-					if(video_container.is(":in-viewport") && !document.hidden){
-					   video.play();
-					   console.log("plaaaayyyiiiiiingg")
-				    }
+			if(!config?.autoplay){
+				video_container.addClass("paused");
+				console.log("pausedddddd")
+			}else{
+				if(video_container.is(":in-viewport") && !document.hidden){
+					if(swiper && !video_container.hasClass("swiper-slide-active")){
+                        video.pause();
+					}else{
+						video.play();
+						console.log("plaaaayyyiiiiiingg")
+					}
+					//console.log(swiper)
+					//console.log(video_container.index())
+					
+					//console.log(video_container);
+					//console.log(video_container.is(":in-viewport"))
+					
 				}
-	        	$(window).trigger("resize");
-
+			}
+			$(window).trigger("resize");
 		})
 		.on("play", (e) => {
 		  	video_container.removeClass("loading").addClass("playing").removeClass("paused").removeClass("inited");
@@ -229,12 +230,12 @@ function plyr_init($obj){
 			        	swiper.autoplay.start();
 			        }
 				}else{
-				    if(config.loop.active){
+				    if(config?.loop?.active){
 		               video.play();
 		        	}
 				}
 			}else{
-				if(config.loop.active){
+				if(config?.loop?.active){
 	                video.play();
 	        	}else{
 	        	    video_container.addClass("ended");

@@ -6,7 +6,7 @@ if (!function_exists('wp_doing_rest')) {
     }
 }
 
-function is_main_query_valid() {
+/*function is_main_query_valid() {
     global $wp_query;
 
     if (is_admin()) {
@@ -26,7 +26,17 @@ function is_main_query_valid() {
     }
 
     return isset($wp_query) && $wp_query->is_main_query();
+}*/
+
+function is_main_query_valid() {
+    global $wp_query;
+    if (is_admin()) return false;
+    if (defined('DOING_AJAX') && DOING_AJAX) return false;
+    if (defined('DOING_CRON') && DOING_CRON) return false;
+    if (wp_doing_rest()) return false;
+    return isset($wp_query) && $wp_query->is_main_query();
 }
+
 
 
 function query_vars_for_pagination($query_vars) {
@@ -40,24 +50,6 @@ function pagination_query_request() {
         "request" => array()
     );
     if ( ((is_shop() || is_post_type_archive() || is_search() || is_home() ) && $wp_query->is_main_query()) || isset($wp_query->query_vars["post_type"]) || isset($wp_query->query_vars["qpt"])) {
-
-        /*if(isset($wp_query->query_vars["ajax"])){
-            if($wp_query->query_vars["ajax"] == "query"){
-                return $output;
-            }
-        }
-        if(is_admin()){
-            return $output;
-        }
-        if (defined('DOING_AJAX') && DOING_AJAX) {
-            return $output;
-        }
-        if (defined('DOING_CRON') && DOING_CRON) {
-            return;
-        }
-        if(is_prefetch_request()){
-            return $output;
-        }*/
 
         $query_vars = query_vars_for_pagination($wp_query->query_vars);
         $query_vars["querystring"] = json_decode(queryStringJSON(), true);
@@ -118,6 +110,7 @@ function pagination_query_request() {
     }
     return $output;
 }
+
 
 
 /*
@@ -217,7 +210,9 @@ function pagination_query(){
         //error_log(print_r($pagination_query, true));
 
         if(isset($pagination_query['vars'][$post_type]) || isset($pagination_query['request'][$post_type])){
-            $enc = new Encrypt();
+            static $enc = null;
+            if (!$enc) $enc = new Encrypt();
+            //$enc = new Encrypt();
             if(isset($pagination_query['vars'][$post_type])){
                 $query_pagination_vars = $enc->encrypt($pagination_query['vars'][$post_type]);
             }
@@ -372,7 +367,7 @@ function header_footer_options($save = false){
         // Header Options //
         $header_fixed = SaltBase::get_cached_option("header_fixed");//get_field("header_fixed", "options");
         $header_fixed = in_array($header_fixed, ["top","bottom","bottom-start"]) ? $header_fixed : false;
-        if($header_fixed == "top"){
+        if($header_fixed == "top" || $header_fixed == "bottom-start"){
             $header_affix = SaltBase::get_cached_option("header_affix");//get_field("header_affix", "options");
         }else{
             $header_affix = false;
@@ -536,6 +531,7 @@ function old_style_name_like_wpse_123298($clauses) {
 }
 add_filter('terms_clauses','old_style_name_like_wpse_123298');
 
+/*
 function bootstrap_gallery( $output = '', $atts = array(), $instance = '' ) {
     if ( !isset( $atts['columns'] ) ) {
         $columns = 3;
@@ -580,9 +576,9 @@ function bootstrap_gallery( $output = '', $atts = array(), $instance = '' ) {
     return $return;
 }
 add_filter( 'post_gallery', 'bootstrap_gallery', 10, 4 );
+*/
 
-
-function add_lazyload_to_images($content) {
+/*function add_lazyload_to_images($content) {
     if (!is_singular()) return $content;
 
     // srcset -> data-srcset, src -> data-src
@@ -596,31 +592,55 @@ function add_lazyload_to_images($content) {
 }
 add_filter('the_content', 'add_lazyload_to_images', 99);
 
-/*
-function add_lazyload_to_images($content) {
-    if (is_single() || is_page()) {
-        // srcset'i data-srcset olarak değiştir
-        $content = preg_replace('/<img([^>]*)srcset=["\'](.*?)["\'](.*?)>/i', '<img$1data-srcset="$2"$3>', $content);
-        
-        // src özniteliğini data-src olarak güncelle
-        $content = preg_replace_callback('/<img([^>]*)src=["\'](.*?)["\'](.*?)>/i', function($matches) {
-            // Eski src ve diğer öznitelikler
-            $old_attributes = $matches[1] . 'src="' . $matches[2] . '"' . $matches[3];
-            
-            // Yeni src ve öznitelikler
-            $new_attributes = $matches[1] . 'data-src="' . $matches[2] . '"' . $matches[3];
-            
-            // Değiştir ve döndür
-            return str_replace($old_attributes, $new_attributes, $matches[0]);
-        }, $content);
-
-        // Class özniteliğini güncelle
-        $content = preg_replace('/<img([^>]*)class=["\'](.*?)["\'](.*?)>/i', '<img$1class="$2 lazy"$3>', $content);
-    }
+function add_img_fluid_class($content) {
+    $content = preg_replace('/<img(.*?)class=["\']([^"\']*)["\'](.*?)>/', '<img$1class="$2 img-fluid"$3>', $content);
+    $content = preg_replace('/<img(?!.*\bclass=)(.*?)>/', '<img class="img-fluid"$1>', $content);
     return $content;
 }
-add_filter('the_content', 'add_lazyload_to_images', 99);
-*/
+add_filter('the_content', 'add_img_fluid_class');*/
+
+
+function optimize_image_output( $content ) {
+    if ( ! did_action( 'template_redirect' ) || is_admin() ) {
+        return $content;
+    }
+
+    // img tag’lerini bul
+    return preg_replace_callback(
+        '/<img([^>]+?)>/i',
+        function ( $matches ) {
+            $img_tag = $matches[0];
+
+            // src yoksa atla
+            if ( ! preg_match( '/src=["\']([^"\']+)["\']/', $img_tag ) ) {
+                return $img_tag;
+            }
+
+            // loading yoksa lazy ekle
+            if ( ! preg_match( '/loading=["\']/', $img_tag ) ) {
+                $img_tag = str_replace( '<img', '<img loading="lazy"', $img_tag );
+            }
+
+            // class varsa içine ekle, yoksa class oluştur
+            if ( preg_match( '/class=["\']([^"\']*)["\']/', $img_tag, $class_match ) ) {
+                $existing_classes = $class_match[1];
+                if ( strpos( $existing_classes, 'img-fluid' ) === false ) {
+                    $new_classes = trim( $existing_classes . ' img-fluid' );
+                    $img_tag = str_replace( $class_match[0], 'class="' . esc_attr( $new_classes ) . '"', $img_tag );
+                }
+            } else {
+                $img_tag = str_replace( '<img', '<img class="img-fluid"', $img_tag );
+            }
+
+            return $img_tag;
+        },
+        $content
+    );
+}
+add_filter( 'the_content', 'optimize_image_output', 20 );
+add_filter( 'acf/format_value/type=wysiwyg', 'optimize_image_output', 20 );
+
+
 
 /*add responsive classes to embeds*/
 function responsive_embed_oembed_html($html, $url, $attr, $post_id) {
@@ -642,21 +662,6 @@ function keep_me_logged_in_for_1_year( $expirein ) {
 }
 add_filter( 'auth_cookie_expiration', 'keep_me_logged_in_for_1_year' );
 
-function add_cache_control_headers() {
-    if (is_singular() || is_archive()) { // Sadece tekil ve arşiv sayfalarında
-        header("Cache-Control: public, max-age=31536000");
-        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 31536000) . " GMT");
-    } else {
-        header("Cache-Control: public, max-age=2592000");
-        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 2592000) . " GMT");
-    }
-}
-add_action('send_headers', 'add_cache_control_headers');
-
-
-
-
-
 
 //add responsive image classes to images who added from text editor
 function add_image_responsive_class($content) {
@@ -673,12 +678,7 @@ function add_image_responsive_class($content) {
 }
 //add_filter('the_content', 'add_image_responsive_class');
 
-function add_img_fluid_class($content) {
-    $content = preg_replace('/<img(.*?)class=["\']([^"\']*)["\'](.*?)>/', '<img$1class="$2 img-fluid"$3>', $content);
-    $content = preg_replace('/<img(?!.*\bclass=)(.*?)>/', '<img class="img-fluid"$1>', $content);
-    return $content;
-}
-add_filter('the_content', 'add_img_fluid_class');
+
 
 
 function add_img_fluid_to_gutenberg($block_content, $block) {
@@ -733,19 +733,6 @@ function ns_filter_avatar($avatar, $id_or_email, $size, $default, $alt, $args) {
 //add_filter('get_avatar','ns_filter_avatar', 10, 6);
 
 
-function add_mp3_cache_headers() {
-    if (isset($_SERVER['REQUEST_URI']) && preg_match('/\.mp3$/', $_SERVER['REQUEST_URI'])) {
-        header("Cache-Control: public, max-age=31536000, immutable");
-        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 31536000) . " GMT");
-    }
-}
-add_action('send_headers', 'add_mp3_cache_headers');
-
-
-
-
-
-
 add_action('wp_ajax_save_lcp_results', 'save_lcp_results');
 add_action('wp_ajax_nopriv_save_lcp_results', 'save_lcp_results');
 function save_lcp_results() {
@@ -755,10 +742,41 @@ function save_lcp_results() {
 
     $id = intval($_POST['id']);
     $type = trim($_POST['type']);
+    $url = trim($_POST['url']);
     $lcp_data = json_decode(stripslashes($_POST['lcp_data']), true);
 
     if (!$id || !$type || !$lcp_data) {
         wp_send_json_error(['message' => 'Geçersiz veri!']);
+    }
+
+    $selectors = [];
+    foreach ($lcp_data as $device => &$data) { // <-- referansla al!
+        if (!empty($data['selectors']) && is_array($data['selectors'])) {
+            $selectors = array_merge($selectors, $data['selectors']);
+            unset($data['selectors']); // orijinal $lcp_data'dan siler
+        }
+    }
+    unset($data); // referansı kır, klasik PHP kuralı
+
+    $selectors = array_unique($selectors);
+    $critical_css = "";
+    if($selectors){
+        $cache_dir = STATIC_PATH . 'css/cache/';
+        $css_page_hash = md5($type."-".$id);
+        $output = $cache_dir . $css_page_hash . '-critical.css';
+
+        $input = file_get_contents(STATIC_PATH ."css/root.css");
+        if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
+            $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["plugin_css"]);
+            $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["css_page"]);
+        }else{
+            $input .= file_get_contents(STATIC_PATH ."css/main-combined.css");
+        }
+
+        $remover = new RemoveUnusedCss($url, $input, $output, [], true);
+        $remover->generate_critical_css($selectors);
+        $critical_css = $output;
+        $critical_css = str_replace(STATIC_PATH, '', $critical_css);
     }
 
     $return = "";
@@ -779,6 +797,9 @@ function save_lcp_results() {
         $existing_meta = call_user_func($meta_function_get, $id, 'assets', true);
         if ($existing_meta) {
             $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
+            if($critical_css){
+                $existing_meta["css_critical"] = $critical_css;
+            }
             $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta); // Güncelle
         }
     }else{
@@ -786,6 +807,9 @@ function save_lcp_results() {
         $existing_meta = get_option($option_name); // Var olan option'u kontrol et
         if ($existing_meta) {
             $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
+            if($critical_css){
+                $existing_meta["css_critical"] = $critical_css;
+            }
             $return = update_option($option_name, $existing_meta); // Güncelle
         }
     }
@@ -794,7 +818,63 @@ function save_lcp_results() {
 }
 
 
+/*
+function add_cache_control_headers() {
+    if (is_singular() || is_archive()) { // Sadece tekil ve arşiv sayfalarında
+        header("Cache-Control: public, max-age=31536000");
+        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 31536000) . " GMT");
+    } else {
+        header("Cache-Control: public, max-age=2592000");
+        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 2592000) . " GMT");
+    }
+}
+add_action('send_headers', 'add_cache_control_headers');
 
-add_action('send_headers', function(){
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://unpkg.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';");
+function add_mp3_cache_headers() {
+    if (isset($_SERVER['REQUEST_URI']) && preg_match('/\.mp3$/', $_SERVER['REQUEST_URI'])) {
+        header("Cache-Control: public, max-age=31536000, immutable");
+        header("Expires: " . gmdate("D, d M Y H:i:s", time() + 31536000) . " GMT");
+    }
+}
+add_action('send_headers', 'add_mp3_cache_headers');
+*/
+
+function add_cache_control_headers() {
+    if ( is_admin() || headers_sent() ) {
+        return;
+    }
+
+    // Genel dosyalar (HTML, JS, CSS vb.) için cache
+    header( 'Cache-Control: public, max-age=31536000, immutable' );
+
+    // MP3 özel kontrolü
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    if ( stripos( $request_uri, '.mp3' ) !== false ) {
+        header( 'Content-Type: audio/mpeg' );
+        header( 'Accept-Ranges: bytes' );
+        header( 'Content-Disposition: inline' );
+    }
+}
+add_action('send_headers', 'add_cache_control_headers');
+
+add_action('send_headers', function () {
+    $csp_directives = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' blob: https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.youtube.com",
+        "worker-src 'self' blob:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com",
+        "img-src 'self' data: https://img.youtube.com https://i.ytimg.com https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "frame-ancestors 'self'",
+        "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://www.google.com/maps https://www.openstreetmap.org",
+        "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://noembed.com https://cdn.plyr.io"
+    ];
+
+    $csp_header = implode('; ', $csp_directives) . ';';
+    header("Content-Security-Policy: $csp_header");
 });
+
+
+

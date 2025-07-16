@@ -1,0 +1,42 @@
+{% set menu_level = menu_level is empty?0:menu_level %}
+{% set max_level = max_level is empty?9999:max_level %}
+
+{% if menu_level <= 1 %}
+<nav class="nav- nav-menu" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" data-single-parent="true">
+     <ul class="nav {{class_name}}" data-sm-skip="true">
+{% endif %}
+
+	{% for key, item in menu %}
+		{% if (max_level and menu_level < max_level) %}
+		<li class="{% if menu_level == 0 %}{{class}}{% endif %} {% if menu_level<1 %}nav-item col-break{% endif %} d-flex flex-column" data-title="{{item.title}}">
+			<a class="{% if menu_level>1 %}dropdown-item{% else %}nav-link {{(item.get_link|is_current_url(true) and ("#" in item.get_link) ? "":" btn-loading-page")}}{% endif %}" 
+			   href="{% if item.get_children and (max_level and menu_level < max_level-1) %}
+					    {% if parent_link %}
+					   		{{function('make_onepage_url',item, item.get_link)}}
+					   	{% else %}
+					   		#
+					   	{% endif %}
+			   		{% else %}
+			   			{{item.get_link}}
+			   		{% endif %}" {# if function("is_external_url", item.get_link) %}target="_blank"{% endif #}>
+			    {{item.title}}
+			</a>
+			{% if item.get_children and (max_level and menu_level < max_level-1) %}
+				<ul class="dropdown-menu show position-relative">
+			{% endif %}
+				{% include "navigation/menu-footer.twig" with {'menu': item.get_children, 'menu_level':menu_level+1} %}
+			{% if item.get_children and (max_level and menu_level < max_level-1) %}
+				</ul>
+				{% if more %}
+					<a class="btn-more btn-loading-page mt-auto" href="{{item.get_link}}">{{__("Tümü", "ekoselectric")}} <i class="fas fa-angle-right fa-fw"></i></a>
+	            {% endif %}
+			{% endif %}
+		</li>
+	    {% endif %}
+	{% endfor %}
+
+
+{% if menu_level <= 1 %}
+    </ul>
+</nav>
+{% endif %}

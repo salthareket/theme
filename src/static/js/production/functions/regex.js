@@ -8,10 +8,6 @@ function nl2br (str, is_xhtml) {
 	return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1'+ breakTag +'$2');
 };
 
-String.prototype.replaceAll = function(target, replacement) {
-  return this.split(target).join(replacement);
-};
-
 function getAllMatches(regex, text) {
     if (regex.constructor !== RegExp) {
         throw new Error('not RegExp');

@@ -235,8 +235,8 @@ $required_plugins_local[] = array(
 $required_plugins_local[] = array(
     "type" => ["main"],
     "v" => "1.0.0",
-    "name" => "acf-gradient-picker/acf-gradient-picker.php",
-    "file" => "acf-gradient-picker"
+    "name" => "gradient-picker-for-acf/gradient-picker-for-acf.php",
+    "file" => "gradient-picker-for-acf"
 );
 
 $GLOBALS["plugins_local"] = $required_plugins_local;

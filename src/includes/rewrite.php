@@ -157,14 +157,10 @@ function theme_rewrite_rules() {
         $regex_start . '([^/]+)/search/([^/]+)/([^/]+)/?$',
         'index.php?pagename=$matches[1]&qpt=$matches[2]&q=$matches[3]',
         'top'
-    );
-
-
- 
-
-    
+    );  
 }
-add_action('init', 'theme_rewrite_rules');
+//add_action('init', 'theme_rewrite_rules');
+register_activation_hook(__FILE__, 'theme_rewrite_rules');
 
 
 

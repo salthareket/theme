@@ -154,6 +154,8 @@ Class Image{
             return $this->not_found();
         }
 
+        $attrs = [];
+
         $attrs["width"] = $this->args["width"];
         $attrs["height"] = $this->args["height"];
         $attrs["alt"] = $this->args["alt"];
@@ -192,11 +194,11 @@ Class Image{
             
             $attrs["class"] = "img-fluid".($this->args["lazy"]?" lazy":"") . (!empty($this->args["class"])?" ".$this->args["class"]:"");
 
-            if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
+            /*if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
                 add_action('wp_head', function() use ($attrs) {
                     $this->add_preload_image($attrs);
                 });             
-            }
+            }*/
             
             $attrs = array_merge($attrs, $this->args["attrs"]);
             $attrs = array2Attrs($attrs);
@@ -212,13 +214,17 @@ Class Image{
             
             $attrs["class"] = "img-fluid".($this->args["lazy"]?" lazy":"") . (!empty($this->args["class"])?" ".$this->args["class"]:"");
             
-            if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
+            /*if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
                 add_action('wp_head', function() use ($attrs) {
                     $this->add_preload_image($attrs);
                 });
-            }
+            }*/
             $attrs = array_merge($attrs, $this->args["attrs"]);
             $attrs = array2Attrs($attrs);
+
+            //$this->args["srcset"] = str_replace(".avif", ".jpg", $this->args["srcset"]);
+            //$attrs = str_replace(".avif", ".jpg", $attrs);
+
             $html .= "<picture ".(!empty($this->args["class"])?"class='".$this->args["class"]."'":"").">".$this->args["srcset"]."<img $attrs /></picture>";
 
         }
@@ -444,7 +450,7 @@ Class Image{
         return rtrim($sorted_srcset, ', ');
     }
 
-    public static function add_preload_image($attrs=[], $echo = true){
+    /*public static function add_preload_image($attrs=[], $echo = true){
         $code = "";
         error_log("add_preload_image ".json_encode($attrs));
         if(empty($attrs)){
@@ -465,7 +471,7 @@ Class Image{
         }else{
             return $code;
         }
-    }
+    }*/
 
     public function not_found(){
         if($this->args["placeholder"]){

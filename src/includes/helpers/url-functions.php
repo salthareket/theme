@@ -293,7 +293,7 @@ function bwp_url_to_postid($url){
 	return 0;
 }
 
-function getSiteSubfolder(){
+/*function getSiteSubfolder(){
 	$url_site = get_site_url();
 	$url = parse_url($url_site);
 	//$url_local = $url["scheme"]."://".$url["host"].($url["host"] == "localhost"?":".$url["port"]:"")."/";
@@ -306,6 +306,18 @@ function getSiteSubfolder(){
        $subFolder = $subFolderPath."/";//"/".$subFolderPath[0]."/";
 	}
 	return $subFolder;
+}*/
+function getSiteSubfolder(){
+    $url_site = get_site_url();
+    $url = parse_url($url_site);
+    $url_local = $url["host"] . (isset($url["port"]) && $url["port"] !== "80" ? ":" . $url["port"] : "");
+    $subFolderPath = str_replace($url["scheme"] . "://", "", $url_site);
+    $subFolderPath = str_replace($url_local, "", $subFolderPath);
+    $subFolder = "/";
+    if($subFolderPath){
+        $subFolder = '/' . trim($subFolderPath, '/') . '/';
+    }
+    return $subFolder;
 }
 
 /*
@@ -499,6 +511,18 @@ function abs2rel(string $base, string $path) {
     }
     return ".".DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $d);
 }
+
+function to_relative_url($input) {
+    if (strpos($input, 'http') === 0) {
+        $url = getSiteSubfolder() . str_replace(home_url(), '', $input);
+        return str_replace("//", "/", $url);
+    } elseif (file_exists($input)) {
+        $url = getSiteSubfolder() . str_replace('\\', '/', str_replace(ABSPATH, '/', $input));
+        return str_replace("//", "/", $url);
+    }
+    return $input;
+}
+
 
 function is_prefetch_request() {
     if ( 

@@ -3418,6 +3418,11 @@ function acf_compile_js_css($value=0){
             $updated_plugins = $minifier->init();//compile_files(false, $is_development);
             error_log("updates_plugins: ".json_encode($updated_plugins));
 
+            /*$minifier->extractFontFaces(
+                get_stylesheet_directory() . "/static/css/icons.css",
+                get_stylesheet_directory() . "/static/css/font-faces.css"
+            );*/
+            
             if($updated_plugins){
                 if(function_exists("add_admin_notice") && $value){
                     $message = "Updated plugins or plugin init files: ".implode(",", $updated_plugins);
@@ -3503,7 +3508,18 @@ function acf_compile_js_css($value=0){
                         //echo "TXT dosyası silinirken bir hata oluştu: " . $e->getMessage() . "<br>";
                     }
                 }
+
             }
+
+            $minifier->relocateFontFaces(
+                get_stylesheet_directory() . "/static/css/font-faces.css"
+            );
+            $minifier->clearFontfaces(
+                get_stylesheet_directory() . "/static/css/main-combined.css"
+            );
+            $minifier->clearFontfaces(
+                get_stylesheet_directory() . "/static/css/main-combined-rtl.css"
+            );
 
             if($updated_plugins){
                 $pages = get_pages_need_updates($updated_plugins);

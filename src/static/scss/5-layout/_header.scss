@@ -13,29 +13,25 @@ header#header {
     border-color: var(--header-border-color);
     border-width: var(--header-border-width);
 
-    //@if $header-dropshadow {
-        &:after {
-            content: "";
-            display: var(--header-dropshadow);
-            position: absolute;
-            z-index: -1;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            bottom: 0;
-            box-shadow: 0px 10px 15px 0px rgba(0, 0, 0, 0.15);
-            @include transition(opacity 0.3s ease-out);
-        }
+    &:after {
+        content: "";
+        display: var(--header-dropshadow);
+        position: absolute;
+        z-index: -1;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        bottom: 0;
+        box-shadow: 0px 10px 15px 0px rgba(0, 0, 0, 0.15);
+        @include transition(opacity 0.3s ease-out);
+    }
 
-        &.affix:after {
-            opacity: 1;
-            //border-bottom:1px solid #eee;
-        }
-    //}
+    &.affix:after {
+        opacity: 1;
+    }
 
     &.affix.fixed-top,
     &.affix.fixed-bottom-start {
-        //background-color: var(--header-bg-affix);
         .navbar-top{
             background-color: var(--header-navbar-bg-affix);
         }
@@ -54,6 +50,60 @@ header#header {
                     display:block;
                 }
             }
+        }
+    }
+
+    &.affix {
+            position: fixed;
+            width: 100%;
+            &.fixed-top{
+                top:0;
+                bottom:auto;
+                min-height: var(--header-height-affix);
+            }
+            &.fixed-bottom{
+                top:auto;
+                bottom:0;
+                min-height: var(--header-height);
+            }
+            &.fixed-top,
+            &.fixed-bottom-start{
+
+                .navbar-main {
+                    padding: var(--header-navbar-padding-affix);
+                    height: var(--header-navbar-height-affix);
+                    @include transition(height 0.3s ease-out);
+                }
+
+                .navbar-top {
+                    height: var(--header-navbar-height-affix);
+                    min-height: var(--header-navbar-height-affix);
+                    @include transition(height 0.3s ease-out);
+                }
+
+                .navbar-brand {
+                    height: var(--header-navbar-height-affix);
+                    padding: var(--header-navbar-logo-padding-affix);
+                }
+
+                .navbar-container {
+                    height: var(--header-navbar-nav-height-affix);
+                    min-height: var(--header-navbar-nav-height-affix);
+                    @include transition(height 0.3s ease-out);
+                }
+
+                .header-tools {
+                    height: var(--header-tools-height-affix);
+                }
+            }
+        }
+
+    &.fixed-bottom-start{
+        &.affix{
+            min-height: var(--header-height-affix);
+        }
+        &:not(.affix){
+            top:calc(100vh - var(--header-height));
         }
     }
 
@@ -140,7 +190,7 @@ header#header {
                 vertical-align: middle;
                 height: 100%;
 
-                >a:not(.btn) {
+                >a:not(.btn):not(.nav-toggler-custom) {
                     position: relative;
                     font-family: var(--header-link-font);
                     font-size: var(--header-link-font-size);
@@ -644,7 +694,7 @@ header#header {
 
     // xxl
     header#header {
-        &.affix {
+        /*&.affix {
             position: fixed;
             width: 100%;
             &.fixed-top{
@@ -685,16 +735,6 @@ header#header {
 
                 .header-tools {
                     height: var(--header-tools-height-affix);
-
-                    >.nav {
-                        >li {
-                            &.dropdown {
-                                &.dropdown-notifications {
-                                    .dropdown-menu {}
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -706,7 +746,7 @@ header#header {
             &:not(.affix){
                 top:calc(100vh - var(--header-height));
             }
-        }
+        }*/
 
     }
 }

@@ -3,7 +3,7 @@
 function get_menu_item_visibility($menu_item) {
     $user_role = isset($GLOBALS["user"]->role)?$GLOBALS["user"]->role:"";
     $is_logged_in = is_user_logged_in();
-    $user_language = function_exists('qtranxf_getLanguage') ? qtranxf_getLanguage() : $GLOBALS["language"];
+    $user_language = $GLOBALS["language"];//function_exists('qtranxf_getLanguage') ? qtranxf_getLanguage() : $GLOBALS["language"];
 
     if (get_field('has_condition', $menu_item)) {
 

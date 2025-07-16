@@ -240,14 +240,22 @@ Class Theme{
         $salt = $GLOBALS["salt"];
 
         $user = \Timber::get_user();
-        if(!$user){
+        /*if(!$user){
             $user = new \stdClass();
         }
         $user->logged = 0;
         $user->role = "";
         if(isset($user->roles)){
             $user->role = array_keys($user->roles)[0];
+        }*/
+
+        if (!$user || !is_object($user)) {
+            $user = new \stdClass();
+            $user->ID = 0;
+            $user->roles = [];
         }
+        $user->logged = is_user_logged_in() ? 1 : 0;
+        $user->role = !empty($user->roles) ? array_keys($user->roles)[0] : '';
         
         error_log("theme.php site_config call");
 
@@ -645,7 +653,9 @@ Class Theme{
                 add_action('wp_footer', 'custom_search_add_term');
             }
 
-            if ($query->is_post_type_archive() || is_home()) {
+
+            $sticky_post_types = get_option("options_add_sticky_support");
+            if ($query->is_post_type_archive() || is_home() && (!empty($post_type) && is_array($sticky_post_types) && in_array($post_type, $sticky_post_types))) {
                 // Sticky meta'ya göre sıralama yap
                 $meta_query = [
                     'relation' => 'OR',
@@ -803,6 +813,7 @@ Class Theme{
             $assets_data = [
                 "js" => "", 
                 "css" => "", 
+                "css_critical" => "", 
                 "css_page" => "", 
                 "css_page_rtl" => "", 
                 "plugins" => "", 
@@ -823,7 +834,7 @@ Class Theme{
                 if($meta["type"] == "term"){
                     $site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
                 }
-            }/**/
+            }
 
             $site_assets = !empty($site_assets) ? $site_assets : $assets_data;
 
@@ -1028,12 +1039,28 @@ Class Theme{
                 $config["user_country_code"] = $user_country_code;
                 $config["user_city"] = $user_city;
                 $config["user_language"] = $user_language;
-                setcookie('user_country', $user_country, time() + (86400 * 365), $path); 
+                /*setcookie('user_country', $user_country, time() + (86400 * 365), $path); 
                 setcookie('user_country_code', $user_country_code, time() + (86400 * 365), $path);
                 setcookie('user_city', $user_city, time() + (86400 * 365), $path);
-                setcookie('user_language', $user_language, time() + (86400 * 365), $path);
+                setcookie('user_language', $user_language, time() + (86400 * 365), $path);*/
+                if (!isset($_COOKIE['user_country']) || $_COOKIE['user_country'] !== $user_country) {
+                    setcookie('user_country', $user_country, time() + (86400 * 365), $path);
+                }
+                if (!isset($_COOKIE['user_country_code']) || $_COOKIE['user_country_code'] !== $user_country_code) {
+                    setcookie('user_country_code', $user_country_code, time() + (86400 * 365), $path);
+                }
+                if (!isset($_COOKIE['user_city']) || $_COOKIE['user_city'] !== $user_city) {
+                    setcookie('user_city', $user_city, time() + (86400 * 365), $path);
+                }
+                if (!isset($_COOKIE['user_language']) || $_COOKIE['user_language'] !== $user_language) {
+                    setcookie('user_language', $user_language, time() + (86400 * 365), $path);
+                }
+
                 if(ENABLE_REGIONAL_POSTS){
-                    setcookie('user_region', json_encode($user_region), time() + (86400 * 365), $path);
+                    //setcookie('user_region', json_encode($user_region), time() + (86400 * 365), $path);
+                    if (!isset($_COOKIE['user_region']) || $_COOKIE['user_region'] !== $user_region) {
+                        setcookie('user_region', $user_region, time() + (86400 * 365), $path);
+                    }
                 }
             }else{
                 $user_language = $GLOBALS["language"];
@@ -1078,8 +1105,6 @@ Class Theme{
 
         error_log("site_config_js();");
 
-            //wp_register_script( 'site_config_vars', get_stylesheet_directory_uri() . '/includes/methods/index.js', array("jquery"), '1.0', false );
-            //wp_register_script( 'site_config_vars', SH_INCLUDES_URL . 'methods/index.js', array("jquery"), '1.0', false );
             wp_register_script( 'site_config_vars', STATIC_URL . 'js/methods.min.js', array("jquery"), '1.0', false );
             wp_enqueue_script('site_config_vars');
 
@@ -1252,7 +1277,7 @@ Class Theme{
             if(is_admin()){
                 \PluginManager::init();
                 \Update::init();
-                new \AvifConverter(50);
+                new \AvifConverter(40);
             }
             new \starterSite();
         }); 

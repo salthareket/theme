@@ -97,6 +97,10 @@
 
         {{ function('wp_body_open') }}
 
+        {% if block_hero %}
+            {{ function("render_block", block_hero) }}
+        {% endif %}
+        
         {% include "partials/alerts/alert-page.twig" with { alert:page_settings.alert, position : "top" } %}
 
         {% block header_container %}
@@ -129,9 +133,7 @@
         {% block hero %}
         {% endblock %}
 
-        {% if block_hero %}
-            {{ function("render_block", block_hero) }}
-        {% endif %}
+
 
         <main id="main" role="main" class="main flex-column {{page_settings.classes.main}}" {% block microdata %}{% endblock %}>
             

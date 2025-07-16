@@ -95,6 +95,9 @@ function lcp_data(metric, type) {
         return styles;
     }
 
+    const selectorList = getCriticalSelectors(element);
+
+
     if (element) {
         preloadType = element.tagName.toLowerCase();
         switch(preloadType){
@@ -131,7 +134,8 @@ function lcp_data(metric, type) {
         type: preloadType,
         code: preloadTag,
         url: img_url,
-        id: 0
+        id: 0,
+        selectors: selectorList 
     };
 
     return code;
@@ -139,6 +143,7 @@ function lcp_data(metric, type) {
 
 function lcp_data_save(metric, type = "desktop") {
     const lcpData = lcp_data(metric, type);
+    const pageUrl = window.location.href;
     console.log(type + " LCP:", lcpData);
     fetch(ajax_request_vars.url_admin, {
         method: "POST",
@@ -148,6 +153,7 @@ function lcp_data_save(metric, type = "desktop") {
             type: site_config.meta.type,
             id: site_config.meta.id,
             lcp_data: JSON.stringify({ [type]: lcpData }),
+            url: pageUrl,
         }),
     })
     .then(response => response.json())
@@ -158,8 +164,6 @@ function lcp_data_save(metric, type = "desktop") {
         }
     });
 }
-
-
 
 function lcp_for_mobile(url) {
     let iframeWindow = window.open('', 'mobileWindow', 'width=412,height=823');
@@ -196,3 +200,73 @@ function lcp_for_mobile(url) {
     };
     iframeWindow.location = url;
 }
+
+/*function getCriticalSelectors(element) {
+    const selectors = new Set();
+
+    const add = (el) => {
+        if (!el || !(el instanceof Element)) return;
+        if (el.id) selectors.add(`#${CSS.escape(el.id)}`);
+        el.classList.forEach(cls => {
+            if (cls && !["lazy", "loaded", "entered"].includes(cls)) {
+                selectors.add(`.${CSS.escape(cls)}`);
+            }
+        });
+    };
+
+    // 1. LCP element ve parent’ları
+    let current = element;
+    while (current && current !== document.body) {
+        add(current);
+        current = current.parentElement;
+    }
+
+    // 2. Aktif slide içindeki tüm elemanlar (first viewport)
+    const activeEls = document.querySelectorAll('.swiper-slide-active *');
+    activeEls.forEach(el => add(el));
+
+    return Array.from(selectors);
+}*/
+function getCriticalSelectors(lcpElement) {
+    const selectors = new Set();
+
+    const add = (el) => {
+        if (!el || !(el instanceof Element)) return;
+        if (el.id) selectors.add(`#${CSS.escape(el.id)}`);
+        el.classList.forEach(cls => {
+            if (
+                cls &&
+                !["lazy", "loaded", "entered", "swiper-lazy", "swiper-slide-duplicate"].includes(cls)
+            ) {
+                selectors.add(`.${CSS.escape(cls)}`);
+            }
+        });
+    };
+
+    // LCP element ve parent’ları
+    let current = lcpElement;
+    while (current && current !== document.body) {
+        add(current);
+        current = current.parentElement;
+    }
+
+    // Viewport içindeki görünür elementler
+    const viewportEls = document.querySelectorAll('body *');
+    viewportEls.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const visible = rect.bottom > 0 && rect.top < window.innerHeight;
+        const style = window.getComputedStyle(el);
+        const isHidden = style.display === "none" || style.visibility === "hidden" || style.opacity === "0";
+        if (visible && !isHidden) {
+            add(el);
+        }
+    });
+
+    // Temel yapılar
+    add(document.body);
+    add(document.documentElement);
+    document.querySelectorAll('.swiper-slide-active, .swiper-slide-active *').forEach(add);
+
+    return Array.from(selectors);
+}
+

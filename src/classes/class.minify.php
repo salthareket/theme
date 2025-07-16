@@ -44,6 +44,7 @@ class SaltMinifier{
             "header.min.js"        => $this->js_folder . 'header.min.js',
             "functions.min.js"     => $this->js_folder . 'functions.min.js',
             "main.min.js"          => $this->js_folder . 'main.min.js',
+            "main-combined.min.js" => $this->js_folder . 'main-combined.min.js',
 
 		);
 	    if(file_exists($this->output["plugins"])){
@@ -99,6 +100,7 @@ class SaltMinifier{
         }
         
         $this->locale_css();
+
 	}
 
 	public function locale_css(){
@@ -174,6 +176,11 @@ class SaltMinifier{
 		$this->functions_js();
 		$this->main_js();
 		$this->plugins();
+        $this->mergeJs([
+            $this->output["functions.min.js"],
+            $this->output["plugins.min.js"],
+            $this->output["main.min.js"],
+        ]);
 		return $this->plugin_settings();
 	}
 	public function locale_js(){
@@ -346,6 +353,21 @@ class SaltMinifier{
         	$this->minify_js($this->rules["js"]["plugins_admin"], $this->output["plugins-admin.min.js"]);
         }
 	}
+
+    public function mergeJs($files = []) {
+        if (empty($files)) return false;
+        $combined = '';
+        foreach ($files as $file_path) {
+            if (file_exists($file_path)) {
+                $combined .= file_get_contents($file_path)."\n\r";
+            }
+        }
+        $target_file = $this->output["main-combined.min.js"];
+        file_put_contents($target_file, $combined);
+        @chmod($target_file, 0644);
+       // return content_url(str_replace(WP_CONTENT_DIR, '', $target_file));
+    }
+
 
 	public function minify_css($files=[], $output = "", $filename=""){
 		$counter = 0;
@@ -682,6 +704,104 @@ class SaltMinifier{
 	public function removeComments($input) {
 	    return $input;
 	}
+
+    public function extractFontFaces($icons_css_path, $font_faces_css_path) {
+        if (!file_exists($icons_css_path)) {
+            echo "icons.css bulunamadı: $icons_css_path";
+            return;
+        }
+
+        $css_content = file_get_contents($icons_css_path);
+
+        // font-face bloklarını yakala
+        preg_match_all('/@font-face\s*{[^}]+}/i', $css_content, $matches);
+        $font_faces = $matches[0] ?? [];
+
+        if (!empty($font_faces)) {
+            $cleaned_faces = array_map(function ($face) {
+                // URL'leri düzelt: Windows path → URL path
+                return preg_replace_callback('/url\((["\']?)([^)]+?)\1\)/i', function ($m) {
+                    $url = str_replace('\\', '/', $m[2]); // ters slash düzelt
+                    // Dosya sistemindeki path'ten site kökü çıkar
+                    $theme_path = str_replace('\\', '/', get_template_directory());
+                    $site_subfolder = getSiteSubfolder();
+                    $relative_path = str_replace($theme_path, '', $url);
+                    return "url('{$site_subfolder}wp-content/themes/" . get_template() . "{$relative_path}')";
+                }, $face);
+            }, $font_faces);
+
+            // font-faces.css olarak kaydet
+            file_put_contents($font_faces_css_path, implode("\n\n", $cleaned_faces));
+
+            // icons.css içinden font-face'leri çıkar
+            $icons_css_clean = str_replace($font_faces, '', $css_content);
+            file_put_contents($icons_css_path, $icons_css_clean);
+        }
+    }
+    public function relocateFontFaces($font_faces_css_path) {
+        if (!file_exists($font_faces_css_path)) {
+            echo "font-faces.css bulunamadı: $font_faces_css_path";
+            return;
+        }
+
+        $css_content = file_get_contents($font_faces_css_path);
+
+        $theme_path = str_replace('\\', '/', get_template_directory());
+        $theme_uri = str_replace('\\', '/', get_template_directory_uri());
+        $theme_slug = basename($theme_path);
+        $site_subfolder = rtrim(getSiteSubfolder(), '/'); // mesela "/xekos"
+
+        // URL'leri dönüştür
+        $updated = preg_replace_callback(
+            '/url\((["\']?)([^)]+?)\1\)/i',
+            function ($m) use ($theme_path, $theme_uri, $theme_slug, $site_subfolder) {
+                $raw_url = str_replace('\\', '/', $m[2]);
+
+                // Fiziksel dizin bazlı path
+                if (strpos($raw_url, $theme_path) === 0) {
+                    $rel_path = str_replace($theme_path, '', $raw_url);
+                    return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}{$rel_path}')";
+                }
+
+                // URL içeriyorsa
+                if (strpos($raw_url, $theme_uri) === 0) {
+                    $rel_path = str_replace($theme_uri, '', $raw_url);
+                    return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}{$rel_path}')";
+                }
+
+                // ../fonts/... varsa
+                if (preg_match('#\.\./fonts/([^\'")]+)#', $raw_url, $match)) {
+                    return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}/static/fonts/{$match[1]}')";
+                }
+
+                return $m[0]; // dokunma
+            },
+            $css_content
+        );
+
+        file_put_contents($font_faces_css_path, $updated);
+    }
+    public function clearFontfaces($css_url) {
+        if (!file_exists($css_url)) {
+            error_log("clearFontfaces: Dosya bulunamadı → $css_url");
+            return false;
+        }
+
+        $content = file_get_contents($css_url);
+        if (!$content) {
+            error_log("clearFontfaces: Dosya okunamadı → $css_url");
+            return false;
+        }
+
+        // @font-face bloklarını komple sil
+        $cleaned_content = preg_replace('/@font-face\s*{[^}]+}/i', '', $content);
+
+        // Artık başa tekrar ekleme yok — sadece kalan içerik
+        file_put_contents($css_url, trim($cleaned_content));
+
+        error_log("✓ Font-face blokları tamamen kaldırıldı → $css_url");
+        return true;
+    }
 
 	public function init(){
 		$this->css();

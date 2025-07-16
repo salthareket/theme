@@ -1,22 +1,11 @@
-/*window.onload = function () {
-    document.body.classList.remove("loading", "loading-process");
-};
+/*function resizeDebounce(func, wait) {
+	let timeout;
+	return function(...args) {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(this, args), wait);
+	};
+}
 
-window.addEventListener('pagehide', (event) => {
-});
-window.addEventListener('pageshow', (event) => {
-  	document.body.classList.remove("loading", "loading-process");
-  	// Tarayıcı geri veya ileri butonlarıyla sayfa önbellekleme durumunu kontrol et
-    if (event.persisted) {
-        // Eğer sayfa önbellekleme durumu varsa, sayfayı yenile
-        window.location.reload();
-    }
-});
-window.addEventListener('unload', function() {
-    // Sayfa boşaltıldığında, tarayıcıya sayfanın önbelleğe alınmasına izin ver
-    history.scrollRestoration = 'manual';
-});
-*/
 
 window.addEventListener('beforeunload', function(event) {
     // Sayfa boşaltıldığında, tarayıcıya sayfanın önbelleğe alınmasına izin ver
@@ -33,12 +22,28 @@ window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
         window.location.reload();
     }
+});*/
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.remove("loading", "loading-process");
+});
+
+window.addEventListener('pageshow', (event) => {
+    document.body.classList.remove("loading", "loading-process");
+    if (event.persisted) window.location.reload();
+});
+
+window.addEventListener('beforeunload', (event) => {
+    history.scrollRestoration = 'manual';
+    event.returnValue = '';
 });
 
 
 
 
-if(document.getElementsByClassName('user-localization').length){
+
+/*if(document.getElementsByClassName('user-localization').length){
 	var obj = document.querySelector(".user-localization");
 	var userCountry = site_config.user_country;//getCookie("user_country");
 	var userCountryCode = site_config.user_country_code;
@@ -46,16 +51,40 @@ if(document.getElementsByClassName('user-localization').length){
     obj.innerHTML = userCountry.toUpperCase()+" - "+userLanguage.toUpperCase();
     obj.closest('a').setAttribute("data-user_country_code", userCountryCode);
     obj.closest('a').setAttribute("data-user_language", userLanguage)
+}*/
+
+const userLoc = document.querySelector(".user-localization");
+if (userLoc) {
+    const { user_country, user_country_code, user_language } = site_config;
+    userLoc.textContent = `${user_country.toUpperCase()} - ${user_language.toUpperCase()}`;
+    const parentA = userLoc.closest('a');
+    if (parentA) {
+        parentA.dataset.user_country_code = user_country_code;
+        parentA.dataset.user_language = user_language;
+    }
 }
+
 
 var size = root.browser.size();
 root.get_css_vars();
 
 if(isLoadedJS("vanilla-lazyload")){
-	 lazyLoadInstance = new LazyLoad({
+	lazyLoadInstance = new LazyLoad({
 	    elements_selector: ".lazy",
 	    //use_native : true,
 	    //unobserve_entered: true,
+	    callback_loading : function(e){
+			var obj = $(e);
+			if(obj[0].nodeName == 'IFRAME' && obj.hasClass('video')){
+				let slide = obj.closest(".swiper-slide");
+				if(slide.length > 0 && slide.index() > 0){
+					obj.removeClass("loading");
+					obj.removeAttr("data-ll-status");
+					console.log("Swiper aktif değil, iframe src yüklenmeyecek.");
+					return false;
+				}
+			}
+		},
 	    callback_loaded : function(e){
 			var obj = $(e);
 
@@ -84,11 +113,19 @@ if(isLoadedJS("vanilla-lazyload")){
 			console.log(obj)
 
 			if(obj.hasClass("video")){
-				console.log("eveet")
-				console.log(obj.parent())
+				let slide = obj.closest(".swiper-slide");
+
+				if(slide.length > 0 && slide.index() > 0){
+					obj.removeClass("loaded");
+					obj.removeAttr("data-ll-status");
+					console.log("Swiper slide aktif değil, video yüklenmeyecek. calvack_loaded");
+					return false; // aktif değilse videoyu yükleme
+				}
+
+				console.log("Video yükleniyor...")
 				obj.closest(".lazy-container").removeClass("lazy-container");
-	            obj.parent().find(">.plyr__poster").remove();
-	            obj.parent().addClass("lazy-loaded")
+				obj.parent().find(">.plyr__poster").remove();
+				obj.parent().addClass("lazy-loaded");
 				plyr_init(obj.parent());
 			}
 
@@ -107,6 +144,7 @@ if(isLoadedJS("vanilla-lazyload")){
 		        }
 		        LazyLoad.load(obj[0]);
 		    }
+
 	    },
 	    callback_enter : function(e){
 	    	var obj = $(e);
@@ -122,6 +160,19 @@ if(isLoadedJS("vanilla-lazyload")){
 			       LazyLoad.load(obj[0]);          	
 	           }
 		    }
+
+		    if(obj[0].nodeName == 'IFRAME' && obj.hasClass('video')){
+				let slide = obj.closest(".swiper-slide");
+				if(slide.length > 0 && slide.index() > 0){
+					obj.removeClass("entered");
+					obj.removeAttr("data-ll-status");
+					obj.attr("data-src-backup", obj.attr("data-src"));
+		            obj.removeAttr("data-src");
+					console.log("Swiper aktif değil, iframe src yüklenmeyecek.");
+					// src yüklenmesini engellemek için src set etmeden return et
+					return false;
+				}
+			}
 
 			if(typeof window["AOS"] === "object"){
 				AOS.refreshHard();
@@ -181,16 +232,32 @@ if (window["ScrollPosStyler"] && document.getElementById("header")) {
             offsetTag : "data-affix-offset",
             scrollOffsetY: 50
         });
+        console.log(ScrollPosStyler)
     }
 }
 
-if (document.querySelector("#main") && document.querySelector("#header") && (document.querySelector("#main").scrollTop || document.documentElement.scrollTop) > (root && root.css_vars && root.css_vars["header-height-" + size])) {
+var main = document.querySelector("#main");
+var header = document.querySelector("#header");
+
+if (main && header) {
+    var scrollTop = main.scrollTop || document.documentElement.scrollTop;
+    var headerHeight = root && root.get_css_var("header-height");
+
+    if (scrollTop > headerHeight) {
+        if (root && root.classes && header.classList.contains("fixed-top")) {
+            root.classes.addClass(header, "affix");
+            root.classes.removeClass(header, "affix-top");
+        }
+    }
+}
+
+/*if (document.querySelector("#main") && document.querySelector("#header") && (document.querySelector("#main").scrollTop || document.documentElement.scrollTop) > (root && root.get_css_var("header-height")) {
     var header = document.querySelector("#header");
-    if (root && root.classes && header.classList.contains("fixed-top")) {
+    if(root && root.classes && header.classList.contains("fixed-top")) {
         root.classes.addClass(header, "affix");
         root.classes.removeClass(header, "affix-top");
     }
-}
+}*/
 
 
 
@@ -239,10 +306,10 @@ if(window["enquire"]){
 const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
-$(window).on("resize", function(){
+/*$(window).on("resize", function(){
     ///$('.nav-equal').sameSize(true);
     navbar_visibility()
-});
+});*/
 
 function navbar_visibility() {
     // Belirtilen elementin görünür olup olmadığını kontrol eden fonksiyon
@@ -267,3 +334,4 @@ function navbar_visibility() {
         checkVisibility(el, ':scope > *');
     });
 }
+$(window).on("resize", resizeDebounce(navbar_visibility, 200));

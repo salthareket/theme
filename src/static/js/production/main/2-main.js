@@ -3,7 +3,7 @@
 		footer : "",
 		affix : false
 	});
-	var host = root.host;
+	var host = root.get_host();
 	var lang = root.lang;
 	var hash = root.hash;
 	var is_home = root.is_home;
@@ -60,9 +60,13 @@ function init_functions(){
 
         $('.nav-equal').sameSize(true);
 
-	    $("a[href='#']").on("click", function(e){
+	    /*$("a[href='#']").on("click", function(e){
             e.preventDefault();
-        });
+        });*/
+        document.querySelectorAll("a[href='#']").forEach(el => {
+		  el.addEventListener("click", e => e.preventDefault());
+		});
+
 
         if ($.fn.disableAutoFill) {
 			$('form').disableAutoFill();

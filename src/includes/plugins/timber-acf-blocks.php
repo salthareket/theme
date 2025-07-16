@@ -5,7 +5,6 @@ add_filter( 'timber/acf-gutenberg-blocks-templates', function () {
 });
 
 add_filter( 'timber/acf-gutenberg-blocks-data', function( $context ){
-    //$context['fields']['extra_data'] = 'New extra data';
     if ( array_key_exists('fields', $context) && is_array($context['fields']) ) {
         $upload_dir = wp_upload_dir();
         $context['fields']['upload_url'] = $upload_dir['baseurl'];
@@ -2490,6 +2489,20 @@ function block_aos_delay($str="", $delay=0) {
     }
     return $str;
 }
+function block_aos_duration($str="", $duration=0) {
+    if (is_string($str) && preg_match('/data-aos-duration="(\d+)"/', $str, $matches)) {
+        $new_str = preg_replace('/data-aos-duration="\d+"/', 'data-aos-duration="' . $duration . '"', $str);
+        return $new_str;
+    }
+    return $str;
+}
+function block_aos_animation($str="", $animation="none") {
+    if (is_string($str) && preg_match('/data-aos="[^"]*"/', $str)) {
+        $new_str = preg_replace('/data-aos="[^"]*"/', 'data-aos="' . $animation . '"', $str);
+        return $new_str;
+    }
+    return $str;
+}
 
 function block_bs_columns_col_classes($args){
     $classes = [];
@@ -2547,6 +2560,7 @@ function block_bg_image($block, $fields, $block_column){
     $image = "";
     $image_class = " w-100 h-100 ";
     $image_style = [];
+    $image_bg_style = [];
     if(isset($fields["block_settings"])){
         $background = $fields["block_settings"]["background"];
         //$background_color = $fields["block_settings"]["background"]["color"];
@@ -2575,17 +2589,18 @@ function block_bg_image($block, $fields, $block_column){
             if(!empty($background["image_blend_mode"])){
                 $image_style[] = "mix-blend-mode:" . $background["image_blend_mode"];
             }
+
             if($background["size"] == "fixed"){
-                $image_style[] = "background-size: cover";
+                $image_bg_style[] = "background-size: cover";
             }else{
-                $image_style[] = "background-size:" . $background["size"];
+                $image_bg_style[] = "background-size:" . $background["size"];
             }
-            $image_style[] = "background-position:" . $background["position_hr"] ." " .$background["position_vr"];
+            $image_bg_style[] = "background-position:" . $background["position_hr"] ." " .$background["position_vr"];
 
             if($background["repeat"] != "no-repeat" || $background["size"] == "fixed"){
-                $image_style[] = "background-image:url(" . $background["image"] . ");background-repeat:" . $background["repeat"] . ";";
+                $image_bg_style[] = "background-image:url(" . $background["image"] . ");background-repeat:" . $background["repeat"] . ";";
                 if($background["size"] == "fixed"){
-                    $image_style[] = "background-attachment:" . $background["size"] . ";";
+                    $image_bg_style[] = "background-attachment:" . $background["size"] . ";";
                 }
             }
             
@@ -2593,6 +2608,12 @@ function block_bg_image($block, $fields, $block_column){
                $image_style = implode(";", $image_style); 
             }else{
                 $image_style = "";
+            }
+
+            if($image_bg_style){
+               $image_bg_style = implode(";", $image_bg_style); 
+            }else{
+                $image_bg_style = "";
             }
 
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
@@ -2603,7 +2624,7 @@ function block_bg_image($block, $fields, $block_column){
 
             $image = '<div class="bg-cover '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';
             if($background["repeat"] != "no-repeat" || $background["size"] == "fixed"){
-                $image .= 'style="'.$image_style.'"';
+                $image .= 'style="'.$image_style.$image_bg_style.'"';
             }
 
             if($background["parallax"]){
@@ -2618,23 +2639,21 @@ function block_bg_image($block, $fields, $block_column){
 
             $image .= '>';
             if($background["repeat"] == "no-repeat" && $background["size"] != "fixed"){
+                $args = [
+                    "class" => (isset($background["size"])?'object-fit-'.$background["size"]:"").' '.$image_class,
+                    "preview" => is_admin(),
+                    "attrs" => []
+                ];
+                if($image_style){
+                    $args["attrs"]["style"] = $image_style;
+                }
                 if(!empty($background["image"])){
-                    $image .= '<img src="'.$background["image"].'" class="object-fit-'.$background["size"].' '.$image_class.'" alt="'.trans("Arama Yap").'" style="'.$image_style.'"/>';
+                    $args["src"] = $background["image"];
                 }
                 if(!empty($background["image_responsive"])){
-                    $args = [
-                        "src" => $background["image_responsive"], 
-                        "class" => 'object-fit-'.$background["size"].' '.$image_class,
-                        "preview" => is_admin(),
-                        "attrs" => []
-                    ];
-                    if($image_style){
-                        $args["attrs"]["style"] = $image_style;
-                    }
-                    /*$lcp = new \Lcp();
-                    if($lcp->is_lcp($background["image_responsive"])){
-                        $args["lcp"] = true;
-                    }*/
+                    $args["src"] = $background["image_responsive"];
+                }
+                if(isset($args["src"])){
                     $image .= get_image_set($args);
                 }
             }
@@ -2941,8 +2960,14 @@ function block_css($block, $fields, $block_column){
 
                 }else{
                     if($value["height"] != "auto"){
+                        /* hata olabilir
                         $css = "#".$selector."{
                             ".($value["height"]=="full" || $block["name"] == "acf/video"?"":"min-")."height: var(--hero-height-".$value["height"].");
+                        }";
+                        */
+                        $css = "#".$selector."{
+                            min-height: var(--hero-height-".$value["height"].");
+                            height: var(--hero-height-".$value["height"]."-min);
                         }";
                         if($block["name"] == "acf/slider" || $block["name"] == "acf/slider-advanced" || $block["name"] == "acf/archive"){
                             $css .= "#".$selector."{
@@ -2988,7 +3013,11 @@ function block_css($block, $fields, $block_column){
                     }";
 
         }elseif ($height != "auto"){
+            /* hata olabilir
             $code_inner .= ($height=="full" || $block["name"] == "acf/video"?"":"min-")."height: var(--hero-height-".$height.");";
+            */
+            $code_inner .= "min-height: var(--hero-height-".$height.");height: var(--hero-height-".$height."-min);";
+            
             /*$code_height .= "#".$selector." {
                 min-height: var(--hero-height-".$height.");
             }";*/
@@ -3208,8 +3237,8 @@ function block_css($block, $fields, $block_column){
 
     if(isset($block["name"]) && in_array($block["name"], ["acf/icons"])){
         foreach($fields["icons"] as $icon_index => $icon){
-            if(!empty($icon["content"]["icon_color"])){
-                $code .= block_svg_color("#".$selector." .icon-".$icon_index." .image", $icon["content"]["icon_color"]);
+            if(!empty($icon["icon"]["color"])){
+                $code .= block_svg_color("#".$selector." .icon-".$icon_index." .image", $icon["icon"]["color"]);
             }
         }
     }

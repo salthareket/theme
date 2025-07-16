@@ -263,6 +263,12 @@ function init_swiper_video(swiper){
                 var swiper = this;
                 var slide = $(swiper.slides[swiper.activeIndex]);
                 if(slide.find(".swiper-video").length > 0){
+
+                    slide.find('iframe[data-src]').each(function(){
+                        console.log(this)
+                        LazyLoad.load(this); // elle yükle
+                        plyr_init($(this).closest(".video"));
+                    });
                     slide.removeClass("user-reacted");
                     
                     if(slide.find(".plyr").length > 0){
@@ -623,7 +629,17 @@ function init_swiper_obj($obj) {
                 },
                 
                 slideChangeTransitionEnd: function (e) {
-                    console.log("slideChangeTransitionEnd")
+                    console.log("slideChangeTransitionEnd");
+                    const activeSlide = $(e.slides[e.activeIndex]);
+                    activeSlide.find('iframe[data-src-backup]').each(function(){
+                        console.log("active slide--------------------")
+                        $(this).closest(".lazy-container").removeClass("lazy-container");
+                        $(this).parent().find(">.plyr__poster").remove();
+                        $(this).parent().addClass("lazy-loaded");
+                        $(this).attr("data-src", $(this).attr("data-src-backup"));
+                        $(this).removeAttr("data-src-backup");
+                        LazyLoad.load(this); // elle yükle
+                    });
                     updateSlideColors(this.el);
                 },
                 resize: function() {
@@ -635,6 +651,7 @@ function init_swiper_obj($obj) {
                                 card_slider.find(">.card-footer").removeClass("d-none");
                             }
                         }*/
+
                         updateSlideColors(this.el);
                     //}
                 },

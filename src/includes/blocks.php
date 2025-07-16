@@ -58,13 +58,34 @@ function wp_block_pattern_on_save( $post_id, $post, $update ) {
 add_action( 'save_post', 'wp_block_pattern_on_save', 10, 3 );
 
 
+function get_cached_blocks( $post_id ) {
+    static $cache = [];
+
+    if ( isset( $cache[ $post_id ] ) ) {
+        return $cache[ $post_id ];
+    }
+
+    if ( ! has_blocks( $post_id ) ) {
+        $cache[ $post_id ] = false;
+        return false;
+    }
+
+    $content = get_post_field( 'post_content', $post_id );
+    $blocks  = parse_blocks( $content );
+
+    $cache[ $post_id ] = $blocks;
+    return $blocks;
+}
+
+
 function get_blocks($post_id){
     if ( ! has_blocks( $post_id ) ) {
         return false;
     }
-    return parse_blocks( get_the_content( '', false, $post_id ) );
+    return parse_blocks(get_post_field('post_content', $post_id));
+    //return parse_blocks( get_the_content( '', false, $post_id ) );
 }
-function get_block( $post_id, $block_id, $render=false ) {
+/*function get_block( $post_id, $block_id, $render=false ) {
     $post_blocks = get_blocks($post_id );
     if(!$post_blocks){
         return false;
@@ -79,8 +100,21 @@ function get_block( $post_id, $block_id, $render=false ) {
         }
     }
     return false;
+}*/
+function get_block( $post_id, $block_name, $render = false ) {
+    $blocks = get_cached_blocks( $post_id );
+    if ( ! $blocks ) return false;
+
+    foreach ( $blocks as $block ) {
+        if ( isset( $block['blockName'] ) && $block['blockName'] === $block_name ) {
+            return $render ? render_block( $block ) : $block;
+        }
+    }
+
+    return false;
 }
-function get_field_from_block( $selector, $post_id, $block_id ) {
+
+/*function get_field_from_block( $selector, $post_id, $block_id ) {
     $post_blocks = get_blocks($post_id );
     if(!$post_blocks){
         return false;
@@ -96,6 +130,20 @@ function get_field_from_block( $selector, $post_id, $block_id ) {
     }
     return false;
 }
+*/
+function get_field_from_block( $selector, $post_id, $block_id ) {
+    $blocks = get_cached_blocks( $post_id );
+    if ( ! $blocks ) return false;
+
+    foreach ( $blocks as $block ) {
+        if ( isset( $block['attrs']['id'] ) && $block['attrs']['id'] === $block_id ) {
+            return $block['attrs']['data'][ $selector ] ?? false;
+        }
+    }
+
+    return false;
+}
+
 
 
 function get_block_from_page($block_name, $source_page_id = null, $args = []) {

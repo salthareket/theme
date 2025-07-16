@@ -93,7 +93,9 @@ function compile_files_config($enable_production=false){
 		"class" => ["slinky-menu"],
 		"attrs" => [],
 		"init"  => "init_slinky",
-		"whitelist" => []
+		"whitelist" => [
+			".slinky-*",
+		]
 	];
 	$plugins['bootbox'] = [
 		"c"   => true,
@@ -112,7 +114,10 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="map_modal"'
 		],
 		"init" => "",
-		"whitelist" => []
+		"whitelist" => [
+			".ratio",
+			".ratio-*"
+		]
 	];
 	$plugins['aos'] = [
 		"c"   => true,
@@ -125,9 +130,9 @@ function compile_files_config($enable_production=false){
 		],
 		"class" => [],
 		"attrs"  => ['data-aos='],
-		"init" => "",
+		"init" => "init_aos",
 		"whitelist" => [
-			"aos-animate"
+			".aos-animate"
 		]
 	];
 	$plugins['plyr'] = [
@@ -156,7 +161,9 @@ function compile_files_config($enable_production=false){
 		"class" => ["swiper"],
 		"attrs" => [],
 		"init"     => "init_swiper",
-		"whitelist" => []
+		"whitelist" => [
+			".swiper-*"
+		]
 	];
 	$plugins['vanilla-lazyload'] = [
 		"c"   => false,
@@ -188,7 +195,8 @@ function compile_files_config($enable_production=false){
 		"c"   => true,
 		"admin" => false,
 		"url" => [
-			$node_path . 'lightgallery/lightgallery.min.js'
+			$node_path . 'lightgallery/lightgallery.min.js',
+			$node_path . 'lightgallery/plugins/video/lg-video.min.js'
 		],
 		"css" => [
 			$node_path . 'lightgallery/css/lightgallery-bundle.min.css'
@@ -196,18 +204,6 @@ function compile_files_config($enable_production=false){
 		"class" => ["lightgallery"],
 		"attrs" => [],
 		"init"     => "init_lightGallery",
-		"whitelist" => []
-	];
-	$plugins['lightgallery-video'] = [
-		"c"   => true,
-		"admin" => false,
-		"url" => [
-			$node_path . 'lightgallery/plugins/video/lg-video.min.js'
-		],
-		"css" => [],
-		"class" => ["lightgallery"],
-		"attrs" => [],
-		"init"     => "",
 		"whitelist" => []
 	];
 	$plugins['jquery-match-height'] = [
@@ -357,24 +353,6 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_leaflet",
 		"whitelist" => []
 	];
-	/*$plugins['leaflet.markercluster'] = [
-   		"c"	=> true,
-   		"admin" => false,
-		"url" => [
-			$node_path . 'leaflet.markercluster/dist/leaflet.markercluster.js'
-		],
-		"css" => [
-			$node_path . 'leaflet.markercluster/dist/MarkerCluster.css',
-			$node_path . 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-		],
-		"class" => ["leaflet-custom"],
-		"attrs"  => [
-			'data-ajax-method="map_modal"'
-		],
-		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "leaflet" ? 1: 0,
-		"init"     => "",
-		"whitelist" => []
-	];*/
 	$plugins['markerclusterer'] = [
    		"c"	=> true,
    		"admin" => false,
@@ -450,22 +428,6 @@ function compile_files_config($enable_production=false){
 		    	".highlighted"
 		    ]
 		];
-	    /*$plugins['smartmenus-bs'] = [
-	   		"c"   => true, 
-	   		"admin" => false,
-			"url" => [
-				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.min.js'
-			],
-			"css" => [
-				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css'
-			],
-			"class" => ["smartmenu"],
-			"attrs" => [],
-			"init"     => "init_smartmenus_bs",
-		    "whitelist" => [
-		    	".highlighted"
-		    ]
-		];*/
 	}
     
     if(function_exists("compile_files_plugins")){
