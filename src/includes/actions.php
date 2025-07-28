@@ -773,7 +773,7 @@ function save_lcp_results() {
             $input .= file_get_contents(STATIC_PATH ."css/main-combined.css");
         }
 
-        $remover = new RemoveUnusedCss($url, $input, $output, [], true);
+        $remover = new RemoveUnusedCss($url, $input, $output, [], [], true);
         $remover->generate_critical_css($selectors);
         $critical_css = $output;
         $critical_css = str_replace(STATIC_PATH, '', $critical_css);
@@ -863,7 +863,7 @@ add_action('send_headers', function () {
         "script-src 'self' 'unsafe-inline' blob: https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.youtube.com",
         "worker-src 'self' blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com",
-        "img-src 'self' data: https://img.youtube.com https://i.ytimg.com https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
+        "img-src 'self' data: https://img.youtube.com https://i.ytimg.com https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://s.w.org",
         "font-src 'self' data: https://fonts.gstatic.com",
         "object-src 'none'",
         "base-uri 'self'",

@@ -165,6 +165,19 @@ function compile_files_config($enable_production=false){
 			".swiper-*"
 		]
 	];
+	$plugins['html2canvas'] = [
+		"c"   => true,
+		"admin" => true,
+		"url" => [
+			$node_path . 'html2canvas/dist/html2canvas.min.js'
+		],
+		"css" => [],
+		"class" => ["swiper"],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => []
+	];
+	
 	$plugins['vanilla-lazyload'] = [
 		"c"   => false,
 		"admin" => true,

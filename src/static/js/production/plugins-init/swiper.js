@@ -2,43 +2,69 @@ function getAverageLuminance(element) {
     return new Promise((resolve) => {
         if (!element) {
             console.warn("Element bulunamadı.");
-            resolve(1); // Varsayılan olarak beyaz geri döndür (tam parlaklık)
+            resolve(1); // Beyaz
             return;
         }
 
-        // Eğer element video ise poster frame'ini kullan
+        // Eğer video slide ise ve plyr__poster varsa → onun background'ına bak
         if (element.classList.contains("swiper-slide-video")) {
-            const posterElement = element.querySelector(".plyr__poster");
-            if (posterElement) {
-                const bgImage = getComputedStyle(posterElement).backgroundImage;
+            const poster = element.querySelector(".plyr__poster");
+            if (poster) {
+                const style = getComputedStyle(poster);
+                const bgImage = style.backgroundImage;
+                const bgColor = style.backgroundColor;
                 const imageUrlMatch = bgImage.match(/url\(["']?(.*?)["']?\)/);
                 if (imageUrlMatch && imageUrlMatch[1]) {
-                    return getImageLuminance(imageUrlMatch[1]).then(resolve);
+                    return requestIdleCallback(() => {
+                        getImageLuminance(imageUrlMatch[1]).then(resolve);
+                    });
+                }
+
+                if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+                    return resolve(getComputedLuminance(poster));
                 }
             }
         }
 
         const img = element.querySelector("img");
 
-        // Eğer img yoksa, arka plan rengini kullan
-        if (!img) {
-            console.warn("Resim bulunamadı, arka plan rengi kontrol ediliyor...");
-            resolve(getComputedLuminance(element));
-            return;
+        const hasVisibleImage = img && img.naturalWidth > 0 && getComputedStyle(img).display !== 'none';
+
+        if (!hasVisibleImage) {
+            console.warn("Görsel yok ya da görünmüyor, arka plan rengi kontrol ediliyor…");
+
+            // bgColor varsa onu al, gradient ise html2canvas kullan
+            const bg = getComputedStyle(element).backgroundImage;
+            const bgColor = getComputedStyle(element).backgroundColor;
+
+            if (bg && bg.includes("gradient")) {
+                return requestIdleCallback(() => {
+                     getRenderedLuminance(element).then(resolve);
+                });
+            }
+
+            if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+                return resolve(getComputedLuminance(element));
+            }
+
+            // hiçbiri yoksa son çare
+            requestIdleCallback(() => {
+                 getRenderedLuminance(element).then(resolve);
+            });
         }
 
-        // Eğer resim lazy-load nedeniyle yüklenmemişse, onload beklenmeli
+        // lazy-load olabilir
         if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
             console.warn("Resim yüklenmemiş, onload bekleniyor:", img.src);
             img.onload = () => processImage(img, resolve);
             img.onerror = () => {
-                console.error("Resim yüklenirken hata oluştu:", img.src);
+                console.error("Resim yüklenirken hata:", img.src);
                 resolve(getComputedLuminance(element));
             };
             return;
         }
 
-        // Eğer resim yüklenmişse direkt işleme geç
+        // her şey tamamsa img ile devam
         processImage(img, resolve);
     });
 }
@@ -57,6 +83,8 @@ function processImage(img, resolve) {
         canvas.height = img.naturalHeight;
 
         ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+
+
 
         // Eğer resim yüklenmemişse getImageData çalışmaz, bu yüzden güvenli hale getiriyoruz
         let imageData;
@@ -107,6 +135,52 @@ function getComputedLuminance(element) {
     const [r, g, b] = rgb;
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
+function getRenderedLuminance(element) {
+    return new Promise((resolve) => {
+        try {
+            const rect = element.getBoundingClientRect();
+
+            if (rect.width === 0 || rect.height === 0) {
+                return resolve(1); // Beyaz olarak varsayalım
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            const ctx = canvas.getContext('2d');
+
+            html2canvas(element, {
+                canvas,
+                width: rect.width,
+                height: rect.height,
+                backgroundColor: null,
+                logging: false,
+                scale: 0.25,
+                useCORS: true,
+            }).then(canvas => {
+                const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+                let totalLuminance = 0;
+                let totalPixels = data.length / 4;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                    totalLuminance += luminance;
+                }
+
+                resolve(totalLuminance / totalPixels);
+            }).catch(err => {
+                console.error("html2canvas hatası:", err);
+                resolve(1);
+            });
+        } catch (e) {
+            console.error("getRenderedLuminance hatası:", e);
+            resolve(1);
+        }
+    });
+}
 async function updateSlideColors(slider) {
 
     //const activeSlide = slider.querySelector('.swiper-slide-active');
@@ -120,8 +194,11 @@ async function updateSlideColors(slider) {
 
     if (!activeSlide) return; // hiç slide yoksa, güvenlik için çık
 
-    slider.classList.remove("slide-light");
-    slider.classList.remove("slide-dark");
+    slider.classList.remove("slide-light", "slide-dark");
+    activeSlide.classList.remove("slide-light", "slide-dark");
+
+    //slider.classList.remove("slide-light");
+    //slider.classList.remove("slide-dark");
 
     if (activeSlide.classList.contains('slide-dark') || activeSlide.classList.contains('slide-light')) {
         if(activeSlide.classList.contains('slide-dark')){
@@ -139,67 +216,13 @@ async function updateSlideColors(slider) {
     activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
     slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
 }
-/*
-async function updateSlideColors(slider) {
-
-    let activeSlide = slider.querySelector('.swiper-slide-active');
-
-    if (!activeSlide) {
-        activeSlide = slider.querySelector('.swiper-slide');
-    }
-
-    if (!activeSlide) return;
-
-    slider.classList.remove("slide-light");
-    slider.classList.remove("slide-dark");
-
-    if (activeSlide.classList.contains('slide-dark') || activeSlide.classList.contains('slide-light')) {
-        if(activeSlide.classList.contains('slide-dark')){
-            slider.classList.add("slide-dark");
-        }
-        if(activeSlide.classList.contains('slide-light')){
-            slider.classList.add("slide-light");
-        }
-        return;
-    }
-
-    const img = activeSlide.querySelector('img');
-
-    if (img) {
-        // Lazy-load kontrolü
-        if (img.classList.contains('lazy')) {
-
-            // Vanilla-Lazy-Load, img yüklendiğinde "load" event'ini tetikler
-            if (img.complete && img.naturalWidth !== 0) {
-                // zaten yüklenmiş
-                await analyzeAndSet();
-            } else {
-                img.addEventListener('load', analyzeAndSet, { once: true });
-            }
-
-        } else {
-            // Lazy değil → klasik img yüklenmesini bekle
-            if (img.complete && img.naturalWidth !== 0) {
-                await analyzeAndSet();
-            } else {
-                img.addEventListener('load', analyzeAndSet, { once: true });
-            }
-        }
-    } else {
-        await analyzeAndSet();
-    }
-
-    async function analyzeAndSet() {
-        const luminance = await getAverageLuminance(activeSlide);
-        console.log(luminance)
-        const isDark = luminance < 0.6;
-
-        activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
-        slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
-    }
+let slideColorUpdateTimeout;
+function safeUpdateSlideColors(slider) {
+    clearTimeout(slideColorUpdateTimeout);
+    slideColorUpdateTimeout = setTimeout(() => {
+        updateSlideColors(slider);
+    }, 40); // debounce
 }
-*/
-
 
 function init_swiper_video_slide(swiper, obj){
     if(isLoadedJS("plyr")){
@@ -345,7 +368,7 @@ function init_swiper_obj($obj) {
         if ($obj.closest(".loading").length > 0) {
             $obj.closest(".loading").removeClass("loading");
         }
-        updateSlideColors($obj[0]);
+        safeUpdateSlideColors($obj[0]);
         return;
     }
   
@@ -580,12 +603,7 @@ function init_swiper_obj($obj) {
 
                     var $el = $(slider.el);
 
-                    updateSlideColors(this.el);
-
-                    /*$(".link-initial a").on("click", function() {
-                        debugJS($("#home").next("section").attr("id"))
-                        root.ui.scroll_to("#" + $(".main-content").find("section").first().attr("id"));
-                    });*/
+                    safeUpdateSlideColors(this.el);
 
                     //fade in
                     console.log($el)
@@ -599,26 +617,12 @@ function init_swiper_obj($obj) {
                     if ($el.closest(".loading").length > 0) {
                         $el.closest(".loading").removeClass("loading");
                     }
-                    //footer visibility
-                    /*if (card_slider) {
-                        if (card_slider.find(">.card-footer .swiper-pagination").length > 0) {
-                            if (slider.slides.length <= slider.params.slidesPerView) {
-                                card_slider.find(">.card-footer").addClass("d-none");
-                            } else {
-                                card_slider.find(">.card-footer").removeClass("d-none");
-                            }
-                        }
-                    }
-                    if($el.find(pagination_top)){
-                        $el.find(".swiper-pagination").addClass(pagination_top);
-                    }*/
                 },
                 loopFix : function(){
                    lazyLoadInstance.update();
                 },
 
                 slideChangeTransitionStart: function (e) {
-                    //debugJS($(e.slides[e.activeIndex]))
                     if($(e.slides[e.activeIndex]).find(".swiper-container").length > 0){
                         var nested = $(e.slides[e.activeIndex]).find(".swiper-container")[0].swiper;
                         if(typeof nested !== "undefined"){
@@ -630,8 +634,10 @@ function init_swiper_obj($obj) {
                 
                 slideChangeTransitionEnd: function (e) {
                     console.log("slideChangeTransitionEnd");
-                    const activeSlide = $(e.slides[e.activeIndex]);
-                    activeSlide.find('iframe[data-src-backup]').each(function(){
+                    //const activeSlide = $(e.slides[e.activeIndex]);
+                    const swiper = this;
+                    const $activeSlide = $(swiper.slides[swiper.activeIndex]);
+                    $activeSlide.find('iframe[data-src-backup]').each(function(){
                         console.log("active slide--------------------")
                         $(this).closest(".lazy-container").removeClass("lazy-container");
                         $(this).parent().find(">.plyr__poster").remove();
@@ -640,32 +646,12 @@ function init_swiper_obj($obj) {
                         $(this).removeAttr("data-src-backup");
                         LazyLoad.load(this); // elle yükle
                     });
-                    updateSlideColors(this.el);
+                    safeUpdateSlideColors(swiper.el);
                 },
                 resize: function() {
-                    /*if (card_slider) {
-                        if (card_slider.find(">.card-footer .swiper-pagination").length > 0) {
-                            if (this.slides.length <= this.params.slidesPerView) {
-                                card_slider.find(">.card-footer").addClass("d-none");
-                            } else {
-                                card_slider.find(">.card-footer").removeClass("d-none");
-                            }
-                        }*/
-
-                        updateSlideColors(this.el);
-                    //}
+                    safeUpdateSlideColors(this.el);
                 },
                 slidesGridLengthChange: function() {
-                    //footer visibility
-                    /*if (card_slider) {
-                        if (card_slider.find(">.card-footer .swiper-pagination").length > 0) {
-                            if (this.slides.length <= this.params.slidesPerView) {
-                                card_slider.find(">.card-footer").addClass("d-none");
-                            } else {
-                                card_slider.find(">.card-footer").removeClass("d-none");
-                            }
-                        }
-                    }*/
                     if(this.params.slidesPerView == "auto"){
                         //this.params.freeMode = true;
                         if(this.params.loop){
@@ -674,10 +660,8 @@ function init_swiper_obj($obj) {
                     }else{
                         //this.params.freeMode = false;
                     }
-                    
                     console.log("slidesGridLengthChange")
-                    updateSlideColors(this.el);
-
+                    safeUpdateSlideColors(this.el);
                 }
             }
         };
@@ -852,21 +836,21 @@ function init_swiper_obj($obj) {
 }
 
 $(".slider-product-gallery").each(function(){
-                var swiper = new Swiper($(this) , {
-                    slidesPerView : 1,
-                    spaceBetween : 0,
-                    resistance : '100%',
-                    resistanceRatio :  0,
-                    grabCursor : true,
-                    preloadImages: false,
-                    lazy: true,
-                    lazy: {
-                        loadPrevNext: true,
-                    },
-                    pagination: {
-                        el : '.swiper-pagination',
-                        clickable : true,
-                        type : 'bullets'
-                    }
-                });  
+    var swiper = new Swiper($(this) , {
+        slidesPerView : 1,
+        spaceBetween : 0,
+        resistance : '100%',
+        resistanceRatio :  0,
+        grabCursor : true,
+        preloadImages: false,
+        lazy: true,
+        lazy: {
+            loadPrevNext: true,
+        },
+        pagination: {
+            el : '.swiper-pagination',
+            clickable : true,
+            type : 'bullets'
+        }
+    });  
 });

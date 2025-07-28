@@ -23,5 +23,5 @@
 
 {% block block_content %}
     {% set parallax_attrs = {} %}
-	{{img({src: fields.image, class : fields.image_class, lazy: true, lazy_native: true, lcp: false, attrs: parallax_attrs})}}
+	{{img({src: fields.image, class : fields.image_class, attrs: parallax_attrs, wrapper: true})}}
 {% endblock %}

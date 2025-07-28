@@ -104,7 +104,8 @@
         }
     }
 
-    /*.swiper-pagination {
-        bottom: 60px;
-    }*/
+}
+
+.swiper-pagination{
+    transition: .3s color ease-out, .3s background-color ease-out;
 }

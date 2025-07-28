@@ -36,8 +36,12 @@ a.scroll-to-top{
 	padding-top: 0px;
 	z-index: 999;
 	@include transition(all .3s ease-out!important);
+	will-change: opacity;
 	&:hover{
 		color: var(--scroll-to-top-color-hover)!important;
 	    background-color: var(--scroll-to-top-bg-color-hover)!important;
+	}
+	&:not(.show){
+		pointer-events: none;
 	}
 }

@@ -113,7 +113,7 @@ function upload_image($url="", $post_id=0, $featured=false) {
 	}
     return $attachmentId;
 }
-function featured_image_from_url($image_url="", $post_id=0, $featured=false, $name="", $name_addition=false){
+function featured_image_from_url($image_url = "", $post_id = 0, $featured = false, $name = "", $name_addition = false){
 	      if(empty($image_url)){
 	      	  return;
 	      }
@@ -584,8 +584,6 @@ function get_image_set($args=array()){
     );
     */
 }
-
-
 function get_video($video_args=array()){
 
 	$args  = $video_args["src"];
@@ -923,7 +921,6 @@ function get_google_optimized_avif_quality() {
     // Kaliteyi min ve max değerler arasında sınırla
     return max($min_quality, min(80, $base_quality));
 }
-
 
 function get_embed_video_title($video_url) {
     if (empty($video_url)) {

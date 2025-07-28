@@ -176,16 +176,22 @@
         {% if slide.acf_fc_layout == "static" %}
             {% if slide.add_content and slide.content.title_color %}
                 #{{block_meta.id}} .slide-{{index + 1}} .title{
-                    color:{{ slide.content.title_color }};
+                    color:{{ slide.content.title_color }}!important;
                 }
             {% endif %}
             {% if not slide.content.title_color %}
                 #{{block_meta.id}} .slide-light .title{
-                    color:{{ fields.slider_settings.color_dark }};
+                    color:{{ fields.slider_settings.color_dark }}!important;
+                }
+                #{{block_meta.id}} .slide-dark .title{
+                    color:{{ fields.slider_settings.color_light }}!important;
                 }
             {% endif %}
             #{{block_meta.id}} .slide-dark .description{
-                color:{{ fields.slider_settings.color_light }};
+                color:{{ fields.slider_settings.color_light }}!important;
+            }
+            #{{block_meta.id}} .slide-light .description{
+                color:{{ fields.slider_settings.color_dark }}!important;
             }
         {% endif %}
     {% endfor %}

@@ -21,7 +21,8 @@ Class Image{
         'placeholder' => false,
         'placeholder_class' => '',
         'preview' => false,
-        'attrs' => []
+        'attrs' => [],
+        'wrapper' => false
     );
 
     private $args = array();
@@ -160,6 +161,8 @@ Class Image{
         $attrs["height"] = $this->args["height"];
         $attrs["alt"] = $this->args["alt"];
 
+        $attrs["style"] = (isset($attrs["style"])?$attrs["style"]:"")."aspect-ratio: ".$attrs["width"]." / ".$attrs["height"].";";
+
         $html = "";
 
         if(!$this->args["lazy"] && $this->args["lazy_native"]){
@@ -194,11 +197,11 @@ Class Image{
             
             $attrs["class"] = "img-fluid".($this->args["lazy"]?" lazy":"") . (!empty($this->args["class"])?" ".$this->args["class"]:"");
 
-            /*if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
+            if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
                 add_action('wp_head', function() use ($attrs) {
                     $this->add_preload_image($attrs);
                 });             
-            }*/
+            }/**/
             
             $attrs = array_merge($attrs, $this->args["attrs"]);
             $attrs = array2Attrs($attrs);
@@ -214,11 +217,11 @@ Class Image{
             
             $attrs["class"] = "img-fluid".($this->args["lazy"]?" lazy":"") . (!empty($this->args["class"])?" ".$this->args["class"]:"");
             
-            /*if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
+           if(!$this->args["lazy"] && $this->args["lcp"] && (ENABLE_MEMBERSHIP && is_user_logged_in())){
                 add_action('wp_head', function() use ($attrs) {
                     $this->add_preload_image($attrs);
                 });
-            }*/
+            } /**/
             $attrs = array_merge($attrs, $this->args["attrs"]);
             $attrs = array2Attrs($attrs);
 
@@ -231,6 +234,10 @@ Class Image{
 
         if($this->args["placeholder"]){
             $html = '<div class="img-placeholder '.$this->args["placeholder_class"].' '. ($this->args["lazy"] && !$this->args["preview"]?"loading":"").'"  style="background-color:'.$this->args["post"]->meta("average_color").';aspect-ratio:'.$this->args["post"]->get_aspect_ratio().';">' . $html . '</div>';
+        }else{
+            if($this->args["wrapper"]){
+                //$html = "<div style='min-height:".$this->args["height"]."px;aspect-ratio: ".$this->args["width"]."/".$this->args["height"].";overflow:hidden;'>".$html."</div>";
+            }
         }
 
         return $html;
@@ -450,7 +457,7 @@ Class Image{
         return rtrim($sorted_srcset, ', ');
     }
 
-    /*public static function add_preload_image($attrs=[], $echo = true){
+    public static function add_preload_image($attrs=[], $echo = true){
         $code = "";
         error_log("add_preload_image ".json_encode($attrs));
         if(empty($attrs)){
@@ -471,7 +478,7 @@ Class Image{
         }else{
             return $code;
         }
-    }*/
+    }
 
     public function not_found(){
         if($this->args["placeholder"]){

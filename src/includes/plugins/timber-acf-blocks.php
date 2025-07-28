@@ -2760,7 +2760,6 @@ function block_bg_slider($block, $fields, $block_column){
     $slider_style = [];
     if(isset($fields["block_settings"])){
         $background = $fields["block_settings"]["background"];
-        //$background_color = $fields["block_settings"]["background"]["color"];
 
         if(isset($background["background"]) && !empty($background["background"]["color"])){
             $background_color = $background["background"]["color"];
@@ -2769,7 +2768,6 @@ function block_bg_slider($block, $fields, $block_column){
         if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
             $background_color = $background["background"]["gradient_color"];
         }
-
 
         if(!empty($background["slider"])){
             if(!empty($background["image_filter"])){
@@ -2851,21 +2849,30 @@ function block_bg_media($block, $fields, $block_column){
                 }
             break;
         }
-        /*if(!empty($background["overlay"])){
-            $selector = $block["id"];
-            if($block_column){
-                $selector = $block_column["id"];
-            }
-            $result .= "<style>#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background-color:".$background["overlay"].";z-index:2;}</style>";
+
+        $css = "";
+        $selector = $block["id"];
+        if($block_column){
+            $selector = $block_column["id"];
+        }
+
+        /*if(isset($background["background"]) && !empty($background["background"]["color"])){
+            $background_color = $background["background"]["color"];
+        }
+        if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
+            $background_color = $background["background"]["gradient_color"];
+        }
+
+        if(!empty($background_color)){
+            $css .= "#".$selector."{background-color:".$background_color.";}";
         }*/
 
         if(isset($background["overlay"]) && (!empty($background["overlay"]["gradient_color"]) && $background["overlay"]["gradient"]) || !empty($background["overlay"]["color"])){
             $overlay_color =($background["overlay"]["gradient"])?$background["overlay"]["gradient_color"]:$background["overlay"]["color"];
-            $selector = $block["id"];
-            if($block_column){
-                $selector = $block_column["id"];
-            }
-            $result .= "<style>#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background-color:".$overlay_color.";z-index:2;}</style>";
+            $css .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background-color:".$overlay_color.";z-index:2;}";
+        }
+        if(!empty($css)){
+            $result .= "<style>".$css."</style>";
         }
     }
     return $result;
@@ -3188,6 +3195,8 @@ function block_css($block, $fields, $block_column){
                         if($image){
                             $slide_css[] = "color:".$image->meta("contrast_color");
                             $slide_css[] = "background-color:".$image->meta("average_color");
+                        }else{
+                            
                         }
                     }
                 }
@@ -3220,7 +3229,7 @@ function block_css($block, $fields, $block_column){
 
                 if($slide_bg_css){
                     $slide_bg_css = implode(";", $slide_bg_css);
-                    $slide_css_code .= "#".$selector." .slide-".($key + 1)." .swiper-bg{";
+                    $slide_css_code .= "#".$selector." .slide-".($key + 1)."{";
                        $slide_css_code .= $slide_bg_css;
                     $slide_css_code .= "}";
                 }
@@ -3357,7 +3366,6 @@ function block_svg_color($selector = "", $color = "") {
             stroke: {$color} !important;
         }";
 }
-
 
 function block_meta($block_data=array(), $fields = array(), $extras = array(), $block_column = "", $block_column_index = -1){
     $meta = array(

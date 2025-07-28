@@ -324,9 +324,9 @@ class SaltMinifier{
                 }
                 $file_path = $this->output["plugins"] . $key . ($is_min?".min":"") . '.js';
                 file_put_contents($file_path, $content);
-                $item_local = $this->save_as_local($key, $file_path);
+               $item_local = $this->save_as_local($key, $file_path); //
                 if(!$item["c"]){
-                    $plugin_min_files[] = $item_local;
+                    $plugin_min_files[] = $file_path;//$item_local;
                 }
 
             	//$item["url"] = $this->removeComments($item["url"]);
@@ -447,6 +447,23 @@ class SaltMinifier{
         }
         return $this->output["plugins"] . $plugin . '.js';
 	}
+    /*public function save_as_local($plugin = "", $item = "") {
+        if (strpos($item, ".min.") === false) {
+            // Eğer min değilse → .min.js olarak kaydet
+            $minified_path = $this->output["plugins"] . $plugin . '.min.js';
+            $minify_individual = new Minify\JS($item);
+            $minify_individual->minify($minified_path);
+            $this->removeSourceMap($minified_path, "file");
+            return $minified_path;
+        } else {
+            // Zaten .min.js ise sadece temizle ve aynısını kullan
+            $content = file_get_contents($item);
+            $content = $this->removeSourceMap($content, "source");
+            file_put_contents($this->output["plugins"] . $plugin . '.min.js', $content);
+            return $this->output["plugins"] . $plugin . '.min.js';
+        }
+    }*/
+
 
 	public function plugin_settings(){
 		$this->set_plugin_versions();

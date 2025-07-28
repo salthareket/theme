@@ -56,9 +56,6 @@ class RemoveUnusedCss {
         ".lenis-*",
         ".dgwt-wcas-open",
     ];
-    private $black_list = [
-        '.dropdown-notifications',
-    ];
 
     private $acceptable_pseudo_classes = [
        ':not',
@@ -83,7 +80,7 @@ class RemoveUnusedCss {
        ':empty'
     ];
 
-    public function __construct($html, $css, $output = "", $additional_whitelist = [], $additional_blacklist = [], $critical_css = false) {
+    public function __construct($html, $css, $output = "", $additional_whitelist = [], $critical_css = false) {
         if (is_string($html)) {
             $this->html = is_file($html) ? file_get_contents($html) : $html;
             $this->html = HtmlDomParser::str_get_html($this->html);
@@ -101,7 +98,6 @@ class RemoveUnusedCss {
         $this->css = is_file($css) ? file_get_contents($css) : $css;
         $this->output = $output;
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
-        $this->black_list = array_merge($this->black_list, $additional_blacklist);
         //error_log(print_r($this->white_list, true));
         $this->critical_css = $critical_css;
     }
@@ -608,8 +604,7 @@ class RemoveUnusedCss {
                     if ($rootSelector) {
                         if (
                             $this->isWhitelisted($dom, $rootSelector) ||
-                            $this->selectorExists($dom, $rootSelector) ||
-                            $this->isComplexSelectorExists($selector)
+                            $this->selectorExists($dom, $rootSelector)
                         ) {
                             $keep = true;
                         }
@@ -624,10 +619,6 @@ class RemoveUnusedCss {
                     ) {
                         $keep = true;
                     }
-                }
-
-                if ($keep && $this->isBlacklisted($selector)) {
-                    $keep = false;
                 }
 
                 if ($keep) {
@@ -752,47 +743,6 @@ class RemoveUnusedCss {
         return $selector;
     }
 
-private function isComplexSelectorExists($selector) {
-    if (!preg_match('/[>+~]/', $selector)) {
-        return false;
-    }
-
-    if (preg_match('/:$/', $selector) || preg_match('/: +/', $selector) || preg_match('/:.*?\([^\)]*$/', $selector)) {
-        error_log("⛔ Broken combinator selector skipped: $selector");
-        return false;
-    }
-
-    $segments = preg_split('/\s*([>+~])\s*/', $selector, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
-    if (count($segments) < 3) {
-        error_log("⚠️ Not enough combinator segments: $selector");
-        return false;
-    }
-
-    $currentSelector = trim($segments[0]);
-
-    try {
-        $found = $this->html->find($currentSelector);
-        if (!empty($found) && count($found) > 0) {
-            return true;
-            error_log("✅ FOUND: $currentSelector in $selector");
-        } else {
-            return false;
-            error_log("❌ NOT FOUND: $currentSelector in $selector");
-        }
-
-    } catch (\Throwable $e) {
-        error_log("💥 Symfony exploded on: $currentSelector in $selector");
-    }
-
-    // Ne olursa olsun yazılmaması için false
-    return false;
-}
-
-
-
-
-
-
     private function selectorExists($dom, $selector) {
         $selector = trim($selector);
         if (empty($selector)) return false;
@@ -805,12 +755,12 @@ private function isComplexSelectorExists($selector) {
 
         // Eğer selector ':' ile başlıyorsa doğrudan kabul et
         if (strpos($selector, ':') === 0) {
-            error_log("found 1: ".$selector);
+            //error_log("found: ".$selector);
             return true;
         }
 
         if(preg_match('/^\s*@supports\s+/i', ltrim($selector))){
-            error_log("found 2: ".$selector);
+           //error_log("found: ".$selector);
             return true;
         }
         
@@ -818,14 +768,14 @@ private function isComplexSelectorExists($selector) {
             if (strpos($whitelist_class, '*') !== false) {
                 $whitelist_pattern = str_replace('*', '.*', preg_quote($whitelist_class, '/'));
                 if (preg_match('/' . $whitelist_pattern . '/', $selector)) {
-                    error_log(" found wildcard: ".$selector);//
+                    //error_log(" wildcard: ".$selector);//
                     //error_log("found: ".$selector);
                     return true;
                 }
             }
             $pattern = '/(^|\s|\+|>|\:)' . preg_quote($whitelist_class, '/') . '(\s|\+|>|\:|$)/';
             if (preg_match($pattern, $selector)) {
-                error_log("found 3: ".$selector);
+                //error_log("found: ".$selector);
                 return true;
             }
         }
@@ -840,7 +790,7 @@ private function isComplexSelectorExists($selector) {
             $found = false;
             //error_log("not found: ".$selector);
         }else{
-            error_log("found 4: ".$selector);
+            //error_log("found: ".$selector);
         }
         return $found;
     }
@@ -933,19 +883,4 @@ private function isComplexSelectorExists($selector) {
         }
         return false;
     }
-    private function isBlacklisted($selector) {
-        foreach ($this->black_list as $black_class) {
-            $className = ltrim($black_class, '.');
-
-            // Tüm sınıf isimlerini parse et → nokta (.) ile başlayan her şeyi yakala
-            preg_match_all('/\.([a-zA-Z0-9_-]+)/', $selector, $matches);
-            if (in_array($className, $matches[1])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-
 }

@@ -66,12 +66,19 @@ function remove_jquery_migrate($scripts) {
 }
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
-function inline_css($file) {
-    $css = file_get_contents($file);
+function inline_css($name="", $url) {
+    $css = file_get_contents($url);
+    if($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
+    	$upload_dir = wp_upload_dir();
+        $upload_url = $upload_dir['baseurl']."/";
+        $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
+        $code = str_replace("{home_url}", home_url("/"), $code);
+        $css .= $code;
+    }
 
     $theme_dir = wp_normalize_path(get_template_directory());
     $theme_uri = wp_normalize_path(get_template_directory_uri());
-    $base_path = wp_normalize_path(dirname($file));
+    $base_path = wp_normalize_path(dirname($url));
     $subfolder = rtrim(getSiteSubfolder(), '/');
 
     return preg_replace_callback(
@@ -99,7 +106,7 @@ function inline_css_add($name="", $url="", $rtl=false){
 	$name = $name.($rtl?"-rtl":"");
 	wp_register_style( $name, false );
     wp_enqueue_style( $name );
-	$code = inline_css($url);
+	$code = inline_css($name, $url);
 	wp_add_inline_style( $name, $code);
 }
 function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {

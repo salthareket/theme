@@ -1361,7 +1361,7 @@
                 ],
                 [
                     {
-                        "field": "field_6865b8b4fa786",
+                        "field": "field_66565b8dc73a1",
                         "operator": "!=empty"
                     },
                     {
@@ -1377,7 +1377,7 @@
                 ],
                 [
                     {
-                        "field": "field_6865b8b4fa786",
+                        "field": "field_66565b8dc73a1",
                         "operator": "!=empty"
                     },
                     {
@@ -1393,7 +1393,7 @@
                 ],
                 [
                     {
-                        "field": "field_6865b8b4fa786",
+                        "field": "field_66565b8dc73a1",
                         "operator": "!=empty"
                     },
                     {
@@ -1409,7 +1409,7 @@
                 ],
                 [
                     {
-                        "field": "field_6865b8b4fa786",
+                        "field": "field_66565b8dc73a1",
                         "operator": "!=empty"
                     },
                     {
@@ -1766,7 +1766,7 @@
                         "value": "none"
                     },
                     {
-                        "field": "field_6865b8b4fa786",
+                        "field": "field_66565b8dc73a1",
                         "operator": "!=empty"
                     },
                     {
@@ -1902,18 +1902,6 @@
                         "field": "field_66945084cfa29",
                         "operator": "==",
                         "value": "contrast"
-                    }
-                ],
-                [
-                    {
-                        "field": "field_66d876dc1d556",
-                        "operator": "==",
-                        "value": "image_responsive"
-                    },
-                    {
-                        "field": "field_66945084cfa29",
-                        "operator": "==",
-                        "value": "opacity"
                     }
                 ]
             ],
@@ -2990,7 +2978,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1752666884,
+    "modified": 1751500269,
     "acfe_categories": {
         "common": "Common"
     }

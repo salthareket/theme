@@ -7,6 +7,7 @@ class OembedVideo {
     private $api;
     private $type;
     private $id;
+    private $prefix = "";
 
     public function __construct($url = "", $image_size = 0, $attrs = []) {
         $this->url = $url;
@@ -15,6 +16,7 @@ class OembedVideo {
         $this->api = [];
         $this->type = "";
         $this->id = "";
+        $this->prefix = "poster-";
     }
 
     public function get($attrs=[]) {
@@ -133,28 +135,51 @@ class OembedVideo {
             return '';
         }
 
-        $thumbnail_uri = '';
         $video = $this->parse($video_uri);
-
-        if ($video['type'] == 'youtube') {
-            $thumbnail_uri = 'https://img.youtube.com/vi/' . $video['id'] . '/maxresdefault.jpg';
+        if (!$video || empty($video['type']) || empty($video['id'])) {
+            return '';
         }
 
-        if ($video['type'] == 'vimeo') {
-            $thumbnail_uri = $this->getVimeoThumbnailUri($video['id'], $image_size);
+        $meta_key = "{$video["type"]}-{$video["id"]}";
+        global $wpdb;
+
+        $attachment_id = $wpdb->get_var( $wpdb->prepare("
+            SELECT post_id FROM {$wpdb->postmeta}
+            WHERE meta_key = %s
+            LIMIT 1
+        ", $meta_key));
+
+        // Eğer daha önce yüklenmişse direkt döndür
+        if (!empty($attachment_id) && get_post($attachment_id)) {
+            return wp_get_attachment_url($attachment_id);
         }
 
-        if ($video['type'] == 'dailymotion') {
-            $thumbnail_uri = $this->getDailymotionThumbnailUri($video['id']);
+        // İndirilip yüklenmemişse → indir
+        switch ($video['type']) {
+            case 'youtube':
+                $thumbnail_uri = 'https://img.youtube.com/vi/' . $video['id'] . '/maxresdefault.jpg';
+                break;
+            case 'vimeo':
+                $thumbnail_uri = $this->getVimeoThumbnailUri($video['id'], $image_size);
+                break;
+            case 'dailymotion':
+                $thumbnail_uri = $this->getDailymotionThumbnailUri($video['id']);
+                break;
+            default:
+                $thumbnail_uri = '';
         }
 
-        if (empty($thumbnail_uri)) {
-            $thumbnail_uri = '';
+        if (!empty($thumbnail_uri)) {
+            $attachment_id = featured_image_from_url($thumbnail_uri, 0, false, $meta_key);
+            if ($attachment_id) {
+                update_post_meta($attachment_id, $meta_key, $attachment_id);
+                return wp_get_attachment_url($attachment_id);
+            }
+            return $thumbnail_uri; // yükleme başarısızsa fallback
         }
 
-        return $thumbnail_uri;
+        return '';
     }
-
     private function getVimeoThumbnailUri($clip_id = "", $image_size = "") {
         $this->getApi();
         $url = "";
@@ -180,7 +205,6 @@ class OembedVideo {
         }
         return $url; // Büyük URL geçersizse orijinal URL döndür
     }
-
     private function getDailymotionThumbnailUri($video_id = "") {
         $this->getApi();
         $url = "";

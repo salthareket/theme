@@ -152,7 +152,7 @@ class PageAssetsExtractor {
         if(empty($input)){
             $input = file_get_contents(STATIC_PATH ."css/main-combined.css");
         }
-        $remover = new RemoveUnusedCss($html, $input, $output, $whitelist, $critical_css);
+        $remover = new RemoveUnusedCss($html, $input, $output, $whitelist, [], $critical_css);
         return $remover->process();
         /*return file_get_contents(STATIC_PATH ."css/main-combined.css");*/
     }
