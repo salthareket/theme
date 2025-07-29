@@ -66,7 +66,10 @@ function remove_jquery_migrate($scripts) {
 }
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
-function inline_css($name="", $url) {
+function inline_css($name="", $url="") {
+	if(empty($url)){
+		return;
+	}
     $css = file_get_contents($url);
     if($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
     	$upload_dir = wp_upload_dir();

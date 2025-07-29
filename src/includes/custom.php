@@ -211,10 +211,14 @@ class SaltBase{
         if(function_exists("get_field")){
             $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
         }
-        //error_log("set to cache: ".$cache_key); 
-        //error_log(print_r($value, true));
-        set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
-        //error_log("-----------------------------------");
+        if(isset($value)){
+            //error_log("set to cache: ".$cache_key); 
+            //error_log(print_r($value, true));
+            set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
+            //error_log("-----------------------------------");
+        }else{
+            $value = "";
+        }
         return $value;
     }
 
@@ -239,7 +243,7 @@ class SaltBase{
 
     public function on_post_published($post_id, $post, $update){
 
-        if(is_wp_rocket_crawling()) return;
+        if(function_exists("is_wp_rocket_crawling") && is_wp_rocket_crawling()) return;
 
         if (defined('REST_REQUEST') && REST_REQUEST) {
             error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
