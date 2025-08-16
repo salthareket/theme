@@ -1,11 +1,11 @@
-function translate($text){
+/*function translate($text){
     if(!IsBlank($text)){
         if(site_config.dictionary.hasOwnProperty($text)){
             $text = site_config.dictionary[$text];
         }
     }
     return $text;
-}
+}*/
 
 function isLoadedJS_v1($name, $load = false, $callback = ""){
     var $loaded = false;

@@ -8,3 +8,91 @@ function fix_turkish_plurals( array $data, Loco_Locale $locale ){
 	return $data;
 }
 add_filter( 'loco_locale_plurals', 'fix_turkish_plurals', 10, 2 );
+
+
+
+function get_or_create_dictionary_cache($lang_code) {
+    $cache_dir = get_template_directory() . '/theme/static/data/';
+    $cache_file = $cache_dir . 'dictionary-' . $lang_code . '.json';
+
+    if (file_exists($cache_file)) {
+        $json_data = file_get_contents($cache_file);
+        return json_decode($json_data, true) ?: [];
+    }
+
+    $locale = false;
+    if (!empty($GLOBALS['languages'])) {
+        foreach ($GLOBALS['languages'] as $language) {
+            if (isset($language['name'], $language['locale']) && $language['name'] === $lang_code) {
+                $locale = $language['locale'];
+                break; // Eşleşme bulundu, döngüden çık.
+            }
+        }
+    }
+
+    if (!$locale) return [];
+    $locale = str_replace("-", "_", $locale);
+    
+    $dictionary = generate_dictionary_for_locale($locale);
+
+    if (is_writable($cache_dir)) {
+        file_put_contents($cache_file, json_encode($dictionary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    } else {
+        error_log('Translation Cache Error: Directory not writable: ' . $cache_dir);
+    }
+
+    return $dictionary;
+}
+
+function generate_dictionary_for_locale($locale = '') {
+    $translations = [];
+
+    $theme_dir = get_template_directory();
+    $lang_dir  = $theme_dir . '/languages/';
+    $domain    = defined('TEXT_DOMAIN') ? TEXT_DOMAIN : basename($theme_dir);
+
+    if (!$locale) return [];
+
+    $template_file = $lang_dir . $domain . '.pot';
+    $locale_file   = $lang_dir . $locale . '.po';
+
+    if (!file_exists($template_file) || !file_exists($locale_file)) return [];
+
+    require_once ABSPATH . 'wp-includes/pomo/po.php';
+
+    $template_po = new PO();
+    $template_po->import_from_file($template_file);
+
+    $locale_po = new PO();
+    $locale_po->import_from_file($locale_file);
+
+    foreach ($template_po->entries as $entry) {
+        $key = $entry->singular;
+        $locale_entry = $locale_po->entries[$entry->key()] ?? null;
+
+        if (!$locale_entry) continue;
+
+        if (!empty($entry->is_plural)) {
+            $translations[$key] = [
+                $locale_entry->translations[0] ?? '',
+                $locale_entry->translations[1] ?? '',
+            ];
+        } else {
+            $translations[$key] = $locale_entry->translations[0] ?? '';
+        }
+    }
+
+    return $translations;
+}
+
+
+function clear_translation_json_cache() {
+    $cache_dir = get_template_directory() . '/theme/static/data/';
+    if (!is_dir($cache_dir)) return;
+
+    $files = glob($cache_dir . 'dictionary-*.json');
+    foreach ($files as $file) {
+        if (is_writable($file)) unlink($file);
+    }
+}
+add_action('loco_saved_file', 'clear_translation_json_cache');

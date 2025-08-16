@@ -119,7 +119,7 @@ $GLOBALS["plugins"] = $required_plugins;
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.4.2",
+    "v" => "6.5.0.1",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );
@@ -149,7 +149,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.19.1.1",
+    "v" => "3.19.3",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
@@ -161,7 +161,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["multilanguage"],
-    "v" => "3.6.5",
+    "v" => "3.7.3",
     "name" => "polylang-pro/polylang.php",
     "file" => "polylang-pro"
 );

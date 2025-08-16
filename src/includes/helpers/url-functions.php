@@ -585,3 +585,16 @@ function get_page_status($url=""){
 	curl_close($ch);
 	return $http_code;
 }
+
+
+function parse_external_url($url='', $internal_class='internal-link', $external_class='external-link'){
+    if (empty($url)) return false;
+    $ext = Timber\URLHelper::is_external($url);
+    return [
+        'type'   => $ext ? 'external' : 'internal',
+        'class'  => $ext ? $external_class : $internal_class,
+        'target' => $ext ? '_blank' : '_self',
+        'url'    => $url,
+    ];
+}
+

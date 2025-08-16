@@ -30,7 +30,6 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["typography_".$key."_size"] = acf_units_field_value($heading["font_size"]);
             $variables["typography_".$key."_weight"] = $heading["font_weight"];
         }
-
         
         $title_sizes = [];
         foreach ($theme_styles["typography"]["title"] as $key => $breakpoint) {
@@ -201,7 +200,11 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-align-hr"] = $header_navbar["align_hr"];
         $variables["header-navbar-align-vr"] = $header_navbar["align_vr"];
 
-            $height_header = $header_navbar["height_header"]; // is same with header
+        $height_header = $header_navbar["height_header"]; // is same with header
+        if($height_header){
+            $header_navbar["height"] = $header_general["height"];
+            $header_navbar["height_affix"] = $header_general["height_affix"];
+        }
         
         foreach($header_navbar["height"] as $key => $breakpoint){
             if($root){
@@ -214,7 +217,6 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["header-navbar-height"] = acf_units_field_value($header_navbar["height"][array_keys($header_navbar["height"])[0]]);
         }
         
-        
         foreach($header_navbar["height_affix"] as $key => $breakpoint){
             if($root){
                 $variables_media_query["header-navbar-height-affix"][$key] = acf_units_field_value($breakpoint);
@@ -226,7 +228,6 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["header-navbar-height-affix"] = acf_units_field_value($header_navbar["height_affix"][array_keys($header_navbar["height_affix"])[0]]);
         }
        
-        
         foreach($header_navbar["padding"] as $key => $breakpoint){
             if($root){
                 $variables_media_query["header-navbar-padding"][$key] = scss_variables_padding($breakpoint);
@@ -238,7 +239,6 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["header-navbar-padding"] = $header_navbar["padding"][array_keys($header_navbar["padding"])[0]];
         }
 
-        
         foreach($header_navbar["padding_affix"] as $key => $breakpoint){
             if($root){
                 $variables_media_query["header-navbar-padding-affix"][$key] = scss_variables_padding($breakpoint);
@@ -280,8 +280,11 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["header-navbar-nav-align-vr"] = $header_nav["align_vr"][array_keys($header_nav["align_vr"])[0]];
         }
 
-            $height_header = $header_nav["height_header"]; // is same with header
-
+        $height_header = $header_nav["height_header"]; // is same with header
+        if($height_header){
+            $header_nav["height"] = $header_general["height"];
+            $header_nav["height_affix"] = $header_general["height_affix"];
+        }
         
         foreach($header_nav["height"] as $key => $breakpoint){
             if($root){
@@ -293,7 +296,6 @@ function get_theme_styles($variables = array(), $root = false){
         if(!$root){
             $variables["header-navbar-nav-height"] = acf_units_field_value($header_nav["height"][array_keys($header_nav["height"])[0]]);
         }
-
 
         foreach($header_nav["height_affix"] as $key => $breakpoint){
             if($root){
@@ -682,6 +684,7 @@ function save_theme_styles_header_themes($header){
             $header_theme_scss = SH_STATIC_PATH . "data/header-theme.scss";
             if (file_exists($header_theme_scss)) {
                 $code .= file_get_contents($header_theme_scss);
+
                 foreach($header["themes"] as $theme){
                     $selector = in_array($theme["class"], $dom_elements)?$theme["class"]:".".$theme["class"];
                     $z_index = empty($theme["z-index"])?"null":$theme["z-index"];
@@ -716,6 +719,7 @@ function save_theme_styles_header_themes($header){
                 }
                 $wpscss_compiler = new SCSSCompiler();
                 $code = $wpscss_compiler->compile_string($code);
+                //error_log($code);
                 error_log(print_r($wpscss_compiler->get_compile_errors(), true));
             }
             return $code;
@@ -3144,6 +3148,9 @@ function update_search_ranks_message_field( $field ) {
 }
 add_filter('acf/prepare_field/key=field_66e9f03698857', 'update_search_ranks_message_field');
 
+
+
+/*
 function display_page_assets_table() {
     $extractor = new PageAssetsExtractor();
     $urls = $extractor->get_all_urls();
@@ -3276,6 +3283,166 @@ function page_assets_update(){
 }
 add_action('wp_ajax_page_assets_update', 'page_assets_update');
 add_action('wp_ajax_nopriv_page_assets_update', 'page_assets_update');
+*/
+
+
+
+
+
+
+
+
+
+
+/*
+// ===== Admin field renderer =====
+function display_page_assets_table() {
+    $extractor = new PageAssetsExtractor();
+    $raw = $extractor->get_all_urls();
+
+    // --- Sadece default dil URL'leri ---
+    $rows = [];
+    foreach ($raw as $key => $item) {
+        $url  = (string)($item['url'] ?? '');
+        if (!$url) continue;
+
+        // Default dil değilse atla
+        if (!pae_is_default_lang_url($url) ) continue;
+
+        $type      = $item['type']      ?? 'post';
+        $post_type = $item['post_type'] ?? $type;
+        $id        = $key;
+
+        // Arşiv satırı ID’sini okunaklılaştır
+        if ($type === 'archive') {
+            $lang = pae_lang_from_url($url);
+            $id   = 'archive_' . $lang;
+        }
+
+        $rows[] = [
+            'id'        => $id,
+            'type'      => $type,
+            'post_type' => $post_type,
+            'url'       => $url,
+        ];
+    }
+
+    $total   = count($rows);
+    $message = $total
+        ? "JS & CSS Extraction process completed with <strong>{$total} default-language pages.</strong>"
+        : "Not found any pages to extract process.";
+
+    echo '<div class="bg-white rounded-3 p-3 shadow-sm">';
+    echo '<div class="mb-3">'.$message.'</div>';
+
+    if ($rows) {
+        echo '<table class="table-page-assets table table-sm table-hover table-striped" style="width:100%; border-collapse: collapse;background-color:#fff;">';
+        echo '<thead><tr style="background-color:#f2f2f2; text-align:left;">';
+        echo '<th style="padding:10px; border-bottom:1px solid #ddd;">ID / Key</th>';
+        echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Type</th>';
+        echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Url</th>';
+        echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Actions</th>';
+        echo '</tr></thead><tbody>';
+
+        foreach ($rows as $i => $row) {
+            echo '<tr id="'.esc_attr($row["type"].'_'.$row["id"]).'" data-index="'.$i.'">';
+            echo '<td data-id="'.esc_attr($row["id"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["id"]).'</td>';
+            echo '<td data-type="'.esc_attr($row["type"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["post_type"]).'</td>';
+            echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">'.esc_html($row["url"]).'</td>';
+            echo '<td class="actions" style="width:80px;padding:10px; border-bottom:1px solid #ddd;"><a href="#" class="btn-page-assets-single btn btn-success btn-sm">Fetch</a></td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody></table>';
+        echo '<div class="table-page-assets-status text-center py-4">';
+        echo '<div class="progress-page-assets progress d-none mb-4" role="progressbar" aria-label="Animated striped" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>';
+        echo '<a href="#" class="btn-page-assets-update btn btn-success btn-lg px-4">Start Mass Update</a>';
+        echo '</div>';
+    } else {
+        echo '<p>No data found.</p>';
+    }
+    echo '</div>';
+    ?>
+    <script type="text/javascript">
+        var urls = <?php echo json_encode(array_values($rows));?>;
+        jQuery(function($) {
+            $(".btn-page-assets-single").on("click", function(e){
+                e.preventDefault();
+                var $row = $(this).closest("tr");
+                var idx  = parseInt($row.attr("data-index"),10) || 0;
+                $(this).addClass("disabled");
+                page_assets_update(idx, true);
+            });
+            $(".btn-page-assets-update").on("click", function(e){
+                e.preventDefault();
+                $(this).addClass("disabled");
+                $(".progress-page-assets").removeClass("d-none");
+                page_assets_update(0, false);
+            });
+        });
+        function page_assets_update(i, single){
+            var $row = $(".table-page-assets").find("tr[data-index='"+i+"']");
+            $row.find(".actions").empty().addClass("loading loading-xs position-relative");
+            jQuery.ajax({
+                url: ajaxurl,
+                type: 'post',
+                dataType: 'json',
+                data: { action:'page_assets_update', url: urls[i] },
+                success: function(res){
+                    $row.find("td").addClass("bg-success text-white");
+                    $row.find(".actions").removeClass("loading loading-xs").html("<strong>OK</strong>");
+                    if(!single){
+                        var percent = ((i+1) * 100) / urls.length;
+                        jQuery(".progress-page-assets .progress-bar").css("width", percent+"%");
+                        if(i < urls.length-1){ page_assets_update(i+1, false); }
+                        else {
+                            jQuery(".progress-page-assets").addClass("d-none");
+                            jQuery(".table-page-assets-status").prepend("<div class='text-success fs-5 fw-bold mb-2'>COMPLETED</div>");
+                            jQuery(".btn-page-assets-update, .btn-page-assets-single").removeClass("disabled");
+                        }
+                    } else {
+                        jQuery(".btn-page-assets-single").removeClass("disabled");
+                    }
+                },
+                error: function(xhr, st, err){
+                    console.error('AJAX Error: ' + st + ' - ' + err);
+                    $row.find(".actions").removeClass("loading loading-xs").html("<strong class='text-danger'>ERR</strong>");
+                }
+            });
+        }
+    </script>
+    <?php
+}
+function update_page_assets_message_field($field){
+    ob_start();
+    display_page_assets_table();
+    echo ob_get_clean();
+    return $field;
+}
+function page_assets_update(){
+    $row = isset($_POST["url"]) ? (array) $_POST["url"] : [];
+    $id   = $row["id"]   ?? 0;
+    $type = $row["type"] ?? 'post';
+    $url  = $row["url"]  ?? '';
+
+    $extractor = new PageAssetsExtractor();
+    $extractor->mass = true;
+    $extractor->type = $type;
+
+    $data = $extractor->fetch($url, $id, $type);
+    wp_send_json([
+        "error"   => false,
+        "message" => "",
+        "html"    => "",
+        "data"    => $data,
+    ]);
+}
+add_action('acf/render_field/name=page_assets', 'update_page_assets_message_field');
+add_action('wp_ajax_page_assets_update', 'page_assets_update');
+add_action('wp_ajax_nopriv_page_assets_update', 'page_assets_update');
+*/
+
+
 
 
 
@@ -3316,7 +3483,7 @@ function get_pages_need_updates($updated_plugins){
                 $post_types = get_post_types(['public' => true], 'objects');
                 foreach ($post_types as $post_type) {
                     if ($post_type->has_archive) {
-                        $option_name = "{$post_type->name}_{$lang['slug']}_assets";
+                        $option_name = "{$post_type->name}_archive_{$lang['slug']}_assets";
                         $query = $wpdb->prepare(
                             "SELECT option_value FROM `{$wpdb->options}` 
                             WHERE option_name = %s AND (" . implode(' OR ', $like_clauses) . ")",

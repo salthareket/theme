@@ -79,7 +79,7 @@ function wp_rocket_taxonomy_url_regex(){
     global $wpdb;
     $urls = [];
     $excluded_taxonomies = get_option("options_exclude_taxonomies_from_cache");
-    $taxonomy_prefix_remove = (get_option("options_taxonomy_prefix_remove"));
+    $taxonomy_prefix_remove = get_option("options_taxonomy_prefix_remove");
     if ($excluded_taxonomies) {
         foreach ($excluded_taxonomies as $taxonomy) {
             $prefix_remove = false;

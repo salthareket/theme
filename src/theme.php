@@ -19,23 +19,24 @@ Class Theme{
         show_admin_bar(false); 
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
 
+
         add_action("acf/init", [$this, "menu_actions"]);
 
         //add_action("init", [$this, "after_setup_theme"]);
 
-        add_action("init", [$this, "global_variables"]);
         add_action("wp", [$this, "language_settings"]);
 
-      // add_action("wp", [$this, "site_assets"], 1);
-         add_action("template_redirect", [$this, "site_assets"], 1);
-
-         add_action("plugins_loaded", [$this, "plugins_loaded"]);
-
-        add_action("init", [$this, "language_settings"], 1);            
-
+        add_action("init", [$this, "global_variables"]);
+        add_action("init", [$this, "language_settings"], 1);  
         add_action("init", [$this, "increase_memory_limit"]);
         add_action("init", [$this, "register_post_types"]);
         add_action("init", [$this, "register_taxonomies"]);
+
+        //add_action("wp", [$this, "site_assets"], 1);
+        add_action("template_redirect", [$this, "site_assets"], 1);
+
+        add_action("plugins_loaded", [$this, "plugins_loaded"]);
+        
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
         add_filter( 'get_terms_args', [$this, "query_all_terms"], 10, 2);
 
@@ -91,6 +92,10 @@ Class Theme{
         }else{
             add_action("wp", function(){
                 visibility_under_construction();
+
+                $dict = get_or_create_dictionary_cache($GLOBALS["language"]);
+                $GLOBALS["lang_predefined"] = $dict;
+
             });    
         }
     }
@@ -218,7 +223,100 @@ Class Theme{
         }
     }
 
+    public function theme_supports(){
+
+        // Add default posts and comments RSS feed links to head.
+        add_theme_support("automatic-feed-links");
+        add_theme_support("menus");
+        add_theme_support("custom-logo");
+        add_theme_support("widgets");
+        add_theme_support("customize-selective-refresh-widgets");
+        add_post_type_support( 'page', 'excerpt' );
+
+        /*
+         * Let WordPress manage the document title.
+         * By adding theme support, we declare that this theme does not use a
+         * hard-coded <title> tag in the document head, and expect WordPress to
+         * provide it for us.
+         */
+        add_theme_support("title-tag");
+
+        add_theme_support( 'custom-background' );
+        add_theme_support( 'custom-header' );
+
+        /*
+         * Enable support for Post Thumbnails on posts and pages.
+         *
+         * @link https://developer.wordpress.org/themes/functionality/featured-images-post-thumbnails/
+         */
+        add_theme_support("post-thumbnails");
+
+        /*
+         * Switch default core markup for search form, comment form, and comments
+         * to output valid HTML5.
+         */
+        add_theme_support("html5", [
+            "comment-form",
+            "comment-list",
+            "gallery",
+            "caption",
+        ]);
+
+        /*
+         * Enable support for Post Formats.
+         *
+         * See: https://codex.wordpress.org/Post_Formats
+         */
+        add_theme_support("post-formats", [
+            "aside",
+            "image",
+            "video",
+            "quote",
+            "link",
+            "gallery",
+            "audio",
+        ]);  
+    }
+
     public function after_setup_theme(){
+        
+        //add theme foldere to use php yemplates
+        $hierarchy_filters = [
+            'index_template_hierarchy',
+            '404_template_hierarchy',
+            'archive_template_hierarchy',
+            'attachment_template_hierarchy',
+            'author_template_hierarchy',
+            'category_template_hierarchy',
+            'date_template_hierarchy',
+            'embed_template_hierarchy',
+            'frontpage_template_hierarchy',
+            'home_template_hierarchy',
+            'page_template_hierarchy',
+            'paged_template_hierarchy',
+            'search_template_hierarchy',
+            'single_template_hierarchy',
+            'singular_template_hierarchy',
+            'tag_template_hierarchy',
+            'taxonomy_template_hierarchy',
+        ];
+        foreach ($hierarchy_filters as $filter) {
+            add_filter($filter, function ($templates) {
+                $new_templates = [];
+
+                foreach ($templates as $template) {
+                    // Önce theme/ klasörü
+                    $new_templates[] = 'theme/' . $template;
+                    // Sonra orijinal path
+                    $new_templates[] = $template;
+                }
+
+                return $new_templates;
+            });
+        }
+
+        $this->theme_supports();
+
         if (class_exists("WooCommerce")) {
             add_theme_support("woocommerce");
         }
@@ -226,14 +324,13 @@ Class Theme{
         if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
             \Schema_Breadcrumbs::instance();
         }
-
     }
     public function plugins_loaded(){
         load_theme_textdomain(
             TEXT_DOMAIN,
             get_template_directory() . "/languages"
         );
-        lang_predefined();
+        error_log("plugins_loaded --------------------------------");
     }
     public function global_variables(){
 
@@ -412,6 +509,7 @@ Class Theme{
                                 array_push($languages, [
                                     "name" => $language,
                                     "name_long" => qtranxf_getLanguageName($language),
+                                    "locale" => $GLOBALS['q_config']['locale'][$language],
                                     "url" => $url,
                                     "active" => boolval($language == qtranxf_getLanguage())
                                         ? true
@@ -431,6 +529,7 @@ Class Theme{
                             array_push($languages, [
                                 "name" => $language,
                                 "name_long" => qtranxf_getLanguageName($language),
+                                "locale" => $GLOBALS['q_config']['locale'][$language],
                                 "url" => $url,//."/",
                                 "active" => boolval($language == qtranxf_getLanguage())
                                     ? true
@@ -459,6 +558,8 @@ Class Theme{
                         }
                         array_push($languages, [
                             "name" => $language["code"],
+                            "name_long" => $language["code"],
+                            "locale" => $language['default_locale'],
                             "url" => $lang_url,
                             "active" => boolval($language["active"]) ? "true" : "false",
                         ]);
@@ -572,6 +673,7 @@ Class Theme{
                         $languages[] = [
                             "name" => $language['slug'],
                             "name_long" => $language['name'],
+                            "locale" => $language['locale'],
                             "url" => $url,
                             "active" => $language['current_lang'] ? true : false,
                         ];
@@ -794,9 +896,9 @@ Class Theme{
                 $site_assets = get_term_meta($term->term_id, 'assets', true);
             } elseif (is_post_type_archive()) {
                 if( ENABLE_MULTILANGUAGE ){
-                    $site_assets = get_option(get_post_type().'_'.ml_get_current_language().'_assets', true);
+                    $site_assets = get_option(get_post_type().'_archive_'.ml_get_current_language().'_assets', true);
                 }else{
-                    $site_assets = get_option(get_post_type().'_assets', true);
+                    $site_assets = get_option(get_post_type().'archive_assets', true);
                 }
             } elseif(is_single() && comments_open()){
                 if (isset($_GET['comment_id'])) {
@@ -866,9 +968,9 @@ Class Theme{
             } elseif (is_post_type_archive()) {
                 $type = "archive";
                 if( ENABLE_MULTILANGUAGE ){
-                    $id = get_post_type()."_".ml_get_current_language();
+                    $id = get_post_type()."_archive_".ml_get_current_language();
                 }else{
-                    $id = get_post_type();
+                    $id = get_post_type()."_archive";
                 }
             } elseif(is_single() && comments_open()){
                 if (isset($_GET['comment_id'])) {
@@ -943,7 +1045,8 @@ Class Theme{
                 "loaded"                => ($jsLoad==1?true:false),
                 "cached"                => "",
                 "logged"                => is_user_logged_in(),
-                "debug"                 => boolval(ENABLE_CONSOLE_LOGS)
+                "debug"                 => boolval(ENABLE_CONSOLE_LOGS),
+                "language_default"      => $GLOBALS['language_default']
             );
             if(isset($GLOBALS['base_urls'])){
                 $config["base_urls"] = $GLOBALS['base_urls'];
@@ -1277,7 +1380,7 @@ Class Theme{
             if(is_admin()){
                 \PluginManager::init();
                 \Update::init();
-                new \AvifConverter(40);
+                new \AvifConverter();
             }
             new \starterSite();
         }); 

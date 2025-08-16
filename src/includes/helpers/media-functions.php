@@ -864,7 +864,7 @@ function getAspectRatio(int $width, int $height){
     return $width / $divisor . '/' . $height / $divisor;
 }
 
-function get_google_optimized_avif_quality() {
+/*function get_google_optimized_avif_quality() {
     $base_quality = 50; // Varsayılan kalite
     $min_quality = 10;  // En düşük kalite
     $max_resolution_threshold = 1920 * 1080; // Full HD'den büyük görseller sıkıştırılmalı
@@ -920,7 +920,57 @@ function get_google_optimized_avif_quality() {
 
     // Kaliteyi min ve max değerler arasında sınırla
     return max($min_quality, min(80, $base_quality));
+}*/
+
+function get_google_optimized_avif_quality($input = null) {
+    $base_quality = 50;
+    $min_quality = 10;
+    $max_quality = 80;
+    $max_resolution_threshold = 1920 * 1080;
+    $filesize_threshold = 300000;
+
+    // Belirli bir görsel verildiyse (ID veya path)
+    if ($input && is_numeric($input)) {
+        $file_path = get_attached_file($input);
+    } elseif ($input && is_string($input)) {
+        $file_path = $input;
+    } else {
+        // Parametre verilmemişse en son görseli al
+        global $wpdb;
+        $attachment = $wpdb->get_row("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' ORDER BY post_date DESC LIMIT 1");
+        if (!$attachment) return $base_quality;
+        $file_path = get_attached_file($attachment->ID);
+    }
+
+    if (!file_exists($file_path)) return $base_quality;
+
+    $filesize = filesize($file_path);
+    $image_info = getimagesize($file_path);
+    if (!$image_info) return $base_quality;
+
+    $width = $image_info[0];
+    $height = $image_info[1];
+    $resolution = $width * $height;
+    $bits_per_pixel = isset($image_info['bits']) ? $image_info['bits'] : 8;
+    $color_variation = ($bits_per_pixel / 8) * 100;
+
+    if ($resolution > $max_resolution_threshold) {
+        $resolution_factor = ($resolution / $max_resolution_threshold) * 15;
+        $base_quality -= $resolution_factor;
+    }
+
+    if ($filesize > $filesize_threshold) {
+        $size_factor = ($filesize / $filesize_threshold) * 10;
+        $base_quality -= $size_factor;
+    }
+
+    if ($color_variation < 80) {
+        $base_quality -= 15;
+    }
+
+    return max($min_quality, min($max_quality, $base_quality));
 }
+
 
 function get_embed_video_title($video_url) {
     if (empty($video_url)) {

@@ -2,6 +2,7 @@
 
 use SaltHareket\Theme;
 
+/*
 function lang_predefined(){
     $dict = [];
     $translates_path = get_template_directory() . '/theme/static/data/translates.json';
@@ -16,8 +17,13 @@ function lang_predefined(){
             }        
         }
     }
+    $dict = get_or_create_dictionary_cache($GLOBALS["language"]);
+    error_log("osjsdjdsjhsd");
     $GLOBALS["lang_predefined"] = $dict;
 }
+*/
+
+
 
 // class in twig example with "class_salt"
 // {% set projects =  {"function": "ads", "action":"search", "work_type": data.work_type, "expertise": data.expertise, "user_id": user.id}|class_salt %}
@@ -211,14 +217,10 @@ class SaltBase{
         if(function_exists("get_field")){
             $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
         }
-        if(isset($value)){
-            //error_log("set to cache: ".$cache_key); 
-            //error_log(print_r($value, true));
-            set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
-            //error_log("-----------------------------------");
-        }else{
-            $value = "";
-        }
+        //error_log("set to cache: ".$cache_key); 
+        //error_log(print_r($value, true));
+        set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
+        //error_log("-----------------------------------");
         return $value;
     }
 
@@ -242,8 +244,8 @@ class SaltBase{
     }
 
     public function on_post_published($post_id, $post, $update){
-
-        if(function_exists("is_wp_rocket_crawling") && is_wp_rocket_crawling()) return;
+        
+        if(defined("WP_ROCKET_VERSION") && function_exists("is_wp_rocket_crawling") && is_wp_rocket_crawling()) return;
 
         if (defined('REST_REQUEST') && REST_REQUEST) {
             error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
@@ -1924,7 +1926,7 @@ if(!function_exists("is_cart")){
 
 
 
-
+/*
 add_action("admin_init", function(){
     if (defined('DOING_AJAX') && DOING_AJAX) {
         return;
@@ -1936,3 +1938,4 @@ add_action("admin_init", function(){
    //translate_post_ai(4021, 'tr');
    //translate_post_ai(4161, 'tr');
 });
+*/

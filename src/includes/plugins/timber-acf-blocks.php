@@ -3563,7 +3563,7 @@ function acf_block_id_fields($post_id){
 
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if (wp_is_post_revision($post_id)) return;
-    if(is_wp_rocket_crawling()) return;
+    if(defined("WP_ROCKET_VERSION") && function_exists("is_wp_rocket_crawling") && is_wp_rocket_crawling()) return;
 
     static $processed_posts = [];
     if (in_array($post_id, $processed_posts)) return;

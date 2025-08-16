@@ -1273,8 +1273,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "twentytwentyfive": "Twenty Twenty-Five",
-                        "xekos": "Xekos"
+                        "212outlet": "212outlet",
+                        "twentytwentyfive": "Twenty Twenty-Five"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1438,9 +1438,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -1890,7 +1890,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1751328227,
+    "modified": 1753830477,
     "acfe_categories": {
         "general": "General"
     }

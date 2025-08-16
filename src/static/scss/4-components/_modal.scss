@@ -79,7 +79,7 @@
 
 .modal{
 
-  &.bootbox{
+   &.bootbox{
     .modal-dialog{
       .modal-content{
         .modal-header{
@@ -96,8 +96,7 @@
     }
   }
 
-
-  &.modal-map{
+   &.modal-map{
     .modal-dialog{
       .modal-content{
         .modal-body{
@@ -120,8 +119,7 @@
     }
   }
 
-
-  &.modal-page{
+   &.modal-page{
 
     .modal-dialog{
       .modal-content{
@@ -148,6 +146,103 @@
 
   }
 
+  &.modal-scrollable{
+        .modal-dialog{
+            overflow-y: initial !important;
+            .modal-content{
+                .modal-body{
+                    height: calc(100vh - 210px);
+                    overflow-y: auto;
+                }               
+            }
+        }
+    }
+
+   &.modal-fullscreen{
+          margin:0px!important;
+          padding:0px!important;
+          .modal-dialog{
+             margin:0px!important;
+             padding:0px!important;
+             max-height:none;
+             min-height:100vh;
+             max-width:none;
+             .modal-content{
+                height:100%;
+                min-height:100vh;
+                //max-height:calc(100% - 0px);
+                border:none!important;
+                @include border-radius(0px);
+                .modal-header{
+                    @include border-radius(0px);
+                    padding:20px 25px;
+                    .modal-title{
+                        margin:0px;
+                    }
+                }
+             }
+          }
+  }
 
 }
 
+
+
+@media (max-width: 767px) {
+    .modal{
+
+        &.modal-fullscreen{
+          margin:0px!important;
+          padding:0px!important;
+          .modal-dialog{
+             margin:0px!important;
+             padding:0px!important;
+             max-height:none;
+             min-height:100vh;
+             max-width:none;
+             .modal-content{
+                 height:100%;
+              min-height:100vh;
+                //max-height:calc(100% - 0px);
+                border:none!important;
+                @include border-radius(0px);
+                .modal-header{
+                    @include border-radius(0px);
+                    padding:20px 25px;
+                    .modal-title{
+                        margin:0px;
+                    }
+                }
+             }
+            }
+        }
+
+        &.modal-scrollable{
+          .modal-dialog{
+             .modal-content{
+                .modal-body{
+                  height: calc(100vh - 140px);
+                }         
+             }
+          }
+        }
+
+    }
+}
+
+
+
+.rtl{
+    .modal{
+        .modal-dialog{
+            .modal-content{
+                .modal-header{
+                    .close{
+                        right:auto!important;
+                        left:30px!important;
+                    }
+                }
+            }
+        }      
+    }
+}

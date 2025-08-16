@@ -324,7 +324,7 @@ class SaltMinifier{
                 }
                 $file_path = $this->output["plugins"] . $key . ($is_min?".min":"") . '.js';
                 file_put_contents($file_path, $content);
-               $item_local = $this->save_as_local($key, $file_path); //
+                $item_local = $this->save_as_local($key, $file_path); //
                 if(!$item["c"]){
                     $plugin_min_files[] = $file_path;//$item_local;
                 }

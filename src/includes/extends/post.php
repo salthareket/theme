@@ -302,9 +302,9 @@ class Post extends Timber\Post{
         return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
-    public function get_thumbnail($args=array()){
+    /*public function get_thumbnail($args=array()){
         $media = $this->meta("media");
-        if($media["media_type"] == "image"){
+        if(isset($media) && $media["media_type"] == "image"){
             if($media["use_responsive_image"]){
                 $args["src"] = $media["image_responsive"];
                 $image = new SaltHareket\Image($args);
@@ -319,6 +319,154 @@ class Post extends Timber\Post{
             $image = new SaltHareket\Image($args);
             return $image->init();
         }
+    }*/
+
+    public function get_thumbnail(array $args = []){
+        $media = $this->meta('media');
+        $src   = $this->thumbnail(); // en sağlam fallback
+
+        // 1) JSON/serialize yakala (ACF bazen ham meta döndürebilir)
+        if (is_string($media)) {
+            // JSON?
+            $decoded = json_decode($media, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $media = $decoded;
+            } elseif (ctype_digit($media)) {
+                // attachment ID string
+                $maybe = wp_get_attachment_url((int)$media);
+                if ($maybe) { $src = $maybe; }
+            }
+        }
+
+        // 2) Dizi ise güvenli erişim
+        if (is_array($media)) {
+            $type = $media['media_type'] ?? null;
+
+            if ($type === 'image') {
+                // responsive varsa onu kullan
+                if (!empty($media['use_responsive_image']) && !empty($media['image_responsive'])) {
+                    $src = $media['image_responsive'];
+                } elseif (!empty($media['image'])) {
+                    // bazı alanlarda doğrudan image olabilir
+                    $src = $media['image'];
+                }
+            } elseif (isset($media['id']) && is_numeric($media['id'])) {
+                // generic attachment id alanı
+                $maybe = wp_get_attachment_url((int)$media['id']);
+                if ($maybe) { $src = $maybe; }
+            }
+        } elseif (is_int($media)) {
+            // ham attachment id
+            $maybe = wp_get_attachment_url($media);
+            if ($maybe) { $src = $maybe; }
+        }
+
+        // 3) SaltHareket\Image çağrısı
+        $args['src'] = $src;
+
+        try {
+            $image = new \SaltHareket\Image($args);
+            return $image->init();
+        } catch (\Throwable $e) {
+            error_log('get_thumbnail failed: '.$e->getMessage());
+            return '';
+        }
     }
+
+
+
+    /**
+     * $post->slug_default erişimini mümkün kıl
+     */
+    public function __get($key) {
+        if ($key === 'slug_default') {
+            return $this->get_slug_default();
+        }
+        return parent::__get($key);
+    }
+
+    /**
+     * Varsayılan dil slug’ını döndürür.
+     * Polylang / WPML / qTranslate-XT (slug çeviri aktifse) destekler.
+     * Hiçbiri yoksa normal slug döner.
+     */
+    public function get_slug_default(): string {
+        $fallback = $this->post_name ?: ($this->slug ?? '');
+        $ml = trim((string) ($GLOBALS['ENABLE_MULTILANGUAGE'] ?? ''));
+
+        if ($ml === '') {
+            return $fallback;
+        }
+
+        switch (strtolower($ml)) {
+            case 'polylang':
+                if (function_exists('pll_default_language') && function_exists('pll_get_post')) {
+                    $def = pll_default_language();
+                    if ($def) {
+                        $default_id = pll_get_post($this->ID, $def);
+                        if ($default_id) {
+                            $slug = get_post_field('post_name', $default_id);
+                            if ($slug) return $slug;
+                        }
+                    }
+                }
+                return $fallback;
+
+            case 'wpml':
+                // WPML default language ve object id alma
+                if (has_filter('wpml_default_language') && has_filter('wpml_object_id')) {
+                    $def = apply_filters('wpml_default_language', null);
+                    $default_id = apply_filters('wpml_object_id', $this->ID, $this->post_type, true, $def);
+                    if ($default_id) {
+                        $slug = get_post_field('post_name', $default_id);
+                        if ($slug) return $slug;
+                    }
+                }
+                return $fallback;
+
+            case 'qtranslate-xt':
+            case 'qtranslate_xt':
+            case 'qtranslate':
+                // qTranslate-XT tek post kullanır; slug çeviri eklentisi/metası varsa çek
+                // 1) Varsayılan dili bul
+                $def = function_exists('qtranxf_getLanguageDefault') ? qtranxf_getLanguageDefault() : null;
+
+                // 2) Yaygın meta şemaları:
+                //    a) _qts_slug_{lang}  (qTranslate Slug eklentisi)
+                //    b) _qtranslate_slugs (JSON/serialized map)
+                if ($def) {
+                    // a) _qts_slug_tr gibi
+                    $slug_a = get_post_meta($this->ID, '_qts_slug_' . $def, true);
+                    if (!empty($slug_a)) return sanitize_title($slug_a);
+
+                    // b) _qtranslate_slugs → array veya json
+                    $slugs_meta = get_post_meta($this->ID, '_qtranslate_slugs', true);
+                    if (!empty($slugs_meta)) {
+                        if (is_string($slugs_meta)) {
+                            $decoded = json_decode($slugs_meta, true);
+                            if (json_last_error() === JSON_ERROR_NONE) {
+                                $slugs_meta = $decoded;
+                            } else {
+                                // serialize edilmiş olabilir
+                                $unser = @unserialize($slugs_meta);
+                                if ($unser !== false && is_array($unser)) {
+                                    $slugs_meta = $unser;
+                                }
+                            }
+                        }
+                        if (is_array($slugs_meta) && !empty($slugs_meta[$def])) {
+                            return sanitize_title($slugs_meta[$def]);
+                        }
+                    }
+                }
+                // qTranslate’da özel slug yoksa normal post_name
+                return $fallback;
+
+            default:
+                // Bilinmeyen/özel ML sistemi -> düş
+                return $fallback;
+        }
+    }
+
 
 }

@@ -283,8 +283,6 @@ if(SH_THEME_EXISTS || file_exists(THEME_INCLUDES_PATH . "globals.php")){
 include_once SH_INCLUDES_PATH . "blocks.php";
 include_once SH_INCLUDES_PATH . "styles-scripts.php";
 
-//include_once SH_INCLUDES_PATH . "install-plugins.php";
-
 if (ENABLE_MEMBERSHIP) {
    include_once SH_CLASSES_PATH . "class.otp.php";
 }
@@ -323,13 +321,6 @@ if (ENABLE_NOTIFICATIONS) {
 if ($GLOBALS["pagenow"] === "wp-login.php") {
     include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 }
-
-/*if (is_admin()) {
-    include_once SH_INCLUDES_PATH . "admin/index.php";
-    if(!function_exists("acf_general_settings_rewrite")){
-        include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
-    }
-}*/
 
 if (class_exists("ACF")) {
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
@@ -478,12 +469,15 @@ if(ENABLE_REGIONAL_POSTS){
 if(SH_THEME_EXISTS || file_exists(get_template_directory() . "/theme/index.php")){
     include_once get_template_directory() . "/theme/index.php";
 }
+
 if (SH_THEME_EXISTS && is_admin()) {
-    //include_once SH_INCLUDES_PATH . "admin/index.php";
     include_once THEME_INCLUDES_PATH . "admin/index.php";
     if(!function_exists("acf_general_settings_rewrite")){
         include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
     }
+    add_action('admin_init', function(){
+        new AdminThumbnailColumns();
+    });
 }
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 include_once SH_INCLUDES_PATH . "actions.php";

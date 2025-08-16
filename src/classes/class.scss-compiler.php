@@ -170,14 +170,10 @@ class SCSSCompiler {
         $variables = apply_filters('wp_scss_variables', []);
         foreach ($variables as $variable_key => $variable_value) {
             if(is_array($variable_value)){
-                error_log("array -> ".$variable_key);
-                error_log(print_r($variable_value, true));
                 unset($variables[$variable_key]);
                 continue;
             }
             if(empty($variable_value)){
-                error_log("empty -> ".$variable_key);
-                error_log(print_r($variable_value, true));
                 unset($variables[$variable_key]);
                 continue;
             }

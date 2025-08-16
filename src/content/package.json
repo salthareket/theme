@@ -9,6 +9,7 @@
     "bootbox": "^6.0.4",
     "bootstrap": "^5.3.7",
     "enquire.js": "^2.1.6",
+    "html2canvas": "^1.4.1",
     "is-in-viewport": "^3.0.4",
     "jarallax": "^2.2.1",
     "jquery": "^3.7.1",
@@ -53,7 +54,7 @@
     "purgecss-webpack-plugin": "^7.0.2",
     "purgecss-with-wordpress": "^7.0.2",
     "unused-webpack-plugin": "^2.4.0",
-    "webpack": "^5.99.9",
+    "webpack": "^5.100.2",
     "webpack-cli": "^6.0.1"
   }
 }

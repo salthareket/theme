@@ -113,7 +113,7 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="iframe_modal"', 
 			'data-ajax-method="map_modal"'
 		],
-		"init" => "",
+		"init" => "init_bootbox",
 		"whitelist" => [
 			".ratio",
 			".ratio-*"
@@ -172,7 +172,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'html2canvas/dist/html2canvas.min.js'
 		],
 		"css" => [],
-		"class" => ["swiper"],
+		"class" => [],
 		"attrs" => [],
 		"init"     => "",
 		"whitelist" => []
@@ -340,10 +340,10 @@ function compile_files_config($enable_production=false){
 			$node_path . 'twig/twig.min.js'
 		],
 		"css" => [],
-		"class" => ["leaflet-custom", "googlemaps-custom"],
+		"class" => ["leaflet-custom", "googlemaps-custom", "container-story"],
 		"attrs" => [],
 		"condition" => get_option("options_map_view") == "js" ? 1: 0,
-		"init"     => "",
+		"init"     => "init_twig",
 		"whitelist" => []
 	];
 	$plugins['leaflet'] = [
@@ -444,11 +444,15 @@ function compile_files_config($enable_production=false){
 	}
     
     if(function_exists("compile_files_plugins")){
+    	//error_log(" ----------------  compile_files_plugins");
 		$theme_plugins = compile_files_plugins($enable_production);
+
 		if($theme_plugins){
 			$plugins = array_merge($plugins, $theme_plugins);
 		}    	
     }
+
+    //error_log(print_r($plugins, true));
 
 
    $header_css = array();

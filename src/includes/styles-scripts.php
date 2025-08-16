@@ -66,32 +66,45 @@ function remove_jquery_migrate($scripts) {
 }
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
-function inline_css($name="", $url="") {
-	if(empty($url)){
-		return;
-	}
+function inline_css($name = "", $url = "") { // Her iki parametre de isteğe bağlı
+    
+    // DİKKAT: BU KONTROL ARTIK ÇOK DAHA KRİTİK!
+    // $url parametresini de isteğe bağlı yaptığımız için, fonksiyonun boş bir URL ile
+    // çağrılma ihtimali var. Bu kontrol olmazsa, kodun `file_get_contents("")`
+    // komutunu çalıştırmaya çalışır ve bu yeni bir PHP uyarısına neden olur.
+    if (empty($url) || !is_string($url) || !file_exists($url)) {
+        // Fonksiyon yanlış çağrılırsa hata günlüğüne not düşer.
+        error_log('[212outlet-Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
+        return ''; // Sitenin çökmesini engellemek için güvenli çıkış.
+    }
+
+    // --- Fonksiyonun geri kalanı aynı ---
     $css = file_get_contents($url);
-    if($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
-    	$upload_dir = wp_upload_dir();
-        $upload_url = $upload_dir['baseurl']."/";
+    if ($css === false) {
+        error_log('[212outlet-Theme] CSS dosyası okunamadı: ' . $url);
+        return '';
+    }
+
+    if ($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)) {
+        $upload_dir = wp_upload_dir();
+        $upload_url = $upload_dir['baseurl'] . "/";
         $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
         $code = str_replace("{home_url}", home_url("/"), $code);
         $css .= $code;
     }
 
     $theme_dir = wp_normalize_path(get_template_directory());
-    $theme_uri = wp_normalize_path(get_template_directory_uri());
     $base_path = wp_normalize_path(dirname($url));
     $subfolder = rtrim(getSiteSubfolder(), '/');
 
     return preg_replace_callback(
         '/url\((["\']?)(?!https?:|data:|\/)([^)\'"]+)\1\)/i',
-        function($m) use ($base_path, $theme_dir, $subfolder) {
+        function ($m) use ($base_path, $theme_dir, $subfolder) {
             $original_path = wp_normalize_path($m[2]);
             $abs_path = wp_normalize_path(realpath($base_path . DIRECTORY_SEPARATOR . $original_path));
 
             if (!$abs_path || !str_starts_with($abs_path, $theme_dir)) {
-                return $m[0]; // geçersizse elleme
+                return $m[0];
             }
 
             $rel_path = str_replace($theme_dir, '', $abs_path);

@@ -259,17 +259,17 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs - 22px",
-                        "title-sm": "title-sm - 32px",
-                        "title-md": "title-md - 42px",
-                        "title-lg": "title-lg - 52px",
-                        "title-xl": "title-xl - 62px",
-                        "title-xxl": "title-xxl - 72px",
-                        "title-xxxl": "title-xxxl - 82px",
-                        "text-xs": "text-xs - 14px",
-                        "text-sm": "text-sm - 16px",
-                        "text-md": "text-md - 18px",
-                        "text-lg": "text-lg - 24px",
+                        "title-xs": "title-xs - 42px",
+                        "title-sm": "title-sm - 52px",
+                        "title-md": "title-md - 62px",
+                        "title-lg": "title-lg - 72px",
+                        "title-xl": "title-xl - 82px",
+                        "title-xxl": "title-xxl - 92px",
+                        "title-xxxl": "title-xxxl - 120px",
+                        "text-xs": "text-xs - 16px",
+                        "text-sm": "text-sm - 18px",
+                        "text-md": "text-md - 22px",
+                        "text-lg": "text-lg - 26px",
                         "text-xl": "text-xl - 32px",
                         "text-xxl": "text-xxl - 36px",
                         "text-xxxl": "text-xxxl - 42px"
@@ -388,7 +388,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983335,
+    "modified": 1753830518,
     "acfe_categories": {
         "block": "Block"
     }

@@ -347,3 +347,268 @@ function pll_get_post_type_archive_link($post_types = '', $lang = ''){
     $subst = "$1" . $current_lang . "$2";
     return preg_replace($re, $subst, $str);
 }
+
+
+
+
+// Admin'de varsayılan dil başlığını/terim adını parantez içinde göster (Polylang)
+// Kapsam: Menüler ekranı (nav-menus), Post listeleri (edit), Tax listeleri (edit-tags)
+// Frontend'e sızmaz. POST (kayıt) sırasında çalışmaz. Menü kaydında parantez ekleri otomatik temizlenir.
+
+add_action('current_screen', function () {
+    if ( ! is_admin() || ! function_exists('pll_get_post') || ! function_exists('pll_get_term') ) return;
+
+    $screen = get_current_screen();
+    if ( ! $screen ) return;
+
+    $default_lang = pll_default_language();
+    $current_lang = pll_current_language();
+    if ( ! $default_lang || $default_lang === $current_lang ) return; // Varsayılan dildeyken ekleme yapma
+
+    // Kaydetme/ekleme anında (POST) hiç çalıştırma ki veriye yazılmasın
+    $is_post = (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST');
+    if ($is_post) return;
+
+    // — Ortak yardımcılar — //
+    $attach_post_title_filter = function() use ($default_lang) {
+        add_filter('the_title', function ($title, $post_id) use ($default_lang) {
+            $pt = get_post_type($post_id);
+            if ($pt === 'revision' || $pt === 'nav_menu_item') return $title;
+
+            $default_post_id = pll_get_post($post_id, $default_lang);
+            if ($default_post_id && $default_post_id !== $post_id) {
+                $default_title = get_the_title($default_post_id);
+                if ($default_title && $default_title !== $title) {
+                    $title .= ' (' . $default_title . ')';
+                }
+            }
+            return $title;
+        }, 999, 2);
+    };
+
+    $attach_term_name_filter = function() use ($default_lang) {
+        add_filter('get_terms', function ($terms, $taxonomies, $args, $term_query) use ($default_lang) {
+            if ( empty($terms) || is_wp_error($terms) ) return $terms;
+
+            $out = [];
+            foreach ($terms as $term) {
+                if ( ! isset($term->term_id, $term->taxonomy) ) { $out[] = $term; continue; }
+                $t = clone $term; // orijinali kirletme
+                $default_term_id = pll_get_term($t->term_id, $t->taxonomy, $default_lang);
+                if ($default_term_id && $default_term_id !== $t->term_id) {
+                    $default_term = get_term($default_term_id, $t->taxonomy);
+                    if ($default_term && ! is_wp_error($default_term)) {
+                        $default_name = $default_term->name ?? '';
+                        if ($default_name && $default_name !== $t->name) {
+                            $t->name .= ' (' . $default_name . ')';
+                        }
+                    }
+                }
+                $out[] = $t;
+            }
+            return $out;
+        }, 999, 4);
+    };
+
+    // — Ekran bazında bağla — //
+
+    // 1) Menüler ekranı (soldaki metabox listeleri)
+    if ($screen->base === 'nav-menus') {
+        $attach_post_title_filter();
+        $attach_term_name_filter();
+    }
+
+    // 2) Post listesi ekranları (edit.php?post_type=...)
+    if ($screen->base === 'edit') {
+        if (($screen->post_type ?? '') !== 'attachment') { // Medya kütüphanesi hariç
+            $attach_post_title_filter();
+        }
+    }
+
+    // 3) Taxonomy listesi ekranları (edit-tags.php?taxonomy=...)
+    if ($screen->base === 'edit-tags') {
+        $attach_term_name_filter();
+    }
+});
+
+// Menüler ekranındaki hızlı arama (menu-quick-search) AJAX'ında da gösterim
+add_action('admin_init', function () {
+    if ( ! is_admin() || ! wp_doing_ajax() || (($_REQUEST['action'] ?? '') !== 'menu-quick-search') ) return;
+    if ( ! function_exists('pll_get_post') || ! function_exists('pll_get_term') ) return;
+
+    $default_lang = pll_default_language();
+    $current_lang = pll_current_language();
+    if ( ! $default_lang || $default_lang === $current_lang ) return;
+
+    add_filter('the_title', function ($title, $post_id) use ($default_lang) {
+        $pt = get_post_type($post_id);
+        if ($pt === 'revision' || $pt === 'nav_menu_item') return $title;
+        $default_post_id = pll_get_post($post_id, $default_lang);
+        if ($default_post_id && $default_post_id !== $post_id) {
+            $default_title = get_the_title($default_post_id);
+            if ($default_title && $default_title !== $title) {
+                $title .= ' (' . $default_title . ')';
+            }
+        }
+        return $title;
+    }, 999, 2);
+
+    add_filter('get_terms', function ($terms, $taxonomies, $args, $term_query) use ($default_lang) {
+        if ( empty($terms) || is_wp_error($terms) ) return $terms;
+        $out = [];
+        foreach ($terms as $term) {
+            if ( ! isset($term->term_id, $term->taxonomy) ) { $out[] = $term; continue; }
+            $t = clone $term;
+            $default_term_id = pll_get_term($t->term_id, $t->taxonomy, $default_lang);
+            if ($default_term_id && $default_term_id !== $t->term_id) {
+                $default_term = get_term($default_term_id, $t->taxonomy);
+                if ($default_term && ! is_wp_error($default_term)) {
+                    $default_name = $default_term->name ?? '';
+                    if ($default_name && $default_name !== $t->name) {
+                        $t->name .= ' (' . $default_name . ')';
+                    }
+                }
+            }
+            $out[] = $t;
+        }
+        return $out;
+    }, 999, 4);
+});
+
+// — KRİTİK: Menüye eklerken/kaydedilirken parantezli ekleri veriye yazma —
+
+// Ekleme sonrası menü item'ı yüklenirken başlığı temizle (admin önizlemesi)
+add_filter('wp_setup_nav_menu_item', function ($menu_item) {
+    if (!is_admin()) return $menu_item;
+    if (!empty($menu_item->title)) {
+        // Sonda " (xxxx)" geçen parça varsa sil
+        $menu_item->title = preg_replace('/\s*\([^)]*\)\s*$/u', '', $menu_item->title);
+    }
+    return $menu_item;
+});
+
+// Kaydetme/update sırasında POST verisinden gelen başlığı temizle ve yaz
+add_action('wp_update_nav_menu_item', function ($menu_id, $menu_item_db_id, $args) {
+    if (!is_admin()) return;
+    if (!empty($args['menu-item-title'])) {
+        $clean_title = preg_replace('/\s*\([^)]*\)\s*$/u', '', $args['menu-item-title']);
+        if ($clean_title !== $args['menu-item-title']) {
+            wp_update_post([
+                'ID'         => $menu_item_db_id,
+                'post_title' => $clean_title,
+            ]);
+        }
+    }
+}, 10, 3);
+
+
+
+add_action('acf/save_post___', function($post_id) {
+    if (!function_exists('pll_get_post_translations')) return;
+
+    $lang         = pll_get_post_language($post_id);
+    $default_lang = pll_default_language();
+
+    if ($lang !== $default_lang) return;
+
+    $translations = pll_get_post_translations($post_id);
+    if (empty($translations)) return;
+
+    // Field groupları al
+    $field_groups = acf_get_field_groups(['post_id' => $post_id]);
+    $field_objects = [];
+    foreach ($field_groups as $group) {
+        $fields = acf_get_fields($group);
+        if ($fields) $field_objects = array_merge($field_objects, $fields);
+    }
+
+    $sync_fields = [];
+    foreach ($field_objects as $field) {
+        if (isset($field['translations']) && $field['translations'] === 'sync') {
+            $sync_fields[$field['name']] = $field;
+        }
+    }
+
+    if (empty($sync_fields)) return;
+
+    $process_field_value = function($value, $field, $t_lang) use (&$process_field_value) {
+        if ($value === null) return $value;
+
+        // --- Post Object / Relationship ---
+        if (in_array($field['type'], ['post_object','relationship'])) {
+            $post_type = $field['post_type'] ?? '';
+            if ($post_type && pll_is_translated_post_type($post_type)) {
+                $return_format = $field['return_format'] ?? 'id';
+                if (is_array($value)) {
+                    $new_val = [];
+                    foreach ($value as $v) {
+                        $translated = pll_get_post($v, $t_lang) ?: $v;
+                        //if ($return_format === 'object') {
+                            $translated = get_post($translated);
+                        //} // else ID olarak bırak
+                        $new_val[] = $translated->ID;
+                    }
+                    $value = $new_val;
+                } else {
+                    $translated = pll_get_post($value, $t_lang) ?: $value;
+                    //if ($return_format === 'object') {
+                        $translated = get_post($translated);
+                    //} // else ID olarak bırak
+                    $value = $translated->ID;
+                }
+            }
+        }
+
+        // taxonomy / acfe_taxonomy_terms
+        if (in_array($field['type'], ['taxonomy','acfe_taxonomy_terms'])) {
+            $taxonomy = $field['taxonomy'] ?? '';
+            if ($taxonomy && pll_is_translated_taxonomy($taxonomy)) {
+                error_log(print_r($field, true));
+                $return_format = $field['return_format'] ?? 'id';
+                if (is_array($value)) {
+                    $new_val = [];
+                    foreach ($value as $v) {
+                        $translated = pll_get_term($v, $t_lang) ?: $v;
+                        //if ($return_format === 'object') {
+                            $translated = get_term($translated);
+                            error_log(print_r($translated, true));
+                        //} // else ID olarak bırak
+                        $new_val[] = $translated->term_id;
+                    }
+                    $value = $new_val;
+                } else {
+                    $translated = pll_get_term($value, $t_lang) ?: $value;
+                    //if ($return_format === 'object') {
+                        $translated = get_term($translated);
+                    //} // else ID olarak bırak
+                    $value = $translated->term_id;
+                }
+            }
+        }
+
+
+        // --- Repeater / Flexible Content ---
+        if (in_array($field['type'], ['repeater','flexible_content']) && is_array($value)) {
+            foreach ($value as &$row) {
+                foreach ($field['sub_fields'] as $sub_field) {
+                    if (isset($row[$sub_field['name']])) {
+                        $row[$sub_field['name']] = $process_field_value($row[$sub_field['name']], $sub_field, $t_lang);
+                    }
+                }
+            }
+        }
+
+        return $value;
+    };
+
+    foreach ($translations as $t_lang => $translated_id) {
+        if ($t_lang === $default_lang || !$translated_id) continue;
+
+        foreach ($sync_fields as $field_name => $field) {
+            $value = get_field($field_name, $post_id);
+            $value = $process_field_value($value, $field, $t_lang);
+            update_field($field_name, $value, $translated_id);
+        }
+    }
+
+}, 20);

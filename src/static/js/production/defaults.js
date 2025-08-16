@@ -966,3 +966,31 @@ var waiting_init = {
         this.elements = [];
     }
 };
+
+function translate(str, count = 1, replacements = {}) {
+    const defaultLang = site_config.language_default;
+    const currentLang = site_config.user_language;
+
+    let entry = str;
+
+    const dictEntry = site_config.dictionary?.[str];
+
+    // Dil farklıysa dictionary'den çeviri yap
+    if (defaultLang !== currentLang && dictEntry !== undefined) {
+        if (Array.isArray(dictEntry)) {
+            const safeCount = parseInt(count, 10);
+            entry = safeCount === 1 ? dictEntry[0] : dictEntry[1] || dictEntry[0];
+        } else if (typeof dictEntry === 'string') {
+            entry = dictEntry;
+        }
+    }
+
+    // HER ZAMAN %count ve diğer %placeholder’ları replace et
+    entry = String(entry).replace('%count', count);
+
+    for (const key in replacements) {
+        entry = entry.replaceAll(key, replacements[key]);
+    }
+
+    return entry;
+}

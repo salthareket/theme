@@ -152,6 +152,7 @@ function lcp_data_save(metric, type = "desktop") {
             action: "save_lcp_results",
             type: site_config.meta.type,
             id: site_config.meta.id,
+            lang: site_config.user_language,
             lcp_data: JSON.stringify({ [type]: lcpData }),
             url: pageUrl,
         }),

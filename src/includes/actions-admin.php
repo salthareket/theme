@@ -169,9 +169,6 @@ function wp_scss_set_variables(){
         "theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"',
         "sh_static_path" =>  '"' . str_replace('\\', '/', SH_STATIC_PATH) . '"'
     ];
-
-    //error_log(print_r($variables['theme_static_path'], true));
-
     
     if(file_exists(get_stylesheet_directory() ."/static/js/js_files_all.json")){
         $plugins = file_get_contents(get_stylesheet_directory() ."/static/js/js_files_all.json");
@@ -677,6 +674,6 @@ add_action('wp_login', function($user_login, $user) {
 
         // Dosya yazılıyor
         file_put_contents(ABSPATH . 'robots.txt', $content);
-        error_log("Tolga'cım Debug - robots.txt dosyası oluşturuldu.");
+        error_log("Debug - robots.txt dosyası oluşturuldu.");
     }
 }, 11, 2);

@@ -9,9 +9,9 @@ header#header {
         right 0.3s ease-out,
         top 0.3s ease-out,
         background-color 0.3s ease-out);
-    border-style: var(--header-border-style);
+    /*border-style: var(--header-border-style);
     border-color: var(--header-border-color);
-    border-width: var(--header-border-width);
+    border-width: var(--header-border-width);*/
 
     &:after {
         content: "";
@@ -161,6 +161,7 @@ header#header {
             max-height: 100%;
             width: auto;
             @include transition(max-height 0.3s ease-out, opacity 0.3s ease-out);
+            object-fit: contain;    /* taşarsa kırpma yok */
         }
 
         .logo-affix,
@@ -691,64 +692,6 @@ header#header {
 }
 
 @media (min-width: 1400px) {
-
-    // xxl
-    header#header {
-        /*&.affix {
-            position: fixed;
-            width: 100%;
-            &.fixed-top{
-                top:0;
-                bottom:auto;
-                min-height: var(--header-height-affix);
-            }
-            &.fixed-bottom{
-                top:auto;
-                bottom:0;
-                min-height: var(--header-height);
-            }
-            &.fixed-top,
-            &.fixed-bottom-start{
-
-                .navbar-main {
-                    padding: var(--header-navbar-padding-affix);
-                    height: var(--header-navbar-height-affix);
-                    @include transition(height 0.3s ease-out);
-                }
-
-                .navbar-top {
-                    height: var(--header-navbar-height-affix);
-                    min-height: var(--header-navbar-height-affix);
-                    @include transition(height 0.3s ease-out);
-                }
-
-                .navbar-brand {
-                    height: var(--header-navbar-height-affix);
-                    padding: var(--header-navbar-logo-padding-affix);
-                }
-
-                .navbar-container {
-                    height: var(--header-navbar-nav-height-affix);
-                    min-height: var(--header-navbar-nav-height-affix);
-                    @include transition(height 0.3s ease-out);
-                }
-
-                .header-tools {
-                    height: var(--header-tools-height-affix);
-                }
-            }
-        }
-
-        &.fixed-bottom-start{
-            &.affix{
-                min-height: var(--header-height-affix);
-            }
-            &:not(.affix){
-                top:calc(100vh - var(--header-height));
-            }
-        }*/
-
-    }
 }
 
 @media (min-width: 1200px) and (max-width: 1399px) {
@@ -760,6 +703,14 @@ header#header {
         }
     }
 }
+
+/*@media (max-width: 1199px) {
+    header#header {
+        .navbar-brand{
+            max-width:0px;
+        }
+    }
+}*/
 
 @media (min-width: 992px) and (max-width: 1199px) {
     //lg
@@ -837,6 +788,7 @@ header#header {
     header#header {
 
         .navbar-brand{
+
             &.has-logo-mobile{
                 .logo:not(.logo-mobile),
                 .logo-svg:not(.logo-mobile){

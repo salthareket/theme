@@ -378,6 +378,7 @@ function header_footer_options($save = false){
 
         $header_container = SaltBase::get_cached_option("header_container");//get_field("header_container", "options");
         $header_container = block_container($header_container);//$header_container == "default" ? "" : $header_container;
+        $header_container = empty($header_container)?"w-100 px-3":"";
         
         $header_start_type = "";
         $header_center_type = "";
@@ -419,13 +420,13 @@ function header_footer_options($save = false){
         }
 
         if($header_center_type != "empty"){
-            $header_start_class = ($header_start_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto nav-equal nav-equal-{{equalize}}";
+            $header_start_class = ($header_start_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto-- nav-equal nav-equal-{{equalize}}";
             $header_center_class = "flex-grow-1 h-100";
-            $header_end_class = ($header_end_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto nav-equal nav-equal-{{equalize}}";
+            $header_end_class = ($header_end_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto-- nav-equal nav-equal-{{equalize}}";
         }else{
-            $header_start_class = ($header_start_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto";
+            $header_start_class = ($header_start_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto--";
             $header_center_class = "flex-grow-1 h-100";
-            $header_end_class = ($header_end_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto";
+            $header_end_class = ($header_end_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto--";
         }
 
         $header_options = array(
@@ -743,6 +744,7 @@ function save_lcp_results() {
     $id = intval($_POST['id']);
     $type = trim($_POST['type']);
     $url = trim($_POST['url']);
+    $lang = trim($_POST['lang']);
     $lcp_data = json_decode(stripslashes($_POST['lcp_data']), true);
 
     if (!$id || !$type || !$lcp_data) {
@@ -765,7 +767,7 @@ function save_lcp_results() {
         $css_page_hash = md5($type."-".$id);
         $output = $cache_dir . $css_page_hash . '-critical.css';
 
-        $input = file_get_contents(STATIC_PATH ."css/root.css");
+        $input = "";//file_get_contents(STATIC_PATH ."css/root.css");
         if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
             $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["plugin_css"]);
             $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["css_page"]);
@@ -773,7 +775,7 @@ function save_lcp_results() {
             $input .= file_get_contents(STATIC_PATH ."css/main-combined.css");
         }
 
-        $remover = new RemoveUnusedCss($url, $input, $output, [], [], true);
+        $remover = new RemoveUnusedCss($url, $input, $output, [], true);
         $remover->generate_critical_css($selectors);
         $critical_css = $output;
         $critical_css = str_replace(STATIC_PATH, '', $critical_css);
@@ -803,7 +805,7 @@ function save_lcp_results() {
             $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta); // Güncelle
         }
     }else{
-        $option_name = $id . '_assets'; // Option name oluştur
+        $option_name = $id . '_archive_'.$lang.'_assets'; // Option name oluştur
         $existing_meta = get_option($option_name); // Var olan option'u kontrol et
         if ($existing_meta) {
             $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
@@ -860,11 +862,21 @@ add_action('send_headers', 'add_cache_control_headers');
 add_action('send_headers', function () {
     $csp_directives = [
         "default-src 'self'",
+        
+        // DÜZELTME: Font Awesome ve Bootstrap için 'https://cdnjs.cloudflare.com' eklendi.
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://cdnjs.cloudflare.com",
+        
+        // DÜZELTME: script-src-elem için de kaynakları belirtmek daha modern bir yaklaşımdır.
         "script-src 'self' 'unsafe-inline' blob: https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://www.youtube.com",
+        
         "worker-src 'self' blob:",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com",
-        "img-src 'self' data: https://img.youtube.com https://i.ytimg.com https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://s.w.org",
-        "font-src 'self' data: https://fonts.gstatic.com",
+        
+        // DÜZELTME: Gravatar avatarları için 'https://secure.gravatar.com' eklendi.
+        "img-src 'self' data: https://img.youtube.com https://i.ytimg.com https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://s.w.org https://secure.gravatar.com",
+        
+        // DÜZELTME: Font Awesome font dosyaları için 'https://cdnjs.cloudflare.com' eklendi.
+        "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+        
         "object-src 'none'",
         "base-uri 'self'",
         "frame-ancestors 'self'",

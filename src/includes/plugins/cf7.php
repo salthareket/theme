@@ -125,7 +125,11 @@ function cf7_cpt_select_menu ( $tag, $unused ) {
             if(!in_array($label_name, $added_items)){
                 $value = $value_type=="value"?$term->term_id:$label_name;
                 $tag['raw_values'][] = $value;  
-                $tag['values'][] = count($term->children)==0?$value:$group_name;
+                if (is_wp_error($term->children)) {
+                    $tag['values'][] = $value;
+                } else {
+                    $tag['values'][] = count($term->children) == 0 ? $value : $group_name;
+                }
                 $tag['labels'][] = $label_name;
                 $tag['options'][] = "class:cf7-optgroup";
                 $added_items[] = $label_name;

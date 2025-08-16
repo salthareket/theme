@@ -22,6 +22,8 @@ class RemoveUnusedCss {
         "styles" => []
     ];
     public $white_list = [
+        ".w-100",
+        ".h-100",
         ".show",
         ".affix",
         ".header-hide",
@@ -56,6 +58,7 @@ class RemoveUnusedCss {
         ".lenis-*",
         ".dgwt-wcas-open",
     ];
+    public $white_list_map = [];
     private $black_list = [
         '.dropdown-notifications',
     ];
@@ -80,10 +83,24 @@ class RemoveUnusedCss {
        //':last-of-type', 
        ':only-child', 
        ':only-of-type', 
-       ':empty'
+       ':empty',
+        ':before', 
+        ':after'
     ];
 
-    public function __construct($html, $css, $output = "", $additional_whitelist = [], $additional_blacklist = [], $critical_css = false) {
+    private string $twig_attr = 'data-twig-load';
+    private array $twig_template_paths = [];   // Timber template paths (override edilebilir)
+    private bool $twig_scan_includes = true;   // {% include %} yakala, rekürsif tara
+    private array $twig_seen_templates = []; // 'magazalar/single-modal.twig' => true
+    private array $twig_locate_cache   = []; // 'magazalar/single-modal.twig' => '/abs/path/...'
+    private array $twig_approx_cache   = []; // '/abs/path/...' => '<div>...</div>'
+
+
+    // lazy init için:
+    private bool   $twig_paths_initialized = false;
+    private array  $twig_options = []; // dışarıdan gelen opsiyonlar saklansın
+
+    public function __construct($html, $css, $output = "", $additional_whitelist = [], $critical_css = false, array $opts = []) {
         if (is_string($html)) {
             $this->html = is_file($html) ? file_get_contents($html) : $html;
             $this->html = HtmlDomParser::str_get_html($this->html);
@@ -95,15 +112,22 @@ class RemoveUnusedCss {
                 throw new InvalidArgumentException("Invalid HTML input. Must be a string or HtmlDomParser object.");
             }
         }
-
-        //error_log(print_r($this->html, true));
-
+        
         $this->css = is_file($css) ? file_get_contents($css) : $css;
         $this->output = $output;
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
-        $this->black_list = array_merge($this->black_list, $additional_blacklist);
-        //error_log(print_r($this->white_list, true));
         $this->critical_css = $critical_css;
+        $this->twig_options = $opts;
+        
+        // opsiyonlardan basit atamalar (path hariç)
+        if (isset($opts['twig_attr']) && is_string($opts['twig_attr']) && $opts['twig_attr'] !== '') {
+            $this->twig_attr = $opts['twig_attr'];
+        }
+        if (isset($opts['twig_scan_includes'])) {
+            $this->twig_scan_includes = (bool)$opts['twig_scan_includes'];
+        }
+
+        error_log('[RemoveUnusedCss] init | twig_attr=' . $this->twig_attr);
     }
 
     private function cleanDom($dom) {
@@ -282,6 +306,355 @@ class RemoveUnusedCss {
 
 
 
+    private function detectTimberTemplatePaths(): array {
+        $paths = [];
+        $checked = [];
+
+        // 1) Child/Parent theme default "templates"
+        if (function_exists('get_stylesheet_directory')) {
+            $p = trailingslashit(get_stylesheet_directory()) . 'templates';
+            $checked[] = $p;
+            if (is_dir($p)) { $paths[] = $p; }
+        }
+        if (
+            function_exists('get_template_directory') &&
+            function_exists('get_stylesheet_directory') &&
+            get_template_directory() !== get_stylesheet_directory()
+        ) {
+            $p = trailingslashit(get_template_directory()) . 'templates';
+            $checked[] = $p;
+            if (is_dir($p)) { $paths[] = $p; }
+        }
+
+        // 2) Timber::$locations (Timber 2)
+        if (class_exists('\Timber\Timber') && !empty(\Timber\Timber::$locations)) {
+            foreach (\Timber\Timber::$locations as $loc) {
+                $abs = rtrim($loc, '/\\');
+                $checked[] = $abs;
+                if (is_dir($abs)) { $paths[] = $abs; }
+            }
+        }
+
+        // 3) Timber::$dirname (legacy / hala yaygın)
+        if (class_exists('\Timber\Timber') && !empty(\Timber\Timber::$dirname)) {
+            $dirnames = (array) \Timber\Timber::$dirname;
+            $resolved = $this->resolveTimberDirnamesToAbsolute($dirnames, $checked);
+            $paths = array_merge($paths, $resolved);
+        }
+
+        // Temizle + logla
+        $paths = array_values(array_unique(array_filter($paths, 'is_dir')));
+        error_log('[RemoveUnusedCss] detectTimberTemplatePaths checked=' . json_encode($checked, JSON_UNESCAPED_SLASHES));
+        error_log('[RemoveUnusedCss] detectTimberTemplatePaths final='   . json_encode($paths,   JSON_UNESCAPED_SLASHES));
+
+        return $paths;
+    }
+    private function ensureTwigPaths(): void {
+        if ($this->twig_paths_initialized) return;
+
+        // 1) dışarıdan geldiyse önce onu kullan
+        if (!empty($this->twig_options['twig_paths']) && is_array($this->twig_options['twig_paths'])) {
+            $paths = array_values(array_filter($this->twig_options['twig_paths'], 'is_string'));
+            $paths = array_values(array_filter($paths, 'is_dir'));
+            $this->twig_template_paths = $paths;
+            $this->twig_paths_initialized = true;
+        } else {
+            // 2) otomatik tespit (bir kez)
+            $this->twig_template_paths = $this->detectTimberTemplatePaths();
+            $this->twig_paths_initialized = true;
+        }
+
+        error_log('[RemoveUnusedCss] twig_paths (lazy)=' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
+    }
+    /**
+     * Timber::$dirname içine verilen relative (veya absolute) yolları
+     * çeşitli köklere göre mutlak hale getirir.
+     */
+    private function resolveTimberDirnamesToAbsolute(array $dirnames, array &$checked): array {
+        $roots = [];
+
+        // Child & parent theme kökleri
+        if (function_exists('get_stylesheet_directory')) {
+            $roots[] = trailingslashit(get_stylesheet_directory());
+        }
+        if (function_exists('get_template_directory')) {
+            $roots[] = trailingslashit(get_template_directory());
+        }
+
+        // wp-content ve ABSPATH de dene (vendor/... gibi)
+        if (defined('WP_CONTENT_DIR')) {
+            $roots[] = trailingslashit(WP_CONTENT_DIR);
+        }
+        if (defined('ABSPATH')) {
+            $roots[] = trailingslashit(ABSPATH);
+        }
+
+        // Bu sınıfın bulunduğu plugin/theme kökü (vendor senaryosu için iş görür)
+        if (defined('__DIR__')) {
+            $roots[] = trailingslashit(dirname(__DIR__)); // sınıfa göre 1 seviye yukarı
+            $roots[] = trailingslashit(__DIR__);          // bulunduğu klasör
+        }
+
+        $out = [];
+        foreach ($dirnames as $d) {
+            if (!$d) { continue; }
+            // Absolute geldiyse direkt dene
+            if ($d[0] === '/' || preg_match('#^[A-Z]:[\\\\/]#i', $d)) {
+                $candidate = rtrim($d, '/\\');
+                $checked[] = $candidate;
+                if (is_dir($candidate)) {
+                    $out[] = $candidate;
+                    continue;
+                }
+            }
+
+            // Relative ise her root’a ekle
+            foreach ($roots as $root) {
+                $candidate = rtrim($root . ltrim($d, '/\\'), '/\\');
+                $checked[] = $candidate;
+                if (is_dir($candidate)) {
+                    $out[] = $candidate;
+                }
+            }
+        }
+
+        // uniq
+        $out = array_values(array_unique($out));
+        return $out;
+    }
+    private function locateTwig(string $template): ?string {
+        $this->ensureTwigPaths(); // path’lar yoksa şimdi tespit et
+
+        $tpl = ltrim($template, '/\\');
+        if (!str_ends_with($tpl, '.twig')) {
+            $tpl .= '.twig';
+        }
+        if (array_key_exists($tpl, $this->twig_locate_cache)) {
+            return $this->twig_locate_cache[$tpl] ?: null;
+        }
+        foreach ($this->twig_template_paths as $base) {
+            $path = rtrim($base, '/\\') . DIRECTORY_SEPARATOR . $tpl;
+            if (is_file($path)) {
+                $this->twig_locate_cache[$tpl] = $path;
+                return $path;
+            }
+        }
+        $this->twig_locate_cache[$tpl] = null;
+        return null;
+    }
+    private function collectIncludedTwigRaw(string $raw, string $current_dir, array &$visited = []): string {
+        $out = '';
+        if (preg_match_all('/\{\%\s*include\s*[\'"]([^\'"]+)[\'"]\s*(?:with\s+[^%]+)?\%\}/', $raw, $m)) {
+            foreach ($m[1] as $inc) {
+                $candidates = [];
+                if (strpos($inc, '/') === 0) {
+                    $candidates[] = $this->locateTwig(ltrim($inc, '/'));
+                } else {
+                    $rel = $current_dir . DIRECTORY_SEPARATOR . $inc;
+                    $candidates[] = is_file($rel) ? $rel : null;
+                    $candidates[] = $this->locateTwig($inc);
+                }
+                $found = false;
+                foreach (array_filter($candidates) as $file) {
+                    if (!isset($visited[$file]) && is_readable($file)) {
+                        $visited[$file] = true;
+                        $sub = file_get_contents($file);
+                        if ($sub !== false) {
+                            $out .= "\n" . $sub;
+                            $found = true;
+                            error_log('[RemoveUnusedCss] include resolved: ' . $inc . ' -> ' . $file);
+                            // rekürsif
+                            $out .= "\n" . $this->collectIncludedTwigRaw($sub, dirname($file), $visited);
+                        } else {
+                            error_log('[RemoveUnusedCss] include read fail: ' . $file);
+                        }
+                    }
+                }
+                if (!$found) {
+                    error_log('[RemoveUnusedCss] include NOT found: ' . $inc);
+                }
+            }
+        }
+        return $out;
+    }
+    private function logApproxHtmlSelectors(string $html, string $label = ''): void {
+        $classes = [];
+        $ids     = [];
+
+        $frag = HtmlDomParser::str_get_html($html);
+        if (!$frag) {
+            error_log('[RemoveUnusedCss] logApproxHtmlSelectors: failed to parse approx html for ' . $label);
+            return;
+        }
+
+        foreach ($frag->find('*') as $el) {
+            // class
+            $cls = $el->getAttribute('class');
+            if ($cls) {
+                foreach (preg_split('/\s+/', trim($cls)) as $c) {
+                    if ($c !== '') { $classes[$c] = true; }
+                }
+            }
+            // id
+            $id = $el->getAttribute('id');
+            if ($id) {
+                $ids[$id] = true;
+            }
+        }
+
+        $classes = array_keys($classes);
+        $ids     = array_keys($ids);
+
+        // Çok uzun olmasın diye ilk 30 tanesini gösterelim
+        $sampleClasses = array_slice($classes, 0, 30);
+        $sampleIds     = array_slice($ids, 0, 30);
+
+        error_log(sprintf('[RemoveUnusedCss] selectors from %s | classes=%d ids=%d', $label, count($classes), count($ids)));
+        error_log('[RemoveUnusedCss] classes sample: ' . implode(', ', $sampleClasses));
+        error_log('[RemoveUnusedCss] ids sample: ' . implode(', ', $sampleIds));
+    }
+    private function twigToApproxHtml(string $twig): string {
+        $s = $twig;
+
+        // 1) Twig yorumları {# ... #}
+        $s = preg_replace('/\{\#.*?\#\}/s', '', $s);
+
+        // 2) Twig control blokları {% ... %} → tamamen sil
+        $s = preg_replace('/\{\%.*?\%\}/s', '', $s);
+
+        // 3) Twig değişkenleri {{ ... }} → boşalt (bazı yerlerde class attribute içinde olabilir)
+        //   class="{{ something }}" → class="" kalsın
+        $s = preg_replace('/\{\{.*?\}\}/s', '', $s);
+
+        // 4) Bozuk kalan attribute/etiket kapanışlarını biraz toparla
+        //   (Bu approx; HtmlDomParser çoğu durumda yine parse edebiliyor.)
+        //   Fazla boşlukları azalt
+        $s = preg_replace('/\s+/', ' ', $s);
+
+        // 5) Twig include kalıntıları vs yok
+        $s = trim($s);
+
+        // Artık bu string, DOM’a gömülüp selector taramasında kullanılabilir
+        return $s;
+    }
+    private function collectTwigLoadedHtml(\voku\helper\HtmlDomParser $dom): string {
+        $nodes = $dom->find("*[{$this->twig_attr}]");
+        if (!$nodes || count($nodes) === 0) {
+            error_log('[RemoveUnusedCss] data-twig-load: node bulunamadı');
+            return '';
+        }
+
+        $this->ensureTwigPaths();
+
+        // 1) DOM’daki TÜM data değerlerini topla ve normalize et
+        $uniqueTemplates = [];
+        foreach ($nodes as $node) {
+            $raw = trim((string) $node->getAttribute($this->twig_attr));
+            if ($raw === '') { continue; }
+            $parts = preg_split('/[,;]+/', $raw);
+            foreach ($parts as $p) {
+                $p = trim($p);
+                if ($p === '') continue;
+                if (!str_ends_with($p, '.twig')) $p .= '.twig';
+                $uniqueTemplates[$p] = true;
+            }
+        }
+
+        $all = array_keys($uniqueTemplates);
+        if (empty($all)) {
+            error_log('[RemoveUnusedCss] data-twig-load: template değeri yok (boş)');
+            return '';
+        }
+
+        // 2) Daha önce işlenmişleri at
+        $toProcess = [];
+        foreach ($all as $tpl) {
+            if (!isset($this->twig_seen_templates[$tpl])) {
+                $this->twig_seen_templates[$tpl] = true;
+                $toProcess[] = $tpl;
+            }
+        }
+
+        if (empty($toProcess)) {
+            error_log('[RemoveUnusedCss] data-twig-load: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
+            return '';
+        }
+
+        error_log('[RemoveUnusedCss] data-twig-load: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
+        $html_chunks = [];
+        $foundFiles  = [];
+        $missed      = [];
+
+        // 3) Her bir uniq template için bir kez çalış
+        foreach ($toProcess as $tpl) {
+            $file = $this->locateTwig($tpl);
+            if (!$file || !is_readable($file)) {
+                $missed[] = $tpl;
+                continue;
+            }
+
+            $foundFiles[] = $file;
+
+            // 4) Dosya approx-HTML cache’i
+            if (isset($this->twig_approx_cache[$file])) {
+                $html_chunks[] = $this->twig_approx_cache[$file];
+                continue;
+            }
+
+            $raw = file_get_contents($file);
+            if ($raw === false) { continue; }
+
+            // include’ları çöz (opsiyonel)
+            if ($this->twig_scan_includes) {
+                $raw .= "\n" . $this->collectIncludedTwigRaw($raw, dirname($file));
+            }
+
+            $approx_html = $this->twigToApproxHtml($raw);
+            $this->twig_approx_cache[$file] = $approx_html ?: '';
+
+            if ($approx_html) {
+                $html_chunks[] = $approx_html;
+            }
+        }
+
+        // 5) Log
+        if ($foundFiles) {
+            error_log('[RemoveUnusedCss] Twig bulundu: ' . count($foundFiles));
+            foreach ($foundFiles as $f) {
+                error_log('[RemoveUnusedCss]  - ' . $f);
+            }
+        }
+        if ($missed) {
+            error_log('[RemoveUnusedCss] Twig bulunamadı: ' . json_encode($missed, JSON_UNESCAPED_SLASHES));
+            error_log('[RemoveUnusedCss]  aranan_yollar: ' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
+        }
+
+        // Örnek: basit sınıf/ID istatistiği (yaklaşık)
+        $summary = strip_tags(implode(' ', $html_chunks));
+        preg_match_all('/class="([^"]+)"/', $summary, $m1);
+        preg_match_all('/id="([^"]+)"/', $summary, $m2);
+        $classes = [];
+        if (!empty($m1[1])) {
+            foreach ($m1[1] as $cstr) {
+                foreach (preg_split('/\s+/', trim($cstr)) as $c) {
+                    if ($c !== '') { $classes[$c] = true; }
+                }
+            }
+        }
+        $ids = array_unique($m2[1] ?? []);
+        error_log('[RemoveUnusedCss] approx selectors: classes=' . count($classes) . ' ids=' . count($ids));
+
+        return implode("\n", $html_chunks);
+    }
+
+
+
+
+
+
+
+
+
 
 
     private function removeUnnecessaryLines() {
@@ -361,12 +734,35 @@ class RemoveUnusedCss {
         }
     }
 
+
     private function filterUsedCss() {
         $dom = $this->html;
         if (!$dom) {
             error_log("Error parsing HTML");
             return;
         }
+
+        // data-twig-load taraması
+        $extra_html = $this->collectTwigLoadedHtml($dom);
+        if ($extra_html) {
+            // Eklenen fragmenti logla
+            error_log('[RemoveUnusedCss] collected extra html length=' . strlen($extra_html));
+
+            // NOT: innertext string kabul eder; doğrudan $extra_html kullanıyoruz
+            $bodyNode = $dom->find('body', 0);
+            if ($bodyNode) {
+                $bodyNode->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
+                error_log('[RemoveUnusedCss] extra html appended into <body>');
+            } else {
+                $dom->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
+                error_log('[RemoveUnusedCss] extra html appended into root (no body)');
+            }
+        } else {
+            error_log('[RemoveUnusedCss] no extra twig html collected');
+        }
+        
+        $this->addHtmlWhitelist($dom);
+
         //$dom = $this->cleanDom($dom);
         $this->updateWhiteList($dom);
         //error_log(print_r($this->white_list, true));
@@ -385,7 +781,7 @@ class RemoveUnusedCss {
         }
     }
 
-    private function checkMediaQueries($dom) {
+    /*private function checkMediaQueries($dom) {
         foreach ($this->css_structure["media_queries"] as $media_query => $selectors) {
             $media_css = "";
             
@@ -408,7 +804,108 @@ class RemoveUnusedCss {
                 $this->trackUsedItems($media_css);
             }
         }
+    }*/
+
+    private function checkMediaQueries($dom) {
+        // 1) Sırala (küçükten büyüğe)
+        $mqItems = [];
+        foreach ($this->css_structure["media_queries"] as $mq => $rules) {
+            $mqItems[] = ['meta' => $this->parseMediaForSort($mq), 'rules' => $rules];
+        }
+        usort($mqItems, function($a, $b) {
+            if ($a['meta']['val'] < $b['meta']['val']) return -1;
+            if ($a['meta']['val'] > $b['meta']['val']) return 1;
+            $ra = $this->mediaTypeRank($a['meta']['type']);
+            $rb = $this->mediaTypeRank($b['meta']['type']);
+            if ($ra !== $rb) return $ra <=> $rb;
+            return strcmp($a['meta']['q'], $b['meta']['q']);
+        });
+
+        // 2) SIRALI listedeki her media'yı işle
+        foreach ($mqItems as $item) {
+            $media_query    = $item['meta']['q'];
+            $rules_in_media = $item['rules'];
+
+            $final_media_css_block = '';
+
+            // Media içindeki her selector grubunu filtrele
+            foreach ($rules_in_media as $selector_group => $style_code) {
+                $all_selectors_in_group = array_map('trim', explode(',', $selector_group));
+                $keptSelectors = [];
+
+                foreach ($all_selectors_in_group as $individual_selector) {
+                    if ($individual_selector === '') continue;
+
+                    $root_selector = $this->getRootSelector($individual_selector);
+
+                    if ($root_selector === null) {
+                        if ($this->selectorExists($dom, $individual_selector)) {
+                            $keptSelectors[] = $individual_selector;
+                        }
+                        continue;
+                    }
+
+                    if ($this->selectorExists($dom, $root_selector) || $this->isWhitelisted($dom, $root_selector)) {
+                        $keptSelectors[] = $individual_selector;
+                    }
+                }
+
+                if (!empty($keptSelectors)) {
+                    // blacklist temizliği
+                    $finalKeptSelectors = [];
+                    foreach ($keptSelectors as $s) {
+                        if (!$this->isBlacklisted($s)) {
+                            $finalKeptSelectors[] = $s;
+                        }
+                    }
+                    if (!empty($finalKeptSelectors)) {
+                        $final_media_css_block .= implode(", ", $finalKeptSelectors) . " { " . $style_code . " }\n";
+                    }
+                }
+            }
+
+            if ($final_media_css_block !== '') {
+                $this->css_temp .= "$media_query {\n" . $final_media_css_block . "}\n";
+                $this->trackUsedItems($final_media_css_block);
+            }
+        }
     }
+
+    private function normalizeMediaQuery(string $q): string {
+        $q = preg_replace('/\s+/', ' ', trim($q));
+        $q = preg_replace('/\(\s*/', '(', $q);
+        $q = preg_replace('/\s*\)/', ')', $q);
+        $q = preg_replace('/\s*:\s*/', ':', $q);
+        $q = preg_replace('/\s*and\s*/i', ' and ', $q);
+        return $q;
+    }
+    private function parseMediaForSort(string $q): array {
+        $qNorm = $this->normalizeMediaQuery($q);
+        $hasMin = preg_match('/min-width\s*:\s*([0-9.]+)\s*px/i', $qNorm, $mMin);
+        $hasMax = preg_match('/max-width\s*:\s*([0-9.]+)\s*px/i', $qNorm, $mMax);
+
+        if ($hasMin && $hasMax) {
+            return ['type' => 'range', 'val' => (float)$mMin[1], 'q' => $q];
+        }
+        if ($hasMin) {
+            return ['type' => 'min', 'val' => (float)$mMin[1], 'q' => $q];
+        }
+        if ($hasMax) {
+            return ['type' => 'max', 'val' => (float)$mMax[1], 'q' => $q];
+        }
+        // unknown → en sona
+        return ['type' => 'other', 'val' => INF, 'q' => $q];
+    }
+    private function mediaTypeRank(string $t): int {
+        // aynı değerde öncelik: max → range → min → other
+        return match ($t) {
+            'max' => 0,
+            'range' => 1,
+            'min' => 2,
+            default => 3,
+        };
+    }
+
 
     private function processKeyframes() {
         foreach ($this->css_structure["keyframes"] as $keyframe_type => $keyframes) {
@@ -563,7 +1060,7 @@ class RemoveUnusedCss {
         }
     }*/
 
-    private function processStyles($dom) {
+    /*private function processStyles($dom) {
         foreach ($this->css_structure["styles"] as $style) {
             $selectors = $style["selectors"];
             $keptSelectors = [];
@@ -608,8 +1105,7 @@ class RemoveUnusedCss {
                     if ($rootSelector) {
                         if (
                             $this->isWhitelisted($dom, $rootSelector) ||
-                            $this->selectorExists($dom, $rootSelector) ||
-                            $this->isComplexSelectorExists($selector)
+                            $this->selectorExists($dom, $rootSelector)
                         ) {
                             $keep = true;
                         }
@@ -638,6 +1134,139 @@ class RemoveUnusedCss {
             if (!empty($keptSelectors)) {
                 $this->css_temp .= implode(", ", $keptSelectors) . " { " . $style["code"] . " }\n";
                 $this->trackUsedItems($style["code"]);
+            }
+        }
+    }*/
+
+    /*private function processStyles($dom) {
+        foreach ($this->css_structure["styles"] as $style) {
+            $selectors = $style["selectors"];
+            $keep_entire_group = false; // Bütün grubu tutup tutmayacağımızı belirleyen bayrak
+
+            // İlk olarak, gruptaki HERHANGİ bir selectörün özel bir durumu olup olmadığını kontrol et.
+            foreach ($selectors as $selector) {
+                if (empty($selector)) {
+                    continue;
+                }
+                
+                // Eğer selectör, birleştirici (+, ~, >) içeriyorsa veya whitelist'te ise,
+                // tüm grubu korumak için bayrağı kaldır ve bu döngüden çık.
+                if ($this->isWhitelisted($dom, $selector) ||
+                    strpos($selector, '*') !== false ||
+                    strpos($selector, '~') !== false ||
+                    strpos($selector, '+') !== false ||
+                    strpos($selector, '>') !== false) 
+                {
+                    $keep_entire_group = true;
+                    break; 
+                }
+            }
+            
+            // Eğer bayrak hala kalkmadıysa, yani grupta özel/whitelisted bir durum yoksa,
+            // o zaman her bir selectörün DOM'da var olup olmadığını kontrol et.
+            if (!$keep_entire_group) {
+                foreach ($selectors as $selector) {
+                    if ($this->selectorExists($dom, $selector)) {
+                        // DOM'da bulunan ilk selectörde bayrağı kaldır ve çık.
+                        $keep_entire_group = true;
+                        break;
+                    }
+                }
+            }
+
+            // Sonuç: Eğer bayrak herhangi bir aşamada kalktıysa, grubun tamamını koru.
+            if ($keep_entire_group) {
+                // Blacklist kontrolünü burada yapalım. Eğer grubun tamamı tutulacaksa
+                // ama içlerinden biri blacklist'te ise, o zaman tutmayalım.
+                $is_blacklisted = false;
+                foreach ($selectors as $selector) {
+                    if ($this->isBlacklisted($selector)) {
+                        $is_blacklisted = true;
+                        break;
+                    }
+                }
+
+                if (!$is_blacklisted) {
+                    $this->css_temp .= implode(", ", $selectors) . " { " . $style["code"] . " }\n";
+                    $this->trackUsedItems($style["code"]);
+                }
+            }
+        }
+    }*/
+
+    private function getRootSelector($selector) {
+        // Selectörün başındaki boşlukları temizle
+        $selector = ltrim($selector);
+
+        // Pseudo-elements için mevcut özel durum:
+        if (preg_match('/^::?(before|after)\b/i', $selector)) {
+            return '*';
+        }
+
+        // ✅ Universal selector'u kök olarak kabul et
+        if ($selector === '*' || strpos($selector, '*>') === 0 || strpos($selector, '* ') === 0 || strpos($selector, '*:') === 0 || strpos($selector, '*.') === 0 || strpos($selector, '*#') === 0) {
+            return '*';
+        }
+        
+        // Kök selectörü yakalamak için regex.
+        // Bir etiket adı, id, class veya attribute selector ile başlayabilir.
+        preg_match('/^([\w\-]+|[\.#][\w\-]+|\[[^\]]+\])/', $selector, $matches);
+        
+        return $matches[1] ?? null;
+    }
+
+
+    /**
+     * CSS stillerini, "kök selectör" mantığına göre işler.
+     */
+    private function processStyles($dom) {
+        foreach ($this->css_structure["styles"] as $style) {
+            $all_selectors_in_group = $style["selectors"];
+            $keptSelectors = [];
+
+            // Bir kural grubundaki her bir selectörü (virgülle ayrılmış) tek tek kontrol et
+            foreach ($all_selectors_in_group as $individual_selector) {
+                
+                if (empty(trim($individual_selector))) {
+                    continue;
+                }
+                
+                if (preg_match('/^::?(before|after)\b/i', $individual_selector)) {
+                    $keptSelectors[] = $individual_selector;
+                    continue;
+                }
+
+                $root_selector = $this->getRootSelector($individual_selector);
+
+                // Eğer bir kök selectör bulunamadıysa (örn: *>p), risk alma, koru.
+                if ($root_selector === null) {
+                    if ($this->selectorExists($dom, $individual_selector)) {
+                         $keptSelectors[] = $individual_selector;
+                    }
+                    continue;
+                }
+
+                // KURAL: Kök selectör HTML'de varsa veya whitelist'te ise,
+                // o zaman bu selectör parçasını koru.
+                if ($this->selectorExists($dom, $root_selector) || $this->isWhitelisted($dom, $root_selector)) {
+                    $keptSelectors[] = $individual_selector;
+                }
+            }
+
+            // Eğer korunan selectörlerden en az biri varsa, kuralı yeni selectör listesiyle yaz.
+            if (!empty($keptSelectors)) {
+                // Blacklist kontrolü son aşamada yapılır.
+                $finalKeptSelectors = [];
+                foreach($keptSelectors as $s) {
+                    if (!$this->isBlacklisted($s)) {
+                        $finalKeptSelectors[] = $s;
+                    }
+                }
+                
+                if(!empty($finalKeptSelectors)) {
+                    $this->css_temp .= implode(", ", $finalKeptSelectors) . " { " . $style["code"] . " }\n";
+                    $this->trackUsedItems($style["code"]);
+                }
             }
         }
     }
@@ -752,65 +1381,33 @@ class RemoveUnusedCss {
         return $selector;
     }
 
-private function isComplexSelectorExists($selector) {
-    if (!preg_match('/[>+~]/', $selector)) {
-        return false;
-    }
-
-    if (preg_match('/:$/', $selector) || preg_match('/: +/', $selector) || preg_match('/:.*?\([^\)]*$/', $selector)) {
-        error_log("⛔ Broken combinator selector skipped: $selector");
-        return false;
-    }
-
-    $segments = preg_split('/\s*([>+~])\s*/', $selector, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
-    if (count($segments) < 3) {
-        error_log("⚠️ Not enough combinator segments: $selector");
-        return false;
-    }
-
-    $currentSelector = trim($segments[0]);
-
-    try {
-        $found = $this->html->find($currentSelector);
-        if (!empty($found) && count($found) > 0) {
-            return true;
-            error_log("✅ FOUND: $currentSelector in $selector");
-        } else {
-            return false;
-            error_log("❌ NOT FOUND: $currentSelector in $selector");
-        }
-
-    } catch (\Throwable $e) {
-        error_log("💥 Symfony exploded on: $currentSelector in $selector");
-    }
-
-    // Ne olursa olsun yazılmaması için false
-    return false;
-}
-
-
-
-
-
-
     private function selectorExists($dom, $selector) {
         $selector = trim($selector);
         if (empty($selector)) return false;
 
-        // CSS selector mı kontrol et (çok temel bir örnek, genişletilebilir)
-        if (preg_match('/^[a-zA-Z.#:\[]/', trim($selector)) === 0) {
+        // ✅ '*' da geçerli başlangıç karakteri olsun
+        if (preg_match('/^[a-zA-Z.#:\[\*]/', $selector) === 0) {
             error_log('[RemoveUnusedCss] Skipping invalid selector: ' . $selector);
             return false;
         }
 
+        // ✅ Universal selector'u her zaman mevcut say
+        if ($selector === '*' || preg_match('/(^|,\s*)\*(\s*[,>+~:\.\[#]|$)/', $selector)) {
+            return true;
+        }
+
+        if (preg_match('/^::?(before|after)\b/i', $selector)) {
+            return true;
+        }
+
         // Eğer selector ':' ile başlıyorsa doğrudan kabul et
         if (strpos($selector, ':') === 0) {
-            error_log("found 1: ".$selector);
+            //error_log("found: ".$selector);
             return true;
         }
 
         if(preg_match('/^\s*@supports\s+/i', ltrim($selector))){
-            error_log("found 2: ".$selector);
+           //error_log("found: ".$selector);
             return true;
         }
         
@@ -818,14 +1415,14 @@ private function isComplexSelectorExists($selector) {
             if (strpos($whitelist_class, '*') !== false) {
                 $whitelist_pattern = str_replace('*', '.*', preg_quote($whitelist_class, '/'));
                 if (preg_match('/' . $whitelist_pattern . '/', $selector)) {
-                    error_log(" found wildcard: ".$selector);//
+                    //error_log(" wildcard: ".$selector);//
                     //error_log("found: ".$selector);
                     return true;
                 }
             }
             $pattern = '/(^|\s|\+|>|\:)' . preg_quote($whitelist_class, '/') . '(\s|\+|>|\:|$)/';
             if (preg_match($pattern, $selector)) {
-                error_log("found 3: ".$selector);
+                //error_log("found: ".$selector);
                 return true;
             }
         }
@@ -840,7 +1437,7 @@ private function isComplexSelectorExists($selector) {
             $found = false;
             //error_log("not found: ".$selector);
         }else{
-            error_log("found 4: ".$selector);
+            //error_log("found: ".$selector);
         }
         return $found;
     }
@@ -907,6 +1504,23 @@ private function isComplexSelectorExists($selector) {
             update_dynamic_css_whitelist($white_list);*/
         }
     }
+    private function addHtmlWhitelist($dom) {
+        $nodes = $dom->find('[data-html-whitelist]');
+        foreach ($nodes as $node) {
+            $attrVal = trim($node->getAttribute('data-html-whitelist'));
+            if ($attrVal !== '') {
+                foreach (explode(',', $attrVal) as $sel) {
+                    $sel = trim($sel);
+                    if ($sel !== '' && !isset($this->white_list_map[$sel])) {
+                        $this->white_list[] = $sel;
+                        $this->white_list_map[$sel] = true; // hızlı lookup
+                    }
+                }
+            }
+        }
+    }
+
+
 
     private function isWhitelisted($dom, $selector) {
         foreach ($this->white_list as $whitelisted_class) {
@@ -945,7 +1559,4 @@ private function isComplexSelectorExists($selector) {
         }
         return false;
     }
-
-
-
 }

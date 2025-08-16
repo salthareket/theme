@@ -1,23 +1,26 @@
-bootbox.setDefaults({
-	    locale: site_config.user_language,
-	    animate: true,
-	    centerVertical:true,
-	    closeButton: false,
-	    /*buttons: {
-	    	ok: {
-	    		label: 'Yes',
-	    		className: 'btn-success btn-extend'
-	        },
-	    	confirm: {
-	    		label: 'Ok',
-	    		className: 'btn-success btn-extend'
-	    	},
-	    	cancel: {
-	    		label: 'No',
-	    		className: 'btn-outline-danger btn-extend'
-	    	}
-	    }*/
-});	
+function init_bootbox(){
+	bootbox.setDefaults({
+		    locale: site_config.user_language,
+		    animate: true,
+		    centerVertical:true,
+		    closeButton: false,
+		    /*buttons: {
+		    	ok: {
+		    		label: 'Yes',
+		    		className: 'btn-success btn-extend'
+		        },
+		    	confirm: {
+		    		label: 'Ok',
+		    		className: 'btn-success btn-extend'
+		    	},
+		    	cancel: {
+		    		label: 'No',
+		    		className: 'btn-outline-danger btn-extend'
+		    	}
+		    }*/
+	});	
+
+}
 
 function _confirm(title, msg, size, className, btn_confirm, btn_cancel, callback){
 	//dependencies: bootbox
@@ -147,6 +150,7 @@ function _alert(title, msg, size, className, btn_ok, callback, closeButton, cent
         if(!IsBlank(content_classes)){
            modal.find(".modal-content").addClass(content_classes);
         }
+        return modal;
 }
 function _prompt(){
 	//dependencies: bootbox
@@ -180,6 +184,28 @@ function _prompt(){
 	    }
 	};
 	var dialog = bootbox.dialog(options);
+}
+function _dialog(title, msg, size, className, buttons, backdrop){
+	   var options = {};
+		if(!IsBlank(title)){
+			options["title"] = title;
+		}
+		if(!IsBlank(msg)){
+			options["message"] = msg;
+		}
+		if(!IsBlank(size)){
+			options["size"] = size;
+		}
+		if(!IsBlank(className)){
+			options["className"] = className;
+		}
+		if(!IsBlank(buttons)){
+			options["buttons"] = buttons;
+		}
+		if(!IsBlank(backdrop)){
+			options["backdrop"] = backdrop;
+		}
+      return bootbox.dialog(options);
 }
 
 function modal_confirm(){

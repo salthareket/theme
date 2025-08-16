@@ -88,9 +88,9 @@ function acf_get_contacts($type=""){
 				)
 			);
 		}
-		$posts = SaltBase::get_cached_query($args);
-		$posts = Timber::get_posts($posts);
-		if ($posts->found_posts && $type == "main") { 
+		//$posts = SaltBase::get_cached_query($args);
+		$posts = Timber::get_posts($args);
+		if ($posts->found_posts) { 
 			error_log("post var mı?");
 		    $posts = $posts->to_array()[0]; 
 		}

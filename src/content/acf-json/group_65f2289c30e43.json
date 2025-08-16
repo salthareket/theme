@@ -2882,13 +2882,13 @@
                                     "choices": [],
                                     "default_value": "",
                                     "return_format": "value",
-                                    "multiple": 1,
+                                    "multiple": 0,
                                     "allow_custom": 0,
                                     "placeholder": "",
                                     "translations": "sync",
                                     "allow_null": 0,
                                     "allow_in_bindings": 0,
-                                    "ui": 1,
+                                    "ui": 0,
                                     "ajax": 0,
                                     "search_placeholder": "Find posts",
                                     "create_options": 0,
@@ -3485,6 +3485,9 @@
                                 "warning": "warning",
                                 "light": "light",
                                 "dark": "dark",
+                                "green-medium": "green-medium",
+                                "green-dark": "green-dark",
+                                "yellow": "yellow",
                                 "custom": "Custom"
                             },
                             "default_value": "",
@@ -3794,7 +3797,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983314,
+    "modified": 1753830486,
     "acfe_categories": {
         "block": "Block"
     }

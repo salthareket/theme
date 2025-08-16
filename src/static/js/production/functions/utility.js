@@ -385,7 +385,7 @@ function text2clipboard(){
     });
 }
 
-$.fn.sameSize = function (width, max) {
+/*$.fn.sameSize = function (width, max) {
   const prop = width ? 'width' : 'height';
   const minProp = `min-${prop}`;
 
@@ -440,6 +440,71 @@ $.fn.sameSize = function (width, max) {
 
   return this;
 };
+*/
+
+// Tolga özel <3
+$.fn.sameSize = function (width, max, keepMin = false) {
+  const $elements = this;
+  if (!$elements || $elements.length === 0) return this;
+
+  const prop = width ? 'width' : 'height';
+  const minProp = `min-${prop}`;
+
+  function getBreakpointPx($els) {
+    const m = ($els.eq(0).attr('class') || '').match(/nav-equal-([a-zA-Z]+)/);
+    const bpKey = m ? m[1] : 'sm';
+    // CSS custom property’den px değerini oku (örn. --bs-breakpoint-sm)
+    return getCssValue(`--bs-breakpoint-${bpKey}`) || 576; // fallback
+  }
+
+  function computeMaxSize($els) {
+    if (max !== undefined) return max;
+    // Ölçmeden önce temizle ki doğru ölçelim
+    $els.css({ [prop]: '', [minProp]: '' });
+    return Math.max(...$els.map(function () {
+      return $(this)[prop](); // width() / height()
+    }).get());
+  }
+
+  function applyEqualize() {
+    if (!$elements || $elements.length === 0) return;
+
+    const bp = getBreakpointPx($elements);
+    const vw = $(window).width();
+
+    // her seferinde başta temizle
+    $elements.css({ [prop]: '', [minProp]: '' });
+
+    if (vw >= bp) {
+      const maxSize = computeMaxSize($elements);
+      const css = { [minProp]: maxSize, [prop]: maxSize };
+      $elements.css(css).addClass('nav-equalized');
+    } else {
+      // ALTINDA: her şeyi temizle (keepMin true ise minProp tut)
+      if (keepMin && max !== undefined) {
+        $elements.css({ [minProp]: max })//.removeClass('nav-equalized');
+      } else {
+        $elements.css({ [prop]: '', [minProp]: '' })//.removeClass('nav-equalized');
+      }
+    }
+  }
+
+  // İlk çalıştırma
+  applyEqualize();
+
+  // Resize: raf + namespaced
+  let rafId = null;
+  $(window).off('resize.sameSize').on('resize.sameSize', () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      applyEqualize();
+    });
+  });
+
+  return this;
+};
+
 
 function getCssValue(property){
 	var returnValue = "";
@@ -460,8 +525,10 @@ function fitToContainer() {
 }
 
 
-function ajaxResponseFilter(str) {
+function ajaxResponseFilter_old(str) {
     if (typeof str !== "string") return null;
+
+    console.log(str)
 
     const firstBrace = str.indexOf("{");
     const lastBrace = str.lastIndexOf("}");
@@ -480,6 +547,80 @@ function ajaxResponseFilter(str) {
         return null;
     }
 }
+function ajaxResponseFilter(input) {
+  if (typeof input !== "string") return null;
+
+  // Trim + BOM + olası XSSI prefix temizliği
+  let str = input.replace(/^\uFEFF/, "").trim();
+  str = str.replace(/^\)\]\}',?\s*/, ""); // )]}',\n... gibi
+
+  // 1) Direkt parse etmeyi dene
+  try {
+    return JSON.parse(str);
+  } catch (_) {}
+
+  // 2) İlk { veya [ konumunu bul
+  const start = (() => {
+    const iObj = str.indexOf("{");
+    const iArr = str.indexOf("[");
+    if (iObj === -1) return iArr;
+    if (iArr === -1) return iObj;
+    return Math.min(iObj, iArr);
+  })();
+
+  if (start === -1) {
+    console.error("Geçerli JSON başlangıcı bulunamadı.");
+    return null;
+  }
+
+  // 3) Karakter karakter gezip parantezleri dengele
+  const openChar = str[start];
+  const closeChar = openChar === "{" ? "}" : "]";
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let end = -1;
+
+  for (let i = start; i < str.length; i++) {
+    const ch = str[i];
+
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (ch === "\\") {
+        escape = true;
+      } else if (ch === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (ch === openChar) depth++;
+    else if (ch === closeChar) depth--;
+
+    if (depth === 0) { end = i; break; }
+  }
+
+  if (end === -1) {
+    console.error("JSON kapanış parantezi bulunamadı.");
+    return null;
+  }
+
+  const possibleJson = str.slice(start, end + 1);
+
+  try {
+    return JSON.parse(possibleJson);
+  } catch (e) {
+    console.error("JSON parse hatası:", e, "\nKesit:", possibleJson);
+    return null;
+  }
+}
+
 
 function resizeDebounce(func, wait) {
 	let timeout;

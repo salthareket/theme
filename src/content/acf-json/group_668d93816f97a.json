@@ -738,8 +738,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "Cabin": "Cabin",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -2208,7 +2206,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1751415351,
+    "modified": 1753830506,
     "acfe_categories": {
         "general": "General"
     }

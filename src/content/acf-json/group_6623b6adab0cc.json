@@ -79,9 +79,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -179,7 +179,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983320,
+    "modified": 1753830496,
     "acfe_categories": {
         "block": "Block"
     }
