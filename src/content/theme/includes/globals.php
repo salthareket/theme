@@ -14,34 +14,46 @@ add_filter("download_allowed_file_types", function($types=array()){
     return $types;
 });
 
-add_filter("init", function(){
+$GLOBALS["breakpoints"] = array(
+        'xs' => 575,
+        'sm' => 576,
+        'md' => 768,
+        'lg' => 992,
+        'xl' => 1200,
+        'xxl' => 1400,
+        'xxxl' => 1600
+);
 
-    if(isset($GLOBALS["plugins"])){
+if(isset($GLOBALS["plugins"])){
         $required_plugins = array(
             // set plugins in here
         );
         if($required_plugins){
             $GLOBALS["plugins"] = array_merge($GLOBALS["plugins"], $required_plugins);
         }
-    }
+}
 
+// Upload için izin verilen dosya tipleri
+$GLOBALS["upload_mimes"] = array(
+        'svg'  => 'image/svg+xml',
+        'svgz' => 'image/svg+xml',
+        'webp' => 'image/webp',
+        'php'  => 'text/html',
+        'apk'  => 'application/vnd.android.package-archive',
+        'avif' => 'image/avif'
+);
 
+add_filter("init", function(){
 
     //redirects
     $GLOBALS["woo_redirect_empty_cart"] = "";
     $GLOBALS["woo_redirect_not_logged"] = get_account_endpoint_url('my-account');
 
-
-
-
     // Üyelik oluştururken kullanılabilecek rollerin tanımlanması
     $GLOBALS["membership_roles"] = array();
 
-
     // Notification ile ilişkili post_type listesi
     $GLOBALS["notification_post_types"] = array();
-
-
 
     // Yeni block kategorilerinin tanımlanması
     $GLOBALS['block_categories'] = array(
@@ -50,17 +62,6 @@ add_filter("init", function(){
             'title' => esc_html( ucwords(str_replace('-', ' ', TEXT_DOMAIN)) ) . ' Blocks',
             'icon'  => 'dashicons-admin-site' // Dashicon simgesi
         )
-    );
-
-
-    $GLOBALS["breakpoints"] = array(
-        'xs' => 575,
-        'sm' => 576,
-        'md' => 768,
-        'lg' => 992,
-        'xl' => 1200,
-        'xxl' => 1400,
-        'xxxl' => 1600
     );
 
     // Classic editor içine UI elemanları tanımlanması
@@ -84,17 +85,6 @@ add_filter("init", function(){
     /*array(
       //'#fff' => 'Color Name'
     );*/
-
-
-    // Upload için izin verilen dosya tipleri
-    $GLOBALS["upload_mimes"] = array(
-        'svg'  => 'image/svg+xml',
-        'svgz' => 'image/svg+xml',
-        'webp' => 'image/webp',
-        'php'  => 'text/html',
-        'apk'  => 'application/vnd.android.package-archive',
-        'avif' => 'image/avif'
-    );
 
 
     // Bir post_type için yapılan görsel yüklemelerinin boyutlandırılması
