@@ -450,6 +450,7 @@ if(!is_admin()){
 }
 if(is_admin()){
     include_once SH_CLASSES_PATH . "class.fluidcss.php";
+    include_once SH_CLASSES_PATH . "class.columns-thumbnail.php";
 }
 
 if(ENABLE_REGIONAL_POSTS){
