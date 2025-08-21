@@ -1,0 +1,170 @@
+{#
+  Title: Table Extended
+  Description: Düzenlenebilir tablo
+  Category: saltblocks
+  Icon: editor-table
+  Keywords: table tablo satır sütun
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = ["table"] %}
+{% set block_iterable = [] %}
+{% set block_extras = { classes : "position-relative mb-5", container : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+        {% set table_class = "" %}
+        {% if fields.table_striped %}
+            {% set table_class = table_class ~ " table-striped" %}
+        {% endif %}
+        {% if fields.table_striped_columns %}
+            {% set table_class = table_class ~ " table-striped-columns" %}
+        {% endif %}
+        {% if fields.table_hover %}
+            {% set table_class = table_class ~ " table-hover" %}
+        {% endif %}
+
+        {% set table_module = fields.table_module %}
+        {% set table_responsive = fields.table_responsive %}
+        {% set module_class = "" %}
+
+        {% if table_module %}
+            {% set module_class = fields.table_module_class %}
+            {% if fields.table_minimal %}
+                {% set module_class = module_class ~ " table-minimal" %}
+            {% endif %}
+            {% if table_responsive %}
+                {% set module_class = module_class ~ " table-responsive-" ~ table_responsive %}
+            {% endif %}
+        {% endif %}
+
+    
+        {% if table_module %}
+            <div class="card-module m-0 {{module_class}} w-100">
+        {% elseif table_responsive %}
+            <div class="table-responsive-{{table_responsive}}">
+        {% endif %}
+
+
+            {% set table = fields.table %}
+
+            <table class="table table-extended {{table_class}}">
+            {% if table.header %}
+                {% set header_check = 0 %}
+                {% for header_item in table.header %}
+                    {% if header_item.c != "" %}
+                       {% set header_check = header_check + 1 %}
+                    {% endif %}
+                {% endfor %}
+                <thead class="">
+                    <tr>
+                    {% for header_item in table.header %}
+                        {% set cell = header_item.c %}
+                        {% set type = cell.type %}
+                        <th class="cell-{{ type }}" {% if loop.index == 1 and header_check <= 1 %}colspan="{{table.header|length}}"{% endif %}>
+                            
+                            <div class="cell">
+                                {% if type == "text" and cell.text != "" %}
+                                    {{ cell.text }}
+                                {% elseif type == "image" and cell.image.id %}
+                                    {% if cell.image.id %}
+                                        {% if function('get_extension', cell.image.url) == "svg" %}
+                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                        {% else %}
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                        {% endif %}
+                                    {% endif %}
+                                {% elseif type == "file" and cell.file.id %}
+                                    <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
+                                {% elseif type == "boolean" %}
+                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                {% elseif type == "text_image" %}
+                                    {{ cell.text}}
+                                    {% if cell.image.id %}
+                                        {% if function('get_extension', cell.image.url) == "svg" %}
+                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                        {% else %}
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                        {% endif %}
+                                    {% endif %}
+                                {% elseif type == "text_file" %}
+                                    {{ cell.text }}
+                                    {% if cell.file.id %}
+                                        <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
+                                    {% endif %}
+                                {% elseif type == "text_boolean" %}
+                                    {{ cell.text }}
+                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                {% endif %}
+                            </div>
+
+                        </th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+            {% endif %}
+            {% if table.body %}
+                <tbody>
+                {% for body_row in table.body %}
+                    <tr>
+                    {% for body_column in body_row %}
+                        {% set cell = body_column %}
+                        {% set type = cell.type %}
+                        <td class="cell-{{ type }}">
+                            
+                            <div class="cell">
+                                {% if type == "text" and cell.text != "" %}
+                                    {{ cell.text }}
+                                {% elseif type == "image" and cell.image.id %}
+                                    {% if cell.image.id %}
+                                        {% if function('get_extension', cell.image.url) == "svg" %}
+                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                        {% else %}
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                        {% endif %}
+                                    {% endif %}
+                                {% elseif type == "file" and cell.file.id %}
+                                    <a href="{{ cell.file.url }}" class="btn btn-primary"  target="_blank">{{ "Download" }}</a>
+                                {% elseif type == "boolean" %}
+                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                {% elseif type == "text_image" %}
+                                    {{ cell.text}}
+                                    {% if cell.image.id %}
+                                        {% if function('get_extension', cell.image.url) == "svg" %}
+                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                        {% else %}
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                        {% endif %}
+                                    {% endif %}
+                                {% elseif type == "text_file" %}
+                                    {{ cell.text }}
+                                    {% if cell.file.id %}
+                                        <a href="{{ cell.file.url }}" class="btn btn-primary"  target="_blank">{{ "Download" }}</a>
+                                    {% endif %}
+                                {% elseif type == "text_boolean" %}
+                                    {{ cell.text }}
+                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                {% endif %}
+                            </div>
+
+                        </td>
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            {% endif %}
+            </table>
+        {% if table_responsive or table_module %}
+        </div>
+        {% endif %}
+{% endblock %}

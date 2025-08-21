@@ -364,7 +364,9 @@ function compile_files_config($enable_production=false){
 		],
 		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "leaflet" ? 1: 0,
 		"init"     => "init_leaflet",
-		"whitelist" => []
+		"whitelist" => [
+			".leaflet-*"
+		]
 	];
 	$plugins['markerclusterer'] = [
    		"c"	=> true,

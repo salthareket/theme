@@ -28,7 +28,7 @@
         <div class="swiper-slider swiper {{block_meta.row.class}}" {{block_meta.row.attrs}}>
              <div class="swiper-wrapper">
     {% else %}
-        <div class="row {{block_meta.row.class}}" {{block_meta.row.attrs}}>
+        <div class="row {{block_meta.row.class}} w-100" {{block_meta.row.attrs}}>
     {% endif %}
 
         {% for key, item in fields.icons %} 
@@ -50,11 +50,11 @@
                     {% endif %}
 
                         {% if fields.template and fields.template != "default" %}
-                            {% include fields.template ~ ".twig" with { post: item } %}
+                            {% include fields.template ~ ".twig" with { post: item, fields: fields, index: key } %}
                         {% else %}
 
                             {% if item.icon.image %}
-                            <div class="icon w-100 {% if fields.reverse %}{% if item.icon.margin.margin and item.icon.margin.margin != "default" %}mt-{{ item.icon.margin.margin }}{% endif %}{% else %}{% if item.icon.margin.margin and item.icon.margin.margin != "default" %}mb-{{ item.icon.margin.margin }}{% endif %}{% endif %}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
+                            <div class="icon w-100 {% if fields.reverse %}{% if item.icon.styles.margin and item.icon.styles.margin != "default" %}mt-{{ item.icon.styles.margin }}{% endif %}{% else %}{% if item.icon.styles.margin and item.icon.styles.margin != "default" %}mb-{{ item.icon.styles.margin }}{% endif %}{% endif %}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
                                 {% if function('get_extension', item.icon.image.url) == "svg" %}
                                     {{item.icon.image.url|inline_svg("image img-fluid")}}
                                 {% else %}
@@ -91,5 +91,31 @@
     {% else %}
         </div>
     {% endif %}
+
+    <style type="text/css">
+    {% for key, item in fields.icons %} 
+        {% if slide.acf_fc_layout == "static" %}
+            {% if slide.add_content and slide.content.title_color %}
+                #{{block_meta.id}} .slide-{{index + 1}} .title{
+                    color:{{ slide.content.title_color }}!important;
+                }
+            {% endif %}
+            {% if not slide.content.title_color %}
+                #{{block_meta.id}} .slide-light .title{
+                    color:{{ fields.slider_settings.color_dark }}!important;
+                }
+                #{{block_meta.id}} .slide-dark .title{
+                    color:{{ fields.slider_settings.color_light }}!important;
+                }
+            {% endif %}
+            #{{block_meta.id}} .slide-dark .description{
+                color:{{ fields.slider_settings.color_light }}!important;
+            }
+            #{{block_meta.id}} .slide-light .description{
+                color:{{ fields.slider_settings.color_dark }}!important;
+            }
+        {% endif %}
+    {% endfor %}
+    </style>
 
 {% endblock%}

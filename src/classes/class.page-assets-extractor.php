@@ -6,9 +6,9 @@ class PageAssetsExtractor
 {
     /* ======= Sabitler ======= */
     const META_KEY = 'assets';
+    const HTML_HASH_META_KEY = '_page_assets_last_html_hash';
 
     /* ======= Genel Durum ======= */
-    protected $multilang_plugin = null;           // KULLANMIYORUZ (global’ler var)
     public    $type = null;                       // 'post' | 'term' | 'archive' | ...
     public    $mass = false;
     public    $disable_hooks = false;
@@ -20,6 +20,8 @@ class PageAssetsExtractor
     public $upload_url_encoded = "";
     public $url;
     public $html;
+
+    public $source_css = STATIC_PATH ."css/main-combined.css";
 
     protected $structure_fp = '';
 
@@ -48,10 +50,17 @@ class PageAssetsExtractor
         $this->manifest_path = $cache_root . 'assets-manifest.json';
         $this->manifest_read();
 
+        // CSS güncelleme kontrolü
+        $css_mtime = file_exists($this->source_css) ? filemtime($this->source_css) : 0;
+        if (!isset($this->manifest['last_css_mtime']) || $this->manifest['last_css_mtime'] !== $css_mtime) {
+            $this->force_rebuild = true;
+            $this->manifest['last_css_mtime'] = $css_mtime;
+            $this->manifest_write();
+        }
+
         add_action('acf/render_field/name=page_assets', [$this, 'update_page_assets_message_field']);
         add_action('wp_ajax_page_assets_update', [$this,'page_assets_update']);
         add_action('wp_ajax_nopriv_page_assets_update', [$this,'page_assets_update']);
-    
     }
 
     /* ===================== HOOK AKIŞI ===================== */
@@ -72,7 +81,15 @@ class PageAssetsExtractor
         $this->type = "post";
         $ok = $this->fetch_post_url($post_id);
 
-        // arşivleri güncelle (tüm diller için URL üretimi globals ile yapılır)
+        if ($ok !== false && !empty($this->html)) {
+            $this->check_and_handle_html_change(
+                $post_id,
+                $this->html,
+                'post'
+            );
+        }
+
+        // arşivleri güncelle
         $this->fetch_and_save_archives_assets($post->post_type);
 
         if ($ok !== false) {
@@ -89,8 +106,44 @@ class PageAssetsExtractor
         if ($this->disable_hooks) return;
 
         $this->type = "term";
-        return $this->fetch_term_url($term_id, $taxonomy);
+        $ok = $this->fetch_term_url($term_id, $taxonomy);
+
+        if ($ok !== false && !empty($this->html)) {
+            $this->check_and_handle_html_change(
+                $term_id,
+                $this->html,
+                'term'
+            );
+        }
+
+        return $ok;
     }
+
+    /* ===================== HTML HASH KONTROL ===================== */
+
+    protected function check_and_handle_html_change($id, $html, $context = 'post') {
+        $current_html_hash = md5($html);
+        $last_html_hash = ($context === 'post')
+            ? get_post_meta($id, self::HTML_HASH_META_KEY, true)
+            : get_term_meta($id, self::HTML_HASH_META_KEY, true);
+
+        if ($current_html_hash !== $last_html_hash) {
+            error_log("[PAE] {$context} HTML değişmiş, manifest purge ediliyor...");
+            $this->force_rebuild = true;
+
+            if ($context === 'post') {
+                update_post_meta($id, self::HTML_HASH_META_KEY, $current_html_hash);
+            } else {
+                update_term_meta($id, self::HTML_HASH_META_KEY, $current_html_hash);
+            }
+
+            $this->purge_page_assets_manifest();
+            $this->manifest_write();
+        } else {
+            error_log("[PAE] {$context} HTML aynı, rebuild gerek yok.");
+        }
+    }
+
 
     /* ===================== FİLTRELER ===================== */
 
@@ -200,7 +253,7 @@ class PageAssetsExtractor
     /* ===================== CSS PURGE HELPERS ===================== */
     private function remove_unused_css($html, $input = "", $output = "", $whitelist = [], $critical_css = false){
         if(empty($input)){
-            $input = @file_get_contents(STATIC_PATH ."css/main-combined.css");
+            $input = @file_get_contents($this->source_css);
         }
         $remover = new RemoveUnusedCss($html, $input, $output, $whitelist, $critical_css);
         return $remover->process();
@@ -218,6 +271,29 @@ class PageAssetsExtractor
         @file_put_contents($cache_file, $this->normalize_content($purged, 'css'));
         return $purged;
     }
+    // purge cache klasörünü tamamen temizle
+    public function remove_purge_css(){
+        $purge_cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
+        if(is_dir($purge_cache_dir)) {
+            $files = glob($purge_cache_dir.'purge-*.css');
+            foreach($files as $file) {
+                @unlink($file);
+            }
+        }
+    }
+    public function remove_critical_css(){
+        $critical_cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
+        if(is_dir($critical_cache_dir)) {
+            // *-critical.css ile biten tüm dosyaları seç
+            $files = glob($critical_cache_dir.'*-critical.css');
+            foreach($files as $file) {
+                @unlink($file);
+            }
+        }
+    }
+
+    
+
 
     /* ===================== YARDIMCILAR ===================== */
     private function extract_class_list_from_html_string(string $html): array {
@@ -1016,6 +1092,16 @@ class PageAssetsExtractor
                 }
             }
         }
+    }
+    
+    public function purge_page_assets_manifest() {
+        $cache_manifest = rtrim(defined('STATIC_PATH') ? STATIC_PATH : __DIR__.'/', '/').'/cache-manifest/assets-manifest.json';
+        if (file_exists($cache_manifest)) {
+            unlink($cache_manifest); // cache sil
+        }
+        $this->force_rebuild = true;
+        $this->remove_purge_css();
+        $this->remove_critical_css();
     }
 
     /* ===================== SİTEMAP & DİĞERLERİ ===================== */

@@ -12,6 +12,13 @@ add_filter('wp_editor_set_quality', function ($quality, $mime_type) {
     return $quality;
 }, 10, 2);
 
+add_filter('wp_generate_attachment_metadata', function($metadata, $attachment_id){
+    $file = get_attached_file($attachment_id);
+    if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'svg') return $metadata;
+    return $metadata; // diğer formatlar için normal conversion
+}, 20, 2);
+
+
 
 function set_default_image_alt_text($attachment_id) {
     $alt_text = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);

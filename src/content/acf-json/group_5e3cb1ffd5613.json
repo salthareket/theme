@@ -620,9 +620,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -668,5 +668,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1753830471
+    "modified": 1750983304
 }

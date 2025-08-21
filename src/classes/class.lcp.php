@@ -187,10 +187,10 @@ class Lcp{
 	    $lcp_ids    = array_map('intval', array_column($lcp_images, 'id'));
 	    $lcp_urls   = array_column($lcp_images, 'url');
         
-        error_log("image");
-	    error_log(print_r($image, true));
-	    error_log("lcps");
-	    error_log(print_r($lcp_ids, true));
+        //error_log("image");
+	    //error_log(print_r($image, true));
+	    //error_log("lcps");
+	    //error_log(print_r($lcp_ids, true));
 
 	    // Eğer string (URL) verilmişse
 	    if (is_string($image)) {

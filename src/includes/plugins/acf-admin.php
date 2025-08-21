@@ -1416,8 +1416,7 @@ function acf_add_field_options($field) {
         }
     }
 
-
-    if(in_array("acf-breakpoints", $class)){
+    if(in_array("acf-breakpoints", $class) || in_array("acf-breakpoints-none", $class)){
         $field["allow_custom"] = 0;
         $field["default_value"] = "xl";
         $field["type"] = "select";
@@ -1427,11 +1426,17 @@ function acf_add_field_options($field) {
         $field["ui"] = 0;
         $field["search_placeholder"] = "";
         $field["return_format"] = "value";
+        if(in_array("acf-breakpoints-none", $class)){
+            $field["default_value"] = "";
+        }
         $options = array();
         foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
             $options[$key] = $key;
         }
         $field['choices'] = array();
+        if(in_array("acf-breakpoints-none", $class)){
+            $field['choices'][""] = "None";
+        }
         foreach($options as $label) {
             $field['choices'][$label] = $label;
         }
@@ -1482,7 +1487,7 @@ function acf_add_field_options($field) {
             global $wpdb;
             $parent_name =  $wpdb->get_var($wpdb->prepare("SELECT post_excerpt FROM {$wpdb->posts} WHERE post_type = 'acf-field' AND post_name = %s", $field["parent"]));
                 if($parent_name){
-                    if (in_array($parent_name, ["margin", "padding", "default_margin", "default_padding"])) {
+                    if (in_array($parent_name, ["styles", "margin", "padding", "default_margin", "default_padding"])) {
                         $field["allow_custom"] = 0;
                         $field["default_value"] = "";
                         $field["type"] = $field["type"]=="acf_bs_breakpoints"?$field["type"]:"select";
@@ -1497,7 +1502,7 @@ function acf_add_field_options($field) {
                             $options[$number] = $number;
                         }
                         $field['choices'] = array();
-                        if (in_array($parent_name, ["margin", "padding"])) {
+                        if (in_array($parent_name, ["styles", "margin", "padding"])) {
                             $field['choices']["default"] = "Default";
                         }
                         if (in_array("acf-margin-padding-responsive", $class)) {
@@ -2168,7 +2173,6 @@ function acf_add_field_options($field) {
             $field['choices']["custom"] = "Custom";
         }
     }
-
 
     if(in_array("acf-contact-accounts", $class)){
         $field["allow_custom"] = 0;
@@ -3696,6 +3700,9 @@ function acf_compile_js_css($value=0){
                     add_admin_notice($message, $type);
                 }
             }
+
+            $minifier->purge_page_assets_manifest();
+
             if(!$value){
                 //return true;
             }

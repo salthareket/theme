@@ -1,0 +1,135 @@
+{#
+  Title: World Map
+  Description: Dünya haritası
+  Category: saltblocks
+  Icon: images-alt
+  Keywords: harita map ülke country
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+   {% set default_style = fields.style.default %}
+   {% set default_hover_style = fields.style.default_hover %}
+   {% set active_style = fields.style.active %}
+   {% set active_hover_style = fields.style.active_hover %}
+
+   {% set map =  site.theme.uri ~ "/theme/static/data/world-map.svg" %}
+   {{map|inline_svg("world-map img-fluid position-relative w-100")}}
+
+   <ul class="list-countries list-inline mt-5 text-md text-center">
+      {% for country in fields.countries|pluck("label")|sort %}
+         <li class="list-inline-item"><span>{{ country }}</span></li>
+      {% endfor %}
+   </ul>
+
+   <style data-inline="true">
+
+      #{{block_meta.id}} .world-map g:not(.active),
+      #{{block_meta.id}} .world-map g:not(.active) > path,
+      #{{block_meta.id}} .world-map g:not(.active) > polygon{
+         fill: {{default_style.color|default("#bcbec0")}};
+         stroke: {{default_style.stroke|default("transparent")}};
+         stroke-width: {{default_style.stroke_width|default("1px")}};
+         transition: all .3s ease-out;
+      }
+      #{{block_meta.id}} .world-map g:not(.active) g,
+      #{{block_meta.id}} .world-map g:not(.active) > g > path,
+      #{{block_meta.id}} .world-map g:not(.active) > g > polygon{
+         fill: {{default_style.color|default("#bcbec0")}};
+         stroke: {{default_style.stroke|default("transparent")}};
+         stroke-width: {{default_style.stroke_width|default("1px")}};
+         transition: all .3s ease-out;
+      }
+
+      #{{block_meta.id}} .world-map g:not(.active):hover,
+      #{{block_meta.id}} .world-map g:not(.active):hover > path,
+      #{{block_meta.id}} .world-map g:not(.active):hover > polygon {
+         fill: {{ default_hover_style.color ?? default_style.color|default("#bcbec0") }};
+         stroke: {{ default_hover_style.stroke ?? default_style.stroke|default("transparent") }};
+         stroke-width: {{ default_hover_style.stroke_width ?? default_style.stroke_width|default("1px") }};
+      }
+
+      #{{block_meta.id}} .world-map g:not(.active):hover g,
+      #{{block_meta.id}} .world-map g:not(.active):hover > g > path,
+      #{{block_meta.id}} .world-map g:not(.active):hover > g > polygon {
+         fill: {{ default_hover_style.color ?? default_style.color|default("#bcbec0") }};
+         stroke: {{ default_hover_style.stroke ?? default_style.stroke|default("transparent") }};
+         stroke-width: {{ default_hover_style.stroke_width ?? default_style.stroke_width|default("1px") }};
+      }
+
+
+
+
+      #{{block_meta.id}} .world-map .active,
+      #{{block_meta.id}} .world-map .active > path,
+      #{{block_meta.id}} .world-map .active > polygon{
+         fill:{{active_style.color|default("#25b34b")}}!important;
+         stroke: {{active_style.stroke|default("transparent")}};
+         stroke-width: {{active_style.stroke_width|default("1px")}};
+         transition: all .3s ease-out;
+      }
+      #{{block_meta.id}} .world-map .active g,
+      #{{block_meta.id}} .world-map .active > g > path,
+      #{{block_meta.id}} .world-map .active > g > polygon{
+         fill:{{active_style.color|default("#25b34b")}}!important;
+         stroke: {{active_style.stroke|default("transparent")}};
+         stroke-width: {{active_style.stroke_width|default("1px")}};
+         transition: all .3s ease-out;
+      }
+
+      #{{block_meta.id}} .world-map .active:hover,
+      #{{block_meta.id}} .world-map .active:hover > path,
+      #{{block_meta.id}} .world-map .active:hover > polygon{
+         fill:{{active_hover_style.color|default("#25b34b")}}!important;
+         stroke: {{active_hover_style.stroke|default("transparent")}};
+         stroke-width: {{active_hover_style.stroke_width|default("1px")}};
+         cursor: pointer;
+      }
+      #{{block_meta.id}} .world-map .active:hover g,
+      #{{block_meta.id}} .world-map .active:hover > g > path,
+      #{{block_meta.id}} .world-map .active:hover > g > polygon{
+         fill:{{active_hover_style.color|default("#25b34b")}}!important;
+         stroke: {{active_hover_style.stroke|default("transparent")}};
+         stroke-width: {{active_hover_style.stroke_width|default("1px")}};
+         cursor: pointer;
+      }
+   </style>
+
+   {% if fields.countries %}
+       <script >
+           var countries = {{ fields.countries|default("[]")|json_encode }};
+           for (var key in countries) {
+               var code = countries[key]["value"].toUpperCase();//.toLowerCase();
+               if(code){
+                  var country = document.querySelector(".world-map #"+code);
+                  console.log(country)
+                  if(country){
+                      country.classList.add("active");
+                      country.setAttribute("data-bs-toggle", "tooltip");
+                      country.setAttribute("data-bs-placement", "top");
+                      country.setAttribute("data-bs-custom-class", "tooltip-follow-cursor");
+                      country.setAttribute("data-bs-title", countries[key]["label"]);       
+                  }else{
+                     console.log(code)
+                  }
+               }
+            }
+            var country_tips = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+            var country_tips_list = [...country_tips].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+       </script>
+   {% endif %}
+
+{% endblock %}

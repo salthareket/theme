@@ -63,7 +63,7 @@ function isEmail(email) {
     return /^[\w.-]+@[\w.-]+\.[a-z]{2,}$/i.test(email);
 }
 function pluralize(singular = '', plural = '', count = 0, fallback = '') {
-    if (count === 0 && !isBlank(fallback)) {
+    if (count === 0 && !IsBlank(fallback)) {
         return fallback;
     }
 

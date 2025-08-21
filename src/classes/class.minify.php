@@ -313,24 +313,28 @@ class SaltMinifier{
             foreach ($this->rules["js"]["plugins"] as $key => $item) {
                 
                 $content = "";
-                $is_min = false;
+                //$is_min = false;
                 foreach ($item["url"] as $url_key => $url) {
+                    error_log($url);
+                    $url = str_replace(STATIC_URL, STATIC_PATH, $url);
                     if (!file_exists($url)) {
                         continue;
                     }
-                    $is_min = strpos($url, ".min.");
-                    $url = $this->removeComments($url);
+                    error_log("added");
+                    if (strpos($url, '.min.js') !== false) {
+                    //    $is_min = true;
+                    }
+                    //$url = $this->removeComments($url);
                     $content .= file_get_contents($url);
                 }
-                $file_path = $this->output["plugins"] . $key . ($is_min?".min":"") . '.js';
+                $ext = "";//$is_min ? '.min' : '';
+                $file_path = $this->output["plugins"] . $key . $ext . '.js';
                 file_put_contents($file_path, $content);
+
                 $item_local = $this->save_as_local($key, $file_path); //
                 if(!$item["c"]){
                     $plugin_min_files[] = $file_path;//$item_local;
                 }
-
-            	//$item["url"] = $this->removeComments($item["url"]);
-                //$item_local = $this->save_as_local($key, $item["url"]);
 
                 $item_init = $this->output["plugins_init"] . $key . '.js';
                 if (!file_exists($item_init)) {
@@ -436,15 +440,18 @@ class SaltMinifier{
 	}
 
 	public function save_as_local($plugin="", $item=""){
-		if(strpos($item, ".min.") === false){
+		/*if(strpos($item, ".min.") === false){
+            error_log("save_as_local 1.");
             $minify_individual = new Minify\JS($item);
             $minify_individual->minify($this->output["plugins"] . $plugin . '.js');
             $this->removeSourceMap($this->output["plugins"] . $plugin . '.js', "file");
-        }else{
+        }else{*/
+             error_log("save_as_local 2.");
             $content = file_get_contents($item);
             $content = $this->removeSourceMap($content, "source");
             file_put_contents($this->output["plugins"] . $plugin . '.js', $content);
-        }
+        //}
+
         return $this->output["plugins"] . $plugin . '.js';
 	}
     /*public function save_as_local($plugin = "", $item = "") {
@@ -819,6 +826,20 @@ class SaltMinifier{
         error_log("✓ Font-face blokları tamamen kaldırıldı → $css_url");
         return true;
     }
+
+    function purge_page_assets_manifest() {
+        $cache_manifest = rtrim(defined('STATIC_PATH') ? STATIC_PATH : __DIR__.'/', '/').'/cache-manifest/assets-manifest.json';
+        if (file_exists($cache_manifest)) {
+            unlink($cache_manifest); // cache sil
+        }
+        if (class_exists('PageAssetsExtractor')) {
+            $extractor = new PageAssetsExtractor();
+            $extractor->force_rebuild = true;
+            $extractor->remove_purge_css();
+            $extractor->remove_critical_css();
+        }
+    }
+
 
 	public function init(){
 		$this->css();

@@ -49,7 +49,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_66e33aaff19f3",
@@ -106,7 +107,8 @@
             "allow_in_bindings": 0,
             "placeholder": "",
             "prepend": "",
-            "append": ""
+            "append": "",
+            "pll_default_value": ""
         },
         {
             "key": "field_66e8b23965c52",
@@ -180,9 +182,10 @@
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1753910343,
+    "modified": 1755563412,
     "acfe_categories": {
         "block": "Block"
     }

@@ -18,10 +18,6 @@
             },
             "layout": "block",
             "acfe_seamless_style": 1,
-            "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
                     "key": "field_6638385a422de",
@@ -106,8 +102,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "latest": "latest [29.07.2025 23:07]",
-                        "xekos": "xekos [29.07.2025 23:07]"
+                        "latest": "latest [27.06.2025 12:23]",
+                        "xekos": "xekos [27.06.2025 12:23]"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -661,7 +657,11 @@
                     "acfe_clone_modal_button": "",
                     "acfe_clone_modal_size": "large"
                 }
-            ]
+            ],
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         }
     ],
     "location": [
@@ -689,7 +689,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1753830497,
+    "modified": 1751027858,
     "acfe_categories": {
         "general": "General"
     }

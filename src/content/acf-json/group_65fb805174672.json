@@ -265,9 +265,6 @@
                                 "warning": "warning",
                                 "light": "light",
                                 "dark": "dark",
-                                "green-medium": "green-medium",
-                                "green-dark": "green-dark",
-                                "yellow": "yellow",
                                 "custom": "Custom"
                             },
                             "default_value": "",
@@ -1748,7 +1745,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1753830494,
+    "modified": 1750983318,
     "acfe_categories": {
         "block": "Block"
     }

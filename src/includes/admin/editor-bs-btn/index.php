@@ -118,7 +118,7 @@ function my_mce_before_init_insert_formats( $init_array ) {
     //$style_formats = array_merge($font_weights, $style_formats);
 
     $line_heights = [];
-    foreach(["1", "base", "sm", "lg"] as $lh){
+    foreach(["1", "base", "sm", "md", "lg"] as $lh){
         $line_heights[] = array(  
             'title' => 'Line Height - '.$lh,  
             'selector' => '*',  
@@ -130,6 +130,20 @@ function my_mce_before_init_insert_formats( $init_array ) {
         "items" => $line_heights
     ];
     //$style_formats = array_merge($line_heights, $style_formats);
+
+
+    $margins = [];
+    foreach(["mt-5", "mt-4", "mt-3", "mt-2", "mt-1", "m-0", "mb-5", "mb-4", "mb-3", "mb-2", "mb-1"] as $margin){
+        $margins[] = array(  
+            'title' => 'Margin - '.$margin,  
+            'selector' => 'h1,h2,h3,h4,h5,h6,p',  
+            'classes' => $margin            
+        );
+    }
+    $new_styles[] = [
+        "title" => "Margin",
+        "items" => $margins
+    ];
     
     if(isset($GLOBALS["mce_styles"]) && is_array($GLOBALS["mce_styles"])){
         $style_formats = array_merge($GLOBALS["mce_styles"], $style_formats);

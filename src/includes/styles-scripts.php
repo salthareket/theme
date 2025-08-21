@@ -279,7 +279,7 @@ function frontend_header_styles(){
 	$plugin_css = false;
 	$css_page = false;
     if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !isset($_GET['fetch'])){
-    	if(!empty(SITE_ASSETS["plugin_css"])){
+    	if(isset(SITE_ASSETS['plugin_css']) && !empty(SITE_ASSETS['plugin_css']) && file_exists(STATIC_PATH . SITE_ASSETS["plugin_css"])){
     		$plugin_css = true;
     	}
     	if(isset(SITE_ASSETS['css_page']) && !empty(SITE_ASSETS['css_page']) && file_exists(STATIC_PATH . SITE_ASSETS["css_page"])){

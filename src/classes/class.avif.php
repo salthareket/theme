@@ -119,6 +119,13 @@ class AvifConverter {
     public function process_and_convert_metadata($metadata, $attachment_id) {
         $original_file_path = get_attached_file($attachment_id);
 
+        // Başında izin verilen format kontrolü
+        $ext = strtolower(pathinfo($original_file_path, PATHINFO_EXTENSION));
+        if (!in_array($ext, $this->allowed_formats)) {
+            // Örn. SVG, TIFF vs. gibi izin verilmeyenleri atla
+            return $metadata;
+        }
+
         $this->clean_and_rewrite_original($original_file_path);
 
         if (!$original_file_path || !file_exists($original_file_path) || !in_array(strtolower(pathinfo($original_file_path, PATHINFO_EXTENSION)), $this->allowed_formats)) {

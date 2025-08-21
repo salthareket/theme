@@ -92,9 +92,11 @@ Class Theme{
         }else{
             add_action("wp", function(){
                 visibility_under_construction();
-
-                $dict = get_or_create_dictionary_cache($GLOBALS["language"]);
-                $GLOBALS["lang_predefined"] = $dict;
+                
+                /*if(function_exists("get_or_create_dictionary_cache")){
+                    $dict = get_or_create_dictionary_cache($GLOBALS["language"]);
+                    $GLOBALS["lang_predefined"] = $dict;                    
+                }*/
 
             });    
         }
@@ -1186,6 +1188,11 @@ Class Theme{
                $config["theme_includes_url"] = SH_INCLUDES_URL; 
             }
 
+            if(!is_admin() && class_exists("TranslationDictionary")){
+                $dictionary = new \TranslationDictionary();
+                $config["dictionary"] = $dictionary->getDictionary();
+            }
+
             if($meta){
                 $config["meta"] = $meta;
             }
@@ -1215,9 +1222,6 @@ Class Theme{
                 $args = $GLOBALS["site_config"];
             }else{
                 $args = self::get_site_config();
-            }
-            if(isset($GLOBALS["lang_predefined"])){
-                $args["dictionary"] = $GLOBALS["lang_predefined"];
             }
 
             if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["meta"])){

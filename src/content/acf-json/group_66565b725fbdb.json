@@ -67,7 +67,8 @@
                     "enable_opacity": 1,
                     "return_format": "string",
                     "translations": "sync",
-                    "allow_in_bindings": 0
+                    "allow_in_bindings": 0,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6865b8b4fa787",
@@ -93,7 +94,8 @@
                     },
                     "translations": "sync",
                     "allow_in_bindings": 0,
-                    "default_value": ""
+                    "default_value": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6865b8b4fa788",
@@ -115,7 +117,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 }
             ]
         },
@@ -241,7 +244,8 @@
                     "enable_opacity": 1,
                     "return_format": "string",
                     "translations": "sync",
-                    "allow_in_bindings": 0
+                    "allow_in_bindings": 0,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6865c1e6d7cca",
@@ -267,7 +271,8 @@
                     },
                     "translations": "sync",
                     "allow_in_bindings": 0,
-                    "default_value": ""
+                    "default_value": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6865c1f7d7ccb",
@@ -289,7 +294,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 }
             ]
         },
@@ -345,7 +351,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "none"
         },
         {
             "key": "field_66565b8dc73a2",
@@ -418,7 +425,8 @@
             "sm": "",
             "xs": "",
             "allow_in_bindings": 0,
-            "font_size": 14
+            "font_size": 14,
+            "pll_default_value": ""
         },
         {
             "key": "field_67bf9d6af532f",
@@ -451,7 +459,8 @@
             },
             "default_value": "",
             "translations": "copy_once",
-            "allow_in_bindings": 0
+            "allow_in_bindings": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_670813df94c4e",
@@ -695,7 +704,8 @@
                     "allow_in_bindings": 1,
                     "layout": "horizontal",
                     "save_other_choice": 0,
-                    "parent_repeater": "field_67080ef675864"
+                    "parent_repeater": "field_67080ef675864",
+                    "pll_default_value": "image"
                 },
                 {
                     "key": "field_67080ef775871",
@@ -876,7 +886,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "cover"
         },
         {
             "key": "field_66565b8dc73a4",
@@ -941,7 +952,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "no-repeat"
         },
         {
             "key": "field_66565b8dc73a5",
@@ -1005,7 +1017,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "center"
         },
         {
             "key": "field_66565b8dc73a6",
@@ -1069,7 +1082,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "center"
         },
         {
             "key": "field_670d6130b9666",
@@ -1284,7 +1298,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_66ace9902a7f5",
@@ -1361,7 +1376,7 @@
                 ],
                 [
                     {
-                        "field": "field_66565b8dc73a1",
+                        "field": "field_6865b8b4fa786",
                         "operator": "!=empty"
                     },
                     {
@@ -1377,7 +1392,7 @@
                 ],
                 [
                     {
-                        "field": "field_66565b8dc73a1",
+                        "field": "field_6865b8b4fa786",
                         "operator": "!=empty"
                     },
                     {
@@ -1393,7 +1408,7 @@
                 ],
                 [
                     {
-                        "field": "field_66565b8dc73a1",
+                        "field": "field_6865b8b4fa786",
                         "operator": "!=empty"
                     },
                     {
@@ -1409,7 +1424,7 @@
                 ],
                 [
                     {
-                        "field": "field_66565b8dc73a1",
+                        "field": "field_6865b8b4fa786",
                         "operator": "!=empty"
                     },
                     {
@@ -1766,7 +1781,7 @@
                         "value": "none"
                     },
                     {
-                        "field": "field_66565b8dc73a1",
+                        "field": "field_6865b8b4fa786",
                         "operator": "!=empty"
                     },
                     {
@@ -1903,6 +1918,18 @@
                         "operator": "==",
                         "value": "contrast"
                     }
+                ],
+                [
+                    {
+                        "field": "field_66d876dc1d556",
+                        "operator": "==",
+                        "value": "image_responsive"
+                    },
+                    {
+                        "field": "field_66945084cfa29",
+                        "operator": "==",
+                        "value": "opacity"
+                    }
                 ]
             ],
             "wrapper": {
@@ -1917,7 +1944,8 @@
             "allow_in_bindings": 1,
             "step": "",
             "prepend": "",
-            "append": "%"
+            "append": "%",
+            "pll_default_value": 0
         },
         {
             "key": "field_66acea592a7ff",
@@ -2083,6 +2111,10 @@
             "default_value": {
                 "value": "0",
                 "unit": "px"
+            },
+            "pll_default_value": {
+                "value": "0",
+                "unit": "px"
             }
         },
         {
@@ -2204,7 +2236,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_670d6147b9667",
@@ -2394,7 +2427,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_66d8dcd1364a7",
@@ -2462,7 +2496,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "scroll"
                 },
                 {
                     "key": "field_66d8dd05364a9",
@@ -2485,7 +2520,8 @@
                     "allow_in_bindings": 1,
                     "step": "0.1",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": "0.2"
                 }
             ]
         },
@@ -2575,7 +2611,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "cover"
         },
         {
             "key": "field_671e5a38ad189",
@@ -2616,7 +2653,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "no-repeat"
         },
         {
             "key": "field_671e5a46ad18b",
@@ -2656,7 +2694,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "center"
         },
         {
             "key": "field_671e5a3cad18a",
@@ -2696,7 +2735,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "center"
         },
         {
             "key": "field_671e5dea99f04",
@@ -2723,7 +2763,8 @@
             "enable_opacity": 0,
             "return_format": "string",
             "translations": "sync",
-            "allow_in_bindings": 0
+            "allow_in_bindings": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_671e5e2599f05",
@@ -2752,7 +2793,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_671e7ba30d781",
@@ -2822,7 +2864,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "auto"
                 },
                 {
                     "key": "field_671e7ba30d783",
@@ -2864,7 +2907,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "auto"
                 },
                 {
                     "key": "field_671e7ba30d784",
@@ -2906,7 +2950,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "auto"
                 },
                 {
                     "key": "field_671e7ba30d785",
@@ -2948,7 +2993,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "auto"
                 }
             ]
         }
@@ -2976,9 +3022,10 @@
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1753830500,
+    "modified": 1755396544,
     "acfe_categories": {
         "common": "Common"
     }

@@ -344,9 +344,6 @@
                                 "text-danger": "text-danger",
                                 "text-light": "text-light",
                                 "text-dark": "text-dark",
-                                "text-green-medium": "text-green-medium",
-                                "text-green-dark": "text-green-dark",
-                                "text-yellow": "text-yellow",
                                 "16": "##Background Colors",
                                 "bg-primary": "bg-primary",
                                 "bg-secondary": "bg-secondary",
@@ -357,10 +354,7 @@
                                 "bg-warning": "bg-warning",
                                 "bg-danger": "bg-danger",
                                 "bg-light": "bg-light",
-                                "bg-dark": "bg-dark",
-                                "bg-green-medium": "bg-green-medium",
-                                "bg-green-dark": "bg-green-dark",
-                                "bg-yellow": "bg-yellow"
+                                "bg-dark": "bg-dark"
                             },
                             "default_value": [],
                             "return_format": "value",
@@ -568,9 +562,6 @@
                                 "text-danger": "text-danger",
                                 "text-light": "text-light",
                                 "text-dark": "text-dark",
-                                "text-green-medium": "text-green-medium",
-                                "text-green-dark": "text-green-dark",
-                                "text-yellow": "text-yellow",
                                 "15": "##Background Colors",
                                 "bg-primary": "bg-primary",
                                 "bg-secondary": "bg-secondary",
@@ -581,10 +572,7 @@
                                 "bg-warning": "bg-warning",
                                 "bg-danger": "bg-danger",
                                 "bg-light": "bg-light",
-                                "bg-dark": "bg-dark",
-                                "bg-green-medium": "bg-green-medium",
-                                "bg-green-dark": "bg-green-dark",
-                                "bg-yellow": "bg-yellow"
+                                "bg-dark": "bg-dark"
                             },
                             "default_value": [],
                             "return_format": "value",
@@ -965,7 +953,10 @@
                                 "class": "",
                                 "id": ""
                             },
-                            "choices": [],
+                            "choices": {
+                                "": "Menü seçiniz",
+                                "9": "header"
+                            },
                             "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
@@ -1086,7 +1077,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1753830474,
+    "modified": 1750983306,
     "acfe_categories": {
         "general": "General"
     }

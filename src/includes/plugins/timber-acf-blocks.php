@@ -2740,11 +2740,12 @@ function block_bg_video($block, $fields, $block_column){
 
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
-            $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover '.$classes.' position-absolute-fill hide-controls overflow-hidden" style="'.$image_style.'">';
+            $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover 2 '.$classes.' position-absolute-fill hide-controls overflow-hidden" style="'.$image_style.'">';
             if($background["type"] == "embed" && !empty($background["parallax"])){
                 $image .= '<div class="jarallax-img">';
             }
             $image .= get_video(["src" => $args, "class" => $video_class, "init" => true]);
+
             if($background["type"] == "embed" && !empty($background["parallax"])){
                 $image .= '</div>';
             }
@@ -2845,7 +2846,7 @@ function block_bg_media($block, $fields, $block_column){
 
             default:
                 if(!empty($background["image_mask"])){
-                    $result = "<div class='bg-cover position-absolute-fill'></div>";
+                    $result = "<div class='bg-cover 1 ".$background["type"]." position-absolute-fill'></div>";
                 }
             break;
         }
@@ -2867,10 +2868,29 @@ function block_bg_media($block, $fields, $block_column){
             $css .= "#".$selector."{background-color:".$background_color.";}";
         }*/
 
-        if(isset($background["overlay"]) && (!empty($background["overlay"]["gradient_color"]) && $background["overlay"]["gradient"]) || !empty($background["overlay"]["color"])){
+        /*if(isset($background["overlay"]) && (!empty($background["overlay"]["gradient_color"]) && $background["overlay"]["gradient"]) || !empty($background["overlay"]["color"])){
             $overlay_color =($background["overlay"]["gradient"])?$background["overlay"]["gradient_color"]:$background["overlay"]["color"];
             $css .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background-color:".$overlay_color.";z-index:2;}";
+        }*/
+        if(isset($background["overlay"]) && (!empty($background["overlay"]["gradient_color"]) || !empty($background["overlay"]["color"]))){
+            $overlay_css_prop = "background-color"; // Varsayılan olarak background-color
+            $overlay_css_value = "";
+            $overlay_zindex = 2; // Varsayılan z-index
+
+            if(!empty($background["overlay"]["gradient"]) && !empty($background["overlay"]["gradient_color"])){
+                // Gradient varsa
+                $overlay_css_prop = "background-image";
+                $overlay_css_value = $background["overlay"]["gradient_color"];
+            } elseif(!empty($background["overlay"]["color"])) {
+                // Düz renk varsa
+                $overlay_css_value = $background["overlay"]["color"];
+            }
+
+            if (!empty($overlay_css_value)) {
+                $css .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;".$overlay_css_prop.":".$overlay_css_value.";z-index:".$overlay_zindex.";}";
+            }
         }
+
         if(!empty($css)){
             $result .= "<style>".$css."</style>";
         }
@@ -3243,11 +3263,23 @@ function block_css($block, $fields, $block_column){
             }
         }
     }
+    //error_log($block["name"]);
+    //error_log(print_r($block_column, true));
 
-    if(isset($block["name"]) && in_array($block["name"], ["acf/icons"])){
+    if(isset($block["name"]) && in_array($block["name"], ["acf/icons"]) || ($block_column && $block_column["block"] == "icons")){
         foreach($fields["icons"] as $icon_index => $icon){
+            //error_log(print_r($icon["icon"], true));
             if(!empty($icon["icon"]["color"])){
                 $code .= block_svg_color("#".$selector." .icon-".$icon_index." .image", $icon["icon"]["color"]);
+            }
+            if(!empty($icon["icon"]["styles"]["height"])){
+                $icon_height = acf_units_field_value($icon["icon"]["styles"]["height"]);
+                //error_log("icon height:".$icon_height);
+                if(!empty($icon_height) && $icon_height){
+                    $code .= "#".$selector." .icon-".$icon_index." .icon{max-height:".$icon_height.";}";
+                    $code .= "#".$selector." .icon-".$icon_index." .icon svg{height:100%;width:auto;}";
+                    $code .= "#".$selector." .icon-".$icon_index." .icon img{height:100%;width:auto;}";
+                }
             }
         }
     }

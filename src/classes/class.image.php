@@ -145,6 +145,8 @@ Class Image{
 
             $this->args = $this->get_image_set_post($this->args);
 
+            //error_log(print_r($this->args, true));
+
         }else{
 
             return $this->not_found();
@@ -170,6 +172,8 @@ Class Image{
         }
 
         $this->args["class"] .= $this->args["post"]->get_focal_point_class();
+
+        //error_log(print_r($this->args, true));
 
         if($this->args["type"] == "img"){
 
@@ -243,7 +247,7 @@ Class Image{
         return $html;
     }
 
-    public function get_image_set_post($args=array()){
+    /*public function get_image_set_post($args=array()){
 
         if (is_numeric($args["src"])) {
             //echo $args["src"]." numeric";
@@ -296,7 +300,61 @@ Class Image{
         }
 
         return $args;
+    }*/
+
+    public function get_image_set_post($args=array()){
+
+    if (is_numeric($args["src"])) {
+        $args["id"] = intval($args["src"]);
+        $args["post"] = \Timber::get_image($args["id"]);
+
+    } elseif (is_string($args["src"])) {
+        // Medya kütüphanesinde bir ID'si olup olmadığını kontrol et
+        $args["id"] = attachment_url_to_postid($args["src"]);
+
+        if ($args["id"]) {
+            // Medya kütüphanesinde bulundu, Timber ile al
+            $args["post"] = \Timber::get_image($args["id"]);
+        } else {
+            // Medya kütüphanesinde değil, doğrudan URL ile bir TimberImage oluştur
+            $args["id"] = null;
+            $args["post"] = new \Timber\Image($args["src"]);
+        }
+
+    } elseif (is_object($args["src"])) {
+        if($args["src"]->post_type == "attachment"){
+           $args["id"] = $args["src"]->ID;
+           $args["post"] = $args["src"];
+        }else{
+            if($args["src"]->thumbnail){
+               $args["id"] = $args["src"]->id;
+               $args["post"] = $args["src"]->thumbnail;
+            }else{
+                return;
+            }
+        }
+    } elseif (is_array($args["src"])) {
+        $args["id"] = $args["src"]["id"];
+        $args["post"] = \Timber::get_image($args["src"]["id"]);
     }
+
+    if(empty($args["width"]) && isset($args["post"])){
+        $args["width"] = $args["post"]->width();
+    }
+    if(empty($args["height"]) && isset($args["post"])){
+        $args["height"] = $args["post"]->height();
+    }
+    if(empty($args["alt"])){
+        if (isset($args["post"]) && !empty($args["post"]->alt())){
+            $args["alt"] = $args["post"]->alt();
+        }else{
+            global $post;
+            $args["alt"] = $post->post_title;
+        }
+    }
+
+    return $args;
+}
 
     public function generateMediaQueries($selected) {
         $first = reset($selected);
@@ -467,7 +525,7 @@ Class Image{
             if(isset($attrs["srcset"])){
                 $code = '<link rel="preload" as="image" href="'.$attrs["src"].'" imagesrcset="'.$attrs["srcset"].'" imagesizes="'.$attrs["sizes"].'" fetchpriority="high">'."\n";
             }else{
-                error_log(json_encode($attrs["src"]));
+                //error_log(json_encode($attrs["src"]));
                 $code = '<link rel="preload" href="'.$attrs["src"].'" as="image" fetchpriority="high">'."\n";
             }       
         }else{
