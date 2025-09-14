@@ -1725,6 +1725,7 @@ class Update {
                 self::recurseCopy($srcPath, $destPath, $exclude);
             } else {
                 // Dosyayı kopyala
+                error_log($srcPath." -> ".$destPath);
                 copy($srcPath, $destPath);
             }
         }
