@@ -322,7 +322,7 @@ if ($GLOBALS["pagenow"] === "wp-login.php") {
     include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 }
 
-if (class_exists("ACF") && SH_THEME_EXISTS) {
+if (class_exists("ACF")) {
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
 
     if(class_exists('ACFE')){
@@ -482,7 +482,7 @@ if (SH_THEME_EXISTS && is_admin()) {
 }
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 include_once SH_INCLUDES_PATH . "actions.php";
-if(is_admin() && SH_THEME_EXISTS){
+if(is_admin()){
     include_once SH_INCLUDES_PATH . "actions-admin.php";
 }
 /*
