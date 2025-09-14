@@ -1374,10 +1374,12 @@ class Update {
     private static function copy_theme(){
         $srcDir = SH_PATH . 'content/theme';
         $target_dir = get_template_directory() . '/theme';
+        error_log(copy_theme()." -> ".$srcDir." -> ".$target_dir);
         if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0755, true); 
-            self::recurseCopy($srcDir, $target_dir);
-        }
+            mkdir($target_dir, 0755, true);
+        } 
+        self::recurseCopy($srcDir, $target_dir);
+        
     }
     public static function update_theme_apperance(){
         $style_file = self::$theme_root . '/style.css';
