@@ -150,9 +150,14 @@ class SaltMinifier{
                 // flip css for rtl
                 $parser = new Sabberworm\CSS\Parser($css);
                 $tree = $parser->parse();
-                $rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
+
+                /*$rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
                 $rtlcss->flip();
-                $css = $tree->render();
+                $css = $tree->render();*/
+
+                $rtlcss = new RTLParser($tree);
+                $rtlcss->flip();
+                $css = $css_tree->render();
 
                 // minify
                 $minify = new Minify\CSS($css);
@@ -615,57 +620,6 @@ class SaltMinifier{
             }
             file_put_contents($css_file, $css);
         }
-
-
-	    /*if ($matches) {
-	        $assets = array();
-            foreach ($matches[3] as $key => $match) {
-                if (substr($match, 0, 5) != "data:") {
-                    error_log("match:".$match);
-                    $relative_path = preg_replace('/\?.*$/', '', $match); // Parametreleri temizle
-                    $relative_path_parts = explode("node_modules", $relative_path);
-                    $relative_path = get_home_path()."node_modules".$relative_path_parts[1];
-
-                    $file = basename($relative_path); // Sadece dosya adını al
-                    $assets[] = array(
-                        "code" => $matches[0][$key],
-                        "url" => $match,
-                        "file" => $file,
-                        "clean_url" => $relative_path // Temiz URL
-                    );
-                }
-            }
-            if ($assets) {
-                if (!is_dir($this->output["plugin_assets"])) {
-                    mkdir($this->output["plugin_assets"], 0755, true); 
-                }
-                foreach ($assets as $key => $asset) {
-                    if (file_exists($asset["clean_url"]) && !is_dir($asset["clean_url"])) {
-                        copy($asset["clean_url"], $this->output["plugin_assets"] . $asset["file"]);
-                        $query = parse_url($asset["url"], PHP_URL_QUERY);
-                        $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                        if (!empty($publish_url)) {
-                            //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                        }
-                        $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
-                        $css = str_replace($asset["url"], $final_url, $css);
-                    }else{
-                        if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
-                            copy($asset["url"], $this->output["plugin_assets"] . $asset["file"]);
-                            $clean_url = explode('?', $asset["url"])[0];
-                            $query = parse_url($asset["url"], PHP_URL_QUERY);
-                            $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                            if(!empty($publish_url)){
-                                //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                            }
-                            $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
-                            $css = str_replace($asset["url"], $final_url, $css);
-                        }
-                    }
-                }
-                file_put_contents($css_file, $css);
-            }
-	    }*/
 	}
 
 	public function set_plugin_versions(){
@@ -713,7 +667,7 @@ class SaltMinifier{
 	    return $updates;
 	}
 
-	public function removeSourceMap($input, $type) {
+	public function removeSourceMap_v1($input, $type) {
 	    if($type == "file"){
 	        $source = file_get_contents($input);
 	        $source = preg_replace('/\/\/# sourceMappingURL=.*\.map\s*/', '', $source);
@@ -724,6 +678,20 @@ class SaltMinifier{
 	        return $input;
 	    }
 	}
+    public function removeSourceMap($input, $type) {
+        if ($type === "file") {
+            $source = file_get_contents($input);
+            // Sadece "//# sourceMappingURL=" ile başlayan satırları sil
+            $source = preg_replace('/^[ \t]*\/\/# sourceMappingURL=.*\.map\s*$/m', '', $source);
+            file_put_contents($input, $source);
+        } else if ($type === "source") {
+            // Sadece "//# sourceMappingURL=" ile başlayan satırları sil
+            return preg_replace('/^[ \t]*\/\/# sourceMappingURL=.*\.map\s*$/m', '', $input);
+        } else {
+            return $input;
+        }
+    }
+
 
 	public function removeComments($input) {
 	    return $input;

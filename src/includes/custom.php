@@ -2,29 +2,6 @@
 
 use SaltHareket\Theme;
 
-/*
-function lang_predefined(){
-    $dict = [];
-    $translates_path = get_template_directory() . '/theme/static/data/translates.json';
-
-    if(file_exists($translates_path)){
-        $translates = file_get_contents($translates_path);
-        $translates = json_decode($translates, true);
-        
-        if(is_array($translates)){
-            foreach($translates as $translate){
-                $dict[$translate] = trans($translate);
-            }        
-        }
-    }
-    $dict = get_or_create_dictionary_cache($GLOBALS["language"]);
-    error_log("osjsdjdsjhsd");
-    $GLOBALS["lang_predefined"] = $dict;
-}
-*/
-
-
-
 // class in twig example with "class_salt"
 // {% set projects =  {"function": "ads", "action":"search", "work_type": data.work_type, "expertise": data.expertise, "user_id": user.id}|class_salt %}
 
@@ -286,8 +263,8 @@ class SaltBase{
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
 
-            error_log("ZT-1");
-            error_log(did_action('save_post')."  ".did_action('publish_post'));
+            //error_log("ZT-1");
+            //error_log(did_action('save_post')."  ".did_action('publish_post'));
 
             if (did_action('save_post') > 1 || did_action('publish_post') > 1) {
                 //return;

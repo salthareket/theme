@@ -179,7 +179,7 @@ function get_parent_terms($taxonomy, $terms){
 		);
 }
 
-function get_post_terms_with_common_tax($post_type, $taxonomy_a, $taxonomy_b, $term_b_id, $orderby="name", $order="ASC"){
+/*function get_post_terms_with_common_tax($post_type, $taxonomy_a, $taxonomy_b, $term_b_id, $orderby="name", $order="ASC"){
 	global $wpdb;
 	$query = $wpdb->prepare(
 	    "SELECT DISTINCT
@@ -226,7 +226,67 @@ function get_post_terms_with_common_tax($post_type, $taxonomy_a, $taxonomy_b, $t
 		});
 	}
 	return $terms;
+}*/
+
+function get_post_terms_with_common_tax($post_type, $target_taxonomy, $tax_filters = [], $orderby = "name", $order = "ASC") {
+    global $wpdb;
+
+    $orderby_safe = in_array(strtolower($orderby), ['name','term_id','slug']) ? $orderby : 'name';
+    $order_safe   = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+
+    $joins   = [];
+    $wheres  = [];
+    $i = 0;
+
+    foreach ($tax_filters as $filter) {
+        $i++;
+        $taxonomy = $filter['taxonomy'];
+        $terms    = (array) $filter['terms'];
+        $operator = isset($filter['operator']) ? strtoupper($filter['operator']) : 'IN';
+
+        $joins[] = "
+            INNER JOIN {$wpdb->term_relationships} tr{$i} ON tr{$i}.object_id = p.ID
+            INNER JOIN {$wpdb->term_taxonomy} tt{$i} ON tt{$i}.term_taxonomy_id = tr{$i}.term_taxonomy_id
+        ";
+
+        $placeholders = implode(',', array_fill(0, count($terms), '%d'));
+        $wheres[] = $wpdb->prepare("tt{$i}.taxonomy = %s AND tt{$i}.term_id {$operator} ($placeholders)", array_merge([$taxonomy], $terms));
+    }
+
+    $sql = "
+        SELECT DISTINCT t.term_id
+        FROM {$wpdb->terms} t
+        INNER JOIN {$wpdb->term_taxonomy} tt_target ON tt_target.term_id = t.term_id
+        INNER JOIN {$wpdb->term_relationships} tr_target ON tr_target.term_taxonomy_id = tt_target.term_taxonomy_id
+        INNER JOIN {$wpdb->posts} p ON p.ID = tr_target.object_id
+        " . implode("\n", $joins) . "
+        WHERE p.post_type = %s
+          AND p.post_status = 'publish'
+          AND tt_target.taxonomy = %s
+          " . (!empty($wheres) ? " AND " . implode(" AND ", $wheres) : "") . "
+        ORDER BY t.$orderby_safe $order_safe
+    ";
+
+    $query = $wpdb->prepare($sql, array_merge([$post_type, $target_taxonomy]));
+    $rows  = $wpdb->get_col($query);
+
+    $terms = [];
+    foreach ($rows as $term_id) {
+        // Polylang varsa -> aktif dile çevir
+        if (function_exists('pll_get_term')) {
+            $translated_id = pll_get_term($term_id, pll_current_language());
+            if ($translated_id) {
+                $terms[] = get_term($translated_id, $target_taxonomy);
+                continue;
+            }
+        }
+        // fallback: normal get_term
+        $terms[] = get_term($term_id, $target_taxonomy);
+    }
+
+    return $terms;
 }
+
 
 function get_other_posts( $post_id=0, $count=5, $orderby = "date", $order = "DESC" ) {
         $args = array(

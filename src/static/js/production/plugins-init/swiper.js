@@ -246,8 +246,11 @@ function init_swiper_video_slide(swiper, obj){
 
 
 function init_swiper_video(swiper){
-
     if($(swiper.el).find(".swiper-video").not(".inited").length > 0){
+
+        if (swiper.slides && swiper.slides.length === 0) {
+            return;
+        }
 
         var video = init_swiper_video_slide(swiper, $(swiper.slides[0]));
         if(swiper.slides.length > 1){
@@ -335,7 +338,6 @@ function init_swiper_video(swiper){
                 }
             });         
         }
-
     }
 }
 function init_swiper($obj){

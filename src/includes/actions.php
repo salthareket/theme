@@ -889,7 +889,7 @@ add_action('send_headers', function () {
 });
 
 
-add_action('save_post', function($post_id){
+/*add_action('save_post', function($post_id){
     if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if(wp_is_post_revision($post_id)) return;
 
@@ -905,7 +905,31 @@ add_action('save_post', function($post_id){
         ]);
         add_action('save_post', __FUNCTION__); 
     }
-});
+});*/
+
+add_action('save_post', function($post_id) {
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+
+    $content = get_post_field('post_content', $post_id);
+
+    // Sondaki &nbsp; ve boşlukları temizle
+    $clean = preg_replace('/(&nbsp;|\s)+$/u', '', $content);
+
+    if ($clean !== $content) {
+        // Closure olduğu için remove_action + add_action kullanma
+        // Sonsuz döngüyü engellemek için flag kullan
+        if (!defined('CLEANING_POST_CONTENT')) {
+            define('CLEANING_POST_CONTENT', true);
+
+            wp_update_post([
+                'ID' => $post_id,
+                'post_content' => $clean
+            ]);
+        }
+    }
+}, 10, 1);
+
 
 add_filter('the_content', function($c){
     return preg_replace('/(&nbsp;|\s)+$/u', '', $c);

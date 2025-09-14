@@ -100,6 +100,21 @@ add_action('loco_saved_file', 'clear_translation_json_cache');
 
 
 
+// Loco dosya kaydettiğinde tetikle
+add_action('init', function(){
+    if (defined('DOING_AJAX') && DOING_AJAX && isset($_POST['action'], $_POST['route'])) {
+        if ($_POST['action'] === 'loco_json' && $_POST['route'] === 'save') {
+            $locale = sanitize_text_field($_POST['locale'] ?? '');
+            error_log("[TranslationDictionary] Loco save AJAX tetiklendi: $locale");
+
+            $dict = new TranslationDictionary();
+            $dict->buildDictionaryFromLoco(get_template_directory() . '/languages/' . $locale . '.po');
+        }
+    }
+});
+
+
+
 /**
  * Translation Dictionary Generator
  * - Loco Translate ile uyumlu
@@ -115,24 +130,26 @@ class TranslationDictionary {
         if (!is_dir($this->cache_dir)) {
             wp_mkdir_p($this->cache_dir);
         }
-
-        // Loco dosya kaydettiğinde tetikle
-        add_action('loco_saved_file', [$this, 'buildDictionaryFromLoco']);
     }
 
     /**
      * Loco Save Hook → JSON üret
      */
-    public function buildDictionaryFromLoco($file) {
-        if (!preg_match('/\.po$/', $file)) {
+    public function buildDictionaryFromLoco($path) {
+        error_log("locoooooooooooooooooooooooooooooooooooooooo.....................");
+        if (!preg_match('/\.po$/', $path)) {
             return;
         }
 
-        $locale = basename($file, '.po');
+        $locale = basename($path, '.po');
+        $locale = str_replace("-", "_", $locale);
         $dictionary = $this->generateDictionary($locale);
 
+        error_log("locale:".$locale);
+
         if (!empty($dictionary)) {
-            $cache_file = $this->cache_dir . 'dictionary-' . $locale . '.json';
+            $cache_file = $this->cache_dir . 'dictionary-' . $this->normalizeLocale($locale) . '.json';
+            error_log("cache_file:".$cache_file);
             file_put_contents(
                 $cache_file,
                 json_encode($dictionary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
@@ -145,7 +162,7 @@ class TranslationDictionary {
      */
     public function getDictionary($locale = null) {
         if (!$locale) {
-            $locale = determine_locale();
+            $locale = $this->normalizeLocale(determine_locale());
         }
         $cache_file = $this->cache_dir . 'dictionary-' . $locale . '.json';
         if (file_exists($cache_file)) {
@@ -167,9 +184,13 @@ class TranslationDictionary {
         $template_file = $lang_dir . $domain . '.pot';
         $locale_file   = $lang_dir . $locale . '.po';
 
+        error_log($template_file.", ".$locale_file);
+
         if (!file_exists($template_file) || !file_exists($locale_file)) {
             return [];
         }
+
+        error_log("Dosyalar var abi...");
 
         require_once ABSPATH . 'wp-includes/pomo/po.php';
 
@@ -178,6 +199,8 @@ class TranslationDictionary {
 
         $locale_po = new PO();
         $locale_po->import_from_file($locale_file);
+
+        error_log(print_r($template_po->entries, true));
 
         foreach ($template_po->entries as $entry) {
             $key = $entry->singular;
@@ -196,5 +219,15 @@ class TranslationDictionary {
         }
 
         return $translations;
+    }
+
+    private function normalizeLocale($locale) {
+        // eğer en-US, tr_TR gibi ise
+        if (strpos($locale, '-') !== false || strpos($locale, '_') !== false) {
+            return strtolower(substr($locale, 0, 2));
+        }
+
+        // zaten kısa kodsa (en, tr, ar vs.)
+        return strtolower($locale);
     }
 }

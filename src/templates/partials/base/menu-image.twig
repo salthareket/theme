@@ -1,0 +1,9 @@
+<li class="nav-item nav-image {{menu_class}}">
+
+            {% if function('get_extension', menu_image) == "svg" %}
+                {{function('inline_svg', menu_image, "img-fluid mh-100")}}
+            {% else %}
+                <img src="{{menu_image}}" class="img-fluid mh-100" alt="{{site.name}}" />
+            {% endif %}
+
+</li>

@@ -321,7 +321,7 @@ class Post extends Timber\Post{
         }
     }*/
 
-    public function get_thumbnail(array $args = []){
+    /*public function get_thumbnail(array $args = []){
         $media = $this->meta('media');
         $src   = $this->thumbnail(); // en sağlam fallback
 
@@ -371,7 +371,70 @@ class Post extends Timber\Post{
             error_log('get_thumbnail failed: '.$e->getMessage());
             return '';
         }
+    }*/
+
+    public function get_thumbnail(array $args = []){
+        $media = $this->meta('media');
+        $src   = '';
+
+        // 1) Media alanı varsa kullan
+        if ($media) {
+            // JSON string mi?
+            if (is_string($media)) {
+                $decoded = json_decode($media, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $media = $decoded;
+                } elseif (ctype_digit($media)) {
+                    $maybe = wp_get_attachment_url((int)$media);
+                    if ($maybe) { $src = $maybe; }
+                }
+            }
+
+            // Array ise
+            if (is_array($media)) {
+                $type = $media['media_type'] ?? null;
+
+                if ($type === 'image') {
+                    if (!empty($media['use_responsive_image']) && !empty($media['image_responsive'])) {
+                        $src = $media['image_responsive'];
+                    } elseif (!empty($media['image'])) {
+                        $src = $media['image'];
+                    }
+                } elseif (!empty($media['id']) && is_numeric($media['id'])) {
+                    $maybe = wp_get_attachment_url((int)$media['id']);
+                    if ($maybe) { $src = $maybe; }
+                }
+            } elseif (is_int($media)) {
+                $maybe = wp_get_attachment_url($media);
+                if ($maybe) { $src = $maybe; }
+            }
+        }
+
+        // 2) Fallback: featured image
+        if (empty($src)) {
+            $thumbnail_id = get_post_thumbnail_id($this->ID ?? 0);
+            if ($thumbnail_id) {
+                $src = wp_get_attachment_url($thumbnail_id) ?: '';
+            }
+        }
+
+        // 3) Default fallback (hiçbir görsel yoksa boş string)
+        if (empty($src)) {
+            $src = '';
+        }
+
+        $args['src'] = $src;
+
+        // 4) SaltHareket\Image güvenli çağrı
+        try {
+            $image = new \SaltHareket\Image($args);
+            return $image->init();
+        } catch (\Throwable $e) {
+            error_log('get_thumbnail failed: ' . $e->getMessage());
+            return '';
+        }
     }
+
 
 
 
@@ -385,6 +448,36 @@ class Post extends Timber\Post{
         return parent::__get($key);
     }
 
+
+    public function pll_get_post($lang){
+        $fallback = $this->ID;
+        $ml = trim((string) (ENABLE_MULTILANGUAGE ?? ''));
+        if ($ml === '' || $ml !== "polylang" || $lang === '') {
+            return $fallback;
+        }
+        $lang_id = $fallback;
+        if (function_exists('pll_get_post')) {
+            $lang_id = pll_get_post($this->ID, $lang);
+        }
+        return $lang_id;
+    }
+
+    public function pll_get_post_default(){
+        $fallback = $this->ID;
+        $ml = trim((string) (ENABLE_MULTILANGUAGE ?? ''));
+        if ($ml === '' || $ml !== "polylang") {
+            return $fallback;
+        }
+        $default_id = $fallback;
+        if (function_exists('pll_get_post')) {
+            $def = pll_default_language();
+            if ($def) {
+                $default_id = pll_get_post($this->ID, $def);
+            }
+        }
+        return $default_id;
+    }
+
     /**
      * Varsayılan dil slug’ını döndürür.
      * Polylang / WPML / qTranslate-XT (slug çeviri aktifse) destekler.
@@ -392,7 +485,7 @@ class Post extends Timber\Post{
      */
     public function get_slug_default(): string {
         $fallback = $this->post_name ?: ($this->slug ?? '');
-        $ml = trim((string) ($GLOBALS['ENABLE_MULTILANGUAGE'] ?? ''));
+        $ml = trim((string) (ENABLE_MULTILANGUAGE ?? ''));
 
         if ($ml === '') {
             return $fallback;

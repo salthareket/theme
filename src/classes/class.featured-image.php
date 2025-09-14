@@ -1,11 +1,9 @@
 <?php
 class FeaturedImage {
 
-    Private $post_id = 0;
+    private $post_id = 0;
 
     public function __construct() {
-        //add_action('save_post', [$this, 'setFeaturedImageForPost'], 20);
-        //add_action('edited_terms', [$this, 'setFeaturedImageForTerm'], 20, 2);
         add_action('acf/save_post', [$this, 'setFeaturedImageForPost'], 20);
         add_action('edited_terms', [$this, 'setFeaturedImageForTerm'], 20, 2);
     }
@@ -22,22 +20,31 @@ class FeaturedImage {
         $this->post_id = $post_id;
 
         $media_field = get_field('media', $post_id);
-        if (!$media_field || !isset($media_field['media_type'])) {
+
+        // ✅ Hiçbir data yoksa direkt çık
+        if (empty($media_field) || !is_array($media_field)) {
+            return;
+        }
+
+        // ✅ Eğer hem image, hem gallery, hem video boşsa → işlem yapma
+        if (
+            empty($media_field['image']) &&
+            empty($media_field['gallery']) &&
+            empty($media_field['video_gallery'])
+        ) {
             return;
         }
 
         $featured_image_id = $this->determineFeaturedImage($media_field);
 
-        if($featured_image_id){
-            if(is_array($featured_image_id)){
+        if ($featured_image_id) {
+            if (is_array($featured_image_id) && isset($featured_image_id["ID"])) {
                 $featured_image_id = $featured_image_id["ID"];
             }
-        }
-
-        if ($featured_image_id) {
             set_post_thumbnail($post_id, $featured_image_id);
         } else {
-            delete_post_thumbnail($post_id); // Uygun görsel bulunamadıysa Featured Image'ı kaldır
+            // ✅ Sadece gerçekten media eklenmişti ama uygun görsel bulunamadıysa sil
+            delete_post_thumbnail($post_id);
         }
     }
 
@@ -49,9 +56,18 @@ class FeaturedImage {
         if (!class_exists("ACF")) {
             return;
         }
-        
+
         $media_field = get_field('media', 'term_' . $term_id);
-        if (!$media_field || !isset($media_field['media_type'])) {
+
+        if (empty($media_field) || !is_array($media_field)) {
+            return;
+        }
+
+        if (
+            empty($media_field['image']) &&
+            empty($media_field['gallery']) &&
+            empty($media_field['video_gallery'])
+        ) {
             return;
         }
 
@@ -59,7 +75,7 @@ class FeaturedImage {
         if ($featured_image_id) {
             update_term_meta($term_id, '_thumbnail_id', $featured_image_id);
         } else {
-            delete_term_meta($term_id, '_thumbnail_id'); // Uygun görsel bulunamadıysa Featured Image'ı kaldır
+            delete_term_meta($term_id, '_thumbnail_id');
         }
     }
 
@@ -70,7 +86,6 @@ class FeaturedImage {
             case 'image':
                 $featured_image_id = $this->getImageField($media_field);
                 break;
-
             case 'gallery':
                 $featured_image_id = $this->getGalleryField($media_field);
                 break;
@@ -97,22 +112,9 @@ class FeaturedImage {
         }
 
         if (!empty($media_field['video_gallery'])) {
-            // İlk item için öncelik kontrolü
-            $first_item = $media_field['video_gallery'][0];
-            if ($first_item['type'] === 'embed' && !empty($first_item['url'])) {
-                $poster_image_id = $this->getPosterFrameFromEmbed($first_item['url']);
-                if ($poster_image_id) {
-                    return $poster_image_id;
-                }
-            } elseif ($first_item['type'] === 'file' && !empty($first_item['image'])) {
-                return $first_item['image'];
-            }
-
-            // Sonraki item'ları sırasıyla kontrol et
             foreach ($media_field['video_gallery'] as $item) {
                 if ($item['type'] === 'embed' && !empty($item['url'])) {
                     $poster_image_id = $this->getPosterFrameFromEmbed($item['url']);
-                    error_log("poster_image_id:".$poster_image_id);
                     if ($poster_image_id) {
                         return $poster_image_id;
                     }
@@ -122,22 +124,19 @@ class FeaturedImage {
             }
         }
 
-        return null; // Hiçbir uygun görsel yoksa
+        return null;
     }
 
     private function getPosterFrameFromEmbed($embed_url = "", $post_id = 0) {
         $embed = new OembedVideo($embed_url);
         $embed_data = $embed->get();
         $image_url = $embed_data["src"];
-        error_log("poster:" . $image_url);
-        if(!empty($image_url)){
+        if (!empty($image_url)) {
             $file_name = md5($image_url);
-            error_log("dosya adı:".$file_name);
             return featured_image_from_url($image_url, $this->post_id, false, $file_name);
         }
-        return null; 
+        return null;
     }
 }
 
-// Sınıfı başlat
 new FeaturedImage();

@@ -8,6 +8,9 @@ class PageAssetsExtractor
     const META_KEY = 'assets';
     const HTML_HASH_META_KEY = '_page_assets_last_html_hash';
 
+    protected $excluded_post_types = [];
+    protected $excluded_taxonomies = [];
+
     /* ======= Genel Durum ======= */
     public    $type = null;                       // 'post' | 'term' | 'archive' | ...
     public    $mass = false;
@@ -34,6 +37,18 @@ class PageAssetsExtractor
         'plugins'   => []   // key = sha1(json_encode(plugins))
     ];
 
+    private string $twig_attr = 'data-twig-load';
+    private array $twig_template_paths = [];   // Timber template paths (override edilebilir)
+    private bool $twig_scan_includes = true;   // {% include %} yakala, rekürsif tara
+    private array $twig_seen_templates = []; // 'magazalar/single-modal.twig' => true
+    private array $twig_locate_cache   = []; // 'magazalar/single-modal.twig' => '/abs/path/...'
+    private array $twig_approx_cache   = []; // '/abs/path/...' => '<div>...</div>'
+
+
+    // lazy init için:
+    private bool   $twig_paths_initialized = false;
+    private array  $twig_options = []; // dışarıdan gelen opsiyonlar saklansın
+
     public function __construct() {
         error_log("PageAssetsExtractor initialized in admin.");
 
@@ -58,6 +73,9 @@ class PageAssetsExtractor
             $this->manifest_write();
         }
 
+        $this->excluded_post_types = (array) get_option('options_exclude_post_types_from_cache', []);
+        $this->excluded_taxonomies = (array) get_option('options_exclude_taxonomies_from_cache', []);
+
         add_action('acf/render_field/name=page_assets', [$this, 'update_page_assets_message_field']);
         add_action('wp_ajax_page_assets_update', [$this,'page_assets_update']);
         add_action('wp_ajax_nopriv_page_assets_update', [$this,'page_assets_update']);
@@ -66,7 +84,6 @@ class PageAssetsExtractor
     /* ===================== HOOK AKIŞI ===================== */
 
     public function on_save_post($post_id, $post, $update) {
-        error_log("P O S T  S A V I N G  H O O K...." . $post_id);
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
         if (function_exists('wp_is_post_revision') && wp_is_post_revision($post_id)) return;
 
@@ -75,6 +92,11 @@ class PageAssetsExtractor
         if ($post->post_status !== 'publish') return;
         if (!$this->is_supported_post_type($post->post_type)) return;
         if ($this->disable_hooks) return;
+
+        if (in_array($post->post_type, $this->excluded_post_types)) {
+            error_log("[PAE] Post {$post_id} excluded from cache generation.");
+            return; // işlem yapma
+        }
 
         error_log("Saved post : {$post_id} | type: " . $post->post_type);
 
@@ -104,6 +126,11 @@ class PageAssetsExtractor
         error_log("on_save_term : {$term_id} | taxonomy: {$taxonomy}");
         if (!$this->is_supported_taxonomy($taxonomy)) return;
         if ($this->disable_hooks) return;
+
+        if (in_array($taxonomy, $this->excluded_taxonomies)) {
+            error_log("[PAE] Term {$term_id} excluded from cache generation.");
+            return ; // işlem yapma
+        }
 
         $this->type = "term";
         $ok = $this->fetch_term_url($term_id, $taxonomy);
@@ -335,6 +362,15 @@ class PageAssetsExtractor
     }
 
     private function normalize_content(string $content, string $type): string {
+        $content = preg_replace_callback(
+            '/console\.error\(\s*(["\'])(.*?)\1\s*\)/s',
+            function($m) {
+                $quote = $m[1];
+                $text  = str_replace('//', '', $m[2]); // sadece // işaretini temizle
+                return 'console.error(' . $quote . $text . $quote . ')';
+            },
+            $content
+        );
         $normalized = str_replace([$this->upload_url, $this->upload_url_encoded], '{upload_url}', $content);
         $normalized = str_replace([$this->home_url, $this->home_url_encoded], '{home_url}', $normalized);
         $normalized = preg_replace("/\xEF\xBB\xBF/", '', $normalized);
@@ -488,8 +524,36 @@ class PageAssetsExtractor
         $plugin_css_rtl = "";
         $wp_js = [];
 
+
+
+        // data-twig-load taraması
+        $extra_html = $this->collectTwigLoadedHtml($html_content);
+        if ($extra_html) {
+            // Eklenen fragmenti logla
+            error_log('[PAE] collected extra html length=' . strlen($extra_html));
+
+            // NOT: innertext string kabul eder; doğrudan $extra_html kullanıyoruz
+            $bodyNode = $html_content->find('main', 0);
+            if ($bodyNode) {
+                $bodyNode->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
+                error_log('[PAE] extra html appended into <body>');
+            } else {
+                $html_content->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
+                error_log('[PAE] extra html appended into root (no body)');
+            }
+        } else {
+            error_log('[PAE] no extra twig html collected');
+        }
+
+
         // ---------- DOM kırpma ----------
         $html_temp = HtmlDomParser::str_get_html($html_content->__toString());
+
+
+
+
+
+
 
         $header_node = $html_temp->findOne('#header');
         $header_content = '';
@@ -752,9 +816,16 @@ class PageAssetsExtractor
                 // RTL üretimi
                 $parser = new \Sabberworm\CSS\Parser($css_page_raw);
                 $tree   = $parser->parse();
+
+                /*
                 $rtlcss = new \PrestaShop\RtlCss\RtlCss($tree);
                 $rtlcss->flip();
-                $css_page_rtl_raw  = $tree->render();
+                $css_page_rtl_raw  = $tree->render();*/
+
+                $rtlcss = new RTLParser($tree);
+                $rtlcss->flip();
+                $css_page_rtl_raw = $tree->render();
+
                 $css_page_rtl_hash = $this->content_hash($css_page_rtl_raw, 'css');
                 $css_page_rtl_file = $cache_dir . $css_page_rtl_hash . '.css';
                 if (!file_exists($css_page_rtl_file)) {
@@ -832,20 +903,29 @@ class PageAssetsExtractor
         $langs   = (isset($GLOBALS['languages']) && is_array($GLOBALS['languages'])) ? $GLOBALS['languages'] : [];
         $default = isset($GLOBALS['language_default']) ? (string)$GLOBALS['language_default'] : '';
 
-        if (!$langs) { $langs = [$default ?: '']; }
+        if (!$langs) { 
+            $langs = [ ['name' => $default ?: ''] ]; 
+        }
 
         $urls = [];
-        foreach ($langs as $lang) {
-            $lang = (string)$lang;
+        foreach ($langs as $lang_data) {
+            $lang = isset($lang_data['name']) ? (string)$lang_data['name'] : '';
+            
             if ($lang && $lang !== $default) {
-                $base = rtrim($this->home_url, '/').'/'.$lang.'/';
+                $base = rtrim($this->home_url, '/') . '/' . $lang . '/';
             } else {
-                $base = rtrim($this->home_url, '/').'/';
+                $base = rtrim($this->home_url, '/') . '/';
             }
+
             $url = $base . $slug . '/';
-            $urls[] = ['lang' => ($lang ?: $default ?: 'default'), 'url' => $url];
+            $urls[] = [
+                'lang' => ($lang ?: $default ?: 'default'),
+                'url'  => $url
+            ];
+
             error_log("[PAE] base archive url={$url} lang=" . ($lang ?: $default ?: 'default'));
         }
+
         return $urls;
     }
 
@@ -1210,6 +1290,9 @@ class PageAssetsExtractor
         foreach ($xml->xpath('//ns:url/ns:loc') as $url_loc) {
             $url_string = (string)$url_loc;
 
+            if (in_array($sitemap_file_name, $this->excluded_post_types, true)) continue;
+            if (in_array($sitemap_file_name, $this->excluded_taxonomies, true)) continue;
+
             // === (A) ROLE-BAZLI USER SİTEMAPLERİ ===
             // Örn: /artist-sitemap.xml, /editor-sitemap.xml, projendeki özel roller...
             if (!empty($roles) && in_array($sitemap_file_name, $roles, true)) {
@@ -1362,6 +1445,25 @@ class PageAssetsExtractor
         }
     }
 
+
+
+
+    public function get_roles() {
+        global $wp_roles;
+        $roles = [];
+        if (!isset($wp_roles)) {
+            $wp_roles = new WP_Roles();
+        }
+        foreach ($wp_roles->roles as $role_key => $role_details) {
+            $name = $role_details['name'];
+            $roles[] = $role_key;
+        }
+        return $roles;
+    }
+
+
+
+
     public function display_page_assets_table() {
         $raw = $this->get_all_urls();
 
@@ -1504,4 +1606,349 @@ class PageAssetsExtractor
             "data"    => $data,
         ]);
     }
+
+
+
+
+
+
+    private function detectTimberTemplatePaths(): array {
+        $paths = [];
+        $checked = [];
+
+        // 1) Child/Parent theme default "templates"
+        if (function_exists('get_stylesheet_directory')) {
+            $p = trailingslashit(get_stylesheet_directory()) . 'templates';
+            $checked[] = $p;
+            if (is_dir($p)) { $paths[] = $p; }
+        }
+        if (
+            function_exists('get_template_directory') &&
+            function_exists('get_stylesheet_directory') &&
+            get_template_directory() !== get_stylesheet_directory()
+        ) {
+            $p = trailingslashit(get_template_directory()) . 'templates';
+            $checked[] = $p;
+            if (is_dir($p)) { $paths[] = $p; }
+        }
+
+        // 2) Timber::$locations (Timber 2)
+        if (class_exists('\Timber\Timber') && !empty(\Timber\Timber::$locations)) {
+            foreach (\Timber\Timber::$locations as $loc) {
+                $abs = rtrim($loc, '/\\');
+                $checked[] = $abs;
+                if (is_dir($abs)) { $paths[] = $abs; }
+            }
+        }
+
+        // 3) Timber::$dirname (legacy / hala yaygın)
+        if (class_exists('\Timber\Timber') && !empty(\Timber\Timber::$dirname)) {
+            $dirnames = (array) \Timber\Timber::$dirname;
+            $resolved = $this->resolveTimberDirnamesToAbsolute($dirnames, $checked);
+            $paths = array_merge($paths, $resolved);
+        }
+
+        // Temizle + logla
+        $paths = array_values(array_unique(array_filter($paths, 'is_dir')));
+        error_log('[PAE] detectTimberTemplatePaths checked=' . json_encode($checked, JSON_UNESCAPED_SLASHES));
+        error_log('[PAE] detectTimberTemplatePaths final='   . json_encode($paths,   JSON_UNESCAPED_SLASHES));
+
+        return $paths;
+    }
+    private function ensureTwigPaths(): void {
+        if ($this->twig_paths_initialized) return;
+
+        // 1) dışarıdan geldiyse önce onu kullan
+        if (!empty($this->twig_options['twig_paths']) && is_array($this->twig_options['twig_paths'])) {
+            $paths = array_values(array_filter($this->twig_options['twig_paths'], 'is_string'));
+            $paths = array_values(array_filter($paths, 'is_dir'));
+            $this->twig_template_paths = $paths;
+            $this->twig_paths_initialized = true;
+        } else {
+            // 2) otomatik tespit (bir kez)
+            $this->twig_template_paths = $this->detectTimberTemplatePaths();
+            $this->twig_paths_initialized = true;
+        }
+
+        error_log('[PAE] twig_paths (lazy)=' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
+    }
+    private function resolveTimberDirnamesToAbsolute(array $dirnames, array &$checked): array {
+        $roots = [];
+
+        // Child & parent theme kökleri
+        if (function_exists('get_stylesheet_directory')) {
+            $roots[] = trailingslashit(get_stylesheet_directory());
+        }
+        if (function_exists('get_template_directory')) {
+            $roots[] = trailingslashit(get_template_directory());
+        }
+
+        // wp-content ve ABSPATH de dene (vendor/... gibi)
+        if (defined('WP_CONTENT_DIR')) {
+            $roots[] = trailingslashit(WP_CONTENT_DIR);
+        }
+        if (defined('ABSPATH')) {
+            $roots[] = trailingslashit(ABSPATH);
+        }
+
+        // Bu sınıfın bulunduğu plugin/theme kökü (vendor senaryosu için iş görür)
+        if (defined('__DIR__')) {
+            $roots[] = trailingslashit(dirname(__DIR__)); // sınıfa göre 1 seviye yukarı
+            $roots[] = trailingslashit(__DIR__);          // bulunduğu klasör
+        }
+
+        $out = [];
+        foreach ($dirnames as $d) {
+            if (!$d) { continue; }
+            // Absolute geldiyse direkt dene
+            if ($d[0] === '/' || preg_match('#^[A-Z]:[\\\\/]#i', $d)) {
+                $candidate = rtrim($d, '/\\');
+                $checked[] = $candidate;
+                if (is_dir($candidate)) {
+                    $out[] = $candidate;
+                    continue;
+                }
+            }
+
+            // Relative ise her root’a ekle
+            foreach ($roots as $root) {
+                $candidate = rtrim($root . ltrim($d, '/\\'), '/\\');
+                $checked[] = $candidate;
+                if (is_dir($candidate)) {
+                    $out[] = $candidate;
+                }
+            }
+        }
+
+        // uniq
+        $out = array_values(array_unique($out));
+        return $out;
+    }
+    private function locateTwig(string $template): ?string {
+        $this->ensureTwigPaths(); // path’lar yoksa şimdi tespit et
+
+        $tpl = ltrim($template, '/\\');
+        if (!str_ends_with($tpl, '.twig')) {
+            $tpl .= '.twig';
+        }
+        if (array_key_exists($tpl, $this->twig_locate_cache)) {
+            return $this->twig_locate_cache[$tpl] ?: null;
+        }
+        foreach ($this->twig_template_paths as $base) {
+            $path = rtrim($base, '/\\') . DIRECTORY_SEPARATOR . $tpl;
+            if (is_file($path)) {
+                $this->twig_locate_cache[$tpl] = $path;
+                return $path;
+            }
+        }
+        $this->twig_locate_cache[$tpl] = null;
+        return null;
+    }
+    private function collectIncludedTwigRaw(string $raw, string $current_dir, array &$visited = []): string {
+        $out = '';
+        if (preg_match_all('/\{\%\s*include\s*[\'"]([^\'"]+)[\'"]\s*(?:with\s+[^%]+)?\%\}/', $raw, $m)) {
+            foreach ($m[1] as $inc) {
+                $candidates = [];
+                if (strpos($inc, '/') === 0) {
+                    $candidates[] = $this->locateTwig(ltrim($inc, '/'));
+                } else {
+                    $rel = $current_dir . DIRECTORY_SEPARATOR . $inc;
+                    $candidates[] = is_file($rel) ? $rel : null;
+                    $candidates[] = $this->locateTwig($inc);
+                }
+                $found = false;
+                foreach (array_filter($candidates) as $file) {
+                    if (!isset($visited[$file]) && is_readable($file)) {
+                        $visited[$file] = true;
+                        $sub = file_get_contents($file);
+                        if ($sub !== false) {
+                            $out .= "\n" . $sub;
+                            $found = true;
+                            error_log('[PAE] include resolved: ' . $inc . ' -> ' . $file);
+                            // rekürsif
+                            $out .= "\n" . $this->collectIncludedTwigRaw($sub, dirname($file), $visited);
+                        } else {
+                            error_log('[PAE] include read fail: ' . $file);
+                        }
+                    }
+                }
+                if (!$found) {
+                    error_log('[PAE] include NOT found: ' . $inc);
+                }
+            }
+        }
+        return $out;
+    }
+    private function logApproxHtmlSelectors(string $html, string $label = ''): void {
+        $classes = [];
+        $ids     = [];
+
+        $frag = HtmlDomParser::str_get_html($html);
+        if (!$frag) {
+            error_log('[PAE] logApproxHtmlSelectors: failed to parse approx html for ' . $label);
+            return;
+        }
+
+        foreach ($frag->find('*') as $el) {
+            // class
+            $cls = $el->getAttribute('class');
+            if ($cls) {
+                foreach (preg_split('/\s+/', trim($cls)) as $c) {
+                    if ($c !== '') { $classes[$c] = true; }
+                }
+            }
+            // id
+            $id = $el->getAttribute('id');
+            if ($id) {
+                $ids[$id] = true;
+            }
+        }
+
+        $classes = array_keys($classes);
+        $ids     = array_keys($ids);
+
+        // Çok uzun olmasın diye ilk 30 tanesini gösterelim
+        $sampleClasses = array_slice($classes, 0, 30);
+        $sampleIds     = array_slice($ids, 0, 30);
+
+        error_log(sprintf('[PAE] selectors from %s | classes=%d ids=%d', $label, count($classes), count($ids)));
+        error_log('[PAE] classes sample: ' . implode(', ', $sampleClasses));
+        error_log('[PAE] ids sample: ' . implode(', ', $sampleIds));
+    }
+    private function twigToApproxHtml(string $twig): string {
+        $s = $twig;
+
+        // 1) Twig yorumları {# ... #}
+        $s = preg_replace('/\{\#.*?\#\}/s', '', $s);
+
+        // 2) Twig control blokları {% ... %} → tamamen sil
+        $s = preg_replace('/\{\%.*?\%\}/s', '', $s);
+
+        // 3) Twig değişkenleri {{ ... }} → boşalt (bazı yerlerde class attribute içinde olabilir)
+        //   class="{{ something }}" → class="" kalsın
+        $s = preg_replace('/\{\{.*?\}\}/s', '', $s);
+
+        // 4) Bozuk kalan attribute/etiket kapanışlarını biraz toparla
+        //   (Bu approx; HtmlDomParser çoğu durumda yine parse edebiliyor.)
+        //   Fazla boşlukları azalt
+        $s = preg_replace('/\s+/', ' ', $s);
+
+        // 5) Twig include kalıntıları vs yok
+        $s = trim($s);
+
+        // Artık bu string, DOM’a gömülüp selector taramasında kullanılabilir
+        return $s;
+    }
+    private function collectTwigLoadedHtml(\voku\helper\HtmlDomParser $dom): string {
+        $nodes = $dom->find("*[{$this->twig_attr}]");
+        if (!$nodes || count($nodes) === 0) {
+            error_log('[PAE] data-twig-load: node bulunamadı');
+            return '';
+        }
+
+        $this->ensureTwigPaths();
+
+        // 1) DOM’daki TÜM data değerlerini topla ve normalize et
+        $uniqueTemplates = [];
+        foreach ($nodes as $node) {
+            $raw = trim((string) $node->getAttribute($this->twig_attr));
+            if ($raw === '') { continue; }
+            $parts = preg_split('/[,;]+/', $raw);
+            foreach ($parts as $p) {
+                $p = trim($p);
+                if ($p === '') continue;
+                if (!str_ends_with($p, '.twig')) $p .= '.twig';
+                $uniqueTemplates[$p] = true;
+            }
+        }
+
+        $all = array_keys($uniqueTemplates);
+        if (empty($all)) {
+            error_log('[PAE] data-twig-load: template değeri yok (boş)');
+            return '';
+        }
+
+        // 2) Daha önce işlenmişleri at
+        $toProcess = [];
+        foreach ($all as $tpl) {
+            if (!isset($this->twig_seen_templates[$tpl])) {
+                $this->twig_seen_templates[$tpl] = true;
+                $toProcess[] = $tpl;
+            }
+        }
+
+        if (empty($toProcess)) {
+            error_log('[PAE] data-twig-load: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
+            return '';
+        }
+
+        error_log('[PAE] data-twig-load: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
+        $html_chunks = [];
+        $foundFiles  = [];
+        $missed      = [];
+
+        // 3) Her bir uniq template için bir kez çalış
+        foreach ($toProcess as $tpl) {
+            $file = $this->locateTwig($tpl);
+            if (!$file || !is_readable($file)) {
+                $missed[] = $tpl;
+                continue;
+            }
+
+            $foundFiles[] = $file;
+
+            // 4) Dosya approx-HTML cache’i
+            if (isset($this->twig_approx_cache[$file])) {
+                $html_chunks[] = $this->twig_approx_cache[$file];
+                continue;
+            }
+
+            $raw = file_get_contents($file);
+            if ($raw === false) { continue; }
+
+            // include’ları çöz (opsiyonel)
+            if ($this->twig_scan_includes) {
+                $raw .= "\n" . $this->collectIncludedTwigRaw($raw, dirname($file));
+            }
+
+            $approx_html = $this->twigToApproxHtml($raw);
+            $this->twig_approx_cache[$file] = $approx_html ?: '';
+
+            if ($approx_html) {
+                $html_chunks[] = $approx_html;
+            }
+        }
+
+        // 5) Log
+        if ($foundFiles) {
+            error_log('[PAE] Twig bulundu: ' . count($foundFiles));
+            foreach ($foundFiles as $f) {
+                error_log('[PAE]  - ' . $f);
+            }
+        }
+        if ($missed) {
+            error_log('[PAE] Twig bulunamadı: ' . json_encode($missed, JSON_UNESCAPED_SLASHES));
+            error_log('[PAE]  aranan_yollar: ' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
+        }
+
+        // Örnek: basit sınıf/ID istatistiği (yaklaşık)
+        $summary = strip_tags(implode(' ', $html_chunks));
+        preg_match_all('/class="([^"]+)"/', $summary, $m1);
+        preg_match_all('/id="([^"]+)"/', $summary, $m2);
+        $classes = [];
+        if (!empty($m1[1])) {
+            foreach ($m1[1] as $cstr) {
+                foreach (preg_split('/\s+/', trim($cstr)) as $c) {
+                    if ($c !== '') { $classes[$c] = true; }
+                }
+            }
+        }
+        $ids = array_unique($m2[1] ?? []);
+        error_log('[PAE] approx selectors: classes=' . count($classes) . ' ids=' . count($ids));
+
+        return implode("\n", $html_chunks);
+    }
+
+
+
 }

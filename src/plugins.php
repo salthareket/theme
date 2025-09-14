@@ -119,7 +119,7 @@ $GLOBALS["plugins"] = $required_plugins;
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.5.0.1",
+    "v" => "6.5.1",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );

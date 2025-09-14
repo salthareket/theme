@@ -4,6 +4,29 @@
 
 defined( 'ABSPATH' ) or die();
 
+/*
+// revert mobile cache
+add_filter( 'pre_get_rocket_option_cache_mobile', '__return_zero' );
+add_filter( 'pre_get_rocket_option_do_caching_mobile_files', '__return_zero' );
+
+// Unless both mobile cache options are enabled, disable rocket_above_the_fold_optimization
+add_filter( 'rocket_above_the_fold_optimization', function( $enabled ) {
+    $options = get_option('wp_rocket_settings', []);
+    return $enabled && isset($options['do_caching_mobile_files'], $options['cache_mobile']) && $options['do_caching_mobile_files'] == 1 && $options['cache_mobile'] == 1;
+} );
+
+// Unless both mobile cache options are enabled, disable rocket_lrc_optimization
+add_filter( 'rocket_lrc_optimization', function( $enabled ) {
+    $options = get_option('wp_rocket_settings', []);
+    return $enabled && isset($options['do_caching_mobile_files'], $options['cache_mobile']) && $options['do_caching_mobile_files'] == 1 && $options['cache_mobile'] == 1;
+} );
+
+// Unless both mobile cache options are enabled, disable rocket_preconnect_external_domains_optimization
+add_filter( 'rocket_preconnect_external_domains_optimization', function( $enabled ) {
+    $options = get_option('wp_rocket_settings', []);
+    return $enabled && isset($options['do_caching_mobile_files'], $options['cache_mobile']) && $options['do_caching_mobile_files'] == 1 && $options['cache_mobile'] == 1;
+} );
+*/
 
 add_filter( 'rocket_defer_inline_exclusions', function( $inline_exclusions_list ) {
   if ( ! is_array( $inline_exclusions_list ) ) {
@@ -21,161 +44,13 @@ add_filter( 'rocket_defer_inline_exclusions', function( $inline_exclusions_list 
   return $inline_exclusions_list;
 });
 
-
-
-function wp_rocket_post_type_url_regex(){
-    global $wpdb;
-    $urls = [];
-    $excluded_post_types = get_option("options_exclude_post_types_from_cache");
-    if($excluded_post_types){
-        foreach($excluded_post_types as $post_type){
-            $post_id = $wpdb->get_var( $wpdb->prepare(
-                "
-                SELECT ID 
-                FROM $wpdb->posts 
-                WHERE post_type = %s 
-                AND post_status = 'publish' 
-                LIMIT 1
-                ",
-                $post_type
-            ));
-            $post_id =  $post_id ? (int) $post_id : null;
-            if (!is_wp_error($post_id)) {
-
-                $url = get_permalink($post_id);
-                $basename = basename($url);
-                $path = str_replace(home_url('/'), "",$url);
-                $path = str_replace($basename."/", "", $path);
-                $path = str_replace($basename, "", $path); 
-                $urls[] = getSiteSubfolder().$path."(.*)";
-                
-                if(ENABLE_MULTILANGUAGE){
-                    switch (ENABLE_MULTILANGUAGE) {
-                        case 'polylang':
-                            $post_language = pll_get_post_language($post_id, "slug");
-                            foreach($GLOBALS["languages"] as $language){
-                                if($language["name"] != $post_language){
-                                    $post_id = pll_get_post( $post_id, $language["name"] );
-                                    $url = get_permalink($post_id);
-                                    $basename = basename($url);
-                                    $path = str_replace(home_url('/'), "",$url);
-                                    $path = str_replace($basename."/", "", $path);
-                                    $path = str_replace($basename, "", $path); 
-                                    if(!empty($path)){
-                                      $urls[] = getSiteSubfolder().$path."(.*)";                                      
-                                    }
-                                }
-                            }
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    return $urls;
-}
-
-function wp_rocket_taxonomy_url_regex(){
-    global $wpdb;
-    $urls = [];
-    $excluded_taxonomies = get_option("options_exclude_taxonomies_from_cache");
-    $taxonomy_prefix_remove = get_option("options_taxonomy_prefix_remove");
-    if ($excluded_taxonomies) {
-        foreach ($excluded_taxonomies as $taxonomy) {
-            $prefix_remove = false;
-            if(in_array($taxonomy, $taxonomy_prefix_remove)){
-                $prefix_remove = true;
-                $term_ids = $wpdb->get_col($wpdb->prepare(
-                    "
-                    SELECT term_id 
-                    FROM $wpdb->term_taxonomy 
-                    WHERE taxonomy = %s
-                    ",
-                    $taxonomy
-                ));               
-             }else{
-                $term_ids = [];
-                $term_ids[] = $wpdb->get_var( $wpdb->prepare(
-                    "
-                    SELECT term_id 
-                    FROM $wpdb->term_taxonomy 
-                    WHERE taxonomy = %s 
-                    LIMIT 1
-                    ",
-                    $taxonomy
-                ));
-            }
-            if ($term_ids) {
-                $term_ids = array_map('intval', $term_ids);
-                foreach ($term_ids as $term_id) {
-                    $term_link = get_term_link($term_id, $taxonomy);
-                    if (!is_wp_error($term_link)) {
-                        $basename = basename($term_link);
-                        $path = str_replace(home_url('/'), "", $term_link);
-                        if(!$prefix_remove){
-                            $path = str_replace($basename . "/", "", $path);
-                            $path = str_replace($basename, "", $path);
-                            $urls[] = getSiteSubfolder() . $path . "(.*)";                            
-                        }else{
-                            $urls[] = getSiteSubfolder() .$path;
-                        }
-                    }
-
-                    // Multilanguage desteği varsa işleyelim
-                    if (ENABLE_MULTILANGUAGE) {
-                        switch (ENABLE_MULTILANGUAGE) {
-                            case 'polylang':
-                                $term_language = pll_get_term_language($term_id, "slug");
-
-                                foreach ($GLOBALS["languages"] as $language) {
-                                    if ($language["name"] != $term_language) {
-                                        $term_id_translated = pll_get_term($term_id, $language["name"]);
-                                        $term_link = get_term_link($term_id_translated, $taxonomy);
-
-                                        if (!is_wp_error($term_link)) {
-                                            $basename = basename($term_link);
-                                            $path = str_replace(home_url('/'), "", $term_link);
-                                            if(!$prefix_remove){
-                                                $path = str_replace($basename . "/", "", $path);
-                                                $path = str_replace($basename, "", $path);
-                                                if (!empty($path)) {
-                                                    $urls[] = getSiteSubfolder() . $path . "(.*)";
-                                                }
-                                            }else{
-                                                 $urls[] = getSiteSubfolder() . $path;
-                                            }
-                                        }
-                                    }
-                                }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return $urls;
-}
-
-
-function modify_cache_reject_urls( $urls, $option ) {
-    $urls = !$urls ? [] : $urls;
-    $urls = array_merge($urls, wp_rocket_post_type_url_regex());
-    $urls = array_merge($urls, wp_rocket_taxonomy_url_regex());
-    error_log(json_encode($urls));
-    return $urls;
-}
-add_filter( 'pre_get_rocket_option_cache_reject_uri', 'modify_cache_reject_urls', 10, 2 );
-
 function wprocket_is_cached() {
-    if (defined("WP_ROCKET_VERSION")) {
-        foreach (headers_list() as $header) {
-            if (strpos($header, 'x-rocket-nginx-serving-static') !== false) {
-                error_log("wprocket_is_cached();");
-                return true;
-            }
-        }        
-    }
+    foreach (headers_list() as $header) {
+        if (strpos($header, 'x-rocket-nginx-serving-static') !== false) {
+            error_log("wprocket_is_cached();");
+            return true;
+        }
+    }        
     return false;
 }
 function is_wp_rocket_crawling() {
@@ -188,8 +63,118 @@ function is_wp_rocket_crawling() {
 
 add_filter('rocket_buffer', function ($buffer) {
     if (!is_admin()) {
-        // Sayfanın en altına şunu basar:
         return str_replace('"cached":""', '"cached":"1"', $buffer);
     }
     return $buffer;
 });
+
+if(!class_exists("WP_Rocket_Dynamic_Excludes")){
+    class WP_Rocket_Dynamic_Excludes{
+
+        private $home_url;
+        private $subfolder;
+        private $transient_key = 'rocket_reject_urls';
+        private $cache;
+
+        public function __construct($cache = true) {
+            $this->home_url = rtrim(home_url('/'), '/');
+            $this->cache = (bool)$cache;
+            $this->subfolder = $this->detect_subfolder();
+            add_filter('pre_get_rocket_option_cache_reject_uri', [$this, 'modify_cache_reject_urls'], 10, 2);
+            add_action('update_option_options_exclude_post_types_from_cache', [$this, 'clear_transient_cache'], 10, 3);
+            add_action('update_option_options_exclude_taxonomies_from_cache', [$this, 'clear_transient_cache'], 10, 3);
+        }
+
+        // Subfolder varsa tespit et, yoksa boş
+        private function detect_subfolder() {
+            $path = parse_url($this->home_url, PHP_URL_PATH);
+            $folder = trim($path, '/');
+            return $folder ?: '';
+        }
+
+        public function clear_transient_cache($option, $old_value, $value) {
+            delete_transient($this->transient_key);
+        }
+
+        private function build_regex($slug, $lang_prefix = '') {
+            $slug = trim($slug, '/');
+            $parts = [];
+
+            // Burada **runtime** subfolder eklenmeyecek, sadece regex parçaları
+            if ($lang_prefix) $parts[] = $lang_prefix;
+            if ($slug) $parts[] = $slug;
+
+            return '/' . implode('/', $parts) . '/(.*)';
+        }
+
+        private function post_type_slugs() {
+            $slugs = [];
+            $excluded_post_types = (array) get_option('options_exclude_post_types_from_cache', []);
+            foreach ($excluded_post_types as $pt) {
+                $obj = get_post_type_object($pt);
+                if ($obj && !empty($obj->rewrite['slug'])) {
+                    $slugs[] = $obj->rewrite['slug'];
+                }
+            }
+            return $slugs;
+        }
+
+        private function taxonomy_slugs() {
+            $slugs = [];
+            $excluded_taxonomies = (array) get_option('options_exclude_taxonomies_from_cache', []);
+            foreach ($excluded_taxonomies as $tax) {
+                $obj = get_taxonomy($tax);
+                if ($obj && !empty($obj->rewrite['slug'])) {
+                    $slugs[] = $obj->rewrite['slug'];
+                }
+            }
+            return $slugs;
+        }
+
+        public function get_dynamic_urls() {
+            // Cache aktifse ve transient varsa
+            if ($this->cache) {
+                $cached = get_transient($this->transient_key);
+                if ($cached !== false) return $cached;
+            }
+
+            $slugs = array_merge($this->post_type_slugs(), $this->taxonomy_slugs());
+            $urls = [];
+            $langs = $GLOBALS['languages'] ?? [];
+            $default_lang = $GLOBALS['language_default'] ?? '';
+
+            foreach ($slugs as $slug) {
+                $urls[] = $this->build_regex($slug);
+                foreach ($langs as $lang_data) {
+                    $lang = $lang_data['name'] ?? '';
+                    if ($lang && $lang !== $default_lang) {
+                        $urls[] = $this->build_regex($slug, $lang);
+                    }
+                }
+            }
+
+            $urls = array_filter(array_unique($urls));
+
+            if ($this->cache) {
+                set_transient($this->transient_key, $urls, YEAR_IN_SECONDS);
+            }
+
+            return $urls;
+        }
+
+        public function modify_cache_reject_urls($urls, $option) {
+            $urls = is_array($urls) ? $urls : [];
+            $dynamic_urls = $this->get_dynamic_urls();
+            if (!empty($this->subfolder)) {
+                foreach ($dynamic_urls as &$url) {
+                    $url = '/' . $this->subfolder . $url;
+                }
+                unset($url);
+            }
+            $merged = array_unique(array_merge($urls, $dynamic_urls));
+            //error_log(print_r($merged, true));
+            return $merged;
+        }
+    }
+    new WP_Rocket_Dynamic_Excludes(true);
+};

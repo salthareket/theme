@@ -217,7 +217,9 @@ function compile_files_config($enable_production=false){
 		"class" => ["lightgallery"],
 		"attrs" => [],
 		"init"     => "init_lightGallery",
-		"whitelist" => []
+		"whitelist" => [
+			"lg-*"
+		]
 	];
 	$plugins['jquery-match-height'] = [
 		"c" => false,

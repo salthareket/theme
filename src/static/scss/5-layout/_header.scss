@@ -265,6 +265,10 @@ header#header {
                 }
 
                 &.nav-language:not(.dropdown) {
+                    font-family: var(--header-language-font);
+                    color: var(--header-language-color);
+                    font-size: var(--header-language-font-size);
+                    font-weight: var(--header-language-font-weight);
                     >ul {
                         margin: 0;
                         padding: 0;
@@ -277,10 +281,10 @@ header#header {
 
                             >a {
                                 display: block;
-                                font-family: var(--header-language-font);
-                                color: var(--header-language-color);
-                                font-size: var(--header-language-font-size);
-                                font-weight: var(--header-language-font-weight);
+                                font-family: inherit;//var(--header-language-font);
+                                color: inherit;//var(--header-language-color);
+                                font-size: inherit;//var(--header-language-font-size);
+                                font-weight: inherit;//var(--header-language-font-weight);
                                 vertical-align: middle;
                                 @include transition(color, 0.3s, ease-out);
                                 &:hover {

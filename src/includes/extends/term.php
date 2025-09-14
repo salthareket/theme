@@ -8,7 +8,7 @@ class Term extends Timber\Term{
     public function thumbnail(){
         return Timber::get_image(get_term_meta($this->term_id, '_thumbnail_id', true));
     }
-    public function get_thumbnail($args=array()){
+    /*public function get_thumbnail($args=array()){
         $media = $this->meta("media");
         if($media->media_type == "image"){
             if($media->use_responsive_image){
@@ -25,7 +25,42 @@ class Term extends Timber\Term{
             $image = new SaltHareket\Image($args);
             return $image->init();
         }
+    }*/
+
+    public function get_thumbnail(array $args = []){
+        $media = $this->meta('media');
+        $src   = '';
+
+        // 1) Media varsa kontrol et
+        if ($media && is_object($media)) {
+            $type = $media->media_type ?? null;
+
+            if ($type === 'image') {
+                if (!empty($media->use_responsive_image) && !empty($media->image_responsive)) {
+                    $src = $media->image_responsive;
+                } elseif (!empty($media->image)) {
+                    $src = $media->image;
+                }
+            }
+        }
+
+        // 2) Fallback: Timber Term Thumbnail
+        if (empty($src)) {
+            $src = method_exists($this, 'thumbnail') ? $this->thumbnail() : '';
+        }
+
+        $args['src'] = $src;
+
+        // 3) SaltHareket\Image güvenli çağrı
+        try {
+            $image = new \SaltHareket\Image($args);
+            return $image->init();
+        } catch (\Throwable $e) {
+            error_log('Term get_thumbnail failed: ' . $e->getMessage());
+            return '';
+        }
     }
+
 
     public function get_field_lang($field="", $lang=""){
         if(empty($field)){
