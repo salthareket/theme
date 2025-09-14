@@ -1430,8 +1430,10 @@ function acf_add_field_options($field) {
             $field["default_value"] = "";
         }
         $options = array();
-        foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
-            $options[$key] = $key;
+        if (isset($GLOBALS["breakpoints"]) && is_array($GLOBALS["breakpoints"])) {
+            foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+                $options[$key] = $key;
+            }
         }
         $field['choices'] = array();
         if(in_array("acf-breakpoints-none", $class)){
@@ -1634,12 +1636,14 @@ function acf_add_field_options($field) {
         }  
 
         foreach($types as $type) {
-            foreach($GLOBALS["breakpoints"] as $key => $breakpoint) {
-                $size = "";
-                if(isset($typography[$type][$key]) && !empty($typography[$type][$key]["value"])){
-                   $size = " - ".$typography[$type][$key]["value"].$typography[$type][$key]["unit"];
+            if (isset($GLOBALS["breakpoints"]) && is_array($GLOBALS["breakpoints"])) {
+                foreach($GLOBALS["breakpoints"] as $key => $breakpoint) {
+                    $size = "";
+                    if(isset($typography[$type][$key]) && !empty($typography[$type][$key]["value"])){
+                       $size = " - ".$typography[$type][$key]["value"].$typography[$type][$key]["unit"];
+                    }
+                    $field['choices'][$type."-".$key] = $type."-".$key.$size;
                 }
-                $field['choices'][$type."-".$key] = $type."-".$key.$size;
             }
         }
     }
@@ -2010,6 +2014,9 @@ function acf_add_field_options($field) {
 
     if(in_array("acf-template-custom", $class) || in_array("acf-template-custom-default", $class)){
         $handle = get_stylesheet_directory() . '/theme/templates/_custom/';
+        if (!is_dir($handle)) {
+            return $field;
+        }
         $templates = array();// scandir($handle);
         if ($handle = opendir($handle)) {
             while (false !== ($entry = readdir($handle))) {
@@ -2036,6 +2043,9 @@ function acf_add_field_options($field) {
     if(in_array("acf-template-modal", $class)){
         //$handle = get_stylesheet_directory() . "/templates/partials/modals";
         $handle = get_timber_template_path( "/partials/modals/" );
+        if (!is_dir($handle)) {
+            return $field;
+        }
         $templates = array();
         if($handle){
             if ($handle = opendir($handle)) {
@@ -2429,8 +2439,10 @@ function acf_add_field_options($field) {
             $options["default"] = "Default";
         }
         $options["title-fluid"] = "Fluid";
-        foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
-            $options["title-".$key] = "Title ".$key;
+        if (isset($GLOBALS["breakpoints"]) && is_array($GLOBALS["breakpoints"])) {
+            foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+                $options["title-".$key] = "Title ".$key;
+            }
         }
         $field['choices'] = array();
         foreach($options as $key => $label) {
@@ -2452,8 +2464,10 @@ function acf_add_field_options($field) {
             $options["default"] = "Default";
         }
         $options["text-fluid"] = "Fluid";
-        foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
-            $options["text-".$key] = "Text ".$key;
+        if (isset($GLOBALS["breakpoints"]) && is_array($GLOBALS["breakpoints"])) {
+            foreach ($GLOBALS["breakpoints"] as $key => $breakpoint) {
+                $options["text-".$key] = "Text ".$key;
+            }
         }
         $field['choices'] = array();
         foreach($options as $key => $label) {
@@ -2486,8 +2500,10 @@ add_filter('acf/load_field', 'acf_add_field_options');
 
 add_filter('acf/load_field/key=field_6425cced6668a', 'acf_load_offcanvas_template_files');
 function acf_load_offcanvas_template_files( $field ) {
-    //$handle = get_stylesheet_directory() . "/templates/partials/offcanvas/";
     $handle = get_timber_template_path( "/partials/offcanvas/" );
+    if (!is_dir($handle)) {
+        return $field;
+    }
     $templates = array();
     if($handle){
         if ($handle = opendir($handle)) {
