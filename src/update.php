@@ -1374,7 +1374,7 @@ class Update {
     private static function copy_theme(){
         $srcDir = SH_PATH . 'content/theme';
         $target_dir = get_template_directory() . '/theme';
-        error_log(copy_theme()." -> ".$srcDir." -> ".$target_dir);
+        error_log("copy_theme() -> ".$srcDir." -> ".$target_dir);
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true);
         } 

@@ -114,11 +114,12 @@ class SaltBase{
         }
 
         //add_action('wp_footer', [$this, 'add_page_assets']);
-
-        if($user){
-           $this->user = Timber\Timber::get_user($user);//wp_get_current_user();//new User($user);
-        }else{
-           $this->user = Timber\Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
+        if (class_exists('Timber\Timber')) {
+            if($user){
+               $this->user = Timber\Timber::get_user($user);//wp_get_current_user();//new User($user);
+            }else{
+               $this->user = Timber\Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
+            }
         }
         
         $localization = new Localization();
