@@ -2173,6 +2173,9 @@ function acf_add_field_options($field) {
         $field["search_placeholder"] = "";
         $field["return_format"] = "value";
         $colors_list_file = get_template_directory() . '/theme/static/data/colors.json';
+        if (!file_exists($colors_list_file)) {
+           return $field;
+        }
         $colors = file_get_contents($colors_list_file);
         $options = json_decode($colors, true);
         $field['choices'] = array();
@@ -3805,6 +3808,7 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
 
             // Create the output directory if it doesn't exist
             if (!file_exists($outputDir)) {
+                error_log("acf_development_extract_translations -> ".$outputDir." oluşturuldu...");
                 mkdir($outputDir, 0755, true);
             }
 
