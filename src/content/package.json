@@ -27,6 +27,7 @@
     "masonry-layout": "^4.2.2",
     "moment": "^2.30.1",
     "plyr": "^3.8.3",
+    "postcss-nested": "^7.0.2",
     "scrollpos-styler": "^0.7.1",
     "smarquee": "^1.0.5",
     "smartmenus": "^1.2.1",
