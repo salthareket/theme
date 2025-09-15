@@ -4,28 +4,7 @@ class Lcp{
 	// lcp: type, tag, code, url, id
     Private $data = [];
     Private $view_type = "";
-	/*public function __construct($data = []) {
-		$this->view_type = "code";//"js";
-		if($data){
-			$this->data = $data;
-		}else{
-			if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
-				if(isset(SITE_ASSETS["lcp"]["desktop"]) && SITE_ASSETS["lcp"]["desktop"] && isset(SITE_ASSETS["lcp"]["mobile"]) && SITE_ASSETS["lcp"]["mobile"]){
-					$this->data = SITE_ASSETS["lcp"];				
-				}
-			}
-		}
-		if($this->data){
-			if(isset($this->data["desktop"]["type"]) || isset($this->data["mobile"]["type"])){
-               //error_log(" -> wp_head -> preloadCode");
-			   add_action('wp_head', [$this, "preloadCode"], 0);
-			}else{
-				$this->no_cache();
-			}
-		}else{
-			$this->no_cache();
-		}
-	}*/
+
 	public function __construct($data = []) {
 	    $this->view_type = "code";
 
@@ -41,8 +20,6 @@ class Lcp{
 	            error_log("[LCP] Data yok ve SITE_ASSETS tanımlı değil");
 	        }
 	    }
-
-	   
 
 	    // WP Rocket filter içinde LCP kontrolü
 	    if(function_exists('rocket_cache_reject_uri')){
@@ -294,18 +271,22 @@ class Lcp{
 		});
 	}
 	public function images(){
-		$images = [];
-		if($this->data){
-			foreach($this->data as $key => $lcp){
-				if($lcp["type"] != "css"){
-					$images[] = [
-						"id" => $lcp["id"],
-						"url" => $lcp["url"]
-					];
-				}
-			}
-		}
-		return $images;
+	    $images = [];
+	    if($this->data){
+	        foreach($this->data as $key => $lcp){
+	            // "type" anahtarının varlığını kontrol et
+	            if(isset($lcp["type"]) && $lcp["type"] != "css"){
+	                // "id" ve "url" anahtarlarının varlığını kontrol et
+	                if(isset($lcp["id"]) && isset($lcp["url"])){
+	                    $images[] = [
+	                        "id" => $lcp["id"],
+	                        "url" => $lcp["url"]
+	                    ];
+	                }
+	            }
+	        }
+	    }
+	    return $images;
 	}
 	public function is_lcp($image) {
 	    // Tüm LCP ID'lerini bir array'e çekelim.

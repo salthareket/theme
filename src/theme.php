@@ -336,6 +336,10 @@ Class Theme{
     }
     public function global_variables(){
 
+        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
+            return [];
+        }
+
         $salt = $GLOBALS["salt"];
 
         $user = \Timber::get_user();
@@ -872,7 +876,7 @@ Class Theme{
     }
 
     public function site_assets(){
-        if (is_admin()) {
+        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
             return;
         }
         if (defined('DOING_AJAX') && DOING_AJAX) {
@@ -946,7 +950,7 @@ Class Theme{
             
             define("SITE_ASSETS", $site_assets);
             
-            if(!isset($_GET["fetch"]) ) {
+            if(!isset($_GET["fetch"]) && !is_admin()) {
                 new \Lcp();
             }
 
@@ -994,6 +998,10 @@ Class Theme{
             ];
     }
     public static function get_site_config($jsLoad = 0, $meta = []){
+
+        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
+            return [];
+        }
 
         error_log("get_site_config");
 
@@ -1212,6 +1220,10 @@ Class Theme{
         return $GLOBALS["site_config"];  
     }
     public function site_config_js(){
+
+        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
+            return;
+        }
 
         error_log("site_config_js();");
 

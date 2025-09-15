@@ -73,6 +73,15 @@ class Update {
         add_action('wp_ajax_run_update_task', [__CLASS__, 'run_update_task']);
 
         add_action('wp_ajax_install_ffmpeg', [__CLASS__, 'install_ffmpeg']);
+
+        add_action('admin_head', function () {
+            $pages = ["update-theme" ];
+            if (isset($_GET['page']) && in_array($_GET['page'], $pages)) {
+                remove_all_actions('admin_notices');
+                remove_all_actions('all_admin_notices');
+            }
+        });
+
         self::check_installation();
     }
 

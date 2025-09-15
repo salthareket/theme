@@ -3562,9 +3562,9 @@ function get_pages_need_updates($updated_plugins){
             ];
         }
     }
-
+    
     $extractor = new PageAssetsExtractor();
-    return $extractor->fetch_urls($urls);
+    return $extractor->fetch_urls($urls);        
 }
 
 function acf_compile_js_css($value=0){
@@ -3711,11 +3711,19 @@ function acf_compile_js_css($value=0){
             );
 
             if($updated_plugins){
-                $pages = get_pages_need_updates($updated_plugins);
-                if(function_exists("add_admin_notice") && $pages && $value){
-                    $message = count($pages)." pages fetched for plugin updates";
-                    $type = "success";
-                    add_admin_notice($message, $type);
+                if(\Update::tasks_completed()){
+                    if(function_exists("add_admin_notice") && $updated_plugins && $value){
+                        $message = "These plugins are updated, please fetch pages. [".implode(", ", $updated_plugins)."]";
+                        $type = "success";
+                        add_admin_notice($message, $type);
+                    } 
+                }else{
+                    $pages = get_pages_need_updates($updated_plugins);
+                    if(function_exists("add_admin_notice") && $pages && $value){
+                        $message = count($pages)." pages fetched for plugin updates";
+                        $type = "success";
+                        add_admin_notice($message, $type);
+                    }                    
                 }
             }
 
