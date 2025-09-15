@@ -1,6 +1,7 @@
 <?php
 
 use MatthiasMullie\Minify;
+use Irmmr\RTLCss\Parser as RTLParser
 
 class SaltMinifier{
     
