@@ -164,7 +164,6 @@ class Update {
         }
     }
 
-
     private static function get_package_github_url($package_name) {
         if (!file_exists(self::$composer_lock_path)) {
             error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
@@ -199,9 +198,7 @@ class Update {
 
         error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
-
     }
-
     private static function get_package_version($package_name) {
 
         if (!file_exists(self::$composer_lock_path)) {
@@ -241,9 +238,13 @@ class Update {
     private static function get_current_version() {
         return self::get_package_version(self::$github_repo);
     }
-    private static function get_latest_version() {
-        $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
-        
+    private static function get_latest_version($package_name = "") {
+        if(empty($package_name)){
+            $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
+        }else{
+            $url = $this->get_package_github_url($package_name).'releases/latest';
+        }
+        error_log("get_latest_version -> ".$url);
         $response = wp_remote_get($url, [
             'headers' => [
                 'Accept' => 'application/vnd.github.v3+json',
