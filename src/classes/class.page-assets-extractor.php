@@ -1,6 +1,7 @@
 <?php
 use MatthiasMullie\Minify;
 use voku\helper\HtmlDomParser;
+use Irmmr\RTLCss\Parser as RTLParser;
 
 class PageAssetsExtractor
 {
