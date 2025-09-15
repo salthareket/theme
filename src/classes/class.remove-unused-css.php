@@ -116,7 +116,7 @@ class RemoveUnusedCss {
         }
         
         $this->css = is_file($css) ? file_get_contents($css) : $css;
-        $this->css = $this->check_and_flatten_css($css);
+        //$this->css = $this->check_and_flatten_css($css);
         $this->output = $output;
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
         $this->critical_css = $critical_css;
@@ -132,57 +132,6 @@ class RemoveUnusedCss {
 
         error_log('[RemoveUnusedCss] init | twig_attr=' . $this->twig_attr);
     }
-
-function check_and_flatten_css($css_code) {
-    // '>' veya '&' karakterleri yoksa, muhtemelen iç içe değildir,
-    // direkt orijinal kodu döndür.
-    if (strpos($css_code, '>') === false && strpos($css_code, '&') === false) {
-        return $css_code;
-    }
-
-    // Sabberworm CSS kütüphanesi ile ayrıştırma yap
-    $oCssParser = new Sabberworm\CSS\Parser($css_code);
-    try {
-        $oCssDocument = $oCssParser->parse();
-    } catch (Sabberworm\CSS\Parsing\SourceException $e) {
-        return $css_code;
-    }
-
-    $converted_css = '';
-    $oOutputFormat = OutputFormat::create();
-
-    foreach ($oCssDocument->getAllDeclarationBlocks() as $oDeclarationBlock) {
-        $selectors = $oDeclarationBlock->getSelectors();
-        
-        // Bir seçicide iç içe geçmiş bir kural olup olmadığını kontrol et
-        $is_nested = false;
-        foreach ($selectors as $selector) {
-            if (strpos($selector->getSelector(), '>') !== false || strpos($selector->getSelector(), '&') !== false) {
-                $is_nested = true;
-                break;
-            }
-        }
-
-        if ($is_nested) {
-            $selector_strings = array_map(function($selector) {
-                return $selector->getSelector();
-            }, $selectors);
-
-            $rule_strings = [];
-            foreach ($oDeclarationBlock->getContents() as $content) {
-                if ($content instanceof Sabberworm\CSS\Rule\Rule) {
-                    $rule_strings[] = $content->getDeclarationString($oOutputFormat);
-                }
-            }
-            
-            $converted_css .= implode(', ', $selector_strings) . ' { ' . implode(' ', $rule_strings) . ' }' . "\n";
-        } else {
-            $converted_css .= $oDeclarationBlock->render($oOutputFormat) . "\n";
-        }
-    }
-
-    return $converted_css;
-}
 
     private function cleanDom($dom) {
         $removeTags = ['script', 'style', 'noscript', 'template', 'svg', 'canvas'];

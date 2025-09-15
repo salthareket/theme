@@ -407,6 +407,7 @@ class SaltMinifier{
         }
         if($files){
             $minify->minify($output);
+            $this->compile_nested_css($output, true);
             $this->assets_check[] = $output;
             $this->rtl_list[$filename] = $output;
         }
@@ -444,6 +445,65 @@ class SaltMinifier{
 	        }			
 		}
 	}
+
+    public function compile_nested_css($css, $save = false) {
+        if (!is_string($css)) {
+            throw new \InvalidArgumentException("CSS parametresi string olmalı.");
+        }
+
+        $isFile = is_file($css);
+
+        // İçeriği al
+        if ($isFile) {
+            $content = file_get_contents($css);
+            if ($content === false) {
+                throw new \RuntimeException("CSS dosyası okunamadı: " . $css);
+            }
+            $path = $css;
+        } else {
+            // Direkt CSS stringi
+            $content = $css;
+            $path = null;
+        }
+
+        // Nested CSS var mı?
+        $hasNested = preg_match('/\{[^}]*[&>]\s*[\w.#:]/m', $content);
+
+        if (!$hasNested) {
+            return $content; // zaten normal CSS
+        }
+
+        // Geçici dosya oluştur
+        $tmpIn  = tempnam(sys_get_temp_dir(), 'css_in_') . '.css';
+        $tmpOut = tempnam(sys_get_temp_dir(), 'css_out_') . '.css';
+        file_put_contents($tmpIn, $content);
+
+        // PostCSS ile compile et (postcss-nested plugin lazım)
+        $cmd = "npx postcss $tmpIn --use postcss-nested -o $tmpOut 2>&1";
+        $output = shell_exec($cmd);
+
+        if (!file_exists($tmpOut) || filesize($tmpOut) === 0) {
+            @unlink($tmpIn);
+            @unlink($tmpOut);
+            throw new \RuntimeException("CSS compile hatası: " . $output);
+        }
+
+        $compiled = file_get_contents($tmpOut);
+
+        // Temizlik
+        @unlink($tmpIn);
+        @unlink($tmpOut);
+
+        // Kaydetme opsiyonu sadece dosya için geçerli
+        if ($save && $path) {
+            file_put_contents($path, $compiled);
+            return true;
+        }
+
+        return $compiled;
+    }
+
+
 
 	public function save_as_local($plugin="", $item=""){
 		/*if(strpos($item, ".min.") === false){

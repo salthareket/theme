@@ -3498,7 +3498,6 @@ function get_pages_need_updates($updated_plugins){
         $like_clauses[] = $wpdb->prepare("option_value LIKE %s", '%' . $wpdb->esc_like($term) . '%');
     }
     
-    $results = [];
     if(ENABLE_MULTILANGUAGE){
         if(ENABLE_MULTILANGUAGE == "polylang"){
             $languages = pll_the_languages(['raw' => 1]);
@@ -3514,7 +3513,7 @@ function get_pages_need_updates($updated_plugins){
                         );
                         $option_value = $wpdb->get_var($query);
                         if ($option_value) {
-                            foreach ($search_terms as $term) {
+                            foreach ($updated_plugins as $term) {
                                 if (stripos($option_value, $term) !== false) {
                                     $pages[] = [
                                         'id' => $lang['slug'],
