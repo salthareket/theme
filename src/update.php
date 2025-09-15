@@ -165,6 +165,42 @@ class Update {
     }
 
 
+    private static function get_package_github_url($package_name) {
+        if (!file_exists(self::$composer_lock_path)) {
+            error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
+            return 'Unknown';
+        }
+        $lock_data = file_get_contents(self::$composer_lock_path);
+
+        if (!$lock_data) {
+            error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
+            return 'Unknown';
+        }
+
+        $lock_data = json_decode($lock_data, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('JSON parse hatası: ' . json_last_error_msg());
+            return 'Unknown';
+        }
+
+        if (empty($lock_data['packages'])) {
+            error_log('composer.lock dosyasında paket bulunamadı.');
+            return 'Unknown';
+        }
+
+        foreach ($lock_data['packages'] as $package) {
+            if ($package['name'] === $package_name) {
+                error_log('Github URL bulundu: '.$package_name . ":" . $package['dist']["url"]);
+                $url = $package['dist']["url"];
+                return preg_replace('#/[^/]+$#', '/', $url);
+            }
+        }
+
+        error_log('Paket bulunamadı: '.$package_name);
+        return 'Unknown';
+
+    }
 
     private static function get_package_version($package_name) {
 
@@ -720,10 +756,13 @@ class Update {
 
             // ZIP dosyasını indirme
             //$url = self::composer_get_latest_version_url($package_name);
-            $url = self::$github_api_url . '/' . $package_name . '/zipball/' . $latest_version;
+            //$url = self::$github_api_url . '/' . $package_name . '/zipball/' . $latest_version;
+            $url = self::get_package_github_url($package_name) . $latest_version;
             $tmp_file = download_url($url);
 
             if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
+                error_log($url);
+                error_log(print_r($tmp_file, true));
                 error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
                 wp_send_json_error(['message' => 'ZIP dosyası indirilemedi veya bozuk.']);
             }

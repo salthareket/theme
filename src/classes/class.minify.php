@@ -1,7 +1,7 @@
 <?php
 
 use MatthiasMullie\Minify;
-use Irmmr\RTLCss\Parser as RTLParser
+use Irmmr\RTLCss\Parser as RTLParser;
 
 class SaltMinifier{
     
@@ -158,7 +158,7 @@ class SaltMinifier{
 
                 $rtlcss = new RTLParser($tree);
                 $rtlcss->flip();
-                $css = $css_tree->render();
+                $css = $tree->render();
 
                 // minify
                 $minify = new Minify\CSS($css);
