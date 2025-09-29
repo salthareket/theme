@@ -65,6 +65,7 @@ class Update {
            self::$status = "pending";
            self::$tasks_status = [];
         }
+        add_action( 'admin_enqueue_scripts', [__CLASS__, 'disable_heartbeat']);
         add_action('admin_notices', [__CLASS__, 'check_for_update_notice']);
         add_action('wp_ajax_update_theme_package', [__CLASS__, 'composer']);
         add_action('wp_ajax_install_new_package', [__CLASS__, 'composer_install']);
@@ -84,6 +85,14 @@ class Update {
 
         self::check_installation();
     }
+
+
+    private function disable_heartbeat($hook){
+        if ($hook === 'theme-settings_page_update-theme') {
+            wp_deregister_script('heartbeat');
+        }
+    }
+
 
     /*private static function check_installation(){
         if (!(defined('DOING_AJAX') && DOING_AJAX)) {

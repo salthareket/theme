@@ -187,20 +187,22 @@ class SaltBase{
     public static function get_cached_option($key) {
         $cache_key = 'acf_option_' . $key;
         $cached_value = get_transient($cache_key);
-        //error_log("get from cache: ".$cache_key); 
-        //error_log(print_r($cached_value, true));
+
         if ($cached_value !== false) {
             return $cached_value;
         }
-        if(function_exists("get_field")){
+
+        $value = null; // 🟢 Başta tanımla
+
+        if (function_exists("get_field")) {
             $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
         }
-        //error_log("set to cache: ".$cache_key); 
-        //error_log(print_r($value, true));
+
         set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
-        //error_log("-----------------------------------");
+
         return $value;
     }
+
 
     public function clear_cached_option($value, $post_id, $field) {
         if ($post_id !== 'options') return $value;

@@ -2785,7 +2785,7 @@ class UpdateFlexibleFieldLayouts {
         //error_log($block_name_solid." var mı? => ".in_array($block_name_solid, $layouts));
         return in_array($block_name_solid, $layouts);
     }
-    public function block_exists_in_db() {
+    /*public function block_exists_in_db() {
         global $wpdb;
         $post_parent = $this->field_data()["ID"];
         $block_name_solid = str_replace("block-", "", $this->block_name);
@@ -2805,7 +2805,38 @@ class UpdateFlexibleFieldLayouts {
         );
         error_log("post_parent: ".$post_parent.", block_name_solid: ".$block_name_solid);
         return !empty($block)?true:false;
+    }*/
+    public function block_exists_in_db() {
+        global $wpdb;
+        $field_data = $this->field_data();
+        
+        if (empty($field_data) || !isset($field_data['ID'])) {
+            error_log("field_data boş veya ID yok");
+            return false; // Hemen false döndür
+        }
+
+        $post_parent = $field_data['ID'];
+        $block_name_solid = str_replace("block-", "", $this->block_name);
+
+        $block = $wpdb->get_var( 
+            $wpdb->prepare(
+                "
+                SELECT post_excerpt 
+                FROM {$wpdb->posts} 
+                WHERE post_type = %s 
+                AND post_parent = %d 
+                AND post_excerpt = %s
+                ", 
+                'acf-field', 
+                $post_parent,
+                $block_name_solid
+            )
+        );
+
+        error_log("post_parent: ".$post_parent.", block_name_solid: ".$block_name_solid);
+        return !empty($block) ? true : false;
     }
+
     public function create_clone($block, $post_parent, $layout_name, $layout_data = []) {
         if ($layout_data && isset($layout_data["sub_fields"]) && in_array($slug, array_values($layout_data["sub_fields"]))) {
             $post_name = $layout_data["sub_fields"][$slug];
