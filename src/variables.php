@@ -20,8 +20,6 @@ define('SH_STATIC_URL', get_template_directory_uri() . "/vendor/salthareket/them
 define('STATIC_PATH',  get_template_directory() . '/static/');
 define('STATIC_URL',   get_template_directory_uri() . "/static/");
 
-define('THEME_URL',  get_template_directory_uri() . '/theme/');
-
 define('THEME_INCLUDES_PATH',  get_template_directory() . '/theme/includes/');
 define('THEME_STATIC_PATH',    get_template_directory() . '/theme/static/');
 
@@ -232,6 +230,7 @@ add_action('init', function () {
     define("TEXT_DOMAIN", $theme->get('TextDomain'));
     $GLOBALS["is_admin"] = is_admin();
     $GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
+    $GLOBALS["language_default"] = $GLOBALS["language"];
     $GLOBALS["post_id"] = is_singular() ? get_the_ID() : 0;
 });
 
