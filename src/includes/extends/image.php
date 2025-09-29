@@ -1,6 +1,7 @@
 <?php
 
 namespace SalthareketExtend;
+
 use Timber\Image as TimberImage;
 
 class Image extends TimberImage {
