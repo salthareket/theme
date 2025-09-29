@@ -457,51 +457,7 @@ class Salt extends SaltBase {
     }
 
     public function on_post_published($post_id, $post, $update){
-        
-        /*remove_action('save_post', [ $this, 'on_post_published'], 100);
-        remove_action('save_post_product', [ $this, 'on_post_published'], 100);
-        remove_action('publish_post', [ $this, 'on_post_published'], 100);*/
-        /*if (is_callable([parent::class, 'on_post_published'])) {
-            remove_action('save_post', [ parent::class, 'on_post_published'], 100);
-            remove_action('save_post_product', [ parent::class, 'on_post_published'], 100);
-            remove_action('publish_post', [ parent::class, 'on_post_published'], 100);
-        }*/
-        
-        /*if (defined('DOING_AJAX') && DOING_AJAX) {
-            return;
-        }
-        if (defined('DOING_CRON') && DOING_CRON) {
-            return;
-        }
-        if ( wp_is_post_revision( $post_id ) ) {
-            return;
-        }
-        if ( get_post_status( $post_id ) !== 'publish' ) {
-            return;
-        }
-        $post_types = get_post_types(['public' => true], 'names');
-        if (in_array($post->post_type, $post_types)) {
-            if (self::$already_ran) {
-                return; // Eğer zaten çalıştıysa, çık
-            }
-
-            self::$already_ran = true; // Flag'i ayarla*/
-            $project = new Project();
-            $project->campaign_published($post_id, $post, $update );
-
-
-            parent::on_post_published($post_id, $post, $update);
-
-           /* self::$already_ran = false; // Flag'i ayarla
-        }*/
-        /*add_action('save_post', [ $this, 'on_post_published'], 100, 3);
-        add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
-        add_action('publish_post', [ $this, 'on_post_published'], 100, 3);
-        if (is_callable([parent::class, 'on_post_published'])) {
-            add_action('save_post', [ parent::class, 'on_post_published'], 100, 3);
-            add_action('save_post_product', [ parent::class, 'on_post_published'], 100, 3);
-            add_action('publish_post', [ parent::class, 'on_post_published'], 100, 3);
-        }*/
+        parent::on_post_published($post_id, $post, $update);
     }
 
     public function on_term_published($term_id, $tt_id, $taxonomy){
