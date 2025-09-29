@@ -87,7 +87,7 @@ class Update {
     }
 
 
-    private static function disable_heartbeat($hook){
+    public static function disable_heartbeat($hook){
         if ($hook === 'theme-settings_page_update-theme') {
             wp_deregister_script('heartbeat');
         }
