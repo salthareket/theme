@@ -1321,10 +1321,10 @@ Class Theme{
         if (DISABLE_COMMENTS) {
             if (!class_exists("Remove_Comments_Absolute")) {
                 if (copy($disable_comments_path, $disable_comments_plugin)) {
-                    echo "File copied! \n";
+                    //echo "File copied! \n";
                     activate_plugin("remove-comments-absolute.php");
                 } else {
-                    echo "File has not been copied! \n";
+                    //echo "File has not been copied! \n";
                 }
             }
         } else {
