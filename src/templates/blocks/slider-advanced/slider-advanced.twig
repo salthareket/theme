@@ -44,8 +44,6 @@
             {{"</script>"}}
         {% endif %}
     {% endfor %}
-
-
     
     {% set slide_index = 1 %}
     {% set slide_overlays = [] %}
@@ -159,6 +157,7 @@
 
                     {% for post in posts %}
                     <div class="swiper-slide swiper-slide-{{slide.media_type|default("default")}} slide-{{slide_index}} {{slide.class}} {% if slide.overlay and not slide.video.video_settings.controls %}overlay{% endif %} {% if settings.hero and theme_styles.header.header.fixed and not fields.slider_settings.autoheight %}pt-header{% endif %} d-flex align-items-{{block_meta.settings.vertical_align}} justify-content-center">
+           
                         {% include slide.template ~ ".twig" with { post : post, container : block_meta.container_slider } %}
                         {#% if slide.overlay and not slide.video.video_settings.controls %}
                             {% set slide_overlays = slide_overlays|merge([{index: slide_index, overlay_position:slide.overlay_position, overlay_color: slide.overlay_color, overlay_color_alpha: slide.overlay_color_alpha}]) %}
@@ -172,7 +171,6 @@
         </div>
         {#<div class="swiper-pagination"></div>#}
     </div>
-    
     <style type="text/css">
     {% for index, slide in fields.slider %}
         {% if slide.acf_fc_layout == "static" %}

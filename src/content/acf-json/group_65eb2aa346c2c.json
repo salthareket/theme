@@ -54,7 +54,8 @@
                     "toggle": 0,
                     "allow_custom": 0,
                     "other_choice": 0,
-                    "parent_repeater": "field_65cc20633f654"
+                    "parent_repeater": "field_65cc20633f654",
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_65cc21333f658",
@@ -75,7 +76,8 @@
                     "ui_on_text": "",
                     "ui_off_text": "",
                     "ui": 1,
-                    "parent_repeater": "field_65cc20633f654"
+                    "parent_repeater": "field_65cc20633f654",
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_65ccc2776bccc",
@@ -116,7 +118,8 @@
                     "search_placeholder": "",
                     "parent_repeater": "field_65cc20633f654",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "default"
                 },
                 {
                     "key": "field_65cc21203f657",
@@ -147,7 +150,8 @@
                     "step": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_65cc20633f654"
+                    "parent_repeater": "field_65cc20633f654",
+                    "pll_default_value": 1
                 },
                 {
                     "key": "field_65cc20d33f656",
@@ -178,7 +182,8 @@
                     "step": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_65cc20633f654"
+                    "parent_repeater": "field_65cc20633f654",
+                    "pll_default_value": 1
                 }
             ]
         },
@@ -221,7 +226,8 @@
                     "default_value": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_65ccc2d56bccd",
@@ -261,7 +267,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "default"
                 },
                 {
                     "key": "field_65cc2b6a7018a",
@@ -291,7 +298,8 @@
                     "placeholder": "",
                     "step": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": 1
                 },
                 {
                     "key": "field_65cc2b3e70189",
@@ -321,7 +329,8 @@
                     "placeholder": "",
                     "step": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": 1
                 }
             ]
         }
@@ -351,7 +360,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983311,
+    "modified": 1755740582,
     "acfe_categories": {
         "general": "General"
     }

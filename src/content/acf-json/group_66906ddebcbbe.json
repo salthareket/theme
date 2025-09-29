@@ -82,7 +82,8 @@
                             "allow_in_bindings": 1,
                             "ui_on_text": "",
                             "ui_off_text": "",
-                            "ui": 1
+                            "ui": 1,
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66906ea96f038",
@@ -123,7 +124,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": false
                         },
                         {
                             "key": "field_66906f096f039",
@@ -164,7 +166,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": false
                         },
                         {
                             "key": "field_66906fc8368c8",
@@ -207,7 +210,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66907061bb115",
@@ -249,7 +253,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "no"
                         },
                         {
                             "key": "field_6690719b23f86",
@@ -279,7 +284,8 @@
                             "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
-                            "append": ""
+                            "append": "",
+                            "pll_default_value": 600
                         },
                         {
                             "key": "field_6690789c9a8b5",
@@ -319,7 +325,8 @@
                             "ajax": 0,
                             "placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "auto"
                         },
                         {
                             "key": "field_669078c49a8b6",
@@ -359,7 +366,8 @@
                             "ajax": 0,
                             "placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "auto"
                         },
                         {
                             "key": "field_66907ceae4511",
@@ -402,7 +410,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 22
                         },
                         {
                             "key": "field_669074d10f518",
@@ -432,7 +441,8 @@
                             "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
-                            "append": ""
+                            "append": "",
+                            "pll_default_value": "<i class=\"fa fa-chevron-up\"><\/i>"
                         },
                         {
                             "key": "field_669078f59a8b7",
@@ -475,7 +485,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_669074136f636",
@@ -503,7 +514,8 @@
                             "enable_opacity": 0,
                             "return_format": "string",
                             "translations": "sync",
-                            "allow_in_bindings": 1
+                            "allow_in_bindings": 1,
+                            "pll_default_value": "#000"
                         },
                         {
                             "key": "field_66907cafe450f",
@@ -531,7 +543,8 @@
                             "enable_opacity": 0,
                             "return_format": "string",
                             "translations": "sync",
-                            "allow_in_bindings": 1
+                            "allow_in_bindings": 1,
+                            "pll_default_value": "#333"
                         },
                         {
                             "key": "field_669074bc0f517",
@@ -559,7 +572,8 @@
                             "enable_opacity": 0,
                             "return_format": "string",
                             "translations": "sync",
-                            "allow_in_bindings": 1
+                            "allow_in_bindings": 1,
+                            "pll_default_value": "#fff"
                         },
                         {
                             "key": "field_66907cd0e4510",
@@ -587,7 +601,8 @@
                             "enable_opacity": 0,
                             "return_format": "string",
                             "translations": "sync",
-                            "allow_in_bindings": 1
+                            "allow_in_bindings": 1,
+                            "pll_default_value": "#fff"
                         }
                     ]
                 }
@@ -619,7 +634,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983331,
+    "modified": 1755740616,
     "acfe_categories": {
         "general": "General"
     }

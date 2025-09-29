@@ -325,35 +325,43 @@ function acf_offcanvas_classes($page_settings=array()){
 	}
 	return $classes;
 }
-function acf_offcanvas_content_classes($page_settings=array()){
-	$classes = "";
-	$size = $page_settings["offcanvas"]["size"];
-	$width = $page_settings["offcanvas"]["width"];
-	$width = is_string($width)?"auto":(12 - $width);
-	switch ($size) {
-		case 'xs':
-		    $classes = "col-12";
-			break;
-		case 'sm':
-		    $classes = "col-12 col-sm-".$width;
-			break;
-		case 'md':
-		    $classes = "col-12 col-md-".$width;
-			break;
-		case 'lg':
-		    $classes = "col-12 col-lg-".$width;
-			break;
-		case 'xl':
-		    $classes = "col-12 col-xl-".$width;
-			break;
-		case 'xxl':
-		    $classes = "col-12 col-xxl-".$width;
-			break;
-		case 'xxxl':
-		    $classes = "col-12 col-xxxl-".$width;
-			break;
-	}
-	return $classes;
+function acf_offcanvas_content_classes($page_settings = []) {
+    $classes = "";
+    $size = $page_settings["offcanvas"]["size"] ?? 'md';
+    $width = $page_settings["offcanvas"]["width"] ?? 12;
+
+    // Numeric değilse integer’a çevir
+    if (!is_numeric($width)) {
+        $width = 12 - 0; // default fallback
+    } else {
+        $width = 12 - (int)$width; // numeric ise dönüştür
+    }
+
+    switch ($size) {
+        case 'xs':
+            $classes = "col-12";
+            break;
+        case 'sm':
+            $classes = "col-12 col-sm-".$width;
+            break;
+        case 'md':
+            $classes = "col-12 col-md-".$width;
+            break;
+        case 'lg':
+            $classes = "col-12 col-lg-".$width;
+            break;
+        case 'xl':
+            $classes = "col-12 col-xl-".$width;
+            break;
+        case 'xxl':
+            $classes = "col-12 col-xxl-".$width;
+            break;
+        case 'xxxl':
+            $classes = "col-12 col-xxxl-".$width;
+            break;
+    }
+
+    return $classes;
 }
 
 

@@ -49,7 +49,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6612a59429d7f",
@@ -71,7 +72,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_661d25847273e",
@@ -101,7 +103,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_661c88168383d",
@@ -135,7 +138,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_66a0efaa8ce26",
@@ -174,7 +178,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_661c8973bacaf",
@@ -226,7 +231,8 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_661c8973bacaf"
+                    "parent_repeater": "field_661c8973bacaf",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_661c899abacb1",
@@ -249,7 +255,8 @@
                     "rows": "",
                     "placeholder": "",
                     "new_lines": "",
-                    "parent_repeater": "field_661c8973bacaf"
+                    "parent_repeater": "field_661c8973bacaf",
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -276,9 +283,16 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
+                "acik-pozisyonlar": "Açık Pozisyonlar",
+                "duyurular": "Duyurular",
+                "etkinlikler": "Etkinlikler",
+                "kampanya": "Kampanyalar",
+                "katlar": "Katlar",
+                "magazalar": "Mağazalar",
+                "ulasim": "Ulaşım",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -293,7 +307,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_6612a4ce29d7c",
@@ -327,7 +342,8 @@
             "placeholder": "",
             "step": "",
             "prepend": "",
-            "append": ""
+            "append": "",
+            "pll_default_value": ""
         },
         {
             "key": "field_6612a51d29d7e",
@@ -459,7 +475,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "h3"
         },
         {
             "key": "field_661d15fa9cb78",
@@ -493,7 +510,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "h3"
         }
     ],
     "location": [
@@ -521,7 +539,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983319,
+    "modified": 1755740598,
     "acfe_categories": {
         "block": "Block"
     }

@@ -70,7 +70,8 @@
                     "ajax": 0,
                     "placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "image"
                 },
                 {
                     "key": "field_67852788d551c",
@@ -99,7 +100,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_67853203dd9d5",
@@ -297,7 +299,8 @@
                             "search_placeholder": "",
                             "parent_repeater": "field_676e27f6bfdc0",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": false
                         },
                         {
                             "key": "field_676e2849bfdc2",
@@ -355,7 +358,8 @@
                             "default_value": "",
                             "allow_in_bindings": 0,
                             "placeholder": "",
-                            "parent_repeater": "field_676e27f6bfdc0"
+                            "parent_repeater": "field_676e27f6bfdc0",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_676e2873bfdc4",
@@ -426,7 +430,7 @@
     "label_placement": "top",
     "instruction_placement": "label",
     "hide_on_screen": "",
-    "active": true,
+    "active": false,
     "description": "",
     "show_in_rest": 0,
     "acfe_display_title": "",
@@ -434,9 +438,10 @@
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983310,
+    "modified": 1755828133,
     "acfe_categories": {
         "common": "Common"
     }

@@ -34,13 +34,22 @@ class RemoveUnusedCss {
         ".scroll-down",
         ".loading",
         ".loading-*",
+
         ".menu-dropdown-open",
         ".menu-open",
         ".menu-show-header",
+
         ".offcanvas-open",
         ".offcanvas-fullscreen-open",
+
         ".collapse",
         ".collapsing",
+        ".collapsed",
+
+        ".search-open",
+
+        ".filter-open",
+
         ".in",
         ".open",
         ".active",
@@ -66,31 +75,31 @@ class RemoveUnusedCss {
     ];
 
     private $acceptable_pseudo_classes = [
-       ':not',
-       ':checked', 
-       ':link', 
-       ':disabled', 
-       ':enabled', 
-       ':selected', 
-       ':invalid', 
-       ':hover', 
-       ':visited', 
-       ':root', 
-       ':scope', 
-       ':first-child', 
-       ':last-child', 
-       ':nth-child', 
-       ':nth-last-child', 
-       //':first-of-type', 
-       //':last-of-type', 
-       ':only-child', 
-       ':only-of-type', 
-       ':empty',
+        ':not',
+        ':checked', 
+        ':link', 
+        ':disabled', 
+        ':enabled', 
+        ':selected', 
+        ':invalid', 
+        ':hover', 
+        ':visited', 
+        ':root', 
+        ':scope', 
+        ':first-child', 
+        ':last-child', 
+        ':nth-child', 
+        ':nth-last-child', 
+        //':first-of-type', 
+        //':last-of-type', 
+        ':only-child', 
+        ':only-of-type', 
+        ':empty',
         ':before', 
         ':after'
     ];
 
-    private string $twig_attr = 'data-twig-load';
+    private string $twig_attr = 'data-template';
     private array $twig_template_paths = [];   // Timber template paths (override edilebilir)
     private bool $twig_scan_includes = true;   // {% include %} yakala, rekürsif tara
     private array $twig_seen_templates = []; // 'magazalar/single-modal.twig' => true
@@ -543,7 +552,7 @@ class RemoveUnusedCss {
     private function collectTwigLoadedHtml(\voku\helper\HtmlDomParser $dom): string {
         $nodes = $dom->find("*[{$this->twig_attr}]");
         if (!$nodes || count($nodes) === 0) {
-            error_log('[RemoveUnusedCss] data-twig-load: node bulunamadı');
+            error_log('[RemoveUnusedCss] data-template: node bulunamadı');
             return '';
         }
 
@@ -565,7 +574,7 @@ class RemoveUnusedCss {
 
         $all = array_keys($uniqueTemplates);
         if (empty($all)) {
-            error_log('[RemoveUnusedCss] data-twig-load: template değeri yok (boş)');
+            error_log('[RemoveUnusedCss] data-template: template değeri yok (boş)');
             return '';
         }
 
@@ -579,11 +588,11 @@ class RemoveUnusedCss {
         }
 
         if (empty($toProcess)) {
-            error_log('[RemoveUnusedCss] data-twig-load: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
+            error_log('[RemoveUnusedCss] data-template: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
             return '';
         }
 
-        error_log('[RemoveUnusedCss] data-twig-load: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
+        error_log('[RemoveUnusedCss] data-template: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
         $html_chunks = [];
         $foundFiles  = [];
         $missed      = [];
@@ -745,7 +754,7 @@ class RemoveUnusedCss {
             return;
         }
 
-        // data-twig-load taraması
+        // data-template taraması
         $extra_html = $this->collectTwigLoadedHtml($dom);
         if ($extra_html) {
             // Eklenen fragmenti logla

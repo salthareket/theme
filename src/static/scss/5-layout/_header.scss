@@ -1,6 +1,6 @@
 header#header {
     //min-height:$header-height;
-    //background-color: var(--header-bg);
+    background-color: var(--header-bg);
     z-index: var(--header-z-index);
     @include transition(height 0.3s ease-out,
         min-height 0.3s ease-out,
@@ -56,6 +56,7 @@ header#header {
     &.affix {
             position: fixed;
             width: 100%;
+            background-color: var(--header-bg-affix);
             &.fixed-top{
                 top:0;
                 bottom:auto;
@@ -524,6 +525,7 @@ header#header {
                     +.dropdown-menu:not(.mega-menu) {
                         list-style: none;
                         position: absolute !important;
+                        font-family: var(--header-navbar-nav-dropdown-font);
                         margin: var(--header-navbar-nav-dropdown-margin);
                         background-color: var(--header-navbar-nav-dropdown-bg);
                         border: var(--header-navbar-nav-dropdown-border);

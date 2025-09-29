@@ -44,7 +44,8 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_64d99d3c494ee"
+                    "parent_repeater": "field_64d99d3c494ee",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_64d99db1494f1",
@@ -66,7 +67,8 @@
                     "rows": "",
                     "placeholder": "",
                     "new_lines": "",
-                    "parent_repeater": "field_64d99d3c494ee"
+                    "parent_repeater": "field_64d99d3c494ee",
+                    "pll_default_value": ""
                 }
             ]
         }
@@ -96,7 +98,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983308,
+    "modified": 1755740576,
     "acfe_categories": {
         "general": "General"
     }

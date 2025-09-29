@@ -32,7 +32,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "default"
         },
         {
             "key": "field_6602268b6a145",
@@ -71,7 +72,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "page_modal"
         },
         {
             "key": "field_660226ff6a146",
@@ -170,7 +172,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": false
         },
         {
             "key": "field_65e91fb3cfc61",
@@ -198,7 +201,8 @@
             "maxlength": "",
             "placeholder": "",
             "prepend": "",
-            "append": ""
+            "append": "",
+            "pll_default_value": ""
         },
         {
             "key": "field_65e91eeecfc60",
@@ -226,7 +230,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_65e91e1fcfc5f",
@@ -271,7 +276,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "lg"
         },
         {
             "key": "field_65e6c0866c41b",
@@ -320,7 +326,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_65e9c11cfe46c",
@@ -399,7 +406,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "true"
                         },
                         {
                             "key": "field_65e9c3625730f",
@@ -428,7 +436,8 @@
                             "ajax": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": []
                         }
                     ],
                     "min": "",
@@ -476,7 +485,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "true"
                         },
                         {
                             "key": "field_65e9d63c29fe4",
@@ -504,7 +514,8 @@
                             "choices": [],
                             "search_placeholder": "",
                             "layout": "",
-                            "toggle": 0
+                            "toggle": 0,
+                            "pll_default_value": []
                         }
                     ],
                     "min": "",
@@ -552,7 +563,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": 1
                         },
                         {
                             "key": "field_65e9d67a29fe8",
@@ -582,7 +594,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "logged"
                         }
                     ],
                     "min": "",
@@ -620,9 +633,16 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
+                "acik-pozisyonlar": "Açık Pozisyonlar",
+                "duyurular": "Duyurular",
+                "etkinlikler": "Etkinlikler",
+                "kampanya": "Kampanyalar",
+                "katlar": "Katlar",
+                "magazalar": "Mağazalar",
+                "ulasim": "Ulaşım",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -637,7 +657,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -668,5 +689,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1750983304
+    "modified": 1755740567
 }

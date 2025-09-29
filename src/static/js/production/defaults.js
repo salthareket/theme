@@ -968,6 +968,9 @@ var waiting_init = {
 };
 
 function translate(str, count = 1, replacements = {}) {
+    if(str == ""){
+        return str;
+    }
     const defaultLang = site_config.language_default;
     const currentLang = site_config.user_language;
 

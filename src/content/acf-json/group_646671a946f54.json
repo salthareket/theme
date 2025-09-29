@@ -20,7 +20,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6466727f278ea",
@@ -48,7 +49,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64c2cf3472a91",
@@ -81,7 +83,8 @@
             "allow_null": 0,
             "other_choice": 0,
             "layout": "horizontal",
-            "save_other_choice": 0
+            "save_other_choice": 0,
+            "pll_default_value": "email"
         },
         {
             "key": "field_64e5d169a268b",
@@ -114,7 +117,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_654adffc0d1b2",
@@ -142,7 +146,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_653d87666e681",
@@ -170,7 +175,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6555e54cadf77",
@@ -198,7 +204,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64b87b9eda81f",
@@ -248,7 +255,8 @@
             "allow_null": 0,
             "other_choice": 0,
             "layout": "horizontal",
-            "save_other_choice": 0
+            "save_other_choice": 0,
+            "pll_default_value": "renew"
         },
         {
             "key": "field_653d88556e682",
@@ -276,7 +284,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_653d8902effa7",
@@ -304,7 +313,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_646e163b64b84",
@@ -324,7 +334,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_646e1686d5b56",
@@ -357,7 +368,8 @@
             "allow_null": 0,
             "other_choice": 0,
             "layout": "horizontal",
-            "save_other_choice": 0
+            "save_other_choice": 0,
+            "pll_default_value": "api"
         },
         {
             "key": "field_65ad753442414",
@@ -377,7 +389,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64df6fc5a9433",
@@ -405,7 +418,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64df7033a5cd9",
@@ -467,7 +481,8 @@
                     "toggle": 0,
                     "allow_custom": 0,
                     "other_choice": 0,
-                    "parent_repeater": "field_64df7033a5cd9"
+                    "parent_repeater": "field_64df7033a5cd9",
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_64df70caa5cdb",
@@ -495,7 +510,8 @@
                     "search_placeholder": "",
                     "parent_repeater": "field_64df7033a5cd9",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": false
                 }
             ]
         },
@@ -525,7 +541,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_646672ba278eb",
@@ -553,7 +570,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64db87991b360",
@@ -586,7 +604,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64667325278ec",
@@ -614,7 +633,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_648d050e7f9f8",
@@ -642,7 +662,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64667507f2e99",
@@ -670,7 +691,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_654ce206e545f",
@@ -734,7 +756,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "other_choice": 0
+                    "other_choice": 0,
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_654ce27be5461",
@@ -764,7 +787,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "other_choice": 0
+                    "other_choice": 0,
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_654ce2aae5462",
@@ -792,7 +816,8 @@
                     "choices": [],
                     "search_placeholder": "",
                     "layout": "",
-                    "toggle": 0
+                    "toggle": 0,
+                    "pll_default_value": []
                 }
             ]
         },
@@ -822,7 +847,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_654ce30c87fea",
@@ -886,7 +912,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "other_choice": 0
+                    "other_choice": 0,
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_654ce30c87fef",
@@ -916,7 +943,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "other_choice": 0
+                    "other_choice": 0,
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_654ce30c87ff0",
@@ -944,7 +972,8 @@
                     "choices": [],
                     "search_placeholder": "",
                     "layout": "",
-                    "toggle": 0
+                    "toggle": 0,
+                    "pll_default_value": []
                 }
             ]
         },
@@ -966,7 +995,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_646e0d20a28da",
@@ -1004,7 +1034,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_64bfe4fa22135",
@@ -1034,7 +1065,8 @@
             "placeholder": "",
             "step": "0.1",
             "prepend": "",
-            "append": "Hours"
+            "append": "Hours",
+            "pll_default_value": ""
         },
         {
             "key": "field_646e144531c3f",
@@ -1054,7 +1086,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6544d52fbd35f",
@@ -1103,7 +1136,8 @@
                     "maxlength": "",
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_646e149c31c41",
@@ -1123,7 +1157,8 @@
                     "maxlength": "",
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -1174,7 +1209,8 @@
                     "maxlength": "",
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6544d67022a20",
@@ -1194,7 +1230,8 @@
                     "maxlength": "",
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -1256,7 +1293,8 @@
                     "layout": "",
                     "toggle": 0,
                     "allow_custom": 0,
-                    "parent_repeater": "field_6690aa9f17b90"
+                    "parent_repeater": "field_6690aa9f17b90",
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_6690ab0017b92",
@@ -1273,8 +1311,9 @@
                         "id": ""
                     },
                     "choices": {
-                        "twentytwentyfive": "Twenty Twenty-Five",
-                        "xekos": "Xekos"
+                        "212outlet": "212outlet",
+                        "salthareket": "Salthareket",
+                        "twentytwentyfive": "Twenty Twenty-Five"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1287,7 +1326,8 @@
                     "search_placeholder": "",
                     "parent_repeater": "field_6690aa9f17b90",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -1310,7 +1350,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 1
         },
         {
             "key": "field_66b908f11fd1e",
@@ -1341,7 +1382,8 @@
             "search_placeholder": "",
             "layout": "",
             "toggle": 0,
-            "other_choice": 0
+            "other_choice": 0,
+            "pll_default_value": []
         },
         {
             "key": "field_6694204c797aa",
@@ -1371,7 +1413,8 @@
             "search_placeholder": "",
             "layout": "",
             "toggle": 0,
-            "other_choice": 0
+            "other_choice": 0,
+            "pll_default_value": []
         },
         {
             "key": "field_676163f527799",
@@ -1403,7 +1446,8 @@
             "search_placeholder": "",
             "layout": "",
             "toggle": 0,
-            "other_choice": 0
+            "other_choice": 0,
+            "pll_default_value": []
         },
         {
             "key": "field_67852a86970bc",
@@ -1438,9 +1482,16 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
+                "acik-pozisyonlar": "Açık Pozisyonlar",
+                "duyurular": "Duyurular",
+                "etkinlikler": "Etkinlikler",
+                "kampanya": "Kampanyalar",
+                "katlar": "Katlar",
+                "magazalar": "Mağazalar",
+                "ulasim": "Ulaşım",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -1455,7 +1506,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_674395e8c8f9f",
@@ -1475,6 +1527,12 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
+                "departman": "departman",
+                "duyuru-tipi": "duyuru-tipi",
+                "etkinlik-tipi": "etkinlik-tipi",
+                "hizmetler": "hizmetler",
+                "magaza-tipi": "magaza-tipi",
+                "ulasim-tipi": "ulasim-tipi",
                 "contact-type": "contact-type"
             },
             "default_value": "",
@@ -1489,7 +1547,8 @@
             "ajax": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_674ad252dfbfc",
@@ -1511,7 +1570,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_68632523ae557",
@@ -1541,7 +1601,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_674ad2a0dfbfd",
@@ -1563,7 +1624,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_68632550ae558",
@@ -1593,7 +1655,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_67ae532628709",
@@ -1615,7 +1678,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6771306de6ec5",
@@ -1654,7 +1718,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_677131780a6e8",
@@ -1675,7 +1740,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_67713219b3133",
@@ -1696,7 +1762,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_677134e495a78",
@@ -1717,7 +1784,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6771359595a79",
@@ -1738,7 +1806,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6786580c3a3bf",
@@ -1788,7 +1857,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "auto"
         },
         {
             "key": "field_6786587e3a3c1",
@@ -1820,7 +1890,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "auto"
         },
         {
             "key": "field_678658a83a3c2",
@@ -1841,7 +1912,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 1
         },
         {
             "key": "field_678658ca3a3c3",
@@ -1862,7 +1934,205 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 1
+        },
+        {
+            "key": "field_68cddfe8d4a32",
+            "label": "Auto-Save Dependencies",
+            "name": "auto_save_dependencies",
+            "aria-label": "",
+            "type": "flexible_content",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "acfe_flexible_advanced": 1,
+            "acfe_flexible_stylised_button": 1,
+            "acfe_flexible_layouts_templates": 0,
+            "acfe_flexible_layouts_placeholder": 0,
+            "acfe_flexible_layouts_thumbnails": 0,
+            "acfe_flexible_layouts_settings": 0,
+            "acfe_flexible_async": [],
+            "acfe_flexible_add_actions": [],
+            "acfe_flexible_remove_button": [],
+            "acfe_flexible_layouts_state": "user",
+            "acfe_flexible_modal_edit": {
+                "acfe_flexible_modal_edit_enabled": "0",
+                "acfe_flexible_modal_edit_size": "large"
+            },
+            "acfe_flexible_modal": {
+                "acfe_flexible_modal_enabled": "0",
+                "acfe_flexible_modal_title": false,
+                "acfe_flexible_modal_size": "full",
+                "acfe_flexible_modal_col": "4",
+                "acfe_flexible_modal_categories": false
+            },
+            "layouts": {
+                "layout_68cde0ab0e64c": {
+                    "key": "layout_68cde0ab0e64c",
+                    "name": "post",
+                    "label": "Post",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_68cde413d4a33",
+                            "label": "Post Type",
+                            "name": "type",
+                            "aria-label": "",
+                            "type": "acfe_post_types",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "post_type": "",
+                            "field_type": "select",
+                            "default_value": [],
+                            "return_format": "name",
+                            "allow_null": 0,
+                            "multiple": 0,
+                            "ui": 0,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "choices": [],
+                            "ajax": 0,
+                            "placeholder": "",
+                            "search_placeholder": "",
+                            "layout": "",
+                            "toggle": 0,
+                            "allow_custom": 0,
+                            "other_choice": 0,
+                            "pll_default_value": []
+                        },
+                        {
+                            "key": "field_68cde479d4a34",
+                            "label": "Save Related Terms with post",
+                            "name": "terms_related",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 1,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 1
+                        },
+                        {
+                            "key": "field_68cde4f6d4a35",
+                            "label": "Save These Terms",
+                            "name": "terms",
+                            "aria-label": "",
+                            "type": "acfe_taxonomy_terms",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_68cde479d4a34",
+                                        "operator": "!=",
+                                        "value": "1"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "taxonomy": "",
+                            "allow_terms": "",
+                            "allow_level": "",
+                            "field_type": "select",
+                            "default_value": [],
+                            "return_format": "id",
+                            "ui": 1,
+                            "allow_null": 0,
+                            "placeholder": "",
+                            "multiple": 1,
+                            "ajax": 0,
+                            "save_terms": 0,
+                            "load_terms": 0,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "choices": [],
+                            "search_placeholder": "",
+                            "layout": "",
+                            "toggle": 0,
+                            "allow_custom": 0,
+                            "other_choice": 0,
+                            "pll_default_value": []
+                        },
+                        {
+                            "key": "field_68cde585d4a36",
+                            "label": "Save These Posts",
+                            "name": "posts",
+                            "aria-label": "",
+                            "type": "post_object",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "post_type": "",
+                            "post_status": [
+                                "publish"
+                            ],
+                            "taxonomy": "",
+                            "return_format": "id",
+                            "multiple": 1,
+                            "save_custom": 0,
+                            "save_post_status": "publish",
+                            "translations": "sync",
+                            "acfe_bidirectional": {
+                                "acfe_bidirectional_enabled": "0"
+                            },
+                            "allow_null": 0,
+                            "allow_in_bindings": 0,
+                            "bidirectional": 0,
+                            "ui": 1,
+                            "bidirectional_target": [],
+                            "save_post_type": ""
+                        }
+                    ],
+                    "min": "",
+                    "max": "",
+                    "acfe_flexible_render_template": false,
+                    "acfe_flexible_render_style": false,
+                    "acfe_flexible_render_script": false,
+                    "acfe_flexible_thumbnail": false,
+                    "acfe_flexible_settings": false,
+                    "acfe_flexible_settings_size": "medium",
+                    "acfe_flexible_modal_edit_size": false,
+                    "acfe_flexible_category": false
+                }
+            },
+            "min": "",
+            "max": "",
+            "button_label": "Satır ekle",
+            "acfe_flexible_hide_empty_message": false,
+            "acfe_flexible_empty_message": "",
+            "acfe_flexible_layouts_previews": false
         }
     ],
     "location": [
@@ -1888,9 +2158,10 @@
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1751328227,
+    "modified": 1758326920,
     "acfe_categories": {
         "general": "General"
     }

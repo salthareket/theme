@@ -18,6 +18,10 @@
             },
             "layout": "block",
             "acfe_seamless_style": 1,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
                     "key": "field_6638385a422de",
@@ -49,7 +53,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "\"\""
                 },
                 {
                     "key": "field_66383872422df",
@@ -77,7 +82,8 @@
                     "maxlength": "",
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_66383965422e0",
@@ -102,8 +108,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "latest": "latest [27.06.2025 12:23]",
-                        "xekos": "xekos [27.06.2025 12:23]"
+                        "212outlet": "212outlet [15.08.2025 03:33]",
+                        "latest": "latest [15.08.2025 03:33]"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -115,7 +121,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": false
                 },
                 {
                     "key": "field_660fddd4487bc",
@@ -657,11 +664,7 @@
                     "acfe_clone_modal_button": "",
                     "acfe_clone_modal_size": "large"
                 }
-            ],
-            "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large"
+            ]
         }
     ],
     "location": [
@@ -689,7 +692,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1751027858,
+    "modified": 1755740601,
     "acfe_categories": {
         "general": "General"
     }

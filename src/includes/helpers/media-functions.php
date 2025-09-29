@@ -1002,6 +1002,8 @@ function get_embed_video_title($video_url) {
 }
 
 function image_is_lcp($image){
+	error_log("image_is_lcp");
+	error_log(print_r($image, true));
 	$lcp = new \Lcp();
 	return $lcp->is_lcp($image);
 }

@@ -66,7 +66,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a86064769f8",
@@ -131,7 +132,8 @@
                     "ajax": 0,
                     "placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "auto"
                 },
                 {
                     "key": "field_65a8669b769fa",
@@ -170,7 +172,8 @@
                     "ajax": 0,
                     "placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "no-repeat"
                 },
                 {
                     "key": "field_65a866ff769fb",
@@ -208,7 +211,8 @@
                     "ajax": 0,
                     "placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "center"
                 },
                 {
                     "key": "field_65a8673d769fc",
@@ -246,7 +250,8 @@
                     "ajax": 0,
                     "placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "center"
                 }
             ]
         },
@@ -287,7 +292,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -328,7 +334,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a86897eacbc",
@@ -346,7 +353,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -387,7 +395,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a8693feacc1",
@@ -405,7 +414,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a8690beacbf",
@@ -423,7 +433,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 1,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a869afeacc5",
@@ -441,7 +452,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 1,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a8696deacc3",
@@ -459,7 +471,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 1,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_65a86987eacc4",
@@ -477,7 +490,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 1,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 }
             ]
         }
@@ -507,7 +521,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983311,
+    "modified": 1755740581,
     "acfe_categories": {
         "general": "General"
     }

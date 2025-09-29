@@ -27,11 +27,11 @@
     {% if fields.show_breadcrumb or fields.page_title or fields.description %}
 
         {% if not block_meta.settings.column.active %}
-        <div class="content justify-content-lg-start--justify-content-center--text-lg-start--text-center z-2">
+        <div class="content z-2">
         {% endif %}
 
             {% if fields.show_breadcrumb %}
-                {{ breadcrumb|default(block_meta.data.breadcrumb)|replace({"{{class}}" : "justify-content-center justify-content-lg-center"}) }}
+                {{ breadcrumb|default(block_meta.data.breadcrumb)|replace({"{{class}}" : function("block_align", block_meta.settings.align)}) }}
             {% endif %}
             {% if fields.page_title %}
                 <h1 class="title title-fluid">{{ is_preview?function("get_the_title", block_meta.data.post_id):post.title|default(block_meta.data.title) }}</h1>

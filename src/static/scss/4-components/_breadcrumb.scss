@@ -21,10 +21,12 @@
 	align-items:center;
 	>li{
 		~ li{
-			 &:before{
+			display:flex;
+			align-items: center;
+			&:before{
 				content:'\f105'!important;
-				font-family:$icon-font;
-				color:var(--$breadcrumb-sep-color);
+				font-family: $icon-font;
+				color: var(--breadcrumb-sep-color);
 				font-size:12px;
 				font-weight:600;
 				opacity:.6;

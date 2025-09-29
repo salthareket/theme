@@ -53,7 +53,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "off"
                 },
                 {
                     "key": "field_65de4975165d3",
@@ -92,7 +93,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "always"
                 },
                 {
                     "key": "field_65de54f8f2fc0",
@@ -128,7 +130,8 @@
                     "placeholder": "",
                     "step": "",
                     "prepend": "",
-                    "append": "dakika"
+                    "append": "dakika",
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_67865680422a5",
@@ -170,7 +173,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "lg"
                 },
                 {
                     "key": "field_65de4ad2165d7",
@@ -243,7 +247,8 @@
                                 "id": ""
                             },
                             "default_value": "",
-                            "placeholder": ""
+                            "placeholder": "",
+                            "pll_default_value": ""
                         }
                     ]
                 },
@@ -1276,7 +1281,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983311,
+    "modified": 1755740581,
     "acfe_categories": {
         "general": "General"
     }

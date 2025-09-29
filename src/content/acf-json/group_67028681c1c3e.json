@@ -82,7 +82,8 @@
                             "search_placeholder": "",
                             "parent_repeater": "field_67028681e13b1",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "default"
                         },
                         {
                             "key": "field_67028681f07b5",
@@ -117,7 +118,8 @@
                                 "ch",
                                 "fr"
                             ],
-                            "parent_repeater": "field_67028681e13b1"
+                            "parent_repeater": "field_67028681e13b1",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_670287512a864",
@@ -152,7 +154,8 @@
                                 "ch",
                                 "fr"
                             ],
-                            "parent_repeater": "field_67028681e13b1"
+                            "parent_repeater": "field_67028681e13b1",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_670287872a865",
@@ -187,7 +190,8 @@
                                 "ch",
                                 "fr"
                             ],
-                            "parent_repeater": "field_67028681e13b1"
+                            "parent_repeater": "field_67028681e13b1",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_670287aa2a867",
@@ -222,7 +226,8 @@
                                 "ch",
                                 "fr"
                             ],
-                            "parent_repeater": "field_67028681e13b1"
+                            "parent_repeater": "field_67028681e13b1",
+                            "pll_default_value": ""
                         }
                     ]
                 }
@@ -254,7 +259,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983334,
+    "modified": 1755740621,
     "acfe_categories": {
         "general": "General"
     }

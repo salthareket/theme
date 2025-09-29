@@ -28,7 +28,6 @@
         "timber/timber": "*",
         "voku/simple_html_dom": "^4.8",
         "scssphp/scssphp": "^1.13",
-        "php-ffmpeg/php-ffmpeg": "^1.1",
         "irmmr/rtlcss": "^1.4"
     },
     "require-dev": {

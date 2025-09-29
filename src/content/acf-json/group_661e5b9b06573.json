@@ -74,7 +74,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6696a6f0cb85c",
@@ -129,7 +130,8 @@
             "tabs": "all",
             "toolbar": "full",
             "media_upload": 0,
-            "delay": 0
+            "delay": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_669ea6955359c",
@@ -149,7 +151,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_661e5b9b245c8",
@@ -187,7 +190,8 @@
             "layout": "",
             "toggle": 0,
             "allow_custom": 0,
-            "other_choice": 0
+            "other_choice": 0,
+            "pll_default_value": []
         },
         {
             "key": "field_661e5b9b2805d",
@@ -221,7 +225,8 @@
             "placeholder": "",
             "step": "",
             "prepend": "",
-            "append": ""
+            "append": "",
+            "pll_default_value": -1
         },
         {
             "key": "field_6642e0b755c9b",
@@ -276,7 +281,8 @@
             "default_value": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_661e5b9b36da9",
@@ -323,7 +329,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "h3"
         },
         {
             "key": "field_661e5b9b2f6b6",
@@ -402,7 +409,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "h3"
         },
         {
             "key": "field_66428d7dae006",
@@ -443,7 +451,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -471,7 +480,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983319,
+    "modified": 1755740598,
     "acfe_categories": {
         "block": "Block"
     }

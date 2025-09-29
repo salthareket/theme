@@ -25,7 +25,8 @@
             "rows": 4,
             "max_rows": "",
             "return_format": [],
-            "allow_in_bindings": 1
+            "allow_in_bindings": 1,
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -53,7 +54,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983335,
+    "modified": 1755740622,
     "acfe_categories": {
         "general": "General"
     }

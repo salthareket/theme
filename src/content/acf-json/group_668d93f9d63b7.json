@@ -41,6 +41,8 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
+                        "##Custom Fonts": "##Custom Fonts",
+                        "DIN": "DIN Condensed Pro",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -75,7 +77,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_6636a4a310908",
@@ -110,7 +113,8 @@
                         "ex",
                         "ch",
                         "fr"
-                    ]
+                    ],
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_6636a4b710909",
@@ -149,7 +153,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "400"
                 },
                 {
                     "key": "field_6636a4f61090a",
@@ -171,7 +176,8 @@
                     "allow_in_bindings": 1,
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_67175c0d439ee",
@@ -212,7 +218,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_67175c10439ef",
@@ -247,7 +254,8 @@
                         "ex",
                         "ch",
                         "fr"
-                    ]
+                    ],
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_6636a46f10906",
@@ -265,7 +273,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6636a49310907",
@@ -283,7 +292,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6636a50e1090b",
@@ -301,7 +311,8 @@
                     },
                     "default_value": "",
                     "enable_opacity": 0,
-                    "return_format": "string"
+                    "return_format": "string",
+                    "pll_default_value": ""
                 }
             ]
         }
@@ -334,5 +345,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1750983327
+    "modified": 1755740611
 }

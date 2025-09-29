@@ -208,13 +208,30 @@ class TranslationDictionary {
 
             if (!$locale_entry) continue;
 
-            if (!empty($entry->is_plural)) {
+            /*if (!empty($entry->is_plural)) {
                 $translations[$key] = [
                     $locale_entry->translations[0] ?? '',
                     $locale_entry->translations[1] ?? '',
                 ];
             } else {
                 $translations[$key] = $locale_entry->translations[0] ?? '';
+            }*/
+            if (!empty($entry->is_plural)) {
+                $single = $locale_entry->translations[0] ?? '';
+                $plural = $locale_entry->translations[1] ?? '';
+
+                // Eğer tek/çoğul eksikse diğerini kullan
+                if (!$single && $plural) $single = $plural;
+                if (!$plural && $single) $plural = $single;
+
+                // Hiçbiri yoksa atla
+                if (!$single && !$plural) continue;
+
+                $translations[$key] = [$single, $plural];
+            } else {
+                $single = $locale_entry->translations[0] ?? '';
+                if (!$single) continue;
+                $translations[$key] = $single;
             }
         }
 

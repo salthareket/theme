@@ -42,7 +42,8 @@
                     "allow_in_bindings": 1,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_673e9a4741746",
@@ -73,7 +74,8 @@
                     "placeholder": "",
                     "step": "0.1",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": "0.2"
                 },
                 {
                     "key": "field_673e9bfd41747",
@@ -112,7 +114,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "vertical"
                 },
                 {
                     "key": "field_678103992496a",
@@ -151,7 +154,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "start, end"
                 },
                 {
                     "key": "field_6780639ac9c16",
@@ -208,7 +212,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_678117d84acea",
@@ -237,7 +242,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_6781180f4aceb",
@@ -266,7 +272,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 }
             ]
         }
@@ -296,7 +303,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983337,
+    "modified": 1755740624,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

@@ -282,12 +282,13 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
     return $tempClasses; // Sınıfları birleştir ve döndür
 }
 
-function block_container_class($container=""){
+function block_container_class($container="", $add_padding = true){
+    $padding = $add_padding?"px-4 px-lg-3":"";
     $default = SaltBase::get_cached_option("default_container");//get_field("default_container", "options");
-    $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " px-4 px-lg-3";
+    $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " {padding}";
     switch($container){
         case "" :
-            $container = "container px-4 px-lg-3";
+            $container = "container {padding}";
         break;
         case "default" :
             $container = $default;
@@ -299,9 +300,10 @@ function block_container_class($container=""){
             $container = "w-auto";
         break;
         default :
-            $container = "container-".$container . " px-4 px-lg-3";
+            $container = "container-".$container . " {padding}";
         break;
     }
+    $container = trim(str_replace("{padding}", $padding, $container));
     return $container;
 }
 
@@ -2948,7 +2950,7 @@ function block_css($block, $fields, $block_column){
             $css = "";
             foreach($height_responsive as $breakpoint => $value){
                 $code_height_responsive = "";
-                $container = block_container_class($fields["block_settings"]["container"]);
+                $container = block_container_class($fields["block_settings"]["container"], false);
                 //$container = block_container($fields["block_settings"]["container"]);
 
                 if($value["height"] == "ratio"){
@@ -3200,7 +3202,7 @@ function block_css($block, $fields, $block_column){
                         if(!empty($filters["blend_mode"])){
                             $slide_css[] = "mix-blend-mode:" . $filters["blend_mode"];
                         }
-                    }else{
+                    }elseif(isset($slide["media_type"])){
                         if($slide["media_type"] == "image" && isset($slide["image"]["id"]) && empty($background["color"])){
                            $image = Timber::get_post($slide["image"]["id"]);
                            if($image){
@@ -3209,7 +3211,7 @@ function block_css($block, $fields, $block_column){
                            }
                         }
                     }                    
-                }else{
+                }elseif(isset($slide["media_type"])){
                     if($slide["media_type"] == "image" && isset($slide["image"]["id"]) && empty($background["color"])){
                         $image = Timber::get_post($slide["image"]["id"]);
                         if($image){
@@ -3460,6 +3462,7 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
        }
        if(isset($fields["column_breakpoints"]) || isset($fields["slider_settings"])){
             $meta["row"] = block_columns($fields, $block_data);
+
             if(isset($fields["slider_settings"])){
                 if(isset($meta["row"]["controls"])){
                     $css_tmp = $meta["css"];
@@ -3472,7 +3475,15 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
                     if(!empty($meta["row"]["css"])){
                         $css .= $meta["row"]["css"];
                     }
-                    $css_tmp = str_replace("</style>", $css."</style>", $css_tmp);
+                    if(strpos($css_tmp, "</style>") !== false){
+                       $css_tmp = str_replace("</style>", $css."</style>", $css_tmp);
+                    }else{
+                        if(empty($css_tmp)){
+                            $css_tmp = "<style type='text/css'>".$css."</style>";
+                        }else{
+                            $css_tmp .= $css; 
+                        }
+                    }
                     $meta["css"] = $css_tmp;
                 }
             }

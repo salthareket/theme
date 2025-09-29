@@ -171,7 +171,6 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-bg-affix"] = scss_variables_color($header_general["bg_color_affix"]);
         $variables["header-height"] = acf_units_field_value($header_general["height"][array_keys($header_general["height"])[0]]);
 
-
         foreach($header_general["height"] as $key => $breakpoint){
             if($root){
                 $variables_media_query["header-height"][$key] = acf_units_field_value($breakpoint);
@@ -374,6 +373,7 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-nav-dropdown-border-radius"] = $header_dropdown_general["border_radius"];
 
         $header_dropdown_item = $header_dropdown["dropdown_item"];
+        $variables["header-navbar-nav-dropdown-font"] = scss_variables_font($header_dropdown_item["font_family"]);
         $variables["header-navbar-nav-dropdown-font-size"] = acf_units_field_value($header_dropdown_item["font_size"]);
         $variables["header-navbar-nav-dropdown-font-color"] = scss_variables_color($header_dropdown_item["color"]);
         $variables["header-navbar-nav-dropdown-font-color-hover"] = scss_variables_color($header_dropdown_item["color_hover"]);
@@ -1290,18 +1290,21 @@ function google_api_key_found_conditional_field( $field ) {
 add_filter('acf/prepare_field/key=field_673386f1d3129', 'google_api_key_found_conditional_field');
 
 
+
+
+
+
+
+
     // page settings offcanvas menu template -> chhose menu -> chhose menu item for offcanvas menu root
     function acf_load_menu_field_choices( $field ) {
         $field['choices'] = array();
-        $menus = get_terms('nav_menu', array('hide_empty' => false));
-        if ($menus) {
-            $field['choices'][""] = __("Menü seçiniz");
-            foreach ($menus as $menu) {
-                $menu_name = $menu->name;
-                if(ENABLE_MULTILANGUAGE == "qtranslate_xt"){
-                    $menu_name = translateContent($menu_name);
-                }
-                $field['choices'][ $menu->term_id ] = $menu_name;
+        $locations = get_registered_nav_menus();
+        if ($locations) {
+            $field['choices'][""] = "Menü konumu seçiniz";
+            foreach ($locations as $location => $description) {
+                if (strpos($location, '__') !== false) continue;
+                $field['choices'][$location] = $location;
             }
         }
         populate_menu_items_on_change();
@@ -1311,7 +1314,6 @@ add_filter('acf/prepare_field/key=field_673386f1d3129', 'google_api_key_found_co
 
 
 function populate_menu_items_on_change() {
-    // JavaScript kodunu inline olarak eklemek
     $script = <<<EOT
 jQuery(document).ready(function($) {
     $(document).on('change', '[name="acf[field_6425cbdb1b107][field_6425cae782d9a][field_65d5fc059efb9]"]', function () {
@@ -1328,45 +1330,98 @@ jQuery(document).ready(function($) {
                 $('[name="acf[field_6425cbdb1b107][field_6425cae782d9a][field_65d5fd749efba]"]').html(response);
             }
         });
-    });
+    }).trigger("change");
 });
 EOT;
-
-    // Bu scripti yalnızca gerekli sayfalarda ekleyin
     if (is_admin()) {
         wp_add_inline_script('jquery', $script);
     }
 }
-add_action('acf/render_field/key=field_65d5fc059efb9', function() {
-    add_action('admin_enqueue_scripts', 'populate_menu_items_on_change');   
-});
+/*add_action('acf/render_field/key=field_65d5fc059efb9', function() {
+    if (!did_action('populate_menu_items_on_change_added')) {
+        add_action('admin_enqueue_scripts', 'populate_menu_items_on_change');
+        do_action('populate_menu_items_on_change_added');
+    }
+});*/
 
-    
 
 
-    function populate_menu_items_callback() {
-        $menu_id = $_POST['menu_id'];
-        $menu_items = wp_get_nav_menu_items($menu_id);
-        if ($menu_items) {
-            $levels = array(); // Tüm seviyeleri tutan bir dizi
+function populate_menu_items_callback() {
+        $menu_location = $_POST['menu_id'] ?? '';
+        $post_id       = $_POST['pll_post_id'] ?? null;
+        $lang          = null;
+
+        if (!$menu_location) {
             echo '<option value="-1">' . __("Otomatik algıla") .'</option>';
-            echo '<option value="0">' . __("Tüm menüyü göster") .'</option>';
+            die();
+        }
+
+        // Post dilini al
+        if ($post_id && function_exists('pll_get_post')) {
+            $lang = pll_get_post_language($post_id);
+        }
+
+        $locations = get_nav_menu_locations();
+        $default_menu_id = $locations[$menu_location] ?? null;
+
+        // Eğer default dil değilse ilgili menüyü bul
+        if ($lang && $lang !== $GLOBALS["language_default"]) {
+            $menu_id = $locations[$menu_location . "___" . $lang] ?? $default_menu_id;
+        } else {
+            $menu_id = $default_menu_id;
+        }
+
+        $menu_items = wp_get_nav_menu_items($menu_id);
+
+        if ($menu_items) {
+            $levels = [];
+            echo '<option value="-1">' . __("Otomatik algıla") . '</option>';
+            echo '<option value="0">' . __("Tüm menüyü göster") . '</option>';
+
             foreach ($menu_items as $item) {
-                $level = $item->menu_item_parent > 0 ? $levels[$item->menu_item_parent] + 1 : 0; // Her seviye için uygun level değeri belirleniyor
-                $levels[$item->ID] = $level; // Her itemin seviyesi saklanıyor
-                $indent = str_repeat('&nbsp;', $level * 4); // Her seviye için uygun sayıda boşluk ekleniyor
+                $level = $item->menu_item_parent > 0 ? ($levels[$item->menu_item_parent] + 1) : 0;
+                $levels[$item->ID] = $level;
+                $indent = str_repeat('&nbsp;', $level * 4);
                 $item_title = $item->title;
-                if(ENABLE_MULTILANGUAGE == "qtranslate-xt"){
-                    $item_title = translateContent($item_title);
+                $default_lang_item_title = $item_title; // default olarak kendisi
+
+                // Eğer aktif dil default değilse parantez içinde default title göster
+                if ($lang && $lang !== $GLOBALS["language_default"]) {
+                    // Post type mı?
+                    if (get_post_type_object($item->object)) {
+                        if (function_exists('pll_get_post')) {
+                            $default_post_id = pll_get_post($item->object_id, $GLOBALS["language_default"]);
+                            if ($default_post_id) {
+                                $default_lang_item_title = get_the_title($default_post_id);
+                            }
+                        }
+                    }
+                    // Taxonomy mi?
+                    elseif (get_taxonomy($item->object)) {
+                        if (function_exists('pll_get_term')) {
+                            $default_term_id = pll_get_term($item->object_id, $GLOBALS["language_default"]);
+                            if ($default_term_id) {
+                                $default_lang_item_title = get_term($default_term_id)->name;
+                            }
+                        }
+                    }
+
+                    // Eğer default title farklıysa parantez içine ekle
+                    if ($default_lang_item_title && $default_lang_item_title !== $item_title) {
+                        $item_title .= " ({$default_lang_item_title})";
+                    }
                 }
-                //echo '<option value="' . $item->ID . '">' . $indent . $item_title .'</option>';
-                echo '<option value="' . $item->object_id . '">' . $indent . $item_title .'</option>';
+
+                echo '<option value="' . esc_attr($item->object_id) . '">' . $indent . esc_html($item_title) . '</option>';
             }
         }
+
         die();
-    }
-    add_action('wp_ajax_populate_menu_items', 'populate_menu_items_callback');
-    add_action('wp_ajax_nopriv_populate_menu_items', 'populate_menu_items_callback');
+}
+add_action('wp_ajax_populate_menu_items', 'populate_menu_items_callback');
+add_action('wp_ajax_nopriv_populate_menu_items', 'populate_menu_items_callback');
+
+
 
 
 
@@ -3712,7 +3767,7 @@ function acf_compile_js_css($value=0){
 
             if($updated_plugins){
                 if(\Update::tasks_completed()){
-                    if(function_exists("add_admin_notice") && $updated_plugins && $value){
+                    if(function_exists("add_admin_notice") && $value){
                         $message = "These plugins are updated, please fetch pages. [".implode(", ", $updated_plugins)."]";
                         $type = "success";
                         add_admin_notice($message, $type);
@@ -3874,11 +3929,34 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                 $excludeFilePaths[] = 'templates/page-newsletter.twig';
             }
 
-            function scanFolder($folderPath, $excludeFolders, $excludeFilePaths) {
+            function is_valid_translation_string($value) {
+                // Önce tırnak ile başlıyor ve bitiyor mu kontrol et
+                if (!is_string($value)) return false; 
+                $firstChar = $value[0];
+                $lastChar  = $value[strlen($value)-1];
+
+                if (!(($firstChar === '"' && $lastChar === '"') || ($firstChar === "'" && $lastChar === "'"))) {
+                    return false;
+                }
+
+                // Tırnakları kaldır
+                $stripped = substr($value, 1, -1);
+
+                // Minimum 3 karakter mi?
+                if (strlen($stripped) < 3) return false;
+
+                // Tamamen numeric mi?
+                if (is_numeric($stripped)) return false;
+
+                return true;
+            }
+
+            function scanFolder($folderPath, $excludeFolders, $excludeFilePaths, $formats = ["php", "twig"]) {
                 $files = [];
                 $dir = new RecursiveDirectoryIterator($folderPath, RecursiveDirectoryIterator::SKIP_DOTS);
                 $iterator = new RecursiveIteratorIterator($dir);
-                $regex = new RegexIterator($iterator, '/^.+\.(php|twig)$/i', RecursiveRegexIterator::GET_MATCH);
+                $formats = implode("|", $formats);
+                $regex = new RegexIterator($iterator, "/^.+\.({$formats})$/i", RecursiveRegexIterator::GET_MATCH);
                 foreach ($regex as $file) {
                     $path = str_replace('\\', '/', $file[0]);
                     $exclude = false;
@@ -3911,6 +3989,8 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                 }else{
                     $content = file_get_contents($filePath);
                 }
+
+                $content = str_replace(["\r","\n","\t"], ' ', $content); // tek satır yap
                 
                 // Regex for translate with 1 argument
                 preg_match_all('/translate\(([^)]+)\)/', $content, $translateMatches);
@@ -3926,6 +4006,12 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
 
             // Scan the folder and get all PHP and Twig files
             $files = scanFolder($themeFolderPath, $excludeFolders, $excludeFilePaths);
+
+            $staticJsPath = $themeFolderPath . '/static/js';
+            if (file_exists($staticJsPath)) {
+                $jsFiles = scanFolder($staticJsPath, [], [], ["js"]); // burda exclude yok, tamamını al
+                $files = array_merge($files, $jsFiles);
+            }
 
             $translations = [
                 'translate' => [],
@@ -3958,7 +4044,7 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                     // Split arguments by comma
                     $arguments = array_map('trim', explode(',', $matches['translate'][1][$index]));
                     
-                    if (count($arguments) === 1) {
+                    if (count($arguments) === 1 && is_valid_translation_string($arguments[0])) {
                         // translate case
                         $translations['translate'][] = $arguments[0];
                     }
@@ -3968,7 +4054,7 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                     // Split arguments by comma
                     $arguments = array_map('trim', explode(',', $matches['translate_n_noop'][1][$index]));
                     
-                    if (count($arguments) === 2) {
+                    if (count($arguments) === 2 && is_valid_translation_string($arguments[0]) && is_valid_translation_string($arguments[1])) {
                         // translate_n_noop case
                         $translations['translate_n_noop'][] = $arguments;
                     }
@@ -4053,7 +4139,26 @@ add_filter('acf/update_value/name=enable_extract_translations', 'acf_development
 
 
 
+/**
+ * SQL dump içindeki tüm URL varyasyonlarını live URL ile değiştirir
+ */
+function replace_urls_in_dump(string $dump, string $local_url, string $live_url): string {
 
+    // 1️⃣ Düz metin URL’leri
+    $dump = str_replace($local_url, $live_url, $dump);
+
+    // 2️⃣ Slash’li JSON formatları (\/)
+    $dump = str_replace(str_replace('/', '\/', $local_url), str_replace('/', '\/', $live_url), $dump);
+
+    // 3️⃣ Double escape edilmiş backslash formatları (\\/)
+    $dump = str_replace(str_replace('/', '\\/', $local_url), str_replace('/', '\\/', $live_url), $dump);
+
+    // 4️⃣ Regex ile olası ek kaçış durumlarını yakala
+    $pattern = preg_quote($local_url, '#');
+    $dump = preg_replace('#' . $pattern . '#', $live_url, $dump);
+
+    return $dump;
+}
 function export_and_replace_wp_mysql_dump() {
     if (!defined('ABSPATH')) {
         die("🚨 Hata: WordPress ortamında çalışmıyor!");
@@ -4144,6 +4249,24 @@ function export_and_replace_wp_mysql_dump() {
             [$live_url, addslashes($live_url), str_replace(['http://', 'https://'], '', $live_url)],
             $sql_dump
         );
+
+        $sql_dump = replace_urls_in_dump($sql_dump, $local_url, $live_url);
+
+        $unwanted_collations = [
+            'utf8mb4_0900_ai_ci',
+            'utf8mb4_0900_as_ci',
+            'utf8mb4_0900_as_cs',
+            'utf8mb4_0900_bin',
+            'utf8mb4_0900_ai_ci_520',
+            'utf8mb4_general_ci',
+            'utf8mb4_unicode_ci' // istersen bu da standart collation ile değiştirilir
+        ];
+
+        $replacement_collation = 'utf8mb4_unicode_ci';
+
+        foreach($unwanted_collations as $collation) {
+            $sql_dump = str_ireplace($collation, $replacement_collation, $sql_dump);
+        }
 
         // **Yeni SQL dosyasını kaydet**
         file_put_contents($updated_file, $sql_dump);

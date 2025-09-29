@@ -74,6 +74,7 @@ function inline_css($name = "", $url = "") { // Her iki parametre de isteğe ba�
     // komutunu çalıştırmaya çalışır ve bu yeni bir PHP uyarısına neden olur.
     if (empty($url) || !is_string($url) || !file_exists($url)) {
         // Fonksiyon yanlış çağrılırsa hata günlüğüne not düşer.
+        error_log($url);
         error_log('[212outlet-Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
         return ''; // Sitenin çökmesini engellemek için güvenli çıkış.
     }

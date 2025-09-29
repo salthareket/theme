@@ -253,4 +253,13 @@ picture{
     width:100%;
     height:100%;
 }
+
+.sticky-top{
+    &:not(.sticked){
+        z-index: auto;
+    }
+    &.sticked{
+        z-index: 1020!important;
+    }
+}
 /*! purgecss end ignore */

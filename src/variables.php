@@ -20,6 +20,8 @@ define('SH_STATIC_URL', get_template_directory_uri() . "/vendor/salthareket/them
 define('STATIC_PATH',  get_template_directory() . '/static/');
 define('STATIC_URL',   get_template_directory_uri() . "/static/");
 
+define('THEME_URL',  get_template_directory_uri() . '/theme/');
+
 define('THEME_INCLUDES_PATH',  get_template_directory() . '/theme/includes/');
 define('THEME_STATIC_PATH',    get_template_directory() . '/theme/static/');
 

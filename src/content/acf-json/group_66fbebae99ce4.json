@@ -85,7 +85,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": false
         },
         {
             "key": "field_66fbebaeb3307",
@@ -105,7 +106,8 @@
             "maxlength": "",
             "placeholder": "",
             "prepend": "",
-            "append": ""
+            "append": "",
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -133,7 +135,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983334,
+    "modified": 1755740621,
     "acfe_categories": {
         "block": "Block"
     }

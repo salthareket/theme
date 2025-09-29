@@ -99,7 +99,8 @@
                     },
                     "parent_repeater": "field_6766d15ff6768",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6766d1adf676a",
@@ -145,7 +146,8 @@
                             "placeholder": "",
                             "prepend": "",
                             "append": "",
-                            "parent_repeater": "field_6766d1adf676a"
+                            "parent_repeater": "field_6766d1adf676a",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_6766d25c7f69f",
@@ -168,7 +170,8 @@
                             "placeholder": "",
                             "prepend": "",
                             "append": "",
-                            "parent_repeater": "field_6766d1adf676a"
+                            "parent_repeater": "field_6766d1adf676a",
+                            "pll_default_value": ""
                         }
                     ]
                 }
@@ -200,7 +203,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983337,
+    "modified": 1755740624,
     "acfe_categories": {
         "general": "General"
     }

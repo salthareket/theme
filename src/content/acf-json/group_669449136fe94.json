@@ -32,7 +32,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "top"
         },
         {
             "key": "field_66944a7797911",
@@ -54,7 +55,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_68082e4e319ef",
@@ -76,7 +78,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_66944ac497912",
@@ -121,7 +124,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "default"
         },
         {
             "key": "field_66944ae597913",
@@ -163,7 +167,10 @@
             "layout": "horizontal",
             "toggle": 0,
             "save_custom": 0,
-            "custom_choice_button_text": "Yeni seçenek ekle"
+            "custom_choice_button_text": "Yeni seçenek ekle",
+            "pll_default_value": [
+                "body"
+            ]
         },
         {
             "key": "field_66944e1be2a3d",
@@ -5027,7 +5034,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983331,
+    "modified": 1755740616,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

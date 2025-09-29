@@ -813,7 +813,6 @@ $( document ).ready(function() {
             root.ui.scroll_to(hash, true);
         }
 
-
         var promotion_top = $('#promotion-top');
         if(promotion_top.length > 0){
             promotion_top[0].addEventListener('closed.bs.alert', function(){

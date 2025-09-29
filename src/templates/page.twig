@@ -54,7 +54,7 @@
 {% endblock %}
 
 {% block content %}
-
+    
     {% if page_settings.login_required and (not user.logged or user.get_role not in page_settings.allowed_roles) %}
 
         {% include 'templates/my-account/form-login.twig' %}

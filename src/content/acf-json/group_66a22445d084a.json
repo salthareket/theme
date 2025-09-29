@@ -78,7 +78,8 @@
             "placeholder": "",
             "step": 1,
             "prepend": "",
-            "append": ""
+            "append": "",
+            "pll_default_value": 10
         },
         {
             "key": "field_66a22446732fe",
@@ -124,7 +125,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983332,
+    "modified": 1755740618,
     "acfe_categories": {
         "block": "Block"
     }

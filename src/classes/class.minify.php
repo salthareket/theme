@@ -104,7 +104,6 @@ class SaltMinifier{
         }
         
         $this->locale_css();
-
     }
 
     public function locale_css(){
@@ -794,7 +793,7 @@ class SaltMinifier{
             return $input;
         }
     }
-    public function removeSourceMap($input, $type) {
+    public function removeSourceMap_v2($input, $type) {
         if ($type === "file") {
             $source = file_get_contents($input);
             // Sadece "//# sourceMappingURL=" ile başlayan satırları sil
@@ -807,6 +806,20 @@ class SaltMinifier{
             return $input;
         }
     }
+    public function removeSourceMap($input, $type) {
+    $pattern = '/\/\/[#@]\s*sourceMappingURL=.*?(\r?\n|$|(?=[;!]))/i';
+
+    if ($type === "file") {
+        $source = file_get_contents($input);
+        $source = preg_replace($pattern, '', $source);
+        file_put_contents($input, $source);
+    } else if ($type === "source") {
+        return preg_replace($pattern, '', $input);
+    } else {
+        return $input;
+    }
+}
+
 
 
     public function removeComments($input) {

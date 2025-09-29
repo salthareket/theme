@@ -53,7 +53,8 @@
             "other_choice": 0,
             "allow_in_bindings": 0,
             "layout": "horizontal",
-            "save_other_choice": 0
+            "save_other_choice": 0,
+            "pll_default_value": "static"
         },
         {
             "key": "field_670cc8b3c0f77",
@@ -108,7 +109,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": false
                 },
                 {
                     "key": "field_671527ad6f836",
@@ -129,7 +131,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_670ceb7ccf23d",
@@ -158,7 +161,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_671573e3cd8fa",
@@ -189,7 +193,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": false
                 },
                 {
                     "key": "field_670cc8c9c0f78",
@@ -209,6 +214,8 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
+                        "##Custom Fonts": "##Custom Fonts",
+                        "DIN": "DIN Condensed Pro",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -242,7 +249,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_670cc982c0f7a",
@@ -259,17 +267,17 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs - 22px",
-                        "title-sm": "title-sm - 32px",
-                        "title-md": "title-md - 42px",
-                        "title-lg": "title-lg - 52px",
-                        "title-xl": "title-xl - 62px",
-                        "title-xxl": "title-xxl - 72px",
-                        "title-xxxl": "title-xxxl - 82px",
-                        "text-xs": "text-xs - 14px",
-                        "text-sm": "text-sm - 16px",
-                        "text-md": "text-md - 18px",
-                        "text-lg": "text-lg - 24px",
+                        "title-xs": "title-xs - 42px",
+                        "title-sm": "title-sm - 52px",
+                        "title-md": "title-md - 62px",
+                        "title-lg": "title-lg - 72px",
+                        "title-xl": "title-xl - 82px",
+                        "title-xxl": "title-xxl - 92px",
+                        "title-xxxl": "title-xxxl - 120px",
+                        "text-xs": "text-xs - 16px",
+                        "text-sm": "text-sm - 18px",
+                        "text-md": "text-md - 22px",
+                        "text-lg": "text-lg - 26px",
                         "text-xl": "text-xl - 32px",
                         "text-xxl": "text-xxl - 36px",
                         "text-xxxl": "text-xxxl - 42px"
@@ -285,7 +293,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_670cc993c0f7b",
@@ -304,7 +313,8 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "allow_in_bindings": 0
+                    "allow_in_bindings": 0,
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -335,7 +345,8 @@
             "tabs": "all",
             "toolbar": "full",
             "media_upload": 1,
-            "delay": 0
+            "delay": 0,
+            "pll_default_value": ""
         },
         {
             "key": "field_670ca48d4e479",
@@ -388,7 +399,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983335,
+    "modified": 1755740622,
     "acfe_categories": {
         "block": "Block"
     }

@@ -8,6 +8,10 @@ $error = true;
                 $templates = [$template . ".twig"];
                 $data = $vars; //["data"];
                 $context = Timber::context();
+                if(!empty($vars["id"])){
+                    $post = Timber::get_post($vars["id"]);
+                    $context["post"] = $post;
+                }
                 $context["data"] = $data;
                 $html = Timber::compile($templates, $context);
             }

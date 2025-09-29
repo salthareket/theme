@@ -52,7 +52,8 @@
             "allow_null": 0,
             "other_choice": 0,
             "layout": "vertical",
-            "save_other_choice": 0
+            "save_other_choice": 0,
+            "pll_default_value": "dark"
         },
         {
             "key": "field_66782c636ff69",
@@ -106,7 +107,8 @@
                     "search_placeholder": "",
                     "parent_repeater": "field_66782c636ff69",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": false
                 },
                 {
                     "key": "field_66782cd6455b3",
@@ -124,7 +126,8 @@
                     },
                     "default_value": "",
                     "placeholder": "",
-                    "parent_repeater": "field_66782c636ff69"
+                    "parent_repeater": "field_66782c636ff69",
+                    "pll_default_value": ""
                 }
             ]
         }
@@ -154,7 +157,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983323,
+    "modified": 1755740605,
     "acfe_categories": {
         "block": "Block"
     }

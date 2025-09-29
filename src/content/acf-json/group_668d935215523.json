@@ -42,7 +42,7 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "Cabin": "Cabin",
+                        "DIN": "DIN Condensed Pro",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -75,7 +75,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_660d9fc134e3d",
@@ -96,7 +97,7 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "Cabin": "Cabin",
+                        "DIN": "DIN Condensed Pro",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -129,7 +130,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_660e75636b5c8",
@@ -171,6 +173,10 @@
                     "default_value": {
                         "value": "0",
                         "unit": "px"
+                    },
+                    "pll_default_value": {
+                        "value": "0",
+                        "unit": "px"
                     }
                 },
                 {
@@ -210,7 +216,8 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "pll_default_value": "400"
                 },
                 {
                     "key": "field_686bfc9bdd978",
@@ -250,6 +257,10 @@
                         ""
                     ],
                     "default_value": {
+                        "value": "0",
+                        "unit": "px"
+                    },
+                    "pll_default_value": {
                         "value": "0",
                         "unit": "px"
                     }
@@ -294,6 +305,10 @@
                     "default_value": {
                         "value": "0",
                         "unit": "px"
+                    },
+                    "pll_default_value": {
+                        "value": "0",
+                        "unit": "px"
                     }
                 },
                 {
@@ -315,7 +330,7 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "Cabin": "Cabin",
+                        "DIN": "DIN Condensed Pro",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -350,7 +365,8 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_685e7f87ea72c",
@@ -371,7 +387,7 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "Cabin": "Cabin",
+                        "DIN": "DIN Condensed Pro",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -406,7 +422,8 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_686c00b3ddb62",
@@ -444,7 +461,8 @@
                     "enable_opacity": 0,
                     "return_format": "string",
                     "translations": "sync",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "pll_default_value": "#111"
                 },
                 {
                     "key": "field_660e7f6b9ee6f",
@@ -464,7 +482,8 @@
                     "enable_opacity": 0,
                     "return_format": "string",
                     "translations": "sync",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "pll_default_value": "#fff"
                 },
                 {
                     "key": "field_660e7f819ee70",
@@ -484,7 +503,8 @@
                     "enable_opacity": 0,
                     "return_format": "string",
                     "translations": "sync",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "pll_default_value": "#000"
                 }
             ]
         }
@@ -514,7 +534,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1751908761,
+    "modified": 1755740607,
     "acfe_categories": {
         "general": "General"
     }

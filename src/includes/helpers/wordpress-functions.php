@@ -139,7 +139,7 @@ function _custom_nav_menu_item( $title, $url, $order, $parent = 0 ){
 
 
 
-
+/*
 // sayfa içi shoetcut linkler oluşturmak için
 function get_recursive_child_menu_items($menu_items, $page_id) {
     $result = array();
@@ -396,10 +396,185 @@ function get_root_menu_for_page($menu, $page_id=-1) {
         
     }
     return $menu_items;//get_root_menu_item($menu->get_items(), $id);
+}*/
+
+
+/**
+ * Safe children fetcher
+ */
+function safe_children($menu_item) {
+    if (is_object($menu_item)) {
+        if (method_exists($menu_item, 'children')) return $menu_item->children();
+        if (property_exists($menu_item, 'children')) return $menu_item->children; // alternatif
+    }
+    return [];
 }
 
 
+/**
+ * Recursive child search
+ */
+function get_recursive_child_menu_items($menu_items, $page_id) {
+    foreach ($menu_items as $menu_item) {
+        if (isset($menu_item->object_id) && $menu_item->object_id == $page_id) {
+            return $menu_item;
+        }
+        $children = safe_children($menu_item);
+        if (!empty($children)) {
+            $submenu = get_recursive_child_menu_items($children, $page_id);
+            if (!empty($submenu)) return $submenu;
+        }
+    }
+    return null;
+}
 
+/**
+ * Child menu for a specific page
+ */
+function get_child_menu_for_page($menu_name, $page_id) {
+    $menu = new Timber\Menu($menu_name);
+    return get_recursive_child_menu_items($menu->get_items(), $page_id);
+}
+
+/**
+ * Generic recursive child fetchers for taxonomy and post types
+ */
+function get_taxonomy_menu_child($menu_items, $taxonomy) {
+    foreach ($menu_items as $menu_item) {
+        if (isset($menu_item->object) && $menu_item->object == $taxonomy) return $menu_item;
+        $children = safe_children($menu_item);
+        if (!empty($children)) {
+            $submenu = get_taxonomy_menu_child($children, $taxonomy);
+            if (!empty($submenu)) return $submenu;
+        }
+    }
+    return null;
+}
+
+function get_post_menu_child($menu_items, $post_type) {
+    foreach ($menu_items as $menu_item) {
+        if (isset($menu_item->object) && $menu_item->object == $post_type) return $menu_item;
+        $children = safe_children($menu_item);
+        if (!empty($children)) {
+            $submenu = get_post_menu_child($children, $post_type);
+            if (!empty($submenu)) return $submenu;
+        }
+    }
+    return null;
+}
+
+function get_page_menu_child($menu_items, $page_id) {
+    return get_recursive_child_menu_items($menu_items, $page_id);
+}
+
+/**
+ * Root / Parent menu item fetchers
+ */
+function get_root_menu_item($menu, $id, $type="object_id") {
+    foreach ($menu as $item) {
+        if (isset($item->{$type}) && $item->{$type} == $id) return $item;
+        $children = safe_children($item);
+        if (!empty($children)) {
+            $submenu = get_root_menu_item($children, $id, $type);
+            if (!empty($submenu)) return $submenu;
+        }
+    }
+    return null;
+}
+
+function get_parent_menu_item($menu, $id, $type="post_parent") {
+    foreach ($menu as $item) {
+        if (isset($item->{$type}) && $item->{$type} == $id) return $item;
+        $children = safe_children($item);
+        if (!empty($children)) {
+            $submenu = get_parent_menu_item($children, $id, $type);
+            if (!empty($submenu)) return $submenu;
+        }
+    }
+    return null;
+}
+
+/**
+ * Main function: fetch menu tree for page/post/taxonomy/archive
+ */
+function get_root_menu_for_page($menu, $page_id=-1) {
+    $menu_items = ["nodes" => [], "items" => []];
+
+    if (empty($menu)) $menu = "header-menu";
+
+    $locations = get_nav_menu_locations();
+    $menu = $locations[$menu] ?? null;
+
+
+    if (is_numeric($menu)) {
+        $menu_obj = wp_get_nav_menu_object($menu);
+        if ($menu_obj) $menu = $menu_obj->name;
+    }
+
+    global $post, $wp_query;
+    $menu = Timber::get_menu($menu);
+    
+    if ($page_id < 0) $page_id = $post->ID;
+
+    // Page 0 fallback
+    if ($page_id === 0) {
+        $menu_items["nodes"] = [$post->ID];
+        $menu_items["items"] = $menu->get_items();
+        return $menu_items;
+    }
+
+    // Single / Post Type Archive
+    if (is_post_type_archive() || is_single()) {
+        $post_type = $wp_query->query_vars['post_type'] ?? null;
+        if ($post_type) {
+            $nodes = get_leafnode_object($post_type);
+            if ($nodes) {
+                $menu_items["nodes"] = wp_list_pluck($nodes, "db_id");
+                $menu_items["items"] = safe_children(get_root_menu_item(safe_children($menu), end($nodes)->db_id, "db_id")) ?? [];
+            }
+        }
+        return $menu_items;
+    }
+
+    // Taxonomy
+    if (is_tax()) {
+        $taxonomy = $wp_query->query_vars['taxonomy'] ?? null;
+        $term = $wp_query->query_vars['term'] ?? null;
+        if ($taxonomy && $term) {
+            $term_obj = get_term_by("slug", $term, $taxonomy);
+            $nodes = get_leafnode_object(["object"=>$taxonomy, "object_id" => $term_obj->term_id]);
+            if ($nodes) {
+                $menu_items["nodes"] = wp_list_pluck($nodes, "object_id");
+                $last_node = end($nodes);
+                if ($last_node) {
+                    $menu_items["items"] = safe_children(get_root_menu_item(safe_children($menu), $last_node->object_id)) ?? [];
+                }
+            }
+        }
+        return $menu_items;
+    }
+
+    // Page fallback
+    $menu_item = get_page_menu_child($menu->get_items(), $page_id);
+    if ($menu_item) {
+        $ancestors = get_post_ancestors($menu_item);
+        if ($ancestors) {
+            $id = end($ancestors);
+            $menu_items["nodes"] = $ancestors;
+            $menu_items["items"] = safe_children(get_root_menu_item($menu->get_items(), $id)) ?? [];
+        } else {
+            $menu_items["nodes"] = [$page_id];
+            $menu_items["items"] = safe_children($menu_item) ?? [];
+        }
+    } else {
+        // fallback: menu_item yoksa menu'nin en üst seviyesini döndür
+        $menu_items["nodes"] = [];
+        $menu_items["items"] = $menu->get_items() ?? [];
+    }
+
+
+    return $menu_items;
+}
 
 
 

@@ -80,7 +80,8 @@
                             "default_value": 0,
                             "ui_on_text": "",
                             "ui_off_text": "",
-                            "ui": 1
+                            "ui": 1,
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66381c763b572",
@@ -214,6 +215,8 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -246,7 +249,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "none"
                         },
                         {
                             "key": "field_66381d4c3b578",
@@ -279,7 +283,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66381d743b57b",
@@ -297,7 +302,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": ""
+                            "return_format": "",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381d823b57c",
@@ -315,7 +321,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": ""
+                            "return_format": "",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381d613b579",
@@ -348,7 +355,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         }
                     ]
                 },
@@ -409,6 +417,8 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -441,7 +451,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "none"
                         },
                         {
                             "key": "field_66381dcc3b581",
@@ -474,7 +485,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66381dcc3b582",
@@ -492,7 +504,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": ""
+                            "return_format": "",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381dcc3b583",
@@ -510,7 +523,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": ""
+                            "return_format": "",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381e033b585",
@@ -528,7 +542,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": ""
+                            "return_format": "",
+                            "pll_default_value": ""
                         }
                     ]
                 },
@@ -589,6 +604,8 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -621,7 +638,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "none"
                         },
                         {
                             "key": "field_66381e3b3b589",
@@ -654,7 +672,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66381e653b58e",
@@ -691,7 +710,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "400"
                         },
                         {
                             "key": "field_66381e3b3b58a",
@@ -709,7 +729,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381e3b3b58b",
@@ -727,7 +748,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381e573b58d",
@@ -745,7 +767,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         }
                     ]
                 },
@@ -806,6 +829,8 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -838,7 +863,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "none"
                         },
                         {
                             "key": "field_66381f473b592",
@@ -871,7 +897,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66381f533b593",
@@ -908,7 +935,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "400"
                         }
                     ]
                 },
@@ -969,6 +997,8 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -1001,7 +1031,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "none"
                         },
                         {
                             "key": "field_66381fb93b597",
@@ -1034,7 +1065,8 @@
                                 "ex",
                                 "ch",
                                 "fr"
-                            ]
+                            ],
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_66381fca3b598",
@@ -1071,7 +1103,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "400"
                         },
                         {
                             "key": "field_66381fdd3b599",
@@ -1089,7 +1122,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381fe83b59a",
@@ -1107,7 +1141,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_66381ff63b59b",
@@ -1125,7 +1160,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         }
                     ]
                 },
@@ -1184,7 +1220,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_6638204c3b59f",
@@ -1202,7 +1239,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         }
                     ]
                 },
@@ -1261,7 +1299,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         },
                         {
                             "key": "field_663820913b5a3",
@@ -1279,7 +1318,8 @@
                             },
                             "default_value": "",
                             "enable_opacity": 0,
-                            "return_format": "string"
+                            "return_format": "string",
+                            "pll_default_value": ""
                         }
                     ]
                 }
@@ -1311,7 +1351,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983330,
+    "modified": 1755740615,
     "acfe_categories": {
         "general": "General"
     }

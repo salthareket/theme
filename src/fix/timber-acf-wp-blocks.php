@@ -101,7 +101,7 @@ if ( ! class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
 					}
 
 					// Keywords exploding with quotes.
-					$keywords = str_getcsv( $file_headers['keywords'], ' ', '"' );
+					$keywords = str_getcsv( $file_headers['keywords'], ' ', '"', '\\' );
 
 					// Set up block data for registration.
 					$data = array(

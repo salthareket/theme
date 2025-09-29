@@ -6,8 +6,9 @@ use ScssPhp\ScssPhp\OutputStyle;
 
 Class Theme{
 
-    /*private static $instance = null;
-
+    /*
+    Bunu kullanırsak kullanım: \SaltBase::getInstance()->
+    private static $instance = null;
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -18,7 +19,6 @@ Class Theme{
     function __construct(){
         show_admin_bar(false); 
         add_action("after_setup_theme", [$this, "after_setup_theme"]);
-
 
         add_action("acf/init", [$this, "menu_actions"]);
 
@@ -38,7 +38,7 @@ Class Theme{
         add_action("plugins_loaded", [$this, "plugins_loaded"]);
         
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
-        add_filter( 'get_terms_args', [$this, "query_all_terms"], 10, 2);
+        add_filter('get_terms_args', [$this, "query_all_terms"], 10, 2);
 
         // Sayfalardaki bazı gereksiz ve kullanılmayan bölümlerin kaldırılması
         remove_action('wp_head', 'wp_pingback'); // Pingback linki
@@ -50,7 +50,7 @@ Class Theme{
         remove_action('wp_head', 'wp_generator'); // WordPress sürüm bilgisi
         remove_action('wp_head', 'adjacent_posts_rel_link_wp_head', 10, 0); // Önceki ve sonraki yazı linkleri
         remove_action('wp_head', 'wp_oembed_add_discovery_links'); // OEmbed discovery linkleri
-        remove_action( 'admin_color_scheme_picker', 'admin_color_scheme_picker' );
+        remove_action('admin_color_scheme_picker', 'admin_color_scheme_picker' );
 
         // WordPress 5.4 ve sonraki sürümler için gizleme
         remove_action('wp_head', 'rest_output_link_wp_head', 10);
@@ -68,19 +68,10 @@ Class Theme{
         }
 
 
-        if(SH_THEME_EXISTS){
-            add_action("wp_enqueue_scripts", "load_frontend_files", 20);
-        }
-        add_filter('body_class', [$this, 'body_class'] );
-
-        if(!is_admin()){
-            add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
-        }else{
-            //add_filter('acf/update_value', [$this, 'clear_cached_option'], 10, 3);
-            add_action('admin_init', [$this, 'site_config_js'], 20 );       
-        }
+        
         
         if(is_admin()){
+            add_action('admin_init', [$this, 'site_config_js'], 20 );   
             if(SH_THEME_EXISTS){
                 add_action("admin_init", "load_admin_files");
             }
@@ -90,14 +81,17 @@ Class Theme{
                 visibility_under_construction();
             });
         }else{
+            if(SH_THEME_EXISTS){
+                add_action("wp_enqueue_scripts", "load_frontend_files", 20);
+            }
+            add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
+            add_filter('body_class', [$this, 'body_class'] );
             add_action("wp", function(){
                 visibility_under_construction();
-                
                 /*if(function_exists("get_or_create_dictionary_cache")){
                     $dict = get_or_create_dictionary_cache($GLOBALS["language"]);
                     $GLOBALS["lang_predefined"] = $dict;                    
                 }*/
-
             });    
         }
     }
@@ -336,7 +330,7 @@ Class Theme{
     }
     public function global_variables(){
 
-        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
+        if (( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
             return [];
         }
 
@@ -611,7 +605,7 @@ Class Theme{
                                 $url = pll_home_url($language['slug']);
                             }
 
-                       } elseif (is_tax()) {
+                        } elseif (is_tax()) {
                             $taxonomy = get_query_var('taxonomy');
                             $term = get_query_var('term');
 
@@ -853,7 +847,6 @@ Class Theme{
         }
         return $args;
     }
-
     public function body_class( $classes ) {
         if (is_admin()) {
             return $classes;
@@ -876,7 +869,7 @@ Class Theme{
     }
 
     public function site_assets(){
-        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
+        if (is_admin() || (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS)) {
             return;
         }
         if (defined('DOING_AJAX') && DOING_AJAX) {
@@ -893,6 +886,11 @@ Class Theme{
         if(!defined("SITE_ASSETS")){
             error_log("2. site assets NOT DEFINED");
             $site_assets = [];
+
+
+            error_log("admiiin:".is_admin()."  ");
+            error_log(print_r(self::get_meta(), true));
+           
            
             if (is_singular()) {
                 $post_id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
@@ -950,7 +948,7 @@ Class Theme{
             
             define("SITE_ASSETS", $site_assets);
             
-            if(!isset($_GET["fetch"]) && !is_admin()) {
+            if(!isset($_GET["fetch"])) {
                 new \Lcp();
             }
 
@@ -1194,6 +1192,10 @@ Class Theme{
 
             if(defined("SH_INCLUDES_URL")){
                $config["theme_includes_url"] = SH_INCLUDES_URL; 
+            }
+
+            if(defined("THEME_URL")){
+               $config["theme_url"] = THEME_URL; 
             }
 
             if(!is_admin() && class_exists("TranslationDictionary")){

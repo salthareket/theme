@@ -42,7 +42,6 @@ class Post extends Timber\Post{
         $data = array();
         $map_service = SaltBase::get_cached_option("map_service");//get_field("map_service", "option");
         $location_data = $this->contact["map_".$map_service];
-
         if($location_data){
             $map_marker = $this->contact["map_marker"];
             if($map_marker){
@@ -78,6 +77,37 @@ class Post extends Timber\Post{
         }
         return $data;
     }
+    public function get_map_config($buttons = [], $popup = [], $callback = ""){
+        $config = [
+            'locations' => [],
+            'buttons'   => $buttons,
+            'popup'     => $popup,
+            'callback'  => $callback
+        ];
+        $location_data = [];
+        $map_data = $this->get_map_data();
+        if($map_data){
+           $map_data["id"] = $this->ID;
+           $location_data = array_merge($location_data, [$map_data]);
+        }
+        $config = array_merge($config, ["locations" => $location_data]);
+        return $config;
+    }
+    public function get_map_embed(){
+        $code = "";
+        $map_data = $this->get_map_data();
+        if($map_data && !empty($map_data["map_url"])){
+            $html ='<iframe
+                src="'.$map_data["map_url"].'"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen>
+              </iframe>';
+        }
+        return $code;
+    }
+
     public function get_map_popup(){
         $map_data = $this->get_map_data();
         return  "<div class='row gx-3 gy-2'>" .
@@ -559,6 +589,39 @@ class Post extends Timber\Post{
                 // Bilinmeyen/özel ML sistemi -> düş
                 return $fallback;
         }
+    }
+
+    public function get_terms_default($taxonomy, $lang = null) {
+        if (!$taxonomy) return [];
+
+        $terms = wp_get_post_terms($this->ID, $taxonomy);
+
+        if (empty($terms)) return [];
+
+        $result = [];
+        foreach ($terms as $term) {
+            $term_id = null;
+
+            if ($term instanceof Term) {
+                $term_id = $term->id;
+            } elseif ($term instanceof WP_Term) {
+                $term_id = $term->term_id;
+            } elseif (is_numeric($term)) {
+                $term_id = intval($term);
+            }
+
+            if ($term_id && function_exists('pll_get_term')) {
+                $target_lang = $lang ?: pll_default_language();
+                $translated_id = pll_get_term($term_id, $target_lang);
+                if ($translated_id) {
+                    $term_id = $translated_id;
+                }
+            }
+
+            $result[] = Timber::get_term($term_id);
+        }
+
+        return $result;
     }
 
 

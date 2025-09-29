@@ -13,10 +13,10 @@ class PageAssetsExtractor
     protected $excluded_taxonomies = [];
 
     /* ======= Genel Durum ======= */
-    public    $type = null;                       // 'post' | 'term' | 'archive' | ...
-    public    $mass = false;
-    public    $disable_hooks = false;
-    public    $force_rebuild = false;
+    public $type = null;                       // 'post' | 'term' | 'archive' | ...
+    public $mass = false;
+    public $disable_hooks = false;
+    public $force_rebuild = false;
 
     public $home_url = "";
     public $home_url_encoded = "";
@@ -38,7 +38,7 @@ class PageAssetsExtractor
         'plugins'   => []   // key = sha1(json_encode(plugins))
     ];
 
-    private string $twig_attr = 'data-twig-load';
+    private string $twig_attr = 'data-template';
     private array $twig_template_paths = [];   // Timber template paths (override edilebilir)
     private bool $twig_scan_includes = true;   // {% include %} yakala, rekürsif tara
     private array $twig_seen_templates = []; // 'magazalar/single-modal.twig' => true
@@ -527,9 +527,10 @@ class PageAssetsExtractor
 
 
 
-        // data-twig-load taraması
+        // data-template taraması
         $extra_html = $this->collectTwigLoadedHtml($html_content);
         if ($extra_html) {
+
             // Eklenen fragmenti logla
             error_log('[PAE] collected extra html length=' . strlen($extra_html));
 
@@ -549,12 +550,6 @@ class PageAssetsExtractor
 
         // ---------- DOM kırpma ----------
         $html_temp = HtmlDomParser::str_get_html($html_content->__toString());
-
-
-
-
-
-
 
         $header_node = $html_temp->findOne('#header');
         $header_content = '';
@@ -988,8 +983,9 @@ class PageAssetsExtractor
         if($type == "js"){
             $initFiles  = array_values(array_filter($files, fn($f)=>preg_match('/-init\.js$/',$f)));
             $otherFiles = array_values(array_filter($files, fn($f)=>!preg_match('/-init\.js$/',$f)));
-            sort($initFiles); sort($otherFiles);
-            $files = array_merge($initFiles, $otherFiles);
+            sort($initFiles);
+            sort($otherFiles);
+            $files = array_merge($otherFiles, $initFiles);
         } else {
             sort($files);
         }
@@ -1105,8 +1101,47 @@ class PageAssetsExtractor
 
         $this->disable_hooks = false;
         error_log("META SAVED | type={$this->type} | key=assets | css_page=" . ($merged['css_page'] ?? '') . " | plugin_js=" . ($merged['plugin_js'] ?? ''));
+        $this->maybe_copy_meta_to_translations($id, $merged);
         return $merged;
     }
+    private function maybe_copy_meta_to_translations($id, $merged) {
+        if (! function_exists('pll_default_language')) return;
+        try {
+            $default = pll_default_language();
+
+            if ($this->type === 'post' && function_exists('pll_get_post_language')) {
+                $lang = pll_get_post_language($id);
+                if ($lang !== $default) return;
+
+                $translations = pll_get_post_translations($id);
+                if (!is_array($translations)) return;
+
+                $prev = $this->disable_hooks; $this->disable_hooks = true;
+                foreach ($translations as $l => $pid) {
+                    if (!$pid || (int)$pid === (int)$id) continue;
+                    update_post_meta((int)$pid, self::META_KEY, $merged);
+                }
+                $this->disable_hooks = $prev;
+                return;
+            }
+
+            if ($this->type === 'term' && function_exists('pll_get_term_translations')) {
+                $translations = pll_get_term_translations($id);
+                if (!is_array($translations)) return;
+                if (!isset($translations[$default]) || (int)$translations[$default] !== (int)$id) return;
+
+                $prev = $this->disable_hooks; $this->disable_hooks = true;
+                foreach ($translations as $l => $tid) {
+                    if (!$tid || (int)$tid === (int)$id) continue;
+                    update_term_meta((int)$tid, self::META_KEY, $merged);
+                }
+                $this->disable_hooks = $prev;
+            }
+        } catch (\Throwable $e) {
+            error_log('[PAE] maybe_copy_meta_to_translations error: ' . $e->getMessage());
+        }
+    }
+
 
     public function save_post_terms( $post_id ) {
         if ( ! function_exists('get_post') || ! get_post($post_id) ) {
@@ -1461,6 +1496,8 @@ class PageAssetsExtractor
         }
         return $roles;
     }
+
+
 
 
 
@@ -1843,7 +1880,7 @@ class PageAssetsExtractor
     private function collectTwigLoadedHtml(\voku\helper\HtmlDomParser $dom): string {
         $nodes = $dom->find("*[{$this->twig_attr}]");
         if (!$nodes || count($nodes) === 0) {
-            error_log('[PAE] data-twig-load: node bulunamadı');
+            error_log('[PAE] data-template: node bulunamadı');
             return '';
         }
 
@@ -1865,7 +1902,7 @@ class PageAssetsExtractor
 
         $all = array_keys($uniqueTemplates);
         if (empty($all)) {
-            error_log('[PAE] data-twig-load: template değeri yok (boş)');
+            error_log('[PAE] data-template: template değeri yok (boş)');
             return '';
         }
 
@@ -1879,11 +1916,11 @@ class PageAssetsExtractor
         }
 
         if (empty($toProcess)) {
-            error_log('[PAE] data-twig-load: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
+            error_log('[PAE] data-template: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
             return '';
         }
 
-        error_log('[PAE] data-twig-load: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
+        error_log('[PAE] data-template: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
         $html_chunks = [];
         $foundFiles  = [];
         $missed      = [];

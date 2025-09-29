@@ -37,7 +37,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "default"
         },
         {
             "key": "field_66b942fa2466b",
@@ -82,7 +83,8 @@
                     "append": "",
                     "maxlength": "",
                     "translations": "sync",
-                    "parent_repeater": "field_66b942fa2466b"
+                    "parent_repeater": "field_66b942fa2466b",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_66b9479e4aa3e",
@@ -114,7 +116,8 @@
                     "search_placeholder": "",
                     "parent_repeater": "field_66b942fa2466b",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": ""
                 }
             ]
         },
@@ -137,7 +140,8 @@
             "maxlength": "",
             "rows": 3,
             "new_lines": "br",
-            "acfe_textarea_code": 0
+            "acfe_textarea_code": 0,
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -165,7 +169,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983303,
+    "modified": 1755740566,
     "acfe_categories": {
         "general": "General"
     }

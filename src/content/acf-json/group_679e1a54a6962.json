@@ -54,7 +54,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "center"
                 },
                 {
                     "key": "field_679e1b75c888f",
@@ -87,7 +88,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "center"
                 }
             ]
         }
@@ -117,7 +119,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983339,
+    "modified": 1755740627,
     "acfe_categories": {
         "general": "General"
     }

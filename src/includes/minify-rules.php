@@ -199,8 +199,8 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'justifiedGallery/dist/css/justifiedGallery.min.css'
 		],
-		"class" => ["justified-gallery", "lightgallery"],
-		"attrs" => [],
+		"class" => ["justified-gallery"],
+		"attrs" => ["data-gallery-type"],
 		"init"     => "",
 		"whitelist" => []
 	];
@@ -427,7 +427,39 @@ function compile_files_config($enable_production=false){
 		"whitelist" => []  
 	];
 
-   if(!isset($plugins["smartmenus"]) && $header_has_navigation){
+	$plugins['panzoom'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . '@panzoom/panzoom/dist/panzoom.min.js'
+		],
+		"css" => [],
+		"class" => ["panzoom"],
+		"attrs" => [],
+		"init"     => "init_panzoom",
+		"whitelist" => [
+			".panzoom-*"
+		]
+	];
+
+	$plugins['simplebar'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'simplebar/dist/simplebar.min.js'
+		],
+		"css" => [
+			$node_path . 'simplebar/dist/simplebar.min.css'
+		],
+		"class" => ["simplebar"],
+		"attrs" => ["data-simplebar"],
+		"init"     => "init_simplebar",
+		"whitelist" => [
+			".simplebar-*"
+		]
+	];
+
+    if(!isset($plugins["smartmenus"]) && $header_has_navigation){
 	 	$plugins['smartmenus'] = [
 	 		"c"   => true,
 	 		"admin" => false,

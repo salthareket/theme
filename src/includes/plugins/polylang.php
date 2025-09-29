@@ -612,3 +612,72 @@ add_action('acf/save_post___', function($post_id) {
     }
 
 }, 20);
+
+
+
+
+/**
+ * Belirli Polylang ayar sayfalarında dil parametresini kontrol eder
+ * ve yoksa veya "all" değilse "all" diline yönlendirir.
+ */
+function redirect_to_all_languages() {
+    if (!is_admin() || (defined("ENABLE_MULTILANGUAGE") && ENABLE_MULTILANGUAGE != "polylang")) {
+        return;
+    }
+    $pages_to_check = ['development', 'anasayfa', 'header', 'footer', 'menu', 'theme-styles', 'ayarlar', 'page-assets-update', 'formlar'];
+    $current_page = isset($_GET['page']) ? $_GET['page'] : '';
+    if (in_array($current_page, $pages_to_check) && (!isset($_GET['lang']) || $_GET['lang'] !== 'all')) {
+        $redirect_url = add_query_arg('lang', 'all', $_SERVER['REQUEST_URI']);
+        wp_redirect($redirect_url);
+        exit;
+    }
+}
+add_action('admin_init', 'redirect_to_all_languages');
+
+
+
+/**
+ * Translatable olmayan içeriklerde Polylang dil parametresini engeller
+ * ve default dile yönlendirir.
+ */
+function restrict_non_translatable_lang() {
+    if (!is_admin() || !function_exists('pll_is_translated_post_type')) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if (!$screen) return;
+
+    $lang = isset($_GET['lang']) ? $_GET['lang'] : '';
+    $default_lang = function_exists('pll_default_language') ? pll_default_language() : '';
+
+    // Post edit ekranı
+    if ($screen->base === 'post' && isset($_GET['post'])) {
+        $post_id = intval($_GET['post']);
+        $post_type = get_post_type($post_id);
+
+        if ($post_type && !pll_is_translated_post_type($post_type)) {
+            if ($lang && $lang !== $default_lang) {
+                $redirect_url = remove_query_arg('lang');
+                $redirect_url = add_query_arg('lang', $default_lang, $redirect_url);
+                wp_redirect($redirect_url);
+                exit;
+            }
+        }
+    }
+
+    // Term edit ekranı
+    if ($screen->base === 'term' && isset($_GET['taxonomy'])) {
+        $taxonomy = sanitize_key($_GET['taxonomy']);
+
+        if ($taxonomy && !pll_is_translated_taxonomy($taxonomy)) {
+            if ($lang && $lang !== $default_lang) {
+                $redirect_url = remove_query_arg('lang');
+                $redirect_url = add_query_arg('lang', $default_lang, $redirect_url);
+                wp_redirect($redirect_url);
+                exit;
+            }
+        }
+    }
+}
+add_action('current_screen', 'restrict_non_translatable_lang');

@@ -163,7 +163,7 @@ Class Image{
         $attrs["height"] = $this->args["height"];
         $attrs["alt"] = $this->args["alt"];
 
-        $attrs["style"] = (isset($attrs["style"])?$attrs["style"]:"")."aspect-ratio: ".$attrs["width"]." / ".$attrs["height"].";";
+        $attrs["style"] = (isset($attrs["style"])?$attrs["style"]:"");//."aspect-ratio: ".$attrs["width"]." / ".$attrs["height"].";";
 
         $html = "";
 

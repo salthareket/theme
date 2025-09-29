@@ -62,7 +62,8 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "h3"
         },
         {
             "key": "field_67845bf40514b",
@@ -108,7 +109,8 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_67845bf40514b"
+                    "parent_repeater": "field_67845bf40514b",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_67845bf40514d",
@@ -141,7 +143,8 @@
                     "search_placeholder": "",
                     "parent_repeater": "field_67845bf40514b",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "file"
                 },
                 {
                     "key": "field_67845bf40514e",
@@ -201,7 +204,8 @@
                     "translations": "sync",
                     "allow_in_bindings": 0,
                     "placeholder": "",
-                    "parent_repeater": "field_67845bf40514b"
+                    "parent_repeater": "field_67845bf40514b",
+                    "pll_default_value": ""
                 }
             ]
         }
@@ -231,7 +235,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983338,
+    "modified": 1755740626,
     "acfe_categories": {
         "block": "Block"
     }

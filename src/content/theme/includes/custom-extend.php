@@ -1,4 +1,5 @@
 <?php
+
 class Salt extends SaltBase {
 
     private static $already_ran = false;
@@ -485,6 +486,9 @@ class Salt extends SaltBase {
             }
 
             self::$already_ran = true; // Flag'i ayarla*/
+            $project = new Project();
+            $project->campaign_published($post_id, $post, $update );
+
 
             parent::on_post_published($post_id, $post, $update);
 
@@ -498,7 +502,6 @@ class Salt extends SaltBase {
             add_action('save_post_product', [ parent::class, 'on_post_published'], 100, 3);
             add_action('publish_post', [ parent::class, 'on_post_published'], 100, 3);
         }*/
-       
     }
 
     public function on_term_published($term_id, $tt_id, $taxonomy){

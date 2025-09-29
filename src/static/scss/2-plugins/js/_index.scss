@@ -44,5 +44,8 @@
 	@if index($plugins, "jquery-zoom") {
 		@import 'plugin-jquery-zoom';
 	}
+	@if index($plugins, "panzoom") {
+		@import 'plugin-panzoom';
+	}
 
 }

@@ -53,7 +53,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "allow_custom": 0
+                    "allow_custom": 0,
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_64dbc96f9fd6f",
@@ -97,7 +98,8 @@
                     "allow_custom": 0,
                     "search_placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": false
                 }
             ]
         },
@@ -183,7 +185,8 @@
                             "search_placeholder": "",
                             "layout": "",
                             "toggle": 0,
-                            "allow_custom": 0
+                            "allow_custom": 0,
+                            "pll_default_value": []
                         },
                         {
                             "key": "field_64da4f4597892",
@@ -227,7 +230,8 @@
                             "ajax": 0,
                             "placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": false
                         },
                         {
                             "key": "field_64da4efd97891",
@@ -258,7 +262,8 @@
                             "ajax": 0,
                             "placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "default"
                         },
                         {
                             "key": "field_64da685f221c7",
@@ -289,7 +294,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "{{me}}"
                         },
                         {
                             "key": "field_64da68c6221c8",
@@ -321,7 +327,8 @@
                             "allow_custom": 0,
                             "search_placeholder": "",
                             "create_options": 0,
-                            "save_options": 0
+                            "save_options": 0,
+                            "pll_default_value": "{{me}}"
                         }
                     ]
                 },
@@ -383,7 +390,8 @@
                             "default_value": 0,
                             "ui_on_text": "",
                             "ui_off_text": "",
-                            "ui": 1
+                            "ui": 1,
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_64da669faee36",
@@ -432,7 +440,8 @@
                                     "maxlength": "",
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": ""
+                                    "append": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_64da6711aee38",
@@ -460,7 +469,8 @@
                                     "default_value": 0,
                                     "ui_on_text": "",
                                     "ui_off_text": "",
-                                    "ui": 1
+                                    "ui": 1,
+                                    "pll_default_value": 0
                                 },
                                 {
                                     "key": "field_64da672faee39",
@@ -492,7 +502,8 @@
                                     "maxlength": "",
                                     "rows": 4,
                                     "max_rows": "",
-                                    "return_format": []
+                                    "return_format": [],
+                                    "pll_default_value": ""
                                 }
                             ]
                         },
@@ -532,7 +543,8 @@
                             "default_value": 0,
                             "ui_on_text": "",
                             "ui_off_text": "",
-                            "ui": 1
+                            "ui": 1,
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_64da6906221c9",
@@ -585,7 +597,8 @@
                                     "maxlength": "",
                                     "rows": 4,
                                     "max_rows": "",
-                                    "return_format": []
+                                    "return_format": [],
+                                    "pll_default_value": ""
                                 }
                             ]
                         },
@@ -625,7 +638,8 @@
                             "default_value": 0,
                             "ui_on_text": "",
                             "ui_off_text": "",
-                            "ui": 1
+                            "ui": 1,
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_64da6936221cd",
@@ -678,7 +692,8 @@
                                     "maxlength": "",
                                     "rows": 4,
                                     "max_rows": "",
-                                    "return_format": []
+                                    "return_format": [],
+                                    "pll_default_value": ""
                                 }
                             ]
                         }
@@ -712,7 +727,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1750983308,
+    "modified": 1755740577,
     "acfe_categories": {
         "general": "General"
     }

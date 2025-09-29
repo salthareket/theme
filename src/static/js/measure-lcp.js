@@ -1,5 +1,6 @@
 function lcp_data(metric, type) {
-    if (!metric || !metric.attribution) return '';
+    console.log("is cached:"+site_config.cached);
+    if (!metric || !metric.attribution || site_config.cached) return '';
     let element, url;
     if (typeof metric.attribution.lcpEntry !== "undefined") {
         element = metric.attribution.lcpEntry.element;
@@ -270,4 +271,3 @@ function getCriticalSelectors(lcpElement) {
 
     return Array.from(selectors);
 }
-

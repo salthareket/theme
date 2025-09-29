@@ -5,11 +5,11 @@ function custom_rewrite_rules() {
 
     //$home_id = get_option('page_on_front');
 
-    add_rewrite_rule(
+    /*add_rewrite_rule(
         '^basin-bulteni/arsiv/?$',
         'index.php?post_type=basin-bulteni&action=arsiv',
         'top'
-    );
+    );*/
 
     if(ENABLE_MEMBERSHIP){
         global $wp_roles;
