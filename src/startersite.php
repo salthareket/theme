@@ -15,8 +15,9 @@ class StarterSite extends Timber\Site{
     function add_to_context($context){
 
         //$this->language_settings();
+        $ajax_process = (defined('DOING_AJAX') && DOING_AJAX) || (defined('DOING_CRON') && DOING_CRON);
 
-        $context["ajax_process"] = (defined('DOING_AJAX') && DOING_AJAX) || (defined('DOING_CRON') && DOING_CRON);
+        $context["ajax_process"] = $ajax_process;
 
         $salt = $GLOBALS["salt"];
         $user = $GLOBALS["user"];
