@@ -125,19 +125,19 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.2",
+    "v" => "1.0",
     "name" => "acf-bs-breakpoints/index.php",
     "file" => "acf-bs-breakpoints"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.2",
+    "v" => "1.0",
     "name" => "acf-query-field/acf-query-field.php",
     "file" => "acf-query-field"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.2",
+    "v" => "1.0",
     "name" => "acf-unit-field/index.php",
     "file" => "acf-unit-field"
 );
@@ -234,13 +234,13 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.1",
+    "v" => "1.0.0",
     "name" => "gradient-picker-for-acf/gradient-picker-for-acf.php",
     "file" => "gradient-picker-for-acf"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.3.30",
+    "v" => "1.0.0",
     "name" => "salt-table-for-acf/salt-table-for-acf.php",
     "file" => "salt-table-for-acf"
 );

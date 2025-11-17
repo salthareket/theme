@@ -2443,7 +2443,7 @@ function block_columns($args=array(), $block = []){
                         if(!is_array($item)){
                             $attrs["data-slider-".$key] = $item;
                         }else{
-                            if($key == "controls" && $item){
+                            if($key == "controls" && $item && isset($block["id"])){
                                 $slider_controls = block_slider_controls("#".$block["id"], $item, $args["slider_settings"]["direction"], $args["slider_settings"]["autoheight"], $args["slider_settings"]["continuous-scroll"]);
                             }
                         }
@@ -2504,7 +2504,7 @@ function block_columns($args=array(), $block = []){
             }
             
 
-            if(isset($args["column_breakpoints"]) && isset($args["slider_settings"])){
+            if(isset($args["column_breakpoints"]) && isset($args["slider_settings"]) && isset($block["id"])){
                     $breakpoints = new ArrayObject();
                     $gaps = new ArrayObject();
                     $gap_direction = $args["slider_settings"]["direction"] == "horizontal" ? "gx" : "gy";
