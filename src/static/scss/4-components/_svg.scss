@@ -1,11 +1,13 @@
-.svg-white {
-    @include svgColor(#fff);
-}
-.svg-dark {
-    @include svgColor(#000);
-}
-@each $color-key, $color-value in $theme-colors {
-    .svg-#{$color-key} {
-       @include svgColor($color-value);
+svg{
+    &.svg-white {
+        @include svgColor(#fff);
+    }
+    &.svg-dark {
+        @include svgColor(#000);
+    }
+    @each $color-key, $color-value in $theme-colors {
+        &.svg-#{$color-key} {
+           @include svgColor($color-value);
+        }
     }
 }

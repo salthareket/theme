@@ -1,6 +1,7 @@
 <?php
 
 use SaltHareket\Image;
+use Carbon\Carbon;
 
 class Post extends Timber\Post{
 
@@ -41,7 +42,9 @@ class Post extends Timber\Post{
     public function get_map_data($popup=false){
         $data = array();
         $map_service = SaltBase::get_cached_option("map_service");//get_field("map_service", "option");
+        echo $map_service;
         $location_data = $this->contact["map_".$map_service];
+        $map_url = $this->contact["map_url"];
         if($location_data){
             $map_marker = $this->contact["map_marker"];
             if($map_marker){
@@ -69,11 +72,13 @@ class Post extends Timber\Post{
                 );
             }
             if(isset($location_data["map_url"]) && !empty($location_data["map_url"])){
-                $data["url"] = $location_data["map_url"];
+                $data["map_url"] = $location_data["map_url"];
             }
             if($popup){
                $data["popup"] = esc_html($this->get_map_popup());
             }            
+        }elseif(!empty($map_url)){
+            $data["map_url"] = $map_url;
         }
         return $data;
     }
@@ -96,8 +101,9 @@ class Post extends Timber\Post{
     public function get_map_embed(){
         $code = "";
         $map_data = $this->get_map_data();
+        print_r($map_data);
         if($map_data && !empty($map_data["map_url"])){
-            $html ='<iframe
+            $code ='<iframe
                 src="'.$map_data["map_url"].'"
                 style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
                 loading="lazy"
@@ -124,6 +130,11 @@ class Post extends Timber\Post{
                         $this->get_local_date("","",$GLOBALS["user"]->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
                     "</div>" .
                 "</div>";
+    }
+
+    public function get_video_embed($url="", $image_size=0, $attrs=[]){
+        $embed = new OembedVideo($url, $image_size, $attrs);
+        return $embed->get($attrs);
     }
 
     public function get_blocks_array($exception = array(), $render = false) {
@@ -164,7 +175,10 @@ class Post extends Timber\Post{
 
     public function get_blocks($args = []) {
 
+        error_log(print_r($args, true));
+
         if (has_blocks($this)) {
+
             $blocks = parse_blocks($this->post_content);
 
             $blocks = array_filter($blocks, function ($block) {
@@ -222,12 +236,15 @@ class Post extends Timber\Post{
                 ); 
             }
             
-            if(!isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS)) { 
+            $seperate_css = isset($args["seperate_css"]) ? (bool)$args["seperate_css"] : SEPERATE_CSS;
+            $seperate_js = isset($args["seperate_js"]) ? (bool)$args["seperate_js"] : SEPERATE_JS;
+        
+            if(!isset($_GET["fetch"]) && ($seperate_css || $seperate_js)){ 
                 $tags = "";
-                if(SEPERATE_CSS){
+                if($seperate_css){
                     $tags = "<style>";
                 }
-                if(SEPERATE_JS){
+                if($seperate_js){
                     $tags .= "<script>";
                 }
                 if(!empty($tags)){
@@ -287,6 +304,10 @@ class Post extends Timber\Post{
         return get_page_deeper_link($this->ID);
     }
 
+    public function post2Root(){
+        return post2Root($this->ID);
+    }
+
     public function get_average_color(){
         return $this->meta("average_color");
     }
@@ -300,7 +321,7 @@ class Post extends Timber\Post{
         return post2Breadcrumb($this->ID, $link);
     }
 
-    function strip_tags($content = "", $allowed_tags = "<script><style>") {
+    public function strip_tags($content = "", $allowed_tags = "<script><style>") {
          // DOMDocument başlat
         $dom = new DOMDocument('1.0', 'UTF-8');
         libxml_use_internal_errors(true); // Hataları gizle
@@ -622,6 +643,123 @@ class Post extends Timber\Post{
         }
 
         return $result;
+    }
+
+    public function merge_dates() {
+        Carbon::setLocale($GLOBALS["language"] ?? 'tr');
+
+        $dt1_raw = trim((string) $this->meta("start_date"));
+        $dt2_raw = trim((string) $this->meta("end_date"));
+        $period  = $this->meta("period") ?? false;
+
+        // Günleri locale'e göre çevir
+        $daysMap = [
+            0 => Carbon::create()->startOfWeek()->addDays(0)->translatedFormat('l'), // Pazartesi
+            1 => Carbon::create()->startOfWeek()->addDays(1)->translatedFormat('l'),
+            2 => Carbon::create()->startOfWeek()->addDays(2)->translatedFormat('l'),
+            3 => Carbon::create()->startOfWeek()->addDays(3)->translatedFormat('l'),
+            4 => Carbon::create()->startOfWeek()->addDays(4)->translatedFormat('l'),
+            5 => Carbon::create()->startOfWeek()->addDays(5)->translatedFormat('l'),
+            6 => Carbon::create()->startOfWeek()->addDays(6)->translatedFormat('l'), // Pazar
+        ];
+
+        $days = [];
+        if (is_array($period) && !empty($period)) {
+            foreach ($period as $d) {
+                if (isset($daysMap[$d])) {
+                    $days[] = $daysMap[$d];
+                }
+            }
+        }
+
+        // start_date yok ve sadece period varsa
+        if (empty($dt1_raw) && empty($dt2_raw) && !empty($days)) {
+            return sprintf(
+                /* translators: %s gün adlarını içerir */
+                translate('Her %s'),
+                implode(", ", $days)
+            );
+        }
+
+        // start_date parse et
+        $dt1 = null;
+        if (!empty($dt1_raw)) {
+            try {
+                $dt1 = Carbon::createFromFormat('Y-m-d H:i', $dt1_raw);
+            } catch (\Exception $e) {
+                $dt1 = null;
+            }
+        }
+
+        // end_date parse et
+        $dt2 = null;
+        if (!empty($dt2_raw)) {
+            try {
+                $dt2 = Carbon::createFromFormat('Y-m-d H:i', $dt2_raw);
+            } catch (\Exception $e) {
+                $dt2 = null;
+            }
+        }
+
+        // sadece period + start_date varsa
+        if ($dt1 && !$dt2 && !empty($days)) {
+            return sprintf(
+                /* translators: 1: başlangıç tarihi, 2: gün adları */
+                translate('%1$s tarihinden itibaren her %2$s'),
+                $dt1->translatedFormat('j F Y l H:i'),
+                implode(", ", $days)
+            );
+        }
+
+        // sadece period + end_date varsa
+        if ($dt2 && !$dt1 && !empty($days)) {
+            return sprintf(
+                /* translators: 1: bitiş tarihi, 2: gün adları */
+                translate('%1$s tarihine kadar her %2$s'),
+                $dt2->translatedFormat('j F Y l H:i'),
+                implode(", ", $days)
+            );
+        }
+
+        // hem start hem end hem de period varsa
+        if ($dt1 && $dt2 && !empty($days)) {
+            return sprintf(
+                /* translators: 1: başlangıç tarihi, 2: bitiş tarihi, 3: gün adları */
+                translate('%1$s - %2$s arası her %3$s'),
+                $dt1->translatedFormat('j F Y l H:i'),
+                $dt2->translatedFormat('j F Y l H:i'),
+                implode(", ", $days)
+            );
+        }
+
+        // === period yok, default eski mantık ===
+        if ($dt1 && !$dt2) {
+            return $dt1->translatedFormat('j F Y l H:i');
+        }
+
+        if ($dt1 && $dt2) {
+            if ($dt1->isSameDay($dt2)) {
+                if ($dt1->hour === $dt2->hour) {
+                    return $dt1->translatedFormat('j F Y l H:i');
+                } else {
+                    return $dt1->translatedFormat('j F Y l H:i') . ' - ' . $dt2->translatedFormat('H:i');
+                }
+            }
+
+            if ($dt1->isSameYear($dt2)) {
+                if ($dt1->isSameMonth($dt2)) {
+                    return $dt1->translatedFormat('j') . ' - ' . $dt2->translatedFormat('j') . ' ' .
+                           $dt1->translatedFormat('F Y H:i') . ' - ' . $dt2->translatedFormat('H:i');
+                } else {
+                    return $dt1->translatedFormat('j F') . ' - ' . $dt2->translatedFormat('j F') . ' ' .
+                           $dt1->translatedFormat('Y H:i') . ' - ' . $dt2->translatedFormat('H:i');
+                }
+            }
+
+            return $dt1->translatedFormat('j F Y l H:i') . " - " . $dt2->translatedFormat('j F Y l H:i');
+        }
+
+        return null;
     }
 
 

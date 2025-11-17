@@ -28,7 +28,8 @@
         "timber/timber": "*",
         "voku/simple_html_dom": "^4.8",
         "scssphp/scssphp": "^1.13",
-        "irmmr/rtlcss": "^1.4"
+        "irmmr/rtlcss": "^1.4",
+        "nesbot/carbon": "^3.10"
     },
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4"

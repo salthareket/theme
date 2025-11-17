@@ -80,6 +80,24 @@
                     "selected": 0
                 },
                 {
+                    "key": "field_68ed88391f9d1",
+                    "label": "(Column 4\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "4\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 0
+                },
+                {
                     "key": "field_63e69449f63ac",
                     "label": "Address",
                     "name": "address",
@@ -89,7 +107,7 @@
                     "required": 0,
                     "conditional_logic": 0,
                     "wrapper": {
-                        "width": "25",
+                        "width": "",
                         "class": "",
                         "id": ""
                     },
@@ -99,8 +117,67 @@
                     "allow_in_bindings": 1,
                     "rows": "",
                     "placeholder": "",
-                    "new_lines": "br",
-                    "pll_default_value": ""
+                    "new_lines": "br"
+                },
+                {
+                    "key": "field_68ed88c5ec7fa",
+                    "label": "City",
+                    "name": "city",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "allow_in_bindings": 0,
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_68ed88e2ec7fb",
+                    "label": "Country",
+                    "name": "country",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "allow_in_bindings": 0,
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_68ed884f1f9d2",
+                    "label": "(Column 4\/12)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "columns": "4\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 0
                 },
                 {
                     "key": "field_63e69449f63ad",
@@ -112,7 +189,7 @@
                     "required": 0,
                     "conditional_logic": 0,
                     "wrapper": {
-                        "width": "25",
+                        "width": "",
                         "class": "",
                         "id": ""
                     },
@@ -121,8 +198,8 @@
                     "pagination": 0,
                     "min": 0,
                     "max": 0,
-                    "collapsed": "",
-                    "button_label": "Ekle",
+                    "collapsed": "field_63e69449f63ae",
+                    "button_label": "Add",
                     "rows_per_page": 20,
                     "sub_fields": [
                         {
@@ -135,68 +212,48 @@
                             "required": 0,
                             "conditional_logic": 0,
                             "wrapper": {
-                                "width": "",
+                                "width": "60",
                                 "class": "",
                                 "id": ""
                             },
                             "default_value": "",
                             "maxlength": "",
+                            "allow_in_bindings": 1,
                             "placeholder": "",
                             "prepend": "",
                             "append": "",
-                            "parent_repeater": "field_63e69449f63ad",
-                            "pll_default_value": ""
+                            "parent_repeater": "field_63e69449f63ad"
+                        },
+                        {
+                            "key": "field_68e39eebc5ce2",
+                            "label": "Type",
+                            "name": "type",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "40",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "default",
+                            "maxlength": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "parent_repeater": "field_63e69449f63ad"
                         }
                     ]
                 },
                 {
-                    "key": "field_65b726c3d0052",
-                    "label": "Fax",
-                    "name": "fax",
+                    "key": "field_68ed88561f9d3",
+                    "label": "(Column 4\/12)",
+                    "name": "",
                     "aria-label": "",
-                    "type": "text",
-                    "instructions": "",
-                    "required": 0,
-                    "conditional_logic": 0,
-                    "wrapper": {
-                        "width": "25",
-                        "class": "",
-                        "id": ""
-                    },
-                    "default_value": "",
-                    "maxlength": "",
-                    "allow_in_bindings": 1,
-                    "placeholder": "",
-                    "prepend": "",
-                    "append": "",
-                    "pll_default_value": ""
-                },
-                {
-                    "key": "field_63e69449f63af",
-                    "label": "E-mail",
-                    "name": "email",
-                    "aria-label": "",
-                    "type": "email",
-                    "instructions": "",
-                    "required": 0,
-                    "conditional_logic": 0,
-                    "wrapper": {
-                        "width": "25",
-                        "class": "",
-                        "id": ""
-                    },
-                    "default_value": "",
-                    "placeholder": "",
-                    "prepend": "",
-                    "append": "",
-                    "pll_default_value": ""
-                },
-                {
-                    "key": "field_652f68513349a",
-                    "label": "Customer Support Line",
-                    "name": "phone_support",
-                    "aria-label": "",
-                    "type": "text",
+                    "type": "acfe_column",
                     "instructions": "",
                     "required": 0,
                     "conditional_logic": 0,
@@ -205,13 +262,95 @@
                         "class": "",
                         "id": ""
                     },
-                    "default_value": "",
-                    "maxlength": "",
-                    "allow_in_bindings": 1,
-                    "placeholder": "",
-                    "prepend": "",
-                    "append": "",
-                    "pll_default_value": ""
+                    "columns": "4\/12",
+                    "endpoint": 0,
+                    "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_63e69449f63af",
+                    "label": "E-mail",
+                    "name": "email",
+                    "aria-label": "",
+                    "type": "repeater",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "acfe_repeater_stylised_button": 1,
+                    "layout": "table",
+                    "pagination": 0,
+                    "min": 0,
+                    "max": 0,
+                    "collapsed": "field_68e39f49c5ce3",
+                    "button_label": "Add",
+                    "rows_per_page": 20,
+                    "sub_fields": [
+                        {
+                            "key": "field_68e39f49c5ce3",
+                            "label": "E-mail",
+                            "name": "email",
+                            "aria-label": "",
+                            "type": "email",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "60",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "parent_repeater": "field_63e69449f63af"
+                        },
+                        {
+                            "key": "field_68e39f6fc5ce4",
+                            "label": "Type",
+                            "name": "type",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "40",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "default",
+                            "maxlength": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "parent_repeater": "field_63e69449f63af"
+                        }
+                    ]
+                },
+                {
+                    "key": "field_68ed888f2e7ad",
+                    "label": "(Column Endpoint)",
+                    "name": "",
+                    "aria-label": "",
+                    "type": "acfe_column",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "endpoint": 1,
+                    "allow_in_bindings": 0,
+                    "columns": "6\/12"
                 },
                 {
                     "key": "field_670ee2dda5160",
@@ -977,7 +1116,7 @@
                     "label": "Embed Url",
                     "name": "map_url",
                     "aria-label": "",
-                    "type": "url",
+                    "type": "text",
                     "instructions": "",
                     "required": 0,
                     "conditional_logic": 0,
@@ -987,10 +1126,11 @@
                         "id": ""
                     },
                     "default_value": "",
-                    "translations": "sync",
-                    "allow_in_bindings": 1,
+                    "maxlength": "",
+                    "allow_in_bindings": 0,
                     "placeholder": "",
-                    "pll_default_value": ""
+                    "prepend": "",
+                    "append": ""
                 }
             ]
         }
@@ -1013,6 +1153,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -1020,7 +1161,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740572,
+    "modified": 1760398426,
     "acfe_categories": {
         "general": "General"
     }

@@ -6,7 +6,6 @@ function debugJS($value){
 	}
 }
 
-
 (function ($) {
   $.fn.hasAttr = function (attrName) {
 		return (this.filter(function() {
@@ -77,7 +76,6 @@ function onClassChange($obj, $class, $callback){
 	      	 eval($callback)();
 	      	 debugJS("Class attribute changed to:", attributeValue);
 	      }
-	      
 	    }
 	  });
 	});
@@ -86,142 +84,48 @@ function onClassChange($obj, $class, $callback){
 	});
 }
 
-// browser detect
-var BrowserDetect = {
+const BrowserDetect = {
+    browser: "Unknown",
+    version: "Unknown",
+    OS: "Unknown",
     init: function() {
-		this.browser = this.searchString(this.dataBrowser) || "An unknown browser";
-		this.version = this.searchVersion(navigator.userAgent) || this.searchVersion(navigator.appVersion) || "an unknown version";
-		this.OS = this.searchString(this.dataOS) || "an unknown OS";
+        const ua = navigator.userAgent;
+        const platform = navigator.platform;
 
-	},
-	searchString: function(data) {
-		for (var i = 0; i < data.length; i++) {
-			var dataString = data[i].string;
-			var dataProp = data[i].prop;
-			this.versionSearchString = data[i].versionSearch || data[i].identity;
-			if (dataString) {
-				if (dataString.indexOf(data[i].subString) != -1) return data[i].identity;
-			} else if (dataProp) return data[i].identity;
-		}
-	},
-	searchVersion: function(dataString) {
-		var index = dataString.indexOf(this.versionSearchString);
-		if (index == -1) return;
-		return parseFloat(dataString.substring(index + this.versionSearchString.length + 1));
-	},
-	dataBrowser: [{
-		string: navigator.userAgent,
-		subString: "Chrome",
-		identity: "Chrome"
-	}, {
-		string: navigator.userAgent,
-		subString: "OmniWeb",
-		versionSearch: "OmniWeb/",
-		identity: "OmniWeb"
-	}, {
-		string: navigator.vendor,
-		subString: "Apple",
-		identity: "Safari",
-		versionSearch: "Version"
-	}, {
-		string: navigator.userAgent,
-		subString: "Edge",
-		identity: "Edge",
-		versionSearch: "Edg"
-	}, { 
-		// Opera'nın modern versiyonları için kontrol (Chromium tabanlı)
-		string: navigator.userAgent,
-		subString: "OPR",
-		identity: "Opera",
-		versionSearch: "OPR"
-	}, {
-		string: navigator.vendor,
-		subString: "iCab",
-		identity: "iCab"
-	}, {
-		string: navigator.vendor,
-		subString: "KDE",
-		identity: "Konqueror"
-	}, {
-		string: navigator.userAgent,
-		subString: "Firefox",
-		identity: "Firefox"
-	}, {
-		string: navigator.vendor,
-		subString: "Camino",
-		identity: "Camino"
-	}, { // for newer Netscapes (6+)
-		string: navigator.userAgent,
-		subString: "Netscape",
-		identity: "Netscape"
-	}, {
-		string: navigator.userAgent,
-		subString: "MSIE",
-		identity: "Explorer",
-		versionSearch: "MSIE"
-	}, {
-		string: navigator.userAgent,
-		subString: "Gecko",
-		identity: "Mozilla",
-		versionSearch: "rv"
-	}, { // for older Netscapes (4-)
-		string: navigator.userAgent,
-		subString: "Mozilla",
-		identity: "Netscape",
-		versionSearch: "Mozilla"
-	}, { // Android Chrome tarayıcısı için kontrol
-		string: navigator.userAgent,
-		subString: "Android",
-		identity: "Android Chrome",
-		versionSearch: "Chrome"
-	}, { // iOS Safari tarayıcısı için kontrol
-		string: navigator.userAgent,
-		subString: "iPhone",
-		identity: "iPhone Safari",
-		versionSearch: "Version"
-	}],
-	dataOS: [{
-		string: navigator.platform,
-		subString: "Win",
-		identity: "Windows"
-	}, {
-		string: navigator.platform,
-		subString: "Mac",
-		identity: "Mac"
-	}, {
-		string: navigator.userAgent,
-		subString: "iPhone",
-		identity: "iPhone/iPod"
-	}, {
-		string: navigator.platform,
-		subString: "Linux",
-		identity: "Linux"
-	}, { // Android için ekleme
-		string: navigator.userAgent,
-		subString: "Android",
-		identity: "Android"
-	}, { // iPadOS için ekleme
-		string: navigator.userAgent,
-		subString: "iPad",
-		identity: "iPad"
-	}]
+        // Browser detection (modern, hızlı)
+        if (/Edg\/\d+/.test(ua)) this.browser = "Edge";
+        else if (/OPR\/\d+/.test(ua)) this.browser = "Opera";
+        else if (/Chrome\/\d+/.test(ua)) this.browser = "Chrome";
+        else if (/Firefox\/\d+/.test(ua)) this.browser = "Firefox";
+        else if (/Safari\/\d+/.test(ua) && !/Chrome/.test(ua)) this.browser = "Safari";
+        else if (/MSIE|Trident/.test(ua)) this.browser = "IE";
+
+        // Browser version detection
+        const versionMatch = ua.match(/(Edg|OPR|Chrome|Firefox|Safari|MSIE|rv:)\D*(\d+(\.\d+)?)/);
+        if(versionMatch) this.version = parseFloat(versionMatch[2]);
+
+        // OS detection (basit ve hızlı)
+        if (/Win/i.test(platform)) this.OS = "Windows";
+        else if (/Mac/i.test(platform)) this.OS = "Mac";
+        else if (/iPhone|iPad|iPod/i.test(ua)) this.OS = "iOS";
+        else if (/Android/i.test(ua)) this.OS = "Android";
+        else if (/Linux/i.test(platform)) this.OS = "Linux";
+
+        return this;
+    }
 };
-
-///// mobile
 const isMobile = {
-  Android: () => /Android/i.test(navigator.userAgent),
-  BlackBerry: () => /BlackBerry/i.test(navigator.userAgent),
-  iOS: () => /iPhone|iPad|iPod/i.test(navigator.userAgent),
-  Opera: () => /Opera Mini/i.test(navigator.userAgent),
-  Windows: () => /IEMobile|Windows Phone/i.test(navigator.userAgent),
-  any: function() {
-    if (this.Android()) return 'Android';
-    if (this.BlackBerry()) return 'BlackBerry';
-    if (this.iOS()) return 'iOS';
-    if (this.Opera()) return 'Opera Mini';
-    if (this.Windows()) return 'Windows';
-    return ""; // Hiçbir eşleşme yoksa boş string döner
-  }
+    Android: () => /Android/i.test(navigator.userAgent),
+    iOS: () => /iPhone|iPad|iPod/i.test(navigator.userAgent),
+    Opera: () => /Opera Mini/i.test(navigator.userAgent),
+    Windows: () => /IEMobile|Windows Phone/i.test(navigator.userAgent),
+    any: function() {
+        if (this.Android()) return "Android";
+        if (this.iOS()) return "iOS";
+        if (this.Opera()) return "Opera Mini";
+        if (this.Windows()) return "Windows";
+        return "";
+    }
 };
 
 var observeDOM = (function(){
@@ -385,64 +289,6 @@ function text2clipboard(){
     });
 }
 
-/*$.fn.sameSize = function (width, max) {
-  const prop = width ? 'width' : 'height';
-  const minProp = `min-${prop}`;
-
-  function updateSize() {
-    // Önce bu fonksiyonun uygulanacağı elementleri seç
-    const elements = this;
-
-    if (!elements || elements.length === 0) {
-      return;
-    }
-
-    // Daha önce atanmış stil değerlerini kaldır
-    elements.css({
-      [prop]: '',
-      [minProp]: ''
-    });
-
-    // Max genişliği saptayıp elementlere atıyoruz
-    const maxSize = max !== undefined ? max : Math.max(...elements.map(function () {
-      return $(this)[prop]();
-    }).get());
-
-    const cssProperties = {
-      [minProp]: maxSize
-    };
-
-    // Eğer pencere genişliği belirtilen boyuttan büyükse
-    var breakpoint = elements.attr('class').match(/nav-equal-([a-zA-Z]+)/);
-    if (breakpoint) {
-      breakpoint = breakpoint[1];
-    } else {
-      breakpoint = "sm";
-    }
-    breakpoint = getCssValue("--bs-breakpoint-"+breakpoint);
-
-    if ($(window).width() >= breakpoint) {
-      cssProperties[prop] = maxSize;
-    }
-
-    // Yeni stil değerlerini ata
-    elements.css(cssProperties);
-    elements.addClass("nav-equalized");
-  }
-
-  // İlk çalıştırma
-  updateSize.call(this);
-
-  // Resize işlemi sırasında kontrol yapmak için olay dinleyicisi eklenir
-  $(window).on('resize', () => {
-    updateSize.call(this);
-  });
-
-  return this;
-};
-*/
-
-// Tolga özel <3
 $.fn.sameSize = function (width, max, keepMin = false) {
   const $elements = this;
   if (!$elements || $elements.length === 0) return this;
@@ -505,7 +351,6 @@ $.fn.sameSize = function (width, max, keepMin = false) {
   return this;
 };
 
-
 function getCssValue(property){
 	var returnValue = "";
 	var obj = getComputedStyle(document.documentElement);
@@ -524,29 +369,6 @@ function fitToContainer() {
     });
 }
 
-
-function ajaxResponseFilter_old(str) {
-    if (typeof str !== "string") return null;
-
-    console.log(str)
-
-    const firstBrace = str.indexOf("{");
-    const lastBrace = str.lastIndexOf("}");
-
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-        console.error("Geçerli bir JSON bulunamadı.");
-        return null;
-    }
-
-    const possibleJson = str.substring(firstBrace, lastBrace + 1);
-
-    try {
-        return JSON.parse(possibleJson);
-    } catch (e) {
-        console.error("JSON parse hatası:", e);
-        return null;
-    }
-}
 function ajaxResponseFilter(input) {
   if (typeof input !== "string") return null;
 

@@ -14,7 +14,7 @@
         <div class="sidebar-kimler-icin h-100v d-flex flex-column justify-content-center opacity-0--">
             <a class="navbar-brand-sidebar d-flex align-items-center" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url">
             {% if function('get_extension', logo) == "svg" %}
-                {{function('inline_svg', logo, "logo svg-tertiary")}}
+                {{function('inline_svg', logo, {"class": "logo svg-tertiary"})}}
             {% else %}
                 <img src="{{logo}}" class="logo" alt="{{site.name}}" />
             {% endif %}

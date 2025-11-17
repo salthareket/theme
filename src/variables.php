@@ -6,6 +6,8 @@ if (!function_exists("get_home_path")) {
     include_once ABSPATH . "/wp-admin/includes/file.php";
 }
 
+define('IS_INTERNAL_FETCH', !empty($_SERVER['HTTP_X_INTERNAL_FETCH']));
+
 // SaltHareket/Theme paths
 define('SH_PATH',  __DIR__ . '/');
 define('SH_INCLUDES_PATH',  __DIR__ . '/includes/');
@@ -199,7 +201,6 @@ function visibility_under_construction() {
         return ($status == "1" && !$visible) ? "0" : $status;
     });
 }
-
 
 define("ENABLE_WOO_API", get_option("options_enable_woo_api"));
 define("ENABLE_CART", ENABLE_ECOMMERCE && get_option("options_enable_cart"));

@@ -20,7 +20,7 @@ add_filter('wp_generate_attachment_metadata', function($metadata, $attachment_id
 
 
 
-function set_default_image_alt_text($attachment_id) {
+/*function set_default_image_alt_text($attachment_id) {
     $alt_text = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
     if (empty($alt_text)) {
         $image_url = wp_get_attachment_url($attachment_id);
@@ -29,7 +29,33 @@ function set_default_image_alt_text($attachment_id) {
         update_post_meta($attachment_id, '_wp_attachment_image_alt', $alt_text);
     }
 }
+add_action('add_attachment', 'set_default_image_alt_text');*/
+
+function set_default_image_alt_text($attachment_id) {
+    // Mevcut alt text varsa bırak
+    $alt_text = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+    if (!empty($alt_text)) {
+        return;
+    }
+
+    $image_url = wp_get_attachment_url($attachment_id);
+    $path_parts = pathinfo($image_url);
+    $filename = $path_parts['filename'];
+
+    // 1. Tire ve alt çizgileri boşlukla değiştir
+    $alt_text = str_replace(['-', '_'], ' ', $filename);
+
+    // 2. CamelCase / PascalCase ayırma
+    $alt_text = preg_replace('/([a-z])([A-Z])/', '$1 $2', $alt_text);
+
+    // 3. İlk harfleri büyük yap
+    $alt_text = ucwords($alt_text);
+
+    // 4. Alt texti kaydet
+    update_post_meta($attachment_id, '_wp_attachment_image_alt', $alt_text);
+}
 add_action('add_attachment', 'set_default_image_alt_text');
+
 
 
 
@@ -116,6 +142,8 @@ function scss_variables_boolean($value=""){
 function scss_variables_image($value=""){
     if(empty($value)){
         $value = "none";
+    }else{
+        $value = "url(".$value.")";
     }
     return $value;
 }
@@ -128,12 +156,43 @@ function scss_variables_array($array=array()){
     $temp = preg_replace('/\s+/', '', $temp);
     return $temp;
 }
-function scss_variables_font($font = ""){
+/*function scss_variables_font($font = ""){
     if(!empty($font)){
         $font = '"'.str_replace("|", "", $font).'"';
     }
     return $font;
+}*/
+
+function scss_variables_font($font = ""){
+    if (empty($font)) return "";
+
+    // önce pipe karakterlerini temizle
+    $font = str_replace("|", "", $font);
+
+    // Eğer virgül var ise family + fallback ayrımı yap
+    if (strpos($font, ',') !== false) {
+        $parts = explode(',', $font, 2);
+        $family = trim($parts[0]); // family adı
+        $fallback = isset($parts[1]) ? trim($parts[1]) : '';
+
+        // family zaten tırnaklı değilse tırnakla sar
+        $family = trim($family, '"\''); // varsa fazladan tırnakları temizle
+        $family = '"' . $family . '"';
+
+        // fallback varsa ekle
+        if ($fallback !== '') {
+            return $family . ', ' . $fallback;
+        } else {
+            return $family;
+        }
+    } else {
+        // tek family varsa
+        $font = trim($font, '"\''); // varsa fazladan tırnakları temizle
+        return '"' . $font . '"';
+    }
 }
+
+
 function wp_scss_set_variables(){
     $host_url = get_stylesheet_directory_uri();
     if(ENABLE_PUBLISH){
@@ -684,3 +743,40 @@ add_action('wp_login', function($user_login, $user) {
         error_log("Debug - robots.txt dosyası oluşturuldu.");
     }
 }, 11, 2);
+
+
+
+/*
+svg upload edildiinde içerdiği id'lere suffix ekler unique yapmak için id'leri
+ama aynı svg sayfa içinde tekrar kullanılınca problem oluştuğundan suffix eklemeyi on-fly yaptık. media-functions.php'de.
+add_filter('wp_handle_upload', function ($upload) {
+    // Sadece SVG dosyaları için çalışsın
+    if (isset($upload['file']) && preg_match('/\.svg$/i', $upload['file'])) {
+        $file = $upload['file'];
+        $content = file_get_contents($file);
+
+        // Benzersiz suffix
+        $suffix = '_' . uniqid();
+
+        // id="something" -> id="something_suffix"
+        $content = preg_replace_callback('/id="([^"]+)"/', function ($matches) use ($suffix) {
+            return 'id="' . $matches[1] . $suffix . '"';
+        }, $content);
+
+        // url(#something) -> url(#something_suffix)
+        $content = preg_replace_callback('/url\(#([^)]+)\)/', function ($matches) use ($suffix) {
+            return 'url(#' . $matches[1] . $suffix . ')';
+        }, $content);
+
+        // xlink:href="#something" -> xlink:href="#something_suffix"
+        $content = preg_replace_callback('/xlink:href="#([^"]+)"/', function ($matches) use ($suffix) {
+            return 'xlink:href="#' . $matches[1] . $suffix . '"';
+        }, $content);
+
+        // Dosyayı yeniden yaz
+        file_put_contents($file, $content);
+    }
+
+    return $upload;
+});
+*/

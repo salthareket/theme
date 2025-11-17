@@ -419,6 +419,12 @@
 
 .position-absolute-fill{
 	@include absolute-fill();
+    &.ignore-padding{
+        top:0px!important;
+        bottom:0px!important;
+        left:0px!important;
+        right:0px!important;
+    }
 }
 @each $key, $space in $spacers {
   .p-#{$key} > .position-absolute-fill,

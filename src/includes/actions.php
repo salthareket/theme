@@ -6,28 +6,6 @@ if (!function_exists('wp_doing_rest')) {
     }
 }
 
-/*function is_main_query_valid() {
-    global $wp_query;
-
-    if (is_admin()) {
-        return false; // Admin panelde çalıştırma
-    }
-
-    if (defined('DOING_AJAX') && DOING_AJAX) {
-        return false; // AJAX sorgularında çalıştırma
-    }
-
-    if (defined('DOING_CRON') && DOING_CRON) {
-        return false; // CRON işlemlerinde çalıştırma
-    }
-
-    if (wp_doing_rest()) {
-        return false; // REST API isteklerinde çalıştırma
-    }
-
-    return isset($wp_query) && $wp_query->is_main_query();
-}*/
-
 function is_main_query_valid() {
     global $wp_query;
     if (is_admin()) return false;
@@ -36,8 +14,6 @@ function is_main_query_valid() {
     if (wp_doing_rest()) return false;
     return isset($wp_query) && $wp_query->is_main_query();
 }
-
-
 
 function query_vars_for_pagination($query_vars) {
     $allowed = ["page", "orderby", "order", "post_type", "paged", "meta_query", "tax_query", "posts_per_page", "s"];
@@ -110,78 +86,6 @@ function pagination_query_request() {
     }
     return $output;
 }
-
-
-
-/*
-function pagination_query_request() {
-    global $wp_query;
-    $output = array(
-        "vars" => array(),
-        "request" => array()
-    );
-    if ( ((is_shop() || is_post_type_archive() || is_search() || is_home() ) && $wp_query->is_main_query()) || isset($wp_query->query_vars["post_type"]) || isset($wp_query->query_vars["qpt"])) {
-
-        $query_vars = query_vars_for_pagination($wp_query->query_vars);
-        $query_vars["querystring"] = json_decode(queryStringJSON(), true);
-
-        $tax_query = $wp_query->tax_query;
-        if ( $tax_query && is_array( $tax_query->queries ) && ! empty( $tax_query->queries ) ) {
-            $query_vars['tax_query'] = $tax_query->queries;
-        }
-        
-        $meta_query = $wp_query->meta_query;
-        if ( $meta_query && is_array( $meta_query->queries ) && ! empty( $meta_query->queries ) ) {
-            $query_vars['meta_query'] = $meta_query->queries;
-        }
-
-        if($wp_query->is_posts_page() || empty($query_vars["post_type"])){
-            $query_vars["post_type"] = "post";
-        }
-        $post_type = $query_vars["post_type"];
-        if(is_search()){
-            $post_type = "search";
-        }
-        if(isset($wp_query->query_vars["post_type"])){
-            $qpt = get_query_var("qpt");
-            $qpt = is_array($qpt)||empty($qpt)||$qpt=="search"||is_numeric($qpt)?"any":$qpt;
-            if (EXCLUDE_FROM_SEARCH && $qpt == "any") {
-                $post_types = get_post_types(['public' => true], 'names');
-                foreach (EXCLUDE_FROM_SEARCH as $post_type) {
-                    if (in_array($post_type, $post_types)) {
-                        unset($post_types[$post_type]);
-                    }
-                }
-                $qpt = $post_types;
-            }
-            $post_type = $qpt;
-            $query_vars["post_type"] = $post_type ;
-        }
-
-        $post_type = $post_type == "any" || is_array($post_type) ? "search" : $post_type;
-
-        $pagination = get_post_type_pagination($post_type);
-
-        if($pagination){
-            if(!$pagination["paged"]){ // && !$GLOBALS["post_pagination"][$post_type]["ajax"]){
-                return $output;
-           }else{
-                $query_vars['posts_per_page'] = $pagination["posts_per_page"];
-           }
-        }else{
-
-        }
-
-        $output['vars'][$post_type] = $query_vars;
-
-        if(isset($_GET["yith_wcan"]) || isset($_GET['orderby'])){
-            $output['request'][$post_type] = $wp_query->request;
-        }
-
-    }
-    return $output;
-}
-*/
 function pagination_query(){
      global $wp_query;
         $pagination_query = pagination_query_request();
@@ -258,57 +162,6 @@ function custom_result_count() {
     );
     echo '</div>';
 }
-
-/*function custom_result_count() {
-    // WooCommerce bağımlılıklarını kontrol et
-    //if ( ! function_exists( 'wc_get_loop_prop' ) || ! function_exists( 'woocommerce_products_will_display' ) ) {
-        //return;
-    //}
-    global $wp_query;
-    $post_type = $wp_query->get( 'post_type' );
-    if($post_type == "product" && function_exists( 'woocommerce_result_count' )){
-        woocommerce_result_count();
-        return;
-    }
-    
-    $per_page = get_option( 'posts_per_page' );
-    if(isset($GLOBALS["post_pagination"][$post_type])){
-        $post_pagination = $GLOBALS["post_pagination"][$post_type];
-        if($post_pagination["paged"]){
-            $per_page = $post_pagination['posts_per_page'];
-        }else{
-            return;
-        }
-    }
-
-    // Sayfalama özelliklerini al
-    //$is_paginated = get_query_var( 'page' ) > 1;
-    $total = $GLOBALS['wp_query']->found_posts;
-    $current = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1;
-
-    // Sayfalama kontrolü
-    if ( $total <= $per_page ) {
-        return;
-    }
-
-    // Result count çıktısını oluştur
-    echo '<div class="woocommerce-result-count result-count m-0 custom">';
-    
-    if ( 1 === $total ) {
-        _e( 'Showing the single result', 'woocommerce' );
-    } elseif ( $total <= $per_page || -1 === $per_page ) {
-        // translators: %d: total results
-        printf( _n( 'Showing all %d result', 'Showing all %d results', $total, 'woocommerce' ), $total );
-    } else {
-        $first = ( $per_page * $current ) - $per_page + 1;
-        $last  = min( $total, $per_page * $current );
-        // translators: 1: first result 2: last result 3: total results
-        printf( _nx( 'Showing %1$d&ndash;%2$d of %3$d result', 'Showing %1$d&ndash;%2$d of %3$d results', $total, 'with first and last result', 'woocommerce' ), $first, $last, $total );
-    }
-
-    echo '</div>';
-}
-*/
 
 function header_has_dropdown(){
     $header_tools_dropdown = false;
@@ -420,9 +273,9 @@ function header_footer_options($save = false){
         }
 
         if($header_center_type != "empty"){
-            $header_start_class = ($header_start_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto-- nav-equal nav-equal-{{equalize}}";
+            $header_start_class = ($header_start_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto--";//" nav-equal nav-equal-{{equalize}}";
             $header_center_class = "flex-grow-1 h-100";
-            $header_end_class = ($header_end_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto-- nav-equal nav-equal-{{equalize}}";
+            $header_end_class = ($header_end_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto--";//" nav-equal nav-equal-{{equalize}}";
         }else{
             $header_start_class = ($header_start_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto--";
             $header_center_class = "flex-grow-1 h-100";
@@ -469,6 +322,7 @@ function header_footer_options($save = false){
         $footer_text = SaltBase::get_cached_option("footer_text");//get_field("footer_text", "options");
         $footer_logo = SaltBase::get_cached_option("logo_footer");//get_field("logo_footer", "option");
         $footer_menu = SaltBase::get_cached_option("footer_menu");//get_field("footer_menu", "option");
+        $footer_template = SaltBase::get_cached_option("footer_template");//get_field("footer_template", "option");
         
 
         if($footer_menu){
@@ -483,7 +337,8 @@ function header_footer_options($save = false){
             "container" => $footer_container,
             "text" => $footer_text,
             "logo" => $footer_logo,
-            "menu" => $footer_menu
+            "menu" => $footer_menu,
+            "template" => $footer_template
         );
 
         $header_footer_options = array(
@@ -493,10 +348,6 @@ function header_footer_options($save = false){
 
         return $header_footer_options;
 }
-
-
-
-
 
 // Timber posts kontrolü
 function check_timber_posts() {
@@ -600,7 +451,6 @@ function add_img_fluid_class($content) {
 }
 add_filter('the_content', 'add_img_fluid_class');*/
 
-
 function optimize_image_output( $content ) {
     if ( ! did_action( 'template_redirect' ) || is_admin() ) {
         return $content;
@@ -640,8 +490,6 @@ function optimize_image_output( $content ) {
 }
 add_filter( 'the_content', 'optimize_image_output', 20 );
 add_filter( 'acf/format_value/type=wysiwyg', 'optimize_image_output', 20 );
-
-
 
 /*add responsive classes to embeds*/
 function responsive_embed_oembed_html($html, $url, $attr, $post_id) {
@@ -752,6 +600,113 @@ function save_lcp_results() {
     }
 
     $selectors = [];
+    foreach ($lcp_data as $device => &$data) { 
+        if (!empty($data['selectors']) && is_array($data['selectors'])) {
+            $selectors = array_merge($selectors, $data['selectors']);
+            unset($data['selectors']);
+        }
+    }
+    unset($data); 
+
+    $critical_css = "";
+    $structure_fp = ""; 
+    $existing_meta = [];
+
+    // 1. Existing meta verisini çekin (structure_fp'yi almak için)
+    if ($type !== "archive") {
+        $meta_function_get = "get_{$type}_meta";
+        $existing_meta = call_user_func($meta_function_get, $id, 'assets', true);
+    } else {
+        $option_name = $id . '_archive_'.$lang.'_assets'; 
+        $existing_meta = get_option($option_name);
+    }
+    
+    // structure_fp'yi al
+    if (!empty($existing_meta['structure_fp'])) {
+        $structure_fp = $existing_meta['structure_fp'];
+    }
+
+    // EĞER structure_fp YOKSA, İŞLEMİ İPTAL ET (Manifest kaydı yoksa dosya yetim kalır)
+    if (empty($structure_fp)) {
+         wp_send_json_error(['message' => 'Critical CSS oluşturulamadı: structure_fp bulunamadı.']);
+    }
+
+    $selectors = array_unique($selectors);
+    if($selectors){
+        $cache_dir = STATIC_PATH . 'css/cache/';
+        
+        // YENİ KOD: Dosya adını structure_fp ile belirleyin
+        $output = $cache_dir . $structure_fp . '-critical.css'; 
+
+        $input = "";
+        if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
+            $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["plugin_css"]);
+            $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["css_page"]);
+        }else{
+            $input .= file_get_contents(STATIC_PATH ."css/main-combined.css");
+        }
+
+        /*
+        >>> We decided to use wp rockets's critical css function...
+        $remover = new RemoveUnusedCss($url, $input, $output, [], true);
+        $remover->generate_critical_css($selectors);
+        $critical_css = $output;
+        $critical_css = str_replace(STATIC_PATH, '', $critical_css);*/
+    }
+
+    // LCP verilerini ve Critical CSS yolunu meta veriye kaydetme (Mevcut mantık)
+    foreach ($lcp_data as $key => $lcp) {
+        if(isset($lcp["url"]) && !empty($lcp["url"])){
+            if(is_local($lcp["url"])){
+                $lcp_data[$key]["id"] = get_attachment_id_by_url($lcp["url"]);
+            }
+        }
+    }
+
+    if($type != "archive"){
+        $meta_function_update = "update_{$type}_meta";
+        $meta_function_add = "add_{$type}_meta";
+        
+        if ($existing_meta) {
+            $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
+            if($critical_css){
+                $existing_meta["css_critical"] = $critical_css;
+            }
+            $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta); // Güncelle
+        } // Add mantığı eksik, ama update'i kullanıyoruz.
+    }else{
+        $option_name = $id . '_archive_'.$lang.'_assets';
+        
+        if ($existing_meta) {
+            $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
+            if($critical_css){
+                $existing_meta["css_critical"] = $critical_css;
+            }
+            $return = update_option($option_name, $existing_meta); // Güncelle
+        }
+    }
+
+    wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return]);
+}
+/*function save_lcp_results() {
+    if (!isset($_POST['type']) || !isset($_POST['id']) || !isset($_POST['lcp_data'])) {
+        wp_send_json_error(['message' => 'Eksik parametreler!']);
+    }
+
+    $id = intval($_POST['id']);
+    $type = trim($_POST['type']);
+    $url = trim($_POST['url']);
+    $lang = trim($_POST['lang']);
+    $lcp_data = json_decode(stripslashes($_POST['lcp_data']), true);
+
+    if (!$id || !$type || !$lcp_data) {
+        wp_send_json_error(['message' => 'Geçersiz veri!']);
+    }
+
+    $critical_css = "";
+    $structure_fp = "";
+
+    $selectors = [];
     foreach ($lcp_data as $device => &$data) { // <-- referansla al!
         if (!empty($data['selectors']) && is_array($data['selectors'])) {
             $selectors = array_merge($selectors, $data['selectors']);
@@ -786,12 +741,13 @@ function save_lcp_results() {
         if(isset($lcp["url"]) && !empty($lcp["url"])){
             if(is_local($lcp["url"])){
                 $lcp_data[$key]["id"] = get_attachment_id_by_url($lcp["url"]);
-            }/*else{
-                $lcp_data[$key]["id"] = $lcp["url"];
-            }*/
+            }//else{
+                //$lcp_data[$key]["id"] = $lcp["url"];
+            //}
         }
     }
 
+    $existing_meta = [];
     if($type != "archive"){
         $meta_function_get = "get_{$type}_meta";
         $meta_function_update = "update_{$type}_meta";
@@ -817,7 +773,7 @@ function save_lcp_results() {
     }
 
     wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return]);
-}
+}*/
 
 
 /*
@@ -841,25 +797,8 @@ function add_mp3_cache_headers() {
 add_action('send_headers', 'add_mp3_cache_headers');
 */
 
-function add_cache_control_headers() {
-    if ( is_admin() || headers_sent() ) {
-        return;
-    }
 
-    // Genel dosyalar (HTML, JS, CSS vb.) için cache
-    header( 'Cache-Control: public, max-age=31536000, immutable' );
-
-    // MP3 özel kontrolü
-    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
-    if ( stripos( $request_uri, '.mp3' ) !== false ) {
-        header( 'Content-Type: audio/mpeg' );
-        header( 'Accept-Ranges: bytes' );
-        header( 'Content-Disposition: inline' );
-    }
-}
-add_action('send_headers', 'add_cache_control_headers');
-
-add_action('send_headers', function () {
+/*add_action('send_headers', function () {
     $csp_directives = [
         "default-src 'self'",
         
@@ -886,26 +825,71 @@ add_action('send_headers', function () {
 
     $csp_header = implode('; ', $csp_directives) . ';';
     header("Content-Security-Policy: $csp_header");
+});*/
+
+
+// 2️⃣ send_headers'de option'dan oku
+add_action('send_headers', function () {
+    $csp_directives = [
+        "default-src" => ["'self'"],
+        "style-src"   => ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://cdnjs.cloudflare.com"],
+        "script-src"  => ["'self'", "'unsafe-inline'", "blob:", "https://unpkg.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://www.youtube.com"],
+        "worker-src"  => ["'self'", "blob:"],
+        "img-src"     => ["'self'", "data:", "https://img.youtube.com", "https://i.ytimg.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org", "https://s.w.org", "https://secure.gravatar.com"],
+        "font-src"    => ["'self'", "data:", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+        "object-src"  => ["'none'"],
+        "base-uri"    => ["'self'"],
+        "frame-ancestors" => ["'self'"],
+        "frame-src"   => ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.google.com", "https://www.google.com/maps", "https://www.openstreetmap.org"],
+        "connect-src" => ["'self'", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org", "https://noembed.com", "https://cdn.plyr.io"]
+    ];
+
+    // DB'den domainleri al
+    $approved_domains = get_option('csp_approved_domains', []);
+    if (!is_array($approved_domains)) {
+        $approved_domains = [];
+    }
+
+    // Direkt CSP direktif adıyla ekle
+    foreach ($approved_domains as $directive => $domains) {
+        if (!isset($csp_directives[$directive]) || !is_array($domains)) continue;
+        foreach ($domains as $domain) {
+            if (!in_array($domain, $csp_directives[$directive])) {
+                $csp_directives[$directive][] = $domain;
+            }
+        }
+    }
+
+    // CSP header stringe çevir
+    $csp_string = '';
+    foreach ($csp_directives as $key => $values) {
+        $csp_string .= $key . ' ' . implode(' ', $values) . '; ';
+    }
+
+    header("Content-Security-Policy: " . $csp_string);
 });
 
 
-/*add_action('save_post', function($post_id){
-    if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
-    if(wp_is_post_revision($post_id)) return;
 
-    $content = get_post_field('post_content', $post_id);
-    // Sondaki &nbsp; ve boşlukları temizle
-    $clean = preg_replace('/(&nbsp;|\s)+$/u', '', $content);
-
-    if($clean !== $content){
-        remove_action('save_post', __FUNCTION__); // sonsuz döngüyü önle
-        wp_update_post([
-            'ID' => $post_id,
-            'post_content' => $clean
-        ]);
-        add_action('save_post', __FUNCTION__); 
+function add_cache_control_headers() {
+    if ( is_admin() || headers_sent() ) {
+        return;
     }
-});*/
+
+    // Genel dosyalar (HTML, JS, CSS vb.) için cache
+    header( 'Cache-Control: public, max-age=31536000, immutable' );
+
+    // MP3 özel kontrolü
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    if ( stripos( $request_uri, '.mp3' ) !== false ) {
+        header( 'Content-Type: audio/mpeg' );
+        header( 'Accept-Ranges: bytes' );
+        header( 'Content-Disposition: inline' );
+    }
+}
+add_action('send_headers', 'add_cache_control_headers');
+
+
 
 add_action('save_post', function($post_id) {
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;

@@ -41,6 +41,12 @@ h6{
 	font-family:var(--icon-font-brands);
 }
 
+@for $i from 1 through 6 {
+	h#{$i} {
+		font-family:var(--header-font);
+	}
+}
+
 @for $i from 1 through 9 {
 	.fw-#{$i * 100} {
 		font-weight: $i * 100;

@@ -9,7 +9,7 @@
        {% set target = "offcanvasCart" %}
     {% endif %}
 
-    <li class="nav-item {{class}}" data-type="cart">
+    <div class="nav-item {{class}}" data-type="cart">
     
         <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
             {% set cart_count = user.cart.count %}{#function("woo_get_cart_count") #}
@@ -43,5 +43,5 @@
             </div>
         {% endif %}
         
-    </li>
+    </div>
 {% endif %}

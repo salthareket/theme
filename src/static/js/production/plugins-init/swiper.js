@@ -37,7 +37,10 @@ function getAverageLuminance(element) {
             const bg = getComputedStyle(element).backgroundImage;
             const bgColor = getComputedStyle(element).backgroundColor;
 
+            console.log(bg)
+
             if (bg && bg.includes("gradient")) {
+                console.log("bg gradient içeriyor");
                 return requestIdleCallback(() => {
                      getRenderedLuminance(element).then(resolve);
                 });
@@ -48,6 +51,7 @@ function getAverageLuminance(element) {
             }
 
             // hiçbiri yoksa son çare
+            console.log("son care");
             requestIdleCallback(() => {
                  getRenderedLuminance(element).then(resolve);
             });
@@ -83,8 +87,6 @@ function processImage(img, resolve) {
         canvas.height = img.naturalHeight;
 
         ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
-
-
 
         // Eğer resim yüklenmemişse getImageData çalışmaz, bu yüzden güvenli hale getiriyoruz
         let imageData;
@@ -135,32 +137,59 @@ function getComputedLuminance(element) {
     const [r, g, b] = rgb;
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
+
+function getAverageColorFromGradient(gradient) {
+    const matches = gradient.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/g);
+    if (!matches) return [255, 255, 255];
+    let r = 0, g = 0, b = 0;
+    matches.forEach(m => {
+        const nums = m.match(/\d+/g).map(Number);
+        r += nums[0];
+        g += nums[1];
+        b += nums[2];
+    });
+    const len = matches.length;
+    return [Math.round(r / len), Math.round(g / len), Math.round(b / len)];
+}
+function getComputedLuminanceFromGradient(gradient) {
+    const [r, g, b] = getAverageColorFromGradient(gradient);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
 function getRenderedLuminance(element) {
     return new Promise((resolve) => {
         try {
-            const rect = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            const bg = style.backgroundImage;
+            const bgColor = style.backgroundColor;
 
-            if (rect.width === 0 || rect.height === 0) {
-                return resolve(1); // Beyaz olarak varsayalım
+            // 1️⃣ Gradient varsa, html-to-image kullanma → ortalama renk
+            if (bg && bg.includes("gradient")) {
+                return resolve(getComputedLuminanceFromGradient(bg));
             }
 
-            const canvas = document.createElement('canvas');
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            const ctx = canvas.getContext('2d');
+            // 2️⃣ Sadece düz renk varsa
+            if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+                return resolve(getComputedLuminance(element));
+            }
 
-            html2canvas(element, {
-                canvas,
+            // 3️⃣ Hiçbiri yoksa canvas render (son çare)
+            const rect = element.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return resolve(1);
+
+            htmlToImage.toCanvas(element, {
                 width: rect.width,
                 height: rect.height,
                 backgroundColor: null,
-                logging: false,
-                scale: 0.25,
-                useCORS: true,
+                pixelRatio: 0.25,
+                style: { transform: 'scale(0.25)', transformOrigin: 'top left' },
+                cacheBust: true,
+                skipFonts: false,
             }).then(canvas => {
-                const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+                const ctx = canvas.getContext("2d");
+                const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
                 let totalLuminance = 0;
-                let totalPixels = data.length / 4;
+                const totalPixels = data.length / 4;
 
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i];
@@ -172,19 +201,18 @@ function getRenderedLuminance(element) {
 
                 resolve(totalLuminance / totalPixels);
             }).catch(err => {
-                console.error("html2canvas hatası:", err);
-                resolve(1);
+                console.error("html-to-image hatası:", err);
+                resolve(1); // hata durumunda beyaz
             });
+
         } catch (e) {
             console.error("getRenderedLuminance hatası:", e);
             resolve(1);
         }
     });
 }
-async function updateSlideColors(slider) {
 
-    //const activeSlide = slider.querySelector('.swiper-slide-active');
-    //if (!activeSlide) return;
+async function updateSlideColors(slider) {
 
     let activeSlide = slider.querySelector('.swiper-slide-active');
 
@@ -197,9 +225,6 @@ async function updateSlideColors(slider) {
     slider.classList.remove("slide-light", "slide-dark");
     activeSlide.classList.remove("slide-light", "slide-dark");
 
-    //slider.classList.remove("slide-light");
-    //slider.classList.remove("slide-dark");
-
     if (activeSlide.classList.contains('slide-dark') || activeSlide.classList.contains('slide-light')) {
         if(activeSlide.classList.contains('slide-dark')){
             slider.classList.add("slide-dark");
@@ -210,19 +235,28 @@ async function updateSlideColors(slider) {
         return;
     }
     const luminance = await getAverageLuminance(activeSlide);
-    console.log(luminance);
     //const isDark = luminance < 0.6; // 0.5 eşik değeri
     const isDark = luminance === 0 ? false : luminance < 0.6;
     activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
     slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
 }
+
 let slideColorUpdateTimeout;
-function safeUpdateSlideColors(slider) {
+function safeUpdateSlideColors(obj, params = []) {
+
     clearTimeout(slideColorUpdateTimeout);
     slideColorUpdateTimeout = setTimeout(() => {
-        updateSlideColors(slider);
+        // Eğer birden fazla slide görünüyorsa
+        if (params?.slidesPerView > 1) {
+            obj.classList.remove('slide-dark');
+            obj.classList.add('slide-light');
+        } else {
+            // Tek slide görünüyorsa normal işlem
+            updateSlideColors(obj);
+        }
     }, 40); // debounce
 }
+
 
 function init_swiper_video_slide(swiper, obj){
     if(isLoadedJS("plyr")){
@@ -242,9 +276,6 @@ function init_swiper_video_slide(swiper, obj){
         }
     }
 }
-
-
-
 function init_swiper_video(swiper){
     if($(swiper.el).find(".swiper-video").not(".inited").length > 0){
 
@@ -341,7 +372,6 @@ function init_swiper_video(swiper){
     }
 }
 function init_swiper($obj){
-    console.log("inited swiper")
     var token_init = "swiper-slider-init";
     if(!IsBlank($obj)){
        if($obj.not("."+token_init).length > 0){
@@ -351,28 +381,26 @@ function init_swiper($obj){
     }else{
         $(".swiper-slider").not("."+token_init).each(function() {
             $(this).addClass(token_init);
-             console.log($(this))
             init_swiper_obj($(this));
         });
     }
 }
 function init_swiper_obj($obj) {
-    console.log($obj)
-    if($obj.find(".swiper-slide").length < 2){
-        init_swiper_video_slide([], $obj);
-        if ($obj.hasClass("fade")) {
-            $obj.addClass("show");
+        if($obj.find(".swiper-slide").length < 2){
+            init_swiper_video_slide([], $obj);
+            if ($obj.hasClass("fade")) {
+                $obj.addClass("show");
+            }
+            if ($obj.hasClass("loading")) {
+                $obj.removeClass("loading");
+            }
+            //remove if parent has loading
+            if ($obj.closest(".loading").length > 0) {
+                $obj.closest(".loading").removeClass("loading");
+            }
+            safeUpdateSlideColors($obj[0]);
+            return;
         }
-        if ($obj.hasClass("loading")) {
-            $obj.removeClass("loading");
-        }
-        //remove if parent has loading
-        if ($obj.closest(".loading").length > 0) {
-            $obj.closest(".loading").removeClass("loading");
-        }
-        safeUpdateSlideColors($obj[0]);
-        return;
-    }
   
         var effect = $obj.data("slider-effect") ?? "slide";
         var crossFade = false;
@@ -605,7 +633,7 @@ function init_swiper_obj($obj) {
 
                     var $el = $(slider.el);
 
-                    safeUpdateSlideColors(this.el);
+                    safeUpdateSlideColors(this.el, this.params);
 
                     //fade in
                     console.log($el)
@@ -648,10 +676,10 @@ function init_swiper_obj($obj) {
                         $(this).removeAttr("data-src-backup");
                         LazyLoad.load(this); // elle yükle
                     });
-                    safeUpdateSlideColors(swiper.el);
+                    safeUpdateSlideColors(swiper.el, swiper.params);
                 },
                 resize: function() {
-                    safeUpdateSlideColors(this.el);
+                    safeUpdateSlideColors(this.el, this.params);
                 },
                 slidesGridLengthChange: function() {
                     if(this.params.slidesPerView == "auto"){
@@ -663,7 +691,7 @@ function init_swiper_obj($obj) {
                         //this.params.freeMode = false;
                     }
                     console.log("slidesGridLengthChange")
-                    safeUpdateSlideColors(this.el);
+                    safeUpdateSlideColors(this.el, this.params);
                 }
             }
         };

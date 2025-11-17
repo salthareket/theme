@@ -47,17 +47,17 @@
 body{
     &:not(.header-hide){
 
-        [class^="sticky-"], [class*=" sticky-"] {
+        [class^="sticky-top"], [class*=" sticky-top"] {
             top:var(--header-height);
         }
         &.affix{
-            [class^="sticky-"], [class*=" sticky-"] {
+            [class^="sticky-top"], [class*=" sticky-top"] {
                 top:var(--header-height-affix);
             }
         }
     }
     &.header-hide{
-        [class^="sticky-"], [class*=" sticky-"] {
+        [class^="sticky-top"], [class*=" sticky-top"] {
             top:0px;
         }
     }
@@ -67,18 +67,22 @@ body{
 [class^="sticky-"], [class*=" sticky-"] {
     &.sticked{
         .d-sticked{
-            display:block;
+            //display:block;
+            visibility: visible;
         }
         .d-sticked-none{
-            display:none;
+            //display:none;
+            visibility: hidden;
         }
     }
     &:not(.sticked){
         .d-sticked{
-            display:none;
+            //display:none;
+            visibility: hidden;
         }
         .d-sticked-none{
-            display:block;
+            //display:block;
+            visibility: visible;
         }
     }
 }

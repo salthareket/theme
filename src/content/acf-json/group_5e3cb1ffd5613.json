@@ -633,16 +633,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
-                "acik-pozisyonlar": "Açık Pozisyonlar",
-                "duyurular": "Duyurular",
-                "etkinlikler": "Etkinlikler",
-                "kampanya": "Kampanyalar",
-                "katlar": "Katlar",
-                "magazalar": "Mağazalar",
-                "ulasim": "Ulaşım",
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
                 "contact": "Contacts"
             },
             "default_value": "",
@@ -689,5 +682,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1755740567
+    "modified": 1759184973
 }

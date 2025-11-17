@@ -79,7 +79,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => [],
 		"init"  => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['jquery-slinky'] = [
 		"c"   => true,
@@ -95,7 +96,8 @@ function compile_files_config($enable_production=false){
 		"init"  => "init_slinky",
 		"whitelist" => [
 			".slinky-*",
-		]
+		],
+		"required" => []
 	];
 	$plugins['bootbox'] = [
 		"c"   => true,
@@ -117,7 +119,8 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [
 			".ratio",
 			".ratio-*"
-		]
+		],
+		"required" => []
 	];
 	$plugins['aos'] = [
 		"c"   => true,
@@ -133,7 +136,8 @@ function compile_files_config($enable_production=false){
 		"init" => "init_aos",
 		"whitelist" => [
 			".aos-animate"
-		]
+		],
+		"required" => []
 	];
 	$plugins['plyr'] = [
 		"c"	=> true,
@@ -147,7 +151,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["player"],
 		"attrs" => [],
 		"init"     => "plyr_init",
-		"whitelist" => [] 
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['swiper'] = [
 		"c"   => true,
@@ -163,19 +168,23 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_swiper",
 		"whitelist" => [
 			".swiper-*"
+		],
+		"required" => [
+			"html-to-image"
 		]
 	];
-	$plugins['html2canvas'] = [
+	$plugins['html-to-image'] = [
 		"c"   => true,
 		"admin" => true,
 		"url" => [
-			$node_path . 'html2canvas/dist/html2canvas.min.js'
+			$node_path . 'html-to-image/dist/html-to-image.js'
 		],
 		"css" => [],
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	
 	$plugins['vanilla-lazyload'] = [
@@ -188,7 +197,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => [],
 		"init"  => "",
-		"whitelist" => [] 
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['justifiedGallery'] = [
 		"c"	=> true,
@@ -202,7 +212,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["justified-gallery"],
 		"attrs" => ["data-gallery-type"],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['lightgallery'] = [
 		"c"   => true,
@@ -219,21 +230,26 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_lightGallery",
 		"whitelist" => [
 			"lg-*"
-		]
+		],
+		"required" => []
 	];
 	$plugins['jquery-match-height'] = [
-		"c" => false,
+		"c" => true,
 		"admin" => true,
 		"url" => [
 			$node_path . 'jquery-match-height/dist/jquery.matchHeight-min.js'
 		],
 		"css" => [],
 		"class" => [],
-		"attrs" => [],
-		"init"     => "",
-		"whitelist" => []
+		"attrs" => [
+			"data-mh", 
+			"data-mh-all"
+		],
+		"init"     => "init_match_height",
+		"whitelist" => [],
+		"required" => []
 	];
-	$plugins['scrollpos-styler'] = [
+	/*$plugins['scrollpos-styler'] = [
 		"c"	=> false,
 		"admin" => false,
 		"url" => [
@@ -243,8 +259,9 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
-	];
+		"whitelist" => [],
+		"required" => []
+	];*/
 	$plugins['is-in-viewport'] = [
 		"c"	=> false,
 		"admin" => true,
@@ -255,7 +272,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['letteringjs'] = [
 		"c"	=> true,
@@ -267,7 +285,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["text-effect"],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['textillate'] = [
 		"c"	=> true,
@@ -281,7 +300,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["text-effect"],
 		"attrs" => [],
 		"init"     => "text_effect",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
     $plugins['jarallax'] = [
    		"c"	=> true,
@@ -295,7 +315,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["jarallax", "jarallax-video"],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
     $plugins['lenis'] = [
    		"c"	=> false,
@@ -307,7 +328,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
     $plugins['jquery.simple-text-rotator'] = [
    		"c"	=> true,
@@ -321,7 +343,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["text-rotator"],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['masonry-layout'] = [
    		"c"	=> true,
@@ -333,7 +356,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => ["data-masonry"],
 		"init"     => "",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['twig'] = [
    		"c"	=> true,
@@ -346,7 +370,8 @@ function compile_files_config($enable_production=false){
 		"attrs" => [],
 		"condition" => get_option("options_map_view") == "js" ? 1: 0,
 		"init"     => "init_twig",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 	$plugins['leaflet'] = [
    		"c"	=> true,
@@ -368,7 +393,8 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_leaflet",
 		"whitelist" => [
 			".leaflet-*"
-		]
+		],
+		"required" => []
 	];
 	$plugins['markerclusterer'] = [
    		"c"	=> true,
@@ -383,7 +409,8 @@ function compile_files_config($enable_production=false){
 		],
 		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "google" ? 1: 0,
 		"init"     => "init_google_maps",
-		"whitelist" => []
+		"whitelist" => [],
+		"required" => []
 	];
 
 	$plugins['smarquee'] = [
@@ -396,7 +423,8 @@ function compile_files_config($enable_production=false){
 		"class" => ["smarquee"],
 		"attrs" => [],
 		"init"     => "init_smarquee",
-		"whitelist" => []  
+		"whitelist" => [],
+		"required" => [] 
 	];
 
 	$plugins['locomotive-scroll'] = [
@@ -411,7 +439,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => ["data-scroll"],
 		"init"     => "init_locomotive_scroll",
-		"whitelist" => []  
+		"whitelist" => [],
+		"required" => [] 
 	];
 
 	$plugins['jquery-zoom'] = [
@@ -424,7 +453,8 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => ["data-zoom"],
 		"init"     => "init_jquery_zoom",
-		"whitelist" => []  
+		"whitelist" => [],
+		"required" => []  
 	];
 
 	$plugins['panzoom'] = [
@@ -439,7 +469,8 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_panzoom",
 		"whitelist" => [
 			".panzoom-*"
-		]
+		],
+		"required" => []
 	];
 
 	$plugins['simplebar'] = [
@@ -456,7 +487,8 @@ function compile_files_config($enable_production=false){
 		"init"     => "init_simplebar",
 		"whitelist" => [
 			".simplebar-*"
-		]
+		],
+		"required" => []
 	];
 
     if(!isset($plugins["smartmenus"]) && $header_has_navigation){
@@ -475,7 +507,8 @@ function compile_files_config($enable_production=false){
 			"init"     => "init_smartmenus",
 		    "whitelist" => [
 		    	".highlighted"
-		    ]
+		    ],
+			"required" => []
 		];
 	}
     
@@ -520,7 +553,8 @@ function compile_files_config($enable_production=false){
 
 	$header_js = array();
 	$header_js['enquire'] = $node_path . 'enquire.js/dist/enquire.min.js';
-	$header_js['defaults'] = $prod_path .'defaults.js';
+	//$header_js['defaults'] = $prod_path .'defaults.js';
+	
 	//$header_js['intl'] = $node_path . 'intl/dist/Intl.min.js';
 	//$header_js['modernizr'] = $plugin_path . 'modernizr/2.8.3/modernizr.min.js';
 	//$header_js['current-device'] = $node_path . 'current-device/umd/current-device.min.js';

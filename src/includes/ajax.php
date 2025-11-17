@@ -81,6 +81,25 @@ function ajax_security($data){
         $nonce = $data['_wpnonce'];
     }
     $nonce = wp_verify_nonce( $nonce, 'ajax' );
+
+
+    // DEBUG: nonce değerini logla
+    error_log('[DEBUG] Received Nonce: ' . $nonce);
+
+    // DEBUG: test et hangi action ile geçerli
+    $actions = ['ajax', 'acf_nonce', 'wp_rest']; // buraya ihtimal olanları ekleyebilirsin
+    $valid_action = null;
+    foreach($actions as $act){
+        $check = wp_verify_nonce($nonce, $act);
+        if($check === 1 || $check === 2){
+            $valid_action = $act;
+            error_log("[DEBUG] Nonce matched with action={$act}, check={$check}");
+            break;
+        }
+    }
+
+    return;
+
     switch ( $nonce ) {
         case 1:
             //echo 'Nonce is less than 12 hours old';

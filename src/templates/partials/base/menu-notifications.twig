@@ -9,7 +9,7 @@
        {% set target = "offcanvasNotifications" %}
     {% endif %}
 
-    <li class="nav-item {{class}}" data-type="notifications">
+    <div class="nav-item {{class}}" data-type="notifications">
 
         <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
             {% if user.notifications_count > 0 %}
@@ -39,5 +39,5 @@
             </div>
         {% endif %}
         
-    </li>
+    </div>
 {% endif %}

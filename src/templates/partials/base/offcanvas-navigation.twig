@@ -23,7 +23,7 @@
 {% endif %}
 
 
-<div class="offcanvas offcanvas-menu offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen{% endif %} {% if (offcanvas.show_header or offcanvas.fullscreen) and (header_options.affix or header_options.fixed == "bottom-start") %}offcanvas-show-header pt-header{% endif %}" tabindex="-1" id="main-mobile" aria-labelledby="main-mobileLabel" style="{{style}}">
+<div class="offcanvas offcanvas-menu offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen{% endif %} {% if (offcanvas.show_header or offcanvas.fullscreen) and (header_options.affix or header_options.fixed == "bottom-start") %}offcanvas-show-header pt-header{% endif %} offcanvas-{{offcanvas.visibility}}" tabindex="-1" id="main-mobile" aria-labelledby="main-mobileLabel" style="{{style}}">
    
    {% if background.image and (background.image_filter or background.image_blend_mode) %}
       <div class="bg-cover position-absolute-fill" {% if background.repeat != "no-repeat" %}style="{{image_style}}"{% endif %}>
@@ -59,7 +59,7 @@
    </div>#}
 
    <div class="offcanvas-body {% if offcanvas.fullscreen and offcanvas.container and "body" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}}{% endif %}">
-      {% include "navigation/menu-" ~ item.menu_view ~ ".twig" with {'menu': salt.get_menu(item.menu_nav).get_items, 'is_child': false} %}
+      {% include "navigation/menu-" ~ item.menu_view ~ ".twig" with {'menu': get_menu(item.menu_nav).get_items, 'is_child': false} %}
    </div>
    
    <div class="offcanvas-footer text-center justify-content-center pb-4 {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">

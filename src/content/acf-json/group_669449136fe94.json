@@ -3,6 +3,42 @@
     "title": "Settings Offcanvas",
     "fields": [
         {
+            "key": "field_68ed9bee4f986",
+            "label": "Visibility",
+            "name": "visibility",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "acf-breakpoints",
+                "id": ""
+            },
+            "choices": {
+                "xs": "xs",
+                "sm": "sm",
+                "md": "md",
+                "lg": "lg",
+                "xl": "xl",
+                "xxl": "xxl",
+                "xxxl": "xxxl"
+            },
+            "default_value": "xl",
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": ""
+        },
+        {
             "key": "field_66944a4f97910",
             "label": "Position",
             "name": "position",
@@ -12,7 +48,7 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "",
+                "width": "20",
                 "class": "",
                 "id": ""
             },
@@ -26,14 +62,14 @@
             "return_format": "value",
             "multiple": 0,
             "allow_null": 0,
+            "allow_in_bindings": 1,
             "ui": 0,
             "ajax": 0,
             "placeholder": "",
-            "allow_custom": 0,
-            "search_placeholder": "",
             "create_options": 0,
             "save_options": 0,
-            "pll_default_value": "top"
+            "allow_custom": 0,
+            "search_placeholder": ""
         },
         {
             "key": "field_66944a7797911",
@@ -45,18 +81,16 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "50",
+                "width": "20",
                 "class": "",
                 "id": ""
             },
             "message": "",
             "default_value": 0,
-            "translations": "copy_once",
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1,
-            "pll_default_value": 0
+            "ui": 1
         },
         {
             "key": "field_68082e4e319ef",
@@ -68,18 +102,16 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "50",
+                "width": "20",
                 "class": "",
                 "id": ""
             },
             "message": "",
             "default_value": 0,
-            "translations": "copy_once",
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1,
-            "pll_default_value": 0
+            "ui": 1
         },
         {
             "key": "field_66944ac497912",
@@ -99,7 +131,7 @@
                 ]
             ],
             "wrapper": {
-                "width": "",
+                "width": "20",
                 "class": "",
                 "id": ""
             },
@@ -118,14 +150,14 @@
             "return_format": "value",
             "multiple": 0,
             "allow_null": 0,
+            "allow_in_bindings": 1,
             "ui": 0,
             "ajax": 0,
             "placeholder": "",
-            "allow_custom": 0,
-            "search_placeholder": "",
             "create_options": 0,
             "save_options": 0,
-            "pll_default_value": "default"
+            "allow_custom": 0,
+            "search_placeholder": ""
         },
         {
             "key": "field_66944ae597913",
@@ -5027,6 +5059,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -5034,7 +5067,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740616,
+    "modified": 1760402610,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

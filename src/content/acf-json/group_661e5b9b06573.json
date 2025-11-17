@@ -113,27 +113,6 @@
             "acfe_seamless_style": 0
         },
         {
-            "key": "field_661e5b9b122fc",
-            "label": "Text",
-            "name": "text",
-            "aria-label": "",
-            "type": "wysiwyg",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "tabs": "all",
-            "toolbar": "full",
-            "media_upload": 0,
-            "delay": 0,
-            "pll_default_value": ""
-        },
-        {
             "key": "field_669ea6955359c",
             "label": "I want to choose posts",
             "name": "custom",
@@ -480,7 +459,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740598,
+    "modified": 1759388824,
     "acfe_categories": {
         "block": "Block"
     }

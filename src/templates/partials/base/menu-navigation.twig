@@ -1,17 +1,17 @@
 {% if menu_type == "offcanvas" %}
 
-<li class="nav-item nav-toggler {{menu_class}}">
+<div class="nav-item nav-toggler {{menu_class}}">
     <a href="#" class="nav-toggler-custom {% if user.notifications_count > 0 or user.messages_count > 0 %}has-notification{% endif %}" data-bs-toggle="offcanvas" data-bs-target="#main-mobile" aria-controls="main-mobile" title="{{translate("Menü")}}">
         <span></span>
     </a>
-</li>
+</div>
 
 {% else %}
 
-<li id="navigation" class="nav-item {{menu_class}} navbar-container h-100 justify-content-{{header_options.start.align}}">
+<nav id="navigation" class="nav-item {{menu_class}} navbar-container h-100 justify-content-{{header_options.start.align}}">
     <ul class="smartmenu navbar-nav-main nav navbar-nav--" data-sm-skip data-sm-skip-collapsible-behavior="true">
-        {% include "navigation/menu.twig" with {'menu': salt.get_menu(header_options.start.menu).get_items, 'parent_link' : header_options.start.parent_link} %}
+        {% include "navigation/menu.twig" with {'menu': get_menu(header_options.start.menu).get_items, 'parent_link' : header_options.start.parent_link} %}
     </ul>
-</li>
+</nav>
 
 {% endif %}

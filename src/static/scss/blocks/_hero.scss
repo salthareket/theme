@@ -1,5 +1,6 @@
 /*! purgecss start ignore */
 .block-hero{
+	overflow:hidden;
 	.swiper-slide{
 		&.overlay{
 			 &:before{
@@ -11,5 +12,4 @@
 		}
 	}
 }
-
 /*! purgecss end ignore */

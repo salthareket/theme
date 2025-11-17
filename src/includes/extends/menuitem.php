@@ -15,6 +15,12 @@ class MenuItem extends Timber\MenuItem{
 		if(!isset($args["nodes"])){
 			$args["nodes"] = array();
 		}
+		if(!isset($args["menu_level"])){
+			$args["menu_level"] = 0;
+		}
+		if(!isset($args["max_level"])){
+			$args["max_level"] = 0;
+		}
        
 		global $post;
 		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);
@@ -103,7 +109,7 @@ class MenuItem extends Timber\MenuItem{
         		$linkAttr["itemprop"] = "url";
                 $properties["link"]["href"] =  ($this->children?$this->children[0]->link:$this->link);
 
-		        if($this->children){
+		        if($this->children and (($args["menu_level"] < $args["max_level"] && $args["max_level"] > 0) || $args["max_level"] == 0) ){
 		        	if($args["collapsible"]){
 		        		$properties["link"]["href"] = "#";
                 		$linkAttrs["data-bs-toggle"] = "collapse";
@@ -114,11 +120,11 @@ class MenuItem extends Timber\MenuItem{
 					    		$properties["link"]["href"] = make_onepage_url($this, $this->get_link());
 					    	}
 		        		}else{
-				        	$itemClass[] = "dropdown";
+				        	$itemClass[] = "dropdown ".$args["menu_level"]." ".$args["max_level"];
 				        	$linkClass[] = "dropdown-toggle";
 				        	$linkAttrs["data-bs-toggle"] = "dropdown";
 					        if($args["parent_link"]){
-					        	$properties["link"]["href"] = make_onepage_url($this, $this->get_link);
+					        	$properties["link"]["href"] = make_onepage_url($this, $this->get_link());
 					            $linkTarget = $this->_menu_item_target && (!str_contains($this->get_link(), "#") ? $this->_menu_item_target : $properties["link"]["target"]);
 					        }else{
 					        	$properties["link"]["href"] = "#";

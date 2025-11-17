@@ -207,7 +207,7 @@
                                             <label class="form-label d-none">Country of Residence</label>
                                             <select class="form-select form-select-chain form-select-chain-init" name="country" data-method="get_city_options" data-chain="city" data-chain-value="" data-chain-on-select="false" required>
                                                 <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{translate('Country')}}</option>
-                                                {% set countries = salt.localization.countries %}
+                                                {% set countries = localization.countries %}
                                                 {% for country in countries %}
                                                     {% if country.iso2 == user.billing_country %}
                                                         {% set country_has_state = country.states|boolval %}

@@ -6,8 +6,10 @@
 	justify-content:var(--pagination-align);
 	border:none;
 	align-items:center;
+	line-height:1.2;
 	>li.page-item{
 		>a.page-link{
+			font-size:var(--pagination-font-size);
 			min-width:35px;
 			border:var(--pagination-item-border);
 			color:var(--pagination-item-color);
@@ -58,6 +60,7 @@
 					}
 					span{
 						&:before{
+							content:"";
 							font-family:var(--pagination-nav-font-family);
 						}
 					}

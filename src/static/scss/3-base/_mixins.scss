@@ -268,11 +268,13 @@
     @if type-of($color) == 'map' {
         @each $id, $id_color in $color {
             ##{$id}{
+                circle[fill]:not([stroke]),
                 path[fill]:not([stroke]),
                 rect[fill]:not([stroke]),
                 polygon[fill]:not([stroke]){
                     fill: #{$id_color} !important;
                 }
+                circle[stroke],
                 line[stroke],
                 path[stroke],
                 rect[stroke],
@@ -282,11 +284,13 @@
             }
         }
     } @else {
+        circle[fill]:not([stroke]),
         path[fill]:not([stroke]),
         rect[fill]:not([stroke]),
         polygon[fill]:not([stroke]){
             fill: #{$color} !important;
         }
+        circle[stroke],
         line[stroke],
         path[stroke],
         rect[stroke],

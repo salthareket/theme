@@ -5,6 +5,12 @@ use Irmmr\RTLCss\Parser as RTLParser;
 
 class PageAssetsExtractor
 {
+    /**
+     * Sınıfın tekil örneğini (instance) tutar
+     * @var PageAssetsExtractor|null
+     */
+    private static $instance = null;
+
     /* ======= Sabitler ======= */
     const META_KEY = 'assets';
     const HTML_HASH_META_KEY = '_page_assets_last_html_hash';
@@ -25,7 +31,7 @@ class PageAssetsExtractor
     public $url;
     public $html;
 
-    public $source_css = STATIC_PATH ."css/main-combined.css";
+    public $source_css;
 
     protected $structure_fp = '';
 
@@ -53,6 +59,8 @@ class PageAssetsExtractor
     public function __construct() {
         error_log("PageAssetsExtractor initialized in admin.");
 
+        $this->source_css = STATIC_PATH ."css/main-combined.css";
+
         $this->home_url = function_exists('home_url') ? rtrim(home_url("/"), '/') . '/' : "/";
         $this->home_url_encoded = str_replace("/","\/", $this->home_url);
 
@@ -77,10 +85,43 @@ class PageAssetsExtractor
         $this->excluded_post_types = (array) get_option('options_exclude_post_types_from_cache', []);
         $this->excluded_taxonomies = (array) get_option('options_exclude_taxonomies_from_cache', []);
 
+        if (!in_array('template', $this->excluded_post_types, true)) {
+            $this->excluded_post_types[] = 'template';
+        }
+
         add_action('acf/render_field/name=page_assets', [$this, 'update_page_assets_message_field']);
         add_action('wp_ajax_page_assets_update', [$this,'page_assets_update']);
         add_action('wp_ajax_nopriv_page_assets_update', [$this,'page_assets_update']);
+
+        // 2. CRON GÖREVİ KANCALARI
+        // Dün oluşturduğumuz statik metodları burası tetikleyecek.
+        add_action('wp', [__CLASS__, 'schedule_cleanup_event']);
+        add_action('my_daily_assets_cleanup', [__CLASS__, 'run_cleanup_task']);
     }
+
+    /**
+     * 2. Sınıfın tekil örneğini almak için ana metod.
+     * Dışarıdan sadece bu metod çağrılabilir.
+     *
+     * @return PageAssetsExtractor
+    */
+    public static function get_instance()
+    {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * (Singleton) Klonlamayı engelle
+     */
+    private function __clone() {}
+
+    /**
+     * (Singleton) Unserialize etmeyi engelle
+     */
+    public function __wakeup() {}
 
     /* ===================== HOOK AKIŞI ===================== */
 
@@ -204,6 +245,15 @@ class PageAssetsExtractor
     }
 
     public function fetch($url, $id, $forceType = null) {
+
+        // En başta: sadece site içi URL’leri fetch et
+        $parsed_url = parse_url($url);
+        $wp_domain = parse_url(home_url(), PHP_URL_HOST);
+        if (($parsed_url['host'] ?? '') !== $wp_domain) {
+            error_log('[PAE] fetch SKIP: domain not whitelisted (WP domain only): ' . ($parsed_url['host'] ?? ''));
+            return false;
+        }
+
         $prevType = $this->type;
         if ($forceType) $this->type = $forceType;
 
@@ -230,9 +280,24 @@ class PageAssetsExtractor
 
             $this->url = $fetch_url;
 
-            $opts = ["http" => ["header" => "User-Agent: MyFetchBot/1.0\r\n", "timeout" => 10]];
-            $context = stream_context_create($opts);
-            $html_content = @HtmlDomParser::file_get_html($fetch_url, false, $context);
+            $response = wp_remote_get($fetch_url, [
+                'timeout' => 10,
+                'headers' => [
+                    'User-Agent' => 'MyFetchBot/1.0',
+                    'X-Internal-Fetch' => '1',
+                ],
+                'httpversion' => '1.1',
+            ]);
+
+            if (is_wp_error($response)) {
+                error_log('PAE wp_remote_get ERROR: ' . $response->get_error_message());
+            } else {
+                $html_raw = wp_remote_retrieve_body($response);
+                error_log('PAE wp_remote_get BODY LEN: ' . strlen($html_raw));
+                // Eğer HtmlDomParser parse edilecekse:
+                $html_content = HtmlDomParser::str_get_html($html_raw);
+            }
+
             if (!$html_content) {
                 error_log('[PAE] file_get_html FAILED');
                 return false;
@@ -240,8 +305,113 @@ class PageAssetsExtractor
 
             $this->html = $html_content;
 
+            // EXISTING: CSS/JS optimize et
             $result = $this->extract_assets($html_content, $id);
             error_log('[PAE] extract_assets DONE type=' . $this->type . ' id=' . $id);
+
+            // NEW: iframe ve embed domainlerini topla
+           /* $iframe_domains = [];
+            foreach ($html_content->find('iframe') as $iframe) {
+                $src = $iframe->getAttribute('src');
+                if ($src) {
+                    $parsed = parse_url($src);
+                    $domain = $parsed['host'] ?? null;
+                    if ($domain && in_array($parsed['scheme'] ?? '', ['http','https'])) {
+                        $iframe_domains[] = $domain;
+                    }
+                }
+            }
+
+            // NEW: DB’de sakla
+            if (!empty($iframe_domains)) {
+                // DB'deki mevcut onaylılar ile birleştir
+                $approved_domains = get_option('csp_approved_domains', []);
+                $iframe_domains = array_unique(array_merge($approved_domains, $iframe_domains));
+
+                // DB'ye kaydet
+                if (!empty($iframe_domains)) {
+                    update_option('csp_approved_domains', $iframe_domains);
+                }
+            }*/
+
+            $tags_to_check = [
+                'iframe' => ['src', 'data-src', 'data-lazy-src'],
+                'img'    => ['src', 'data-src', 'data-lazy-src'],
+                'script' => ['src'],
+                'link'   => ['href'], // özellikle stylesheet için
+                'video'  => ['src'],
+                'audio'  => ['src']
+            ];
+
+            $new_domains = [];
+
+            // Site domainini al
+            $site_url = get_site_url();
+            $parsed_site = parse_url($site_url);
+            $site_domain = $parsed_site['host'] ?? '';
+
+            // CSP direktif adı eşlemesi
+            $directive_map = [
+                'iframe' => 'frame-src',
+                'img'    => 'img-src',
+                'script' => 'script-src',
+                'link'   => 'style-src', // link genelde stylesheet
+                'video'  => 'media-src',
+                'audio'  => 'media-src'
+            ];
+
+            foreach ($tags_to_check as $tag => $attributes) {
+                foreach ($html_content->find($tag) as $element) {
+                    foreach ($attributes as $attr) {
+                        $url = $element->getAttribute($attr);
+                        if ($url) {
+                            $parsed = parse_url($url);
+                            $domain = $parsed['host'] ?? null;
+                            $scheme = $parsed['scheme'] ?? '';
+
+                            // Filtre: localhost, private IP ve site domaini
+                            if ($domain && in_array($scheme, ['http', 'https'])) {
+                                if (preg_match('/^(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})$/', $domain)) {
+                                    continue;
+                                }
+                                if ($domain === $site_domain) {
+                                    continue;
+                                }
+
+                                // CSP direktif adıyla sakla
+                                $directive = $directive_map[$tag] ?? null;
+                                if ($directive) {
+                                    if (!isset($new_domains[$directive])) {
+                                        $new_domains[$directive] = [];
+                                    }
+                                    $new_domains[$directive][] = $domain;
+                                    break; // ilk bulunan src ile devam et
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // DB’de sakla (direkt CSP direktif adıyla)
+            if (!empty($new_domains)) {
+                $approved_domains = get_option('csp_approved_domains', []);
+
+                // Güvenlik: DB’den gelen değer array değilse array yap
+                if (!is_array($approved_domains)) {
+                    $approved_domains = [];
+                }
+
+                foreach ($new_domains as $directive => $domains) {
+                    if (!isset($approved_domains[$directive]) || !is_array($approved_domains[$directive])) {
+                        $approved_domains[$directive] = [];
+                    }
+                    $approved_domains[$directive] = array_unique(array_merge($approved_domains[$directive], $domains));
+                }
+
+                update_option('csp_approved_domains', $approved_domains);
+            }
+
 
             if (is_numeric($id) && function_exists('get_post') && get_post($id)) {
                 $this->type = 'post';
@@ -310,14 +480,16 @@ class PageAssetsExtractor
         }
     }
     public function remove_critical_css(){
-        $critical_cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
+        /*$critical_cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
         if(is_dir($critical_cache_dir)) {
             // *-critical.css ile biten tüm dosyaları seç
             $files = glob($critical_cache_dir.'*-critical.css');
             foreach($files as $file) {
                 @unlink($file);
             }
-        }
+        }*/
+        error_log("[PAE] remove_critical_css metodu çağrıldı. Akıllı temizlik kullanıldığı için bu işlem atlanmıştır.");
+        return;
     }
 
     
@@ -372,8 +544,9 @@ class PageAssetsExtractor
             },
             $content
         );
-        $normalized = str_replace([$this->upload_url, $this->upload_url_encoded], '{upload_url}', $content);
-        $normalized = str_replace([$this->home_url, $this->home_url_encoded], '{home_url}', $normalized);
+        $normalized = $content;
+        //$normalized = str_replace([$this->upload_url, $this->upload_url_encoded], '{upload_url}', $content);
+        //$normalized = str_replace([$this->home_url, $this->home_url_encoded], '{home_url}', $normalized);
         $normalized = preg_replace("/\xEF\xBB\xBF/", '', $normalized);
         $normalized = str_replace("\r", "", $normalized);
         if ($type === 'css') {
@@ -400,6 +573,21 @@ class PageAssetsExtractor
             }
         }
     }
+    /*private function manifest_write() {
+        // 1. Structure Fingerprint (yapı parmak izi) değerini al
+        $structure_fp = $this->structure_fp; 
+
+        if (!empty($structure_fp)) {
+            
+            // 2. Kritik CSS dosya yolunu (structure_fp tabanlı) hesapla
+            $critical_css_relative_path = 'css/cache/' . $structure_fp . '-critical.css';
+
+            // 3. Manifest'teki templates kaydına kritik CSS yolunu ekle
+            // (Manifest'te ilgili $structure_fp kaydının zaten oluşturulmuş olduğunu varsayıyoruz)
+            $this->manifest['templates'][$structure_fp]['critical_css'] = $critical_css_relative_path;
+        }
+        @file_put_contents($this->manifest_path, json_encode($this->manifest, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+    }*/
     private function manifest_write() {
         @file_put_contents($this->manifest_path, json_encode($this->manifest, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
     }
@@ -525,8 +713,6 @@ class PageAssetsExtractor
         $plugin_css_rtl = "";
         $wp_js = [];
 
-
-
         // data-template taraması
         $extra_html = $this->collectTwigLoadedHtml($html_content);
         if ($extra_html) {
@@ -555,6 +741,10 @@ class PageAssetsExtractor
         $header_content = '';
         if ($header_node) { $header_content = $header_node->outerHtml(); $header_node->delete(); }
 
+        /*$footer_node = $html_temp->findOne('#footer');
+        $footer_content = '';
+        if ($footer_node) { $footer_content = $footer_node->outerHtml(); $footer_node->delete(); }*/
+
         $main_node = $html_temp->findOne('main');
         $main_content = '';
         if ($main_node) { $main_content = $main_node->outerHtml(); $main_node->delete(); }
@@ -571,7 +761,7 @@ class PageAssetsExtractor
         $offcanvas_string = implode("\n", $offcanvas_html);
         $html_temp = null;
 
-        $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string;
+        $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string;// . $footer_content;
         $html = HtmlDomParser::str_get_html($final_html_string);
 
         // ---------- inline <script>/<style> topla ----------
@@ -614,10 +804,10 @@ class PageAssetsExtractor
                 $minifier = new Minify\CSS();
                 $minifier->add($css);
                 $css = $minifier->minify();
-                $css = str_replace($this->upload_url, "{upload_url}", $css);
-                $css = str_replace($this->upload_url_encoded, "{upload_url}", $css);
-                $css = str_replace($this->home_url, "{home_url}", $css);
-                $css = str_replace($this->home_url_encoded, "{home_url}", $css);
+                //$css = str_replace($this->upload_url, "{upload_url}", $css);
+                //$css = str_replace($this->upload_url_encoded, "{upload_url}", $css);
+                //$css = str_replace($this->home_url, "{home_url}", $css);
+                //$css = str_replace($this->home_url_encoded, "{home_url}", $css);
             }
         }
 
@@ -675,7 +865,7 @@ class PageAssetsExtractor
         }
 
         // WP kısa kod bazlı JS ekleri
-        $shortcodes = ['contact_form', 'contact-form-7', 'form_modal', 'wpsr_share_icons'];
+        $shortcodes = ['contact_form', 'contact-form-7', 'form_modal', 'wpsr_share_icons', 'newsletter'];
         foreach($shortcodes as $sc){
             if (strpos($final_html_string, $sc) !== false) {
                 $wp_js[] = ($sc === 'form_modal') ? 'contact-form-7' : $sc;
@@ -833,6 +1023,7 @@ class PageAssetsExtractor
                     'css'     => $css_page,
                     'css_rtl' => $css_page_rtl,
                     'plugins' => $plugins_key,
+                    'critical_css' => 'css/cache/' . $this->structure_fp . '-critical.css',
                 ];
                 $this->manifest_write();
             }
@@ -1037,6 +1228,22 @@ class PageAssetsExtractor
 
     /* ===================== META KAYIT ===================== */
     public function save_meta($result, $id) {
+
+        if (!$id || !$this->type) {
+            return false;
+        }
+
+        // structure_fp değerini meta veriye ekle
+        if (!empty($this->structure_fp)) {
+            // Eğer $result array değilse (ki assets verisidir), array yapın.
+            if (!is_array($result)) {
+                $result = [];
+            }
+            
+            // KRİTİK EKLENTİ BURADA: structure_fp'yi assets verisine ekle.
+            $result['structure_fp'] = $this->structure_fp; 
+        }
+
         $default_lcp = ['desktop' => [], 'mobile' => []];
 
         // ---- ARCHIVE (option) ----
@@ -1221,77 +1428,6 @@ class PageAssetsExtractor
     }
 
     /* ===================== SİTEMAP & DİĞERLERİ ===================== */
-
-    /*public function get_all_urls($sitemap_url = null, $urls = []) { //tum dilleri alır
-        if ($sitemap_url === null) {
-            $sitemap_url = function_exists('site_url') ? site_url('/sitemap_index.xml') : '/sitemap_index.xml';
-        }
-
-        $sitemap_content = @file_get_contents($sitemap_url);
-        if (!$sitemap_content) { return []; }
-
-        $xml = @simplexml_load_string($sitemap_content);
-        if(!$xml){ return []; }
-
-        $namespaces = $xml->getDocNamespaces(true);
-        if (isset($namespaces[''])) {
-            $xml->registerXPathNamespace('ns', $namespaces['']);
-        } else {
-            $xml->registerXPathNamespace('ns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
-        }
-
-        if ($xml->xpath('//ns:sitemap')) {
-            foreach ($xml->xpath('//ns:sitemap/ns:loc') as $sitemap_loc) {
-                $sub_sitemap_url = (string)$sitemap_loc;
-                $urls = $this->get_all_urls($sub_sitemap_url, $urls);
-            }
-        } else {
-            foreach ($xml->xpath('//ns:url/ns:loc') as $url_loc) {
-                $url_string = (string)$url_loc;
-                $sitemap_file_name = basename($sitemap_url, '-sitemap.xml');
-
-                switch($sitemap_file_name){
-
-                    case "page" :
-                    case "post" :
-                        $post_id = function_exists('url_to_postid') ? url_to_postid($url_string) : 0;
-                        if ($post_id) {
-                            $urls[$post_id] = [
-                                "type" => "post",
-                                "post_type" => function_exists('get_post_type') ? get_post_type($post_id) : '',
-                                "url" => $url_string
-                            ];
-                        }
-                    break;
-
-                    case "post_tag" :
-                    case "category" :
-                    case "format" :
-                        $term_slug = basename($url_string);
-                        $term = function_exists('get_term_by') ? get_term_by('slug', $term_slug, $sitemap_file_name) : null;
-                        if ($term) {
-                            $urls[$term->term_id] = [
-                                "type" => "term",
-                                "post_type" => $sitemap_file_name,
-                                "url" => $url_string
-                            ];
-                        }
-                    break;
-
-                    default :
-                        // diğer sitemaplar: archive vb.
-                        $urls[$sitemap_file_name] = [
-                            "type" => "archive",
-                            "post_type" => $sitemap_file_name,
-                            "url" => $url_string
-                        ];
-                    break;
-                }
-            }
-        }
-
-        return $urls;
-    }*/
 
     public function get_all_urls($sitemap_url = null, $urls = []) {
         if ($sitemap_url === null) {
@@ -1989,4 +2125,285 @@ class PageAssetsExtractor
 
 
 
+    /**
+     * Çöp Toplayıcı: Yetim kalmış varlıkları (CSS/JS) ve manifest kayıtlarını temizler.
+     * Bu metodun bir WP Cron görevi ile periyodik (örn. günde 1) çalıştırılması önerilir.
+     */
+    public function cleanup_orphaned_assets()
+    {
+        error_log('[PAE] Çöp toplama (GC) başlatılıyor...');
+
+        // 1. Manifest'i güvenli bir şekilde oku (Bkz. Bölüm 2: get_manifest)
+        $manifest = $this->get_manifest();
+        if (empty($manifest['templates']) && empty($manifest['plugins'])) {
+            error_log('[PAE] GC: Manifest boş veya okunamadı. İşlem iptal.');
+            return false;
+        }
+
+        // 2. Veritabanından "aktif" olarak kullanılan TÜM structure_fp'leri topla
+        // Sınıfınız 'assets' meta_key'ini kullanıyor gibi görünüyor.
+        global $wpdb;
+        $active_structure_hashes = [];
+        
+        // Yazı (Post) meta verilerini tara
+        $post_meta_key = self::META_KEY; // 'assets'
+        $results = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT meta_value FROM $wpdb->postmeta WHERE meta_key = %s",
+            $post_meta_key
+        ));
+
+        foreach ($results as $meta_value) {
+            $data = maybe_unserialize($meta_value);
+            if (is_array($data) && !empty($data['structure_fp'])) {
+                $active_structure_hashes[$data['structure_fp']] = 1; // Hızlı lookup için hash map kullan
+            }
+        }
+
+        // (İsteğe bağlı) Terim (Term) meta verilerini tara
+        // Eğer term'ler için de bu sistemi kullanıyorsanız, buraya benzer bir sorgu ekleyin
+        // $results = $wpdb->get_col("... $wpdb->termmeta ...");
+        // ...
+
+        $active_structure_hashes = array_keys($active_structure_hashes);
+        error_log('[PAE] GC: ' . count($active_structure_hashes) . ' adet aktif yapı (structure) bulundu.');
+
+        // 3. Manifest'teki "tüm" kayıtları al
+        $manifest_templates = $manifest['templates'];
+        $manifest_plugins = $manifest['plugins'];
+        $all_manifest_structures = array_keys($manifest_templates);
+
+        // 4. Yetim (orphaned) yapıları bul (Manifest'te var ama aktifte yok)
+        $orphaned_structures = array_diff($all_manifest_structures, $active_structure_hashes);
+        
+        if (empty($orphaned_structures)) {
+            error_log('[PAE] GC: Yetim yapı bulunamadı. Temizlik tamamlandı.');
+            return true; // Temizlenecek bir şey yok
+        }
+
+        error_log('[PAE] GC: ' . count($orphaned_structures) . ' adet yetim yapı (structure) bulundu.');
+
+        // 5. Hangi dosyaların ve eklenti (plugin) hash'lerinin SİLİNECEĞİNİ ve hangilerinin KORUNACAĞINI belirle
+        $files_to_delete = [];
+        $plugins_to_delete = [];
+        $files_to_keep = [];
+        $plugins_to_keep = [];
+
+        // Önce "korunacakları" bulalım
+        foreach ($active_structure_hashes as $hash) {
+            if (!isset($manifest_templates[$hash])) continue;
+            
+            $template = $manifest_templates[$hash];
+            if (!empty($template['css'])) $files_to_keep[$template['css']] = 1;
+            if (!empty($template['css_rtl'])) $files_to_keep[$template['css_rtl']] = 1;
+            if (!empty($template['critical_css'])) $files_to_keep[$template['critical_css']] = 1;
+            if (!empty($template['plugins'])) $plugins_to_keep[$template['plugins']] = 1;
+        }
+
+        // Şimdi "silinecek adayları" bulalım
+        foreach ($orphaned_structures as $hash) {
+            if (!isset($manifest_templates[$hash])) continue;
+
+            $template = $manifest_templates[$hash];
+            if (!empty($template['css'])) $files_to_delete[$template['css']] = 1;
+            if (!empty($template['css_rtl'])) $files_to_delete[$template['css_rtl']] = 1;
+            if (!empty($template['critical_css'])) $files_to_delete[$template['critical_css']] = 1;
+            if (!empty($template['plugins'])) $plugins_to_delete[$template['plugins']] = 1;
+
+            // Bu "yetim" kaydı manifest'ten sil
+            unset($manifest['templates'][$hash]);
+        }
+
+        // 6. Eklenti (plugin) hash'lerini ve dosyalarını netleştir
+        $orphaned_plugin_hashes = array_diff(array_keys($plugins_to_delete), array_keys($plugins_to_keep));
+        
+        foreach($orphaned_plugin_hashes as $plugin_hash) {
+            if (!isset($manifest_plugins[$plugin_hash])) continue;
+            
+            $plugin_files = $manifest_plugins[$plugin_hash];
+            if (!empty($plugin_files['css'])) $files_to_delete[$plugin_files['css']] = 1;
+            if (!empty($plugin_files['css_rtl'])) $files_to_delete[$plugin_files['css_rtl']] = 1;
+            if (!empty($plugin_files['js'])) $files_to_delete[$plugin_files['js']] = 1;
+
+            // Bu "yetim" eklenti kaydını manifest'ten sil
+            unset($manifest['plugins'][$plugin_hash]);
+        }
+        
+        // 7. Silinecek son dosya listesini belirle (ÖNEMLİ: Korunacaklar listesinden çıkar)
+        $final_files_to_delete = array_diff(array_keys($files_to_delete), array_keys($files_to_keep));
+
+        // 8. Fiziksel dosyaları sil
+        $deleted_count = 0;
+        $base_path = rtrim(STATIC_PATH, '/'); // Varsayılan yol, gerekirse düzeltin
+
+        foreach ($final_files_to_delete as $relative_path) {
+            $file_path = $base_path . '/' . ltrim($relative_path, '/');
+            if (file_exists($file_path)) {
+                if (@unlink($file_path)) {
+                    $deleted_count++;
+                    error_log('[PAE] GC: Dosya silindi: ' . $file_path);
+                } else {
+                    error_log('[PAE] GC: HATA! Dosya silinemedi: ' . $file_path);
+                }
+            }
+        }
+
+        $structure_fp = $this->structure_fp; 
+        if (!empty($structure_fp)) {
+            
+            // 2. Kritik CSS dosya yolunu (structure_fp tabanlı) hesapla
+            $critical_css_relative_path = 'css/cache/' . $structure_fp . '-critical.css';
+
+            // 3. Manifest'teki templates kaydına kritik CSS yolunu ekle
+            // (Manifest'te ilgili $structure_fp kaydının zaten oluşturulmuş olduğunu varsayıyoruz)
+            $this->manifest['templates'][$structure_fp]['critical_css'] = $critical_css_relative_path;
+        }
+
+        // 9. Temizlenmiş manifest'i kaydet (Bkz. Bölüm 2: save_manifest)
+        $this->save_manifest($manifest);
+
+        error_log("[PAE] GC: Temizlik tamamlandı. $deleted_count dosya silindi. " . count($orphaned_structures) . " yapı kaydı manifest'ten kaldırıldı.");
+        return true;
+    }
+
+    /**
+     * Manifest dosyasını "kilitleyerek" güvenli bir şekilde okur.
+     * Yarış durumlarını (race conditions) engeller.
+     * @return array Manifest içeriği
+     */
+    protected function get_manifest()
+    {
+        // $this->manifest_path sınıfınızda tanımlı
+        $path = $this->manifest_path;
+        
+        if (!file_exists($path)) {
+            // Dosya yoksa, varsayılan boş manifest'i döndür
+            // $this->manifest sınıfınızda tanımlı
+            return $this->manifest; 
+        }
+
+        $content = false;
+        $fp = @fopen($path, 'r'); // Okuma modunda aç
+
+        if ($fp) {
+            // Paylaşımlı bir kilit al (okuma için)
+            // Diğer okumalara izin verir, ancak özel (yazma) kilitleri bekler
+            if (flock($fp, LOCK_SH)) { 
+                $content = @file_get_contents($path); // file_get_contents anlık okur
+                flock($fp, LOCK_UN); // Kilidi bırak
+            }
+            fclose($fp);
+        }
+
+        if ($content === false) {
+            error_log('[PAE] Manifest dosyası okunamadı (belki kilitli?): ' . $path);
+            // Okuma başarısız olursa (çok düşük ihtimal), varsayılanı döndür
+            return $this->manifest;
+        }
+
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('[PAE] Manifest JSON hatası! Dosya bozulmuş olabilir: ' . $path);
+            // Bozuksa, varsayılanı döndür (ve üzerine yazılmasını sağla)
+            return $this->manifest;
+        }
+
+        // Gelen veriyi sınıfın varsayılanı ile birleştir, eksik key'ler sorun çıkarmasın
+        return array_merge($this->manifest, $data);
+    }
+
+    /**
+     * Manifest dosyasını "kilitleyerek" güvenli bir şekilde yazar.
+     * @param array $data Kaydedilecek manifest dizisi
+     * @return bool Başarı durumu
+     */
+    protected function save_manifest(array $data)
+    {
+        $path = $this->manifest_path;
+        $json_data = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        $fp = @fopen($path, 'w'); // Yazma modunda aç (dosyayı oluşturur/sıfırlar)
+        if (!$fp) {
+            error_log('[PAE] Manifest dosyası yazmak için açılamadı! İzinleri kontrol edin: ' . $path);
+            return false;
+        }
+
+        // Özel bir kilit al (yazma için)
+        // Diğer tüm okuma (LOCK_SH) ve yazma (LOCK_EX) kilitlerini bekler
+        if (flock($fp, LOCK_EX)) {
+            $result = fwrite($fp, $json_data);
+            fflush($fp); // Buffer'ı diske zorla
+            flock($fp, LOCK_UN); // Kilidi bırak
+            fclose($fp);
+            
+            if ($result === false) {
+                error_log('[PAE] Manifest dosyasına yazma hatası: ' . $path);
+                return false;
+            }
+            return true;
+        } else {
+            fclose($fp);
+            error_log('[PAE] Manifest dosyası kilitlenemedi! (Başka bir süreç kilitledi): ' . $path);
+            return false;
+        }
+    }
+
+    /**
+     * Harici olarak Twig şablon yollarını ayarlar.
+     * Bu, sınıfın Timber/Twig bulucuya uymasını sağlar.
+     *
+     * @param array $paths Aranacak dizinlerin tam yollarını içeren dizi
+     */
+    public function set_twig_template_paths(array $paths)
+    {
+        // Sınıfınızdaki özelliğin adı 'twig_template_paths'
+        $this->twig_template_paths = $paths;
+    }
+
+
+    // =========================================================
+    //                STATİK CRON METODLARI
+    // =========================================================
+    // Bunlar dün oluşturduğumuz gibi kalabilir,
+    // `__construct` tarafından statik olarak çağrılmaları temiz bir yöntemdir.
+
+    /**
+     * [STATİK METOD] Cron zamanlayıcı eylemi.
+     */
+    public static function schedule_cleanup_event()
+    {
+        if (!wp_next_scheduled('my_daily_assets_cleanup')) {
+            wp_schedule_event(time(), 'daily', 'my_daily_assets_cleanup');
+        }
+    }
+
+    /**
+     * [STATİK METOD] Cron tarafından tetiklenen asıl temizlik görevi.
+    */
+    public static function run_cleanup_task()
+    {
+        error_log('[PAE] Cron (run_cleanup_task) tetiklendi. Temizlik başlıyor...');
+        
+        // Statik bir metodun içindeyiz, bu yüzden SADECE `get_instance()` 
+        // kullanarak sınıfın çalışan örneğini alabiliriz.
+        // YENİ BİR TANE OLUŞTURMAYIZ (`new`), mevcudu alırız.
+        $extractor = PageAssetsExtractor::get_instance();
+        
+        $extractor->cleanup_orphaned_assets();
+    }
+
 }
+
+/**
+ * ===================================================================
+ * SINIFI OTOMATİK BAŞLAT
+ * ===================================================================
+ * Bu satır, class.page-assets-extractor.php dosyanızın EN ALTINDA,
+ * sınıf tanımının dışında yer almalıdır.
+ *
+ * Sınıf dosyası "require" edildiği ANDA, bu kod çalışır,
+ * "get_instance()" metodunu tetikler. O metod da "new self()"
+ * ile constructor'ı SADECE BİR KEZ çalıştırır. Constructor da
+ * tüm "add_action" kancalarını kaydeder.
+ */
+PageAssetsExtractor::get_instance();

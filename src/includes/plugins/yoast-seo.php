@@ -304,6 +304,206 @@ if(get_option("options_breadcrumb_remove_home")){
 	add_filter('wpseo_breadcrumb_links', 'remove_home_from_breadcrumb', 9999, 1 );
 }
 
+/* Breadcrumb'a eklemek için option'dan alınan sayfa id'si
+$breadcrumb_add_page_path = get_option("options_breadcrumb_add_page_path");
+if (!empty($breadcrumb_add_page_path)) {
+    function add_page_path_to_breadcrumb($links) {
+        // Orijinal option'dan page id al
+        $orig_page_id = get_option("options_breadcrumb_add_page_path");
+        if (!$orig_page_id) return $links;
+
+        $page_id = (int)$orig_page_id;
+
+        // Polylang varsa, o anki dile çevrilmiş versiyonunu al
+        if (function_exists('pll_get_post')) {
+            $translated = pll_get_post($page_id);
+            if ($translated) $page_id = (int)$translated;
+        }
+
+        // WPML varsa, çevrilmiş versiyon al (fallback ile)
+        if (function_exists('icl_object_id') || has_filter('wpml_object_id')) {
+            if (has_filter('wpml_object_id')) {
+                $curr_lang = defined('ICL_LANGUAGE_CODE') ? ICL_LANGUAGE_CODE : (function_exists('wpml_current_language') ? wpml_current_language() : null);
+                if ($curr_lang) {
+                    $translated = apply_filters('wpml_object_id', $page_id, 'page', false, $curr_lang);
+                    if ($translated) $page_id = (int)$translated;
+                }
+            } elseif (function_exists('icl_object_id')) {
+                $curr_lang = defined('ICL_LANGUAGE_CODE') ? ICL_LANGUAGE_CODE : null;
+                if ($curr_lang) {
+                    $translated = icl_object_id($page_id, 'page', false, $curr_lang);
+                    if ($translated) $page_id = (int)$translated;
+                }
+            }
+        }
+
+        $page = get_post($page_id);
+        if (!$page) return $links;
+
+        // Eklenecek sayfa ve parentları hazırla (her link'e id ekliyoruz)
+        $page_link = array(
+            'id'  => $page->ID,
+            'url' => get_permalink($page->ID),
+            'text'=> get_the_title($page->ID)
+        );
+
+        $parents = array();
+        $parent_id = $page->post_parent;
+        while ($parent_id) {
+            $parent = get_post($parent_id);
+            if ($parent) {
+                $parents[] = array(
+                    'id'  => $parent->ID,
+                    'url' => get_permalink($parent->ID),
+                    'text'=> get_the_title($parent->ID)
+                );
+                $parent_id = $parent->post_parent;
+            } else {
+                break;
+            }
+        }
+        // En üst parent'tan başlayacak şekilde sırala
+        $parents = array_reverse($parents);
+
+        // Home tespiti: önce id ile dene (page_on_front)
+        $home_id = (int) get_option('page_on_front');
+        $home_index = null;
+
+        foreach ($links as $index => $link) {
+            // Eğer link id alanı varsa doğrudan karşılaştır
+            if (isset($link['id']) && intval($link['id']) === $home_id) {
+                $home_index = $index;
+                break;
+            }
+
+            // Fallback: bazı breadcrumb sağlayıcılar id koymaz, o zaman URL ile kontrol et
+            if ($home_index === null && isset($link['url']) && untrailingslashit($link['url']) === untrailingslashit(home_url('/'))) {
+                $home_index = $index;
+                break;
+            }
+        }
+
+        // Eklenecek blok (parents + page)
+        $to_insert = array_merge($parents, array($page_link));
+
+        if ($home_index !== null) {
+            // Home'dan sonra ekle
+            array_splice($links, $home_index + 1, 0, $to_insert);
+        } else {
+            // Home bulunmadıysa başa ekle
+            $links = array_merge($to_insert, $links);
+        }
+
+        return $links;
+    }
+    add_filter('wpseo_breadcrumb_links', 'add_page_path_to_breadcrumb', 9999, 1);
+}*/
+
+// Breadcrumb'a eklemek için option'dan alınan repeater verisi
+add_filter("init", function(){
+    $breadcrumb_add_page_path = get_field("breadcrumb_add_page_path", "option"); // repeater
+    if (!empty($breadcrumb_add_page_path) && is_array($breadcrumb_add_page_path)) {
+        function add_page_path_to_breadcrumb($links) {
+            global $post;
+            $current_post_type = $post->post_type ?? null;
+
+            if (!$current_post_type) return $links;
+
+            // Option'daki repeater verisini al
+            $pages_array = get_field("breadcrumb_add_page_path", "option");
+            if (!$pages_array || !is_array($pages_array)) return $links;
+
+            $page_id = null;
+
+            // Bulunduğumuz post_type için eşleşen page id'yi al
+            foreach ($pages_array as $item) {
+                if (isset($item['post_type'], $item['page']) && $item['post_type'] === $current_post_type) {
+                    $page_id = (int)$item['page'];
+                    break;
+                }
+            }
+
+            if (!$page_id) return $links;
+
+            // Polylang varsa çevir
+            if (function_exists('pll_get_post')) {
+                $translated = pll_get_post($page_id);
+                if ($translated) $page_id = (int)$translated;
+            }
+
+            // WPML varsa çevir
+            if (function_exists('icl_object_id') || has_filter('wpml_object_id')) {
+                if (has_filter('wpml_object_id')) {
+                    $curr_lang = defined('ICL_LANGUAGE_CODE') ? ICL_LANGUAGE_CODE : (function_exists('wpml_current_language') ? wpml_current_language() : null);
+                    if ($curr_lang) {
+                        $translated = apply_filters('wpml_object_id', $page_id, 'page', false, $curr_lang);
+                        if ($translated) $page_id = (int)$translated;
+                    }
+                } elseif (function_exists('icl_object_id')) {
+                    $curr_lang = defined('ICL_LANGUAGE_CODE') ? ICL_LANGUAGE_CODE : null;
+                    if ($curr_lang) {
+                        $translated = icl_object_id($page_id, 'page', false, $curr_lang);
+                        if ($translated) $page_id = (int)$translated;
+                    }
+                }
+            }
+
+            $page = get_post($page_id);
+            if (!$page) return $links;
+
+            // Parentları hazırla
+            $page_link = [
+                'id'  => $page->ID,
+                'url' => get_permalink($page->ID),
+                'text'=> get_the_title($page->ID)
+            ];
+
+            $parents = [];
+            $parent_id = $page->post_parent;
+            while ($parent_id) {
+                $parent = get_post($parent_id);
+                if ($parent) {
+                    $parents[] = [
+                        'id'  => $parent->ID,
+                        'url' => get_permalink($parent->ID),
+                        'text'=> get_the_title($parent->ID)
+                    ];
+                    $parent_id = $parent->post_parent;
+                } else break;
+            }
+            $parents = array_reverse($parents);
+
+            // Home tespiti
+            $home_id = (int) get_option('page_on_front');
+            $home_index = null;
+            foreach ($links as $index => $link) {
+                if (isset($link['id']) && intval($link['id']) === $home_id) {
+                    $home_index = $index;
+                    break;
+                }
+                if ($home_index === null && isset($link['url']) && untrailingslashit($link['url']) === untrailingslashit(home_url('/'))) {
+                    $home_index = $index;
+                    break;
+                }
+            }
+
+            $to_insert = array_merge($parents, [$page_link]);
+            if ($home_index !== null) {
+                array_splice($links, $home_index + 1, 0, $to_insert);
+            } else {
+                $links = array_merge($to_insert, $links);
+            }
+
+            return $links;
+        }
+        add_filter('wpseo_breadcrumb_links', 'add_page_path_to_breadcrumb', 9999, 1);
+    }
+});
+
+
+
+
+
 if (ENABLE_MULTILANGUAGE =="qtranslate") {
 
     function fix_translate_on_breadcrumb($links){

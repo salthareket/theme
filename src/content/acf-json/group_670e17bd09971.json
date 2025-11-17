@@ -1,6 +1,6 @@
 {
     "key": "group_670e17bd09971",
-    "title": "Settings Template",
+    "title": "Settings Custom Template",
     "fields": [
         {
             "key": "field_670e17bd71abc",
@@ -35,6 +35,11 @@
                 "param": "post_type",
                 "operator": "==",
                 "value": "template"
+            },
+            {
+                "param": "post_taxonomy",
+                "operator": "==",
+                "value": "template-types:custom"
             }
         ]
     ],
@@ -47,6 +52,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -54,7 +60,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740622,
+    "modified": 1761920833,
     "acfe_categories": {
         "general": "General"
     }

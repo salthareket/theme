@@ -1,6 +1,5 @@
-$required_setting = ENABLE_MEMBERSHIP;
-
 {
+    required : "bootbox",
     before: function(response, vars, form, objs) {
         console.log(response)
         if(!form){

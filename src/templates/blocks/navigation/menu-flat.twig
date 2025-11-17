@@ -1,0 +1,36 @@
+{% set menu_level = menu_level is empty?1:menu_level %}
+{% if menu_level <= 1 %}
+<ul class="smartmenu nav" data-sm-skip-collapsible-behavior data-sm-skip data-sm-skip-collapsible-behavior="true">
+{% endif %}
+
+{% for item in menu %}
+
+    {% set props = item.get_properties({parent_link: parent_link, menu_level: menu_level, max_level: max_level}) %}
+
+	<li class="{{props.item.class}}" data-menu-level="{{menu_level}}">
+		<a href="{{props.link.href}}" class="text-wrap {{props.link.class}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %} {{props.link.attrs}}>
+			<span itemprop="name">{{item.title}}</span>
+            {% if item.children and (menu_level < max_level) %}
+                <span class="sub-arrow"></span>
+            {% endif %}
+	    </a>
+		{% if item.children and (menu_level < max_level) %}
+			<ul class="dropdown-menu {% if props.megamenu %}mega-menu mega-menu-{{item.mega_menu_template}}{% endif %} z-{{menu_level}}" {% if menu_level > 1 %}style="max-height:350px;"{% endif %}>
+	
+
+		{% if props.megamenu %}
+            {% include ["navigation/mega-menu-" ~ item.mega_menu_template ~ ".twig", "navigation/mega-menu-default.twig"] with {'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'id':item.ID} %}
+        {% else %}
+		   	{% include "blocks/navigation/menu-flat.twig" with {'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1} %}
+        {% endif %}
+
+
+		</ul>
+		{% endif %}
+	</li>
+{% endfor %}
+
+{% if menu_level <= 1 %}
+    </ul>
+</nav>
+{% endif %}

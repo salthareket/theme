@@ -27,7 +27,7 @@
    {% set active_hover_style = fields.style.active_hover %}
 
    {% set map =  site.theme.uri ~ "/theme/static/data/world-map.svg" %}
-   {{map|inline_svg("world-map img-fluid position-relative w-100")}}
+   {{map|inline_svg({"class": "world-map img-fluid position-relative w-100"})}}
 
    <ul class="list-countries list-inline mt-5 text-md text-center">
       {% for country in fields.countries|pluck("label")|sort %}

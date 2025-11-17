@@ -163,7 +163,7 @@ function get_block_from_page($block_name, $source_page_id = null, $args = []) {
     return '';
 }
 
-
+//plyr video player
 function add_player_class_to_embed_block($block_content, $block) {
 
     switch ($block['blockName']) {
@@ -194,7 +194,7 @@ function add_player_class_to_embed_block($block_content, $block) {
 
     return $block_content;
 }
-add_filter('render_block', 'add_player_class_to_embed_block', 10, 2);
+//add_filter('render_block', 'add_player_class_to_embed_block', 10, 2);
 
 
 function wp_block_editor_width() {

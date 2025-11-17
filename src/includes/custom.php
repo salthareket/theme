@@ -121,14 +121,18 @@ class SaltBase{
                $this->user = Timber\Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
             }
         }
-        
-        $localization = new Localization();
-        $localization->woocommerce_support = true;
-        $this->localization = $localization;
+
+        if((ENABLE_IP2COUNTRY && ENABLE_IP2COUNTRY_DB) || ENABLE_LOCATION_DB){
+            $localization = new Localization();
+            $localization->woocommerce_support = true;
+            $this->localization = $localization;
+        }else{
+            $this->localization = [];
+        }
         
         //if(is_admin()){
-            $extractor = new PageAssetsExtractor();
-            $this->extractor = $extractor;            
+        //    $extractor = new PageAssetsExtractor();
+        //    $this->extractor = $extractor;            
         //}
 
         if(defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY){
@@ -307,7 +311,7 @@ class SaltBase{
                 error_log("🔹 $function çağırdı --> Dosya: $file - Satır: $line");
             }*/
 
-            $extractor = $this->extractor;//new PageAssetsExtractor();
+            $extractor = PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_post($post_id, $post, $update);
 
             // post'un featured image'ının alt text'i eklenmemişse post'un title'ını alt text olarak kaydet.
@@ -331,7 +335,7 @@ class SaltBase{
     public function on_term_published($term_id, $tt_id, $taxonomy){
         $taxonomy_object = get_taxonomy($taxonomy);
         if ($taxonomy_object && $taxonomy_object->public) {
-            $extractor = $this->extractor;//new PageAssetsExtractor();
+            $extractor = PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_term($term_id, $tt_id, $taxonomy);
         }
     }

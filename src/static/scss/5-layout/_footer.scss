@@ -2,11 +2,17 @@
 footer#footer{
 	position:relative;
 	padding:var(--footer-padding);
-	background-color:var(--footer-bg-color);
+	background-color: var(--footer-bg-color);
 	color:var(--footer-color);
-	//@include filter-gradient( $base-color, $base-color-dark, horizontal);
-	//@include background-image(linear-gradient(left top,  $base-color 0%, $base-color-dark  100%));
     height:auto;
+    background-image: var(--footer-bg-gradient);
+    
+    .img-footer{
+    	background-image: var(--footer-bg-image, "none");
+    	background-position: var(--footer-bg-position, "center");
+    	background-size: var(--footer-bg-size, "auto");
+    	background-repeat: var(--footer-bg-repeat, "no-repeat");
+    }
 
     a:not(.btn){
 		color:var(--footer-color-link);

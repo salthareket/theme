@@ -131,7 +131,6 @@ function get_theme_styles($variables = array(), $root = false){
         }
 
 
-
         // Body
         $body = $theme_styles["body"];
         $variables["font-primary"] = scss_variables_font($body["primary_font"]); //:root
@@ -141,6 +140,7 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["base-font-line-height"] = acf_units_field_value($body["line_height"]) ?? "inherit";
         $variables["base-letter-spacing"] = acf_units_field_value($body["letter_spacing"]);
         $variables["base-font-color"] = scss_variables_color($body["color"]);
+        $variables["base-link-color"] = scss_variables_color($body["link_color"])."!important;";
         $variables["body-bg-color"] = scss_variables_color($body["bg_color"]);
         $variables["body-bg-backdrop"] = scss_variables_color($body["backdrop_color"]);
         $variables["icon-font"] = scss_variables_font($body["icon-font"]); //:root
@@ -250,7 +250,6 @@ function get_theme_styles($variables = array(), $root = false){
         }
 
 
-
         // Nav
         $header_nav = $header["nav"];
         $variables["header-navbar-nav-width"] = $header_nav["width"];
@@ -353,7 +352,7 @@ function get_theme_styles($variables = array(), $root = false){
         // Dropdown
         $header_dropdown = $header["dropdown"];
         $header_dropdown_arrow = $header_dropdown["arrow"];
-        $variables["header-navbar-nav-dropdown-root-arrow"] = scss_variables_boolean($header_dropdown_arrow["arrow"])?"block":"none";
+        $variables["header-navbar-nav-dropdown-root-arrow"] = scss_variables_boolean($header_dropdown_arrow["arrow"])=="true"?"block":"none";
         $variables["header-navbar-nav-dropdown-root-arrow-top"] = $header_dropdown_arrow["top"];
         $variables["header-navbar-nav-dropdown-root-arrow-left"] = $header_dropdown_arrow["left"];
 
@@ -431,8 +430,29 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["footer-color"] = scss_variables_color($footer["color"]);
         $variables["footer-color-link"] = scss_variables_color($footer["link_color"]);
         $variables["footer-color-link-hover"] = scss_variables_color($footer["link_color_hover"]);
-        $variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]);
-        $variables["footer-bg-image"] = scss_variables_image($footer["bg_image"]);
+
+
+        //$variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]);
+        //$variables["footer-bg-image"] = scss_variables_image($footer["bg_image"]);
+        
+        if($footer["bg_color"]["gradient"]){
+            $variables["footer-bg-color"] = "transparent";
+            $variables["footer-bg-gradient"] = $footer["bg_color"]["gradient_color"];
+        }else{
+            $variables["footer-bg-gradient"] = "";
+            $variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]["color"]);
+        }
+        
+        if($footer["bg_image"]["image"]){
+            $variables["footer-bg-image"] = scss_variables_image($footer["bg_image"]["image"]);
+            $variables["footer-bg-size"] = $footer["bg_image"]["params"]["size"];
+            $variables["footer-bg-repeat"] = $footer["bg_image"]["params"]["repeat"];
+            $variables["footer-bg-position"] = $footer["bg_image"]["params"]["position_hr"]." ".$footer["bg_image"]["params"]["position_vr"];
+        }else{
+            $variables["footer-bg-size"] = "auto";
+            $variables["footer-bg-repeat"] = "no-repeat";
+            $variables["footer-bg-position"] = "center";
+        }
 
 
         // Breadcrumb
@@ -502,7 +522,27 @@ function get_theme_styles($variables = array(), $root = false){
         // Offcanvas
         $offcanvas = $theme_styles["offcanvas"];
         $offcanvas_general = $offcanvas["offcanvas"];
-        $variables["offcanvas-bg"] = scss_variables_color($offcanvas_general["bg_color"]);
+
+        if($offcanvas_general["bg_color"]["gradient"]){
+            $variables["offcanvas-bg-color"] = "transparent";
+            $variables["offcanvas-bg-gradient"] = $offcanvas_general["bg_color"]["gradient_color"];
+        }else{
+            $variables["offcanvas-bg-color"] = scss_variables_color($offcanvas_general["bg_color"]["color"]);
+            $variables["offcanvas-bg-gradient"] = "";
+        }
+
+        if($offcanvas_general["backdrop_color"]["gradient"]){
+            $variables["offcanvas-backdrop-color"] = "transparent";
+            $variables["offcanvas-backdrop-gradient"] = $offcanvas_general["backdrop_color"]["gradient_color"];
+        }else{
+            $variables["offcanvas-backdrop-color"] = scss_variables_color($offcanvas_general["backdrop_color"]["color"]);
+            $variables["offcanvas-backdrop-gradient"] = "";
+        }
+        $variables["offcanvas-backdrop-opacity"] = $offcanvas_general["backdrop_opacity"] ?? ".5";
+
+        
+
+        //$variables["offcanvas-bg"] = scss_variables_color($offcanvas_general["bg_color"]);
         $variables["offcanvas-padding"] = $offcanvas_general["padding"];
         $variables["offcanvas-align-hr"] = $offcanvas_general["align_hr"];
         $variables["offcanvas-align-vr"] = $offcanvas_general["align_vr"];
@@ -549,6 +589,10 @@ function get_theme_styles($variables = array(), $root = false){
         $header_tools_general = $header_tools["header_tools"];
 
             $height_header = $header_tools_general["height_header"]; // is same with header
+            if($height_header){
+                $header_tools_general["height"] = $header_general["height"];
+                $header_tools_general["height_affix"] = $header_general["height_affix"];
+            }
 
         foreach($header_tools_general["height"] as $key => $breakpoint){
             if($root){
@@ -634,7 +678,7 @@ function get_theme_styles($variables = array(), $root = false){
         $scroll_to_top = $theme_styles["utilities"]["scroll_to_top"];
         $variables["scroll-to-top-active"] = $scroll_to_top["active"];
         if($scroll_to_top["active"]){
-            $variables["scroll-to-top-show"] = scss_variables_boolean($scroll_to_top["show"])?"block":"none";
+            $variables["scroll-to-top-show"] = scss_variables_boolean($scroll_to_top["show"])=="true"?"block":"none";
             $variables["scroll-to-top-hr"] = $scroll_to_top["position_hr"];
             $variables["scroll-to-top-vr"] = $scroll_to_top["position_vr"];
             $variables["scroll-to-top-bg-color"] = $scroll_to_top["bg_color"];
@@ -1144,7 +1188,7 @@ function acf_get_raw_value($post_id, $field_name, $field_group_name, $index=0){ 
 }
 
 
-
+/*
 function acf_admin_colors_footer() { 
     $colors = [];
     $colors_file = THEME_STATIC_PATH . 'data/colors_mce.json';
@@ -1185,6 +1229,89 @@ function acf_admin_colors_footer() {
     </script>
 <?php }
 add_action('acf/input/admin_footer', 'acf_admin_colors_footer');
+*/
+
+function acf_admin_colors_footer() {
+    $colors = [];
+    $colors_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+
+    if (file_exists($colors_file)) {
+        $json = file_get_contents($colors_file);
+        $decoded = json_decode($json, true);
+        if (!empty($decoded)) {
+            $colors = array_keys($decoded);
+        }
+    }
+    ?>
+    <script type="text/javascript">
+    (function($) {
+        let colors = [];
+
+        <?php if (!empty($colors)) : ?>
+            colors = <?php echo json_encode($colors); ?>;
+        <?php else : ?>
+            let obj = getComputedStyle(document.documentElement);
+            let custom_colors = obj.getPropertyValue('--salt-colors').trim();
+            if (!IsBlank(custom_colors)) {
+                custom_colors = custom_colors.split(",");
+                custom_colors.forEach(color => {
+                    colors.push(obj.getPropertyValue('--bs-' + color.trim()).trim());
+                });
+            }
+        <?php endif; ?>
+
+        // --- ACF Color Picker ---
+        if (typeof acf !== 'undefined') {
+            acf.add_filter('color_picker_args', function(args, $field) {
+                args.palettes = colors;
+                return args;
+            });
+        }
+
+        // --- Gutenberg editör renkleri ---
+        if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
+            wp.domReady(function() {
+                const colorObjects = colors.map(c => ({
+                    name: c,
+                    slug: c.replace('#', '').replace(/\s+/g, '-'),
+                    color: c
+                }));
+                wp.data.dispatch('core/editor').updateEditorSettings({ colors: colorObjects });
+            });
+        }
+    })(jQuery);
+    </script>
+    <?php
+}
+add_action('acf/input/admin_footer', 'acf_admin_colors_footer');
+
+
+// --- Klasik TinyMCE editör için de renkleri otomatik olarak güncelle ---
+add_filter('tiny_mce_before_init', function($init) {
+    $colors = [];
+    $colors_file = THEME_STATIC_PATH . 'data/colors_mce.json';
+
+    if (file_exists($colors_file)) {
+        $json = file_get_contents($colors_file);
+        $decoded = json_decode($json, true);
+        if (!empty($decoded)) {
+            $colors = array_keys($decoded);
+        }
+    }
+
+    if (!empty($colors)) {
+        $color_str = '';
+        foreach ($colors as $color) {
+            $color_str .= "'{$color}', '{$color}',";
+        }
+
+        $init['textcolor_map']  = '[' . rtrim($color_str, ',') . ']';
+        $init['textcolor_rows'] = ceil(count($colors) / 8); // otomatik satır sayısı
+        $init['textcolor_cols'] = count($colors);            // ne kadar varsa hepsini göster
+    }
+
+    return $init;
+});
 
 
 function acf_admin_colors_gradients_footer() { 
@@ -1512,6 +1639,7 @@ function acf_add_field_options($field) {
         foreach (range(1, 12) as $number) {
             $options[$number] = $number;
         }
+        $options["auto"] = "auto";
         $field['choices'] = array();
         foreach ($options as $label) {
             $field['choices'][$label] = $label;
@@ -1634,19 +1762,41 @@ function acf_add_field_options($field) {
         $fonts['Font Awesome 6 Brands'] = 'Font Awesome 6 Brands';
         $font_families = array_merge( $fonts, $font_families );
 
-        if (class_exists("YABE_WEBFONT")) {
+        if (class_exists('YABE_WEBFONT')) {
             $custom_fonts = yabe_get_fonts();
-            if($custom_fonts){
-               $fonts = array();
-               $fonts["##Custom Fonts"] = "##Custom Fonts";
-               foreach($custom_fonts as $font){
-                   $name = $font["family"].(!empty($font["selector"])?", ".$font["selector"]:"");
-                   $fonts[$name] = $font["title"];
-               }
-               $font_families = array_merge( $fonts, $font_families );
+            if (!empty($custom_fonts)) {
+                $fonts = array();
+                $fonts['##Custom Fonts'] = '##Custom Fonts';
+
+                foreach ($custom_fonts as $font) {
+                    // debug isteğe bağlı, test bittikten sonra kaldır
+                    //error_log('YABE font item: ' . print_r($font, true));
+
+                    // family zorunlu değilse boş kontrolü
+                    $family = isset($font['family']) ? trim($font['family']) : '';
+                    $selector = isset($font['selector']) ? trim($font['selector']) : '';
+
+                    if ($family === '') {
+                        continue; // family yoksa geç
+                    }
+
+                    // Eğer family içinde birden fazla kelime / özel karakter varsa tırnakla sar,
+                    // tek kelime ise tırnaksız da olabilir; güvenli taraf için tırnakla sarıyoruz.
+                    $family_safe = "'" . str_replace("'", "", $family) . "'";
+
+                    $name = $family_safe;
+                    if ($selector !== '') {
+                        // selector zaten "Arial, Helvetica, sans-serif" biçiminde geliyorsa olduğu gibi ekle
+                        $name .= ', ' . $selector;
+                    }
+
+                    $fonts[$name] = isset($font['title']) ? $font['title'] : $family;
+                }
+
+                $font_families = array_merge($fonts, $font_families);
             }
         }
-        
+
         $font_families = array_merge( array('##Defaults' => '##Defaults', 'initial' => 'initial', 'inherit' => 'inherit'), $font_families );
         $field['choices'] = array();
         foreach($font_families as $value => $label) {
@@ -2095,6 +2245,49 @@ function acf_add_field_options($field) {
         }
     }
 
+    if (in_array("acf-template-custom-footer", $class) || in_array("acf-template-custom-footer-default", $class)) {
+    
+        // Template query'si: sadece footer term'li template postları
+        $templates = get_posts([
+            'post_type'      => 'template',
+            'posts_per_page' => -1,
+            'tax_query'      => [
+                [
+                    'taxonomy' => 'template-types',
+                    'field'    => 'slug',
+                    'terms'    => 'footer',
+                ],
+            ],
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ]);
+
+        // Başlangıç boş choices dizisi
+        $field['choices'] = [];
+
+        // Eğer default class varsa, “Default” ekle
+        if (in_array("acf-template-custom-footer-default", $class)) {
+            $field['choices']['default'] = "Default";
+        }
+
+        // Örnek: predefined bir seçim varsa onu da ekle
+        $field['choices']['static'] = "Static";
+
+        // Query sonucu template’leri ekle
+        if (!empty($templates)) {
+            foreach ($templates as $template) {
+                //$slug = $template->post_name;
+                $title = $template->post_title ?: $slug;
+                // HTML ve twig birlikte olabilir, biz sadece mantıklı slug + title gösteriyoruz
+                //$field['choices'][ 'theme/templates/_custom/'.$slug."_{{lang}}.twig"] = $title;
+                $field['choices'][ $template->ID ] = $title;
+            }
+        }
+
+        return $field;
+    }
+
+
     if(in_array("acf-template-modal", $class)){
         //$handle = get_stylesheet_directory() . "/templates/partials/modals";
         $handle = get_timber_template_path( "/partials/modals/" );
@@ -2239,6 +2432,98 @@ function acf_add_field_options($field) {
         }
         if(in_array("acf-color-classes-custom", $class)){
             $field['choices']["custom"] = "Custom";
+        }
+    }
+
+    if(in_array("acf-contact-phone", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $field['choices'] = array();
+        $args = array(
+            'post_type' => 'contact', // Post tipi 'contaxt' olanları seç
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => 'contact_phone', // 'contact' grubu içindeki 'accounts' alanını seç
+                    'value' => '', // Boş olmayanları kontrol etmek için
+                    'compare' => '!=' // 'accounts' metası boş değilse
+                )
+            )
+        );
+        $options = [];
+        $results = Timber::get_posts($args);
+        if($results){
+            foreach($results as $result){
+                $phones = $result->meta("contact_phone");
+                if($phones){
+                    foreach($phones as $phone){
+                        $options[] = [
+                            "label" => $result->title."(".$phone["type"]."): ".$phone["number"],
+                            "value" => $phone["number"]
+                        ];
+                    }
+                }
+            }
+            if($options){
+                foreach($options as $item) {
+                    $field['choices'][$item['value']] = $item['label'];
+                }
+            }
+        }else{
+            $field["search_placeholder"] = "Not Found";
+        }
+    }
+
+    if(in_array("acf-contact-email", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 0;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = 0;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $field['choices'] = array();
+        $args = array(
+            'post_type' => 'contact', // Post tipi 'contaxt' olanları seç
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => 'contact_email', // 'contact' grubu içindeki 'accounts' alanını seç
+                    'value' => '', // Boş olmayanları kontrol etmek için
+                    'compare' => '!=' // 'accounts' metası boş değilse
+                )
+            )
+        );
+        $options = [];
+        $results = Timber::get_posts($args);
+        if($results){
+            foreach($results as $result){
+                $emails = $result->meta("contact_email");
+                if($emails){
+                    foreach($emails as $email){
+                        $options[] = [
+                            "label" => $result->title."(".$email["type"]."): ".$email["email"],
+                            "value" => $email["email"]
+                        ];
+                    }
+                }
+            }
+            if($options){
+                foreach($options as $item) {
+                    $field['choices'][$item['value']] = $item['label'];
+                }
+            }
+        }else{
+            $field["search_placeholder"] = "Not Found";
         }
     }
 
@@ -3678,6 +3963,9 @@ function acf_compile_js_css($value=0){
                     $type = "success";
                     $message = "scss files compiled!...";
                     $message .= "<br>js files compiled!...";
+                    $tz = wp_timezone();
+                    $now = new DateTime('now', $tz);
+                    $message .= "<br>on <strong>".$now->format('Y-m-d H:i:s')."</strong>";
                 }                
             }else{
                 $type = "error";
@@ -4634,6 +4922,7 @@ function save_theme_styles_colors($theme_styles){
     $colors_list_file = THEME_STATIC_PATH . 'data/colors.json';
     $colors_mce_file = THEME_STATIC_PATH . 'data/colors_mce.json';
     $colors_file = THEME_STATIC_PATH . 'scss/_colors.scss';
+    $colors_gradients_file = THEME_STATIC_PATH . 'data/colors_gradients.json';
     
     // Kod stringlerini başlat
     $colors_code = "";
@@ -4641,6 +4930,7 @@ function save_theme_styles_colors($theme_styles){
     $colors_mce = [];
     $custom_colors = "$" . "custom-colors: (\n";
     $colors_list_items = [];
+    $colors_gradients = [];
 
     $colors = $theme_styles["colors"];
 
@@ -4669,6 +4959,15 @@ function save_theme_styles_colors($theme_styles){
         }
     }
 
+    if($colors["custom_gradients"]){
+        foreach($colors["custom_gradients"] as $color){
+            $colors_gradients[] = [
+                "name" => $color["title"],
+                "gradient" => $color["color"]
+            ];
+        }
+    }
+
     $custom_colors = rtrim($custom_colors, ",\n") . "\n);\n";
     $colors_only = rtrim($colors_only, ",");
 
@@ -4682,6 +4981,7 @@ function save_theme_styles_colors($theme_styles){
     // JSON dosyalarına yaz
     file_put_contents($colors_list_file, json_encode($colors_list_default));
     file_put_contents($colors_mce_file, json_encode($colors_mce));
+    file_put_contents($colors_gradients_file, json_encode($colors_gradients));
 
     return $colors_only;
 }
@@ -5233,8 +5533,6 @@ add_action('admin_footer', function () {
     </script>
     <?php
 });
-
-
 
 if(ENABLE_ECOMMERCE){
     add_filter('acf/location/rule_values/post_type', 'acf_location_rule_values_Post');

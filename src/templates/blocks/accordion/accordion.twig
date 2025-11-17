@@ -23,7 +23,6 @@
 
 {% block block_content %}
 
-
     {% if fields.post_type != "" %}
         {% if fields.categories %}
             {% set posts = function("get_posts_by_taxonomy_terms", fields.post_type) %}
@@ -33,8 +32,8 @@
         {% endif %}
     {% else %}
 
-        {% if (fields.custom and field.posts) or fields.posts_relation %}
-            {% if fields.custom and field.posts %}
+        {% if (fields.custom and fields.posts) or fields.posts_relation %}
+            {% if fields.custom and fields.posts %}
                {% set posts = fields.posts %} 
             {% endif %}
             {% if fields.posts_relation %}
@@ -58,7 +57,7 @@
     {% if posts %}
 
         {% set accordion_id = blockData.id ~ "-accordion" %}
-        <div class="accordion-custom accordion-seperated- w-100 my-auto-- {% if not fields.collapsible and not fields.collapsible_categories %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1  %}mt-5{% endif %}" id="{{accordion_id}}">
+        <div class="accordion-custom {% if fields.seperated %}accordion-seperated{% endif %} w-100 my-auto-- {% if not fields.collapsible and not fields.collapsible_categories %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1  %}mt-5{% endif %}" id="{{accordion_id}}">
             {% for term in posts %}
 
                 {% if term.posts %}
@@ -84,8 +83,8 @@
                                     </button>
                                 </{{fields.heading_category}}>
                                 <div id="collapse-{{id}}" class="accordion-collapse collapse" aria-labelledby="heading-{{id}}" data-bs-parent="#{{parent}}" data-scroll="{{fields.collapsible_scroll}}" data-scroll-hidden="parent">
-                                    <div class="accordion-body pb-0">
-                                         <div class="accordion-custom accordion-seperated- w-100 my-auto {% if not fields.collapsible %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1 and not fields.collapsible_categories %}mt-7{% else %}mb-5{% endif %}" id="{{parent}}-{{term.term.id}}">
+                                    <div class="accordion-body pb-0-">
+                                         <div class="accordion-custom {% if fields.seperated %}accordion-seperated{% endif %} w-100 my-auto {% if not fields.collapsible %}accordion-not-collapsible{% endif %} accordion {% if loop.index > 1 and not fields.collapsible_categories %}mt-7{% else %}mb-5{% endif %}" id="{{parent}}-{{term.term.id}}">
 
                     {% else %}
 
@@ -120,7 +119,7 @@
                                         {% endif %}
                                     </{{fields.heading}}>
                                     <div id="collapse-post-{{id}}" class="accordion-collapse collapse {% if not fields.collapsible %}show{% endif %}" aria-labelledby="heading-post-{{id}}" data-bs-parent="#{{parent}}" data-scroll="{{fields.collapsible_scroll}}" data-scroll-hidden="parent">
-                                        <div class="accordion-body pb-0">
+                                        <div class="accordion-body pb-0-">
                                             {{item.content}}
                                         </div>
                                     </div>

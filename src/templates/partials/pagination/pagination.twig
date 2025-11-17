@@ -42,7 +42,7 @@
 
 				  {% if posts.pagination.prev %}
 					  <li class="page-item prev {{posts.pagination.prev.link|length ? '' : 'invisible'}}">
-						  <a href="{{posts.pagination.prev.link}}" class="page-link" aria-label="Previous">
+						  <a href="{{posts.pagination.prev.link}}" class="page-link btn-loading-page" aria-label="Previous">
 							<span aria-hidden="true"></span>
 						  </a>
 					  </li>
@@ -50,7 +50,7 @@
 				  {% for page in posts.pagination.pages %}
 				     <li class="page-item {{page.current ? 'active' : ''}}">
 					   {% if page.link %}
-						  <a href="{{page.link}}" class="page-link {{page.class}}">{{page.title}}</a>
+						  <a href="{{page.link}}" class="page-link {{page.class}} btn-loading-page">{{page.title}}</a>
 					   {% else %}
 					      <span class="page-link {{page.class}}">{{page.title}}</span>
 					   {% endif %}
@@ -58,7 +58,7 @@
 				  {% endfor %}
 				  {% if posts.pagination.next %}
 					<li class="page-item next {{posts.pagination.next.link|length ? '' : 'invisible'}}">
-						<a href="{{posts.pagination.next.link}}" class="page-link" aria-label="Next">
+						<a href="{{posts.pagination.next.link}}" class="page-link btn-loading-page" aria-label="Next">
 						  <span aria-hidden="true"></span>
 						</a>
 					</li>

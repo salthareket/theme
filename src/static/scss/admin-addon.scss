@@ -454,3 +454,28 @@ table.wp-list-table.tags{
         width:100%;
     }
 }
+
+
+
+
+
+
+
+/* ACF Color Picker genişletme */
+.wp-picker-container {
+    width: auto !important;
+}
+
+.wp-picker-holder .iris-picker {
+    max-width: 500px !important; /* istersen genişlik */
+}
+
+.wp-picker-holder .iris-picker .iris-palette {
+    flex-wrap: wrap; /* Çok renk varsa yeni satıra geçsin */
+}
+
+.wp-picker-holder .iris-picker .iris-palette .iris-palette-color {
+    width: 24px !important;  /* renk kutucuğu boyutu */
+    height: 24px !important;
+    margin: 2px !important;
+}

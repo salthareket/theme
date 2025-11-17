@@ -23,12 +23,6 @@ var root = {
         return this.classes.hasClass(document.body, "logged")
     },
 
-    check_classes: function() {},
-
-    add_function: function($name, $func) {
-        this[$name] = $func;
-    },
-
     on_resize: {},
 
     classes: {
@@ -55,42 +49,57 @@ var root = {
     css_vars: [],
 
     get_css_vars: function() {
-        var arr = {};
-        var obj = getComputedStyle(document.documentElement);
-        /*arr['header-height-xxxl'] = parseFloat(obj.getPropertyValue('--header-height-xxxl').trim());
-        arr['header-height-xxl'] = parseFloat(obj.getPropertyValue('--header-height-xxl').trim());
-        arr['header-height-xl'] = parseFloat(obj.getPropertyValue('--header-height-xl').trim());
-        arr['header-height-lg'] = parseFloat(obj.getPropertyValue('--header-height-lg').trim());
-        arr['header-height-md'] = parseFloat(obj.getPropertyValue('--header-height-md').trim());
-        arr['header-height-sm'] = parseFloat(obj.getPropertyValue('--header-height-sm').trim());
-        arr['header-height-xs'] = parseFloat(obj.getPropertyValue('--header-height-xs').trim());*/
+        setTimeout(function() {
+            var arr = {};
+            var obj = getComputedStyle(document.documentElement);
+            /*arr['header-height-xxxl'] = parseFloat(obj.getPropertyValue('--header-height-xxxl').trim());
+            arr['header-height-xxl'] = parseFloat(obj.getPropertyValue('--header-height-xxl').trim());
+            arr['header-height-xl'] = parseFloat(obj.getPropertyValue('--header-height-xl').trim());
+            arr['header-height-lg'] = parseFloat(obj.getPropertyValue('--header-height-lg').trim());
+            arr['header-height-md'] = parseFloat(obj.getPropertyValue('--header-height-md').trim());
+            arr['header-height-sm'] = parseFloat(obj.getPropertyValue('--header-height-sm').trim());
+            arr['header-height-xs'] = parseFloat(obj.getPropertyValue('--header-height-xs').trim());*/
 
-        arr['header-height'] = parseFloat(obj.getPropertyValue('--header-height').trim());
+            arr['header-height'] = parseFloat(obj.getPropertyValue('--header-height').trim());
 
-        /*arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
-        arr['header-height-xxxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxxl-affix').trim());
-        arr['header-height-xxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxl-affix').trim());
-        arr['header-height-xl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xl-affix').trim());
-        arr['header-height-lg-affix'] = parseFloat(obj.getPropertyValue('--header-height-lg-affix').trim());
-        arr['header-height-md-affix'] = parseFloat(obj.getPropertyValue('--header-height-md-affix').trim());
-        arr['header-height-sm-affix'] = parseFloat(obj.getPropertyValue('--header-height-sm-affix').trim());
-        arr['header-height-xs-affix'] = parseFloat(obj.getPropertyValue('--header-height-xs-affix').trim());*/
+            /*arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
+            arr['header-height-xxxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxxl-affix').trim());
+            arr['header-height-xxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxl-affix').trim());
+            arr['header-height-xl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xl-affix').trim());
+            arr['header-height-lg-affix'] = parseFloat(obj.getPropertyValue('--header-height-lg-affix').trim());
+            arr['header-height-md-affix'] = parseFloat(obj.getPropertyValue('--header-height-md-affix').trim());
+            arr['header-height-sm-affix'] = parseFloat(obj.getPropertyValue('--header-height-sm-affix').trim());
+            arr['header-height-xs-affix'] = parseFloat(obj.getPropertyValue('--header-height-xs-affix').trim());*/
 
-        arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
+            arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
 
-        arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
-        arr['hero-height-xxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxl').trim());
-        arr['hero-height-xl'] = parseFloat(obj.getPropertyValue('--hero-height-xl').trim());
-        arr['hero-height-lg'] = parseFloat(obj.getPropertyValue('--hero-height-lg').trim());
-        arr['hero-height-md'] = parseFloat(obj.getPropertyValue('--hero-height-md').trim());
-        arr['hero-height-sm'] = parseFloat(obj.getPropertyValue('--hero-height-sm').trim());
-        arr['hero-height-xs'] = parseFloat(obj.getPropertyValue('--hero-height-xs').trim());
-        root.css_vars = arr;
+            arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
+            arr['hero-height-xxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxl').trim());
+            arr['hero-height-xl'] = parseFloat(obj.getPropertyValue('--hero-height-xl').trim());
+            arr['hero-height-lg'] = parseFloat(obj.getPropertyValue('--hero-height-lg').trim());
+            arr['hero-height-md'] = parseFloat(obj.getPropertyValue('--hero-height-md').trim());
+            arr['hero-height-sm'] = parseFloat(obj.getPropertyValue('--hero-height-sm').trim());
+            arr['hero-height-xs'] = parseFloat(obj.getPropertyValue('--hero-height-xs').trim());
+            root.css_vars = arr;
+        }, 50);
     },
 
     get_css_var: function($var) {
         var obj = getComputedStyle(document.documentElement);
         return parseFloat(obj.getPropertyValue('--' + $var).trim());
+    },
+
+    throttle: function(fn, wait) {
+        let timeout = null;
+        return function() {
+            const context = this, args = arguments;
+            if (!timeout) {
+                timeout = setTimeout(function() {
+                    timeout = null;
+                    fn.apply(context, args);
+                }, wait);
+            }
+        };
     },
 
     browser: {
@@ -126,125 +135,23 @@ var root = {
             return bodyClass;
         },
 
-        enquire: function() {
-            if (typeof enquire !== "undefined") {
-                var bodyObj = window.document.documentElement; //document.body;
-                /*extra small*/
-                enquire.register("(max-width: 575px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-xs");
-                        var size = root.browser.size();
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xs"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-xs");
+        closeOffcanvas: function($breakpoint){
+            let breakpoints = ["xs", "sm", "md", "lg", "xl", "xxl", "xxxl"];
+            let offcanvas = $(".offcanvas.show");
+            if (!$offcanvas.length) return;
+            breakpoints.forEach(function(bp){
+                if (bp === $breakpoint) return;
+                if ($offcanvas.hasClass(`offcanvas-${bp}`)) {
+                    let bsOffcanvas = bootstrap.Offcanvas.getInstance($offcanvas[0]);
+                    if (bsOffcanvas) {
+                        bsOffcanvas.hide();
+                    } else {
+                        $offcanvas.removeClass("show").hide(); // fallback
                     }
-                });
-                enquire.register("(min-width: 576px) and (max-width: 767px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-sm");
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-sm"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-sm");
-                    }
-                });
-                /*medium*/
-                enquire.register("(min-width: 768px) and (max-width: 991px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-md");
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-md"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-md");
-                    }
-                });
-                /*large*/
-                enquire.register("(min-width: 992px) and (max-width: 1199px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-lg");
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-lg"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-lg");
-                    }
-                });
-                /*xlarge*/
-                enquire.register("(min-width: 1200px) and (max-width: 1399px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-xl");
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xl"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-xl");
-                    }
-                });
-                /*xxlarge*/
-                enquire.register("(min-width: 1400px) and (max-width: 1599px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-xxl");
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xxl"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-xxl");
-                    }
-                });
-                /*xxxlarge*/
-                enquire.register("(min-width: 1600px)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "size-xxxl");
-                        $(window).on("resize", function(){
-                            //$("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.css_vars["header-height-xxxl"]);
-                            $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height"));
-                            /*setTimeout(function(){
-                                if($("header#header.fixed-bottom-start").hasClass("affix")){
-                                    $("header#header.fixed-bottom-start").attr("data-affix-offset", window.innerHeight - root.get_css_var("header-height-affix"));
-                                }
-                            }, 100);*/
-                        }).trigger("resize");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "size-xxxl");
-                    }
-                });
-                /*landscape*/
-                enquire.register("screen and (orientation: landscape)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "orientation-ls");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "orientation-ls");
-                    }
-                });
-                /*portrait*/
-                enquire.register("screen and (orientation: portrait)", {
-                    match: function() {
-                        root.classes.addClass(bodyObj, "orientation-pr");
-                    },
-                    unmatch: function() {
-                        root.classes.removeClass(bodyObj, "orientation-pr");
-                    }
-                });
-            };
-        }
+                }
+            });
+        },
+
     },
 
     ui: {
@@ -261,49 +168,29 @@ var root = {
         },
 
         viewport: function() {
-           
-            $(window).scroll(function() {
+            const checkViewportStatus = function() {
                 $('.viewport').each(function() {
-                var obj = $(this);
-
-                    /*var tolerance = parseInt(IsBlank(obj.data("tolerance"))?0:obj.data("tolerance"));
-                    var condition = tolerance == 0 ? obj.is(":in-viewport") : obj.is(":in-viewport("+tolerance+")")
-                    if (condition) {
-                        if(tolerance){
-                            obj.attr("top",  (obj.offset().top - $(window).scrollTop()));
-                            obj.removeClass('in-viewport'); 
-                        }else{
-                            obj.addClass('in-viewport')
-                        }
-                    }else{
-                        if(tolerance){
-                            obj.attr("top", (obj.offset().top - $(window).scrollTop()));
-                            obj.addClass('in-viewport')
-                        }else{
-                            obj.removeClass('in-viewport');
-                        }
-                    }*/
-
+                    var obj = $(this);
                     var posY = obj.offset().top - $(window).scrollTop();
                     if(posY < 0){
-                       obj.addClass('out-viewport')
+                        obj.addClass('out-viewport');
                     }else{
-                       obj.removeClass('out-viewport');
+                        obj.removeClass('out-viewport');
                     }
 
                     if (obj.is(":in-viewport")) {
                         obj.addClass('in-viewport');
                         if(!IsBlank(obj.data("viewport-func"))){
-                           window[obj.data("viewport-func")](obj);
-                           obj.data("viewport-func", "");
+                            window[obj.data("viewport-func")](obj);
+                            obj.data("viewport-func", "");
                         }
                     } else {
                         obj.removeClass('in-viewport');
                     }
                 });
-            });
-            $(window).trigger("scroll");
-            $(window).scrollTop()
+            };
+            $(window).on('scroll resize', root.throttle(checkViewportStatus, 100));
+            setTimeout(checkViewportStatus, 150);
         },
 
         navigation: function() {
@@ -364,17 +251,7 @@ var root = {
                     root.hash = $(e.target).find("a").attr("href");
                     history.pushState(root.hash, document.title, window.location.pathname + root.hash);
                 }
-            });*/
-
-            /*show only one sub menu*/
-            if(isLoadedJS("smartmenus")){
-                obj.find("a.has-submenu").on("click", function() {
-                    if (!$(this).hasClass("highlighted")) {
-                        //$.SmartMenus.hideAll();
-                        obj.find(".navbar-nav").smartmenus('menuHideAll');
-                    }
-                });
-            }
+            });
 
             $(window).on("click.Bst", function(e) {
                 if ($('header#header').has(e.target).length == 0 && !$('header#header').is(e.target)) {
@@ -382,18 +259,7 @@ var root = {
                         $(".navbar-collapse").collapse("hide");
                     }
                 }
-            });
-
-            obj.find(".navbar-nav-main")
-                .on('show.smapi', function(e, menu) {
-                    $("body").addClass("menu-dropdown-open");
-                    $(".collapse-search.show").collapse("hide");
-                })
-                .on('hide.smapi', function(e, menu) {
-                    if ($(menu).parent().data("menu-level") == 1) {
-                        $("body").removeClass("menu-dropdown-open");
-                    }
-                });
+            });*/
         },
 
         offset_top: function() {
@@ -411,10 +277,14 @@ var root = {
             var scrollPos = window.pageYOffset || document.documentElement.scrollTop;
             var header_hide = $("body").hasClass("header-hide-on-scroll");
             $("body").addClass("scroll-dedect");
+
             var sticky_tops = document.querySelectorAll('.sticky-top');
+            var sticky_bottoms = document.querySelectorAll('.sticky-bottom'); // <--- sticky bottom
+
             window.addEventListener('scroll', function() {
                 var currentPos = window.pageYOffset || document.documentElement.scrollTop;
 
+                // sticky top işlemleri
                 sticky_tops.forEach(function(sticky_top) {
                     var sticky_top_style = window.getComputedStyle(sticky_top);
                     var top = parseInt(sticky_top_style.top);
@@ -423,6 +293,18 @@ var root = {
                         sticky_top.classList.add('sticked');
                     } else {
                         sticky_top.classList.remove('sticked');
+                    }
+                });
+
+                // sticky bottom işlemleri
+                sticky_bottoms.forEach(function(sticky_bottom) {
+                    var sticky_bottom_style = window.getComputedStyle(sticky_bottom);
+                    var bottom = parseInt(sticky_bottom_style.bottom);
+
+                    if (sticky_bottom.getBoundingClientRect().bottom === window.innerHeight - bottom) {
+                        sticky_bottom.classList.add('sticked');
+                    } else {
+                        sticky_bottom.classList.remove('sticked');
                     }
                 });
 
@@ -453,7 +335,6 @@ var root = {
                 scrollPos = currentPos;
             });
         },
-
 
         scroll_top: function() {
             if ($('.scroll-to-top').length > 0) {
@@ -513,28 +394,13 @@ var root = {
                     if ($(target).hasClass("card-merged") | $(target).hasClass("collapse")) {
                         root.hash = "";
                     }
-                   // var collapse_offset = 0;
-                    if (_history) {
-                    //    history.pushState("", document.title, window.location.pathname);
-                    }
-                    /*var hasCollapseScroll = false;
-                    var collapseScroll = $(target).closest(".card-collapse-scroll");
-                    if (collapseScroll.length > 0) {
-                        hasCollapseScroll = true;
-                        collapseScroll.addClass("card-collapse-scroll-paused");
-                        var collapse_offset = $(target).data("collapse-offset");
-                    }*/
-
 
                     if ($(target).not(".show").hasClass("collapse")) {
                         $(target).collapse("show");
                     }
 
                     if ($(target).not(".active").hasClass("tab-pane")) {
-                        //$(target).parent().find(">.tab-pane.active").removeClass("active");
-                        //$("a[href='"+target+"']").closest(".nav").find(".active").removeClass("active");
                         $("a[href='" + target + "']").trigger("click");
-                        //$(target).tab("show");
                     }
 
                     var posY = $(target).offset().top;
@@ -563,7 +429,6 @@ var root = {
                                     scrollTop: posY
                                 }, 600, function() {
                                     if (_history) {
-                                    //    history.pushState(target, document.title, window.location.pathname + target);
                                         root.hash = target;
                                     }
                                 });
@@ -578,8 +443,6 @@ var root = {
                        }
                     }
 
-
-                    //if (($("header#header").hasClass("affix") || $("header#header").hasClass("fixed-top")) && !$("body").hasClass("scroll-dedect")) {
                     if (($("header#header").hasClass("affix") || $("header#header").hasClass("fixed-top")) ) {
                         if (posY >= headerHeight) {
                             posY -= headerHeight;
@@ -595,7 +458,6 @@ var root = {
                             }
                         }else{
                             //asagi
-                   
                         }
                     }else{
                         posY -= headerHeightAffix;
@@ -604,27 +466,12 @@ var root = {
                     if ($(".stick-top.sticky").length > 0) {
                         posY -= $(".stick-top.sticky").outerHeight(true);
                     }
-                    /*if (!IsBlank(collapse_offset)) {
-                        posY -= collapse_offset;
-                    }*/
-
-
-                    /*window.scrollTo({
-                                                      top: posY,
-                                                      behavior: "smooth"
-                    });*/
-                    
 
                     if ($animate) {
-                        //debugJS(posY)
                         $("html, body").stop().animate({
                             scrollTop: posY
                         }, 600, function() {
-                            /*if (hasCollapseScroll) {
-                                collapseScroll.removeClass("card-collapse-scroll-paused");
-                            }*/
                             if (!$outside && !IsBlank(root.hash)) {
-                                ////debugJS(" 1 hash="+root.hash)
                                 if (_history) {
                                 //    history.pushState(root.hash, document.title, window.location.pathname + root.hash);
                                 }
@@ -634,21 +481,17 @@ var root = {
                             }
                         });
                     } else {
-                        //debugJS("no animat")
+
                         $("html, body").stop().animate({
                             scrollTop: posY
                         }, 0, function() {
-                            /*if (hasCollapseScroll) {
-                                collapseScroll.removeClass("card-collapse-scroll-paused");
-                            }*/
+
                             if (!$outside && !IsBlank(root.hash)) {
-                                ////debugJS(" 2 hash="+root.hash)
                                 if (_history) {
                                 //    history.pushState(root.hash, document.title, window.location.pathname + root.hash);
                                 }
                             }
                             if(!IsBlank($callback)){
-                                //debugJS("callback")
                                 $callback();
                             }
                         });
@@ -659,7 +502,6 @@ var root = {
         },
 
         scroll_to_actions: function() {
-            //$("a").not("[data-bs-toggle]").not("[data-ajax-method]").not(".scroll-to-init").on("click", function(e) {
             $(document).on("click", "a:not([data-bs-toggle]):not([data-ajax-method]):not(.scroll-to-init)", function(e){
                 var btn = $(this);
                 btn.addClass("scroll-to-init");
@@ -686,40 +528,6 @@ var root = {
                 }
            });
         },
-
-        /*prev_next: function() {
-            $(document).keydown(function(e) {
-                var prev = $("link[rel=prev]").attr("href");
-                var next = $("link[rel=next]").attr("href");
-                if (prev || next) {
-                    switch (e.which) {
-                        case 37: // left
-                            if (!IsBlank(prev)) {
-                                if (prev.indexOf("#") < 0) {
-                                    pageLoadUrl(prev);
-                                } else {
-                                    window.location.href = prev;
-                                }
-                            }
-                            break;
-                        case 38: // up
-                            break;
-                        case 39: // right
-                            if (next.indexOf("#") < 0) {
-                                pageLoadUrl(next);
-                            } else {
-                                window.location.href = next;
-                            }
-                            break;
-                        case 40: // down
-                            break;
-                        default:
-                            return;
-                    }
-                    e.preventDefault();
-                }
-            });
-        },*/
 
         prev_next: function() {
             $(document).keydown(function(e) {
@@ -763,25 +571,6 @@ var root = {
             });
         },
 
-
-
-        /*resizing : function(){
-            timer = 0;
-            function start() {
-                $("body").addClass("resizing");
-            }
-            function stop() {
-                $("body").removeClass("resizing");
-            }
-            $(window).resize(function(){
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                timer = setTimeout(stop, 1000);
-                start();
-            });
-        },*/
-
         resizing : function(){
             let timer;
             function start() { $("body").addClass("resizing"); }
@@ -801,11 +590,6 @@ var root = {
                 var single_parent = $(this).data("single-parent");
                 if(single_parent){
                     $(this).find("a + ul").on('show.bs.collapse', function (e) {
-                        /*if(!$(e.target).parent("li").hasClass("item-child")){
-                            var parent = $(e.target);
-                            menu.find("ul.collapse.show").not(parent).collapse('hide');
-                        }*/
-                        //if(mneu.find("item-child").length > 0){
                             var parent = $(e.target).parents();
                             menu.find("ul.collapse.show").not(parent).collapse('hide');
                         //}
@@ -817,21 +601,7 @@ var root = {
     },
 
     form: {
-
         init: function() {
-            if ($(".file-input").length > 0) {
-                var file_input = $(".file-input").fileinput({
-                    showUpload: false,
-                    showCaption: true,
-                    showPreview: false,
-                    language: $("html").attr("lang").split("-")[0],
-                    browseLabel: "Ekle",
-                    browseIcon: "<i class='fa fa-plus fa-fw'></i>",
-                    // removeLabel:"İptal",
-                    browseClass: "btn btn-default btn-block"
-                });
-            };
-
             /*button text on form submit*/
             $('.btn-submit').attr("disabled", false).removeClass("processing");
         }
@@ -853,13 +623,6 @@ var root = {
             var card = $(e.target).closest(".card")
             card.removeClass("active");
         });
-    },
-
-    fancybox: function() {
-        /*Fancybox.bind('[data-fancybox]', {
-          l10n: Fancybox.l10n[root.lang],
-        });*/
-        Fancybox.bind('[data-fancybox]');
     },
 
     responsive: {
@@ -1017,7 +780,7 @@ var root = {
 
     init: function(options) {
         root.options = options;
-        root.browser.enquire();
+        //root.browser.enquire();
         root.browser.device();
         $(document).ready(function() {
             root.ui.navigation();
@@ -1030,34 +793,16 @@ var root = {
             root.form.init();
             root.ui.tree_menu();
 
-
-            if(isLoadedJS("fancybox")){
-                root.fancybox();
-            }
             //root.responsive.table();
             //root.responsive.tab();
 
             function onResize() {
-                /*for (var func in root.on_resize) {
-                    root.on_resize[func]();
-                }*/
                 for (var func in root.on_resize) {
                     if (root.on_resize.hasOwnProperty(func)) {
                         root.on_resize[func]();
                     }
                 }
-
-                if (!IsBlank(root.hash)) {
-                    //root.ui.scroll_to(root.hash, false);
-                }
             };
-
-            /*var hash = window.location.hash;
-            if (!IsBlank(hash)) {
-                root.hash = "";
-                //history.pushState("", document.title, window.location.pathname);
-                root.ui.scroll_to(hash, true);
-            }*/
 
         });
     }

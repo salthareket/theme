@@ -1311,8 +1311,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "212outlet": "212outlet",
-                        "salthareket": "Salthareket",
+                        "kidsai": "Kidsai",
                         "twentytwentyfive": "Twenty Twenty-Five"
                     },
                     "default_value": "",
@@ -1482,17 +1481,16 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
-                "acik-pozisyonlar": "Açık Pozisyonlar",
-                "duyurular": "Duyurular",
-                "etkinlikler": "Etkinlikler",
-                "kampanya": "Kampanyalar",
-                "katlar": "Katlar",
-                "magazalar": "Mağazalar",
-                "ulasim": "Ulaşım",
-                "contact": "Contacts"
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
+                "case-study": "Case Studies",
+                "event": "Events",
+                "package": "Packages",
+                "team": "Team",
+                "video": "Videos",
+                "contact": "Contacts",
+                "template": "Templates"
             },
             "default_value": "",
             "return_format": "value",
@@ -1527,12 +1525,8 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
-                "departman": "departman",
-                "duyuru-tipi": "duyuru-tipi",
-                "etkinlik-tipi": "etkinlik-tipi",
-                "hizmetler": "hizmetler",
-                "magaza-tipi": "magaza-tipi",
-                "ulasim-tipi": "ulasim-tipi",
+                "team-role": "team-role",
+                "template-types": "template-types",
                 "contact-type": "contact-type"
             },
             "default_value": "",
@@ -1742,6 +1736,99 @@
             "ui_off_text": "",
             "ui": 1,
             "pll_default_value": 0
+        },
+        {
+            "key": "field_68e48315c0fc1",
+            "label": "Add Page Path to Breadcrumb",
+            "name": "breadcrumb_add_page_path",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "acfe_repeater_stylised_button": 1,
+            "layout": "table",
+            "pagination": 0,
+            "min": 0,
+            "max": 0,
+            "collapsed": "",
+            "button_label": "Add Row",
+            "rows_per_page": 20,
+            "sub_fields": [
+                {
+                    "key": "field_68f6d3856484a",
+                    "label": "Post Type",
+                    "name": "post_type",
+                    "aria-label": "",
+                    "type": "acfe_post_types",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "post_type": "",
+                    "field_type": "select",
+                    "default_value": [],
+                    "return_format": "name",
+                    "allow_null": 0,
+                    "multiple": 0,
+                    "ui": 0,
+                    "allow_in_bindings": 0,
+                    "choices": [],
+                    "ajax": 0,
+                    "placeholder": "",
+                    "search_placeholder": "",
+                    "layout": "",
+                    "toggle": 0,
+                    "allow_custom": 0,
+                    "other_choice": 0,
+                    "parent_repeater": "field_68e48315c0fc1"
+                },
+                {
+                    "key": "field_68f6d3b16484b",
+                    "label": "Page",
+                    "name": "page",
+                    "aria-label": "",
+                    "type": "post_object",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "post_type": [
+                        "page"
+                    ],
+                    "post_status": [
+                        "publish"
+                    ],
+                    "taxonomy": "",
+                    "return_format": "id",
+                    "multiple": 0,
+                    "save_custom": 0,
+                    "save_post_status": "publish",
+                    "acfe_bidirectional": {
+                        "acfe_bidirectional_enabled": "0"
+                    },
+                    "allow_null": 0,
+                    "allow_in_bindings": 0,
+                    "bidirectional": 0,
+                    "ui": 1,
+                    "bidirectional_target": [],
+                    "save_post_type": "",
+                    "parent_repeater": "field_68e48315c0fc1"
+                }
+            ]
         },
         {
             "key": "field_67713219b3133",
@@ -2153,15 +2240,15 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1758326920,
+    "modified": 1762402737,
     "acfe_categories": {
         "general": "General"
     }

@@ -9,7 +9,7 @@
        {% set target = "offcanvasUserMenu" %}
     {% endif %}
 
-    <li class="nav-item {{class}}" data-type="account">
+    <div class="nav-item {{class}}" data-type="account">
         <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
             {% if avatar %}
                 {{avatar}}
@@ -62,5 +62,5 @@
             </div>
         </div>
         {% endif %}
-    </li>
+    </div>
 {% endif %}

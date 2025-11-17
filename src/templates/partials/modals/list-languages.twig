@@ -14,7 +14,7 @@
 	    <div class="col-12 p-0-">
 	        <div class="icon z-1"></div>
 	        {%  set map =  site.theme.uri ~ "/static/img/world-map.svg" %}
-            {{map|inline_svg("world-map img-fluid position-relative")}}
+            {{map|inline_svg({"class": "world-map img-fluid position-relative"})}}
             <style>
                 .world-map .active{
                 	fill:#1c4dae;

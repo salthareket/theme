@@ -41,32 +41,6 @@
         if(window["modal_"+vars["id"]]){
            window["modal_"+vars["id"]](); 
         }
-
-
-        /*function loadWPCF7Script(callback="") {
-            if (!window.wpcf7) {
-                var scripts = [
-                    ajax_request_vars.url + 'wp-includes/js/dist/vendor/wp-polyfill.min.js', // WordPress polyfill
-                    ajax_request_vars.url + 'wp-content/plugins/contact-form-7/includes/js/index.js' // Contact Form 7 JavaScript dosyası
-                ];
-                var index = 0;
-                function loadNextScript() {
-                    if (index < scripts.length) {
-                        var script = document.createElement('script');
-                        script.src = scripts[index];
-                        script.onload = function() {
-                            index++;
-                            loadNextScript();
-                        };
-                        document.head.appendChild(script);
-                    } else {
-                        //callback();
-                    }
-                }
-            }
-            loadNextScript();
-        }
-        loadWPCF7Script("");*/
         return response;
     },
     after: function(response, vars, form, objs) {
@@ -82,6 +56,7 @@
             }
             return false;
         }
+
         modal.find(".modal-title").html(response.data.title);
         modal.find(".modal-body").html(response.data.content);
         initContactForm();

@@ -35,20 +35,20 @@ class SaltMinifier{
         $this->js_uri = $this->rules["config"]["js_uri"];
         $this->prod_folder = $this->rules["config"]["prod"];
         $this->output = array(
-            "header.css"           => $this->css_folder . 'header.css',
-            "header_admin.css"     => $this->css_folder . 'header-admin.css',
-            "main.css"             => $this->css_folder . 'main.css',
-            "plugins.min.js"       => $this->js_folder . 'plugins.min.js',
-            "plugins"              => $this->js_folder . 'plugins/',
-            "plugin_assets"        => $this->js_folder . 'assets/',
-            "plugin_assets_uri"    => $this->js_uri . 'assets/',
+            "header.css"           => $this->css_folder   . 'header.css',
+            "header_admin.css"     => $this->css_folder   . 'header-admin.css',
+            "main.css"             => $this->css_folder   . 'main.css',
+            "plugins.min.js"       => $this->js_folder    . 'plugins.min.js',
+            "plugins"              => $this->js_folder    . 'plugins/',
+            "plugin_assets"        => $this->js_folder    . 'assets/',
+            "plugin_assets_uri"    => $this->js_uri       . 'assets/',
             "plugins_init"         => $this->prod_folder  . 'plugins-init/',
-            "plugins-admin.min.js" => $this->js_folder . 'plugins-admin.min.js', 
-            'jquery.min.js'        => $this->js_folder . 'jquery.min.js',
-            "header.min.js"        => $this->js_folder . 'header.min.js',
-            "functions.min.js"     => $this->js_folder . 'functions.min.js',
-            "main.min.js"          => $this->js_folder . 'main.min.js',
-            "main-combined.min.js" => $this->js_folder . 'main-combined.min.js',
+            "plugins-admin.min.js" => $this->js_folder    . 'plugins-admin.min.js', 
+            'jquery.min.js'        => $this->js_folder    . 'jquery.min.js',
+            "header.min.js"        => $this->js_folder    . 'header.min.js',
+            "functions.min.js"     => $this->js_folder    . 'functions.min.js',
+            "main.min.js"          => $this->js_folder    . 'main.min.js',
+            "main-combined.min.js" => $this->js_folder    . 'main-combined.min.js',
 
         );
         if(file_exists($this->output["plugins"])){
@@ -58,6 +58,7 @@ class SaltMinifier{
         // rtl css files
         $this->rtl_list["main"] = $this->rules["config"]["css"] . 'main.css';
         $this->rtl_list["blocks"] = $this->rules["config"]["css"] . 'blocks.css';
+        $this->rtl_list["common"] = $this->rules["config"]["css"] . 'common.css';
 
 
         if (!file_exists($this->rules["config"]["locale"])){
@@ -129,7 +130,7 @@ class SaltMinifier{
     }
 
     public function get_rtl_folder($item){
-        if(in_array($item, ["main", "blocks", "header", "header_admin"])){
+        if(in_array($item, ["main", "blocks", "header", "header_admin", "common"])){
             return $this->css_folder;
         }else{
             return $this->output["plugins"];

@@ -179,34 +179,38 @@
 }
 
 @mixin svgColor($color: white) {
-    @if type-of($color) == "map" {
+    @if type-of($color) == 'map' {
         @each $id, $id_color in $color {
-            ##{$id} {
+            ##{$id}{
+                circle[fill]:not([stroke]),
                 path[fill]:not([stroke]),
                 rect[fill]:not([stroke]),
-                polygon[fill]:not([stroke]) {
+                polygon[fill]:not([stroke]){
                     fill: #{$id_color} !important;
                 }
+                circle[stroke],
                 line[stroke],
                 path[stroke],
                 rect[stroke],
-                polygon[stroke] {
+                polygon[stroke]{
                     stroke: #{$id_color} !important;
-                }
+                } 
             }
         }
     } @else {
+        circle[fill]:not([stroke]),
         path[fill]:not([stroke]),
         rect[fill]:not([stroke]),
-        polygon[fill]:not([stroke]) {
+        polygon[fill]:not([stroke]){
             fill: #{$color} !important;
         }
+        circle[stroke],
         line[stroke],
         path[stroke],
         rect[stroke],
-        polygon[stroke] {
+        polygon[stroke]{
             stroke: #{$color} !important;
-        }
+        }        
     }
 }
 

@@ -390,8 +390,6 @@ jQuery(document).ready(function($){
 
 });
 
-
 jQuery(document).ready(function($) {
-init_swiper();
+    init_swiper();
 });
-

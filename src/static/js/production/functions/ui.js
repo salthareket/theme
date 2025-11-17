@@ -1,4 +1,3 @@
-
 function notification_alert(){
 	var token_init = "notification-alert-init";
     $("[data-toggle='notification']").on("click", function(e){
@@ -538,7 +537,7 @@ function ajax_paginate($obj){
 						    btn.trigger("click");
 						}
 					break;
-					case "scroll":
+					/*case "scroll":
 						if(!btn.hasClass("ajax-load-scroll")){
 		                    btn.addClass("ajax-load-scroll")
 							$(window).scroll(function() {
@@ -549,6 +548,20 @@ function ajax_paginate($obj){
 						}else{
 							ajax_paginate_load(btn);
 						}
+					break;*/
+					case "scroll":
+					    if(!btn.hasClass("ajax-load-scroll")){
+					        btn.addClass("ajax-load-scroll");
+					        const checkAjaxLoadViewport = function() {
+					            if( btn.is(":in-viewport")) {
+					                ajax_paginate_load(btn);
+					            }
+					        };
+					        $(window).on('scroll resize', throttle(checkAjaxLoadViewport, 100));
+					        setTimeout(checkAjaxLoadViewport, 150); 
+					    } else {
+					        ajax_paginate_load(btn); 
+					    }
 					break;
 				}
 

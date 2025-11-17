@@ -13,7 +13,7 @@ class AppExtension extends AbstractExtension {
         ];
     }
 
-    public function pluralize(int $count, string $singular, string $plural, string $zero = null): string {
+    public function pluralize(int $count, string $singular, string $plural, ?string $zero = null): string {
         if ($count > 1) {
             return str_replace('{}', $count, $plural);
         } elseif ($count <= 0 && null !== $zero) {
@@ -21,6 +21,7 @@ class AppExtension extends AbstractExtension {
         }
         return str_replace('{}', $count, $singular);
     }
+
 
     public function values(array $array): array {
         return array_values($array); // PHP'nin array_values fonksiyonunu kullanıyoruz

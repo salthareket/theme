@@ -9,7 +9,7 @@
        {% set target = "offcanvasCart" %}
     {% endif %}
 
-    <li class="nav-item {{class}}" data-type="messages">
+    <div class="nav-item {{class}}" data-type="messages">
     
         <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
             {% if user.messages_count > 0 %}
@@ -44,5 +44,5 @@
             </div>
         {% endif %}
 
-    </li>
+    </div>
 {% endif %}

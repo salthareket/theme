@@ -9,7 +9,7 @@
        {% set target = "offcanvasFavorites" %}
     {% endif %}
 
-    <li class="nav-item {{class}} {% if user and favorites|length > 0 %}active{% endif %}" data-type="favorites">
+    <div class="nav-item {{class}} {% if user and favorites|length > 0 %}active{% endif %}" data-type="favorites">
         <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
             <i class="fal fa-heart"></i>
         </a>
@@ -43,5 +43,5 @@
         </div>
         {% endif %}
         
-    </li>
+    </div>
 {% endif %}

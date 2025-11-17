@@ -345,3 +345,21 @@
 .leaflet-map{
     width:100%;
 }
+
+.map-google{
+    position:relative;
+    width:100%;
+    background-color:#fff;
+    &:not(.ratio){
+      height:500px;
+    }
+    &#inline-map{
+      width:500px;
+    }
+    &.map-google-embed{
+        iframe{
+            width:100%;
+            height:100%;
+        }         
+    }
+}

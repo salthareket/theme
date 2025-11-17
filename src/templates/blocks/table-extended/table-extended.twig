@@ -79,7 +79,7 @@
                                 {% elseif type == "image" and cell.image.id %}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
-                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                            {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
                                             <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                         {% endif %}
@@ -92,7 +92,7 @@
                                     {{ cell.text}}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
-                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                            {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
                                             <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                         {% endif %}
@@ -128,7 +128,7 @@
                                 {% elseif type == "image" and cell.image.id %}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
-                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                            {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
                                             <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                         {% endif %}
@@ -141,7 +141,7 @@
                                     {{ cell.text}}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
-                                            {{cell.image.url|inline_svg("icon img-fluid")}}
+                                            {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
                                             <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                         {% endif %}

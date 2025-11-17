@@ -42,7 +42,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "DIN": "DIN Condensed Pro",
+                        "'avenir'": "Avenir",
+                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -97,7 +98,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "DIN": "DIN Condensed Pro",
+                        "'avenir'": "Avenir",
+                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -217,7 +219,7 @@
                     "save_options": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "pll_default_value": "400"
+                    "pll_default_value": 400
                 },
                 {
                     "key": "field_686bfc9bdd978",
@@ -330,7 +332,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "DIN": "DIN Condensed Pro",
+                        "'avenir'": "Avenir",
+                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -387,7 +390,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "DIN": "DIN Condensed Pro",
+                        "'avenir'": "Avenir",
+                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -465,6 +469,25 @@
                     "pll_default_value": "#111"
                 },
                 {
+                    "key": "field_68dc32da98a52",
+                    "label": "Lİnk Color",
+                    "name": "link_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "#111",
+                    "enable_opacity": 0,
+                    "return_format": "string",
+                    "allow_in_bindings": 1
+                },
+                {
                     "key": "field_660e7f6b9ee6f",
                     "label": "Bg Color",
                     "name": "bg_color",
@@ -534,7 +557,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740607,
+    "modified": 1759261430,
     "acfe_categories": {
         "general": "General"
     }

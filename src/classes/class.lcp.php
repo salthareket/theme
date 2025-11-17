@@ -227,9 +227,10 @@ class Lcp{
 		        script.onload = function () {
 
 		            // Sen burayı kontrol edeceksin
-		            let checkAllPlatforms = false; 
+		            
 
 		            webVitals.onLCP((metric) => {
+		            	const checkAllPlatforms = false; 
 		                const isMobile = window.innerWidth <= 450; // userAgent da eklenebilir
 		                console.log("Check mode:", checkAllPlatforms ? "ALL" : "CURRENT");
 		                console.log(metric);
@@ -261,7 +262,6 @@ class Lcp{
 		                    }
 		                }
 		            });
-
 		            document.body.click(); 
 		        };
 		        document.head.appendChild(script);

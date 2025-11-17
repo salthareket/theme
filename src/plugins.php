@@ -37,10 +37,10 @@ $required_plugins = array(
         "type" => ["main"],
         "name" => 'acf-openstreetmap-field/index.php',
     ),
-    array(
+    /*array(
         "type" => ["main"],
         "name" => "advanced-custom-fields-table-field/acf-table.php"
-    ),
+    ),*/
     array(
         "type" => ["main", "ai"],
         "name" => "website-llms-txt/website-llms-txt.php"
@@ -119,25 +119,25 @@ $GLOBALS["plugins"] = $required_plugins;
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.5.1",
+    "v" => "6.6.2",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.0.2",
     "name" => "acf-bs-breakpoints/index.php",
     "file" => "acf-bs-breakpoints"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.0.2",
     "name" => "acf-query-field/acf-query-field.php",
     "file" => "acf-query-field"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.0.2",
     "name" => "acf-unit-field/index.php",
     "file" => "acf-unit-field"
 );
@@ -149,7 +149,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.19.4",
+    "v" => "3.20.1.2",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
@@ -234,9 +234,15 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.0",
+    "v" => "1.0.1",
     "name" => "gradient-picker-for-acf/gradient-picker-for-acf.php",
     "file" => "gradient-picker-for-acf"
+);
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "1.3.30",
+    "name" => "salt-table-for-acf/salt-table-for-acf.php",
+    "file" => "salt-table-for-acf"
 );
 
 $GLOBALS["plugins_local"] = $required_plugins_local;

@@ -68,7 +68,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 0,
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_6865b8b4fa787",
@@ -245,7 +248,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 0,
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_6865c1e6d7cca",
@@ -775,6 +781,34 @@
             ]
         },
         {
+            "key": "field_68ddd6e65644c",
+            "label": "Ignore Padding",
+            "name": "ignore_padding",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_66d876dc1d556",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 1,
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
             "key": "field_670d6189b9668",
             "label": "Image Position",
             "name": "",
@@ -870,24 +904,25 @@
             },
             "choices": {
                 "auto": "auto",
+                "fill": "fill",
                 "contain": "contain",
                 "cover": "cover",
-                "fixed": "fixed"
+                "fixed": "fixed",
+                "scale": "scale",
+                "none": "none"
             },
             "default_value": "cover",
             "return_format": "value",
             "multiple": 0,
             "allow_custom": 0,
             "search_placeholder": "",
-            "translations": "sync",
             "allow_null": 0,
             "allow_in_bindings": 1,
             "ui": 1,
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0,
-            "pll_default_value": "cover"
+            "save_options": 0
         },
         {
             "key": "field_66565b8dc73a4",
@@ -2764,7 +2799,10 @@
             "return_format": "string",
             "translations": "sync",
             "allow_in_bindings": 0,
-            "pll_default_value": ""
+            "pll_default_value": "",
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true
         },
         {
             "key": "field_671e5e2599f05",
@@ -3017,15 +3055,15 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740605,
+    "modified": 1762264231,
     "acfe_categories": {
         "common": "Common"
     }

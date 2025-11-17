@@ -47,8 +47,10 @@ class FluidCss {
                 $css .= "    --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
             }
         }
-        $css .= "--hero-height-full: 100vh;\n";
+        $css .= "--hero-height-full: 100dvh;\n";
+        //$css .= "--hero-height-full-min: 100dvh;\n";
         $css .= "--hero-height-full-min: 100dvh;\n";
+        $css .= "--hero-height-full-max: 100dvh;\n";
         if(isset($this->variables["custom-colors-list"])){
             $css .= "--salt-colors: ".$this->variables["custom-colors-list"].";\n";
         }

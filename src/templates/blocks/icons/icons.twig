@@ -28,19 +28,53 @@
         <div class="swiper-slider swiper {{block_meta.row.class}}" {{block_meta.row.attrs}}>
              <div class="swiper-wrapper">
     {% else %}
-        <div class="row {{block_meta.row.class}} w-100" {{block_meta.row.attrs}}>
+        <div class="row {{block_meta.row.class}}" {{block_meta.row.attrs}}>
     {% endif %}
 
-        {% for key, item in fields.icons %} 
+        {% for key, item in fields.icons %}
 
             <div class="{% if fields.slider %}swiper-slide{% else %}col{% endif %}">
 
-                {% set is_external = item.content.url.target == "_blank" ? true : false %}
-
                 {% set link_start = "" %}
-                {% if item.content.url %}
+                {% if item.content.modal %}
+
+                    {% set attrs = " data-ajax-method='" ~ item.content.modal_settings.type ~ "' " ~ (item.content.modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ item.content.modal_settings.size ~ "' ") %}
+                    {% set attrs = attrs ~ " data-close='" ~ item.content.modal_settings.close ~ "' " %}
+                    {% set attrs = attrs ~ " data-scrollable='" ~ item.content.modal_settings.scrollable ~ "' " %}
+                    {% set attrs = attrs ~ " data-class='" ~ item.content.modal_settings.class ~ "' " %}
+                    {% set attrs = attrs ~ (item.content.modal_settings.title != "" ? " data-title='" ~ item.content.modal_settings.title ~ "' ":"") %}
+
+                    {% if item.content.modal_settings.type in ["page_modal", "form_modal"] %}
+                        {% set attrs = attrs ~ " data-id='" ~ item.content.modal_settings.id ~ "' " %}
+                    {% endif %}
+
+                    {% if item.content.modal_settings.type in ["iframe_modal"] %}
+                        {% set attrs = attrs ~ " data-height='" ~ item.content.modal_settings.height ~ "' " %}
+                    {% endif %}
+
+                    {% if item.content.modal_settings.type in ["map_modal"] %}
+                        {% set modal_args = [{"modal-body": "ratio ratio-" ~ item.content.modal_settings.ratio ~ " overflow-hidden"}]|json_attr %}
+                        {% set attrs = attrs ~ " data-modal='" ~ modal_args ~ "' " %}
+                        {% if item.content.modal_settings.location_type == "static" %}
+                            {% set attrs = attrs ~ " data-lat='" ~ item.content.modal_settings.lat ~ "' data-lng='" ~ item.content.modal_settings.lng ~ "' " %}
+                        {% endif %}
+                        {% if item.content.modal_settings.location_type == "dynamic" %}
+                            {% set attrs = attrs ~ " data-ids='" ~ item.content.modal_settings.posts|json_attr ~ "' " %}
+                        {% endif %}
+                        {% if item.content.modal_settings.marker_popup %}
+                            {% set popup_args = {"type": item.content.modal_settings.marker_popup_type, "title": item.content.modal_settings.marker_popup_title }|json_attr %}
+                            {% set attrs = attrs ~ " data-popup='" ~ popup_args ~ "' " %}
+                        {% endif %}
+                    {% endif %}
+
+                    {% set link_start = "<a href='#' class='w-100' "  ~ attrs ~ " title='" ~ (item.link_text|default(item.title)) ~"'>" %}
+
+                {% elseif item.content.url %}
+
+                    {% set is_external = item.content.url.target == "_blank" ? true : false %}
                     {% set attrs = is_external?"target='_blank' rel='nofollow'":"" %}
-                    {% set link_start = "<a href='" ~ item.content.url.url ~ "' class='" ~ (not is_external?"btn-loading-page":"") ~" d-flex flex-column" ~ (fields.reverse?"-reverse":"") ~ "' "  ~ attrs ~ " title='" ~ (button.link_text|default(item.title)) ~"'>" %}
+                    {% set link_start = "<a href='" ~ item.content.url.url ~ "' class='" ~ (not is_external?"btn-loading-page":"") ~" d-flex flex-column" ~ (fields.reverse?"-reverse":"") ~ " w-100' "  ~ attrs ~ " title='" ~ (item.link_text|default(item.title)) ~"'>" %}
+
                 {% endif %}
 
                 <div class="icon-{{ key }} d-flex flex-column {% if fields.reverse and not link_start %}flex-column-reverse{% endif %} {{align_item}}" data-mh="icon-list-{{block_meta.id}}">
@@ -56,9 +90,9 @@
                             {% if item.icon.image %}
                             <div class="icon w-100 {% if fields.reverse %}{% if item.icon.styles.margin and item.icon.styles.margin != "default" %}mt-{{ item.icon.styles.margin }}{% endif %}{% else %}{% if item.icon.styles.margin and item.icon.styles.margin != "default" %}mb-{{ item.icon.styles.margin }}{% endif %}{% endif %}" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
                                 {% if function('get_extension', item.icon.image.url) == "svg" %}
-                                    {{item.icon.image.url|inline_svg("image img-fluid")}}
+                                    {{item.icon.image.url|inline_svg({"class": "image img-fluid", "height": function("acf_units_field_value", item.icon.styles.height)} )}}
                                 {% else %}
-                                    <img {% if not is_preview %}data-{% endif %}src="{{item.icon.image.sizes.medium}}" class="image img-fluid shadow-sm {% if not is_preview %}lazy{% endif %}" alt="{{ item.title }}" width="{{item.icon.image.width}}" height="{{item.icon.image.height}}"/>
+                                    <img {% if not is_preview %}data-{% endif %}src="{{item.icon.image.sizes.medium}}" class="image img-fluid shadow-sm {% if not is_preview %}lazy{% endif %}" alt="{{ item.icon.image.alt }}" width="{{item.icon.image.width}}" height="{{item.icon.image.height}}"/>
                                 {% endif %}
                             </div>
                             {% endif %}

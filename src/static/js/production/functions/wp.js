@@ -68,7 +68,7 @@ function isLoadedJS($name, $load = false, $callback = "") {
     }
 
     // Buradan sonrası: yükle, init et, callback’i çağır
-    const configUrl = ajax_request_vars.theme_url + "static/js/js_files_conditional_set.json";
+    const configUrl = ajax_request_vars.theme_url + "/static/js/js_files_conditional_set.json";
     fetch(configUrl)
         .then(response => response.json())
         .then(data => {
@@ -122,7 +122,7 @@ function isLoadedJS($name, $load = false, $callback = "") {
     return false;
 }
 
-
+/*
 function function_secure($plugin, $name, $params) {
     console.log($plugin, $name, $params)
     if (isLoadedJS($plugin)) {
@@ -139,29 +139,57 @@ function function_secure($plugin, $name, $params) {
         console.error($plugin + ' is not loaded...');
     }
 }
+*/
 
-/*function function_secure($plugin, $name, $params) { // yenisi
-    console.log($plugin, $name, $params);
-
-    if (isLoadedJS($plugin)) {
-        var fn = window[$name];
-        if (typeof fn === 'function') {
-            try {
-                if (Array.isArray($params)) {
-                    fn.apply(null, $params);
-                } else {
-                    fn($params);
-                }
-            } catch (e) {
-                console.error('Error calling function:', $name, e);
-            }
-        } else {
-            console.warn($name + ' is not a function. Skipping...');
-        }
-    } else {
-        console.warn($plugin + ' is not loaded. Skipping...');
+let function_secure_queue = [];
+let function_secure_processing = false;
+function function_secure_queue_process() {
+    if (function_secure_queue.length === 0) {
+        function_secure_processing = false;
+        return;
     }
-}*/
+    const task = function_secure_queue.shift(); 
+    try {
+        let func = window;
+        const parts = task.name.split('.'); 
+        for (let i = 0; i < parts.length; i++) {
+            if (func[parts[i]]) {
+                func = func[parts[i]];
+            } else {
+                // Eğer buraya düşerse, fonksiyon adı bulunamamış demektir.
+                throw new Error(task.name + ' not found in nested objects.'); 
+            }
+        }
+        const context = parts.length > 1 ? window[parts[0]] : window;
+        if (typeof func === 'function') {
+            func.apply(context, Array.isArray(task.params) ? task.params : [task.params]);
+        } else {
+            throw new Error(task.name + ' is not a function.');
+        }
+        console.log(task.name + ' is inited!!!...');
+    } catch (error) {
+        console.error(`Error executing plugin function ${task.name}:`, error);
+    }
+    setTimeout(function_secure_queue_process, 150); 
+}
+function function_secure($plugin, $name, $params) {
+    if (!IsBlank($plugin) && !isLoadedJS($plugin)) {
+        console.error($plugin + ' is not loaded...');
+        return;
+    }
+    /*if (typeof window[$name] !== 'function') {
+        console.error($name + ' is not a function...');
+        return;
+    }*/
+    function_secure_queue.push({
+        name: $name,
+        params: $params
+    });
+    if (!function_secure_processing) {
+        function_secure_processing = true;
+        setTimeout(function_secure_queue_process, 250); 
+    }
+}
 
 
 function initContactForm(){
@@ -201,8 +229,8 @@ function modalFormActions(e, type){
             form.removeClass("sent").addClass("init");
             var message = decodeHtml(e.detail.apiResponse.message);
             //debugJS(e);
-            $('.modal:visible').modal("hide");
-            _alert("", message, "xxl", "modal-fullscreen bg-tertiary text-white", "", "", true, true);
+            //$('.modal:visible').modal("hide");
+            //_alert("", message, "xxl", "modal-fullscreen bg-tertiary text-white", "", "", true, true);
         }
     };
     if(type == "sent"){
@@ -223,7 +251,7 @@ function contactFormActions(e, type){
             form.removeClass("sent").addClass("init");
             var message = decodeHtml(e.detail.apiResponse.message);
             //debugJS(e);
-            _alert("", message, "xxl", "modal-fullscreen bg-tertiary text-white", "", "", true, true);
+            //_alert("", message, "xxl", "modal-fullscreen bg-tertiary text-white", "", "", true, true);
         }
     };
     if(type == "sent"){

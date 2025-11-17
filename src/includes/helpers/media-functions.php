@@ -213,7 +213,7 @@ function _get_all_image_sizes() {
     return $image_sizes;
 }
 
-function inline_svg($url="", $class="", $responsive=false){
+/*function inline_svg($url="", $class="", $responsive=false){
 	$svg = "";
 	if(!empty($url)){
 		$svg = file_get_contents1($url);
@@ -227,7 +227,125 @@ function inline_svg($url="", $class="", $responsive=false){
 		}
 	}
     return $svg;
+}*/
+function inline_svg__($url = "", $class = "", $width = "auto", $height="auto"){
+    $svg = "";
+    if(!empty($url)){
+        $svg = file_get_contents1($url);
+        $svg = remove_html_comments($svg);
+        $svg = remove_xml_declaration($svg);
+
+        // Benzersiz suffix üret
+        $suffix = '_' . uniqid();
+
+        // id'leri değiştir
+        $svg = preg_replace_callback('/id="([^"]+)"/', function($m) use ($suffix){
+            return 'id="'.$m[1].$suffix.'"';
+        }, $svg);
+
+        // url(#xxx) referanslarını değiştir
+        $svg = preg_replace_callback('/url\(#([^)]+)\)/', function($m) use ($suffix){
+            return 'url(#'.$m[1].$suffix.')';
+        }, $svg);
+
+        // xlink:href="#xxx" referanslarını değiştir
+        $svg = preg_replace_callback('/xlink:href="#([^"]+)"/', function($m) use ($suffix){
+            return 'xlink:href="#'.$m[1].$suffix.'"';
+        }, $svg);
+
+        if(!empty($class)){
+            $svg = str_replace("<svg ", "<svg class='".$class."' ", $svg);
+        }
+
+        // width / height ekle
+
+        // width / height varsa önce temizle
+        $svg = preg_replace('/\s(width|height)="[^"]*"/i', '', $svg);
+
+        // yeniden width / height ekle
+        $extra_attrs = "";
+        if($width !== "auto" && intval($width) > 0){
+            $extra_attrs .= ' width="'.$width.'"';
+        }
+        if($height !== "auto" && intval($height) > 0){
+            $extra_attrs .= ' height="'.$height.'"';
+        }
+
+        if(!empty($extra_attrs)){
+            $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$extra_attrs.'>', $svg, 1);
+        }
+
+        // viewBox fixer → sadece yoksa ekle
+        if(stripos($svg, "viewBox") === false){
+            // width / height değerlerini oku
+            if(preg_match('/<svg[^>]*\bwidth=["\']?(\d+)[^"\']*["\']?/i', $svg, $wMatch) &&
+               preg_match('/<svg[^>]*\bheight=["\']?(\d+)[^"\']*["\']?/i', $svg, $hMatch)){
+                $vb = ' viewBox="0 0 '.$wMatch[1].' '.$hMatch[1].'"';
+                $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$vb.'>', $svg, 1);
+            }
+        }
+
+    }
+    return $svg;
 }
+function inline_svg($url="", $args = []){
+    $svg = "";
+    if(!empty($url)){
+        $svg = file_get_contents1($url);
+        $svg = remove_html_comments($svg);
+        $svg = remove_xml_declaration($svg);
+
+        // Benzersiz suffix üret
+        $suffix = '_' . uniqid();
+
+        // id'leri değiştir
+        $svg = preg_replace_callback('/id="([^"]+)"/', function($m) use ($suffix){
+            return 'id="'.$m[1].$suffix.'"';
+        }, $svg);
+
+        // url(#xxx) referanslarını değiştir
+        $svg = preg_replace_callback('/url\(#([^)]+)\)/', function($m) use ($suffix){
+            return 'url(#'.$m[1].$suffix.')';
+        }, $svg);
+
+        // xlink:href="#xxx" referanslarını değiştir
+        $svg = preg_replace_callback('/xlink:href="#([^"]+)"/', function($m) use ($suffix){
+            return 'xlink:href="#'.$m[1].$suffix.'"';
+        }, $svg);
+
+        if(isset($args["class"])){
+            $svg = str_replace("<svg ", "<svg class='".$args["class"]."' ", $svg);
+        }
+
+        // yeniden width / height ekle
+        $extra_attrs = "";
+        if(isset($args["width"]) && $args["width"] !== "auto" && intval($args["width"]) > 0){
+            $extra_attrs .= ' width="'.$args["width"].'"';
+        }
+        if(isset($args["height"]) && $args["height"] !== "auto" && intval($args["height"]) > 0){
+            $extra_attrs .= ' height="'.$args["height"].'"';
+        }
+
+        if(!empty($extra_attrs)){
+        	// width / height varsa önce temizle
+            $svg = preg_replace('/\s(width|height)="[^"]*"/i', '', $svg);
+            $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$extra_attrs.'>', $svg, 1);
+        }
+
+        // viewBox fixer → sadece yoksa ekle
+        if(stripos($svg, "viewBox") === false){
+            // width / height değerlerini oku
+            if(preg_match('/<svg[^>]*\bwidth=["\']?(\d+)[^"\']*["\']?/i', $svg, $wMatch) &&
+               preg_match('/<svg[^>]*\bheight=["\']?(\d+)[^"\']*["\']?/i', $svg, $hMatch)){
+                $vb = ' viewBox="0 0 '.$wMatch[1].' '.$hMatch[1].'"';
+                $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$vb.'>', $svg, 1);
+            }
+        }
+
+    }
+    return $svg;
+}
+
 
 function get_orientation($w=0, $h=0){
 	if ( $w == $h ) {

@@ -24,7 +24,7 @@
                                         {#<label class="form-label">Country of Residence</label>#}
                                         <select class="selectpicker- form-select form-select-lg form-select-chain" name="country" data-method="get_city_options" data-chain="city" data-chain-value="{{user.billing_country}}" data-chain-on-select="false" data-live-search="true" required>
                                             <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{'Please choose your country'|trans}}</option>
-                                            {% set countries = salt.localization.countries %}
+                                            {% set countries = localization.countries %}
                                             {% for country in countries %}
                                                 {% if country.iso2 == user.billing_country %}
                                                     {% set country_has_state = country.states|boolval %}
@@ -42,7 +42,7 @@
                                         <select class="selectpicker- form-select form-select-lg" name="city" data-chain-value="{{user.city}}" data-live-search="true" required>
                                             <option value="" class="{% if user.city %}d-none{% endif %}">{{'Please choose your city/state'|trans}}</option>
                                             {% if user.billing_country %}
-                                                {% set cities = salt.localization.states({"country_code" : user.billing_country}) %}
+                                                {% set cities = localization.states({"country_code" : user.billing_country}) %}
                                                 {% if cities %}
                                                     {% for city in cities %}
                                                     <option value="{{city.id}}" {% if city.id == user.city %}selected{% endif %}>{{city.name}}</option>

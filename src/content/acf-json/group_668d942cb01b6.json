@@ -153,8 +153,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -260,7 +258,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_6636a75acd138",
@@ -298,7 +296,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_663764d9f883c",
@@ -557,8 +555,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "DIN": "DIN Condensed Pro",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -926,7 +922,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740612,
+    "modified": 1759184991,
     "acfe_categories": {
         "general": "General"
     }

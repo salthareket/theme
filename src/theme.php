@@ -275,8 +275,8 @@ Class Theme{
     }
 
     public function after_setup_theme(){
-        
-        //add theme foldere to use php yemplates
+
+        //add theme foldere to use php templates
         $hierarchy_filters = [
             'index_template_hierarchy',
             '404_template_hierarchy',
@@ -935,10 +935,12 @@ Class Theme{
                 error_log("3. site assets META IN DB IS EMPTY -> REGENERATE");
                 $meta = self::get_meta();
                 if($meta["type"] == "post"){
-                    $site_assets = $GLOBALS["salt"]->extractor->on_save_post($meta["id"], [], false);
+                    //$site_assets = $GLOBALS["salt"]->extractor->on_save_post($meta["id"], [], false);
+                    $site_assets = PageAssetsExtractor::get_instance()->on_save_post($meta["id"], [], false);;
                 }
                 if($meta["type"] == "term"){
-                    $site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
+                    //$site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
+                    $site_assets = PageAssetsExtractor::get_instance()->on_save_term($meta["id"], "", $meta["tax"]);
                 }
             }
 
@@ -1198,6 +1200,7 @@ Class Theme{
                $config["theme_url"] = THEME_URL; 
             }
 
+            $config["dictionary"] = [];
             if(!is_admin() && class_exists("TranslationDictionary")){
                 $dictionary = new \TranslationDictionary();
                 $config["dictionary"] = $dictionary->getDictionary();
@@ -1272,6 +1275,9 @@ Class Theme{
             wp_localize_script( 'site_config_vars', 'required_js', $args["required_js"]);
 
             $this->site_assets();
+
+            $upload_dir = wp_upload_dir();
+            $upload_url = $upload_dir['baseurl']."/";
             
             if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !is_admin()){
                 $conditional = SITE_ASSETS["plugins"];//apply_filters("salt_conditional_plugins", []);
@@ -1286,20 +1292,19 @@ Class Theme{
                 if(!empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
                     wp_register_style( 'page-styles', false );
                     wp_enqueue_style( 'page-styles' );
-                    $upload_dir = wp_upload_dir();
-                    $upload_url = $upload_dir['baseurl']."/";
                     $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
                     $code = str_replace("{home_url}", home_url("/"), $code);
                     //$code .= file_get_contents(STATIC_URL . SITE_ASSETS["css_page"]);
                     wp_add_inline_style( 'page-styles', $code); 
                 }
             }
-
             $args = array(
-                'url'         => home_url().'/',//.qtranxf_getLanguage(),
+                'url'         => home_url().'/',
                 'url_admin'   => admin_url('admin-ajax.php'),
+                'site_url'    => get_option('home'),
+                'theme_url'   => get_stylesheet_directory_uri()."/",
+                'upload_url'  => $upload_url."/",
                 'ajax_nonce'  => wp_create_nonce( 'ajax' ),
-                'theme_url'  => get_stylesheet_directory_uri()."/",
                 'title'       => ''
             );
             if(class_exists("Redq_YoBro")){

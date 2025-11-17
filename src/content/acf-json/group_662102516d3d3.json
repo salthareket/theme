@@ -570,6 +570,37 @@
             "allow_custom": 0,
             "search_placeholder": "",
             "pll_default_value": "default"
+        },
+        {
+            "key": "field_69000c3171209",
+            "label": "Footer Template",
+            "name": "default_footer_template",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "acf-template-custom-footer",
+                "id": ""
+            },
+            "choices": {
+                "static": "Static",
+                "theme\/templates\/_custom\/footer-test_{{lang}}.twig": "Footer Test"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": ""
         }
     ],
     "location": [
@@ -590,6 +621,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -597,7 +629,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740599,
+    "modified": 1761610865,
     "acfe_categories": {
         "general": "General"
     }

@@ -36,6 +36,10 @@
 	{% endif %}
 {% endif %}
 
+{% if not is_preview and fields.block_settings.visibility.display == "none" %}
+	{% set show_block = false %}
+{% endif %}
+
 
 {% if show_block %}
 
@@ -78,9 +82,15 @@
 			<div class="col">
 		{% else %}
 			{# set block_meta_classes = block_meta_classes ~ " " ~ function("block_bs_columns_col_classes", fields) #}
-			<div class="{{function("block_bs_columns_col_classes", fields)}}">
+			<div class="{{function("block_bs_columns_col_classes", fields)|default("col-12")}}">
 		{% endif %}
 	{% endif %}
+
+   {% set is_hidden = false %}
+   {% if is_preview and fields.block_settings.visibility.display == "none" %}
+   	{% set block_meta_classes = block_meta.classes  ~ " opacity-25 " %}
+   	{% set is_hidden = true %}
+   {% endif %}
 
 
 	{% if is_preview and block_meta.lock %}
@@ -106,6 +116,10 @@
 		</style>
     {% endif %}
 
+
+   {% if is_hidden %}
+		<div style="background-color:red;color:#fff;padding:8px 22px;top:0;left:0;position:absolute;z-index:10;">Admin Preview</div>
+	{% endif %}
 
 	<div class="{{block_meta_classes}}" {{block_meta.attrs}}>
 

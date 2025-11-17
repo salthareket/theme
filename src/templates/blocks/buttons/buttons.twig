@@ -25,7 +25,7 @@
     <ul class="list-inline m-0">
         {% for item in fields.buttons %}
 
-            {% if item.modal %}
+            {% if item.link_type == "modal" %}
 
                 {% set attrs = " data-ajax-method='" ~ item.modal_settings.type ~ "' " ~ (item.modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ item.modal_settings.size ~ "' ") %}
                 {% set attrs = attrs ~ " data-close='" ~ item.modal_settings.close ~ "' " %}
@@ -55,9 +55,8 @@
                         {% set attrs = attrs ~ " data-popup='" ~ popup_args ~ "' " %}
                     {% endif %}
                 {% endif %}
-
             {% else %}
-                {% set attrs = item.outside?"target='_blank' rel='nofollow'":"" %}
+                {% set attrs = item.link_type == "external"?"target='_blank' rel='nofollow'":"" %}
             {% endif %}
 
             {% set btn_class = "" %}
@@ -75,7 +74,7 @@
                     {% set btn_class = btn_class ~ "btn-" ~ item.size ~ " " %}
                 {% endif %}
             {% endif %}
-            {% if not item.link_outside and not item.modal %}
+            {% if not item.link_type == "external" and not item.modal %}
                 {% set btn_class = btn_class ~ "btn-loading-page" %}
             {% endif %}
             {% set btn_class = btn_class ~ " " ~ item.class %}
@@ -98,10 +97,22 @@
                 {% elseif item.modal and item.modal_settings.type in ["iframe_modal"]  %}
                    {% set url   = item.modal_settings.content_type == "file" ? item.modal_settings.file : item.modal_settings.url %}
                 {% else %}
-                    {% set url   = item.outside?item.link_outside:item.link_inside %}
+                    {% set url   = item.link_type == "external"?item.link_external:"" %}
+                    {% if item.link_type == "post" %}
+                        {% set url  = item.link_post %}
+                    {% elseif item.link_type == "term" %}
+                        {% set term = get_term(item.link_term) %}
+                        {% set url = term.link %}
+                    {% endif %}
                     {% set url   = url ~ (item.anchor?"#"~item.anchor:"") %}
                 {% endif %}
-                {% set title = item.link_text is empty and not item.outside ? get_title_from_url(item.link_inside) : item.link_text  %}
+                {% if item.link_type == "email" %}
+                     {% set url   = "linkto:"  ~  item.link_email ~ (item.anchor?"#"~item.anchor:"") %}
+                {% endif %}
+                {% if item.link_type == "phone" %}
+                     {% set url   = "tel:"  ~  item.link_phone|replace({" ":""}) ~ (item.anchor?"#"~item.anchor:"") %}
+                {% endif %}
+                {% set title = item.link_text is empty and not item.link_type == "external" ? get_title_from_url(item.link_inside) : item.link_text  %}
                 <a href="{{url}}" class="{{btn_class}}" {{attrs}} title="{{title}}">{{title}}</a>
             </li>
 

@@ -33,16 +33,20 @@ function generateFontPreloadTags($font_faces_path) {
 }
 
 add_action('wp_head', function () {
-    $preload = generateFontPreloadTags(get_stylesheet_directory() . '/static/css/font-faces.css');
+    $preload = generateFontPreloadTags(STATIC_PATH .'css/font-faces.css');
     if ($preload) {
         echo "\n<!-- Preload Font Faces -->\n" . $preload . "\n";
     }
-    //echo "<link rel='preload' href='" . get_template_directory_uri() . "/static/css/root.css' as='style'>";
+
+    /*
+	>>> We decided to use wp rocket's critical css function...
     if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !isset($_GET['fetch'])){
     	if(!empty(SITE_ASSETS["css_critical"])){
-    		inline_css_add('css-critical', STATIC_URL . SITE_ASSETS["css_critical"]);
+    		inline_css_add('css-critical', STATIC_PATH . SITE_ASSETS["css_critical"]);
     	}
     }
+    */
+
 }, 0); // 0 ile en başta bassın
 
 
@@ -75,14 +79,14 @@ function inline_css($name = "", $url = "") { // Her iki parametre de isteğe ba�
     if (empty($url) || !is_string($url) || !file_exists($url)) {
         // Fonksiyon yanlış çağrılırsa hata günlüğüne not düşer.
         error_log($url);
-        error_log('[212outlet-Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
+        error_log('[Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
         return ''; // Sitenin çökmesini engellemek için güvenli çıkış.
     }
 
     // --- Fonksiyonun geri kalanı aynı ---
     $css = file_get_contents($url);
     if ($css === false) {
-        error_log('[212outlet-Theme] CSS dosyası okunamadı: ' . $url);
+        error_log('[Theme] CSS dosyası okunamadı: ' . $url);
         return '';
     }
 
@@ -155,7 +159,7 @@ function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {
 }
 
 function delay_css_loading($tag, $handle, $href, $media) {
-    $async_handles = ['root', 'main', 'css-conditional', 'css-page', 'locale'];
+    $async_handles = ['root', 'main', 'css-conditional', 'css-page', 'locale', 'common-css', 'newsletter'];
 
     if (in_array($handle, $async_handles)) {
         return "<link id='{$handle}' rel='preload' href='{$href}' as='style' onload=\"this.onload=null;this.rel='stylesheet'\">\n" .
@@ -168,12 +172,17 @@ add_filter('style_loader_tag', 'delay_css_loading', 10, 4);
 
 function frontend_header_styles(){
 
+	/*wp_register_style('root', STATIC_URL . 'css/root.css', array(), $version, '');
+    wp_enqueue_style('root');
+
+	return;*/
+
 	$print_css = INLINE_CSS;
 	if(isset($_GET['fetch'])){
 		$print_css = false;
 	}
 
-	inline_css_add("font-faces", get_stylesheet_directory() . '/static/css/font-faces.css');
+	inline_css_add("font-faces", STATIC_PATH . '/css/font-faces.css');
 
 	$css_path = get_stylesheet_directory() . '/static/css/main.css';
 	$version = filemtime($css_path);
@@ -252,25 +261,6 @@ function frontend_header_styles(){
     wp_dequeue_style('font-for-new');
     wp_dequeue_style('google-fonts-roboto');
 
-
-    /*if(ENABLE_PRODUCTION){
-    	if (!function_exists("compile_files_config")) {
-	        require SH_INCLUDES_PATH . "minify-rules.php";
-	    }
-	    $files = compile_files_config(true);
-	    $plugins = $files["js"]["plugins"];
-    	foreach($plugins as $plugin => $file){
-    		if(!$file["c"]){
-    			if(!empty($file["css"])){
-				    wp_register_style('plugin-'.$plugin, STATIC_URL . 'js/plugins/'.$plugin.".css", array(), $version, '');
-		            wp_enqueue_style('plugin-'.$plugin);
-		        }
-    		}
-		}
-    }*/
-    
-    //wp_register_style('fonts',  get_stylesheet_directory_uri() . '/static/css/fonts.css', array(), $version, '');
-
     $locale_file_path = STATIC_PATH . 'css/locale-' . $GLOBALS['language'] . '.css';
 	if (file_exists($locale_file_path) && is_readable($locale_file_path) && filesize($locale_file_path) > 0) {
 	    wp_register_style('locale', STATIC_URL . 'css/locale-' . $GLOBALS['language'] . '.css' , array(), $version, '');
@@ -293,15 +283,9 @@ function frontend_header_styles(){
     	$is_rtl = true;
     }
 
-    //wp_register_style('icons', STATIC_URL . 'css/icons.css', array(), $version, '');
-    //wp_enqueue_style('icons');
-
     wp_register_style('root', STATIC_URL . 'css/root.css', array(), $version, '');
     wp_enqueue_style('root');
-
-    //wp_register_style('header-themes', STATIC_URL . 'css/header-themes.css', array(), $version, ''); //merged with root.css
-    //wp_enqueue_style('header-themes');
-
+  
 	if($plugin_css || $css_page){
 	    if(!$print_css){
 	    	if($plugin_css){
@@ -329,12 +313,12 @@ function frontend_header_styles(){
 		    }
 	    }else{
 	    	if($plugin_css){
-	    		inline_css_add('css-conditional', STATIC_URL . SITE_ASSETS["plugin_css".($is_rtl?"_rtl":"")], $is_rtl);
+	    		inline_css_add('css-conditional', STATIC_PATH . SITE_ASSETS["plugin_css".($is_rtl?"_rtl":"")], $is_rtl);
 	        }
 	        if($css_page){
-	        	inline_css_add('main', STATIC_URL . SITE_ASSETS["css_page".($is_rtl?"_rtl":"")], $is_rtl);
+	        	inline_css_add('main', STATIC_PATH . SITE_ASSETS["css_page".($is_rtl?"_rtl":"")], $is_rtl);
 	        }else{
-	        	inline_css_add('main', STATIC_URL . 'css/main-combined'.($is_rtl?"-rtl":"").'.css', $is_rtl);
+	        	inline_css_add('main', STATIC_PATH . 'css/main-combined'.($is_rtl?"-rtl":"").'.css', $is_rtl);
 	        }
 	    }	
 	}else{
@@ -343,9 +327,12 @@ function frontend_header_styles(){
 		    wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
 		    wp_enqueue_style('main'.($is_rtl?'-rtl':''));
 		}else{
-			inline_css_add('main', STATIC_URL . 'css/main-combined'.($is_rtl?"-rtl":"").'.css', $is_rtl);
+			inline_css_add('main', STATIC_PATH . 'css/main-combined'.($is_rtl?"-rtl":"").'.css', $is_rtl);
 		}
 	}
+
+	wp_register_style('common-css', STATIC_URL . 'css/common'.($is_rtl?"-rtl":"").'.css', array(), $version, '');
+    wp_enqueue_style('common-css');
 }
 function frontend_header_scripts(){
 	wp_deregister_script('jquery');
@@ -583,9 +570,11 @@ function load_admin_files() {
     admin_footer_scripts();
 }
 
+/*
+>>> We decided to use wp rocket's critical css function...
 add_action('wp_footer', function () {
     ?>
-    <script>
+    <script nowprocket>
     window.addEventListener('load', () => {
         const criticalStyle = document.getElementById('css-critical-inline-css');
         if (criticalStyle && criticalStyle.parentNode) {
@@ -595,3 +584,4 @@ add_action('wp_footer', function () {
     </script>
     <?php
 }, 100);
+*/

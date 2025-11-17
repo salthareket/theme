@@ -243,7 +243,8 @@ add_filter('acf_osm_marker_icon', function( $icon ) {
 
 function dynamic_map_service_value($value, $post_id, $field) {
     $google_api_key = acf_get_setting('google_api_key');
-    if ( empty( $google_api_key ) ) {
+    $map_view = get_field( 'map_view', 'option' );
+    if ( $value == "google" && empty( $google_api_key ) && $map_view == "js" ) {
         return 'leaflet';
     }
     return $value;

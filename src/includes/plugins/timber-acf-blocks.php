@@ -6,6 +6,16 @@ add_filter( 'timber/acf-gutenberg-blocks-templates', function () {
 
 add_filter( 'timber/acf-gutenberg-blocks-data', function( $context ){
     if ( array_key_exists('fields', $context) && is_array($context['fields']) ) {
+        //error_log("------------------------------- timber/acf-gutenberg-blocks-data");
+        //error_log(print_r($context['fields'], true));
+        if (isset($context['fields']['block_settings']['custom_id'])) {
+            $custom_id = $context['fields']['block_settings']['custom_id'];
+            //error_log("custom_id:".$custom_id);
+            // Eğer ID boşsa (yeni blok) VEYA 'block_' ile başlayan bir ID gelmişse (kopyalanmışsa), yeni ID üret.
+            //if (empty($custom_id) || strpos($custom_id, 'block_') === 0) {
+                $context['fields']['block_settings']['custom_id'] = 'block_' . md5(uniqid('', true));
+            //}
+        }
         $upload_dir = wp_upload_dir();
         $context['fields']['upload_url'] = $upload_dir['baseurl'];
     }
@@ -375,6 +385,10 @@ function block_classes($block, $fields, $block_column){
     $sizes = array_reverse(array_keys($GLOBALS["breakpoints"]));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $classes = [];
 
+    $position = isset($fields["block_settings"]["position"]["position"]) ? $fields["block_settings"]["position"]["position"] : "relative";
+
+    $classes[] = "position-".$position;
+
     if(isset($fields["block_settings"]["hero"])){
         if($fields["block_settings"]["hero"]){
             $classes[] = "block--hero";
@@ -388,7 +402,7 @@ function block_classes($block, $fields, $block_column){
         if($block_column["block"] != "archive"){
             $classes[] = "flex-column";
         }
-        $classes[] = "position-relative";
+        //$classes[] = "position-relative";
         if(isset($fields["block_settings"]["sticky_top"]) && $fields["block_settings"]["sticky_top"]){
             if($fields["block_settings"]["align"]["vr"] != "center" && $fields["block_settings"]["align"]["vr"] != "responsive"){
                 $classes[] = "sticky-top";
@@ -396,7 +410,7 @@ function block_classes($block, $fields, $block_column){
         }
     }else{
         $classes[] = "block-".sanitize_title($block["title"]);
-        $classes[] = "444 position-relative";
+        //$classes[] = "444 position-relative";
     }
     
     if(isset($fields["class"])){
@@ -452,6 +466,7 @@ function block_classes($block, $fields, $block_column){
             $classes[] = "h-100";
         }
 
+        $classes[] = block_visibility($block, $fields, $block_column);
 
     }
 
@@ -511,6 +526,56 @@ function block_attrs($block, $fields, $block_column){
     $attrs = array2Attrs($attrs);
     return $attrs;
 }
+
+
+function block_visibility($block, $fields, $block_column = null) {
+
+    $visibility_field = $fields["block_settings"]["visibility"];
+
+    if (empty($visibility_field) || !is_array($visibility_field)) return '';
+
+    $display = $visibility_field['display'] ?? 'block';
+    if ($display === 'none' && !is_admin()) return 'd-none';
+
+    $display = $fields["block_settings"]["hero"] ? 'flex' : $display;
+
+    $values = $visibility_field['visibility'] ?? [];
+    if (empty($values)) return "d-{$display}";
+    if(!is_array($values)) return "";
+
+    $added_auto_or_none = false;
+
+    // Mobile-first sıralama
+    $breakpoints = array_reverse(array_keys($GLOBALS["breakpoints"]));
+
+    $classes = [];
+
+    foreach ($breakpoints as $breakpoint) {
+        if (isset($values[$breakpoint])) {
+            $value = $values[$breakpoint]?$display:"none";
+            if ($value === 'none') {
+                if (!$added_auto_or_none || $breakpoint === 'xs' || $breakpoint === 'sm') {
+                    // 'xs' ve 'sm' gibi küçük breakpointler için auto/none değerlerini yine ekleyelim
+                    $classes[] = "d-{$breakpoint}-{$value}";
+                    $added_auto_or_none = true;
+                }
+            } else {
+                // İlk dolu breakpoint için prefix kaldır
+                if ($breakpoint === 'xs') {
+                    $classes[] = "d-{$value}";
+                } else {
+                    $classes[] = "d-{$breakpoint}-{$value}";
+                }
+            }
+        }
+    }
+
+    return implode(' ', $classes);
+}
+
+
+
+
 
 
 function block_spacing($settings) {
@@ -2560,7 +2625,8 @@ function block_object_position($vr, $hr){
 }
 function block_bg_image($block, $fields, $block_column){
     $image = "";
-    $image_class = " w-100 h-100 ";
+    //$image_class = " w-100 h-100 ";
+    $image_class = "";
     $image_style = [];
     $image_bg_style = [];
     if(isset($fields["block_settings"])){
@@ -2574,6 +2640,8 @@ function block_bg_image($block, $fields, $block_column){
         if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
             $background_color = $background["background"]["gradient_color"];
         }
+
+        $ignore_padding = $background["ignore_padding"];
 
         if(!empty($background["image"]) || !empty($background["image_responsive"])){// && (!empty($background["image_filter"]) || !empty($background["image_blend_mode"]))){
             if(!empty($background["image_filter"])){
@@ -2622,9 +2690,12 @@ function block_bg_image($block, $fields, $block_column){
 
             //if($fields["block_settings"]["height"] != "auto"){
                $classes .= " position-absolute-fill ";
+               if($ignore_padding){
+                  $classes .= " ignore-padding ";
+               }
             //}
 
-            $image = '<div class="bg-cover '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';
+            $image = '<div class="bg-cover overflow-hidden '.$classes.' '.($background["parallax"]?"jarallax overflow-hidden":"").'" ';
             if($background["repeat"] != "no-repeat" || $background["size"] == "fixed"){
                 $image .= 'style="'.$image_style.$image_bg_style.'"';
             }
@@ -2637,12 +2708,15 @@ function block_bg_image($block, $fields, $block_column){
                 }
             }
 
-            $image_class .= " ".block_object_position($background["position_vr"], $background["position_hr"]);
+            /*$image_class .= " a ".block_object_position($background["position_vr"], $background["position_hr"]) . " b ";
 
             $image .= '>';
             if($background["repeat"] == "no-repeat" && $background["size"] != "fixed"){
+                if(in_array($background["size"], ["cover", "fill", "contain", "scale", "none"])){
+                    $image_class .= " w-100 h-100 ";
+                }
                 $args = [
-                    "class" => (isset($background["size"])?'object-fit-'.$background["size"]:"").' '.$image_class,
+                    "class" => 'hoben object-fit-'.$background["size"].' '.$image_class . " x ",
                     "preview" => is_admin(),
                     "attrs" => []
                 ];
@@ -2656,6 +2730,51 @@ function block_bg_image($block, $fields, $block_column){
                     $args["src"] = $background["image_responsive"];
                 }
                 if(isset($args["src"])){
+                    $image .= get_image_set($args);
+                }
+            }
+            $image .= '</div>';*/
+
+            $image .= '>';
+
+            $size = $background["size"] ?? 'auto';
+            $position_class = block_object_position($background["position_vr"], $background["position_hr"]);
+
+            $image_class .= " a {$position_class} b ";
+
+            if ($background["repeat"] == "no-repeat" && $size != "fixed") {
+                if (!in_array($size, ["auto"]) && !$background["parallax"]) {
+                    $image_class .= " w-100 h-100 ";
+                }
+
+                // object-fit uygun mu kontrolü
+                $fit_classes = ["cover", "fill", "contain", "scale", "none"];
+                $fit_class = in_array($size, $fit_classes) ? "object-fit-{$size}" : "";
+
+                // scale -> cover map
+                if ($size === "scale") {
+                    $fit_class = "object-fit-cover";
+                }
+
+                $image_class .= " ".$fit_class." ";
+
+                $args = [
+                    "class" => $image_class,
+                    "preview" => is_admin(),
+                    "attrs" => []
+                ];
+
+                if ($image_style) {
+                    $args["attrs"]["style"] = $image_style;
+                }
+
+                if (!empty($background["image_responsive"])) {
+                    $args["src"] = $background["image_responsive"];
+                } elseif (!empty($background["image"])) {
+                    $args["src"] = $background["image"];
+                }
+
+                if (!empty($args["src"])) {
                     $image .= get_image_set($args);
                 }
             }
@@ -2742,6 +2861,11 @@ function block_bg_video($block, $fields, $block_column){
 
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
+            $ignore_padding = $background["ignore_padding"];
+            if($ignore_padding){
+                $classes .= " ignore-padding ";
+            }
+
             $image = '<div '.$container_attr.' class="'.$container_class.' bg-cover 2 '.$classes.' position-absolute-fill hide-controls overflow-hidden" style="'.$image_style.'">';
             if($background["type"] == "embed" && !empty($background["parallax"])){
                 $image .= '<div class="jarallax-img">';
@@ -2797,6 +2921,11 @@ function block_bg_slider($block, $fields, $block_column){
             
             $classes = !empty($background["image_mask"])?block_spacing(["margin" => $background["margin_mask"]]):"";
 
+            $ignore_padding = $background["ignore_padding"];
+            if($ignore_padding){
+                $classes .= " ignore-padding ";
+            }
+
             $image = '<div class="bg-cover position-absolute-fill overflow-hidden '. $classes .' '.($background["parallax"]?"jarallax":"").'" ';
             //$image .= 'style="'.$image_style.'"';
 
@@ -2848,7 +2977,8 @@ function block_bg_media($block, $fields, $block_column){
 
             default:
                 if(!empty($background["image_mask"])){
-                    $result = "<div class='bg-cover 1 ".$background["type"]." position-absolute-fill'></div>";
+                    $ignore_padding = $background["ignore_padding"];
+                    $result = "<div class='bg-cover 1 ".$background["type"]." position-absolute-fill ".($ignore_padding?"ignore-padding":"")."'></div>";
                 }
             break;
         }
@@ -2905,6 +3035,7 @@ function block_css($block, $fields, $block_column){
     $code_bg = "";
     $code_bg_color = "";
     $code_height = "";
+    $code_bg_parallax = "";
     $code_svg = "";
     $media_query = [];
 
@@ -2996,6 +3127,7 @@ function block_css($block, $fields, $block_column){
                         */
                         $css = "#".$selector."{
                             min-height: var(--hero-height-".$value["height"].");
+                            max-height: var(--hero-height-".$value["height"].");
                             height: var(--hero-height-".$value["height"]."-min);
                         }";
                         if($block["name"] == "acf/slider" || $block["name"] == "acf/slider-advanced" || $block["name"] == "acf/archive"){
@@ -3045,7 +3177,7 @@ function block_css($block, $fields, $block_column){
             /* hata olabilir
             $code_inner .= ($height=="full" || $block["name"] == "acf/video"?"":"min-")."height: var(--hero-height-".$height.");";
             */
-            $code_inner .= "min-height: var(--hero-height-".$height.");height: var(--hero-height-".$height."-min);";
+            $code_inner .= "min-height: var(--hero-height-".$height.");max-height: var(--hero-height-".$height.");height: var(--hero-height-".$height."-min);";
             
             /*$code_height .= "#".$selector." {
                 min-height: var(--hero-height-".$height.");
@@ -3083,15 +3215,18 @@ function block_css($block, $fields, $block_column){
 
         if(isset($background["background"]) && !empty($background["background"]["color"])){
             $code_inner .=  "background-color: ".$background["background"]["color"].";";
+            $code_bg_parallax .= "background-color: ".$background["background"]["color"].";";
         }
 
         if(isset($background["background"]) && (!empty($background["background"]["gradient_color"]) && $background["background"]["gradient"])){
             $gradient .= "background: ".$background["background"]["gradient_color"].";";
             $code_inner .=  $gradient;
+            $code_bg_parallax .= $gradient;
         }
 
         if(!empty($gradient) && !$background["gradient_mask"] && !$block_column){
             $code_inner .= $gradient;
+            $code_bg_parallax .= $gradient;
         }   
 
     }
@@ -3296,6 +3431,11 @@ function block_css($block, $fields, $block_column){
     if(!empty($code_bg)){
         $code .= "#".$selector." > .bg-cover{".$code_bg."}";
     }
+
+    if($background["parallax"] && !empty($code_bg_parallax)){
+        $code .= "#".$selector." > .bg-cover .jarallax-container{".$code_bg_parallax."}";
+    }
+    
 
     if(!empty($code_bg_color)){
        $code .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;z-index:1;".$code_bg_color."}";
@@ -3590,6 +3730,11 @@ add_filter( 'acf/load_value/name=column_id', 'generate_unique_column_id', 10, 3 
 add_filter( 'acf/update_value/name=column_id', 'generate_unique_column_id', 10, 3 );
 
 
+
+
+
+
+
 function acf_get_block_data_item($array = [], $end = "") {
     $filtered = [];
     foreach ($array as $key => $value) {
@@ -3599,9 +3744,6 @@ function acf_get_block_data_item($array = [], $end = "") {
     }
     return $filtered;
 }
-
-
-
 function acf_block_id_fields($post_id){
 
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
@@ -3676,3 +3818,97 @@ function acf_block_id_fields($post_id){
         ]);
     }
 }
+
+
+add_action('acf/input/admin_footer', function() {
+?>
+<script>
+(function($) { // jQuery'yi kullanmak için $ kullanıldı.
+    
+    // WordPress Data Store'u (Redux) kullanmak için gerekli yapılar
+    const { select, dispatch } = wp.data;
+    
+    // custom_id'yi yenileyecek yardımcı fonksiyon
+    function generateNewCustomId() {
+        const newIdSuffix = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        return 'block_' + newIdSuffix;
+    }
+
+    // Blokları kontrol eden ve Duplike ID'leri yenileyen ana fonksiyon
+    function checkAndFixDuplicateIds() {
+        
+        const blocks = select('core/block-editor').getBlocks();
+        const { updateBlockAttributes } = dispatch('core/block-editor');
+
+        const customIdKey = 'block_settings_custom_id';
+        const idMap = {};
+        
+        // 1. Adım: Tüm custom_id'leri topla ve tekrar edenleri bul
+        blocks.forEach(block => {
+            if (block.attributes.data && block.attributes.data[customIdKey]) {
+                const id = block.attributes.data[customIdKey];
+                if (id.startsWith('block_')) {
+                    idMap[id] = (idMap[id] || 0) + 1;
+                }
+            }
+        });
+
+        // 2. Adım: Haritayı kullanarak duplike ID'leri bul ve yenile
+        blocks.forEach(block => {
+            const attributes = block.attributes;
+            
+            if (attributes.data && attributes.data[customIdKey]) {
+                const currentId = attributes.data[customIdKey];
+
+                // Eğer ID 'block_' ile başlıyorsa VE idMap'te 1'den fazla kullanılmışsa (Duplike edilmişse)
+                // VEYA ID boşsa (Yeni blok eklenmiş olabilir)
+                if (currentId.startsWith('block_') && idMap[currentId] > 1 || !currentId) {
+                    
+                    const newId = generateNewCustomId();
+                    const currentData = attributes.data; // Mevcut data nesnesini al
+                    
+                    // ----------------------------------------------------------------------
+                    // DÜZELTME 1: Gutenberg Data Store'u Güncelle (Diğer verileri koruyarak)
+                    // ----------------------------------------------------------------------
+                    const newData = { 
+                        ...currentData, 
+                        [customIdKey]: newId 
+                    };
+                    
+                    updateBlockAttributes(block.clientId, { 
+                        data: newData 
+                    });
+                    
+                    // ----------------------------------------------------------------------
+                    // DÜZELTME 2: ACF'in DOM Input Alanını Güncelle
+                    // ----------------------------------------------------------------------
+                    const blockEditor = select('core/block-editor').getBlock(block.clientId);
+                    if (blockEditor) {
+                        // Bloğun DOM elementini bulmaya çalış
+                        const blockDOMElement = $(`#block-${block.clientId}`);
+                        
+                        // Input alanını bul ve değerini set et
+                        const $customIdInput = blockDOMElement.find(`[data-name="${customIdKey}"] input`);
+                        
+                        if ($customIdInput.length) {
+                            $customIdInput.val(newId).trigger('change');
+                            // console.log('ACF Input Değeri Güncellendi:', newId);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. Adım: WordPress store'a abone ol
+    wp.domReady(function() {
+        if (typeof wp.data !== 'undefined' && typeof wp.data.subscribe === 'function') {
+            // Abone ol ve blok listesi değiştiğinde çalıştır
+            wp.data.subscribe(checkAndFixDuplicateIds);
+        }
+    });
+
+})(jQuery);
+</script>
+<?php
+});

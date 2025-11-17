@@ -87,10 +87,11 @@ function pst_nav_menu_objects( $items, $args ) {
         }        
 
         $post_status = get_post_status( $item->object_id );
-        if ( 'publish' === $post_status ) {
+        if ( 'publish' !== $post_status ) {
+            unset( $items[ $key ] );
+            pst_nav_menu_remove_children_recursive($items, $item->ID);
             continue;
         }
-        unset( $items[ $key ] );
     }
     return $items;
 }
@@ -123,7 +124,8 @@ function create_custom_menu( $items, $menu, $args ) {
 			            
 						if(isset($dynamic_menu_item["taxonomy"]["taxonomy"]) && !empty($dynamic_menu_item["taxonomy"]["taxonomy"])){
 							$args = $dynamic_menu_item["taxonomy"];
-							$args = array_merge($args, array( 'hide_empty' => false, 'parent' => 0 ));
+							$hide_empty = isset($dynamic_menu_item["taxonomy"]["all_taxonomy"]) && $dynamic_menu_item["taxonomy"]["all_taxonomy"] ? 0 : 1;
+							$args = array_merge($args, array( 'hide_empty' => $hide_empty, 'parent' => 0 ));
 							$terms = Timber::get_terms($args);
 							foreach ( $terms as $term ) {
 								custom_menu_items::add_object($menu->name, $term->term_id, 'term', $menu_order, intval($item->db_id), '', '', '', $term->name);

@@ -3,14 +3,72 @@
     "title": "Block Bootstrap Columns",
     "fields": [
         {
-            "key": "field_68a679ebee611",
-            "label": "Breakpoints",
-            "name": "breakpoints",
+            "key": "field_66e3405010cb8",
+            "label": "Block Settings",
+            "name": "block_settings",
+            "aria-label": "",
+            "type": "clone",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "clone": [
+                "group_65f2ed05497f6"
+            ],
+            "display": "group",
+            "layout": "block",
+            "prefix_label": 0,
+            "prefix_name": 1,
+            "acfe_clone_modal": 1,
+            "acfe_clone_modal_close": 1,
+            "acfe_clone_modal_button": "",
+            "acfe_clone_modal_size": "large",
+            "acfe_seamless_style": 0
+        },
+        {
+            "key": "field_66e33af7f19f4",
+            "label": "Row Cols",
+            "name": "row_cols",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1,
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_66e33aaff19f3",
+            "label": "Row Column Breakpoints (Equal width columns)",
+            "name": "column_breakpoints",
             "aria-label": "",
             "type": "acf_bs_breakpoints",
             "instructions": "",
             "required": 0,
-            "conditional_logic": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_66e33af7f19f4",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
             "wrapper": {
                 "width": "",
                 "class": "",
@@ -18,16 +76,23 @@
             },
             "acf_bs_breakpoints_type": "number",
             "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
+            "acf_bs_breakpoints_choices": "1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n10\r\n11\r\n12",
+            "xxxl": 1,
+            "xxl": 1,
+            "xl": 1,
+            "lg": 1,
+            "md": 1,
+            "sm": 1,
+            "xs": 1,
             "allow_in_bindings": 0,
             "font_size": 14
         },
         {
-            "key": "field_68a679ebf338e",
-            "label": "",
-            "name": "accordion",
+            "key": "field_66e379d67661d",
+            "label": "Row Classes",
+            "name": "row_classes",
             "aria-label": "",
-            "type": "clone",
+            "type": "text",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
@@ -36,1219 +101,62 @@
                 "class": "",
                 "id": ""
             },
-            "clone": [
-                "group_6612a3fd4e734"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec03aa7",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
+            "default_value": "",
+            "translations": "translate",
+            "maxlength": "",
             "allow_in_bindings": 0,
-            "font_size": 14
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
         },
         {
-            "key": "field_68a679ec06954",
-            "label": "",
-            "name": "application-buttons",
+            "key": "field_66e8b23965c52",
+            "label": "Blocks",
+            "name": "acf_block_columns",
             "aria-label": "",
-            "type": "clone",
+            "type": "flexible_content",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "acf-bs-columns",
                 "id": ""
             },
-            "clone": [
-                "group_66782c63610fc"
+            "acfe_flexible_advanced": 1,
+            "acfe_flexible_stylised_button": 1,
+            "acfe_flexible_layouts_templates": 0,
+            "acfe_flexible_layouts_placeholder": 0,
+            "acfe_flexible_layouts_thumbnails": 0,
+            "acfe_flexible_layouts_settings": 0,
+            "acfe_flexible_async": [
+                "title",
+                "layout"
             ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec0aee9",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec0dd0c",
-            "label": "",
-            "name": "archive",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_66c3e63130e6c"
+            "acfe_flexible_add_actions": [
+                "toggle"
             ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec1265a",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
+            "acfe_flexible_remove_button": [],
+            "acfe_flexible_modal_edit": {
+                "acfe_flexible_modal_edit_enabled": "1",
+                "acfe_flexible_modal_edit_size": "medium"
             },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec1520d",
-            "label": "",
-            "name": "audio",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
+            "acfe_flexible_modal": {
+                "acfe_flexible_modal_enabled": "1",
+                "acfe_flexible_modal_title": "",
+                "acfe_flexible_modal_size": "large",
+                "acfe_flexible_modal_col": "4",
+                "acfe_flexible_modal_categories": "1"
             },
-            "clone": [
-                "group_66fbebae99ce4"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec19b6a",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec1c6aa",
-            "label": "",
-            "name": "bootstrap-columns",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_66e309dc049c4"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec20c7c",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec2380b",
-            "label": "",
-            "name": "buttons",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_673e8740bf3a6"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec27efb",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec2abf8",
-            "label": "",
-            "name": "files",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_67845bea22012"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec2f7da",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec329ae",
-            "label": "",
-            "name": "gallery",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65fb805174672"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec379a1",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec3a73c",
-            "label": "",
-            "name": "hero",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_662a3f936aed9"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec3f40d",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec42692",
-            "label": "",
-            "name": "icons",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65f9fbff36dc6"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec46fac",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec49e87",
-            "label": "",
-            "name": "image",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_66cd012175298"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec4f392",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec51fe2",
-            "label": "",
-            "name": "map",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65fa7b2755068"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec56eab",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec59fe6",
-            "label": "",
-            "name": "marquee",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_670ca4648d16e"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec5ef97",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec61dce",
-            "label": "",
-            "name": "milestones",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_6653e9c50e20f"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec67308",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec6a1e3",
-            "label": "",
-            "name": "post-archive",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_6623b6adab0cc"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec6f354",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec722f3",
-            "label": "",
-            "name": "search-results",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_66a22445d084a"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec76ff8",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec7a0aa",
-            "label": "",
-            "name": "slider",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_64e76fafe65a4"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec7f662",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec825ec",
-            "label": "",
-            "name": "slider-advanced",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_67691196115a0"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec8718a",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec8a024",
-            "label": "",
-            "name": "social-media",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_6657ecb07969b"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec8f01f",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec91d9c",
-            "label": "",
-            "name": "table",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65ecd4fccc5dc"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec96984",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ec99af5",
-            "label": "",
-            "name": "table-extended",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_68a3bd71bba7b"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ec9eb9e",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679eca191a",
-            "label": "",
-            "name": "tease-list",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_661e5b9b06573"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679eca6586",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ecac9ac",
-            "label": "",
-            "name": "text",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65f1b3a876da8"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ecb5f19",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ecb8c44",
-            "label": "",
-            "name": "text-image",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65f2289c30e43"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ecbd4ef",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ecc0161",
-            "label": "",
-            "name": "video",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_66512c7576189"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
-        },
-        {
-            "key": "field_68a679ecc4b0c",
-            "label": "Breakpoints",
-            "name": "breakpoints",
-            "aria-label": "",
-            "type": "acf_bs_breakpoints",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "acf_bs_breakpoints_type": "number",
-            "show_description": 1,
-            "acf_bs_breakpoints_choices": "",
-            "allow_in_bindings": 0,
-            "font_size": 14
-        },
-        {
-            "key": "field_68a679ecca110",
-            "label": "",
-            "name": "world-map",
-            "aria-label": "",
-            "type": "clone",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "clone": [
-                "group_65adaf2c754d0"
-            ],
-            "display": "seamless",
-            "layout": "block",
-            "prefix_label": 0,
-            "prefix_name": 0,
-            "acfe_seamless_style": 0,
-            "acfe_clone_modal": 0,
-            "acfe_clone_modal_close": 0,
-            "acfe_clone_modal_button": "",
-            "acfe_clone_modal_size": "large",
-            "parent_id": "13864"
+            "layouts": {},
+            "min": "",
+            "max": "",
+            "button_label": "Satır ekle",
+            "acfe_flexible_hide_empty_message": false,
+            "acfe_flexible_empty_message": "",
+            "acfe_flexible_layouts_previews": false,
+            "acfe_flexible_layouts_state": false
         }
     ],
     "location": [
@@ -1274,10 +182,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740653,
+    "modified": 1759186634,
     "acfe_categories": {
         "block": "Block"
     }

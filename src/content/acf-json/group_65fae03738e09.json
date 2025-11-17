@@ -46,18 +46,18 @@
                 "zoom-out-left": "zoom-out-left",
                 "zoom-out-right": "zoom-out-right"
             },
-            "default_value": "fade",
+            "default_value": "no",
             "return_format": "value",
             "multiple": 0,
             "allow_null": 0,
+            "allow_in_bindings": 1,
             "ui": 0,
             "ajax": 0,
             "placeholder": "",
-            "allow_custom": 0,
-            "search_placeholder": "",
             "create_options": 0,
             "save_options": 0,
-            "pll_default_value": "fade"
+            "allow_custom": 0,
+            "search_placeholder": ""
         },
         {
             "key": "field_65fae2047f167",
@@ -234,7 +234,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1755740594,
+    "modified": 1759272184,
     "acfe_categories": {
         "common": "Common"
     }

@@ -1,5 +1,5 @@
 function lcp_data(metric, type) {
-    console.log("is cached:"+site_config.cached);
+    console.log("is cached:" + site_config.cached);
     if (!metric || !metric.attribution || site_config.cached) return '';
     let element, url;
     if (typeof metric.attribution.lcpEntry !== "undefined") {
@@ -20,13 +20,10 @@ function lcp_data(metric, type) {
     function getUniqueSelector(el) {
         if (!el || !(el instanceof Element)) return "";
 
-        // CSS selector'ün sayfada unique olup olmadığını kontrol et
         const isUnique = (selector) => {
             if (!selector || typeof selector !== "string") return false;
-
             selector = selector.trim();
-            if (selector.startsWith(">")) selector = selector.substring(1).trim(); // Baştaki ">" varsa kaldır
-
+            if (selector.startsWith(">")) selector = selector.substring(1).trim();
             try {
                 return document.querySelectorAll(selector).length === 1;
             } catch (e) {
@@ -35,30 +32,24 @@ function lcp_data(metric, type) {
             }
         };
 
-        // İlk olarak sadece tag + class'ı deneyelim
         let selector = el.tagName.toLowerCase();
 
         if (el.classList.length > 0) {
             let validClasses = Array.from(el.classList)
-                .filter(cls => cls.trim() !== "" && !["loaded", "entered", "lazy"].includes(cls)) // Buraya filtreyi ekledim
+                .filter(cls => cls.trim() !== "" && !["loaded", "entered", "lazy"].includes(cls))// measure-lcp.js'ten:
                 .map(cls => `.${CSS.escape(cls)}`)
                 .join("");
-
             selector += validClasses;
         }
 
-        if (isUnique(selector)) return selector; // Eğer unique ise işlemi bitir
+        if (isUnique(selector)) return selector;
 
-        // Eğer ID varsa, direkt ID ile return yap (Başına `>` ekleme)
         if (el.id) return `#${CSS.escape(el.id)}`;
 
-        // Eğer yukarıdaki işlemler yeterli olmadıysa, parent'ı kontrol et (Recursive)
         const getParentSelector = (element) => {
-            if (!element || element.tagName.toLowerCase() === "html") return ""; // En üst seviyeye çıkınca dur
-
-            let parentSelector = getUniqueSelector(element.parentElement); // Recursive olarak parent'ı al
+            if (!element || element.tagName.toLowerCase() === "html") return "";
+            let parentSelector = getUniqueSelector(element.parentElement);
             let newSelector = `${parentSelector} > ${selector}`.trim();
-
             return isUnique(newSelector) ? newSelector : getParentSelector(element.parentElement);
         };
 
@@ -69,8 +60,6 @@ function lcp_data(metric, type) {
         if (!el) return {};
         const computedStyles = window.getComputedStyle(el);
         let styles = {
-            //"width": computedStyles.width,
-            //"height": computedStyles.height,
             "font-size": computedStyles.fontSize,
             "font-family": computedStyles.fontFamily,
             "color": computedStyles.color,
@@ -80,7 +69,6 @@ function lcp_data(metric, type) {
             "border": computedStyles.border
         };
 
-        // Eğer height "auto" ise, parent'ı kontrol et
         if (styles["height"] === 'auto' || styles["height"] === '') {
             let parent = el.parentElement;
             while (parent && parent !== document.body) {
@@ -96,24 +84,15 @@ function lcp_data(metric, type) {
         return styles;
     }
 
-    const selectorList = getCriticalSelectors(element);
-
+    const selectorList = [];//getCriticalSelectors(element);
 
     if (element) {
         preloadType = element.tagName.toLowerCase();
-        switch(preloadType){
-            case "img" :
-                preloadType = "image";
-                break;
-            case "iframe" :
-                preloadType = "document";
-                break;
-            case "video" :
-                preloadType = "video";
-                break;
-            default :
-                preloadType = "image";
-                break;
+        switch (preloadType) {
+            case "img": preloadType = "image"; break;
+            case "iframe": preloadType = "document"; break;
+            case "video": preloadType = "video"; break;
+            default: preloadType = "image"; break;
         }
         const selector = getUniqueSelector(element);
         const styles = getElementStyles(element);
@@ -136,35 +115,41 @@ function lcp_data(metric, type) {
         code: preloadTag,
         url: img_url,
         id: 0,
-        selectors: selectorList 
+        selectors: selectorList
     };
+
+    console.log(code);
 
     return code;
 }
 
 function lcp_data_save(metric, type = "desktop") {
-    const lcpData = lcp_data(metric, type);
-    const pageUrl = window.location.href;
-    console.log(type + " LCP:", lcpData);
-    fetch(ajax_request_vars.url_admin, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-            action: "save_lcp_results",
-            type: site_config.meta.type,
-            id: site_config.meta.id,
-            lang: site_config.user_language,
-            lcp_data: JSON.stringify({ [type]: lcpData }),
-            url: pageUrl,
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(type + " LCP Sonuçları kaydedildi:", data);
-        if (type === "mobile" && window.opener) {
-            self.close();
-        }
-    });
+    // sayfa tam yüklenince stil al
+   // window.addEventListener("load", () => {
+        const lcpData = lcp_data(metric, type);
+        console.log("fetched")
+        const pageUrl = window.location.href;
+        console.log(type + " LCP:", lcpData);
+        fetch(ajax_request_vars.url_admin, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                action: "save_lcp_results",
+                type: site_config.meta.type,
+                id: site_config.meta.id,
+                lang: site_config.user_language,
+                lcp_data: JSON.stringify({ [type]: lcpData }),
+                url: pageUrl,
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(type + " LCP Sonuçları kaydedildi:", data);
+                if (type === "mobile" && window.opener) {
+                    self.close();
+                }
+            });
+    //});
 }
 
 function lcp_for_mobile(url) {
@@ -203,33 +188,7 @@ function lcp_for_mobile(url) {
     iframeWindow.location = url;
 }
 
-/*function getCriticalSelectors(element) {
-    const selectors = new Set();
-
-    const add = (el) => {
-        if (!el || !(el instanceof Element)) return;
-        if (el.id) selectors.add(`#${CSS.escape(el.id)}`);
-        el.classList.forEach(cls => {
-            if (cls && !["lazy", "loaded", "entered"].includes(cls)) {
-                selectors.add(`.${CSS.escape(cls)}`);
-            }
-        });
-    };
-
-    // 1. LCP element ve parent’ları
-    let current = element;
-    while (current && current !== document.body) {
-        add(current);
-        current = current.parentElement;
-    }
-
-    // 2. Aktif slide içindeki tüm elemanlar (first viewport)
-    const activeEls = document.querySelectorAll('.swiper-slide-active *');
-    activeEls.forEach(el => add(el));
-
-    return Array.from(selectors);
-}*/
-function getCriticalSelectors(lcpElement) {
+/*function getCriticalSelectors(lcpElement) {
     const selectors = new Set();
 
     const add = (el) => {
@@ -270,4 +229,110 @@ function getCriticalSelectors(lcpElement) {
     document.querySelectorAll('.swiper-slide-active, .swiper-slide-active *').forEach(add);
 
     return Array.from(selectors);
+}*/
+
+// measure-lcp.js dosyasında
+function getCriticalSelectors(lcpElement) {
+    const selectors = new Set();
+    // Çok genel ve zararsız/filtrelenmesi zor etiketleri elemek için bir istisna listesi
+    const ignoredTags = ['div', 'span', 'i', 'a', 'p', 'br', 'ul', 'li', 'svg', 'g', 'path', 'rect', 'use'];
+
+    const add = (el) => {
+        if (!el || !(el instanceof Element)) return;
+        
+        // Sadece ID'leri ekle
+        if (el.id) selectors.add(`#${CSS.escape(el.id)}`);
+        
+        // Sadece Class'ları ekle
+        el.classList.forEach(cls => {
+            if (
+                cls &&
+                !["lazy", "loaded", "entered", "swiper-lazy", "swiper-slide-duplicate", "no-js"].includes(cls)
+            ) {
+                // Sadece temel (utility olmayan) veya benzersiz sınıfları eklemeyi düşün
+                // Bu adım çok riskli olduğu için şimdilik tüm sınıfları ekliyoruz
+                selectors.add(`.${CSS.escape(cls)}`);
+            }
+        });
+
+        // Temel Element Etiketlerini Ekle (body, html) - Çok önemli
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'body' || tag === 'html') {
+             selectors.add(tag);
+        }
+    };
+
+    // LCP element ve parent’ları
+    let current = lcpElement;
+    while (current && current !== document.body) {
+        if (!ignoredTags.includes(current.tagName.toLowerCase())) {
+            add(current);
+        }
+        current = current.parentElement;
+    }
+    // Body'i son kez ekle
+    add(document.body);
+
+
+    // Viewport içindeki görünür elementler
+    // Burayı kısıtlıyoruz: Sadece LCP'yi ve ana yapıları hedefleyelim.
+    // Tüm 'body *' taraması çok fazla gereksiz sınıf ekleyebilir.
+    // Sadece Head ve Navigasyon gibi yapısal elementleri kontrol edelim.
+    document.querySelectorAll('#header, #navigation, .main-nav, .swiper-slide-active, .swiper-slide-active *').forEach(add);
+
+    return Array.from(selectors);
 }
+
+/*
+// measure-lcp.js dosyasında
+function getCriticalSelectors(lcpElement) {
+    const selectors = new Set();
+    
+    // Eksik olan veya atlanan yapısal/utility sınıfları listesi
+    const structuralClasses = [
+        '.row', '.container', '.container-fluid', 
+        '.col', '.col-sm', '.col-md', '.col-lg', '.col-xl', '.col-xxl', 
+        '.d-flex', '.justify-content-center', '.align-items-center', 
+        '.flex-column', '.my-auto', '.mx-auto',
+    ];
+
+    const add = (el) => {
+        if (!el || !(el instanceof Element)) return;
+        if (el.id) selectors.add(`#${CSS.escape(el.id)}`);
+        el.classList.forEach(cls => {
+            if (
+                cls &&
+                !["lazy", "loaded", "entered", "swiper-lazy", "swiper-slide-duplicate", "no-js"].includes(cls)
+            ) {
+                selectors.add(`.${CSS.escape(cls)}`);
+            }
+        });
+        // Temel Element Etiketlerini Ekle (body, html) - Çok önemli
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'body' || tag === 'html') {
+             selectors.add(tag);
+        }
+    };
+
+    // 1. LCP element ve tüm ebeveynleri
+    let current = lcpElement;
+    while (current && current !== document.body) {
+        add(current);
+        current = current.parentElement;
+    }
+    add(document.body);
+    add(document.documentElement);
+    
+    // 2. YENİ EKLEME: Zorunlu Yapısal Sınıfları Garantiye Al
+    // Bu, .row, .align-items-center gibi sınıfların atlanmamasını garanti eder.
+    structuralClasses.forEach(selector => {
+        document.querySelectorAll(selector).forEach(add);
+    });
+
+    // 3. Viewport içindeki Kilit Alanları Tara (Ana Header/Navigasyon)
+    document.querySelectorAll('#header, #navigation, .main-nav, .swiper-slide-active, .swiper-slide-active *').forEach(add);
+    
+    // NOT: Bu tarama, eski geniş Viewport taramasından daha kısıtlıdır ve performansı artırır.
+    
+    return Array.from(selectors);
+}*/

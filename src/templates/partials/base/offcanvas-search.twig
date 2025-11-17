@@ -22,7 +22,7 @@
       {% endif %}
     {% endif %}
 
-    <div class="offcanvas offcanvas-search offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen {% if header_options.affix or header_options.fixed == "bottom-start" %}pt-header{% endif %}{% endif %}" tabindex="-1" id="offcanvasSearch" aria-labelledby="offcanvasSearchLabel" style="{{style}}">
+    <div class="offcanvas offcanvas-search offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen {% if header_options.affix or header_options.fixed == "bottom-start" %}pt-header{% endif %}{% endif %} offcanvas-{{offcanvas.visibility}}" tabindex="-1" id="offcanvasSearch" aria-labelledby="offcanvasSearchLabel" style="{{style}}">
 
         {% if background.image and (background.image_filter or background.image_blend_mode) %}
              <div class="bg-cover position-absolute-fill" {% if background.repeat != "no-repeat" %}style="{{image_style}}"{% endif %}>

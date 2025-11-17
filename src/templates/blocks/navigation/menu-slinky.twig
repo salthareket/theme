@@ -1,0 +1,30 @@
+{% set menu_level = menu_level is empty?1:menu_level %}
+{% if menu_level <= 1 %}
+<nav class="slinky-menu nav-menu {{class_name}}" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement">
+    <ul class="nav">
+{% endif %}
+
+{% for item in menu %}
+	{% set props = item.get_properties() %}
+	{% if item.children %}
+	   <li>
+		    <a href="#" data-action="{{item.action}}">
+		  		{{item.title}}
+		    </a>
+		    <ul>
+			    {% include "blocks/navigation/menu-slinky.twig" with { 'menu': item.children, 'is_child': item.children, 'menu_level': menu_level + 1, 'parent': item } %}
+		    </ul>
+		</li>
+	{% else %}
+		<li>
+			<a href="{{props.link.href}}" class="{{props.link.class}}" {{props.link.attrs}} data-action="{{item.action}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %}>
+				{{item.title}}
+		    </a>
+		</li>
+    {% endif %}
+{% endfor %}
+
+{% if menu_level <= 1 %}
+    </ul>
+</nav>
+{% endif %}

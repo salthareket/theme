@@ -32,18 +32,30 @@
     }
 }
 
-.am{
-    background-color:#{color-contrast($primary)};
-    color:color-contrast($primary);
-}
-
 @each $color, $value in $theme-colors {
     .btn-#{$color} {
+        //color: color-contrast($value);
+        //background-color: color-contrast($value);
+        //border-color:$value;
+        //@include button-outline-variant($value);
+
+        /*@include button-variant(
+            $value,
+            color-contrast($value, #fff, #000),
+            $hover-background: shade-color($value, $btn-hover-bg-shade-amount),
+            $hover-border: shade-color($value, $btn-hover-border-shade-amount),
+            $active-background: shade-color($value, $btn-active-bg-shade-amount),
+            $active-border: shade-color($value, $btn-active-border-shade-amount)
+        );
+        @include button-outline-variant(
+          $value
+        );*/
+
         &.btn-reverse {
             &:not(:hover){
                 color:$value;
                 background: transparent;
-                background-color: color-contrast($primary);
+                background-color: color-contrast($value);
                 border-color:$value;
                 @include button-outline-variant($value);                
             }
@@ -127,7 +139,7 @@
         font-family: $icon-font;
         position: absolute;
         font-size: 22px;
-        line-height: 1.3;
+        line-height: 1;
         font-weight: 400;
         left: 16px;
         right:auto;

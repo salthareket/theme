@@ -6,7 +6,7 @@
         {% set menu_class =  menu_class ~ " nav-language" %}
     {% endif %}
 
-    <li class="nav-item {{menu_class}}">
+    <div class="nav-item {{menu_class}}">
     {% if menu_type == "dropdown" %}
 
             <a aria-expanded="false" aria-haspopup="true" role="button" data-bs-toggle="dropdown" class="nav-link dropdown-toggle" href="#" id="language">
@@ -36,6 +36,6 @@
             </ul>
 
     {% endif %}
-    </li>
+    </div>
 
 {% endif %}

@@ -16,16 +16,14 @@ class StarterSite extends Timber\Site{
 
         //$this->language_settings();
 
-        $ajax_process = false;
-        if (defined('DOING_AJAX') && DOING_AJAX){
-            $ajax_process = true;
-        }
-        if (defined('DOING_CRON') && DOING_CRON){
-            $ajax_process = true;
-        }
+        $context["ajax_process"] = (defined('DOING_AJAX') && DOING_AJAX) || (defined('DOING_CRON') && DOING_CRON);
 
         $salt = $GLOBALS["salt"];
         $user = $GLOBALS["user"];
+
+        $context["is_fetch"] = IS_INTERNAL_FETCH;
+
+        $context["is_admin"] = is_admin();
 
         $context["block_appendix"] = array();
 
@@ -350,9 +348,10 @@ class StarterSite extends Timber\Site{
             $block_search_results_posts_per_page = 10;
             
             // check blocks
-            if(isset($page_settings["login_required"]) && $page_settings["login_required"] && (!$user->logged || (is_array($page_settings["allowed_roles"]) && !in_array($user->get_role(), $page_settings["allowed_roles"]) ))){
+            if(!IS_INTERNAL_FETCH && isset($page_settings["login_required"]) && $page_settings["login_required"] && (!$user->logged || (is_array($page_settings["allowed_roles"]) && !in_array($user->get_role(), $page_settings["allowed_roles"]) ))){
 
-               // login required & blocks not render
+                // login required & blocks not render
+                // only render bloks in fetch for create css
 
             }else{
      
@@ -493,7 +492,7 @@ class StarterSite extends Timber\Site{
 
         $context["fetch"] = isset($_GET["fetch"]) || (!SEPERATE_CSS && !SEPERATE_JS)?true:false;
 
-        $context["salt"] = $salt;
+        //$context["salt"] = $salt;
         $context["user"] = $user;
 
         return $context;
@@ -626,6 +625,12 @@ class StarterSite extends Timber\Site{
         ];
         $functions['get_page'] = [
             'callable' => '_get_page',
+        ];
+        $functions['get_menu'] = [
+            'callable' => 'Timber::get_menu',
+        ];
+        $functions['localization'] = [
+            'callable' => 'localization',
         ];
         
         if(isset($GLOBALS["twig_functions"])){

@@ -20,7 +20,7 @@ Class Image{
         'lcp' => false,
         'placeholder' => false,
         'placeholder_class' => '',
-        'preview' => false,
+        'preview' => 0,
         'attrs' => [],
         'wrapper' => false
     );
@@ -171,7 +171,14 @@ Class Image{
             $attrs["loading"] = "lazy";
         }
 
-        $this->args["class"] .= $this->args["post"]->get_focal_point_class();
+        if (isset($this->args['post']) && method_exists($this->args['post'], 'get_focal_point_class')) {
+            $class = $this->args['class'] ?? '';
+            if (strpos($class, 'object-position-') === false) {
+                $class .= ' ' . $this->args['post']->get_focal_point_class();
+            }
+
+            $this->args['class'] = trim($class);
+        }
 
         //error_log(print_r($this->args, true));
 
@@ -188,7 +195,7 @@ Class Image{
                     $srcset = $this->reorder_srcset($srcset);
                     $attrs[$this->prefix."srcset"] = $srcset;
                     $attrs[$this->prefix."sizes"] = "auto";//create_sizes_attribute($srcset);//$args["post"]->img_sizes();
-                    $attrs[$this->prefix."src"] = $this->args["post"]->src("thumbnail");
+                    $attrs[$this->prefix."src"] = $this->args["post"]->src("medium");
                 }else{
                     $attrs[$this->prefix."src"] = $this->args["post"]->src();
                 }        
@@ -196,7 +203,7 @@ Class Image{
             }
             
             if($this->args["post"]->post_mime_type == "image/svg+xml"){
-                $this->args["class"] = str_replace("-cover", "-contain", $this->args["class"]);
+            //    $this->args["class"] = str_replace("-cover", "-contain", $this->args["class"]);
             }
             
             $attrs["class"] = "img-fluid".($this->args["lazy"]?" lazy":"") . (!empty($this->args["class"])?" ".$this->args["class"]:"");
@@ -216,7 +223,7 @@ Class Image{
             if($this->is_single){
                 $attrs[$this->prefix."src"] = $this->args["post"]->src();
             }else{
-                $attrs[$this->prefix."src"] = $this->args["post"]->src("thumbnail");
+                $attrs[$this->prefix."src"] = $this->args["post"]->src("medium");
             }
             
             $attrs["class"] = "img-fluid".($this->args["lazy"]?" lazy":"") . (!empty($this->args["class"])?" ".$this->args["class"]:"");
@@ -304,57 +311,57 @@ Class Image{
 
     public function get_image_set_post($args=array()){
 
-    if (is_numeric($args["src"])) {
-        $args["id"] = intval($args["src"]);
-        $args["post"] = \Timber::get_image($args["id"]);
-
-    } elseif (is_string($args["src"])) {
-        // Medya kütüphanesinde bir ID'si olup olmadığını kontrol et
-        $args["id"] = attachment_url_to_postid($args["src"]);
-
-        if ($args["id"]) {
-            // Medya kütüphanesinde bulundu, Timber ile al
+        if (is_numeric($args["src"])) {
+            $args["id"] = intval($args["src"]);
             $args["post"] = \Timber::get_image($args["id"]);
-        } else {
-            // Medya kütüphanesinde değil, doğrudan URL ile bir TimberImage oluştur
-            $args["id"] = null;
-            $args["post"] = new \Timber\Image($args["src"]);
+
+        } elseif (is_string($args["src"])) {
+            // Medya kütüphanesinde bir ID'si olup olmadığını kontrol et
+            $args["id"] = attachment_url_to_postid($args["src"]);
+
+            if ($args["id"]) {
+                // Medya kütüphanesinde bulundu, Timber ile al
+                $args["post"] = \Timber::get_image($args["id"]);
+            } else {
+                // Medya kütüphanesinde değil, doğrudan URL ile bir TimberImage oluştur
+                $args["id"] = null;
+                $args["post"] = new \Timber\Image($args["src"]);
+            }
+
+        } elseif (is_object($args["src"])) {
+            if($args["src"]->post_type == "attachment"){
+               $args["id"] = $args["src"]->ID;
+               $args["post"] = $args["src"];
+            }else{
+                if($args["src"]->thumbnail){
+                   $args["id"] = $args["src"]->id;
+                   $args["post"] = $args["src"]->thumbnail;
+                }else{
+                    return;
+                }
+            }
+        } elseif (is_array($args["src"])) {
+            $args["id"] = $args["src"]["id"];
+            $args["post"] = \Timber::get_image($args["src"]["id"]);
         }
 
-    } elseif (is_object($args["src"])) {
-        if($args["src"]->post_type == "attachment"){
-           $args["id"] = $args["src"]->ID;
-           $args["post"] = $args["src"];
-        }else{
-            if($args["src"]->thumbnail){
-               $args["id"] = $args["src"]->id;
-               $args["post"] = $args["src"]->thumbnail;
+        if(empty($args["width"]) && isset($args["post"])){
+            $args["width"] = $args["post"]->width();
+        }
+        if(empty($args["height"]) && isset($args["post"])){
+            $args["height"] = $args["post"]->height();
+        }
+        if(empty($args["alt"])){
+            if (isset($args["post"]) && !empty($args["post"]->alt())){
+                $args["alt"] = $args["post"]->alt();
             }else{
-                return;
+                global $post;
+                $args["alt"] = $post->post_title;
             }
         }
-    } elseif (is_array($args["src"])) {
-        $args["id"] = $args["src"]["id"];
-        $args["post"] = \Timber::get_image($args["src"]["id"]);
-    }
 
-    if(empty($args["width"]) && isset($args["post"])){
-        $args["width"] = $args["post"]->width();
+        return $args;
     }
-    if(empty($args["height"]) && isset($args["post"])){
-        $args["height"] = $args["post"]->height();
-    }
-    if(empty($args["alt"])){
-        if (isset($args["post"]) && !empty($args["post"]->alt())){
-            $args["alt"] = $args["post"]->alt();
-        }else{
-            global $post;
-            $args["alt"] = $post->post_title;
-        }
-    }
-
-    return $args;
-}
 
     public function generateMediaQueries($selected) {
         $first = reset($selected);

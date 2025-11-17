@@ -243,7 +243,7 @@ function plyr_init($obj){
 			}
 		});
 
-		$(window).scroll(function() {
+		/*$(window).scroll(function() {
         	if(video_container.hasClass("ready")){
 				if(!video_container.is(":in-viewport")){
 				    if(video.playing){
@@ -258,7 +258,24 @@ function plyr_init($obj){
 				}
         	}
 		})
-		.trigger("scroll");
+		.trigger("scroll");*/
+		const checkVideoViewport = function() {
+		    if(video_container.hasClass("ready")){
+		        // video_container.is(":in-viewport") PAHALI OKUMA SADECE BURADA ÇALIŞIR
+		        if(!video_container.is(":in-viewport")){
+		            if(video.playing){
+		                 video_container.addClass("viewport-paused");
+		                 video.pause();
+		            }
+		        }else{
+		            if(video_container.hasClass("viewport-paused")){
+		               video_container.removeClass("viewport-paused")
+		               video.play();
+		            }
+		        }
+		    }
+		};
+		$(window).on('scroll resize', throttle(checkVideoViewport, 100));
 
 		document.addEventListener("visibilitychange", function() {
 			if (document.hidden){

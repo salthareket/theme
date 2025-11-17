@@ -1,0 +1,44 @@
+{#
+  Title: Navigation
+  Description: Navigation Block
+  Category: saltblocks
+  Icon: images-alt
+  Keywords: navigation menu link
+  Mode: auto
+  Align: center
+  PostTypes: 
+  SupportsAlign: left right center wide full
+  SupportsAlignfields: true
+  SupportsMode: true
+  SupportsMultiple: true
+  SupportsAnchor: true
+  SupportsCustomClassName: true
+  SupportsReusable: true
+  SupportsFullHeight: true
+#}
+{% set block_main_field = [""] %}
+{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% extends "blocks/_block-container.twig" %}
+
+{% block block_content %}
+
+    {% set align_item = function("block_align", fields.align_item, true, fields.slider) %}
+
+    {#<div class="row {{block_meta.row.class}}" {{block_meta.row.attrs}}>
+
+        <div id="navigation" class="navbar-container d-xl-flex d-none h-100 justify-content-{{header_options.start.align}}">
+            
+                {% include "blocks/navigation/menu.twig" with {'menu': get_menu(fields.menu).get_items, 'parent_link' : fields.parent_link} %}
+
+        </div>#}
+
+        {% include "blocks/navigation/menu-" ~ fields.menu_view ~ ".twig" with {
+            'menu': get_menu(fields.menu).get_items, 
+            'is_child': false,
+            'parent_link' : fields.parent_link,
+            "max_level": fields.max_level
+        } %}
+
+    {#</div>#}
+
+{% endblock %}

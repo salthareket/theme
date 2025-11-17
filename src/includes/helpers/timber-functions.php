@@ -199,3 +199,10 @@ function get_timber_template_path( $path ) {
     }
     return false;
 }
+
+
+function localization(){
+	$localization = new Localization();
+    $localization->woocommerce_support = true;
+    return $localization;
+}
