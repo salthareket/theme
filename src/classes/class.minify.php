@@ -667,11 +667,11 @@ class SaltMinifier{
 
     public function plugin_assets($css_file = "") {
         //error_log("plugin_assets-----------------------------------");
-        $enable_publish = get_option("options_enable_publish");
-        $publish_url = "";
-        if($enable_publish){
-            $publish_url = get_option("options_publish_url");
-        } 
+        //$enable_publish = get_option("options_enable_publish");
+        //$publish_url = "";
+        //if($enable_publish){
+            //$publish_url = get_option("options_publish_url");
+        //} 
         //error_log($css_file);
         $css = file_get_contents($css_file);
 
@@ -714,9 +714,9 @@ class SaltMinifier{
                         copy($asset["clean_url"], $this->output["plugin_assets"] . $asset["file"]);
                         $query = parse_url($asset["url"], PHP_URL_QUERY);
                         $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                        if (!empty($publish_url)) {
+                        //if (!empty($publish_url)) {
                             //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                        }
+                        //}
                         $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
@@ -725,9 +725,9 @@ class SaltMinifier{
                             $clean_url = explode('?', $asset["url"])[0];
                             $query = parse_url($asset["url"], PHP_URL_QUERY);
                             $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                            if(!empty($publish_url)){
+                            //if(!empty($publish_url)){
                                 //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                            }
+                            //}
                             $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
                             $css = str_replace($asset["url"], $final_url, $css);
                         }

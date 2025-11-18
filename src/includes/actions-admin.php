@@ -195,7 +195,7 @@ function scss_variables_font($font = ""){
 
 function wp_scss_set_variables(){
     $host_url = get_stylesheet_directory_uri();
-    if(ENABLE_PUBLISH){
+    /*if(ENABLE_PUBLISH){
         if(function_exists("WPH_activated")){
                 $wph_settings = get_option("wph_settings");
                 $new_theme_path = "";
@@ -208,7 +208,7 @@ function wp_scss_set_variables(){
         }else{
             $host_url = str_replace(get_host_url(), PUBLISH_URL, $host_url);
         }
-    }
+    }*/
 
     $variables = [
         "woocommerce" => class_exists("WooCommerce") ? "true" : "false",

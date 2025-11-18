@@ -34,10 +34,11 @@ define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
 
 //include_once SH_CLASSES_PATH."class.query-cache.php";
-define("PUBLISH_URL", get_option("options_publish_url"));
-define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
+//define("PUBLISH_URL", get_option("options_publish_url"));
+//define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
 
-define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && get_option("options_enable_production"));
+//define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && get_option("options_enable_production"));
+define("ENABLE_PRODUCTION", get_option("options_enable_production"));
 define("ENABLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_logs"));
 define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_console_logs"));
 

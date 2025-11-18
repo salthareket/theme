@@ -1269,13 +1269,15 @@ function acf_admin_colors_footer() {
         }
 
         // --- Gutenberg editör renkleri ---
-        if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch) {
+        if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
             wp.domReady(function() {
                 const colorObjects = colors.map(c => ({
                     name: c,
                     slug: c.replace('#', '').replace(/\s+/g, '-'),
                     color: c
                 }));
+                
+                // Dispatch çağrısı artık güvenlidir
                 wp.data.dispatch('core/editor').updateEditorSettings({ colors: colorObjects });
             });
         }
@@ -4459,8 +4461,10 @@ add_filter('acf/update_value/name=enable_extract_translations', 'acf_development
 
 
 /**
- * SQL dump içindeki tüm URL varyasyonlarını live URL ile değiştirir
- */
+ * SQL dump içindeki tüm URL varyasyonlarını live URL ile değiştirir.
+   development içinde export_mysql button field olarak yer alır.
+*/
+/*
 function replace_urls_in_dump(string $dump, string $local_url, string $live_url): string {
 
     // 1️⃣ Düz metin URL’leri
@@ -4605,7 +4609,6 @@ function export_and_replace_wp_mysql_dump() {
         wp_send_json_error(["message" => "🚨 Hata: " . $e->getMessage()]);
     }
 }
-
 add_action('wp_ajax_acf_export_mysql', 'acf_export_mysql');
 add_action('wp_ajax_nopriv_acf_export_mysql', 'acf_export_mysql');
 function acf_export_mysql() {
@@ -4653,7 +4656,7 @@ add_action('admin_footer', function () {
     </script>
     <?php
 });
-
+*/
 
 
 
@@ -4669,7 +4672,6 @@ add_action('admin_footer', function () {
 
 add_action('wp_ajax_acf_export_field_groups', 'acf_export_field_groups_to_json');
 add_action('wp_ajax_nopriv_acf_export_field_groups', 'acf_export_field_groups_to_json');
-
 function acf_export_field_groups_to_json() {
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => 'Unauthorized']);
