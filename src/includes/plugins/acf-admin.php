@@ -2464,7 +2464,7 @@ function acf_add_field_options($field) {
         if($results){
             foreach($results as $result){
                 $phones = $result->meta("contact_phone");
-                if($phones){
+                if(is_array($phones)){
                     foreach($phones as $phone){
                         $options[] = [
                             "label" => $result->title."(".$phone["type"]."): ".$phone["number"],
@@ -2510,7 +2510,7 @@ function acf_add_field_options($field) {
         if($results){
             foreach($results as $result){
                 $emails = $result->meta("contact_email");
-                if($emails){
+                if(is_array($emails)){
                     foreach($emails as $email){
                         $options[] = [
                             "label" => $result->title."(".$email["type"]."): ".$email["email"],
