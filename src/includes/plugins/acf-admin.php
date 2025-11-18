@@ -427,15 +427,15 @@ function get_theme_styles($variables = array(), $root = false){
         $footer = $theme_styles["footer"];
         $variables["footer-height"] = acf_units_field_value($footer["height"]);
         $variables["footer-padding"] = $footer["padding"];
-        $variables["footer-color"] = scss_variables_color($footer["color"]);
-        $variables["footer-color-link"] = scss_variables_color($footer["link_color"]);
-        $variables["footer-color-link-hover"] = scss_variables_color($footer["link_color_hover"]);
+        $variables["footer-color"] = scss_variables_color(isset($footer["color"])?$footer["color"]:"#000");
+        $variables["footer-color-link"] = scss_variables_color(isset($footer["link_color"])?$footer["link_color"]:"#000");
+        $variables["footer-color-link-hover"] = scss_variables_color(isset($footer["link_color_hover"])?$footer["link_color_hover"]:"#000");
 
 
         //$variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]);
         //$variables["footer-bg-image"] = scss_variables_image($footer["bg_image"]);
         
-        if($footer["bg_color"]["gradient"]){
+        if(isset($footer["bg_color"]["gradient"]) && !empty($footer['bg_color']['gradient'])){
             $variables["footer-bg-color"] = "transparent";
             $variables["footer-bg-gradient"] = $footer["bg_color"]["gradient_color"];
         }else{
