@@ -1534,34 +1534,41 @@ class Update {
                 error_log('Geçersiz ACF JSON dosyası: ' . basename($file));
                 continue;
             }
+            
+            $group_key = $field_group['key'];
 
-            // acf_import_field_group, key'e göre varsa günceller, yoksa ekler (Güncelleme/Eşitleme).
+            // 1. KRİTİK KONTROL: Bu key'e sahip bir alan grubu zaten var mı?
+            // acf_get_field_group_post_id, post_status'a bakmaksızın kaydın ID'sini döndürür.
+            $existing_post_id = acf_get_field_group_post_id($group_key);
+
+            if ($existing_post_id) {
+                // 2. KOPYALAMAYI ÖNLEME: Mevcut kaydın post_name ve post_title'ını JSON ile eşleştir.
+                // Bu, acf_import_field_group'un eşleşmeyi bulmasını sağlar. Statüyü DEĞİŞTİRMİYORUZ.
+                
+                $existing_post_data = get_post($existing_post_id);
+                $current_status = $existing_post_data->post_status; // Mevcut statüyü koruyoruz.
+                
+                // Eğer veritabanındaki post_name veya post_title, JSON'dan gelen ile eşleşmiyorsa güncelle.
+                // Bu, ACF'in "bu yeni bir kayıt olmalı" düşüncesini engeller.
+                if ($existing_post_data->post_name !== $group_key || $existing_post_data->post_title !== $field_group['title']) {
+                    wp_update_post([
+                        'ID'          => $existing_post_id,
+                        'post_name'   => $group_key,      // post_name'i key ile eşleştir (önerilen ACF pratiği).
+                        'post_title'  => $field_group['title'], // post_title'ı JSON'dan gelen başlık ile eşleştir.
+                        // post_status'ü burada GÜNCELLEMİYORUZ. Mevcut status korunur.
+                    ]);
+                    error_log('ACF Alan Grubu #' . $existing_post_id . ' meta verisi güncellendi (Statü Korundu).');
+                }
+            }
+
+            // 3. GÜNCELLEME İŞLEMİ: acf_import_field_group çağrıldığında, artık mevcut kaydı bulmalı ve güncellemelidir.
+            // acf_import_field_group, sadece alan içeriğini günceller ve mevcut post_status'ü korur.
             $result = acf_import_field_group($field_group);
 
             if (!is_wp_error($result)) {
-                
-                // 💡 KRİTİK ÇÖZÜM: Kopyalama sorununu önlemek ve eşitlemeyi garantilemek için kayıt durumunu (post_status) kontrol et.
-                if (!empty($result['ID'])) {
-                    global $wpdb;
-                    
-                    // Kayıt ID'sini ve post_status'ü al.
-                    $post_id = $result['ID'];
-                    $current_status = $wpdb->get_var($wpdb->prepare("SELECT post_status FROM {$wpdb->posts} WHERE ID = %d", $post_id));
-                    
-                    // Eğer status 'publish' değilse, 'publish' olarak güncelle.
-                    if ($current_status !== 'publish') {
-                        wp_update_post([
-                            'ID'          => $post_id,
-                            'post_status' => 'publish', // Durumu Yayınlanmış yap
-                        ]);
-                        error_log('ACF Alan Grubu #' . $post_id . ' durumu "publish" olarak güncellendi.');
-                    }
-                }
-                
-                $imported_groups[] = $field_group['key'];
-
+                $imported_groups[] = $group_key;
             } else {
-                error_log('ACF Import Hatası (' . $field_group['key'] . '): ' . $result->get_error_message());
+                error_log('ACF Import Hatası (' . $group_key . '): ' . $result->get_error_message());
             }
         }
 
