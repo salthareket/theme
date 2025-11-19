@@ -1519,7 +1519,6 @@ class Update {
             return ['success' => false, 'message' => 'ACF JSON directory not found.'];
         }
 
-        // ACF'nin kendi dosya alma mekanizması yerine basit glob kullanmak sorun değil.
         $json_files = glob($acf_json_path . '/*.json');
 
         if (empty($json_files)) {
@@ -1536,12 +1535,31 @@ class Update {
                 continue;
             }
 
-            // KRİTİK: acf_import_field_group, mevcut alan değerlerini KORUYARAK
-            // hem yeni alanları kaydeder hem de mevcut alanları günceller.
+            // acf_import_field_group, key'e göre varsa günceller, yoksa ekler (Güncelleme/Eşitleme).
             $result = acf_import_field_group($field_group);
 
             if (!is_wp_error($result)) {
+                
+                // 💡 KRİTİK ÇÖZÜM: Kopyalama sorununu önlemek ve eşitlemeyi garantilemek için kayıt durumunu (post_status) kontrol et.
+                if (!empty($result['ID'])) {
+                    global $wpdb;
+                    
+                    // Kayıt ID'sini ve post_status'ü al.
+                    $post_id = $result['ID'];
+                    $current_status = $wpdb->get_var($wpdb->prepare("SELECT post_status FROM {$wpdb->posts} WHERE ID = %d", $post_id));
+                    
+                    // Eğer status 'publish' değilse, 'publish' olarak güncelle.
+                    if ($current_status !== 'publish') {
+                        wp_update_post([
+                            'ID'          => $post_id,
+                            'post_status' => 'publish', // Durumu Yayınlanmış yap
+                        ]);
+                        error_log('ACF Alan Grubu #' . $post_id . ' durumu "publish" olarak güncellendi.');
+                    }
+                }
+                
                 $imported_groups[] = $field_group['key'];
+
             } else {
                 error_log('ACF Import Hatası (' . $field_group['key'] . '): ' . $result->get_error_message());
             }
