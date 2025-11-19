@@ -1576,11 +1576,9 @@ class Update {
     private static function update_fields() {
         global $wpdb;
         
-        // Güvenlik ve Taşınabilirlik için KEY'i sabit olarak tanımlayın.
-        // Lütfen burayı kendi alan grubunuzun key'i ile değiştirin.
+        // Bu kısmı kendi field group key'iniz ile değiştirin
         $block_columns_key = "group_66e309dc049c4"; 
         
-        // 1. Alan grubunun post ID'sini güvenli bir şekilde bul.
         $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'", $block_columns_key);
         $post_id = $wpdb->get_var($query);
 
@@ -1589,34 +1587,29 @@ class Update {
             return false;
         }
 
-        // 2. Dinamik Alan Güncelleme Fonksiyonunu Çağır
-        // acf_save_post_block_columns_action( $post_id ) çağrısı, 'block-bootstrap-columns' field group'unu kaydederken
-        // tüm blok field group'larını (get_block_fields ile) bulup layout'ları günceller.
-        // Bu, save_post hook'u dışında manuel tetiklemenin en doğru yoludur.
+        // 1. Dinamik Alan Güncelleme İşlemi
         if (function_exists('acf_save_post_block_columns_action')) {
-            // acf_save_post_block_columns_action içindeki mantık, post_excerpt "block-bootstrap-columns" olan
-            // Field Group'u bulduğunda (yani post_id o grup ise) tüm blokları güncelleyecektir.
             acf_save_post_block_columns_action($post_id); 
         } else {
             error_log("Kritik Hata: acf_save_post_block_columns_action fonksiyonu tanımlı değil!");
             return false;
         }
 
-        // 3. Cache Güncelleme/Temizleme
-        // Yeni/güncel layoutların ACF cache'ine yansıması için manuel cache temizliği en iyisidir.
+        // 2. KRİTİK DÜZELTME: Cache Güncelleme/Temizleme
         $cache_updater = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block_columns_key);
-        // Bu metot içinde acf_save_post_block_columns_action tekrar çağrılıyor. (Tekrardan kaçınılabilir)
-        // cache_updater->update_cache() yerine, sadece cache temizleme API'leri çağrılmalıdır:
-        if (function_exists('acf_flush_field_cache')) {
-            acf_flush_field_cache($block_columns_key);
-        }
         
-        // Temel stil dosyalarını da güncelleyin (Mevcut kodunuzdaki get_theme_styles([], true) çağrısı)
+        // Tek bir key yerine, tüm ACF field group ve field cache'lerini temizle
+        $cache_updater->clear_cache(); 
+        
+        // Alan grubunu yeniden yükle ve cache'i güncelle (acf/save_post hook'unu manuel tetikle)
+        do_action('acf/save_post', $post_id);
+
+        // 3. Tema Stilleri Güncelleme
         if (function_exists('get_theme_styles')) {
             get_theme_styles([], true); 
         }
 
-       // return true;
+        //return true;
     }
     private static function npm_install(): string{
         $workingDir = ABSPATH;
