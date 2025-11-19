@@ -1,53 +1,34 @@
-<footer class="footer z-0 pt--4" itemtype="https://schema.org/WPFooter" itemscope="" id="footer" role="contentinfo">
-    
-    {#<div class="address text-center py-5">
-        <div class="{{footer_options.container}} text-tertiary">
-            {{ contact.contact_address }}
-            {% if contact.contact_phone or contact.contact_fax %}
-            <ul class="list-inline">
-                {% if contact.contact_phone %}
-                <li class="list-inline-item">
-                    {% for phone in contact.contact_phone %}
-                        <div class="phone">{{translate("Telefon")}} {{phone.number|phone_link}}</div>
-                    {% endfor %}
-                </li>
-                {% endif %}
-                {% if contact.contact_fax %}
-                <li class="list-inline-item">
-                    <div class="phone">{{translate("Faks")}} {{contact.contact_fax}}</div>
-                </li>
-                {% endif %}
-            </ul>
-            {% endif %}
-            {{contact.contact_email|email_link("d-block text-secondary")}}
-            {{ accounts|list_social_accounts("mt-3") }}
-        </div>
-    </div>#}
+{% if page_settings.footer_template is empty or page_settings.footer_template == "default" %}
+    {% if footer_options.template == "default" %}
+        {% set template = function("_get_option", "default_footer_template")|default("static") %}
+    {% else %}
+        {% set template = footer_options.template %}
+    {% endif %}
+{% else %}
+    {% set template = page_settings.footer_template %}
+{% endif %}
 
-    <div class="nav-footer bg-white py-5 ls-0 font-header text-center">
-        <div class="{{footer_options.container}}">
-            <ul class="nav justify-content-lg-between justify-content-evenly row row-cols-xl-auto row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 gy-xl-0 gy-xl-4 gy-6" data-sm-skip="true">{##}
-                {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.main).get_items, parent_link : false, max_level : 2, class_name: "justify-content-lg-between justify-content-evenly row row-cols-xl-auto row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 gy-xl-0 gy-xl-4 gy-6" } %}
-            </ul>{##}
-        </div>
-    </div>
-    <div class="bottom bg-white py-3">
-        <div class="{{footer_options.container}} text-center">
-            <a class="navbar-brand d-inline-block align-self-center" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
-                {% if function('get_extension', footer_options.logo) == "svg" %}
-                    {{function('inline_svg', footer_options.logo, {"class": "logo svg-secondary"})}}
-                {% else %}
-                    {% set footer_logo_dim = function("get_attachment_dimensions_by_url", footer_options.logo) %}
-                    <img data-src="{{footer_options.logo}}" class="logo img-fluid lazy" alt="{{site.name}}" width="{{footer_logo_dim.width}}" height="{{footer_logo_dim.height}}" />
-                {% endif %}
-            </a>
-        </div>
-    </div>
+{% set path = "" %}
+{% set template_post = [] %}
+{% if template == "static" %}
+    {% set path = "footer-static.twig" %}
+{% else %}
+    {% set template_post = get_post(template) %}
+    {% if template_post.meta("render_template") %}
+        {% set path = 'theme/templates/_custom/' ~ template_post.id ~ "_" ~ language ~ ".twig" %}
+    {% endif %}
+{% endif %}
 
-    {#<div class="imprint border-top">
-        <div class="container py-3">
-            © {{site.name}} {{"now"|date('Y')}}. {{translate("Tüm hakları saklıdır.")}} {{footer_text}}
-        </div>
-    </div>#}
+<footer class="footer {% if template_post %}{{ template_post.slug }}{% endif %} z-0 pt-5 pb-4" itemtype="https://schema.org/WPFooter" itemscope="" id="footer" role="contentinfo">
+
+    <div class="{{footer_options.container}}">
+        {% if path %}
+            {% include path %}
+        {% elseif template_post %}
+            {{template_post.get_blocks()}}
+            <link id='footer-css' rel='preload' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css' as='style' media="all" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
+            <noscript><link rel='stylesheet' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css'></noscript>
+        {% endif %}
+    </div>
 
 </footer>

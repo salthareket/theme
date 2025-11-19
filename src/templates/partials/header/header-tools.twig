@@ -1,7 +1,6 @@
 <div class="{{header_options[position].class|replace({ '{{equalize}}' : equalize })}}">
     <div class="navbar header-tools header-tools-{{position}} py-0 justify-content-{{position}}">
-
-        <ul class="nav-user nav flex-nowrap flex-row">
+        <div class="nav-user nav flex-nowrap flex-row">
         {% for item in header_tools %}
             {{include(
                 "partials/base/menu-" ~ item.menu_item ~ ".twig", 
@@ -17,7 +16,6 @@
                 ignore_missing = true
             )}}
         {% endfor %} 
-        </ul>
-
+        </div>
     </div>
 </div>
