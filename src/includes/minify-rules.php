@@ -118,7 +118,9 @@ function compile_files_config($enable_production=false){
 		"init" => "init_bootbox",
 		"whitelist" => [
 			".ratio",
-			".ratio-*"
+			".ratio-*",
+			".modal",
+			".modal-*"
 		],
 		"required" => []
 	];
@@ -151,7 +153,10 @@ function compile_files_config($enable_production=false){
 		"class" => ["player"],
 		"attrs" => [],
 		"init"     => "plyr_init",
-		"whitelist" => [],
+		"whitelist" => [
+			".plyr",
+			".plyr-*"
+		],
 		"required" => []
 	];
 	$plugins['swiper'] = [
@@ -167,6 +172,7 @@ function compile_files_config($enable_production=false){
 		"attrs" => [],
 		"init"     => "init_swiper",
 		"whitelist" => [
+			".swiper",
 			".swiper-*"
 		],
 		"required" => [
@@ -197,7 +203,9 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => [],
 		"init"  => "",
-		"whitelist" => [],
+		"whitelist" => [
+			".lazy"
+		],
 		"required" => []
 	];
 	$plugins['justifiedGallery'] = [
