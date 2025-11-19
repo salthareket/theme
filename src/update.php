@@ -27,8 +27,6 @@ class Update {
         ["id" => "fix_packages", "name" => "Fixing Composer Packages"],
         ["id" => "update_theme_apperance", "name" => "Updating '".TEXT_DOMAIN."' Theme Apperance"],
         ["id" => "copy_theme", "name" => "Copying Theme Files"],
-        //["id" => "copy_templates", "name" => "Copying Template Files"],
-        //["id" => "copy_fonts", "name" => "Copying Fonts"],
         ["id" => "install_mu_plugins", "name" => "Installing Must Use plugins"],
         ["id" => "install_wp_plugins", "name" => "Installing required plugins"],
         ["id" => "install_local_plugins", "name" => "Installing required local plugins"],
@@ -86,54 +84,11 @@ class Update {
         self::check_installation();
     }
 
-
     public static function disable_heartbeat($hook){
         if ($hook === 'theme-settings_page_update-theme') {
             wp_deregister_script('heartbeat');
         }
     }
-
-
-    /*private static function check_installation(){
-        if (!(defined('DOING_AJAX') && DOING_AJAX)) {
-            $status = self::$status;
-            $tasks_status = self::$tasks_status;
-            if(empty($status)){
-                $status = "pending";
-                $tasks_status = [];
-                add_option('sh_theme_status', $status);
-                add_option('sh_theme_tasks_status', $tasks_status);
-            }else{
-                if(count(self::$installation_tasks) > count($tasks_status)){
-                    $status = "pending";
-                    $tasks_status = [];
-                    update_option('sh_theme_status', $status);
-                    update_option('sh_theme_tasks_status', $tasks_status);
-                }            
-            }
-            self::$status = $status;
-            self::$tasks_status = $tasks_status;
-            if ($status == 'pending' || !$status) {
-                if (is_admin()) {
-                    $current_page = $_GET['page'] ?? '';
-                    if ($current_page !== 'update-theme') {
-                        wp_safe_redirect(admin_url('admin.php?page=update-theme'));
-                        exit;
-                    }
-                } else {
-                    //$is_login_page = strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false;
-                    if (!is_login_page()) {
-                        wp_die(
-                            sprintf(
-                                '<h2 class="text-danger">Warning</h2>The theme setup is not complete. Please complete the installation from the <a href="%s">update page</a>.',
-                                esc_url(admin_url('admin.php?page=update-theme'))
-                            )
-                        );
-                    }
-                }
-            }
-        }
-    }*/
 
     private static function check_installation(){
         if (!(defined('DOING_AJAX') && DOING_AJAX)) {
@@ -1479,23 +1434,6 @@ class Update {
         imagedestroy($image);
     }
 
-    /*private static function copy_templates(){
-        $srcDir = SH_PATH . 'templates';
-        $target_dir = get_template_directory() . '/templates';
-        if (is_dir($srcDir)) {
-            self::recurseCopy($srcDir, $target_dir);
-        }
-    }
-    private static function copy_fonts(){
-        $srcDir = SH_STATIC_PATH . 'fonts';
-        $target_dir = STATIC_PATH . 'fonts';
-        if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0755, true); 
-        }
-        if (is_dir($srcDir)) {
-            self::recurseCopy($srcDir, $target_dir, ["scss"]);
-        }
-    }*/
     private static function copy_fields(){
         $srcDir = SH_PATH . 'content/acf-json';
         $target_dir = get_template_directory() . '/acf-json';
@@ -1506,10 +1444,119 @@ class Update {
             self::recurseCopy($srcDir, $target_dir);
         }
     }
-    private static function register_fields(){
-        acf_json_to_db(get_template_directory() . '/acf-json');
+    /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+        // ACF JSON klasör yolu
+        if(empty($acf_json_path)){
+            $acf_json_path = get_template_directory() . '/acf-json';
+        }
+      
+        // Klasör kontrolü
+        if (!is_dir($acf_json_path)) {
+            return ['success' => false, 'message' => 'acf-json directory not found'];
+        }
+
+        // JSON dosyalarını al
+        $json_files = glob($acf_json_path . '/*.json');
+
+        if (empty($json_files)) {
+            return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
+        }
+
+        $imported_groups = [];
+        foreach ($json_files as $file) {
+            // Dosyayı oku ve JSON verisini çözümle
+            $json_content = file_get_contents($file);
+            $field_group = json_decode($json_content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || empty($field_group)) {
+                continue; // Geçersiz JSON dosyalarını atla
+            }
+
+            if (isset($field_group['key'])) {
+                if(!in_array($field_group['key'], $imported_groups)){
+                    // Var olan grup kontrolü
+                    $existing_group = acf_get_field_group($field_group['key']);
+
+                    if ($existing_group) {
+                        if ($overwrite) {
+                            acf_delete_field_group($existing_group['ID']); // Eskiyi sil
+                            acf_import_field_group($field_group); // Yeniyi ekle
+                        } else {
+                            acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
+                        }
+                    }else {
+                        acf_import_field_group($field_group);
+                    }
+
+                    if (defined('ACF_LOCAL_JSON')) {
+                        acf_write_json_field_group($field_group);
+                    }
+
+                    // Yeni grubu veritabanına ekle
+                    //acf_import_field_group($field_group);
+                    $imported_groups[] = $field_group['key'];               
+                }
+
+            }
+        }
+
+        if (!empty($imported_groups)) {
+            return ['success' => true, 'message' => 'Registered ACF field groups: ' . implode(', ', $imported_groups)];
+        } else {
+            return ['success' => false, 'message' => 'No field groups were register.'];
+        }
+    }*/
+    /**
+     * RE-DESIGN: Kopyalanan JSON dosyalarını ACF'nin güvenli import API'si ile DB'ye kaydeder/günceller.
+     * Bu metod, acf_import_field_group kullandığı için mevcut post/sayfa verilerini korur.
+     */
+    private static function acf_json_to_db($acf_json_path = "") {
+        // get_template_directory() . '/acf-json' varsayımı ile devam ediyoruz.
+        $acf_json_path = empty($acf_json_path) ? get_template_directory() . '/acf-json' : $acf_json_path;
+
+        if (!is_dir($acf_json_path)) {
+            error_log('ACF JSON Dizini Bulunamadı: ' . $acf_json_path);
+            return ['success' => false, 'message' => 'ACF JSON directory not found.'];
+        }
+
+        // ACF'nin kendi dosya alma mekanizması yerine basit glob kullanmak sorun değil.
+        $json_files = glob($acf_json_path . '/*.json');
+
+        if (empty($json_files)) {
+            return ['success' => true, 'message' => 'No JSON files found to import.'];
+        }
+
+        $imported_groups = [];
+        foreach ($json_files as $file) {
+            $json_content = file_get_contents($file);
+            $field_group = json_decode($json_content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || empty($field_group) || !isset($field_group['key'])) {
+                error_log('Geçersiz ACF JSON dosyası: ' . basename($file));
+                continue;
+            }
+
+            // KRİTİK: acf_import_field_group, mevcut alan değerlerini KORUYARAK
+            // hem yeni alanları kaydeder hem de mevcut alanları günceller.
+            $result = acf_import_field_group($field_group);
+
+            if (!is_wp_error($result)) {
+                $imported_groups[] = $field_group['key'];
+            } else {
+                error_log('ACF Import Hatası (' . $field_group['key'] . '): ' . $result->get_error_message());
+            }
+        }
+
+        if (!empty($imported_groups)) {
+            return ['success' => true, 'message' => 'Registered/Updated ACF field groups: ' . count($imported_groups)];
+        } else {
+            return ['success' => true, 'message' => 'No field groups were registered or updated.'];
+        }
     }
-    private static function update_fields() {
+    private static function register_fields(){
+        self::acf_json_to_db(get_template_directory() . '/acf-json');
+    }
+    /*private static function update_fields() {
         global $wpdb;
         $post_name = "group_66e309dc049c4";
         $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s", $post_name);
@@ -1521,6 +1568,55 @@ class Update {
             $cache->update_cache();
         }
         get_theme_styles([], true);
+    }*/
+    /**
+     * RE-DESIGN: Dinamik Flexible Content Alanlarının Güncellenmesi
+     * Yeni/Güncel blokları 'block-bootstrap-columns' alanına layout olarak ekler.
+     */
+    private static function update_fields() {
+        global $wpdb;
+        
+        // Güvenlik ve Taşınabilirlik için KEY'i sabit olarak tanımlayın.
+        // Lütfen burayı kendi alan grubunuzun key'i ile değiştirin.
+        $block_columns_key = "group_66e309dc049c4"; 
+        
+        // 1. Alan grubunun post ID'sini güvenli bir şekilde bul.
+        $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'", $block_columns_key);
+        $post_id = $wpdb->get_var($query);
+
+        if (!$post_id) {
+            error_log("Kritik Hata: 'block-bootstrap-columns' Field Group ID'si bulunamadı. Key: " . $block_columns_key);
+            return false;
+        }
+
+        // 2. Dinamik Alan Güncelleme Fonksiyonunu Çağır
+        // acf_save_post_block_columns_action( $post_id ) çağrısı, 'block-bootstrap-columns' field group'unu kaydederken
+        // tüm blok field group'larını (get_block_fields ile) bulup layout'ları günceller.
+        // Bu, save_post hook'u dışında manuel tetiklemenin en doğru yoludur.
+        if (function_exists('acf_save_post_block_columns_action')) {
+            // acf_save_post_block_columns_action içindeki mantık, post_excerpt "block-bootstrap-columns" olan
+            // Field Group'u bulduğunda (yani post_id o grup ise) tüm blokları güncelleyecektir.
+            acf_save_post_block_columns_action($post_id); 
+        } else {
+            error_log("Kritik Hata: acf_save_post_block_columns_action fonksiyonu tanımlı değil!");
+            return false;
+        }
+
+        // 3. Cache Güncelleme/Temizleme
+        // Yeni/güncel layoutların ACF cache'ine yansıması için manuel cache temizliği en iyisidir.
+        $cache_updater = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block_columns_key);
+        // Bu metot içinde acf_save_post_block_columns_action tekrar çağrılıyor. (Tekrardan kaçınılabilir)
+        // cache_updater->update_cache() yerine, sadece cache temizleme API'leri çağrılmalıdır:
+        if (function_exists('acf_flush_field_cache')) {
+            acf_flush_field_cache($block_columns_key);
+        }
+        
+        // Temel stil dosyalarını da güncelleyin (Mevcut kodunuzdaki get_theme_styles([], true) çağrısı)
+        if (function_exists('get_theme_styles')) {
+            get_theme_styles([], true); 
+        }
+
+       // return true;
     }
     private static function npm_install(): string{
         $workingDir = ABSPATH;
@@ -2140,26 +2236,6 @@ class Update {
 
 
     private static function enqueue_update_script() {
-        /*wp_enqueue_script(
-            'theme-update-script',
-            get_template_directory_uri() . '/vendor/salthareket/theme/src/js/update.js',
-            ['jquery'],
-            '1.0',
-            true
-        );
-
-        $args = [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('update_theme_nonce')
-        ];
-        $args["status"] = self::$status;
-        if (self::$status === 'pending') {
-            $args["tasks"] = self::$installation_tasks;
-        }else{
-            $args["tasks"] = self::$update_tasks;
-        }
-        wp_localize_script('theme-update-script', 'updateAjax', $args);
-        */
         $update_js_path = get_template_directory() . '/vendor/salthareket/theme/src/js/update.js';
 
         if (file_exists($update_js_path)) {

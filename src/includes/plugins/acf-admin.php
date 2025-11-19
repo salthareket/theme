@@ -2972,7 +2972,7 @@ class UpdateFlexibleFieldLayouts {
         return $data;
     }
 
-    public function get_block_fields() {
+    /*public function get_block_fields() {
         global $wpdb;
         $block_categories = ["block"];
         $taxonomy = 'acf-field-group-category';
@@ -2990,6 +2990,35 @@ class UpdateFlexibleFieldLayouts {
             ORDER BY p.post_title ASC
         ";
         return $wpdb->get_results($sql);
+    }*/
+
+    public function get_block_fields() {
+        global $wpdb;
+        $block_categories = ["block"];
+        $taxonomy = 'acf-field-group-category';
+        
+        // GÜVENLİ KOD: IN () sorgusunda prepare kullanımı
+        // Diziyi güvenli hale getirin
+        $taxonomy_terms = array_map('esc_sql', $block_categories);
+        $in_placeholders = implode(', ', array_fill(0, count($taxonomy_terms), '%s'));
+
+        $sql = "
+            SELECT p.*
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+            INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+            WHERE p.post_type = 'acf-field-group'
+            AND p.post_status = 'publish'
+            AND t.slug IN ({$in_placeholders}) 
+            AND tt.taxonomy = %s
+            ORDER BY p.post_title ASC
+        ";
+        
+        // %s ve %d parametrelerini birleştirin
+        $prepared_args = array_merge($taxonomy_terms, [$taxonomy]);
+
+        return $wpdb->get_results($wpdb->prepare($sql, $prepared_args));
     }
 
     public function field_data($forced = false) {
@@ -3209,11 +3238,21 @@ class UpdateFlexibleFieldLayouts {
                     $post_content['layouts'] = $layouts;
                     $post_content = serialize($post_content);
 
-                    global $wpdb;
+                    /*global $wpdb;
                     $wpdb->update(
                         $wpdb->posts,
                         ['post_content' => $post_content],
                         ['ID' => $post_parent]
+                    );*/
+
+                    // YENİ VE GÜVENLİ KOD (Format belirtilmiş)
+                    global $wpdb;
+                    $wpdb->update(
+                        $wpdb->posts,
+                        ['post_content' => $post_content], // Güncellenecek veriler (post_content serialized string'dir, yani %s)
+                        ['ID' => $post_parent],          // WHERE koşulu (ID bir integer'dır, yani %d)
+                        ['%s'],                           // Verilerin formatları (post_content için string)
+                        ['%d']                            // Koşulların formatları (ID için integer)
                     );
                 }
             }
@@ -4793,68 +4832,7 @@ add_action('admin_footer', function () {
 
 
 
-function acf_json_to_db($acf_json_path = "", $overwrite = true) {
-    // ACF JSON klasör yolu
-    if(empty($acf_json_path)){
-        $acf_json_path = get_template_directory() . '/acf-json';
-    }
-  
-    // Klasör kontrolü
-    if (!is_dir($acf_json_path)) {
-        return ['success' => false, 'message' => 'acf-json directory not found'];
-    }
 
-    // JSON dosyalarını al
-    $json_files = glob($acf_json_path . '/*.json');
-
-    if (empty($json_files)) {
-        return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
-    }
-
-    $imported_groups = [];
-    foreach ($json_files as $file) {
-        // Dosyayı oku ve JSON verisini çözümle
-        $json_content = file_get_contents($file);
-        $field_group = json_decode($json_content, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || empty($field_group)) {
-            continue; // Geçersiz JSON dosyalarını atla
-        }
-
-        if (isset($field_group['key'])) {
-            if(!in_array($field_group['key'], $imported_groups)){
-                // Var olan grup kontrolü
-                $existing_group = acf_get_field_group($field_group['key']);
-
-                if ($existing_group) {
-                    if ($overwrite) {
-                        acf_delete_field_group($existing_group['ID']); // Eskiyi sil
-                        acf_import_field_group($field_group); // Yeniyi ekle
-                    } else {
-                        acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
-                    }
-                }else {
-                    acf_import_field_group($field_group);
-                }
-
-                if (defined('ACF_LOCAL_JSON')) {
-                    acf_write_json_field_group($field_group);
-                }
-
-                // Yeni grubu veritabanına ekle
-                //acf_import_field_group($field_group);
-                $imported_groups[] = $field_group['key'];               
-            }
-
-        }
-    }
-
-    if (!empty($imported_groups)) {
-        return ['success' => true, 'message' => 'Registered ACF field groups: ' . implode(', ', $imported_groups)];
-    } else {
-        return ['success' => false, 'message' => 'No field groups were register.'];
-    }
-}
 
 
 
