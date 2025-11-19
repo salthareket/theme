@@ -3315,43 +3315,43 @@ class UpdateFlexibleFieldLayouts {
             
             $field_groups = acf_get_field_groups();
             
-            // 🚨 ANA KONTROL: acf_get_field_groups() bir dizi döndürmezse, işlemi durdur.
+            // Ana kontrol: acf_get_field_groups'un array döndürmesi garanti edilmeli
             if ( !is_array($field_groups) ) {
-                error_log('ACF Cache Hata Kontrolü: acf_get_field_groups bir dizi değil. İşlem durduruldu.');
                 return;
             }
 
             foreach ( $field_groups as $group ) {
                 
-                // 1. Alan Grubu (Field Group) Kontrolü
-                if ( !isset($group['key']) || empty($group['key']) ) {
-                    // Key'i olmayan bozuk grupları atla.
-                    continue;
+                // 1. Alan Grubu (Field Group) Güvenlik Kontrolü
+                // $group'un array ve 'key' içerdiğinden emin ol
+                if ( !is_array($group) || !isset($group['key']) || empty($group['key']) ) {
+                    continue; // Geçersiz grupları atla
                 }
                 
-                // Alan grubunun cache'ini temizle
-                // acf_flush_field_cache($group['key']); satırı hata vermeye devam ederse,
-                // $group nesnesinin gerçekten bir ACF Field Group nesnesi olduğundan emin olmalıyız.
-                // En güvenli yöntem:
-                if ( is_array($group) ) {
-                    acf_flush_field_cache( $group['key'] );
+                $group_key = $group['key'];
+
+                // 💡 KRİTİK KONTROL: acf_get_field_group ile verinin geçerli bir array olarak yüklenip yüklenmediğini kontrol et.
+                // Bu, cache'i temizlemeden önce bozuk veriyi tespit eder.
+                $loaded_group = acf_get_field_group($group_key);
+                
+                if ( !is_array($loaded_group) || empty($loaded_group) ) {
+                    // Geçerli bir alan grubu yüklenemediyse, bu bozuk veriyi temizlemeyi atla.
+                    error_log('ACF Cache Hata Kontrolü: Bozuk veya eksik alan grubu verisi tespit edildi. Key atlandı: ' . $group_key);
+                    continue; 
                 }
+                
+                // Yalnızca geçerli veriye sahip grupların cache'ini temizle
+                acf_flush_field_cache( $group_key );
                 
 
                 // 2. Grup İçindeki Alanları (Fields) Kontrol Et ve Temizle
-                $fields = acf_get_fields( $group['key'] );
+                $fields = acf_get_fields( $group_key );
                 
-                // 🚨 KRİTİK KONTROL: acf_get_fields() bir dizi döndürmezse (bozuk veriyse), alt alanları temizlemeyi atla.
-                if ( !is_array($fields) ) {
-                    error_log('ACF Cache Hata Kontrolü: ' . $group['key'] . ' alt alanları bir dizi değil. Alt alan temizliği atlandı.');
-                    continue;
-                }
-                
-                // Alt alanları temizle (fields)
-                if ( !empty($fields) ) {
+                // Alt alanlar dizisi geçerli bir array değilse, alt alan temizliğini atla.
+                if ( is_array($fields) && !empty($fields) ) {
                     foreach ( $fields as $field ) {
-                        if ( isset($field['key']) ) {
-                            // is_array($field) kontrolü zorunlu değil ama ekstra güvenlik sağlar.
+                        // $field'ın array olduğundan ve 'key' içerdiğinden emin ol
+                        if ( is_array($field) && isset($field['key']) ) {
                             acf_flush_field_cache( $field['key'], 'field' );
                         }
                     }
@@ -3360,7 +3360,6 @@ class UpdateFlexibleFieldLayouts {
             error_log('🔥 ACF field ve field group cache\'leri temizlendi.');
         }
     }
-
     public function update_cache() {
         if ($this->post_id) {
             acf_save_post_block_columns_action($this->post_id);
