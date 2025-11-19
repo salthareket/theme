@@ -1511,6 +1511,8 @@ class Update {
      * Bu metod, acf_import_field_group kullandığı için mevcut post/sayfa verilerini korur.
      */
     private static function acf_json_to_db($acf_json_path = "") {
+        global $wpdb; // WordPress veritabanı sınıfını dahil et
+
         // get_template_directory() . '/acf-json' varsayımı ile devam ediyoruz.
         $acf_json_path = empty($acf_json_path) ? get_template_directory() . '/acf-json' : $acf_json_path;
 
@@ -1538,31 +1540,31 @@ class Update {
             $group_key = $field_group['key'];
 
             // 1. KRİTİK KONTROL: Bu key'e sahip bir alan grubu zaten var mı?
-            // acf_get_field_group_post_id, post_status'a bakmaksızın kaydın ID'sini döndürür.
-            $existing_post_id = acf_get_field_group_post_id($group_key);
+            // acf_get_field_group_post_id yerine $wpdb kullanarak ID'yi buluyoruz.
+            $existing_post_id = $wpdb->get_var( $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'",
+                $group_key
+            ) );
 
             if ($existing_post_id) {
-                // 2. KOPYALAMAYI ÖNLEME: Mevcut kaydın post_name ve post_title'ını JSON ile eşleştir.
-                // Bu, acf_import_field_group'un eşleşmeyi bulmasını sağlar. Statüyü DEĞİŞTİRMİYORUZ.
-                
+                // 2. KOPYALAMAYI ÖNLEME GARANTİSİ:
+                // Mevcut kaydın post_name ve post_title'ını JSON ile eşleştir. Statüyü KORU.
                 $existing_post_data = get_post($existing_post_id);
-                $current_status = $existing_post_data->post_status; // Mevcut statüyü koruyoruz.
                 
-                // Eğer veritabanındaki post_name veya post_title, JSON'dan gelen ile eşleşmiyorsa güncelle.
-                // Bu, ACF'in "bu yeni bir kayıt olmalı" düşüncesini engeller.
+                // Eğer post_name veya post_title eşleşmiyorsa, sadece bu değerleri güncelle.
                 if ($existing_post_data->post_name !== $group_key || $existing_post_data->post_title !== $field_group['title']) {
+                    // Statüyü KORUYARAK sadece post_name ve post_title'ı güncelliyoruz.
                     wp_update_post([
                         'ID'          => $existing_post_id,
-                        'post_name'   => $group_key,      // post_name'i key ile eşleştir (önerilen ACF pratiği).
-                        'post_title'  => $field_group['title'], // post_title'ı JSON'dan gelen başlık ile eşleştir.
-                        // post_status'ü burada GÜNCELLEMİYORUZ. Mevcut status korunur.
+                        'post_name'   => $group_key,      // post_name'i key ile eşleştir (Önerilen ACF pratiği)
+                        'post_title'  => $field_group['title'], // post_title'ı JSON'dan gelen başlık ile eşleştir
                     ]);
-                    error_log('ACF Alan Grubu #' . $existing_post_id . ' meta verisi güncellendi (Statü Korundu).');
+                    error_log('ACF Alan Grubu #' . $existing_post_id . ' meta verisi güncellendi (Statü Korundu, Kopyalama Önleyici).');
                 }
             }
 
-            // 3. GÜNCELLEME İŞLEMİ: acf_import_field_group çağrıldığında, artık mevcut kaydı bulmalı ve güncellemelidir.
-            // acf_import_field_group, sadece alan içeriğini günceller ve mevcut post_status'ü korur.
+            // 3. GÜNCELLEME İŞLEMİ: acf_import_field_group, mevcut kaydı bulur (artık eşleşme garantilendiği için)
+            // ve sadece içeriğini günceller.
             $result = acf_import_field_group($field_group);
 
             if (!is_wp_error($result)) {
