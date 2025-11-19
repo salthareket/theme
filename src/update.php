@@ -1510,67 +1510,79 @@ class Update {
      * RE-DESIGN: Kopyalanan JSON dosyalarını ACF'nin güvenli import API'si ile DB'ye kaydeder/günceller.
      * Bu metod, acf_import_field_group kullandığı için mevcut post/sayfa verilerini korur.
      */
-    private static function acf_json_to_db($acf_json_path = "") {
-        global $wpdb; // WordPress veritabanı sınıfını dahil et
-
-        // get_template_directory() . '/acf-json' varsayımı ile devam ediyoruz.
-        $acf_json_path = empty($acf_json_path) ? get_template_directory() . '/acf-json' : $acf_json_path;
-
+    private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+        // ACF JSON klasör yolu
+        if(empty($acf_json_path)){
+            $acf_json_path = get_template_directory() . '/acf-json';
+        }
+        
+        // Klasör kontrolü
         if (!is_dir($acf_json_path)) {
-            error_log('ACF JSON Dizini Bulunamadı: ' . $acf_json_path);
-            return ['success' => false, 'message' => 'ACF JSON directory not found.'];
+            return ['success' => false, 'message' => 'acf-json directory not found'];
         }
 
+        // JSON dosyalarını al
         $json_files = glob($acf_json_path . '/*.json');
 
         if (empty($json_files)) {
-            return ['success' => true, 'message' => 'No JSON files found to import.'];
+            return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
         }
 
         $imported_groups = [];
         foreach ($json_files as $file) {
+            // Dosyayı oku ve JSON verisini çözümle
             $json_content = file_get_contents($file);
             $field_group = json_decode($json_content, true);
 
             if (json_last_error() !== JSON_ERROR_NONE || empty($field_group) || !isset($field_group['key'])) {
-                error_log('Geçersiz ACF JSON dosyası: ' . basename($file));
-                continue;
+                continue; // Geçersiz JSON dosyalarını atla
             }
-            
-            $group_key = $field_group['key'];
 
-            // 1. KRİTİK KONTROL: Bu key'e sahip bir alan grubu zaten var mı?
-            // acf_get_field_group_post_id yerine $wpdb kullanarak ID'yi buluyoruz.
-            $existing_post_id = $wpdb->get_var( $wpdb->prepare(
-                "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'",
-                $group_key
-            ) );
-
-            if ($existing_post_id) {
-                // 2. KOPYALAMAYI ÖNLEME GARANTİSİ:
-                // Mevcut kaydın post_name ve post_title'ını JSON ile eşleştir. Statüyü KORU.
-                $existing_post_data = get_post($existing_post_id);
+            if (isset($field_group['key'])) {
                 
-                // Eğer post_name veya post_title eşleşmiyorsa, sadece bu değerleri güncelle.
-                if ($existing_post_data->post_name !== $group_key || $existing_post_data->post_title !== $field_group['title']) {
-                    // Statüyü KORUYARAK sadece post_name ve post_title'ı güncelliyoruz.
-                    wp_update_post([
-                        'ID'          => $existing_post_id,
-                        'post_name'   => $group_key,      // post_name'i key ile eşleştir (Önerilen ACF pratiği)
-                        'post_title'  => $field_group['title'], // post_title'ı JSON'dan gelen başlık ile eşleştir
-                    ]);
-                    error_log('ACF Alan Grubu #' . $existing_post_id . ' meta verisi güncellendi (Statü Korundu, Kopyalama Önleyici).');
+                // 1. Var olan grup kontrolü (ACF'in kendi fonksiyonunu kullanıyoruz)
+                $existing_group = acf_get_field_group($field_group['key']);
+
+                if ($existing_group) {
+                    $existing_id = $existing_group['ID'];
+                    
+                    // Statüyü korumak için orijinal statüyü al
+                    $original_status = get_post_status($existing_id); 
+
+                    if ($overwrite) {
+                        // YOL 1: SİL VE YENİDEN EKLE (Overwrite = true)
+                        // Bu yolda acf_delete_field_group, mevcut meta verilerini (field values) korumaz!
+                        acf_delete_field_group($existing_id); 
+                        $result = acf_import_field_group($field_group); // Yeniyi ekle
+                        
+                        // 💡 KRİTİK DÜZELTME: Statüyü Geri Yükle
+                        if (!is_wp_error($result) && $original_status && $original_status !== 'publish') {
+                            wp_update_post([
+                                'ID'          => $result['ID'],
+                                'post_status' => $original_status,
+                            ]);
+                        }
+
+                    } else {
+                        // YOL 2: SADECE İÇERİĞİ GÜNCELLE (Overwrite = false)
+                        // acf_update_field_group, mevcut kaydı günceller ve statüyü korur (duplicate olmaz).
+                        $updated_group = array_merge($existing_group, $field_group);
+                        acf_update_field_group($updated_group);
+                        $result = true; // Başarılı kabul et
+                    }
+                } else {
+                    // Yeni grup ekle (Veritabanında yoksa)
+                    $result = acf_import_field_group($field_group);
                 }
-            }
 
-            // 3. GÜNCELLEME İŞLEMİ: acf_import_field_group, mevcut kaydı bulur (artık eşleşme garantilendiği için)
-            // ve sadece içeriğini günceller.
-            $result = acf_import_field_group($field_group);
-
-            if (!is_wp_error($result)) {
-                $imported_groups[] = $group_key;
-            } else {
-                error_log('ACF Import Hatası (' . $group_key . '): ' . $result->get_error_message());
+                if (defined('ACF_LOCAL_JSON')) {
+                    // Tema JSON'unu tekrar yaz (ACF'in kendi mekanizması).
+                    acf_write_json_field_group($field_group); 
+                }
+                
+                if (!is_wp_error($result) && $result !== false) {
+                    $imported_groups[] = $field_group['key'];
+                }
             }
         }
 
