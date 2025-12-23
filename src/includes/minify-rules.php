@@ -274,7 +274,7 @@ function compile_files_config($enable_production=false){
 		"c"	=> false,
 		"admin" => false,
 		"url" => [
-			$plugin_path . 'scrollposstyler\scrollposstyler.js'
+			$js_sh_path . 'plugins/scrollposstyler/scrollposstyler.js'
 		],
 		"css" => [],
 		"css_only_local" => false,
