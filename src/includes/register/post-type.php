@@ -75,9 +75,9 @@ $args = array(
 register_post_type('template', $args);
 
 register_taxonomy('template-types', 'template', array(
-      'hierarchical' => false,
+      'hierarchical' => true,
       'label' => 'Template Types',
-      'show_ui' => false,
+      'show_ui' => true,
       'show_admin_column' => true,
       'query_var' => true,
       'rewrite' => array('slug' => 'template-type'),
@@ -469,5 +469,86 @@ if (is_admin()) {
 
     }, 20, 3 );
 
+
+
+    /**
+     * 1. Varsayılan Taksonomi Metabox'ını Kaldır
+     */
+    add_action('admin_menu', function() {
+        // 'template' post type içindeki 'template-types' metabox'ını kaldırıyoruz
+        // WordPress hiyerarşik taksonomiler için sonuna 'div' ekler: template-typesdiv
+        remove_meta_box('template-typesdiv', 'template', 'side');
+    });
+
+    /**
+     * 2. Kendi Select Box Metabox'ımızı Ekle
+     */
+    add_action('add_meta_boxes', function() {
+        add_meta_box(
+            'template_type_select_box',    // ID
+            'Template Type',               // Başlık
+            'render_template_type_select', // Callback fonksiyonu
+            'template',                    // Post Type
+            'side',                        // Konum
+            'high'                      // Öncelik
+        );
+    });
+
+    /**
+     * 3. Select Box İçeriğini Render Et
+     */
+    function render_template_type_select($post) {
+        $taxonomy = 'template-types';
+        
+        // Mevcut seçili term'i al
+        $current_terms = wp_get_object_terms($post->ID, $taxonomy);
+        $selected_id = !empty($current_terms) && !is_wp_error($current_terms) ? $current_terms[0]->term_id : '';
+
+        // Tüm term'leri çek
+        $terms = get_terms([
+            'taxonomy'   => $taxonomy,
+            'hide_empty' => false,
+        ]);
+
+        // Güvenlik için nonce ekleyelim
+        wp_nonce_field('save_template_type_nonce', 'template_type_nonce');
+
+        echo '<select name="template_type_id" id="template_type_id" class="postbox" style="width:100%; height: 35px;">';
+        echo '<option value="">Select Type...</option>';
+        
+        if (!is_wp_error($terms) && !empty($terms)) {
+            foreach ($terms as $term) {
+                echo '<option value="' . $term->term_id . '" ' . selected($selected_id, $term->term_id, false) . '>';
+                echo $term->name;
+                echo '</option>';
+            }
+        }
+        echo '</select>';
+        echo '<p class="description" style="margin-top:8px;">Choose a single type for this template.</p>';
+    }
+
+    /**
+     * 4. Seçimi Veritabanına Kaydet
+     */
+    add_action('save_post_template', function($post_id) {
+        // Güvenlik kontrolleri
+        if (!isset($_POST['template_type_nonce']) || !wp_verify_nonce($_POST['template_type_nonce'], 'save_template_type_nonce')) return;
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+        if (!current_user_can('edit_post', $post_id)) return;
+
+        $taxonomy = 'template-types';
+
+        if (isset($_POST['template_type_id'])) {
+            $term_id = intval($_POST['template_type_id']);
+            
+            if ($term_id > 0) {
+                // Seçilen ID'yi taksonomi olarak ata (öncekileri siler, tek seçim sağlar)
+                wp_set_object_terms($post_id, $term_id, $taxonomy, false);
+            } else {
+                // Eğer "Select Type" seçildiyse (boş), bağlantıyı kopar
+                wp_set_object_terms($post_id, null, $taxonomy);
+            }
+        }
+    }, 10, 1);
 
 }

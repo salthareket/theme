@@ -108,8 +108,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "212outlet": "212outlet [09.12.2025 23:25]",
-                        "latest": "latest [09.12.2025 23:25]"
+                        "latest": "latest [11.09.2025 14:44]",
+                        "xekos": "xekos [11.09.2025 14:44]"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -693,7 +693,7 @@
     "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1765322851,
+    "modified": 1766493850,
     "acfe_categories": {
         "general": "General"
     }

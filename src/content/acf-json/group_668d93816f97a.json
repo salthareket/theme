@@ -763,8 +763,7 @@
                                 "initial": "initial",
                                 "inherit": "inherit",
                                 "##Custom Fonts": "##Custom Fonts",
-                                "'DIN'": "DIN Condensed Pro",
-                                "'pantheon'": "pantheon",
+                                "'Cabin'": "Cabin",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -1497,8 +1496,7 @@
                                         "initial": "initial",
                                         "inherit": "inherit",
                                         "##Custom Fonts": "##Custom Fonts",
-                                        "'DIN'": "DIN Condensed Pro",
-                                        "'pantheon'": "pantheon",
+                                        "'Cabin'": "Cabin",
                                         "##Icon Fonts": "##Icon Fonts",
                                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -2412,7 +2410,6 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
@@ -2420,7 +2417,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1763565771,
+    "modified": 1766493863,
     "acfe_categories": {
         "general": "General"
     }

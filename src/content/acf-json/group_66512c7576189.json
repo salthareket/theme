@@ -73,7 +73,8 @@
             "choices": {
                 "default": "Default",
                 "post\/tease": "Post Tease (Predefined)",
-                "theme\/templates\/_custom\/slider-post": "slider-post"
+                "theme\/templates\/_custom\/icon-circle": "icon-circle",
+                "theme\/templates\/_custom\/numeric-list": "numeric-list"
             },
             "default_value": false,
             "return_format": "value",
@@ -130,14 +131,13 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1763565763,
+    "modified": 1766493851,
     "acfe_categories": {
         "block": "Block"
     }

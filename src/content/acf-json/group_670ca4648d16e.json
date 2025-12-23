@@ -181,7 +181,8 @@
                     "choices": {
                         "default": "Default",
                         "post\/tease": "Post Tease (Predefined)",
-                        "theme\/templates\/_custom\/slider-post": "slider-post"
+                        "theme\/templates\/_custom\/icon-circle": "icon-circle",
+                        "theme\/templates\/_custom\/numeric-list": "numeric-list"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -216,8 +217,7 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "'DIN'": "DIN Condensed Pro",
-                        "'pantheon'": "pantheon",
+                        "'Cabin'": "Cabin",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -269,15 +269,15 @@
                         "id": ""
                     },
                     "choices": {
-                        "title-xs": "title-xs - 26px",
-                        "title-sm": "title-sm - 32px",
-                        "title-md": "title-md - 42px",
-                        "title-lg": "title-lg - 52px",
-                        "title-xl": "title-xl - 62px",
-                        "title-xxl": "title-xxl - 72px",
-                        "title-xxxl": "title-xxxl - 82px",
-                        "text-xs": "text-xs - 14px",
-                        "text-sm": "text-sm - 16px",
+                        "title-xs": "title-xs - 32px",
+                        "title-sm": "title-sm - 42px",
+                        "title-md": "title-md - 52px",
+                        "title-lg": "title-lg - 62px",
+                        "title-xl": "title-xl - 72px",
+                        "title-xxl": "title-xxl - 92px",
+                        "title-xxxl": "title-xxxl - 120px",
+                        "text-xs": "text-xs - 16px",
+                        "text-sm": "text-sm - 18px",
                         "text-md": "text-md - 22px",
                         "text-lg": "text-lg - 26px",
                         "text-xl": "text-xl - 32px",
@@ -398,14 +398,13 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1763565785,
+    "modified": 1766493875,
     "acfe_categories": {
         "block": "Block"
     }

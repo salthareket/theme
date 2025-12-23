@@ -39,7 +39,6 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
@@ -49,5 +48,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1763565787
+    "modified": 1766493878
 }

@@ -2136,7 +2136,8 @@
                             },
                             "choices": {
                                 "post\/tease": "Post Tease (Predefined)",
-                                "theme\/templates\/_custom\/slider-post": "slider-post"
+                                "theme\/templates\/_custom\/icon-circle": "icon-circle",
+                                "theme\/templates\/_custom\/numeric-list": "numeric-list"
                             },
                             "default_value": false,
                             "return_format": "value",
@@ -2176,7 +2177,8 @@
                             "ui": 1,
                             "choices": {
                                 "post\/tease": "Post Tease (Predefined)",
-                                "theme\/templates\/_custom\/slider-post": "slider-post"
+                                "theme\/templates\/_custom\/icon-circle": "icon-circle",
+                                "theme\/templates\/_custom\/numeric-list": "numeric-list"
                             },
                             "pll_default_value": 0
                         },
@@ -2657,7 +2659,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1765378937,
+    "modified": 1766493882,
     "acfe_categories": {
         "block": "Block"
     }

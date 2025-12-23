@@ -22,9 +22,10 @@
             "lines": 1,
             "indent_unit": 4,
             "maxlength": "",
-            "rows": 4,
+            "rows": 20,
             "max_rows": "",
             "return_format": [],
+            "translations": "ignore",
             "allow_in_bindings": 1,
             "pll_default_value": ""
         }
@@ -60,7 +61,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1764543051,
+    "modified": 1766528467,
     "acfe_categories": {
         "general": "General"
     }

@@ -46,7 +46,6 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
-                    "pll_default_value": "",
                     "parent_repeater": "field_6946b955ebb26"
                 },
                 {
@@ -72,7 +71,6 @@
                     "step": "",
                     "prepend": "",
                     "append": "",
-                    "pll_default_value": "",
                     "parent_repeater": "field_6946b955ebb26"
                 },
                 {
@@ -98,7 +96,6 @@
                     "step": "",
                     "prepend": "",
                     "append": "",
-                    "pll_default_value": "",
                     "parent_repeater": "field_6946b955ebb26"
                 }
             ]
@@ -130,8 +127,8 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766496305,
     "acfe_categories": {
         "general": "General"
-    }
+    },
+    "modified": 1766496645
 }

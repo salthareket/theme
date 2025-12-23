@@ -355,7 +355,6 @@
             "acfe_flexible_layouts_templates": 0,
             "acfe_flexible_layouts_placeholder": 0,
             "acfe_flexible_layouts_thumbnails": 0,
-            "acfe_flexible_layouts_settings": 0,
             "acfe_flexible_async": [],
             "acfe_flexible_add_actions": [],
             "acfe_flexible_remove_button": [],
@@ -514,7 +513,8 @@
                             "search_placeholder": "",
                             "layout": "",
                             "toggle": 0,
-                            "pll_default_value": []
+                            "pll_default_value": [],
+                            "other_choice": 0
                         }
                     ],
                     "min": "",
@@ -615,7 +615,15 @@
             "acfe_flexible_hide_empty_message": false,
             "acfe_flexible_empty_message": "",
             "acfe_flexible_layouts_previews": false,
-            "acfe_flexible_layouts_state": false
+            "acfe_flexible_layouts_state": false,
+            "acfe_flexible_modal_settings": {
+                "acfe_flexible_modal_settings_enabled": 0,
+                "acfe_flexible_modal_settings_size": "large",
+                "acfe_flexible_modal_settings_close": true,
+                "acfe_flexible_modal_settings_close_label": ""
+            },
+            "acfe_flexible_close_button_label": "",
+            "acfe_flexible_remove_top_actions": []
         },
         {
             "key": "field_671745e908636",
@@ -632,16 +640,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
-                "acik-pozisyonlar": "Açık Pozisyonlar",
-                "duyurular": "Duyurular",
-                "etkinlikler": "Etkinlikler",
-                "kampanya": "Kampanyalar",
-                "katlar": "Katlar",
-                "magazalar": "Mağazalar",
-                "ulasim": "Ulaşım",
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
                 "contact": "Contacts",
                 "template": "Templates"
             },
@@ -680,7 +681,6 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
@@ -690,5 +690,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1763565729
+    "modified": 1766493814
 }

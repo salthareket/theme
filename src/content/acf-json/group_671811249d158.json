@@ -448,7 +448,7 @@
                                 "id": ""
                             },
                             "choices": {
-                                "3263": "212 Outlet (contact)"
+                                "19502": "Headquarters (contact)"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -1062,7 +1062,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "444 4 212": "212 Outlet(default): 444 4 212"
+                        "+90 266 502 44 15 ": "Headquarters(default): +90 266 502 44 15 "
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1180,6 +1180,10 @@
                         "warning": "warning",
                         "light": "light",
                         "dark": "dark",
+                        "green-medium": "green-medium",
+                        "green-dark": "green-dark",
+                        "yellow": "yellow",
+                        "gray-light": "gray-light",
                         "custom": "Custom"
                     },
                     "default_value": "",
@@ -1501,14 +1505,13 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1763565787,
+    "modified": 1766493878,
     "acfe_categories": {
         "general": "General"
     }

@@ -817,7 +817,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "pll_default_value": []
+                    "pll_default_value": [],
+                    "other_choice": 0
                 }
             ]
         },
@@ -973,7 +974,8 @@
                     "search_placeholder": "",
                     "layout": "",
                     "toggle": 0,
-                    "pll_default_value": []
+                    "pll_default_value": [],
+                    "other_choice": 0
                 }
             ]
         },
@@ -1294,7 +1296,8 @@
                     "toggle": 0,
                     "allow_custom": 0,
                     "parent_repeater": "field_6690aa9f17b90",
-                    "pll_default_value": []
+                    "pll_default_value": [],
+                    "other_choice": 0
                 },
                 {
                     "key": "field_6690ab0017b92",
@@ -1311,8 +1314,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "212outlet": "212outlet",
-                        "twentytwentyfive": "Twenty Twenty-Five"
+                        "twentytwentyfive": "Twenty Twenty-Five",
+                        "xekos": "Xekos"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1481,16 +1484,9 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
-                "acik-pozisyonlar": "Açık Pozisyonlar",
-                "duyurular": "Duyurular",
-                "etkinlikler": "Etkinlikler",
-                "kampanya": "Kampanyalar",
-                "katlar": "Katlar",
-                "magazalar": "Mağazalar",
-                "ulasim": "Ulaşım",
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
                 "contact": "Contacts",
                 "template": "Templates"
             },
@@ -1527,12 +1523,6 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
-                "departman": "departman",
-                "duyuru-tipi": "duyuru-tipi",
-                "etkinlik-tipi": "etkinlik-tipi",
-                "hizmetler": "hizmetler",
-                "magaza-tipi": "magaza-tipi",
-                "ulasim-tipi": "ulasim-tipi",
                 "template-types": "template-types",
                 "contact-type": "contact-type"
             },
@@ -2269,8 +2259,6 @@
                 "id": ""
             },
             "choices": {
-                "departman": "departman",
-                "duyuru-tipi": "duyuru-tipi",
                 "contact-type": "contact-type"
             },
             "default_value": "",
@@ -2303,10 +2291,6 @@
                 "id": ""
             },
             "choices": {
-                "acik-pozisyonlar": "acik-pozisyonlar",
-                "duyurular": "duyurular",
-                "katlar": "katlar",
-                "magazalar": "magazalar",
                 "contact": "contact",
                 "template": "template"
             },
@@ -2352,7 +2336,7 @@
     "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1763928443,
+    "modified": 1766493824,
     "acfe_categories": {
         "general": "General"
     }

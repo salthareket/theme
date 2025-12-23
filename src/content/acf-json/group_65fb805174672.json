@@ -269,6 +269,10 @@
                                 "warning": "warning",
                                 "light": "light",
                                 "dark": "dark",
+                                "green-medium": "green-medium",
+                                "green-dark": "green-dark",
+                                "yellow": "yellow",
+                                "gray-light": "gray-light",
                                 "custom": "Custom"
                             },
                             "default_value": "",
@@ -1826,7 +1830,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1765136561,
+    "modified": 1766493846,
     "acfe_categories": {
         "block": "Block"
     }
