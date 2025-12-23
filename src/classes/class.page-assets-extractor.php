@@ -2637,28 +2637,52 @@ class PageAssetsExtractor
 
 }
 
+
 function trigger_page_assets_rebuild_on_save($id) {
-    // Cron işleri, revizyonlar veya autosave'ler için çalıştırmayı atla
+    // 1. Gereksiz tetiklenmeleri engelle (Cron, Revizyon, Autosave)
     if (wp_is_post_revision($id) || wp_is_post_autosave($id)) {
         return;
     }
     
     if (class_exists('PageAssetsExtractor')) {
-        $extractor = PageAssetsExtractor::get_instance(); 
-        
-        // 1. Kaydedilen içeriğin kendi önbelleğini ve hash'ini temizle
-        // Bu, bir sonraki yüklemede yeni bir CSS Hash'i üretilmesini sağlar.
+        $extractor = PageAssetsExtractor::get_instance();
+
+        // Nesne bilgilerini al
+        $post_type = get_post_type($id); // Post ise slug döner, değilse false
+        $term = get_term($id);           // Term ise nesne döner, değilse null/error
+
+        // 2. POST TYPE EXCLUDE KONTROLÜ
+        if ($post_type) {
+            $excluded_posts = (array)($extractor->excluded_post_types ?? []);
+            if (in_array($post_type, $excluded_posts)) {
+                // error_log("[PAE] Post Type {$post_type} excluded.");
+                return; 
+            }
+        }
+
+        // 3. TAXONOMY EXCLUDE KONTROLÜ
+        if ($term && !is_wp_error($term)) {
+            $excluded_taxs = (array)($extractor->excluded_taxonomies ?? []);
+            if (in_array($term->taxonomy, $excluded_taxs)) {
+                // error_log("[PAE] Taxonomy {$term->taxonomy} excluded.");
+                return;
+            }
+        }
+
+        // 4. KENDİ ÖNBELLEĞİNİ TEMİZLE
+        // Bu hem post ID'si hem term ID'si için çalışır.
         $extractor->clear_content_cache_and_hash($id); 
         
-        // 2. Eğer bu bir post ise, ait olduğu arşiv sayfasını (genel ayarlar) da temizle
-        if (get_post_type($id)) {
-            $post_type_slug = get_post_type($id);
-            $options_page_id = $post_type_slug . '_options';
-            
-            // Arşiv sayfasının genel ayarlarının da önbelleğini temizle.
-            $extractor->clear_content_cache_and_hash($options_page_id);
+        // 5. İLİŞKİLİ ARŞİV/OPSİYON SAYFALARINI TEMİZLE
+        if ($post_type) {
+            // Bir post kaydedildiğinde bağlı olduğu arşivin (options) hash'ini de boz
+            // Örn: 'portfolio_options'
+            $extractor->clear_content_cache_and_hash($post_type . '_options');
+        } elseif ($term && !is_wp_error($term)) {
+            // Bir kategori/etiket kaydedildiğinde bağlı olduğu taksonomi arşivini boz
+            // Örn: 'product_cat_options'
+            $extractor->clear_content_cache_and_hash($term->taxonomy . '_options');
         }
-        
         // ÖNEMLİ: Bu noktada başka bir global temizlik yapmaya GEREK YOKTUR. 
         // Sistemin bir sonraki sayfa yüklemesinde (normal kullanıcı veya bot) 
         // PageAssetsExtractor çalışır ve:
@@ -2669,10 +2693,11 @@ function trigger_page_assets_rebuild_on_save($id) {
         // e) Post/Term meta verisini yeni Hash ile günceller.
     }
 }
-// Hook'lar aynı kalır
-add_action('save_post', 'trigger_page_assets_rebuild_on_save', 20, 3);
-add_action('edited_term', 'trigger_page_assets_rebuild_on_save', 20, 3);
-add_action('created_term', 'trigger_page_assets_rebuild_on_save', 20, 3);
+
+// Hook'lar
+add_action('save_post', 'trigger_page_assets_rebuild_on_save', 20, 1);
+add_action('edited_term', 'trigger_page_assets_rebuild_on_save', 20, 1);
+add_action('created_term', 'trigger_page_assets_rebuild_on_save', 20, 1);
 
 /**
  * ===================================================================
