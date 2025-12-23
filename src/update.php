@@ -1510,7 +1510,7 @@ class Update {
      * RE-DESIGN: Kopyalanan JSON dosyalarını ACF'nin güvenli import API'si ile DB'ye kaydeder/günceller.
      * Bu metod, acf_import_field_group kullandığı için mevcut post/sayfa verilerini korur.
      */
-    private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+    /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
         // ACF JSON klasör yolu
         if(empty($acf_json_path)){
             $acf_json_path = get_template_directory() . '/acf-json';
@@ -1591,9 +1591,82 @@ class Update {
         } else {
             return ['success' => true, 'message' => 'No field groups were registered or updated.'];
         }
+    }*/
+    /**
+     * ACF JSON dosyalarını güvenli bir şekilde DB'ye aktarır veya günceller.
+     * Silme işlemi yapmadan ID eşleşmesiyle (Update) çalışır, veri kaybını önler.
+     */
+    private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+        // 1. Klasör Yolu Ayarı
+        if (empty($acf_json_path)) {
+            $acf_json_path = get_template_directory() . '/acf-json';
+        }
+        
+        // 2. Klasör ve Dosya Kontrolü
+        if (!is_dir($acf_json_path)) {
+            return ['success' => false, 'message' => 'ACF JSON dizini bulunamadı: ' . $acf_json_path];
+        }
+
+        $json_files = glob($acf_json_path . '/*.json');
+        if (empty($json_files)) {
+            return ['success' => false, 'message' => 'Klasörde JSON dosyası bulunamadı.'];
+        }
+
+        $imported_keys = [];
+
+        foreach ($json_files as $file) {
+            $json_content = file_get_contents($file);
+            $field_group = json_decode($json_content, true);
+
+            // Geçersiz JSON veya eksik key kontrolü
+            if (!$field_group || !isset($field_group['key'])) {
+                continue;
+            }
+
+            // 3. Veritabanında Mevcut mu Kontrol Et
+            $existing_group = acf_get_field_group($field_group['key']);
+
+            if ($existing_group) {
+                // Eğer üzerine yazma (overwrite) kapalıysa bu dosyayı geç
+                if (!$overwrite) {
+                    continue;
+                }
+
+                // KRİTİK: Mevcut ID'yi yeni veriye enjekte et. 
+                // Böylece acf_import_field_group silme yapmadan "Update" gerçekleştirir.
+                $field_group['ID'] = $existing_group['ID'];
+                
+                // Mevcut statüyü (active/inactive) koru
+                if (isset($existing_group['active'])) {
+                    $field_group['active'] = $existing_group['active'];
+                }
+            }
+
+            // 4. Import / Update İşlemi
+            // ID varsa günceller, yoksa yeni oluşturur.
+            $result = acf_import_field_group($field_group);
+
+            if ($result && !is_wp_error($result)) {
+                $imported_keys[] = $field_group['key'];
+            }
+        }
+
+        // 5. İşlem Bittikten Sonra Cache Temizliği (Döngü dışında tek sefer)
+        if (!empty($imported_keys)) {
+            if (function_exists('acf_cache_delete_all')) {
+                acf_cache_delete_all();
+            }
+            return [
+                'success' => true, 
+                'message' => count($imported_keys) . ' adet grup başarıyla işlendi (Eklendi/Güncellendi).',
+                'keys'    => $imported_keys
+            ];
+        }
+
+        return ['success' => true, 'message' => 'Yapılacak bir işlem bulunamadı.'];
     }
     private static function register_fields(){
-        self::acf_json_to_db(get_template_directory() . '/acf-json');
+        self::acf_json_to_db();
     }
     /*private static function update_fields() {
         global $wpdb;

@@ -3369,72 +3369,36 @@ class UpdateFlexibleFieldLayouts {
         }
     }
 
-    /*public function clear_cache(){
+    public function clear_cache() {
         if ( function_exists('acf_get_field_groups') ) {
-            // Tüm field group'ları al
+            
+            // 1. Tüm dahili cache'i tek seferde temizle (En güvenli yol)
+            if ( function_exists('acf_cache_delete_all') ) {
+                acf_cache_delete_all();
+            }
+
+            // 2. Eğer özel olarak field'ları gezmek istiyorsan, 
+            // hataları engellemek için sadece field key üzerinden gitmelisin
             $field_groups = acf_get_field_groups();
-            foreach ( $field_groups as $group ) {
-                if ( isset($group['key']) ) {
-                    acf_flush_field_cache( $group['key'] );
-                }
-                // Grup içindeki field'ları da al ve temizle
-                $fields = acf_get_fields( $group['key'] );
-                if ( $fields ) {
-                    foreach ( $fields as $field ) {
-                        if ( isset($field['key']) ) {
-                            acf_flush_field_cache( $field['key'], 'field' );
+            
+            if ( is_array($field_groups) ) {
+                foreach ( $field_groups as $group ) {
+                    // Group cache temizliği için sadece key'i kullanmak yetmez, 
+                    // ACF'in beklentilerini karşılamak için varsayılanları ekleyelim.
+                    $group = wp_parse_args($group, array('name' => '', 'parent' => 0));
+                    acf_flush_field_cache( $group );
+
+                    $fields = acf_get_fields( $group['key'] );
+                    if ( is_array($fields) ) {
+                        foreach ( $fields as $field ) {
+                            // Field dizisindeki eksik anahtarları doldurarak hatayı engelle
+                            $field = wp_parse_args($field, array('name' => '', 'parent' => 0));
+                            acf_flush_field_cache( $field );
                         }
                     }
                 }
             }
-            error_log('🔥 ACF field ve field group cache\'leri temizlendi.');
-        }
-    }*/
-    public function clear_cache(){
-        if ( function_exists('acf_get_field_groups') ) {
-            
-            $field_groups = acf_get_field_groups();
-            
-            // Ana kontrol
-            if ( !is_array($field_groups) ) {
-                error_log('ACF Cache Hata Kontrolü: acf_get_field_groups bir dizi değil. İşlem durduruldu.');
-                return;
-            }
-
-            foreach ( $field_groups as $group ) {
-                
-                // 1. Alan Grubu (Field Group) Cache Temizliği
-                // Kontrol: $group bir dizi olmalı ve 'key' içermeli.
-                if ( is_array($group) && isset($group['key']) && !empty($group['key']) ) {
-                    
-                    // 💡 KRİTİK DÜZELTME: acf_flush_field_cache, string yerine tüm $group dizisini bekler.
-                    acf_flush_field_cache( $group ); 
-                }
-                
-
-                // 2. Grup İçindeki Alanları (Fields) Cache Temizliği
-                $group_key = isset($group['key']) ? $group['key'] : '';
-                if ( empty($group_key) ) {
-                    continue;
-                }
-
-                $fields = acf_get_fields( $group_key );
-                
-                // Kontrol: $fields bir dizi olmalı ve boş olmamalı.
-                if ( is_array($fields) && !empty($fields) ) {
-                    foreach ( $fields as $field ) {
-                        
-                        // Kontrol: $field bir dizi olmalı ve 'key' içermeli.
-                        if ( is_array($field) && isset($field['key']) ) {
-                            
-                            // 💡 KRİTİK DÜZELTME: acf_flush_field_cache, string yerine tüm $field dizisini bekler.
-                            // Alan temizliği için ikinci argüman (type) ACF'in mevcut versiyonunda gerekmez.
-                            acf_flush_field_cache( $field ); 
-                        }
-                    }
-                }
-            }
-            error_log('🔥 ACF field ve field group cache\'leri temizlendi.');
+            error_log('🔥 ACF Cache başarıyla (ve hatasız) temizlendi.');
         }
     }
     public function update_cache() {

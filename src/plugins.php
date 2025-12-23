@@ -37,10 +37,10 @@ $required_plugins = array(
         "type" => ["main"],
         "name" => 'acf-openstreetmap-field/index.php',
     ),
-    /*array(
+    array(
         "type" => ["main"],
-        "name" => "advanced-custom-fields-table-field/acf-table.php"
-    ),*/
+        "name" => "clear-cache-for-timber/clear-cache-for-timber.php"
+    ),
     array(
         "type" => ["main", "ai"],
         "name" => "website-llms-txt/website-llms-txt.php"
@@ -176,12 +176,6 @@ $required_plugins_local[] = array(
     "v" => "2.1",
     "name" => "polylang-wc/polylang-wc.php",
     "file" => "polylang-wc"
-);
-$required_plugins_local[] = array(
-    "type" => ["main"],
-    "v" => "0.2.0",
-    "name" => "clear-cache-for-timber/clear-cache-for-timber.php",
-    "file" => "clear-cache-for-timber"
 );
 $required_plugins_local[] = array(
     "type" => ["security"],

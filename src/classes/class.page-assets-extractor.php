@@ -2660,6 +2660,8 @@ function trigger_page_assets_rebuild_on_save($id) {
             return; 
         }
 
+        error_log(print_r("kontrol edilen->".$post_type."(".$id.")", true));
+
         // Sadece Post ID'sini temizle
         $extractor->clear_content_cache_and_hash($id); 
         
