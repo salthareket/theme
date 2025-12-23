@@ -529,19 +529,23 @@ function get_theme_styles($variables = array(), $root = false){
         $offcanvas = $theme_styles["offcanvas"];
         $offcanvas_general = $offcanvas["offcanvas"];
 
-        if(isset($offcanvas_general["bg_color"]["gradient"])){
+        $offcanvas_bg_data = (isset($offcanvas_general["bg_color"]) && is_array($offcanvas_general["bg_color"])) ? $offcanvas_general["bg_color"] : [];
+
+        if (!empty($offcanvas_bg_data["gradient"])) {
             $variables["offcanvas-bg-color"] = "transparent";
-            $variables["offcanvas-bg-gradient"] = $offcanvas_general["bg_color"]["gradient_color"];
+            $variables["offcanvas-bg-gradient"] = $offcanvas_bg_data["bg_color"]["gradient_color"];
         }else{
-            $variables["offcanvas-bg-color"] = scss_variables_color($offcanvas_general["bg_color"]["color"]);
+            $variables["offcanvas-bg-color"] = scss_variables_color($offcanvas_bg_data["color"] ?? "transparent");
             $variables["offcanvas-bg-gradient"] = "";
         }
 
-        if(isset($offcanvas_general["backdrop_color"]["gradient"])){
+        $offcanvas_backdrop_data = (isset($offcanvas_general["backdrop_color"]) && is_array($offcanvas_general["backdrop_color"])) ? $offcanvas_general["backdrop_color"] : [];
+
+        if(isset($offcanvas_backdrop_data["gradient"])){
             $variables["offcanvas-backdrop-color"] = "transparent";
-            $variables["offcanvas-backdrop-gradient"] = $offcanvas_general["backdrop_color"]["gradient_color"];
+            $variables["offcanvas-backdrop-gradient"] = $offcanvas_backdrop_data["gradient_color"];
         }else{
-            $variables["offcanvas-backdrop-color"] = scss_variables_color($offcanvas_general["backdrop_color"]["color"]);
+            $variables["offcanvas-backdrop-color"] = scss_variables_color($offcanvas_backdrop_data["color"] ?? "transparent");
             $variables["offcanvas-backdrop-gradient"] = "";
         }
         $variables["offcanvas-backdrop-opacity"] = $offcanvas_general["backdrop_opacity"] ?? ".5";
