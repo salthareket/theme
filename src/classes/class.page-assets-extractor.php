@@ -93,7 +93,8 @@ class PageAssetsExtractor
 
         // ACF ve WP teknik tiplerini manuel olarak ekle
         $technical_types = [
-            'acf-field-group', 
+            'acf-field-group',
+            'acf-field-options', 
             'acf-field', 
             'acf-ui-options-page', 
             'acf-post-type', 
