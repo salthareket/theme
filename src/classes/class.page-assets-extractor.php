@@ -94,7 +94,6 @@ class PageAssetsExtractor
         // ACF ve WP teknik tiplerini manuel olarak ekle
         $technical_types = [
             'acf-field-group',
-            'acf-field-options', 
             'acf-field', 
             'acf-ui-options-page', 
             'acf-post-type', 
@@ -2640,59 +2639,62 @@ class PageAssetsExtractor
 
 
 function trigger_page_assets_rebuild_on_save($id) {
-    // 1. Gereksiz tetiklenmeleri engelle (Cron, Revizyon, Autosave)
+    // 1. Temel engellemeler
     if (wp_is_post_revision($id) || wp_is_post_autosave($id)) {
         return;
     }
     
-    if (class_exists('PageAssetsExtractor')) {
-        $extractor = PageAssetsExtractor::get_instance();
+    if (!class_exists('PageAssetsExtractor')) return;
+    $extractor = PageAssetsExtractor::get_instance();
 
-        // Nesne bilgilerini al
-        $post_type = get_post_type($id); // Post ise slug döner, değilse false
-        $term = get_term($id);           // Term ise nesne döner, değilse null/error
-
-        // 2. POST TYPE EXCLUDE KONTROLÜ
-        if ($post_type) {
-            $excluded_posts = (array)($extractor->excluded_post_types ?? []);
-            if (in_array($post_type, $excluded_posts)) {
-                // error_log("[PAE] Post Type {$post_type} excluded.");
-                return; 
-            }
+    // Hangi hook tetiklendi?
+    $current_filter = current_filter();
+    
+    // --- DURUM A: BİR POST/SAYFA KAYDEDİLDİYSE ---
+    if ($current_filter === 'save_post') {
+        $post_type = get_post_type($id);
+        
+        // Post Type Exclude Kontrolü
+        $excluded_posts = (array)($extractor->excluded_post_types ?? []);
+        if ($post_type && in_array($post_type, $excluded_posts)) {
+            return; 
         }
 
-        // 3. TAXONOMY EXCLUDE KONTROLÜ
-        if ($term && !is_wp_error($term)) {
-            $excluded_taxs = (array)($extractor->excluded_taxonomies ?? []);
-            if (in_array($term->taxonomy, $excluded_taxs)) {
-                // error_log("[PAE] Taxonomy {$term->taxonomy} excluded.");
-                return;
-            }
-        }
-
-        // 4. KENDİ ÖNBELLEĞİNİ TEMİZLE
-        // Bu hem post ID'si hem term ID'si için çalışır.
+        // Sadece Post ID'sini temizle
         $extractor->clear_content_cache_and_hash($id); 
         
-        // 5. İLİŞKİLİ ARŞİV/OPSİYON SAYFALARINI TEMİZLE
+        // İlişkili arşivi temizle
         if ($post_type) {
-            // Bir post kaydedildiğinde bağlı olduğu arşivin (options) hash'ini de boz
-            // Örn: 'portfolio_options'
             $extractor->clear_content_cache_and_hash($post_type . '_options');
-        } elseif ($term && !is_wp_error($term)) {
-            // Bir kategori/etiket kaydedildiğinde bağlı olduğu taksonomi arşivini boz
-            // Örn: 'product_cat_options'
+        }
+    } 
+    
+    // --- DURUM B: BİR TERM (KATEGORİ/ETİKET) KAYDEDİLDİYSE ---
+    elseif ($current_filter === 'edited_term' || $current_filter === 'created_term') {
+        $term = get_term($id);
+        
+        if ($term && !is_wp_error($term)) {
+            // Taxonomy Exclude Kontrolü
+            $excluded_taxs = (array)($extractor->excluded_taxonomies ?? []);
+            if (in_array($term->taxonomy, $excluded_taxs)) {
+                return;
+            }
+
+            // Term ID'sini temizle
+            $extractor->clear_content_cache_and_hash($id); 
+            
+            // Taksonomi arşivini temizle
             $extractor->clear_content_cache_and_hash($term->taxonomy . '_options');
         }
-        // ÖNEMLİ: Bu noktada başka bir global temizlik yapmaya GEREK YOKTUR. 
-        // Sistemin bir sonraki sayfa yüklemesinde (normal kullanıcı veya bot) 
-        // PageAssetsExtractor çalışır ve:
+    }
+    // ÖNEMLİ: Bu noktada başka bir global temizlik yapmaya GEREK YOKTUR. 
+    // Sistemin bir sonraki sayfa yüklemesinde (normal kullanıcı veya bot) 
+    // PageAssetsExtractor çalışır ve:
         // a) Eski Hash'i alır.
         // b) Yeni Sınıf Listesini oluşturur.
         // c) Yeni Hash'i hesaplar.
         // d) Hash'ler farklıysa, YENİ CSS DOSYASINI oluşturur.
         // e) Post/Term meta verisini yeni Hash ile günceller.
-    }
 }
 
 // Hook'lar
