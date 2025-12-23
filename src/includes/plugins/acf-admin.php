@@ -447,8 +447,9 @@ function get_theme_styles($variables = array(), $root = false){
                 : "transparent"
             );
         }
-        
-        if($footer["bg_image"]["image"]){
+
+ 
+        if(isset($footer["bg_image"]["image"])){
             $variables["footer-bg-image"] = scss_variables_image($footer["bg_image"]["image"]);
             $variables["footer-bg-size"] = $footer["bg_image"]["params"]["size"];
             $variables["footer-bg-repeat"] = $footer["bg_image"]["params"]["repeat"];
@@ -528,7 +529,7 @@ function get_theme_styles($variables = array(), $root = false){
         $offcanvas = $theme_styles["offcanvas"];
         $offcanvas_general = $offcanvas["offcanvas"];
 
-        if($offcanvas_general["bg_color"]["gradient"]){
+        if(isset($offcanvas_general["bg_color"]["gradient"])){
             $variables["offcanvas-bg-color"] = "transparent";
             $variables["offcanvas-bg-gradient"] = $offcanvas_general["bg_color"]["gradient_color"];
         }else{
@@ -536,7 +537,7 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["offcanvas-bg-gradient"] = "";
         }
 
-        if($offcanvas_general["backdrop_color"]["gradient"]){
+        if(isset($offcanvas_general["backdrop_color"]["gradient"])){
             $variables["offcanvas-backdrop-color"] = "transparent";
             $variables["offcanvas-backdrop-gradient"] = $offcanvas_general["backdrop_color"]["gradient_color"];
         }else{
