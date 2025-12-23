@@ -140,7 +140,7 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["base-font-line-height"] = acf_units_field_value($body["line_height"]) ?? "inherit";
         $variables["base-letter-spacing"] = acf_units_field_value($body["letter_spacing"]);
         $variables["base-font-color"] = scss_variables_color($body["color"]);
-        $variables["base-link-color"] = scss_variables_color($body["link_color"])."!important;";
+        $variables["base-link-color"] = scss_variables_color($body["link_color"]??"#000")."!important;";
         $variables["body-bg-color"] = scss_variables_color($body["bg_color"]);
         $variables["body-bg-backdrop"] = scss_variables_color($body["backdrop_color"]);
         $variables["icon-font"] = scss_variables_font($body["icon-font"]); //:root
@@ -372,7 +372,7 @@ function get_theme_styles($variables = array(), $root = false){
         $variables["header-navbar-nav-dropdown-border-radius"] = $header_dropdown_general["border_radius"];
 
         $header_dropdown_item = $header_dropdown["dropdown_item"];
-        $variables["header-navbar-nav-dropdown-font"] = scss_variables_font($header_dropdown_item["font_family"]);
+        $variables["header-navbar-nav-dropdown-font"] = scss_variables_font($header_dropdown_item["font_family"]??"inherit");
         $variables["header-navbar-nav-dropdown-font-size"] = acf_units_field_value($header_dropdown_item["font_size"]);
         $variables["header-navbar-nav-dropdown-font-color"] = scss_variables_color($header_dropdown_item["color"]);
         $variables["header-navbar-nav-dropdown-font-color-hover"] = scss_variables_color($header_dropdown_item["color_hover"]);
@@ -440,7 +440,12 @@ function get_theme_styles($variables = array(), $root = false){
             $variables["footer-bg-gradient"] = $footer["bg_color"]["gradient_color"];
         }else{
             $variables["footer-bg-gradient"] = "";
-            $variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]["color"]);
+            //$variables["footer-bg-color"] = scss_variables_color($footer["bg_color"]["color"]);
+            $variables["footer-bg-color"] = scss_variables_color(
+                (isset($footer["bg_color"]) && is_array($footer["bg_color"]) && isset($footer["bg_color"]["color"])) 
+                ? $footer["bg_color"]["color"] 
+                : "transparent"
+            );
         }
         
         if($footer["bg_image"]["image"]){

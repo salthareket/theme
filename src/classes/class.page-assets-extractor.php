@@ -91,6 +91,24 @@ class PageAssetsExtractor
             $this->excluded_post_types[] = 'template';
         }
 
+        // ACF ve WP teknik tiplerini manuel olarak ekle
+        $technical_types = [
+            'acf-field-group', 
+            'acf-field', 
+            'acf-ui-options-page', 
+            'acf-post-type', 
+            'acf-taxonomy',
+            'revision',
+            'nav_menu_item',
+            'custom_css',
+            'customize_changeset'
+        ];
+        foreach ($technical_types as $type) {
+            if (!in_array($type, $this->excluded_post_types)) {
+                $this->excluded_post_types[] = $type;
+            }
+        }
+
         add_action('acf/render_field/name=page_assets', [$this, 'update_page_assets_message_field']);
         add_action('wp_ajax_page_assets_update', [$this,'page_assets_update']);
         add_action('wp_ajax_nopriv_page_assets_update', [$this,'page_assets_update']);
