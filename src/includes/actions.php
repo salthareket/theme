@@ -167,7 +167,7 @@ function header_has_dropdown(){
     $header_tools_dropdown = false;
     $header_contents = ["header_start", "header_center", "header_end"];
     foreach($header_contents as $header_content){
-        $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
+        $header_item = QueryCache::get_cached_option($header_content);//get_field($header_content, "options");
         if(isset($header_item["type"]) && $header_item["type"] == "tools" && !$header_tools_dropdown){
             $header_tools = $header_item["header_tools"];
             $header_tools = $header_tools["header_tools"];
@@ -186,7 +186,7 @@ function header_has_dropdown(){
 function header_has_navigation(){
     $header_contents = ["header_start", "header_center", "header_end"];
     foreach($header_contents as $header_content){
-        $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
+        $header_item = QueryCache::get_cached_option($header_content);//get_field($header_content, "options");
         if($header_item){
             if($header_item["type"] == "navigation"){
                 return true;
@@ -213,25 +213,29 @@ function header_footer_options($save = false){
     if(file_exists($header_footer_options) && !$save){
         $header_footer_options = file_get_contents($header_footer_options);
         $header_footer_options = json_decode($header_footer_options, true);
+
         return $header_footer_options;
     }
 
 
         // Header Options //
-        $header_fixed = SaltBase::get_cached_option("header_fixed");//get_field("header_fixed", "options");
+        $header_fixed = QueryCache::get_cached_option("header_fixed");//get_field("header_fixed", "options");
         $header_fixed = in_array($header_fixed, ["top","bottom","bottom-start"]) ? $header_fixed : false;
         if($header_fixed == "top" || $header_fixed == "bottom-start"){
-            $header_affix = SaltBase::get_cached_option("header_affix");//get_field("header_affix", "options");
+            $header_affix = QueryCache::get_cached_option("header_affix");//get_field("header_affix", "options");
         }else{
             $header_affix = false;
         }
 
-        $header_hide_on_scroll_down = SaltBase::get_cached_option("header_hide_on_scroll_down");//get_field("header_hide_on_scroll_down", "options");
+        $header_hide_on_scroll_down = QueryCache::get_cached_option("header_hide_on_scroll_down");//get_field("header_hide_on_scroll_down", "options");
         $header_hide_on_scroll_down = $header_affix && $header_hide_on_scroll_down ? true : false;
 
-        $header_container = SaltBase::get_cached_option("header_container");//get_field("header_container", "options");
+        $header_equal = QueryCache::get_cached_option("header_equal");
+        $header_equal_on = QueryCache::get_cached_option("header_equal_on");
+
+        $header_container = QueryCache::get_cached_option("header_container");//get_field("header_container", "options");
         $header_container = block_container($header_container);//$header_container == "default" ? "" : $header_container;
-        $header_container = empty($header_container)?"w-100 px-3":"";
+        $header_container = empty($header_container)?"vw-100 px-3":"";
         
         $header_start_type = "";
         $header_center_type = "";
@@ -239,7 +243,7 @@ function header_footer_options($save = false){
 
         $header_contents = ["header_start", "header_center", "header_end"];
         foreach($header_contents as $header_content){
-            $header_item = SaltBase::get_cached_option($header_content);//get_field($header_content, "options");
+            $header_item = QueryCache::get_cached_option($header_content);//get_field($header_content, "options");
 
             ${$header_content."_type"} = "";
             ${$header_content."_align"} = "";
@@ -272,7 +276,9 @@ function header_footer_options($save = false){
 
         }
 
-        if($header_center_type != "empty"){
+
+
+        /*if($header_center_type != "empty"){
             $header_start_class = ($header_start_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto--";//" nav-equal nav-equal-{{equalize}}";
             $header_center_class = "flex-grow-1 h-100";
             $header_end_class = ($header_end_type != "empty" ? "flex-grow-0" : "flex-grow-0"). " flex-auto--";//" nav-equal nav-equal-{{equalize}}";
@@ -280,6 +286,16 @@ function header_footer_options($save = false){
             $header_start_class = ($header_start_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto--";
             $header_center_class = "flex-grow-1 h-100";
             $header_end_class = ($header_end_type != "empty" ? "flex-shrink-1 -flex-grow-0" : "flex-grow-1"). " flex-auto--";
+        }*/
+
+        if($header_center_type != "empty"){
+            $header_start_class = "flex-shrink-0" . ($header_equal ? " nav-equal nav-equal-".$header_equal_on : "");
+            $header_center_class = "flex-grow-1 h-100";
+            $header_end_class = "flex-shrink-0" . ($header_equal ? " nav-equal nav-equal-".$header_equal_on : "");
+        }else{
+            $header_start_class = ($header_start_type != "empty" ? "flex-shrink-0" : "flex-grow-1");
+            $header_center_class = "flex-grow-1 h-100";
+            $header_end_class = ($header_end_type != "empty" ? "flex-shrink-0" : "flex-grow-1");
         }
 
         $header_options = array(
@@ -317,13 +333,12 @@ function header_footer_options($save = false){
         );
 
         // Footer Options //
-        $footer_container = SaltBase::get_cached_option("footer_container");//get_field("footer_container", "options");
+        $footer_container = QueryCache::get_cached_option("footer_container");//get_field("footer_container", "options");
         $footer_container = block_container($footer_container);//$footer_container == "default" ? "" : $footer_container;
-        $footer_text = SaltBase::get_cached_option("footer_text");//get_field("footer_text", "options");
-        $footer_logo = SaltBase::get_cached_option("logo_footer");//get_field("logo_footer", "option");
-        $footer_menu = SaltBase::get_cached_option("footer_menu");//get_field("footer_menu", "option");
-        $footer_template = SaltBase::get_cached_option("footer_template");//get_field("footer_template", "option");
-        
+        $footer_text = QueryCache::get_cached_option("footer_text");//get_field("footer_text", "options");
+        $footer_logo = QueryCache::get_cached_option("logo_footer");//get_field("logo_footer", "option");
+        $footer_menu = QueryCache::get_cached_option("footer_menu");//get_field("footer_menu", "option");
+        $footer_template = QueryCache::get_cached_option("footer_template");//get_field("footer_template", "option");
 
         if($footer_menu){
             $arr = [];
@@ -840,7 +855,7 @@ add_action('send_headers', function () {
         "object-src"  => ["'none'"],
         "base-uri"    => ["'self'"],
         "frame-ancestors" => ["'self'"],
-        "frame-src"   => ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.google.com", "https://www.google.com/maps", "https://www.openstreetmap.org"],
+        "frame-src"   => ["'self'", "https://www.youtube.com", "http://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.google.com", "https://www.google.com/maps", "https://www.openstreetmap.org"],
         "connect-src" => ["'self'", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://*.tile.openstreetmap.org", "https://tile.openstreetmap.org", "https://noembed.com", "https://cdn.plyr.io"]
     ];
 
@@ -919,3 +934,86 @@ add_filter('the_content', function($c){
     return preg_replace('/(&nbsp;|\s)+$/u', '', $c);
 }, 20);
 
+
+
+
+
+
+
+/**
+ * [Özyinelemeli Fonksiyon] 
+ * Sayfanın içeriği boşsa, içeriği olan ilk alt sayfanın ID'sini bulur.
+ *
+ * @param int $post_id Kontrol edilecek sayfanın ID'si.
+ * @return int Bulunan alt sayfanın ID'si (veya orijinal ID).
+ */
+function find_first_content_child_id($post_id) {
+    $post = get_post($post_id);
+    if (!$post || $post->post_type !== 'page') {
+        return $post_id;
+    }
+    if (!empty(trim($post->post_content))) {
+        return $post_id;
+    }
+    $args = array(
+        'post_type'      => 'page',
+        'posts_per_page' => 1,
+        'post_status'    => 'publish',
+        'orderby'        => 'menu_order', 
+        'order'          => 'ASC',
+        'post_parent'    => $post_id,
+        'fields'         => 'ids',
+    );
+    $children_ids = get_posts($args);
+    if (!empty($children_ids)) {
+        $first_child_id = $children_ids[0];
+        return find_first_content_child_id($first_child_id);
+    }
+    return $post_id;
+}
+/**
+ * [FİLTRE] Sayfa linkini, içeriği boşsa, içeriği olan ilk alt sayfanın linkiyle değiştirir.
+ * Öncelik 20, menü sistemi gibi yerlerde çalışmasını garanti eder.
+ *
+ * @param string $permalink Post'un orijinal linki.
+ * @param int $post_id Post'un ID'si.
+ * @return string Değiştirilmiş veya orijinal link.
+ */
+add_filter('page_link', 'override_page_link_if_empty_content_general', 20, 2);
+function override_page_link_if_empty_content_general($permalink, $post_id) {
+    $post = get_post($post_id);
+    if (!($post instanceof \WP_Post) || $post->post_type !== 'page') {
+        return $permalink;
+    }
+    if (is_admin() || (defined('DOING_AJAX') && DOING_AJAX)) {
+        return $permalink;
+    }
+    $final_id = find_first_content_child_id($post_id);
+    if ($final_id !== $post_id) {
+        return get_permalink($final_id);
+    }
+    return $permalink;
+}
+
+/**
+ * Yoast Breadcrumb Linklerini, içeriği boş olan sayfalarda alt sayfalara yönlendirir.
+ * * @param array $links Breadcrumb link dizisi.
+ * @return array Değiştirilmiş link dizisi.
+ */
+add_filter('wpseo_breadcrumb_links', 'override_yoast_breadcrumb_links', 10);
+function override_yoast_breadcrumb_links($links) {
+    if (!class_exists('WPSEO_Breadcrumbs')) {
+        return $links;
+    }
+    foreach ($links as $key => $link) {
+        if (isset($link['id']) && get_post_type($link['id']) === 'page') {
+            $post_id = $link['id'];
+            $final_id = find_first_content_child_id($post_id);
+            if ($final_id !== $post_id) {
+                $new_permalink = get_permalink($final_id);
+                $links[$key]['url'] = $new_permalink;
+            }
+        }
+    }
+    return $links;
+}

@@ -111,3 +111,36 @@ function getAllMatches(regex, text) {
 
     return res;
 }
+
+/**
+ * Bir dizeyi, PHP/JSON'un kaçış dizisi (Unicode Escape) formatına dönüştürür.
+ * Bu, çeviri sözlüğündeki anahtarlarla (key) doğru eşleşme yapılmasını sağlar.
+ *
+ * @param {string} str Kaynak dize (örneğin: "Mağaza Bilgisi").
+ * @returns {string} Kaçış dizisi formatına dönüştürülmüş dize (örneğin: "Ma\u011faza Bilgisi").
+ */
+function escapeToUnicode(str) {
+    let result = '';
+    
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const charCode = char.charCodeAt(0);
+        
+        // 127'den büyük karakter kodlarını (Türkçe, Arapça, Kiril, vb.) kaçış dizisine dönüştür
+        if (charCode > 127) {
+            // Kaçış dizisi (\uXXXX) formatını oluştur
+            let hex = charCode.toString(16);
+            
+            // 4 haneye tamamla (örneğin: ğ için \u011f)
+            while (hex.length < 4) {
+                hex = '0' + hex;
+            }
+            result += '\\u' + hex;
+        } else {
+            // Standart ASCII karakterleri (a-z, 0-9, boşluk, vb.) doğrudan ekle
+            result += char;
+        }
+    }
+    
+    return result;
+}

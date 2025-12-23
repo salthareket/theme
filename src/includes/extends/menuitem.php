@@ -23,7 +23,7 @@ class MenuItem extends Timber\MenuItem{
 		}
        
 		global $post;
-		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);
+		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || in_array($this->ID, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);
 		
 		$properties = array(
 			"link" => array(
@@ -71,7 +71,7 @@ class MenuItem extends Timber\MenuItem{
 				if($modal_type == "form_modal"){
 					$form =  $this->meta("form");
 				    $linkAttrs["data-id"] = $form;
-				    $forms = SaltBase::get_cached_option("forms");//get_field("forms", "options");
+				    $forms = QueryCache::get_cached_option("forms");//get_field("forms", "options");
 				    $title = $this->title;
 				    if($forms){
 				   	   $index = array_search2d_by_field($form, $forms, "form");

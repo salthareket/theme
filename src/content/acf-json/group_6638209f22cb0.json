@@ -108,7 +108,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "latest": "latest [29.09.2025 22:26]"
+                        "212outlet": "212outlet [09.12.2025 23:25]",
+                        "latest": "latest [09.12.2025 23:25]"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -684,14 +685,15 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "acfe_display_title": "",
+    "display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184986,
+    "modified": 1765322851,
     "acfe_categories": {
         "general": "General"
     }

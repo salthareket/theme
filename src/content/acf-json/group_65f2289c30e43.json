@@ -195,7 +195,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -346,7 +347,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -497,7 +499,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -648,7 +651,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -799,7 +803,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -950,7 +955,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -1101,7 +1107,8 @@
                                 "9": 9,
                                 "10": 10,
                                 "11": 11,
-                                "12": 12
+                                "12": 12,
+                                "auto": "auto"
                             },
                             "default_value": 1,
                             "return_format": "value",
@@ -2920,16 +2927,18 @@
                                         "class": "acf-location-posts",
                                         "id": ""
                                     },
-                                    "choices": [],
+                                    "choices": {
+                                        "3263": "212 Outlet (contact)"
+                                    },
                                     "default_value": "",
                                     "return_format": "value",
-                                    "multiple": 0,
+                                    "multiple": 1,
                                     "allow_custom": 0,
                                     "placeholder": "",
                                     "translations": "sync",
                                     "allow_null": 0,
                                     "allow_in_bindings": 0,
-                                    "ui": 0,
+                                    "ui": 1,
                                     "ajax": 0,
                                     "search_placeholder": "Find posts",
                                     "create_options": 0,
@@ -3732,7 +3741,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         },
                                         {
                                             "key": "field_673e873de1edd",
@@ -3753,7 +3765,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         }
                                     ]
                                 },
@@ -3797,7 +3812,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         },
                                         {
                                             "key": "field_673e8e5157ae1",
@@ -3818,7 +3836,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         }
                                     ]
                                 }
@@ -3847,6 +3868,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -3854,7 +3876,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184980,
+    "modified": 1763565749,
     "acfe_categories": {
         "block": "Block"
     }

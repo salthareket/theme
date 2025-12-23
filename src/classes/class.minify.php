@@ -22,6 +22,7 @@ class SaltMinifier{
     public $plugins_update = "";
     public $rtl_list = [];
     public $functions = [];
+    public $pre_js_files = [];
     public $main_js_files = [];
     public $theme_js_files = [];
 
@@ -46,6 +47,8 @@ class SaltMinifier{
             "plugins-admin.min.js" => $this->js_folder    . 'plugins-admin.min.js', 
             'jquery.min.js'        => $this->js_folder    . 'jquery.min.js',
             "header.min.js"        => $this->js_folder    . 'header.min.js',
+            "pre.min.js"           => $this->js_folder    . 'pre.min.js',
+            "pre-combined.min.js"  => $this->js_folder    . 'pre-combined.min.js',
             "functions.min.js"     => $this->js_folder    . 'functions.min.js',
             "main.min.js"          => $this->js_folder    . 'main.min.js',
             "main-combined.min.js" => $this->js_folder    . 'main-combined.min.js',
@@ -86,7 +89,8 @@ class SaltMinifier{
                unset($function_files["wp-wc.js"]);
            }
         }
-
+        
+        $this->pre_js_files = array_slice(scandir($this->prod_folder . 'pre/') , 2);
         $this->main_js_files = array_slice(scandir($this->prod_folder . 'main/') , 2);
         $this->theme_js_files = array_slice(scandir($this->rules["config"]["js_theme"]) , 2);
     }
@@ -183,13 +187,22 @@ class SaltMinifier{
         }
         $this->locale_js();
         $this->functions_js();
+        $this->pre_js();
         $this->main_js();
         $this->plugins();
         $this->mergeJs([
-            $this->output["functions.min.js"],
-            $this->output["plugins.min.js"],
-            $this->output["main.min.js"],
-        ]);
+                $this->output["functions.min.js"],
+                $this->output["pre.min.js"],
+            ], 
+            $this->output["pre-combined.min.js"]
+        );
+        $this->mergeJs([
+                //$this->output["functions.min.js"],
+                $this->output["plugins.min.js"],
+                $this->output["main.min.js"],
+            ], 
+            $this->output["main-combined.min.js"]
+        );
         return $this->plugin_settings();
     }
     public function locale_js(){
@@ -256,13 +269,9 @@ class SaltMinifier{
     public function functions_js(){
         $minify = false;
         if (file_exists($this->output["functions.min.js"])){
-            //$min_date = filemtime($this->output["functions.min.js"]);
             if ($this->functions){
                 foreach ($this->functions as $key => $filename){
-                    //if (filemtime($this->prod_folder . 'functions/' . $filename) > $min_date){
-                        $minify = true;
-                        //break;
-                    //}
+                    $minify = true;
                 }
             }
         }else{
@@ -272,31 +281,41 @@ class SaltMinifier{
             $this->minify_js($this->functions, $this->output["functions.min.js"], $this->prod_folder . 'functions/');
         }
     }
+    public function pre_js(){
+        $minify = false;
+        if (file_exists($this->output["pre.min.js"])){
+            if ($this->pre_js_files){
+                foreach ($this->pre_js_files as $key => $filename){
+                    $minify = true;
+                }
+            }
+        }else{
+            $minify = true;
+        }
+        if ($this->pre_js_files && $minify){
+            $this->minify_js($this->pre_js_files, $this->output["pre.min.js"], $this->prod_folder . 'pre/');
+        }
+    }
     public function main_js(){
         $minify = false;
         $total_files = [];
         if (file_exists($this->output["main.min.js"])){
-            //$min_date = filemtime($this->output["main.min.js"]);
-            
+
             if ($this->main_js_files){
                 foreach($this->main_js_files as $key => $filename){
                     $total_files[] = $this->prod_folder . 'main/' . $filename;
-                    //if (filemtime($this->prod_folder . 'main/' . $filename) > $min_date){
-                        $minify = true;
-                        //break;
-                    //}
+                    $minify = true;
                 }
             }
             if ($this->theme_js_files){
                 foreach($this->theme_js_files as $key => $filename){
                     $total_files[] = $this->rules["config"]["js_theme"] . $filename;
-                    //if (filemtime($this->rules["config"]["js_theme"] . $filename) > $min_date){
-                        $minify = true;
-                        //break;
-                    //}
+                    $minify = true;
                 }
             }
+
         }else{
+
             if ($this->main_js_files){
                 foreach($this->main_js_files as $key => $filename){
                     $total_files[] = $this->prod_folder . 'main/' . $filename;
@@ -308,6 +327,7 @@ class SaltMinifier{
                 }
             }
             $minify = true;
+
         }
         if($total_files && $minify){
             if ($total_files){
@@ -351,7 +371,10 @@ class SaltMinifier{
                 }
                 $this->minify_js([$item_init], $this->output["plugins"] . $key . '-init.js');
                 if(!$item["c"]){
-                    //$plugin_min_files[] = $item_local;
+                    $plugin_min_files[] = $this->output["plugins"] . $key . '-init.js';//$item_local;
+                    if($item["css"] && $item["css_only_local"]){
+                        $this->minify_css($item["css"], $this->output["plugins"] . $key . '.css', $key);
+                    }
                 }else{
                     if($item["css"]){
                         $this->minify_css($item["css"], $this->output["plugins"] . $key . '.css', $key);
@@ -367,15 +390,15 @@ class SaltMinifier{
         }
     }
 
-    public function mergeJs($files = []) {
-        if (empty($files)) return false;
+    public function mergeJs($files = [], $target_file="") {
+        if (empty($files) || empty($target_file)) return false;
         $combined = '';
         foreach ($files as $file_path) {
             if (file_exists($file_path)) {
                 $combined .= file_get_contents($file_path)."\n\r";
             }
         }
-        $target_file = $this->output["main-combined.min.js"];
+        //$target_file = $this->output["main-combined.min.js"];
         file_put_contents($target_file, $combined);
         @chmod($target_file, 0644);
        // return content_url(str_replace(WP_CONTENT_DIR, '', $target_file));

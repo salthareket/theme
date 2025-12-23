@@ -66,7 +66,8 @@
                     "save_options": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": false
                 },
                 {
                     "key": "field_673e873de1eba",
@@ -96,7 +97,8 @@
                     "ui_on_text": "",
                     "ui_off_text": "",
                     "ui": 1,
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_673e873de1ebd",
@@ -123,6 +125,10 @@
                     "layout": "block",
                     "acfe_seamless_style": 0,
                     "acfe_group_modal": 0,
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large",
+                    "parent_repeater": "field_673e873ce1eac",
                     "sub_fields": [
                         {
                             "key": "field_673e873de1ebe",
@@ -415,7 +421,7 @@
                             "name": "posts",
                             "aria-label": "",
                             "type": "select",
-                            "instructions": "'Map view' is set to 'embed' on settings page, so you can select only one post",
+                            "instructions": "",
                             "required": 0,
                             "conditional_logic": [
                                 [
@@ -442,17 +448,17 @@
                                 "id": ""
                             },
                             "choices": {
-                                "1798": "KidsAI Limited (contact)"
+                                "3263": "212 Outlet (contact)"
                             },
                             "default_value": "",
                             "return_format": "value",
-                            "multiple": 0,
+                            "multiple": 1,
                             "allow_custom": 0,
                             "placeholder": "",
                             "translations": "sync",
                             "allow_null": 0,
                             "allow_in_bindings": 0,
-                            "ui": 0,
+                            "ui": 1,
                             "ajax": 0,
                             "search_placeholder": "Find posts",
                             "create_options": 0,
@@ -882,11 +888,7 @@
                             "append": "pc",
                             "pll_default_value": ""
                         }
-                    ],
-                    "acfe_group_modal_close": 0,
-                    "acfe_group_modal_button": "",
-                    "acfe_group_modal_size": "large",
-                    "parent_repeater": "field_673e873ce1eac"
+                    ]
                 },
                 {
                     "key": "field_68df5437ed92f",
@@ -963,7 +965,8 @@
                     "toggle": 0,
                     "allow_custom": 0,
                     "other_choice": 0,
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_68df55b14dbec",
@@ -995,7 +998,8 @@
                     "default_value": "",
                     "allow_in_bindings": 0,
                     "placeholder": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_68f7217fb2efd",
@@ -1019,10 +1023,7 @@
                         "class": "acf-contact-email",
                         "id": ""
                     },
-                    "choices": {
-                        "hello@kidsai.io": "KidsAI Limited(default): hello@kidsai.io",
-                        "careers@kidsai.io": "KidsAI Limited(careers): careers@kidsai.io"
-                    },
+                    "choices": [],
                     "default_value": "",
                     "return_format": "value",
                     "multiple": 0,
@@ -1035,7 +1036,8 @@
                     "save_options": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_68f72585d5054",
@@ -1060,7 +1062,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "+971 56 3842108": "KidsAI Limited(default): +971 56 3842108"
+                        "444 4 212": "212 Outlet(default): 444 4 212"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1074,7 +1076,8 @@
                     "save_options": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_68df574963613",
@@ -1109,7 +1112,8 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_673e873de1ed5",
@@ -1139,7 +1143,8 @@
                     "placeholder": "",
                     "prepend": "",
                     "append": "",
-                    "parent_repeater": "field_673e873ce1eac"
+                    "parent_repeater": "field_673e873ce1eac",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_673e873de1ed6",
@@ -1175,13 +1180,6 @@
                         "warning": "warning",
                         "light": "light",
                         "dark": "dark",
-                        "turkis": "turkis",
-                        "gray-dark": "gray-dark",
-                        "olii": "olii",
-                        "ih-blue-lighter": "ih-blue-lighter",
-                        "ih-blue-light": "ih-blue-light",
-                        "ih-blue-text": "ih-blue-text",
-                        "ih-blue-spot": "ih-blue-spot",
                         "custom": "Custom"
                     },
                     "default_value": "",
@@ -1510,7 +1508,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1761030359,
+    "modified": 1763565787,
     "acfe_categories": {
         "general": "General"
     }

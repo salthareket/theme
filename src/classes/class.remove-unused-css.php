@@ -68,10 +68,22 @@ class RemoveUnusedCss {
         ".lenis",
         ".lenis-*",
         ".dgwt-wcas-open",
+
+        ".screen-reader-response",
+        ".wpcf7-not-valid-tip"
     ];
     public $white_list_map = [];
     public $black_list = [
         '.dropdown-notifications',
+    ];
+    private $root_variable_whitelist = [
+        '--bs-breakpoint-xs', 
+        '--bs-breakpoint-sm', 
+        '--bs-breakpoint-md', 
+        '--bs-breakpoint-lg', 
+        '--bs-breakpoint-xl', 
+        '--bs-breakpoint-xxl', 
+        '--bs-breakpoint-xxxl',
     ];
 
     private $acceptable_pseudo_classes = [
@@ -138,12 +150,22 @@ class RemoveUnusedCss {
         $this->css = is_file($css) ? file_get_contents($css) : $css;
         //$this->css = $this->check_and_flatten_css($css);
         $this->output = $output;
+
+        $this->critical_css = $critical_css;
+
+        $default_options = [
+            'ignore_whitelist'      => false,
+            'black_list'            => [],
+            'ignore_root_variables' => false,
+            'scope'                 => ''
+        ];
+        $opts = array_merge($default_options, $opts);
+        $this->twig_options = $opts;
+
         if(isset($opts['ignore_whitelist']) && $opts['ignore_whitelist']){
             $this->white_list = [];
         }
         $this->white_list = array_merge($this->white_list, $additional_whitelist);
-        $this->critical_css = $critical_css;
-        $this->twig_options = $opts;
         
         // opsiyonlardan basit atamalar (path hariç)
         if (isset($opts['twig_attr']) && is_string($opts['twig_attr']) && $opts['twig_attr'] !== '') {
@@ -192,7 +214,7 @@ class RemoveUnusedCss {
         
         $this->filterUsedCss();
 
-        if(isset($this->opts["scope"])){
+        if(isset($this->opts["scope"]) && !empty($this->opts["scope"])){
             $this->css_temp = $this->scope_css($this->css_temp, $this->opts["scope"]);
         }
 
@@ -508,6 +530,10 @@ class RemoveUnusedCss {
         
         return false;
     }
+
+
+
+
 
     private function detectTimberTemplatePaths(): array {
         $paths = [];
@@ -851,6 +877,8 @@ class RemoveUnusedCss {
     }
 
 
+
+
     private function removeUnnecessaryLines() {
         $this->css = preg_replace('/@charset[^;]+;/', '', $this->css);
     }
@@ -1056,7 +1084,6 @@ class RemoveUnusedCss {
             }
         }
     }
-
     private function normalizeMediaQuery(string $q): string {
         $q = preg_replace('/\s+/', ' ', trim($q));
         $q = preg_replace('/\(\s*/', '(', $q);
@@ -1180,9 +1207,24 @@ class RemoveUnusedCss {
     }
 
     private function processRootVariables() {
+
+        // GÜVENLİK KONTROLÜ: Dizi olduğundan emin ol.
+        if (!is_array($this->css_structure["root_variables"])) {
+            $this->css_structure["root_variables"] = [];
+        }
+        if (!is_array($this->root_variables_used)) {
+            $this->root_variables_used = [];
+        }
+
         $vars_temp = "";
+
+        $used_and_whitelisted = array_unique(array_merge(
+            $this->root_variables_used, 
+            $this->root_variable_whitelist
+        ));
+
         foreach ($this->css_structure["root_variables"] as $var_name => $value) {
-            if (in_array($var_name, $this->root_variables_used)) {
+            if (in_array($var_name, $used_and_whitelisted)) {
                $vars_temp .= "$var_name: $value;\n";
             }
         }
@@ -1209,6 +1251,8 @@ class RemoveUnusedCss {
         $this->root_variables_used = array_values(array_unique($this->root_variables_used));
         $this->animations_used = array_values(array_unique($this->animations_used));
     }
+
+
 
     private function selectorExists($dom, $selector) {
         $selector = trim($selector);
@@ -1453,18 +1497,6 @@ class RemoveUnusedCss {
         }
         return false;
     }
-    /*private function isBlacklisted($selector) {
-        foreach ($this->black_list as $black_class) {
-            $className = ltrim($black_class, '.');
-
-            // Tüm sınıf isimlerini parse et → nokta (.) ile başlayan her şeyi yakala
-            preg_match_all('/\.([a-zA-Z0-9_-]+)/', $selector, $matches);
-            if (in_array($className, $matches[1])) {
-                return true;
-            }
-        }
-        return false;
-    }*/
     private function isBlacklisted($selector) {
         foreach ($this->black_list as $black_class) {
             $className = ltrim($black_class, '.');
@@ -1487,6 +1519,10 @@ class RemoveUnusedCss {
 
         return false;
     }
+
+
+
+
 
     //latest
     /**
@@ -1571,7 +1607,6 @@ class RemoveUnusedCss {
 
         return $out;
     }
-
     /**
      * Process inner text of a block (like the body of @media).
      * Finds selector{body} pairs and scopes them. Keeps comments/whitespace between.
@@ -1620,7 +1655,6 @@ class RemoveUnusedCss {
 
         return $out;
     }
-
     /**
      * Scope a comma-separated selector list (handles commas inside [], (), quotes).
      * Returns empty string if no valid selectors remain.
@@ -1651,7 +1685,6 @@ class RemoveUnusedCss {
 
         return empty($scoped) ? '' : implode(', ', $scoped);
     }
-
     /**
      * Split selector list by commas but ignore commas inside quotes, brackets, parens.
      */
@@ -1699,15 +1732,4 @@ class RemoveUnusedCss {
         // trim each part
         return array_map('trim', $parts);
     }
-
-
-
-
-
-
-
-
-
-
-
 }

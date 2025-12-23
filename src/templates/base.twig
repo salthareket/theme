@@ -106,7 +106,7 @@
         {% block header_container %}
             <header id="header" class="{{header_classes}}" itemtype="https://schema.org/WPHeader" itemscope="" role="banner" data-affix-offset="50">
                 {% block header %}
-                    {% include "partials/header/header.twig" with { container: "", equalize : "xs"} %}
+                    {% include "partials/header/header.twig" with { container: ""} %}
                 {% endblock %}
             </header>
         {% endblock %}
@@ -137,12 +137,11 @@
 
         <main id="main" role="main" class="main flex-column {{page_settings.classes.main}}" {% block microdata %}{% endblock %}>
             
-                {% if block('sidebar_toggler')|trim is not empty %}
-                   <div class="sidebar-toggler-container d-block d-{{page_settings.offcanvas.size}}-none sticky">
-                {% endif %}
+                {% set has_sidebar_toggler = block('sidebar_toggler')|trim is not empty %}
+                {% if has_sidebar_toggler %}
+                   <div class="sidebar-toggler-container d-block d-{{page_settings.offcanvas.size}}-none sticky-top">
                     {% block sidebar_toggler %}
                     {% endblock %}
-                {% if block('sidebar_toggler')|trim is not empty %}
                    </div>
                 {% endif %}
 

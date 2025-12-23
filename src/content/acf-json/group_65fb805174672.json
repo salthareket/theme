@@ -459,7 +459,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         },
                                         {
                                             "key": "field_672f4a7f9e95f",
@@ -480,7 +483,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         }
                                     ]
                                 },
@@ -532,7 +538,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         },
                                         {
                                             "key": "field_672f4a7f9e962",
@@ -553,7 +562,10 @@
                                             "return_format": "string",
                                             "translations": "sync",
                                             "allow_in_bindings": 0,
-                                            "pll_default_value": ""
+                                            "pll_default_value": "",
+                                            "custom_palette_source": "",
+                                            "palette_colors": "",
+                                            "show_color_wheel": true
                                         }
                                     ]
                                 }
@@ -852,8 +864,8 @@
                 },
                 {
                     "key": "field_6748a1fc85100",
-                    "label": "No Lightbox",
-                    "name": "no_lightbox",
+                    "label": "Lightbox",
+                    "name": "lightbox",
                     "aria-label": "",
                     "type": "true_false",
                     "instructions": "",
@@ -864,16 +876,6 @@
                                 "field": "field_672e1d776ca84",
                                 "operator": "!=",
                                 "value": "dynamic"
-                            },
-                            {
-                                "field": "field_672e1d776ca84",
-                                "operator": "!=",
-                                "value": "pattern"
-                            },
-                            {
-                                "field": "field_672e1d776ca84",
-                                "operator": "!=",
-                                "value": "pattern_random"
                             }
                         ]
                     ],
@@ -1306,7 +1308,10 @@
                     "return_format": "string",
                     "translations": "copy_once",
                     "allow_in_bindings": 0,
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_67a1e48ebf3fa",
@@ -1596,6 +1601,47 @@
             "pll_default_value": "end"
         },
         {
+            "key": "field_6935d86d93ae6",
+            "label": "View Type",
+            "name": "video_view_type",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_6678c8080fc87",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "30",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "image": "Video Poster",
+                "video": "Video"
+            },
+            "default_value": "image",
+            "return_format": "value",
+            "multiple": 0,
+            "translations": "sync",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "image"
+        },
+        {
             "key": "field_6678c8960fc89",
             "label": "Videos",
             "name": "videos",
@@ -1772,14 +1818,15 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "acfe_display_title": "",
+    "display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184984,
+    "modified": 1765136561,
     "acfe_categories": {
         "block": "Block"
     }

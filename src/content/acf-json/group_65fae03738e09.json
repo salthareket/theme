@@ -57,7 +57,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": "no"
         },
         {
             "key": "field_65fae2047f167",
@@ -227,6 +228,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -234,7 +236,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759272184,
+    "modified": 1763565757,
     "acfe_categories": {
         "common": "Common"
     }

@@ -119,7 +119,7 @@ $GLOBALS["plugins"] = $required_plugins;
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.6.2",
+    "v" => "6.7.0.2",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );
@@ -149,7 +149,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.20.1.2",
+    "v" => "3.20.2",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
@@ -243,6 +243,18 @@ $required_plugins_local[] = array(
     "v" => "1.0.0",
     "name" => "salt-table-for-acf/salt-table-for-acf.php",
     "file" => "salt-table-for-acf"
+);
+$required_plugins_local[] = array(
+    "type" => ["multilanguage"],
+    "v" => "1.0.0",
+    "name" => "acf-polylang-text-field/acf-polylang-text-field.php",
+    "file" => "acf-polylang-text-field"
+);
+$required_plugins_local[] = array(
+    "type" => ["multilanguage"],
+    "v" => "1.0.2",
+    "name" => "salt-ai-translator/salt-ai-translator.php",
+    "file" => "salt-ai-translator"
 );
 
 $GLOBALS["plugins_local"] = $required_plugins_local;

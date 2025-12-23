@@ -125,7 +125,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_661c88168383d",
@@ -304,10 +305,18 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
-                "contact": "Contacts"
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
+                "acik-pozisyonlar": "Açık Pozisyonlar",
+                "duyurular": "Duyurular",
+                "etkinlikler": "Etkinlikler",
+                "kampanya": "Kampanyalar",
+                "katlar": "Katlar",
+                "magazalar": "Mağazalar",
+                "ulasim": "Ulaşım",
+                "contact": "Contacts",
+                "template": "Templates"
             },
             "default_value": "",
             "return_format": "value",
@@ -546,6 +555,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -553,7 +563,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759336029,
+    "modified": 1763565759,
     "acfe_categories": {
         "block": "Block"
     }

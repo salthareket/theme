@@ -23,6 +23,13 @@
 //// 6 - module styles
 @import '6-modules/index';
 
+
+@import '5-layout/header';
+@import '5-layout/footer';
+@import '5-layout/layout';
+@import '../../../../../../theme/static/scss/header';
+@import '../../../../../../theme/static/scss/footer';
+
 /*
 @import "bscore_variables";
 @import "bscore_style";

@@ -586,8 +586,7 @@
                 "id": ""
             },
             "choices": {
-                "static": "Static",
-                "theme\/templates\/_custom\/footer-test_{{lang}}.twig": "Footer Test"
+                "static": "Static"
             },
             "default_value": false,
             "return_format": "value",
@@ -600,7 +599,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": false
         }
     ],
     "location": [
@@ -629,7 +629,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1761610865,
+    "modified": 1763565760,
     "acfe_categories": {
         "general": "General"
     }

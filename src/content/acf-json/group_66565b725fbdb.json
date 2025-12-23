@@ -806,7 +806,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 1
         },
         {
             "key": "field_670d6189b9668",
@@ -922,7 +923,8 @@
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "cover"
         },
         {
             "key": "field_66565b8dc73a4",
@@ -3063,7 +3065,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1762264231,
+    "modified": 1763565766,
     "acfe_categories": {
         "common": "Common"
     }

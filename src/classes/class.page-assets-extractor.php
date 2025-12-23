@@ -34,6 +34,7 @@ class PageAssetsExtractor
     public $source_css;
 
     protected $structure_fp = '';
+    protected $upload_dir = '';
 
     /* ======= Manifest ======= */
     protected $manifest_path;
@@ -65,6 +66,7 @@ class PageAssetsExtractor
         $this->home_url_encoded = str_replace("/","\/", $this->home_url);
 
         $upload_dir = function_exists('wp_upload_dir') ? wp_upload_dir() : ['baseurl' => '/uploads'];
+        $this->upload_dir = $upload_dir;
         $upload_url = rtrim($upload_dir['baseurl'] ?? '/uploads', '/') . "/";
         $this->upload_url = $upload_url;
         $this->upload_url_encoded = str_replace("/","\/", $this->upload_url);
@@ -151,6 +153,12 @@ class PageAssetsExtractor
                 $this->html,
                 'post'
             );
+
+            // <<< KRİTİK GÜNCELLEME BAŞLANGIÇ: Finalize Etme >>>
+            if (is_array($ok) && isset($ok['css_hash'])) {
+                $this->finalize_assets_and_cleanup($post_id, $ok);
+            }
+            // <<< GÜNCELLEME SONU >>>
         }
 
         // arşivleri güncelle
@@ -308,31 +316,6 @@ class PageAssetsExtractor
             // EXISTING: CSS/JS optimize et
             $result = $this->extract_assets($html_content, $id);
             error_log('[PAE] extract_assets DONE type=' . $this->type . ' id=' . $id);
-
-            // NEW: iframe ve embed domainlerini topla
-           /* $iframe_domains = [];
-            foreach ($html_content->find('iframe') as $iframe) {
-                $src = $iframe->getAttribute('src');
-                if ($src) {
-                    $parsed = parse_url($src);
-                    $domain = $parsed['host'] ?? null;
-                    if ($domain && in_array($parsed['scheme'] ?? '', ['http','https'])) {
-                        $iframe_domains[] = $domain;
-                    }
-                }
-            }
-
-            // NEW: DB’de sakla
-            if (!empty($iframe_domains)) {
-                // DB'deki mevcut onaylılar ile birleştir
-                $approved_domains = get_option('csp_approved_domains', []);
-                $iframe_domains = array_unique(array_merge($approved_domains, $iframe_domains));
-
-                // DB'ye kaydet
-                if (!empty($iframe_domains)) {
-                    update_option('csp_approved_domains', $iframe_domains);
-                }
-            }*/
 
             $tags_to_check = [
                 'iframe' => ['src', 'data-src', 'data-lazy-src'],
@@ -492,7 +475,6 @@ class PageAssetsExtractor
         return;
     }
 
-    
 
 
     /* ===================== YARDIMCILAR ===================== */
@@ -565,13 +547,21 @@ class PageAssetsExtractor
     }
 
     private function manifest_read() {
-        if (is_readable($this->manifest_path)) {
-            $json = @file_get_contents($this->manifest_path);
-            $arr = @json_decode($json, true);
-            if (is_array($arr)) {
-                $this->manifest = array_merge($this->manifest, $arr);
+        if (file_exists($this->manifest_path)) {
+            // ... (Manifest okuma mantığı) ...
+            $content = @file_get_contents($this->manifest_path);
+            if ($content) {
+                $data = json_decode($content, true);
+                if (is_array($data)) {
+                    $this->manifest = array_merge($this->manifest, $data);
+                }
             }
         }
+        // <<< KRİTİK GÜNCELLEME BAŞLANGIÇ: CSS Usage Counter Başlatma >>>
+        if (!isset($this->manifest['css_usage']) || !is_array($this->manifest['css_usage'])) {
+            $this->manifest['css_usage'] = []; // Format: Hash => [content_ids]
+        }
+        // <<< GÜNCELLEME SONU >>>
     }
     /*private function manifest_write() {
         // 1. Structure Fingerprint (yapı parmak izi) değerini al
@@ -739,7 +729,10 @@ class PageAssetsExtractor
 
         $header_node = $html_temp->findOne('#header');
         $header_content = '';
-        if ($header_node) { $header_content = $header_node->outerHtml(); $header_node->delete(); }
+        if ($header_node) { 
+            $header_content = $header_node->outerHtml(); 
+            $header_node->delete(); 
+        }
 
         /*$footer_node = $html_temp->findOne('#footer');
         $footer_content = '';
@@ -747,34 +740,61 @@ class PageAssetsExtractor
 
         $main_node = $html_temp->findOne('main');
         $main_content = '';
-        if ($main_node) { $main_content = $main_node->outerHtml(); $main_node->delete(); }
+        if ($main_node) { 
+            $main_content = $main_node->outerHtml(); 
+            $main_node->delete(); 
+        }
 
         $block_content = '';
         $block_node = $html_temp->findOne('.block--hero');
-        if ($block_node) { $block_content = $block_node->outerHtml(); $block_node->delete(); }
+        if ($block_node) { 
+            $block_content = $block_node->outerHtml(); 
+            $block_node->delete(); 
+        }
 
         $offcanvas_html = [];
         $offcanvas_elements = $html_temp->findMulti('.offcanvas');
         if (!empty($offcanvas_elements)) {
-            foreach ($offcanvas_elements as $el) { $offcanvas_html[] = $el->outerHtml(); }
+            foreach ($offcanvas_elements as $el) { 
+                $offcanvas_html[] = $el->outerHtml(); 
+            }
         }
         $offcanvas_string = implode("\n", $offcanvas_html);
         $html_temp = null;
 
-        $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string;// . $footer_content;
+        $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string . $footer_content;
         $html = HtmlDomParser::str_get_html($final_html_string);
+
+
+        /*$theme_dir = get_template_directory();
+        $file_path = $theme_dir . '/test.html';
+        $success = file_put_contents($file_path, $final_html_string, LOCK_EX);*/
 
         // ---------- inline <script>/<style> topla ----------
         if ($html) {
-            $scripts = $html->findMulti('script');
-            $scripts_filtered = [];
+
+            /*$scripts = $html->findMulti('script');
             foreach ($scripts as $script) {
-                if (!$script->hasAttribute('data-inline')) { $scripts_filtered[] = $script; }
-            }
-            foreach ($scripts_filtered as $script) {
+                if ($script->hasAttribute('data-inline')) {
+                    continue;
+                }
+                if (isset($script->src) && !empty($script->src)) {
+                    continue;
+                }
+                $is_type_valid = true;
+                if (isset($script->type)) {
+                    if (strtolower(trim($script->type)) !== 'text/javascript') {
+                        $is_type_valid = false;
+                    }
+                }
+                if (!$is_type_valid) {
+                    continue;
+                }
                 if (is_object($script) && method_exists($script, 'innerHtml')) {
-                    $code = $script->innerHtml();
-                    if ($code !== '') { $js[] = $code; }
+                    $code = trim($script->innerHtml());
+                    if ($code !== '') {
+                        $js[] = $code;
+                    }
                 }
             }
             if($js){
@@ -787,16 +807,77 @@ class PageAssetsExtractor
                 $js = str_replace($this->upload_url_encoded, "{upload_url}", $js);
                 $js = str_replace($this->home_url, "{home_url}", $js);
                 $js = str_replace($this->home_url_encoded, "{home_url}", $js);
+            }*/
+
+
+
+        $blocks = $html->findMulti('.block-salt-theme');
+        $js_codes = [];
+        $js = '';
+
+        if (!empty($blocks)) {
+            foreach ($blocks as $block) {
+                
+                // Artık HTML dengeli olduğu için, kütüphane bu aramanın kapsamını 
+                // doğru şekilde $block elementi ile sınırlayacaktır.
+                $scripts = $block->findMulti('script'); 
+                
+                foreach ($scripts as $script) {
+                    if ($script->hasAttribute('data-inline')) {
+                        continue;
+                    }
+                    if (isset($script->src) && !empty($script->src)) {
+                        continue;
+                    }
+                    if (isset($script->type) && strtolower(trim($script->type)) !== 'text/javascript') {
+                        continue;
+                    }
+                    if (is_object($script) && method_exists($script, 'innerHtml')) {
+                        $code = trim($script->innerHtml());
+                        if ($code !== '') {
+                            $js_codes[] = $code;
+                        }
+                    }
+                }
             }
+        }
+
+        if (!empty($js_codes)) {
+            $js_codes = array_unique($js_codes);
+            $js = implode("\n", $js_codes);
+            
+            $minifier = new Minify\JS();
+            $minifier->add($js);
+            $js = $minifier->minify();
+            
+            $js = str_replace([
+                $this->upload_url,
+                $this->upload_url_encoded,
+                $this->home_url,
+                $this->home_url_encoded
+            ], [
+                "{upload_url}",
+                "{upload_url}",
+                "{home_url}",
+                "{home_url}"
+            ], $js);
+        }
+
+            
+
 
             $styles = $html->findMulti('style');
             $styles_filtered = [];
             foreach ($styles as $style) {
-                if (!$style->hasAttribute('data-inline')) { $styles_filtered[] = $style; }
+                if (!$style->hasAttribute('data-inline')) { 
+                    $styles_filtered[] = $style; 
+                }
             }
             foreach ($styles_filtered as $style) {
                 $code = $style->innerHtml();
-                if ($code !== '') { $css[] = $code; }
+                if ($code !== '') { 
+                    $css[] = $code; 
+                }
             }
             if($css){
                 $css = array_unique($css);
@@ -825,9 +906,17 @@ class PageAssetsExtractor
                     if (!empty($plugin['class'])) {
                         foreach ($plugin['class'] as $class) {
                             $pattern = '/class\s*=\s*["\'][^"\']*\b' . preg_quote($class, '/') . '\b[^"\']*["\']/i';
-                            $exists = preg_match($pattern, $final_html_string);
+                            $matches = [];
+                            $exists = preg_match($pattern, $final_html_string, $matches);
                             error_log($key." için ".$class." varmı = ".($exists ? 'true' : 'false'));
-                            if ($exists && $condition) { $plugins[] = $key; break; }
+                            /*if ($exists) {
+                                $matched_html = $matches[0];
+                                error_log(" | EŞLEŞEN HTML (Open Tag): " . substr($matched_html, 0, 150) . "...");
+                            }*/
+                            if ($exists && $condition) { 
+                                $plugins[] = $key; 
+                                break; 
+                            }
                         }
                     }
                     if (!empty($plugin['attrs'])) {
@@ -838,7 +927,10 @@ class PageAssetsExtractor
                             } else {
                                 $pattern = '/\s' . preg_quote($attr, '/') . '\s*=\s*["\'].*?["\']/i';
                                 $exists = preg_match($pattern, $final_html_string);
-                                if ($exists && $condition) { $plugins[] = $key; break; }
+                                if ($exists && $condition) { 
+                                    $plugins[] = $key; 
+                                    break; 
+                                }
                             }
                         }
                     }
@@ -951,8 +1043,12 @@ class PageAssetsExtractor
                 }
 
                 $plugin_files_js = [];
-                foreach($plugins as $plugin){ $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin.".js"; }
-                foreach($plugins as $plugin){ $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js"; }
+                foreach($plugins as $plugin){ 
+                    $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin.".js"; 
+                }
+                foreach($plugins as $plugin){ 
+                    $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js"; 
+                }
                 if($plugin_files_js){
                     $plugin_js = $this->combine_and_cache_files("js", $plugin_files_js);
                     $plugin_js = str_replace(STATIC_URL, '', $plugin_js);
@@ -1398,6 +1494,7 @@ class PageAssetsExtractor
 
 
     public function delete_existing_assets($id) {
+        $existing = null;
         switch ($this->type) {
             case "post":    $existing = $this->meta_get('post', $id);    $this->meta_delete('post', $id);    break;
             case "term":    $existing = $this->meta_get('term', $id);    $this->meta_delete('term', $id);    break;
@@ -1407,10 +1504,14 @@ class PageAssetsExtractor
             default:        $existing = null;
         }
 
+        error_log("[PAE] delete_existing_assets(".$this->type.", ".$id);
+        error_log(print_r($existing, true));
+
         if (is_array($existing)) {
             foreach (['plugin_js','plugin_css','plugin_css_rtl'] as $k) {
                 if (!empty($existing[$k])) {
                     $abs = rtrim(STATIC_PATH,'/').'/'.ltrim($existing[$k],'./');
+                    error_log("...siliniyor: ".$abs);
                     if (file_exists($abs)) @unlink($abs);
                 }
             }
@@ -1584,12 +1685,16 @@ class PageAssetsExtractor
 
     // evrensel meta get/set/delete
     private function meta_get($type, $id) {
+        error_log("--- start meta_get");
+        error_log(print_r(get_post_meta($id, self::META_KEY, true), true));
+        error_log("--- end meta_get");
         switch ($type) {
             case 'post':    return get_post_meta($id, self::META_KEY, true);
             case 'term':    return get_term_meta($id, self::META_KEY, true);
             case 'user':    return get_user_meta($id, self::META_KEY, true);
             case 'comment': return get_comment_meta($id, self::META_KEY, true);
         }
+
         return null;
     }
     private function meta_update($type, $id, $val) {
@@ -1689,10 +1794,10 @@ class PageAssetsExtractor
             echo '</tr></thead><tbody>';
 
             foreach ($rows as $i => $row) {
-                echo '<tr id="'.esc_attr($row["type"].'_'.$row["id"]).'" data-index="'.$i.'">';
+                echo '<tr id="'.esc_attr($row["type"].'_'.$row["id"]).'" data-index="'.$i.'" style="vertical-align:middle;">';
                 echo '<td data-id="'.esc_attr($row["id"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["id"]).'</td>';
                 echo '<td data-type="'.esc_attr($row["type"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["post_type"]).'</td>';
-                echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">'.esc_html($row["url_short"]).'</td>';
+                echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">'.esc_html($row["url_short"]).' <a href="'.esc_attr($row["url"]).'" target="_blank"><i class="fa-solid fa-link"></i></a></td>';
                 echo '<td class="actions" style="width:80px;padding:10px; border-bottom:1px solid #ddd;"><a href="#" class="btn-page-assets-single btn btn-success btn-sm">Fetch</a></td>';
                 echo '</tr>';
             }
@@ -1780,9 +1885,6 @@ class PageAssetsExtractor
             "data"    => $data,
         ]);
     }
-
-
-
 
 
 
@@ -2159,6 +2261,18 @@ class PageAssetsExtractor
             }
         }
 
+        // Terim (Term) meta verilerini tara ve aktif listesine ekle (EKLEMENİZ GEREKEN KISIM)
+        $term_meta_results = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT meta_value FROM $wpdb->termmeta WHERE meta_key = %s",
+            $post_meta_key // Term meta için de aynı 'assets' anahtarını kullanıyorsunuz
+        ));
+        foreach ($term_meta_results as $meta_value) {
+            $data = maybe_unserialize($meta_value);
+            if (is_array($data) && !empty($data['structure_fp'])) {
+                $active_structure_hashes[$data['structure_fp']] = 1;
+            }
+        }
+
         // (İsteğe bağlı) Terim (Term) meta verilerini tara
         // Eğer term'ler için de bu sistemi kullanıyorsanız, buraya benzer bir sorgu ekleyin
         // $results = $wpdb->get_col("... $wpdb->termmeta ...");
@@ -2360,39 +2474,187 @@ class PageAssetsExtractor
         $this->twig_template_paths = $paths;
     }
 
+    /**
+     * YENİ: Güncellenen hash değerlerine göre CSS kullanımını kaydeder ve kullanılmayan eski dosyayı siler.
+     * KRİTİK: Ortak kullanılan dosyaların silinmesini engeller.
+     *
+     * @param string $old_hash Eski kullanılan CSS dosyası hash'i.
+     * @param string $new_hash Yeni kullanılan CSS dosyası hash'i.
+     * @param int|string $content_id Etkin olan içeriğin (Post ID, Term ID, Options String vb.) ID'si.
+     */
+    protected function update_css_usage_and_cleanup(string $old_hash, string $new_hash, $content_id): void {
+        
+        // manifest_read() çağrılır: Manifest'in güncel halini okur ve css_usage'ı hazırlar.
+        $this->manifest_read(); 
+
+        $content_id = (string) $content_id;
+
+        // 1. Yeni Hash'i Kaydet
+        if (!empty($new_hash)) {
+            if (!isset($this->manifest['css_usage'][$new_hash])) {
+                $this->manifest['css_usage'][$new_hash] = [];
+            }
+            if (!in_array($content_id, $this->manifest['css_usage'][$new_hash])) {
+                $this->manifest['css_usage'][$new_hash][] = $content_id;
+            }
+            $this->manifest['css_usage'][$new_hash] = array_unique($this->manifest['css_usage'][$new_hash]);
+        }
+
+        // 2. Eski Hash'i Temizle ve Silme Kontrolü
+        if (!empty($old_hash) && $old_hash !== $new_hash) {
+            
+            if (isset($this->manifest['css_usage'][$old_hash])) {
+                $this->manifest['css_usage'][$old_hash] = array_diff($this->manifest['css_usage'][$old_hash], [$content_id]);
+                
+                // EĞER KULLANIM LİSTESİ BOŞALIRSA (Kullanım Sayacı Kontrolü)
+                if (empty($this->manifest['css_usage'][$old_hash])) {
+                    
+                    // Fiziksel dosyayı sil
+                    $file_path_pattern = trailingslashit($this->upload_dir) . 'assets/' . $old_hash . '*.css';
+                    
+                    foreach (glob($file_path_pattern) as $file_path) {
+                        if (is_file($file_path)) {
+                            @unlink($file_path);
+                            error_log("CSS Asset Silindi (Manifest Onaylı): " . basename($file_path));
+                        }
+                    }
+                    
+                    // Manifest'ten de hash kaydını sil
+                    unset($this->manifest['css_usage'][$old_hash]);
+                }
+            }
+        }
+
+        // manifest_write() çağrılır: Manifest'in güncel halini diske yazar.
+        $this->manifest_write(); 
+    }
+
+    /**
+ * Varlık çıkarma işlemi tamamlandıktan sonra çağrılır.
+ * Eski/yeni CSS hash'lerini karşılaştırır, Usage Manifest'i günceller
+ * ve içeriğin (Post/Term/Options) meta verisini günceller.
+ * * @param int|string $content_id İçeriğin ID'si.
+ * @param array $new_assets_data Yeni çıkarılan varlık verileri (içinde css_hash ve plugin_css_hash olmalı).
+ */
+    public function finalize_assets_and_cleanup($content_id, array $new_assets_data): void {
+        
+        $type = $this->type;
+        $old_assets_data = $this->meta_get($type, $content_id);
+
+        // Tüm takip edilmesi gereken hash anahtarlarını tanımla
+        $asset_hash_keys = [
+            'css_hash',         // Ana CSS dosyası
+            'plugin_css_hash',  // Plugin CSS dosyası (Büyük ihtimalle bu siliniyordu)
+            // Eğer başka hash'ler de varsa buraya eklenmeli
+        ];
+
+        $has_new_hash = false;
+        
+        foreach ($asset_hash_keys as $key) {
+            $old_hash = $old_assets_data[$key] ?? '';
+            $new_hash = $new_assets_data[$key] ?? '';
+            
+            // Eğer yeni hash varsa, DB kaydının yapılacağını işaretle
+            if (!empty($new_hash)) {
+                $has_new_hash = true;
+            }
+
+            // Eski veya yeni hash mevcutsa Manifest güncellemesini çalıştır
+            if (!empty($old_hash) || !empty($new_hash)) {
+                $this->update_css_usage_and_cleanup($old_hash, $new_hash, $content_id);
+            }
+        }
+
+        if (!$has_new_hash) {
+             error_log("[PAE] FINALIZE: Hiçbir yeni CSS hash bulunamadı. Temizlik atlandı.");
+             return; 
+        }
+
+        // Yeni varlık verilerini (tüm hash'ler dahil) meta verisine kaydet
+        $this->meta_update($type, $content_id, $new_assets_data);
+
+        error_log("[PAE] FINALIZE: Asset meta verisi güncellendi. Content ID: {$content_id}");
+    }
+
 
     // =========================================================
     //                STATİK CRON METODLARI
     // =========================================================
     // Bunlar dün oluşturduğumuz gibi kalabilir,
     // `__construct` tarafından statik olarak çağrılmaları temiz bir yöntemdir.
-
-    /**
-     * [STATİK METOD] Cron zamanlayıcı eylemi.
-     */
-    public static function schedule_cleanup_event()
-    {
+    public static function schedule_cleanup_event(){
         if (!wp_next_scheduled('my_daily_assets_cleanup')) {
             wp_schedule_event(time(), 'daily', 'my_daily_assets_cleanup');
         }
     }
-
-    /**
-     * [STATİK METOD] Cron tarafından tetiklenen asıl temizlik görevi.
-    */
-    public static function run_cleanup_task()
-    {
+    public static function run_cleanup_task(){
         error_log('[PAE] Cron (run_cleanup_task) tetiklendi. Temizlik başlıyor...');
-        
         // Statik bir metodun içindeyiz, bu yüzden SADECE `get_instance()` 
         // kullanarak sınıfın çalışan örneğini alabiliriz.
         // YENİ BİR TANE OLUŞTURMAYIZ (`new`), mevcudu alırız.
         $extractor = PageAssetsExtractor::get_instance();
-        
         $extractor->cleanup_orphaned_assets();
     }
 
+    public function clear_content_cache_and_hash($id)
+    {
+        // Yalnızca o içeriğe ait kullanılan sınıflar listesini tutan önbelleği sil.
+        // Bu, PageAssetsExtractor'ın bir sonraki yüklemede bu içeriği yeniden analiz etmesini sağlar.
+        delete_metadata('post', $id, self::META_KEY); 
+        delete_metadata('term', $id, self::META_KEY);
+        
+        // O içeriğe ait son kullanılan HTML hash'ini sil.
+        // Bu, içeriğin yeniden parse edilmesini tetikler ve yeni bir CSS Hash'inin hesaplanmasını sağlar.
+        delete_metadata('post', $id, self::HTML_HASH_META_KEY);
+        delete_metadata('term', $id, self::HTML_HASH_META_KEY);
+        
+        // ACF Option Page ID'leri için
+        if (!is_numeric($id)) {
+            delete_option(self::META_KEY . '_' . $id);
+            delete_option(self::HTML_HASH_META_KEY . '_' . $id);
+        }
+
+        error_log("[PAE] İçerik önbelleği temizlendi (ID: {$id}). Yeni CSS Hash hesaplanacak.");
+    }
+
 }
+
+function trigger_page_assets_rebuild_on_save($id) {
+    // Cron işleri, revizyonlar veya autosave'ler için çalıştırmayı atla
+    if (wp_is_post_revision($id) || wp_is_post_autosave($id)) {
+        return;
+    }
+    
+    if (class_exists('PageAssetsExtractor')) {
+        $extractor = PageAssetsExtractor::get_instance(); 
+        
+        // 1. Kaydedilen içeriğin kendi önbelleğini ve hash'ini temizle
+        // Bu, bir sonraki yüklemede yeni bir CSS Hash'i üretilmesini sağlar.
+        $extractor->clear_content_cache_and_hash($id); 
+        
+        // 2. Eğer bu bir post ise, ait olduğu arşiv sayfasını (genel ayarlar) da temizle
+        if (get_post_type($id)) {
+            $post_type_slug = get_post_type($id);
+            $options_page_id = $post_type_slug . '_options';
+            
+            // Arşiv sayfasının genel ayarlarının da önbelleğini temizle.
+            $extractor->clear_content_cache_and_hash($options_page_id);
+        }
+        
+        // ÖNEMLİ: Bu noktada başka bir global temizlik yapmaya GEREK YOKTUR. 
+        // Sistemin bir sonraki sayfa yüklemesinde (normal kullanıcı veya bot) 
+        // PageAssetsExtractor çalışır ve:
+        // a) Eski Hash'i alır.
+        // b) Yeni Sınıf Listesini oluşturur.
+        // c) Yeni Hash'i hesaplar.
+        // d) Hash'ler farklıysa, YENİ CSS DOSYASINI oluşturur.
+        // e) Post/Term meta verisini yeni Hash ile günceller.
+    }
+}
+// Hook'lar aynı kalır
+add_action('save_post', 'trigger_page_assets_rebuild_on_save', 20, 3);
+add_action('edited_term', 'trigger_page_assets_rebuild_on_save', 20, 3);
+add_action('created_term', 'trigger_page_assets_rebuild_on_save', 20, 3);
 
 /**
  * ===================================================================

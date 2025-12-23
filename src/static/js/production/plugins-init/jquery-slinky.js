@@ -1,7 +1,9 @@
 function init_slinky(){
-	if($(".slinky-menu").length>0){
-		if(!$(".slinky-menu").hasClass("slinky-menu-inited")){
-			var slinky = $('.slinky-menu').slinky({
+	var token_init = "slinky-menu-init";
+    if($(".slinky-menu").not("."+token_init).length>0){
+	    $(".slinky-menu").not("."+token_init).each(function(){
+	        $(this).addClass(token_init);
+			var slinky = $(this).slinky({
 				title : true,
 				theme: "slinky-theme-custom"
 			});
@@ -11,8 +13,7 @@ function init_slinky(){
 			});
 			slinky.menu.find("a").not(".back").not(".next").on("click", function(){
 				$(this).closest(".offcanvas").offcanvas("hide");
-			});
-			$('.slinky-menu').addClass("slinky-menu-inited");
-		}           
-	}
+			});  
+		});
+	}         
 }

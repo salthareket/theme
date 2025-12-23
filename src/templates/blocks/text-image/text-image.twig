@@ -69,7 +69,7 @@
 
 				{% if item.media.media_type == "image" %}
 					{% if item.media.image|length > 1 %}
-						<div class="swiper-slider swiper {{ratio_class}} {% if fields.sync_image_height %}min-h-100{% endif %}" data-slider-autoplay="true" data-slider-effect="fade" data-slider-allow-touch-move="false" data-slider-grab="false">
+						<div class="swiper-slider swiper {{ratio_class}} {% if fields.sync_image_height %}min-vh-100{% endif %}" data-slider-autoplay="true" data-slider-effect="fade" data-slider-allow-touch-move="false" data-slider-grab="false">
 			         		<div class="swiper-wrapper">
 				            	{% for image in item.media.image %}
 				            		<div class="swiper-slide swiper-slide-image">
@@ -87,12 +87,12 @@
 			            	</div>
 		            	</div>
 					{% else %}
-						{{img({src: item.media.image[0], class : fields.ratio or fields.sync_image_height?"object-fit-cover w-100 h-100":"", lazy: 0, lazy_native: 1, placeholder: 1, placeholder_class: ((ratio_class?ratio_class:"ratio ratio-16x9") ~ (fields.sync_image_height?" h-100 min-h-100":"")), preview: is_preview })}}
+						{{img({src: item.media.image[0], class : fields.ratio or fields.sync_image_height?"object-fit-cover w-100 h-100":"", lazy: 0, lazy_native: 1, placeholder: 1, placeholder_class: ((ratio_class?ratio_class:"ratio ratio-16x9") ~ (fields.sync_image_height?" h-100 min-vh-100":"")), preview: is_preview })}}
 					{% endif %}
 				{% endif %}
 
 				{% if item.media.media_type == "video" %}
-					<div class="img-placeholder {{ratio_class}} {% if fields.sync_image_height %}h-100 min-h-100{% endif %}">
+					<div class="img-placeholder {{ratio_class}} {% if fields.sync_image_height %}h-100 min-vh-100{% endif %}">
 			            {{  video({
 			                    src: item.media.video,
 			                    class: "object-fit-cover w-100 h-100", 

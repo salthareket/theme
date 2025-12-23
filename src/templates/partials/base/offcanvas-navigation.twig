@@ -62,9 +62,9 @@
       {% include "navigation/menu-" ~ item.menu_view ~ ".twig" with {'menu': get_menu(item.menu_nav).get_items, 'is_child': false} %}
    </div>
    
-   <div class="offcanvas-footer text-center justify-content-center pb-4 {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">
+   <div class="offcanvas-footer text-center justify-content-center pb-4 flex-column {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">
 
-      {% if enable_mutilanguage and languages|length > 1 %}
+      {% if languages|length > 1 %}
          <ul class="nav-language list-inline" aria-labelledby="language">
             {% for item in languages %}
                <li class="list-inline-item" rel="{{item.name|lower}}">

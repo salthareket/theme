@@ -86,4 +86,13 @@ body{
         }
     }
 }
+.sticky-top,
+.sticky-bottom{
+    &:not(.sticked){
+        z-index: auto;
+    }
+    &.sticked{
+        z-index: 1020!important;
+    }
+}
 /*! purgecss end ignore */

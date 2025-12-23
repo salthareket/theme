@@ -194,8 +194,7 @@
             "choices": {
                 "default": "Default",
                 "post\/tease": "Post Tease (Predefined)",
-                "theme\/templates\/_custom\/tease-shortcut": "tease-shortcut",
-                "theme\/templates\/_custom\/tease-square-image": "tease-square-image"
+                "theme\/templates\/_custom\/slider-post": "slider-post"
             },
             "default_value": "default",
             "return_format": "value",
@@ -338,7 +337,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_686fad4e1c0fb",
@@ -535,7 +537,8 @@
                             "allow_in_bindings": 0,
                             "ui_on_text": "",
                             "ui_off_text": "",
-                            "ui": 1
+                            "ui": 1,
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_68e57dadc2b48",
@@ -562,6 +565,9 @@
                             "layout": "block",
                             "acfe_seamless_style": 0,
                             "acfe_group_modal": 0,
+                            "acfe_group_modal_close": 0,
+                            "acfe_group_modal_button": "",
+                            "acfe_group_modal_size": "large",
                             "sub_fields": [
                                 {
                                     "key": "field_68e57dadc2b53",
@@ -594,7 +600,8 @@
                                     "create_options": 0,
                                     "save_options": 0,
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "pll_default_value": "page_modal"
                                 },
                                 {
                                     "key": "field_68e57dadc2b54",
@@ -627,7 +634,8 @@
                                     "create_options": 0,
                                     "save_options": 0,
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "pll_default_value": "lg"
                                 },
                                 {
                                     "key": "field_68e57dadc2b55",
@@ -648,7 +656,8 @@
                                     "allow_in_bindings": 0,
                                     "ui_on_text": "",
                                     "ui_off_text": "",
-                                    "ui": 1
+                                    "ui": 1,
+                                    "pll_default_value": 0
                                 },
                                 {
                                     "key": "field_68e57dadc2b56",
@@ -669,7 +678,8 @@
                                     "allow_in_bindings": 0,
                                     "ui_on_text": "",
                                     "ui_off_text": "",
-                                    "ui": 1
+                                    "ui": 1,
+                                    "pll_default_value": 0
                                 },
                                 {
                                     "key": "field_68e57dadc2b57",
@@ -690,7 +700,8 @@
                                     "allow_in_bindings": 0,
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": ""
+                                    "append": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b58",
@@ -711,7 +722,8 @@
                                     "allow_in_bindings": 0,
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": ""
+                                    "append": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b59",
@@ -750,7 +762,8 @@
                                     "other_choice": 0,
                                     "allow_in_bindings": 0,
                                     "layout": "horizontal",
-                                    "save_other_choice": 0
+                                    "save_other_choice": 0,
+                                    "pll_default_value": "static"
                                 },
                                 {
                                     "key": "field_68e57dadc2b5a",
@@ -789,7 +802,8 @@
                                     "allow_in_bindings": 0,
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": ""
+                                    "append": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b5b",
@@ -828,7 +842,8 @@
                                     "allow_in_bindings": 0,
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": ""
+                                    "append": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b5c",
@@ -863,7 +878,7 @@
                                         "id": ""
                                     },
                                     "choices": {
-                                        "1798": "KidsAI (contact)"
+                                        "3263": "212 Outlet (contact)"
                                     },
                                     "default_value": "",
                                     "return_format": "value",
@@ -876,7 +891,8 @@
                                     "ajax": 0,
                                     "create_options": 0,
                                     "save_options": 0,
-                                    "search_placeholder": "Find posts"
+                                    "search_placeholder": "Find posts",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b5d",
@@ -929,7 +945,8 @@
                                     "create_options": 0,
                                     "save_options": 0,
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b5e",
@@ -963,7 +980,8 @@
                                     "allow_in_bindings": 0,
                                     "ui_on_text": "",
                                     "ui_off_text": "",
-                                    "ui": 1
+                                    "ui": 1,
+                                    "pll_default_value": 0
                                 },
                                 {
                                     "key": "field_68e57dadc2b5f",
@@ -1013,7 +1031,8 @@
                                     "create_options": 0,
                                     "save_options": 0,
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "pll_default_value": "mouseover"
                                 },
                                 {
                                     "key": "field_68e57dadc2b60",
@@ -1057,7 +1076,8 @@
                                     "allow_in_bindings": 0,
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": ""
+                                    "append": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b61",
@@ -1182,7 +1202,8 @@
                                     "create_options": 0,
                                     "save_options": 0,
                                     "allow_custom": 0,
-                                    "search_placeholder": ""
+                                    "search_placeholder": "",
+                                    "pll_default_value": false
                                 },
                                 {
                                     "key": "field_68e57dadc2b64",
@@ -1248,7 +1269,8 @@
                                     },
                                     "default_value": "",
                                     "allow_in_bindings": 0,
-                                    "placeholder": ""
+                                    "placeholder": "",
+                                    "pll_default_value": ""
                                 },
                                 {
                                     "key": "field_68e57dadc2b66",
@@ -1282,12 +1304,10 @@
                                     "allow_in_bindings": 0,
                                     "placeholder": "",
                                     "prepend": "",
-                                    "append": "pc"
+                                    "append": "pc",
+                                    "pll_default_value": ""
                                 }
-                            ],
-                            "acfe_group_modal_close": 0,
-                            "acfe_group_modal_button": "",
-                            "acfe_group_modal_size": "large"
+                            ]
                         }
                     ]
                 }
@@ -1312,6 +1332,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -1319,7 +1340,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759870540,
+    "modified": 1763565756,
     "acfe_categories": {
         "block": "Block"
     }

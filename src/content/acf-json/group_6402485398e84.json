@@ -70,7 +70,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -217,7 +218,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -364,7 +366,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -511,7 +514,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -658,7 +662,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -805,7 +810,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -952,7 +958,8 @@
                         "9": 9,
                         "10": 10,
                         "11": 11,
-                        "12": 12
+                        "12": 12,
+                        "auto": "auto"
                     },
                     "default_value": 1,
                     "return_format": "value",
@@ -1071,6 +1078,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -1078,7 +1086,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184974,
+    "modified": 1763565735,
     "acfe_categories": {
         "common": "Common"
     }

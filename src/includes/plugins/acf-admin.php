@@ -2209,6 +2209,15 @@ function acf_add_field_options($field) {
             "21x9" => "21:9 Ultra Widescreen TV, Monitor",
             "32x9" => "32:9 Super Ultra Widescreen TV, Monitor",
         );
+        $custom_ratios = QueryCache::get_cached_option("custom_ratio");
+        if ($custom_ratios) {
+            foreach ($custom_ratios as $ratio) {
+                $w = $ratio['width'];
+                $h = $ratio['height'];
+                $n = $ratio['name'];
+                $options["{$w}x{$h}"] = $n;
+            }
+        }
         $field['choices'] = array();
         if(in_array("acf-ratio", $class)){
             $field['choices'][] = "None";
@@ -2817,6 +2826,67 @@ function acf_add_field_options($field) {
         $field['choices'] = array();
         foreach($options as $key => $label) {
             $field['choices'][$key] = $label;
+        }
+    }
+
+
+    if(in_array("acf-untranslatable-taxonomies", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 1;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = 1;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $field['choices'] = array();
+        if (!function_exists('pll_is_translated_taxonomy')) {
+            $field['choices'][""] = 'Polylang eklentisi aktif değil.';
+        }else{
+            $all_taxonomies = get_taxonomies(
+                array(
+                    'public'  => true,
+                    'show_ui' => true // Sadece arayüzde görünenleri dahil etmek genellikle daha anlamlıdır
+                ), 
+                'names' // Sadece taksonomi slug'larını döndür
+            );
+            foreach ($all_taxonomies as $taxonomy) {
+                if (!pll_is_translated_taxonomy($taxonomy)) {
+                    $field['choices'][$taxonomy] = $taxonomy;
+                }
+            }
+        }
+    }
+
+        if(in_array("acf-untranslatable-post-types", $class)){
+        $field["allow_custom"] = 0;
+        $field["default_value"] = "";
+        $field["type"] = "select";
+        $field["multiple"] = 1;
+        $field["allow_null"] = 1;
+        $field["ajax"] = 0;
+        $field["ui"] = 1;
+        $field["search_placeholder"] = "";
+        $field["return_format"] = "value";
+        $field['choices'] = array();
+        if (!function_exists('pll_is_translated_post_type')) {
+            $field['choices'][""] = 'Polylang eklentisi aktif değil.';
+        }else{
+            $all_post_types = get_post_types(
+                array(
+                    'public'  => true,
+                    '_builtin' => false // Yalnızca özel post type'ları dahil etmek isterseniz bu kalsın. Built-in (post, page) dahil olsun isterseniz kaldırın.
+                ), 
+                'names' // Sadece post type slug'larını döndür
+            );
+            $excluded_types = array('attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset');
+            $all_post_types = array_diff($all_post_types, $excluded_types);
+            foreach ($all_post_types as $post_type) {
+                if (!pll_is_translated_post_type($post_type)) {
+                    $field['choices'][$post_type] = $post_type;
+                }
+            }
         }
     }
 
@@ -4031,7 +4101,6 @@ function acf_compile_js_css($value=0){
             }
 
             $is_development = is_admin() && isLocalhost();
-    
             
             // compile js files and css files
             if (!function_exists("compile_files_config")) {
@@ -4190,6 +4259,8 @@ function acf_compile_js_css($value=0){
 
             $minifier->purge_page_assets_manifest();
 
+            acf_append_common_bootstrap_css();
+
             if(!$value){
                 //return true;
             }
@@ -4202,6 +4273,76 @@ function acf_development_compile_js_css( $value, $post_id, $field, $original ) {
     return 0;
 }
 add_filter('acf/update_value/name=enable_compile_js_css', 'acf_development_compile_js_css', 10, 4);
+
+
+function acf_append_common_bootstrap_css() {
+    error_log("Common CSS Appendix süreci başladı...");
+
+    // 1. HTML Çıktısını Hazırla (URL üzerinden gerçek ana sayfayı çekiyoruz)
+    $site_url = home_url('/'); // Ana sayfa URL'i
+    
+    // Remote çekim için context ayarları (Bazen server kendi kendine izin vermez, user-agent lazım olur)
+    $options = [
+        "http" => [
+            "header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36\r\n"
+        ]
+    ];
+    $context = stream_context_create($options);
+    
+    // HTML'i çek
+    $html_output = file_get_contents($site_url, false, $context);
+
+    // 1. HTML'i Object yap (Senin kullandığın voku\helper\HtmlDomParser ile)
+    $dom = \voku\helper\HtmlDomParser::str_get_html($html_output);
+
+    // 2. Sadece Header ve Footer kısımlarını al
+    $header = $dom->find('header', 0); // İlk header'ı bul
+    $footer = $dom->find('footer', 0); // İlk footer'ı bul
+
+    // 3. Bunları temiz bir HTML string olarak birleştir
+    // Sınıfların düzgün yakalanması için bunları bir kapsayıcı içine koyuyoruz
+    $combined_html = "";
+    if ($header) $combined_html .= $header->outerHtml();
+    if ($footer) $combined_html .= $footer->outerHtml();
+
+    if (empty($combined_html)) {
+        error_log("Uyarı: Sayfada header veya footer bulunamadı!");
+        // Eğer özel class isimleri kullanıyorsan (örn: .site-header) find('.site-header') yapabiliriz
+        return;
+    }
+
+    // Hangi HTML üzerinden işlem yaptığımızı görmek için debug amaçlı kaydedelim
+    file_put_contents(STATIC_PATH . "css/common_debug.html", $combined_html);
+
+    // 2. Kaynak CSS'i Oku
+    $input_path = STATIC_PATH . "css/main-combined.css";
+    if (!file_exists($input_path)) {
+        error_log("Hata: main-combined.css bulunamadı!");
+        return;
+    }
+    $input_css = file_get_contents($input_path);
+
+    // 3. RemoveUnusedCss ile combined_html
+    $remover = new RemoveUnusedCss($combined_html, $input_css, "", [], false, [
+        "ignore_whitelist" => true,
+        "black_list" => [],
+        "ignore_root_variables" => true
+    ]);
+
+    $purged_css = $remover->process();
+
+    // 4. Sonucu common.css dosyasının SONUNA ekle
+    $common_css_path = STATIC_PATH . "css/common.css";
+    
+    if (file_exists($common_css_path)) {
+        $divider = "\n\n/* --- Appendix: Shared Bootstrap Classes (Source: " . $site_url . ") --- */\n";
+        file_put_contents($common_css_path, $divider . $purged_css, FILE_APPEND);
+        
+        error_log("Common CSS Appendix başarıyla tamamlandı. Kaynak: " . $site_url);
+    } else {
+        error_log("Hata: common.css bulunamadı!");
+    }
+}
 
 
 function acf_methods_settings($value=0){
@@ -4424,8 +4565,8 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                 'translate_n_noop' => []
             ];
 
-
-            /*if (is_plugin_active('multilingual-contact-form-7-with-polylang/plugin.php')) {
+            /*
+            if (is_plugin_active('multilingual-contact-form-7-with-polylang/plugin.php')) {
                 global $wpdb;
                 $posts = $wpdb->get_results("
                     SELECT ID, post_content 
@@ -4439,7 +4580,15 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                         $placeholders[] = $matches[1];
                     }
                 }
-                $translations["translate"] = $placeholders;
+                if($placeholders){
+                    foreach ($placeholders as $placeholder) {
+                        if($placeholder) {
+                            foreach ($placeholder as $word) {
+                                $translations["translate"][] = "'$word'";
+                            }
+                        }
+                    }
+                }
             }*/
 
             // Extract translations from each file
@@ -4498,6 +4647,39 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
             // Remove duplicates
             $translations['translate'] = array_unique($translations['translate']);
             $translations['translate_n_noop'] = array_unique($translations['translate_n_noop'], SORT_REGULAR);
+
+            //
+            $untranslatable_post_types = get_field("untranslatable_post_types", "option");
+            if ($untranslatable_post_types && is_array($untranslatable_post_types)) {
+                foreach ($untranslatable_post_types as $post_type_slug) {
+                    $posts = get_posts([
+                        'post_type'      => $post_type_slug,
+                        'posts_per_page' => -1,
+                        'post_status'    => 'publish',
+                        'suppress_filters' => true
+                    ]); 
+                    foreach ($posts as $post) {
+                        $translations['translate'][] = "'$post->post_title'";
+                    }
+                }
+            }
+            $untranslatable_taxonomies = get_field("untranslatable_taxonomies", "option");
+            if ($untranslatable_taxonomies && is_array($untranslatable_taxonomies)) {
+                foreach ($untranslatable_taxonomies as $taxonomy_slug) {
+                    $terms = get_terms([
+                        'taxonomy'   => $taxonomy_slug,
+                        'hide_empty' => false,
+                        'fields'     => 'objects', // Term nesnelerini al
+                        'lang'       => '', // Polylang filtresini devre dışı bırak
+                        'number'     => 0
+                    ]);
+                    if (!is_wp_error($terms) && is_array($terms)) {
+                        foreach ($terms as $term) {
+                            $translations['translate'][] = "'$term->name'";
+                        }
+                    }
+                }
+            }
 
             // Create or overwrite the output file
             $output = fopen($outputFile, 'w');
@@ -5022,28 +5204,24 @@ function save_theme_styles_colors($theme_styles){
 
 
 function acf_header_footer_options_save_hook($post_id) {
-    // Sadece options sayfası kaydedildiğinde çalışsın
     if ($post_id !== 'options') {
         return;
     }
-
-    // Kaydedilen option page'in slug'ını al
     if (isset($_POST['acf'])) {
         $current_screen = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
-
         if ($current_screen === 'header' || $current_screen === 'footer') {
             $header_footer_options = header_footer_options(true);
             $preset_file = THEME_STATIC_PATH . 'data/header-footer-options.json';
             $json_data = json_encode($header_footer_options);
             file_put_contents($preset_file, $json_data);
-            delete_transient('header_footer_options');
+            //delete_transient('header_footer_options');
         }
     }
 }
 add_action('acf/save_post', 'acf_header_footer_options_save_hook', 10);
 
 
-function acf_clear_wp_cache($post_id){
+/*function acf_clear_wp_cache($post_id){
     if ($post_id !== 'options') {
         return;
     }
@@ -5054,12 +5232,13 @@ function acf_clear_wp_cache($post_id){
             wp_cache_delete('acf_logo', 'acf');
             wp_cache_delete('acf_logo_affix', 'acf');
             wp_cache_delete('acf_logo_mobile', 'acf');
+            wp_cache_delete('acf_logo_mobile_breakpoint', 'acf');
             wp_cache_delete('acf_logo_footer', 'acf');
             wp_cache_delete('acf_logo_icon', 'acf');
         }
     }
 }
-add_action('acf/save_post', 'acf_clear_wp_cache', 10);
+add_action('acf/save_post', 'acf_clear_wp_cache', 10);*/
 
 
 add_filter('acf/update_value/name=modal_home', function ($value, $post_id, $field) {
@@ -5224,7 +5403,7 @@ function process_video_tasks_cron() {
         'orderby'        => 'ID',
         'order'          => 'ASC',
     ];
-    //$query = SaltBase::get_cached_query($args);
+    //$query = QueryCache::get_cached_query($args);
     $query = new WP_Query($args);
 
     if (!$query->have_posts()) {

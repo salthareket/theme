@@ -228,7 +228,7 @@ function get_parent_terms($taxonomy, $terms){
 	return $terms;
 }*/
 
-function get_post_terms_with_common_tax($post_type, $target_taxonomy, $tax_filters = [], $orderby = "name", $order = "ASC") {
+function get_post_terms_with_common_tax($post_type, $target_taxonomy, $tax_filters = [], $orderby = "name", $order = "ASC", $language="") {
     global $wpdb;
 
     $orderby_safe = in_array(strtolower($orderby), ['name','term_id','slug']) ? $orderby : 'name';
@@ -274,7 +274,8 @@ function get_post_terms_with_common_tax($post_type, $target_taxonomy, $tax_filte
     foreach ($rows as $term_id) {
         // Polylang varsa -> aktif dile çevir
         if (function_exists('pll_get_term')) {
-            $translated_id = pll_get_term($term_id, pll_current_language());
+        	$language = empty($language) ? pll_current_language() : $language;
+            $translated_id = pll_get_term($term_id, $language);
             if ($translated_id) {
                 $terms[] = get_term($translated_id, $target_taxonomy);
                 continue;
@@ -434,7 +435,7 @@ function get_category_total_post_count($taxonomy = "category", $term_id = 0){
 	    'nopaging' => true,
 	    'fields' => 'ids',
 	);
-	$query = SaltBase::get_cached_query($args);
+	$query = QueryCache::get_cached_query($args);
 	return $query->post_count;
 }
 

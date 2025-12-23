@@ -52,7 +52,8 @@
                     "ajax": 0,
                     "placeholder": "",
                     "create_options": 0,
-                    "save_options": 0
+                    "save_options": 0,
+                    "pll_default_value": "auto"
                 },
                 {
                     "key": "field_6636ab0ef803c",
@@ -73,7 +74,8 @@
                     "allow_in_bindings": 1,
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6636ab63f803f",
@@ -92,7 +94,11 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6636ab8bf8040",
@@ -111,7 +117,11 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_6636abaef8041",
@@ -130,7 +140,11 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_68dc76d3a2e96",
@@ -209,6 +223,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -216,7 +231,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759284121,
+    "modified": 1763565772,
     "acfe_categories": {
         "general": "General"
     }

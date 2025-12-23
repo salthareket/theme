@@ -56,8 +56,7 @@
             },
             "choices": {
                 "default": "Default",
-                "static": "Static",
-                "theme\/templates\/_custom\/footer-test_{{lang}}.twig": "Footer Test"
+                "static": "Static"
             },
             "default_value": false,
             "return_format": "value",
@@ -70,7 +69,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": false
         },
         {
             "key": "field_66b942fa2466b",
@@ -135,8 +135,7 @@
                     "choices": {
                         "header-menu": "Header Menu",
                         "footer-menu": "Footer Menu",
-                        "header-menu-innovation-hub": "Header Menu - Innovation Hub",
-                        "legal-menu": "Legal Menu"
+                        "sidebar-corporate": "Sidebar Corporate"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -204,7 +203,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1761607829,
+    "modified": 1763565729,
     "acfe_categories": {
         "general": "General"
     }

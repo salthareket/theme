@@ -40,14 +40,16 @@ function get_leafnode_object($menu, $object, $leaf_node=array(), $menu_items=arr
 
     		if($object != ""){
                 if(is_string($object)){
-                    if($item->object == $object){
+                    //print_r($item);
+                    //echo $item->object_type ."==". $object;
+                    if($item->object == $object || $item->object_type == $object){
                         array_push($leaf_node, $item);
                         if($item->menu_item_parent > 0){
                            return get_leafnode_object($menu, "", $leaf_node, $menu_items, $item->menu_item_parent);
-                           break;
+                           //break;
                         }else{
                            return $leaf_node;
-                           break;
+                           //break;
                         }
                     }                    
                 }else{
@@ -55,10 +57,10 @@ function get_leafnode_object($menu, $object, $leaf_node=array(), $menu_items=arr
                         array_push($leaf_node, $item);
                         if($item->menu_item_parent > 0){
                            return get_leafnode_object($menu, "", $leaf_node, $menu_items, $item->menu_item_parent);
-                           break;
+                           //break;
                         }else{
                            return $leaf_node;
-                           break;
+                           //break;
                         }
                     } 
                 }
@@ -69,16 +71,17 @@ function get_leafnode_object($menu, $object, $leaf_node=array(), $menu_items=arr
 	    	      	    array_push($leaf_node, $item);
 	    	      	    if($item->menu_item_parent > 0){
 		                   return get_leafnode_object($menu, "", $leaf_node, $menu_items, $item->menu_item_parent);
-		                   break;
+		                   //break;
 		                }else{
 		               	   return $leaf_node;
-		               	   break;
+		               	   //break;
 		                }
 	    	        }
     	        }
     		}
     	}
     }
+    return $leaf_node;
 }
 
 
@@ -137,271 +140,6 @@ function _custom_nav_menu_item( $title, $url, $order, $parent = 0 ){
 }
 
 
-
-
-/*
-// sayfa içi shoetcut linkler oluşturmak için
-function get_recursive_child_menu_items($menu_items, $page_id) {
-    $result = array();
-    foreach ($menu_items as $menu_item) {
-        if ($menu_item->object_id == $page_id) {
-            $result = $menu_item;
-            break;
-        } else {
-            $children = $menu_item->children();
-            if (!empty($children)) {
-              $submenu = get_recursive_child_menu_items($children, $page_id);
-                if (!empty($submenu)) {
-                    $result = $submenu;
-                    break;
-                }
-            }
-        }
-    }
-    return $result;
-}
-function get_child_menu_for_page($menu_name, $page_id) {
-    $menu = new Timber\Menu($menu_name);
-    return get_recursive_child_menu_items($menu->get_items(), $page_id);
-}
-
-
-
-
-
-
-
-
-// menu item'ini baz alarak root parent altındaki tum linklerden yeni bir menu oluşturmak için
-function get_taxonomy_menu_child($menu_items, $id) {
-    $result = array();
-    foreach ($menu_items as $menu_item) {
-        if ($menu_item->object == $taxonomy) {
-            $result = $menu_item;
-            break;
-        } else {
-            $children = $menu_item->children();
-            if (!empty($children)) {
-                $submenu = get_taxonomy_menu_child($children, $taxonomy);
-                if (!empty($submenu)) {
-                    $result = $submenu;
-                    break;
-                }
-            }
-        }
-    }
-    return $result;
-}
-function get_post_menu_child($menu_items, $post_type) {
-    $result = array();
-    if(!$menu_items){
-        return $result;
-    }
-    foreach ($menu_items as $menu_item) {
-        if ($menu_item->object == $post_type) {
-            $result = $menu_item;
-            break;
-        } else {
-            $children = $menu_item->children();
-            if (!empty($children)) {
-              $submenu = get_post_menu_child($children, $post_type);
-                if (!empty($submenu)) {
-                    $result = $submenu;
-                    break;
-                }
-            }
-        }
-    }
-    return $result;
-}
-function get_page_menu_child($menu_items, $page_id) {
-    $result = array();
-    if(!$menu_items){
-        return $result;
-    }
-    foreach ($menu_items as $menu_item) {
-        if ($menu_item->object_id == $page_id) {
-            $result = $menu_item;
-            break;
-        } else {
-            $children = $menu_item->children();
-            if (!empty($children)) {
-                $submenu = get_page_menu_child($children, $page_id);
-                 if (!empty($submenu)) {
-                    $result = $submenu;
-                    break;
-                }
-            }
-        }
-    }
-    return $result;
-}
-function get_root_menu_item($menu, $id, $type="object_id"){
-    $result = array();
-    foreach ($menu as $item) {
-        if ($item->{$type} == $id) {
-            $result = $item;
-            break;
-        } else {
-            $children = $item->children();
-            if (!empty($children)) {
-              $submenu = get_root_menu_item($children, $id, $type);
-                if (!empty($submenu)) {
-                    $result = $submenu;
-                    break;
-                }
-            }
-        }
-    }
-    return $result;
-}
-function get_parent_menu_item($menu, $id, $type="post_parent"){
-    $result = array();
-    foreach ($menu as $item) {
-        if ($item->{$type} == $id) {
-            $result = $item;
-            break;
-        } else {
-            $children = $item->children();
-            if (!empty($children)) {
-              $submenu = get_parent_menu_item($children, $id, $type);
-                if (!empty($submenu)) {
-                    $result = $submenu;
-                    break;
-                }
-            }
-        }
-    }
-    return $result;
-}
-function get_root_menu_for_page($menu, $page_id=-1) {
-    //print("<pre>".print_r(wp_get_nav_menu_items("header"), true)."</pre>");
-    $menu_items = array(
-       "nodes" => array(),
-       "items" => array()
-    );
-    if(empty($menu)){
-        $menu = "header";
-    }
-    if(is_numeric($menu)){
-        $menu = wp_get_nav_menu_object($menu);
-        if ($menu) {
-            $menu =  $menu->name;
-        }
-    }
-    if(empty($page_id)){
-        $page_id = -1;
-    }
-
-    global $post;
-    $menu = Timber::get_menu($menu);
-
-    //$page_id = intval($page_id);
-
-    if($page_id < 0){
-        $page_id = $post->ID;
-    }else{
-        if($page_id == 0){
-            $menu_items["nodes"] = array($post->ID);
-            $menu_items["items"] = $menu->get_items();
-            return $menu_items;
-        }else{
-            $menu_item = get_page_menu_child($menu->children(), $page_id);
-            $ancestors = get_post_ancestors($menu_item);
-            if($ancestors){
-                $id = end($ancestors);
-                $menu_items["nodes"] = $ancestors;
-                $menu_items["items"] = get_root_menu_item($menu->get_items(), $page_id)->children();
-            }else{
-                $menu_items["nodes"] = array($page_id);
-                if($menu_item){
-                    $menu_items["items"] = $menu_item->children();
-                }else{
-                    $menu_item = get_page_menu_child($menu->get_items(), $page_id);
-                    if($menu_item){
-                        $menu_items["items"] = $menu_item->children();
-                    }else{
-                        $menu_items["items"] = array();
-                    }
-                }
-            }
-            return $menu_items;
-        }
-    }
-
-
-    if(is_post_type_archive()){
-
-        global $wp_query;
-        $query_vars = $wp_query->query_vars;
-        if(array_key_exists("post_type", $query_vars)){
-           $post_type = $query_vars['post_type'];
-        }
-        $nodes = get_leafnode_object($post_type);
-        $menu_items["nodes"] = wp_list_pluck($nodes, "db_id");
-        $menu_items["items"] = get_root_menu_item($menu->get_items()->children(), end($nodes)->db_id, "db_id");
-
-    }elseif(is_single()){
-
-        global $wp_query;
-        $query_vars = $wp_query->query_vars;
-        if(array_key_exists("post_type", $query_vars)){
-           $post_type = $query_vars['post_type'];
-        }
-        $nodes = get_leafnode_object($post_type);
-        $menu_items["nodes"] = wp_list_pluck($nodes, "db_id");
-        $menu_items["items"] = get_root_menu_item($menu->get_items()->children(), end($nodes)->db_id, "db_id");
-
-    }elseif(is_tax()){
-
-        global $wp_query;
-        $query_vars = $wp_query->query_vars;
-        if(array_key_exists("taxonomy", $query_vars)){
-           $taxonomy = $query_vars['taxonomy'];
-           $term = $query_vars['term'];
-           $term_obj = get_term_by("slug", $term, $taxonomy);
-           $nodes = get_leafnode_object(array("object"=>$taxonomy, "object_id" => $term_obj->term_id));
-           $menu_items["nodes"] = wp_list_pluck($nodes, "object_id");
-           if($menu_items["nodes"]){
-              if(end($menu_items["nodes"]) == 0){
-                $menu_items["nodes"] = wp_list_pluck($nodes, "db_id");
-                $menu_items["items"] = get_root_menu_item($menu->get_items()->children(), end($nodes)->db_id, "db_id");
-              }else{
-                $menu_items["items"] = get_root_menu_item($menu->get_items()->children(), end($nodes)->object_id);
-              }
-           }
-        }
-
-    }else{
-
-        $menu_item = get_page_menu_child($menu->get_items(), $page_id);
-        $ancestors = get_post_ancestors($menu_item);
-        if($ancestors){
-            $id = end($ancestors);
-            $menu_items["nodes"] = $ancestors;//wp_list_pluck($nodes, "object_id");
-            $menu_items["items"] = get_root_menu_item($menu->get_items(), $id)->children();
-        }else{
-            $menu_items["nodes"] = array($page_id);
-            if($menu_item){
-                $menu_items["items"] = $menu_item->children();
-            }else{
-                $menu_item = get_page_menu_child($menu->get_items(), $page_id);
-                if($menu_item){
-                    $menu_items["items"] = $menu_item->children();
-                }else{
-                    $menu_items["items"] = array();
-                }
-            }
-        }
-        
-    }
-    return $menu_items;//get_root_menu_item($menu->get_items(), $id);
-}*/
-
-
-/**
- * Safe children fetcher
- */
 function safe_children($menu_item) {
     if (is_object($menu_item)) {
         if (method_exists($menu_item, 'children')) return $menu_item->children();
@@ -409,11 +147,6 @@ function safe_children($menu_item) {
     }
     return [];
 }
-
-
-/**
- * Recursive child search
- */
 function get_recursive_child_menu_items($menu_items, $page_id) {
     foreach ($menu_items as $menu_item) {
         if (isset($menu_item->object_id) && $menu_item->object_id == $page_id) {
@@ -427,18 +160,10 @@ function get_recursive_child_menu_items($menu_items, $page_id) {
     }
     return null;
 }
-
-/**
- * Child menu for a specific page
- */
 function get_child_menu_for_page($menu_name, $page_id) {
     $menu = new Timber\Menu($menu_name);
     return get_recursive_child_menu_items($menu->get_items(), $page_id);
 }
-
-/**
- * Generic recursive child fetchers for taxonomy and post types
- */
 function get_taxonomy_menu_child($menu_items, $taxonomy) {
     foreach ($menu_items as $menu_item) {
         if (isset($menu_item->object) && $menu_item->object == $taxonomy) return $menu_item;
@@ -450,7 +175,6 @@ function get_taxonomy_menu_child($menu_items, $taxonomy) {
     }
     return null;
 }
-
 function get_post_menu_child($menu_items, $post_type) {
     foreach ($menu_items as $menu_item) {
         if (isset($menu_item->object) && $menu_item->object == $post_type) return $menu_item;
@@ -462,14 +186,9 @@ function get_post_menu_child($menu_items, $post_type) {
     }
     return null;
 }
-
 function get_page_menu_child($menu_items, $page_id) {
     return get_recursive_child_menu_items($menu_items, $page_id);
 }
-
-/**
- * Root / Parent menu item fetchers
- */
 function get_root_menu_item($menu, $id, $type="object_id") {
     foreach ($menu as $item) {
         if (isset($item->{$type}) && $item->{$type} == $id) return $item;
@@ -481,7 +200,6 @@ function get_root_menu_item($menu, $id, $type="object_id") {
     }
     return null;
 }
-
 function get_parent_menu_item($menu, $id, $type="post_parent") {
     foreach ($menu as $item) {
         if (isset($item->{$type}) && $item->{$type} == $id) return $item;
@@ -493,85 +211,149 @@ function get_parent_menu_item($menu, $id, $type="post_parent") {
     }
     return null;
 }
-
-/**
- * Main function: fetch menu tree for page/post/taxonomy/archive
- */
-function get_root_menu_for_page($menu, $page_id=-1) {
+/*function get_root_menu_for_page($menu, $page_id=-1) {
     $menu_items = ["nodes" => [], "items" => []];
 
-    if (empty($menu)) $menu = "header-menu";
+    $initial_menu_name = $menu;
+    if (empty($initial_menu_name)) $initial_menu_name = "header-menu";
 
     $locations = get_nav_menu_locations();
-    $menu = $locations[$menu] ?? null;
+    $menu_id_or_name = $locations[$initial_menu_name] ?? $initial_menu_name;
 
-
-    if (is_numeric($menu)) {
-        $menu_obj = wp_get_nav_menu_object($menu);
-        if ($menu_obj) $menu = $menu_obj->name;
+    if (is_numeric($menu_id_or_name)) {
+        $menu_obj = wp_get_nav_menu_object($menu_id_or_name);
+        if ($menu_obj) $menu_id_or_name = $menu_obj->name;
     }
-
-    global $post, $wp_query;
-    $menu = Timber::get_menu($menu);
     
-    if ($page_id < 0) $page_id = $post->ID;
-
-    // Page 0 fallback
-    if ($page_id === 0) {
-        $menu_items["nodes"] = [$post->ID];
-        $menu_items["items"] = $menu->get_items();
+    global $post, $wp_query;
+    $menu = Timber::get_menu($menu_id_or_name);
+    if (!$menu || empty($menu->get_items())) {
         return $menu_items;
     }
 
-    // Single / Post Type Archive
+    $all_menu_items = $menu->get_items(); // Tüm üst seviye menü öğeleri
+    $current_menu_name = $menu->name; // get_leafnode_object için menü adını al
+
+    if ($page_id < 0) $page_id = $post->ID;
+
+    // Page 0 fallback (Ana sayfa)
+    if ($page_id === 0) {
+        $menu_items["nodes"] = [$post->ID];
+        $menu_items["items"] = $all_menu_items; // Tüm üst seviyeyi döndür
+        return $menu_items;
+    }
     if (is_post_type_archive() || is_single()) {
-        $post_type = $wp_query->query_vars['post_type'] ?? null;
+        $post_type = $wp_query->query_vars['post_type'] ?? $post->post_type ?? null;
         if ($post_type) {
-            $nodes = get_leafnode_object($post_type);
-            if ($nodes) {
-                $menu_items["nodes"] = wp_list_pluck($nodes, "db_id");
-                $menu_items["items"] = safe_children(get_root_menu_item(safe_children($menu), end($nodes)->db_id, "db_id")) ?? [];
+            $nodes = get_leafnode_object($current_menu_name, $post_type);
+            if (is_array($nodes) && count($nodes) > 0) {
+                $last_node = end($nodes);
+                $menu_items["nodes"] = wp_list_pluck($nodes, "db_id"); 
+                $root_menu_item = get_root_menu_item($all_menu_items, $last_node->db_id, "db_id");
+                $children = safe_children($root_menu_item) ?? [];
+                if($children){
+                    $menu_items["items"] = $children;
+                }else{
+                    $menu_items["items"] = $all_menu_items;
+                }
+            }else{
+                $menu_items["items"] = $all_menu_items;
             }
         }
         return $menu_items;
     }
 
-    // Taxonomy
     if (is_tax()) {
         $taxonomy = $wp_query->query_vars['taxonomy'] ?? null;
         $term = $wp_query->query_vars['term'] ?? null;
         if ($taxonomy && $term) {
             $term_obj = get_term_by("slug", $term, $taxonomy);
-            $nodes = get_leafnode_object(["object"=>$taxonomy, "object_id" => $term_obj->term_id]);
+            $nodes = get_leafnode_object($current_menu_name, ["object"=>$taxonomy, "object_id" => $term_obj->term_id]);
             if ($nodes) {
-                $menu_items["nodes"] = wp_list_pluck($nodes, "object_id");
                 $last_node = end($nodes);
-                if ($last_node) {
-                    $menu_items["items"] = safe_children(get_root_menu_item(safe_children($menu), $last_node->object_id)) ?? [];
-                }
+                $menu_items["nodes"] = wp_list_pluck($nodes, "object_id"); 
+                $root_menu_item = get_root_menu_item($all_menu_items, $last_node->db_id, "db_id"); 
+                $menu_items["items"] = safe_children($root_menu_item) ?? [];
             }
         }
         return $menu_items;
     }
 
-    // Page fallback
-    $menu_item = get_page_menu_child($menu->get_items(), $page_id);
+    $menu_item = get_page_menu_child($all_menu_items, $page_id);        
     if ($menu_item) {
-        $ancestors = get_post_ancestors($menu_item);
+        $ancestors = get_post_ancestors($menu_item->object_id);
         if ($ancestors) {
-            $id = end($ancestors);
+            $root_page_id = end($ancestors); 
             $menu_items["nodes"] = $ancestors;
-            $menu_items["items"] = safe_children(get_root_menu_item($menu->get_items(), $id)) ?? [];
+            $root_menu_item = get_root_menu_item($all_menu_items, $root_page_id, "object_id"); 
+            $menu_items["items"] = safe_children($root_menu_item) ?? [];
         } else {
             $menu_items["nodes"] = [$page_id];
             $menu_items["items"] = safe_children($menu_item) ?? [];
         }
     } else {
-        // fallback: menu_item yoksa menu'nin en üst seviyesini döndür
         $menu_items["nodes"] = [];
-        $menu_items["items"] = $menu->get_items() ?? [];
+        $menu_items["items"] = $all_menu_items ?? [];
+    }
+    return $menu_items;
+}*/
+function get_root_menu_for_page($menu, $page_id=-1) {
+    $menu_items = ["nodes" => [], "items" => []];
+
+    $initial_menu_name = $menu;
+    if (empty($initial_menu_name)) $initial_menu_name = "header-menu";
+
+    $locations = get_nav_menu_locations();
+    $menu_id_or_name = $locations[$initial_menu_name] ?? $initial_menu_name;
+
+    if (is_numeric($menu_id_or_name)) {
+        $menu_obj = wp_get_nav_menu_object($menu_id_or_name);
+        if ($menu_obj) $menu_id_or_name = $menu_obj->name;
+    }
+    
+    global $post, $wp_query;
+    $menu = Timber::get_menu($menu_id_or_name);
+    if (!$menu || empty($menu->get_items())) {
+        return $menu_items;
     }
 
+    $all_menu_items = $menu->get_items(); // Tüm üst seviye menü öğeleri
+    $current_menu_name = $menu->name; 
+    
+    if ($page_id === -1) {
+        $menu_items["nodes"] = [];
+        $menu_items["items"] = $all_menu_items;
+        return $menu_items;
+    }
+
+    if ($page_id < 0) $page_id = $post->ID;
+
+    if ((int)$page_id === 0) {
+        $menu_items["nodes"] = [$post->ID];
+        $menu_items["items"] = $all_menu_items; // Tüm üst seviyeyi döndür
+        return $menu_items;
+    }
+
+    $menu_item = get_page_menu_child($all_menu_items, $page_id);
+    if ($menu_item) {
+        $ancestors = get_post_ancestors($menu_item->object_id);
+        if ($ancestors) {
+            $root_page_id = end($ancestors);  
+            $menu_items["nodes"] = $ancestors;
+            $root_menu_item = get_root_menu_item($all_menu_items, $root_page_id, "object_id");  
+            if($root_menu_item){
+                $menu_items["items"] = safe_children($root_menu_item) ?? [];
+            }else{
+                $menu_items["items"] = $all_menu_items ?? [];
+            }
+        } else {
+            $menu_items["nodes"] = [$page_id];
+            $menu_items["items"] = safe_children($menu_item) ?? [];
+        }
+    } else {
+        $menu_items["nodes"] = [];
+        $menu_items["items"] = $all_menu_items ?? [];
+    }
 
     return $menu_items;
 }
@@ -579,44 +361,121 @@ function get_root_menu_for_page($menu, $page_id=-1) {
 
 
 
-function wp_query_addition($args, $vars){
-	if(isset($vars["taxonomy"])){
-		if(!isset($args["tax_query"])){
-			$args["tax_query"] = array();
-		}
-		$args["tax_query"]["relation"] = "AND";
-		foreach($vars["taxonomy"] as $key => $tax){
-			$tax_field = "slug";
-			if(is_array($tax)){
-				if(is_numeric($tax[0]) || ctype_digit($tax[0])){
-					$tax_field = "term_id";
-				}
-			}
-			$args["tax_query"][] = array(
-				'taxonomy' => $key,
-				'field'    => $tax_field,
-				'terms'    => $tax,
-				'operator' => 'IN',
-				'include_children' => 0
-			);                
-		}
-	}
-	if(isset($vars["meta"])){
-		if(!isset($args["meta_query"])){
-			$args["meta_query"] = array();
-		}
-		$args["meta_query"]["relation"] = "AND";
-		foreach($vars["meta"] as $key => $meta){
-			$args["meta_query"][] = array(
-				array(
-					'key' => $key,
-					'value' => $meta,
-					'compare' => '='
-				)
-			);                
-		}
-	}
-	return $args;
+/**
+ * WP_Query argümanlarına esnek taksonomi ve meta filtreleri ekler.
+ *
+ * @param array $args WP_Query argümanları dizisi.
+ * @param array $vars Harici filtre değişkenleri dizisi (taxonomy ve meta içerir).
+ * @return array Güncellenmiş WP_Query argümanları.
+ */
+function wp_query_addition(array $args, array $vars): array {
+
+    // ===============================================================
+    // 1. TAKSONOMİ FİLTRESİ İŞLEME (ESNEKLİK VE PLL UYUMLULUĞU)
+    // ===============================================================
+    if (isset($vars["taxonomy"]) && is_array($vars["taxonomy"])) {
+        
+        // Eğer tax_query yoksa başlat, varsa relation'ı AND olarak ayarla.
+        if (!isset($args["tax_query"]) || !is_array($args["tax_query"])) {
+            $args["tax_query"] = array('relation' => 'AND');
+        } else {
+             // Var olan bir tax_query varsa ve relation belirlenmemişse, AND olarak ayarla
+             if (!isset($args["tax_query"]['relation'])) {
+                 $args["tax_query"]['relation'] = 'AND';
+             }
+        }
+        
+        foreach ($vars["taxonomy"] as $taxonomy_key => $terms) {
+            
+            if (empty($terms)) continue; // Boş terim listelerini atla
+
+            $tax_field = "slug";
+            $term_ids  = [];
+            
+            // 💡 Güvenlik ve Esneklik: Tek bir değer de gelse dizi haline getir.
+            $term_values = is_array($terms) ? $terms : [$terms];
+            
+            // Varsayılan olarak 'slug' ile başlar. İlk terim sayısal mı kontrol et.
+            // Sayısal kontrolü `is_int` yerine `is_numeric` veya `ctype_digit` ile yapmak daha doğru.
+            if (!empty($term_values) && (is_numeric($term_values[0]) || ctype_digit((string)$term_values[0]))) {
+                $tax_field = "term_id";
+                $term_ids  = array_map('intval', $term_values); // Güvenlik: Tamsayıya dönüştür
+            } else {
+                // Eğer slug geliyorsa, Polylang'ın filtrelemesini yoksayarak Term ID'lerini bul.
+                // Bu, dil değişiminde bile TR slug'ına karşılık gelen term ID'yi bulmayı sağlar.
+                
+                foreach ($term_values as $slug) {
+                    // get_term_by'a 'suppress_filter' ekleyerek PLL müdahalesini engelle
+                    $term = get_term_by('slug', sanitize_title($slug), $taxonomy_key, OBJECT, [ 'suppress_filter' => true ]);
+                    
+                    if ($term && !is_wp_error($term)) {
+                        $term_ids[] = (int) $term->term_id;
+                    }
+                }
+                
+                // Slug kullanmak yerine, bulunan ID'leri kullanmak daha güvenli ve performanslıdır.
+                if (!empty($term_ids)) {
+                    $tax_field = "term_id";
+                    $term_values = $term_ids;
+                } else {
+                    // Hiçbir terim ID'si bulunamazsa bu sorgu parçasını atla
+                    continue;
+                }
+            }
+
+            // Tax Query Clause'u ekle
+            $args["tax_query"][] = array(
+                'taxonomy'         => $taxonomy_key,
+                'field'            => $tax_field,
+                'terms'            => $term_values,
+                'operator'         => 'IN',
+                'include_children' => 0 // Varsayılan olarak çocukları dahil etme (performans)
+            );
+        }
+    }
+
+    // ---------------------------------------------------------------
+
+    // ===============================================================
+    // 2. META FİLTRESİ İŞLEME (GÜVENLİK VE STANDARTLAŞTIRMA)
+    // ===============================================================
+    if (isset($vars["meta"]) && is_array($vars["meta"])) {
+        
+        // Eğer meta_query yoksa başlat, varsa relation'ı AND olarak ayarla.
+        if (!isset($args["meta_query"]) || !is_array($args["meta_query"])) {
+            $args["meta_query"] = array('relation' => 'AND');
+        } else {
+             // Var olan bir meta_query varsa ve relation belirlenmemişse, AND olarak ayarla
+             if (!isset($args["meta_query"]['relation'])) {
+                 $args["meta_query"]['relation'] = 'AND';
+             }
+        }
+        
+        foreach ($vars["meta"] as $key => $meta) {
+            
+            if (is_array($meta) && isset($meta['key']) && isset($meta['value'])) {
+                // Gelişmiş Meta Sorgu formatı bekleniyorsa (key, value, compare, type vb. içeriyorsa)
+                $meta_clause = array_merge(['compare' => '=', 'type' => 'CHAR'], $meta);
+                
+            } elseif (!is_array($meta)) {
+                // Basit Eşitlik Sorgusu (key => value)
+                $meta_clause = array(
+                    'key'     => $key,
+                    'value'   => sanitize_text_field($meta), // Güvenlik: Alanı temizle
+                    'compare' => '='
+                );
+            } else {
+                // Hata: Meta formatı anlaşılamadı. Atla.
+                continue;
+            }
+
+            $args["meta_query"][] = $meta_clause;
+        }
+    }
+    
+    // ---------------------------------------------------------------
+
+    return $args;
 }
 
 function get_page_url($slug){
@@ -844,7 +703,7 @@ function get_user_role($user_id=0) {
 
 
 function wp_count_posts_by_query($args) {
-    $query = SaltBase::get_cached_query($args);
+    $query = QueryCache::get_cached_query($args);
     if ($query->have_posts()) {
         return count($query->posts);
     } else {
@@ -896,7 +755,7 @@ function get_menu_locations() {
         'header-menu' => 'Header Menu',
         'footer-menu' => 'Footer Menu',
     ];
-    $value = SaltBase::get_cached_option("menu_locations");//get_cached_field("menu_locations", "option");
+    $value = QueryCache::get_cached_option("menu_locations");//get_cached_field("menu_locations", "option");
     if (empty($value)) {
         return $locations;
     }
@@ -911,7 +770,7 @@ function get_menu_locations() {
 
 function get_menu_populate(){
     $arr = [];
-    $value = SaltBase::get_cached_option("menu_populate");//get_cached_field("menu_populate", "option");
+    $value = QueryCache::get_cached_option("menu_populate");//get_cached_field("menu_populate", "option");
     if($value){
         foreach($value as $item){
             $menu = $item["menu"];

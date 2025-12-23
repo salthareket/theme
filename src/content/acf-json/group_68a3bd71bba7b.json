@@ -248,6 +248,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -256,7 +257,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759185001,
+    "modified": 1763565796,
     "acfe_categories": {
         "block": "Block"
     }

@@ -41,7 +41,7 @@
       <ul class="nav-language list-inline mb-0 justify-content-center" aria-labelledby="language">
          {% for item in languages %}
             <li class="list-inline-item" rel="{{item.name|lower}}">
-               <a href="{{item.url}}" class="btn btn-outline-primary px-3 {% if item.active %}active{% endif %}" title="{{item.name_long}}">{{item.name|upper}}</a>
+               <a href="{{item.url}}" class="btn btn-outline-primary p-2 btn-loading-page {% if item.active %}active{% endif %}" title="{{item.name_long}}">{{item.name|upper}}</a>
             </li>
          {% endfor %}
       </ul>

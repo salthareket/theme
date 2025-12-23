@@ -18,6 +18,8 @@
             },
             "uploader": "",
             "return_format": "url",
+            "library": "all",
+            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -26,8 +28,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "preview_size": "thumbnail",
-            "library": "all"
+            "allow_in_bindings": 1,
+            "preview_size": "thumbnail"
         },
         {
             "key": "field_65ef9c36d761c",
@@ -45,6 +47,8 @@
             },
             "uploader": "",
             "return_format": "url",
+            "library": "all",
+            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -53,8 +57,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "preview_size": "thumbnail",
-            "library": "all"
+            "allow_in_bindings": 1,
+            "preview_size": "thumbnail"
         },
         {
             "key": "field_64ee7ecab3cd3",
@@ -72,6 +76,8 @@
             },
             "uploader": "",
             "return_format": "url",
+            "library": "all",
+            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -80,8 +86,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "preview_size": "thumbnail",
-            "library": "all"
+            "allow_in_bindings": 1,
+            "preview_size": "thumbnail"
         },
         {
             "key": "field_660386c48ecdd",
@@ -99,6 +105,8 @@
             },
             "uploader": "",
             "return_format": "url",
+            "library": "all",
+            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -107,8 +115,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "preview_size": "thumbnail",
-            "library": "all"
+            "allow_in_bindings": 1,
+            "preview_size": "thumbnail"
         },
         {
             "key": "field_5d42138a45ea7",
@@ -126,6 +134,8 @@
             },
             "uploader": "",
             "return_format": "url",
+            "library": "all",
+            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -134,8 +144,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "preview_size": "thumbnail",
-            "library": "all"
+            "allow_in_bindings": 1,
+            "preview_size": "thumbnail"
         },
         {
             "key": "field_64f3537d2a309",
@@ -154,6 +164,7 @@
             "uploader": "",
             "return_format": "array",
             "library": "all",
+            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -164,6 +175,51 @@
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "allow_in_bindings": 1,
             "preview_size": "thumbnail"
+        },
+        {
+            "key": "field_69386f5144ce8",
+            "label": "Logo Mobile Breakpoint",
+            "name": "logo_mobile_breakpoint",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_660386c48ecdd",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "20",
+                "class": "acf-breakpoints",
+                "id": ""
+            },
+            "choices": {
+                "xs": "xs",
+                "sm": "sm",
+                "md": "md",
+                "lg": "lg",
+                "xl": "xl",
+                "xxl": "xxl",
+                "xxxl": "xxxl"
+            },
+            "default_value": "xl",
+            "return_format": "value",
+            "multiple": 0,
+            "translations": "ignore",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "xl"
         }
     ],
     "location": [
@@ -184,14 +240,15 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "acfe_display_title": "",
+    "display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184972,
+    "modified": 1765317669,
     "acfe_categories": {
         "general": "General"
     }

@@ -47,5 +47,10 @@
 	@if index($plugins, "panzoom") {
 		@import 'plugin-panzoom';
 	}
-
+	@if index($plugins, "zuck.js") {
+		@import 'plugin-zuck.js';
+	}
+	@if index($plugins, "clndr") {
+		@import 'plugin-clndr';
+	}
 }

@@ -85,7 +85,8 @@
             "ui": 0,
             "ajax": 0,
             "create_options": 0,
-            "save_options": 0
+            "save_options": 0,
+            "pll_default_value": "horizontal"
         },
         {
             "key": "field_690375a269c25",
@@ -106,7 +107,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_690375d169c26",
@@ -154,7 +156,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": 0
         },
         {
             "key": "field_6903763169c27",
@@ -186,7 +189,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": "flat"
         },
         {
             "key": "field_690376d469c2b",
@@ -247,7 +251,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_6903779fee801",
@@ -266,8 +271,7 @@
             "choices": {
                 "header-menu": "Header Menu",
                 "footer-menu": "Footer Menu",
-                "header-menu-innovation-hub": "Header Menu - Innovation Hub",
-                "legal-menu": "Legal Menu"
+                "sidebar-corporate": "Sidebar Corporate"
             },
             "default_value": "",
             "return_format": "value",
@@ -280,7 +284,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -309,7 +314,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1761936236,
+    "modified": 1763565796,
     "acfe_categories": {
         "block": "Block"
     }

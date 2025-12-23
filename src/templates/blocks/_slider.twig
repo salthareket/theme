@@ -11,7 +11,7 @@
 {% endif %}
 
 {% set duration = (slider_settings.delay|default(4000)/1000) + 2 %}
-<div class="swiper-slider swiper {% if slider_position != "background" %}position-absolute-fill{% else %}{% if not parallax %}h-100{% endif %}{% endif %} z-0 {% if parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not hero %} fade loading{% endif %} {% endif %} {% if slider_settings.autoheight %}position-relative h-auto{% endif %} {% if block.fullHeight %}h-100v-min{% endif %}" {{row.attrs}}>
+<div class="swiper-slider swiper {% if slider_position != "background" %}position-absolute-fill{% else %}{% if not parallax %}h-100{% endif %}{% endif %} z-0 {% if parallax %}jarallax-img{% endif %} {% if is_preview %}show overflow-hidden{% else %} {% if not hero %} fade loading{% endif %} {% endif %} {% if slider_settings.autoheight %}position-relative h-auto{% endif %} {% if block.fullHeight %}min-vh-100{% endif %}" {{row.attrs}}>
     <div class="swiper-wrapper h-100">
         {% for slide in slider %}
 
@@ -60,7 +60,7 @@
     </div>
     <div class="swiper-pagination"></div>
 </div>
-<script>
+<script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function () {
         const swiperBgs = document.querySelectorAll('.swiper-bg');
         swiperBgs.forEach(swiperBg => {

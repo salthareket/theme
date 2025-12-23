@@ -121,7 +121,7 @@
 		<div style="background-color:red;color:#fff;padding:8px 22px;top:0;left:0;position:absolute;z-index:10;">Admin Preview</div>
 	{% endif %}
 
-	<div class="{{block_meta_classes}}" {{block_meta.attrs}}>
+	<div class="{{block_meta_classes}} block-salt-theme" {{block_meta.attrs}}>
 
 	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
 		<div class="sticky-top">

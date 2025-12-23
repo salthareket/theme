@@ -4,7 +4,7 @@ add_action( 'acf/include_fields', function() {
         return;
     }
 
-    $regional_post_settings = SaltBase::get_cached_option("regional_post_settings");//get_field("regional_post_settings", "option");
+    $regional_post_settings = QueryCache::get_cached_option("regional_post_settings");//get_field("regional_post_settings", "option");
     if($regional_post_settings){
         $regional_post_types = array_map(function($item) {
             return $item["post_type"];
@@ -142,7 +142,7 @@ function regional_posts_prequery($query){
     }
 
     if(!is_admin() && $query->is_main_query() && ENABLE_REGIONAL_POSTS){
-        $regional_post_settings = SaltBase::get_cached_option("regional_post_settings");//get_field("regional_post_settings", "option");
+        $regional_post_settings = QueryCache::get_cached_option("regional_post_settings");//get_field("regional_post_settings", "option");
 
         $regional_post_types = array_map(function($item) {
             return $item["post_type"];
@@ -185,7 +185,7 @@ add_action("pre_get_posts", "regional_posts_prequery");
 function after_get_terms($terms, $taxonomies, $args, $term_query) {
     if(!is_admin() && ENABLE_REGIONAL_POSTS){
 
-        $regional_post_settings = SaltBase::get_cached_option("regional_post_settings");//get_field("regional_post_settings", "option");
+        $regional_post_settings = QueryCache::get_cached_option("regional_post_settings");//get_field("regional_post_settings", "option");
 
         $regional_taxonomies = array_map(function($item) {
             return $item["taxonomy"];

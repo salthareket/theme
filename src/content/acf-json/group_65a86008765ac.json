@@ -67,7 +67,10 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a86064769f8",
@@ -293,7 +296,10 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 }
             ]
         },
@@ -335,7 +341,10 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a86897eacbc",
@@ -354,7 +363,10 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 }
             ]
         },
@@ -396,7 +408,10 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a8693feacc1",
@@ -415,7 +430,10 @@
                     "default_value": "",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a8690beacbf",
@@ -434,7 +452,10 @@
                     "default_value": "",
                     "enable_opacity": 1,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a869afeacc5",
@@ -453,7 +474,10 @@
                     "default_value": "",
                     "enable_opacity": 1,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a8696deacc3",
@@ -472,7 +496,10 @@
                     "default_value": "",
                     "enable_opacity": 1,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65a86987eacc4",
@@ -491,7 +518,10 @@
                     "default_value": "",
                     "enable_opacity": 1,
                     "return_format": "string",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 }
             ]
         }
@@ -514,6 +544,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -521,7 +552,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184976,
+    "modified": 1763565743,
     "acfe_categories": {
         "general": "General"
     }

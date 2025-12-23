@@ -1311,7 +1311,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "kidsai": "Kidsai",
+                        "212outlet": "212outlet",
                         "twentytwentyfive": "Twenty Twenty-Five"
                     },
                     "default_value": "",
@@ -1481,14 +1481,16 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
-                "case-study": "Case Studies",
-                "event": "Events",
-                "package": "Packages",
-                "team": "Team",
-                "video": "Videos",
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
+                "acik-pozisyonlar": "Açık Pozisyonlar",
+                "duyurular": "Duyurular",
+                "etkinlikler": "Etkinlikler",
+                "kampanya": "Kampanyalar",
+                "katlar": "Katlar",
+                "magazalar": "Mağazalar",
+                "ulasim": "Ulaşım",
                 "contact": "Contacts",
                 "template": "Templates"
             },
@@ -1525,7 +1527,12 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
-                "team-role": "team-role",
+                "departman": "departman",
+                "duyuru-tipi": "duyuru-tipi",
+                "etkinlik-tipi": "etkinlik-tipi",
+                "hizmetler": "hizmetler",
+                "magaza-tipi": "magaza-tipi",
+                "ulasim-tipi": "ulasim-tipi",
                 "template-types": "template-types",
                 "contact-type": "contact-type"
             },
@@ -1790,7 +1797,8 @@
                     "toggle": 0,
                     "allow_custom": 0,
                     "other_choice": 0,
-                    "parent_repeater": "field_68e48315c0fc1"
+                    "parent_repeater": "field_68e48315c0fc1",
+                    "pll_default_value": []
                 },
                 {
                     "key": "field_68f6d3b16484b",
@@ -2043,7 +2051,6 @@
             "acfe_flexible_layouts_templates": 0,
             "acfe_flexible_layouts_placeholder": 0,
             "acfe_flexible_layouts_thumbnails": 0,
-            "acfe_flexible_layouts_settings": 0,
             "acfe_flexible_async": [],
             "acfe_flexible_add_actions": [],
             "acfe_flexible_remove_button": [],
@@ -2219,7 +2226,104 @@
             "button_label": "Satır ekle",
             "acfe_flexible_hide_empty_message": false,
             "acfe_flexible_empty_message": "",
-            "acfe_flexible_layouts_previews": false
+            "acfe_flexible_layouts_previews": false,
+            "acfe_flexible_modal_settings": {
+                "acfe_flexible_modal_settings_enabled": 0,
+                "acfe_flexible_modal_settings_size": "large",
+                "acfe_flexible_modal_settings_close": true,
+                "acfe_flexible_modal_settings_close_label": ""
+            },
+            "acfe_flexible_close_button_label": "",
+            "acfe_flexible_remove_top_actions": []
+        },
+        {
+            "key": "field_6920718b2a0d0",
+            "label": "Translatable Taxonomy and Post Types",
+            "name": "",
+            "aria-label": "",
+            "type": "message",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "new_lines": "wpautop",
+            "esc_html": 0
+        },
+        {
+            "key": "field_6920721f2a0d1",
+            "label": "Taxonomies",
+            "name": "untranslatable_taxonomies",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "acf-untranslatable-taxonomies",
+                "id": ""
+            },
+            "choices": {
+                "departman": "departman",
+                "duyuru-tipi": "duyuru-tipi",
+                "contact-type": "contact-type"
+            },
+            "default_value": "",
+            "return_format": "value",
+            "multiple": 1,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "translations": "sync",
+            "allow_null": 1,
+            "allow_in_bindings": 0,
+            "ui": 1,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_692075186efe9",
+            "label": "Post Types",
+            "name": "untranslatable_post_types",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "acf-untranslatable-post-types",
+                "id": ""
+            },
+            "choices": {
+                "acik-pozisyonlar": "acik-pozisyonlar",
+                "duyurular": "duyurular",
+                "katlar": "katlar",
+                "magazalar": "magazalar",
+                "contact": "contact",
+                "template": "template"
+            },
+            "default_value": "",
+            "return_format": "value",
+            "multiple": 1,
+            "translations": "sync",
+            "allow_null": 1,
+            "allow_in_bindings": 0,
+            "ui": 1,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": ""
         }
     ],
     "location": [
@@ -2241,14 +2345,14 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_display_title": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1762402737,
+    "modified": 1763928443,
     "acfe_categories": {
         "general": "General"
     }

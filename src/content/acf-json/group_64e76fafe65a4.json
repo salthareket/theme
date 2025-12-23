@@ -250,7 +250,10 @@
                     "enable_opacity": 1,
                     "return_format": "string",
                     "parent_repeater": "field_6424d80819fd5",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_65f961c1c7c79",
@@ -283,7 +286,10 @@
                     "enable_opacity": 1,
                     "return_format": "string",
                     "parent_repeater": "field_6424d80819fd5",
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_664bdc853519a",
@@ -1607,6 +1613,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -1614,7 +1621,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184976,
+    "modified": 1763565742,
     "acfe_categories": {
         "block": "Block"
     }

@@ -70,7 +70,6 @@ function typeahead(){
 				items : 5,
 				showHintOnFocus:false,
 				highlighter: function($text, $item){
-					debugJS($text, $item);
 					if(IsBlank(this.query)){
 						var template = "empty";
 					}else{
@@ -80,7 +79,6 @@ function typeahead(){
 							 template = "product";
 						}
 					}
-					debugJS(template)
 					return template_render(template, $item);
 				},
 				displayText: function($item){

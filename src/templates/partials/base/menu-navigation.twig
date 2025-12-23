@@ -8,7 +8,7 @@
 
 {% else %}
 
-<nav id="navigation" class="nav-item {{menu_class}} navbar-container h-100 justify-content-{{header_options.start.align}}">
+<nav id="navigation" role="navigation" class="nav-item {{menu_class}} navbar-container h-100 justify-content-{{header_options.start.align}}" aria-label="{{ translate("Menü") }}">
     <ul class="smartmenu navbar-nav-main nav navbar-nav--" data-sm-skip data-sm-skip-collapsible-behavior="true">
         {% include "navigation/menu.twig" with {'menu': get_menu(header_options.start.menu).get_items, 'parent_link' : header_options.start.parent_link} %}
     </ul>

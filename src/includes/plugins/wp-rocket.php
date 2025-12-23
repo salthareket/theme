@@ -178,3 +178,43 @@ if(!class_exists("WP_Rocket_Dynamic_Excludes")){
     }
     new WP_Rocket_Dynamic_Excludes(true);
 };
+
+/**
+ * WP Rocket Delay JS özelliğini kullanıcı etkileşimi olmadan 
+ * belirli bir süre sonra tetiklemek için kullanılan fonksiyon.
+ */
+add_action('wp_head', function() {
+    // 1. WP Rocket yüklü mü ve Delay JS özelliği aktif mi kontrol et
+    if ( function_exists('get_rocket_option') && get_rocket_option('js_defer') && get_rocket_option('js_defer') == "yes" ) {
+        ?>
+        <script id="wp-rocket-auto-trigger">
+            (function() {
+                // Ayarlanan süre (milisaniye cinsinden). 
+                // Örn: 3000 = 3 saniye. Çok düşük yaparsanız PageSpeed puanınız düşebilir.
+                var autoTriggerDelay = 3000; 
+
+                var triggerEvents = function() {
+                    // WP Rocket'ın dinlediği standart olayları taklit et
+                    // Çoğu sürüm için 'touchstart' veya 'mousemove' yeterlidir
+                    var eventNames = ['touchstart', 'mousemove', 'keydown', 'scroll'];
+                    
+                    eventNames.forEach(function(name) {
+                        window.dispatchEvent(new Event(name));
+                    });
+                    
+                    console.log('WP Rocket: JS yüklemesi zaman aşımı nedeniyle tetiklendi.');
+                };
+
+                // Sayfa yüklendikten sonra zamanlayıcıyı başlat
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(triggerEvents, autoTriggerDelay);
+                    });
+                } else {
+                    setTimeout(triggerEvents, autoTriggerDelay);
+                }
+            })();
+        </script>
+        <?php
+    }
+}, 1); // 1 önceliği ile head'in en üstüne eklemeye çalışır

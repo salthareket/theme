@@ -615,7 +615,7 @@ function my_acf_save_options_page( $post_id, $menu_slug ) {
 // store all notification events in a json filr
 function notifications_save_events() {
     $field_group = 'notifications';
-    $data = SaltBase::get_cached_option($field_group);
+    $data = QueryCache::get_cached_option($field_group);
     if(!$data){
     	return;
     }

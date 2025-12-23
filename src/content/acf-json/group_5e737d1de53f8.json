@@ -210,6 +210,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -217,7 +218,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184973,
+    "modified": 1763565730,
     "acfe_categories": {
         "general": "General"
     }

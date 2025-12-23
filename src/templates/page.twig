@@ -1,36 +1,36 @@
 {% extends "base.twig" %}
 
 {% set page_settings_default = {
-            full : true,
-            classes : {
-                body : (hero?"has-hero":""),
-                main : "",
-                container : "",
-                gap : ""
-            },
-            add_offcanvas : 0,
-            offcanvas : {
-                individual : false,
-                size : "md",
-                width : 3,
-                position : "start",
-                template : "",
-                title : "",
-            },
-            alert : {
-                type : "danger",
-                title : "",
-                message : "",
-                position : "top",
-                fixed : false,
-                class : "",
-                html : ""
-            },
-            paging : {
-                posts_per_page : 10,
-                page : 1
-            }
-        }
+    full : true,
+    classes : {
+        body : (hero?"has-hero":""),
+        main : "",
+        container : "",
+        gap : ""
+    },
+    add_offcanvas : 0,
+    offcanvas : {
+        individual : false,
+        size : "md",
+        width : 3,
+        position : "start",
+        template : "",
+        title : ""
+    },
+    alert : {
+        type : "danger",
+        title : "",
+        message : "",
+        position : "top",
+        fixed : false,
+        class : "",
+        html : ""
+    },
+    paging : {
+        posts_per_page : 10,
+        page : 1
+    }
+}
 %}
 {% if page_settings %}
    {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}

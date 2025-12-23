@@ -94,7 +94,7 @@ class FeaturedImage {
         return $featured_image_id;
     }
 
-    private function getImageField($media_field) {
+    /*private function getImageField($media_field) {
         if (!empty($media_field['image'])) {
             return $media_field['image'];
         }
@@ -104,11 +104,41 @@ class FeaturedImage {
         }
 
         return null;
+    }*/
+
+    private function getImageField($media_field) {
+        // 1. Ana Görsel Kontrolü
+        if (!empty($media_field['image'])) {
+            
+            // Burayı kontrol et: Gelen değer array ise ve ID içeriyorsa sadece ID'yi döndür.
+            if (is_array($media_field['image']) && isset($media_field['image']['ID'])) {
+                return $media_field['image']['ID']; // ARTIK SADECE ID DÖNDÜRÜLÜYOR
+            }
+            
+            // Eğer Image Return Format ID ise, zaten direkt ID dönecektir.
+            return $media_field['image'];
+        }
+
+        // 2. Responsive Görsel Kontrolü (Zaten ID'yi döndürüyor, doğru)
+        if (!empty($media_field['use_responsive_image']) && !empty($media_field['image_responsive']['url'])) {
+            return attachment_url_to_postid($media_field['image_responsive']['url']);
+        }
+
+        return null;
     }
 
     private function getGalleryField($media_field) {
-        if (!empty($media_field['gallery'])) {
+        /*if (!empty($media_field['gallery'])) {
             return $media_field['gallery'][0]; // İlk görseli al
+        }*/
+        if (!empty($media_field['gallery'])) {
+            $first_item = $media_field['gallery'][0]; 
+
+            if (is_array($first_item) && isset($first_item['ID'])) {
+                return $first_item['ID']; // Galeri nesnesinin ID'sini döndür
+            }
+
+            return $first_item; // ID olarak ayarlıysa ID'yi döndür
         }
 
         if (!empty($media_field['video_gallery'])) {

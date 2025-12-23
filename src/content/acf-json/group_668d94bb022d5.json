@@ -215,6 +215,9 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "'DIN'": "DIN Condensed Pro",
+                                "'pantheon'": "pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -301,7 +304,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381d823b57c",
@@ -320,7 +326,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381d613b579",
@@ -415,6 +424,9 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "'DIN'": "DIN Condensed Pro",
+                                "'pantheon'": "pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -501,7 +513,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381dcc3b583",
@@ -520,7 +535,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381e033b585",
@@ -539,7 +557,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         }
                     ]
                 },
@@ -600,6 +621,9 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "'DIN'": "DIN Condensed Pro",
+                                "'pantheon'": "pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -705,7 +729,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": 400
+                            "pll_default_value": "400"
                         },
                         {
                             "key": "field_66381e3b3b58a",
@@ -724,7 +748,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381e3b3b58b",
@@ -743,7 +770,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381e573b58d",
@@ -762,7 +792,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         }
                     ]
                 },
@@ -823,6 +856,9 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "'DIN'": "DIN Condensed Pro",
+                                "'pantheon'": "pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -928,7 +964,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": 400
+                            "pll_default_value": "400"
                         }
                     ]
                 },
@@ -989,6 +1025,9 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "'DIN'": "DIN Condensed Pro",
+                                "'pantheon'": "pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -1094,7 +1133,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": 400
+                            "pll_default_value": "400"
                         },
                         {
                             "key": "field_66381fdd3b599",
@@ -1113,7 +1152,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381fe83b59a",
@@ -1132,7 +1174,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_66381ff63b59b",
@@ -1151,7 +1196,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         }
                     ]
                 },
@@ -1211,7 +1259,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_6638204c3b59f",
@@ -1230,7 +1281,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         }
                     ]
                 },
@@ -1290,7 +1344,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_663820913b5a3",
@@ -1309,7 +1366,10 @@
                             "default_value": "",
                             "enable_opacity": 0,
                             "return_format": "string",
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         }
                     ]
                 }
@@ -1334,6 +1394,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -1341,7 +1402,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184993,
+    "modified": 1763565777,
     "acfe_categories": {
         "general": "General"
     }

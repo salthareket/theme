@@ -1,5 +1,5 @@
-<div class="{{header_options[position].class|replace({ '{{equalize}}' : equalize })}}">
-    <div class="navbar header-tools header-tools-{{position}} py-0 justify-content-{{position}}">
+<div class="{{header_options[position].class}}">
+    <div class="navbar header-tools header-tools-{{position}} py-0 justify-content-{{position}}" role="navigation" aria-label="Header Tools">
         <div class="nav-user nav flex-nowrap flex-row">
         {% for item in header_tools %}
             {{include(

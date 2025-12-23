@@ -5,7 +5,7 @@
   Icon: menu-alt3
   Keywords: accordion akordiyon collapse collapsible post link posts
   Mode: auto
-  Align: left
+  Align: 
   PostTypes: 
   SupportsAlign: left right center wide full
   SupportsAlignfields: true
@@ -93,16 +93,15 @@
                     {% endif %}
                 {% endif %}
 
-                        {% for item in items %}
-                            {% set add_item = true %}
-                            {% if item.id %}
-                               {% set item_id = item.id %}
-                               {% set add_item = item.id != post_id?true:false %}
-                            {% else %}
-                               {% set item_id = loop.index %}
-                            {% endif %}
-
-                            {% if add_item %}
+                {% for item in items %}
+                    {% set add_item = true %}
+                    {% if item.id %}
+                        {% set item_id = item.id %}
+                        {% set add_item = item.id != post_id?true:false %}
+                    {% else %}
+                        {% set item_id = loop.index %}
+                    {% endif %}
+                    {% if add_item %}
                                 {% set id = "posts-" ~ item_id ~ "-" ~ item_id|default(random(999999)) %}
                                 <div class="accordion-item {% if not fields.collapsible %}active{% endif %} {% if loop.index > 1 %}pt-3{% endif %}">
                                     <{{fields.heading}} class="accordion-header" id="heading-post-{{id}}">
@@ -124,13 +123,18 @@
                                         </div>
                                     </div>
                                 </div>
-                            {% endif %}
-                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
                        
-                {% if fields.categories and fields.collapsible_categories %}
+                {% if fields.categories %}
+                    {% if fields.collapsible_categories %}
                         </div>
                     </div>
                 </div>
+                </div>
+                   {% else %}
+               </{{fields.heading_category}}>
+                   {% endif %}
                 {% endif %}
             {% endfor %}
         </div>

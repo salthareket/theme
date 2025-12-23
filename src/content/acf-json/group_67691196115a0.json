@@ -133,7 +133,6 @@
             "acfe_flexible_layouts_templates": 0,
             "acfe_flexible_layouts_placeholder": 0,
             "acfe_flexible_layouts_thumbnails": 0,
-            "acfe_flexible_layouts_settings": 0,
             "acfe_flexible_async": [
                 "title",
                 "layout"
@@ -224,7 +223,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 },
                                 {
                                     "key": "field_685def389b31c",
@@ -326,7 +328,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 },
                                 {
                                     "key": "field_685df0ea1a06e",
@@ -390,7 +395,7 @@
                             "required": 0,
                             "conditional_logic": 0,
                             "wrapper": {
-                                "width": "23.4",
+                                "width": "26",
                                 "class": "",
                                 "id": ""
                             },
@@ -401,6 +406,57 @@
                             "placeholder": "",
                             "prepend": "",
                             "append": "",
+                            "pll_default_value": ""
+                        },
+                        {
+                            "key": "field_6924596a612bd",
+                            "label": "Add Link",
+                            "name": "add_link",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "25",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 0,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 0
+                        },
+                        {
+                            "key": "field_69245a39a9b79",
+                            "label": "Url",
+                            "name": "url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_6924596a612bd",
+                                        "operator": "==",
+                                        "value": "1"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
                             "pll_default_value": ""
                         },
                         {
@@ -595,7 +651,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 },
                                 {
                                     "key": "field_6866c468fbd85",
@@ -2071,12 +2130,13 @@
                             "required": 0,
                             "conditional_logic": 0,
                             "wrapper": {
-                                "width": "20",
+                                "width": "15",
                                 "class": "acf-template-custom",
                                 "id": ""
                             },
                             "choices": {
-                                "post\/tease": "Post Tease (Predefined)"
+                                "post\/tease": "Post Tease (Predefined)",
+                                "theme\/templates\/_custom\/slider-post": "slider-post"
                             },
                             "default_value": false,
                             "return_format": "value",
@@ -2087,11 +2147,38 @@
                             "ui": 0,
                             "ajax": 0,
                             "placeholder": "",
-                            "allow_custom": 0,
-                            "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
+                            "allow_custom": 0,
+                            "search_placeholder": "",
                             "pll_default_value": false
+                        },
+                        {
+                            "key": "field_69246cdb91990",
+                            "label": "Add Link",
+                            "name": "add_link",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "15",
+                                "class": "acf-template-custom",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 0,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "choices": {
+                                "post\/tease": "Post Tease (Predefined)",
+                                "theme\/templates\/_custom\/slider-post": "slider-post"
+                            },
+                            "pll_default_value": 0
                         },
                         {
                             "key": "field_676966ddd3262",
@@ -2187,7 +2274,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 1,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_676966ead3265",
@@ -2221,7 +2311,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 1,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_676916748e96d",
@@ -2527,7 +2620,15 @@
             "acfe_flexible_hide_empty_message": false,
             "acfe_flexible_empty_message": "",
             "acfe_flexible_layouts_previews": false,
-            "acfe_flexible_layouts_state": false
+            "acfe_flexible_layouts_state": false,
+            "acfe_flexible_modal_settings": {
+                "acfe_flexible_modal_settings_enabled": 0,
+                "acfe_flexible_modal_settings_size": "large",
+                "acfe_flexible_modal_settings_close": true,
+                "acfe_flexible_modal_settings_close_label": ""
+            },
+            "acfe_flexible_close_button_label": "",
+            "acfe_flexible_remove_top_actions": []
         }
     ],
     "location": [
@@ -2548,7 +2649,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "acfe_display_title": "",
+    "display_title": "",
     "acfe_autosync": [
         "json"
     ],
@@ -2556,7 +2657,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184998,
+    "modified": 1765378937,
     "acfe_categories": {
         "block": "Block"
     }

@@ -188,7 +188,7 @@
                 "id": ""
             },
             "choices": {
-                "1798": "KidsAI"
+                "3263": "212 Outlet"
             },
             "default_value": "",
             "return_format": "value",
@@ -249,8 +249,8 @@
                         "title-xxxl": "title-xxxl - 82px",
                         "text-xs": "text-xs - 14px",
                         "text-sm": "text-sm - 16px",
-                        "text-md": "text-md - 20px",
-                        "text-lg": "text-lg - 24px",
+                        "text-md": "text-md - 22px",
+                        "text-lg": "text-lg - 26px",
                         "text-xl": "text-xl - 32px",
                         "text-xxl": "text-xxl - 36px",
                         "text-xxxl": "text-xxxl - 42px"
@@ -289,7 +289,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 0,
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_66dd8b894b444",
@@ -310,7 +313,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 0,
-                    "pll_default_value": ""
+                    "pll_default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 }
             ]
         }
@@ -333,6 +339,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -340,7 +347,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759375309,
+    "modified": 1763565766,
     "acfe_categories": {
         "block": "Block"
     }

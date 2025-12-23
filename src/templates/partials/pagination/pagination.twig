@@ -1,7 +1,7 @@
 {% block pagination %}
 
-	<nav class="pagination-container">
-		<ul class="pagination">
+	<nav class="pagination-container" role="navigation" aria-label="{{ translate("Sayfalama") }}">
+		<ul class="pagination">type:{{ post_type }}
 
 		   {% if post_pagination[post_type].type in ["button", "scroll"] %}
 

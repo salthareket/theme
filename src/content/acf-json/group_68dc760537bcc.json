@@ -19,6 +19,9 @@
             "layout": "block",
             "acfe_seamless_style": 0,
             "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
                     "key": "field_68dc786a473f7",
@@ -45,7 +48,11 @@
                     "default_value": "",
                     "enable_opacity": 1,
                     "return_format": "string",
-                    "allow_in_bindings": 0
+                    "allow_in_bindings": 0,
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_68dc786a473f8",
@@ -70,7 +77,8 @@
                         "id": ""
                     },
                     "allow_in_bindings": 0,
-                    "default_value": ""
+                    "default_value": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_68dc786a473f9",
@@ -91,12 +99,10 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 }
-            ],
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large"
+            ]
         }
     ],
     "location": [
@@ -117,6 +123,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -124,7 +131,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759279582,
+    "modified": 1763565796,
     "acfe_categories": {
         "common": "Common"
     }

@@ -109,7 +109,7 @@
    </style>
 
    {% if fields.countries %}
-       <script >
+       <script type="text/javascript">
            var countries = {{ fields.countries|default("[]")|json_encode }};
            for (var key in countries) {
                var code = countries[key]["value"].toUpperCase();//.toLowerCase();

@@ -97,6 +97,15 @@ header#header {
                     height: var(--header-tools-height-affix);
                 }
             }
+            .navbar-brand {
+                svg.logo,
+                .logo-svg,
+                .logo,
+                .logo-affix {
+                    max-height: var(--header-height-affix);
+                }
+
+            }
         }
 
     &.fixed-bottom-start{
@@ -159,7 +168,8 @@ header#header {
         .logo {
             display: block;
             height: auto;
-            max-height: 100%;
+            min-height: 100%;
+            max-height: var(--header-height);
             width: auto;
             @include transition(max-height 0.3s ease-out, opacity 0.3s ease-out);
             object-fit: contain;    /* taşarsa kırpma yok */
@@ -168,6 +178,90 @@ header#header {
         .logo-affix,
         .logo-mobile {
             display:none;
+            
+        }
+        svg.logo,
+        .logo-svg,
+        .logo,
+        .logo-affix {
+            max-height: var(--header-height);
+        }
+    }
+
+    
+    .navbar-brand.has-logo-mobile[class*="logo-mobile-"]{
+        .logo:not(.logo-mobile),
+        .logo-svg:not(.logo-mobile){
+            display: none !important;
+        }
+        .logo-mobile {
+            display: block !important;
+        }   
+    }
+    @media (min-width: 576px) {
+        .navbar-brand.has-logo-mobile.logo-mobile-sm{
+            .logo:not(.logo-mobile),
+            .logo-svg:not(.logo-mobile){
+                display: block !important;
+            }
+            .logo-mobile {
+                display: none !important;
+            }
+        }
+    }
+    @media (min-width: 768px) {
+        .navbar-brand.has-logo-mobile.logo-mobile-md{
+            .logo:not(.logo-mobile),
+            .logo-svg:not(.logo-mobile){
+                display: block !important;
+            }
+            .logo-mobile {
+                display: none !important;
+            }
+        }
+    }
+    @media (min-width: 992px) {
+        .navbar-brand.has-logo-mobile.logo-mobile-lg{
+            .logo:not(.logo-mobile),
+            .logo-svg:not(.logo-mobile){
+                display: block !important;
+            }
+            .logo-mobile {
+                display: none !important;
+            }
+        }
+    }
+    @media (min-width: 1200px) {
+        .navbar-brand.has-logo-mobile.logo-mobile-xl{
+            .logo:not(.logo-mobile),
+            .logo-svg:not(.logo-mobile) {
+                display: block !important;
+            }
+            .logo-mobile {
+                display: none !important;
+            }
+        }
+    }
+    @media (min-width: 1400px) {
+        .navbar-brand.has-logo-mobile.logo-mobile-xxl{
+            .logo:not(.logo-mobile),
+            .logo-svg:not(.logo-mobile) {
+                display: block !important;
+            }
+            .logo-mobile {
+                display: none !important;
+            }
+        }
+    }
+    @media (min-width: 1600px) {
+        .navbar-brand.has-logo-mobile.logo-mobile-xxxl{
+            .logo:not(.logo-mobile),
+            .logo-svg:not(.logo-mobile) {
+                display: block !important;
+            }
+            .logo-mobile {
+                display: none !important;
+            }
         }
     }
 
@@ -796,7 +890,7 @@ header#header {
 @media (max-width: 991px) {
     header#header {
 
-        .navbar-brand{
+        /*.navbar-brand{
 
             &.has-logo-mobile{
                 .logo:not(.logo-mobile),
@@ -807,7 +901,7 @@ header#header {
                     display:block!important;
                 }
             }
-        }
+        }*/
 
         .navbar-container {
             height: 100%;
@@ -992,4 +1086,513 @@ header#header {
     padding-bottom: 1px;
     box-shadow: -3px 3px 0px 0px rgba(0, 0, 0, 0.05);
     z-index: 1;
+}
+
+
+
+.nav-toggler-custom {
+    $width: 40px;
+    $weight: 2px;
+    $top: -9px;
+    $bottom: -9px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $width;
+    height: $width;
+    background-color: transparent;
+
+    span {
+        background-color: var(--header-navbar-toggler-color);
+        position: absolute;
+        left: 0px;
+        right: 9px;
+        height: $weight;
+        z-index: 0;
+        border-radius: 4px;
+        @include transition(all .3s ease-out);
+
+        &:before {
+            content: "";
+            bottom: $bottom;
+            background-color: var(--header-navbar-toggler-color);
+            height: $weight;
+            left: 16px;
+            right: 0px;
+            position: absolute;
+            border-radius: 4px;
+            @include transition(all .3s ease-out);
+        }
+
+        &:after {
+            content: "";
+            top: $top;
+            background-color: var(--header-navbar-toggler-color);
+            height: $weight;
+            left: 8px;
+            right: 0px;
+            position: absolute;
+            border-radius: 4px;
+            @include transition(all .3s ease-out);
+        }
+    }
+
+    &:hover {
+        span {
+            background-color: var(--header-navbar-toggler-color-hover);
+
+            &:before {
+                background-color: var(--header-navbar-toggler-color-hover);
+            }
+
+            &:after {
+                background-color: var(--header-navbar-toggler-color-hover);
+            }
+        }
+    }
+
+    &.has-notification {
+        &:before {
+            content: "";
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            background-color: var(--notification-count-bg-color);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            z-index: 1;
+            @include transition(all .3s ease-out);
+        }
+
+        &:hover {
+            &:before {
+                //transform:scale(1.4);
+            }
+        }
+    }
+
+    &:hover {
+        span {
+            &:before {
+                left: 8px;
+            }
+
+            &:after {
+                left: 16px;
+            }
+        }
+    }
+}
+
+@mixin headerTheme($color:null, $colorActive:null, $bgColor:null, $logo:null, $colorAffix:null, $colorAffixActive:null, $bgColorAffix:null, $logoAffix:null, $z_index:null, $btnAffixReverse:false) {
+    header#header {
+        @if $z_index !=null {
+            z-index: $z_index;
+        }
+
+        @if $bgColor !=null {
+            background-color: $bgColor;
+        }
+
+        &:not(.affix) {
+
+            .navbar-brand {
+                .logo-svg {
+                    @if $logo !=null {
+                        @include svgColor($logo);
+                    }
+                }
+            }
+
+            @if $color !=null {
+
+                .header-tools {
+                    >.nav {
+                        >.nav-item {
+                            div:not(.navbar-container) {
+                                a:not(.btn) {
+                                    color: $color !important;
+
+                                    &:hover {
+                                        color: $color !important;
+
+                                        >i {
+                                            color: $color !important;
+                                        }
+                                    }
+
+                                    >i {
+                                        color: $color !important;
+                                    }
+                                }
+                            }
+
+                            .nav-toggler-custom {
+                                span {
+                                    background-color: $color;
+
+                                    &:before {
+                                        background-color: $color;
+                                    }
+
+                                    &:after {
+                                        background-color: $color;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                .navbar-container {
+                    .navbar-nav-main {
+                        >.nav-item {
+                            >a {
+                                color: $color;
+
+                                &:hover {
+                                    color: $color;
+                                }
+
+                                .sub-arrow,
+                                .caret {
+                                    &:after {
+                                        color: rgba($color, .6);
+                                    }
+                                }
+
+                                &.dropdown-toggle {
+                                    &:after {
+                                        color: rgba($color, .6);
+                                    }
+                                }
+                            }
+
+                            &.active {
+                                >a {
+                                    color: $color;
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+
+        &.affix {
+            @if $bgColorAffix !=null {
+                background-color: $bgColorAffix;
+            }
+
+            .navbar-brand {
+                .logo-svg {
+                    @if $logoAffix !=null {
+                        @include svgColor($logoAffix);
+                    }
+                }
+            }
+
+            @if $colorAffix !=null {
+
+                .header-tools {
+                    >.nav {
+                        >.nav-item {
+                            div:not(.navbar-container) {
+                                a:not(.btn) {
+                                    color: $colorAffix !important;
+
+                                    &:hover {
+                                        color: $colorAffix !important;
+
+                                        >i {
+                                            color: $colorAffix !important;
+                                        }
+                                    }
+
+                                    >i {
+                                        color: $colorAffix !important;
+                                    }
+                                }
+
+                                @if $bgColor !=$bgColorAffix and $btnAffixReverse==true {
+                                    a.btn {
+                                        @extend .btn-reverse;
+                                    }
+                                }
+
+                                @if $bgColor !=$bgColorAffix and $btnAffixReverse !=true {
+                                    a.btn {
+                                        &[class*=" btn-outline-"] {
+                                            @include button-outline-variant($colorAffix);
+                                        }
+
+                                        &:not([class*=" btn-outline-"]) {
+                                            @include button-variant($colorAffix, $colorAffix);
+                                        }
+                                    }
+                                }
+                            }
+
+                            .nav-toggler-custom {
+                                span {
+                                    background-color: $colorAffix;
+
+                                    &:before {
+                                        background-color: $colorAffix;
+                                    }
+
+                                    &:after {
+                                        background-color: $colorAffix;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                .navbar-container {
+                    .navbar-nav-main {
+                        >.nav-item {
+                            >a {
+                                color: $colorAffix;
+
+                                &:hover {
+                                    color: $colorAffix;
+                                }
+
+                                .sub-arrow,
+                                .caret {
+                                    &:after {
+                                        color: rgba($colorAffix, .6);
+                                    }
+                                }
+
+                                &.dropdown-toggle {
+                                    &:after {
+                                        color: rgba($colorAffix, .6);
+                                    }
+                                }
+                            }
+
+                            &.active {
+                                >a {
+                                    color: $colorAffix;
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+/*@import 'header-themes';*/
+
+body {
+    &.menu-open {
+        .nav-toggler-custom {
+            span {
+                background-color: rgba(var(--header-navbar-toggler-color-rgb), 0) !important;
+
+                &:before {
+                    bottom: 0;
+                    left: 0;
+                    transform: rotate(45deg);
+                    background-color: var(--primary-color) !important;
+                }
+
+                &:after {
+                    top: 0;
+                    left: 0;
+                    transform: rotate(-45deg);
+                    background-color: var(--primary-color) !important;
+                }
+            }
+
+            &:hover {
+                span {
+                    &:before {
+                        left: 8px;
+                        right: 8px;
+                    }
+
+                    &:after {
+                        left: 8px;
+                        right: 8px;
+                    }
+                }
+            }
+        }
+
+        &.menu-show-header {
+            @include headerTheme(#fff, #fff, transparent, #fff, #fff, #fff, transparent, #fff, 1046);
+
+            &.loading:not(.loaded) {
+                &:before {
+                    z-index: 1047;
+                }
+
+                &:after {
+                    z-index: 1048;
+                }
+            }
+
+            &.header-hide {
+                header#header {
+                    top: 0px !important;
+                }
+            }
+
+            header#header {
+                &:after {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+.dropdown {
+    &.dropdown-notifications {
+        &[data-type='account'] {
+            >a {
+                img {
+                    border: 2px solid #fff;
+                }
+            }
+        }
+    }
+}
+
+.nav-search {
+    .closed {
+        display: flex !important;
+    }
+
+    .opened {
+        display: none !important;
+    }
+}
+
+.menu-open {
+    .nav-search {
+        .closed {
+            display: none !important;
+            ;
+        }
+
+        .opened {
+            display: flex !important;
+        }
+    }
+}
+
+.search-open {
+    .nav-search {
+        .closed {
+            display: none !important;
+        }
+
+        .opened {
+            display: flex !important;
+        }
+    }
+}
+
+.nav-equal {
+    opacity: 0;
+    @include transition(opacity .3s ease-out);
+
+    +div {
+        opacity: 0;
+        @include transition(opacity .3s ease-out);
+    }
+
+    &.nav-equalized,
+    &.nav-equalized+div,
+    &.nav-equal-disabled,
+    &.nav-equal-disabled+div {
+        opacity: 1 !important;
+    }
+}
+
+header#header {
+
+    .logo,
+    .logo-svg {
+        //filter: drop-shadow(0px 2px 20px rgba(#000,.3));
+    }
+
+    .navbar-nav-main {
+        >li {
+            &.active {
+                >a {
+                    >span:not(.sub-arrow) {
+                        position: relative;
+
+                        &:after {
+                            content: "";
+                            position: absolute;
+                            left: 0;
+                            right: 0;
+                            bottom: -8px;
+                            height: 2px;
+                            background-color: var(--yellow);
+                            border-radius: 3px;
+                        }
+                    }
+                }
+            }
+
+            &:not(.active) {
+                >a {
+                    >span:not(.sub-arrow) {
+                        position: relative;
+
+                        &:after {
+                            content: "";
+                            position: absolute;
+                            left: 0;
+                            right: 0;
+                            bottom: -8px;
+                            height: 2px;
+                            background-color: #fff;
+                            border-radius: 3px;
+                            opacity: 0;
+                            @include transition(opacity .3s ease-out);
+                        }
+                    }
+
+                    &:hover {
+                        >span:not(.sub-arrow) {
+                            &:after {
+                                opacity: .6;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    &.affix {
+        .navbar-nav-main {
+            >li {
+                >a {
+                    >span:not(.sub-arrow) {
+                        position: relative;
+
+                        &:after {
+                            background-color: var(--yellow);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

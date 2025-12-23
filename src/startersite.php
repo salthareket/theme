@@ -85,7 +85,7 @@ class StarterSite extends Timber\Site{
         $context["home_title"] = get_the_title(get_option("page_on_front"));
         $context["current_page_type"] = get_current_page_type();
         $context["page_type"] = get_page_type();
-        
+
         // contacts
         if(function_exists("acf_get_contacts")){
             $contact_main = acf_get_contacts("main");
@@ -94,19 +94,22 @@ class StarterSite extends Timber\Site{
         }
            
         // logo
-        $logo = SaltBase::get_cached_option("logo");//get_field("logo", "option");
+        $logo = QueryCache::get_cached_option("logo");//get_field("logo", "option");
         $context["logo"] = $logo;
 
-        $logo_affix = SaltBase::get_cached_option("logo_affix");//get_field("logo_affix", "option");
+        $logo_affix = QueryCache::get_cached_option("logo_affix");//get_field("logo_affix", "option");
         $context["logo_affix"] = $logo_affix;
 
-        $logo_mobile = SaltBase::get_cached_option("logo_mobile");//get_field("logo_mobile", "option");
+        $logo_mobile = QueryCache::get_cached_option("logo_mobile");//get_field("logo_mobile", "option");
         $context["logo_mobile"] = $logo_mobile;
 
-        $logo_footer = SaltBase::get_cached_option("logo_footer");//get_field("logo_footer", "option");
+        $logo_mobile_breakpoint = QueryCache::get_cached_option("logo_mobile_breakpoint");//get_field("logo_mobile_breakpoint", "option");
+        $context["logo_mobile_breakpoint"] = $logo_mobile_breakpoint;
+
+        $logo_footer = QueryCache::get_cached_option("logo_footer");//get_field("logo_footer", "option");
         $context["logo_footer"] = $logo_footer;
 
-        $logo_icon = SaltBase::get_cached_option("logo_icon");//get_field("logo_icon", "option");
+        $logo_icon = QueryCache::get_cached_option("logo_icon");//get_field("logo_icon", "option");
         $context["logo_icon"] = $logo_icon;
         
         if(!is_admin() && class_exists("ACF") && !$ajax_process){
@@ -228,6 +231,68 @@ class StarterSite extends Timber\Site{
             }
 
             $page_settings = array();
+
+            if (is_tax() || is_product_tag() || is_tag() || is_category()) {
+                $queried_object = get_queried_object();
+                if ($queried_object && is_a($queried_object, 'WP_Term')) {
+                    $term_id = $queried_object->term_id;
+                    $taxonomy_slug = $queried_object->taxonomy;
+                    $page_settings = array(); // Lokal ayar değişkeni
+                    $settings_found = false;
+                    if (is_tax() || is_product_tag()) {
+                        $acf_term_id_format = $taxonomy_slug . '_' . $term_id;
+                        $custom_settings = get_field('custom_settings', $acf_term_id_format);
+                        if ($custom_settings) {
+                            $page_settings = get_field('page_settings', $acf_term_id_format);
+                            $settings_found = true;
+                        }
+                    }
+                    if (!$settings_found) {
+                        $prefix = "tax_" . $taxonomy_slug;
+                        if (is_tag()) $prefix = "tax_post_tag"; // ACF, Tag Options için genellikle tax_post_tag kullanır
+                        if (is_category()) $prefix = "tax_category"; // ACF, Category Options için genellikle tax_category kullanır
+                        $custom_settings = get_field('custom_settings', $prefix.'_options');
+                        if($custom_settings){
+                            $page_settings = get_field('page_settings', $prefix.'_options');
+                            $settings_found = true;
+                        }
+                    }
+                    if ($settings_found && $page_settings) {
+                        $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
+                        $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
+                        $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
+                        if($page_settings["add_offcanvas"]){
+                            $page_settings["offcanvas"]["id"] = $term_id; // Term ID'yi kullan
+                            if(!empty($page_settings["offcanvas"]["filter_preset"])){
+                                $preset_id = slug2Id($page_settings["offcanvas"]["filter_preset"]);
+                                $preset_layout = get_post_meta($preset_id, "_layout", true);
+                                $page_settings["offcanvas"]["layout"] = $preset_layout;
+                                $page_settings["offcanvas"]["id"] = get_queried_object_id(); 
+                            }
+                        }
+                        $context["page_settings"] = $page_settings;
+                    }
+                }
+            }
+
+            if (is_post_type_archive()) {
+                global $wp_query;
+                $post_type = $wp_query->query_vars['post_type'] ?? null;
+                if ($post_type) {
+                    $custom_settings = get_field('custom_settings', $post_type.'_options');
+                    if($custom_settings){
+                        $page_settings = get_field('page_settings', $post->post_type.'_options');
+                        $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
+                        $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
+                        $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
+                        if($page_settings["add_offcanvas"] && !$page_settings["offcanvas"]["archive"]){
+                            unset($page_settings["offcanvas"]);
+                        }
+                        $context["page_settings"] = $page_settings;
+                    }
+                }
+            }
+
             if($post){
                 if($post->post_type == "page"){
                     if($post->meta("custom_settings")){
@@ -247,77 +312,34 @@ class StarterSite extends Timber\Site{
                        }
                        $context["page_settings"] = $page_settings;
                     }
-                }else{
-                    if(is_post_type_archive()){
-                        $custom_settings = get_field('custom_settings', $post->post_type.'_options');
-                        if($custom_settings){
-                           $page_settings = get_field('page_settings', $post->post_type.'_options');
-                           $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
-                           $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
-                           $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
-                           if($page_settings["add_offcanvas"] && !$page_settings["offcanvas"]["archive"]){
-                              unset($page_settings["offcanvas"]);
-                           }
-                           $context["page_settings"] = $page_settings;
+                }else if(is_single()){
+                    if($post->meta("custom_settings")){
+                        $page_settings = $post->meta("page_settings");
+                        $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
+                        $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
+                        $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
+                        if($page_settings["add_offcanvas"] && $page_settings["offcanvas"]["single"]){
+                            $context["page_settings_offcanvas"] =  array("add_offcanvas" => true, "offcanvas" => $page_settings["offcanvas"]);
                         }
-                    }
-                    if(is_single()){
-                        if($post->meta("custom_settings")){
-                           $page_settings = $post->meta("page_settings");
-                           $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
-                           $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
-                           $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
-                           if($page_settings["add_offcanvas"] && $page_settings["offcanvas"]["single"]){
-                              $context["page_settings_offcanvas"] =  array("add_offcanvas" => true, "offcanvas" => $page_settings["offcanvas"]);
-                           }
-                           $context["page_settings"] = $page_settings;
+                        $context["page_settings"] = $page_settings;
+                    }else{
+                        $post_id = $post->post_type.'_options';
+                        if(ENABLE_MULTILANGUAGE == "polylang"){
+                            $post_id .= '_'.pll_default_language( 'locale' );
                         }
-                    }
-                    if(is_tag() || is_category()){
-                        $prefix = is_tag()?"tax_post_tag":"tax_category";
-                        $custom_settings = get_field('custom_settings',  $prefix.'_options');
+                        $custom_settings = get_field('custom_settings', $post_id);
                         if($custom_settings){
-                            $page_settings = get_field('page_settings',  $prefix.'_options');
+                            $page_settings = get_field('page_settings', $post_id);
                             $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
                             $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
                             $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
-                            if($page_settings["add_offcanvas"]){
-                                $page_settings["offcanvas"]["id"] = $post->ID;
-                                if(!empty($page_settings["offcanvas"]["filter_preset"])){
-                                   $preset_id = slug2Id($page_settings["offcanvas"]["filter_preset"]);
-                                   $preset_layout = get_post_meta($preset_id, "_layout", true);
-                                   $page_settings["offcanvas"]["layout"] = $preset_layout;
-                                   $page_settings["offcanvas"]["id"] = get_queried_object_id();
-                                }
+                            if($page_settings["add_offcanvas"] && !$page_settings["offcanvas"]["archive"]){
+                              //unset($page_settings["offcanvas"]);
                            }
                            $context["page_settings"] = $page_settings;
                         }
                     }
-                    if(is_tax() || is_product_tag()){
-                        global $wp_query;
-                        $query_vars = $wp_query->query_vars;
-                        if(array_key_exists("taxonomy", $query_vars)){
-                           $taxonomy = $query_vars['taxonomy'];
-                        }
-                        $custom_settings = get_field('custom_settings',  'tax_'.$taxonomy.'_options');
-                        if($custom_settings){
-                            $page_settings = get_field('page_settings',  'tax_'.$taxonomy.'_options');
-                            $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
-                            $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
-                            $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
-                            if($page_settings["add_offcanvas"]){
-                                $page_settings["offcanvas"]["id"] = $post->ID;
-                                if(!empty($page_settings["offcanvas"]["filter_preset"])){
-                                   $preset_id = slug2Id($page_settings["offcanvas"]["filter_preset"]);
-                                   $preset_layout = get_post_meta($preset_id, "_layout", true);
-                                   $page_settings["offcanvas"]["layout"] = $preset_layout;
-                                   $page_settings["offcanvas"]["id"] = get_queried_object_id();
-                                }
-                           }
-                           $context["page_settings"] = $page_settings;
-                        }
-                    }
-                }            
+                }
             }
 
             $current_url = current_url();
@@ -443,7 +465,7 @@ class StarterSite extends Timber\Site{
                         'paged' => $paged,
                         "posts_per_page" => $block_search_results_posts_per_page,
                     );
-                    $posts = SaltBase::get_cached_query($args);
+                    $posts = QueryCache::get_cached_query($args);
                     $posts = Timber::get_posts($args);
                     $context['posts'] = $posts;
                     $found_posts = $posts->found_posts;
@@ -510,7 +532,7 @@ class StarterSite extends Timber\Site{
             $folder = explode("/", $file);
             if($folder){
                 $folder = $folder[0];
-                // woocommerce akrif ve urun tease template ise col ekelem, cunku default olarak var.
+                // woocommerce aktif ve urun tease template ise col ekelem, cunku default olarak var.
                 if(!(ENABLE_ECOMMERCE && $folder == "product")){ 
                     $post_types = $data["post_pagination"];
                     if($post_types){

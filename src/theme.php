@@ -66,9 +66,6 @@ Class Theme{
             add_filter('woocommerce_template_path', [$this, 'wc_custom_template_path']);
             //add_filter('woocommerce_locate_template', [$this, 'wc_multiple_template_paths'], 10, 3);  
         }
-
-
-        
         
         if(is_admin()){
             add_action('admin_init', [$this, 'site_config_js'], 20 );   
@@ -443,7 +440,7 @@ Class Theme{
 
         // post pagination settings
         //if(function_exists('get_field')){
-            $post_pagination = \SaltBase::get_cached_option("post_pagination");//get_field("post_pagination", "option");//
+            $post_pagination = \QueryCache::get_cached_option("post_pagination");//get_field("post_pagination", "option");//
         //}else{
             //$post_pagination = get_option("options_post_pagination");
         //}
@@ -467,7 +464,7 @@ Class Theme{
 
         // search pagination settings
         //if(function_exists('get_field')){
-            $search_pagination = \SaltBase::get_cached_option("search_pagination");//get_field("search_pagination", "option");//
+            $search_pagination = \QueryCache::get_cached_option("search_pagination");//get_field("search_pagination", "option");//
         //}else{
             //$search_pagination = get_option("options_search_pagination");
         //}
@@ -642,7 +639,7 @@ Class Theme{
 
                                     // Eğer taxonomy prefix kaldırılmışsa
                                     $taxonomy_slug = $taxonomy . "/";
-                                    $taxonomy_prefix_remove = \SaltBase::get_cached_option("taxonomy_prefix_remove");
+                                    $taxonomy_prefix_remove = \QueryCache::get_cached_option("taxonomy_prefix_remove");
                                     if ($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)) {
                                         $taxonomy_slug = "";
                                     }
@@ -930,17 +927,17 @@ Class Theme{
                 "lcp" => []
             ];
 
-            if(!$site_assets && !isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS)){
+            if(!$site_assets && !isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS) && class_exists("PageAssetsExtractor")){
                 //error_log(print_r($site_assets, true));
                 error_log("3. site assets META IN DB IS EMPTY -> REGENERATE");
                 $meta = self::get_meta();
                 if($meta["type"] == "post"){
                     //$site_assets = $GLOBALS["salt"]->extractor->on_save_post($meta["id"], [], false);
-                    $site_assets = PageAssetsExtractor::get_instance()->on_save_post($meta["id"], [], false);;
+                    $site_assets = \PageAssetsExtractor::get_instance()->on_save_post($meta["id"], [], false);
                 }
                 if($meta["type"] == "term"){
                     //$site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
-                    $site_assets = PageAssetsExtractor::get_instance()->on_save_term($meta["id"], "", $meta["tax"]);
+                    $site_assets = \PageAssetsExtractor::get_instance()->on_save_term($meta["id"], "", $meta["tax"]);
                 }
             }
 

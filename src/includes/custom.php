@@ -10,7 +10,12 @@ class SaltBase{
     public $user;
     public $localization;
     public $search_history;
-    public $extractor;
+    //public $extractor;
+
+    // Cache'i kontrol etmek için özel bir placeholder tanımla
+    const CACHE_PLACEHOLDER = 'SALT_EMPTY_VALUE';
+    const CACHE_LIFETIME = MONTH_IN_SECONDS; // Cache süresi 1 yıl yerine 1 ay
+
     private static $already_ran = false;
 
     private static $instance;
@@ -54,24 +59,6 @@ class SaltBase{
             add_action('template_redirect', [ $this,'redirect_to_profile' ]);
         }
 
-        
-        /*add_action( 'user_register', array( $this, 'send_activation' ), 10, 1 );
-        add_action( 'woocommerce_created_customer', array( $this, 'send_activation' ), 10, 1 );
-        add_action( 'register_new_user', array( $this, 'send_activation' ), 10, 1 );*/
-        //add_filter('acf/settings/row_index_offset', '__return_zero');//'__return_zero');
-
-        //hide fields from admin profile page
-        if(ENABLE_ECOMMERCE){
-            //add_action( 'init', 'hide_admin_shipping_details' );
-            //add_action('admin_head','hide_personal_options');
-            //add_filter('user_contactmethods', 'hide_contact_methods');
-            //add_action( 'personal_options', array ( 'hide_biography', 'start' ) );
-        }
-        if (defined("WPSEO_FILE")) {
-            //add_action('admin_head', 'hide_yoast_profile');
-        }
-        //remove_action( 'admin_color_scheme_picker', 'admin_color_scheme_picker' );
-
         //post types save event
         if (has_action('save_post', [ $this, 'on_post_published' ])) {
             remove_action('save_post', [ $this, 'on_post_published' ], 100);
@@ -83,14 +70,6 @@ class SaltBase{
 
         add_action('created_term', [$this, 'on_term_published'], 10, 3);
         add_action('edited_term', [$this, 'on_term_published'], 10, 3);
-
-        // unseen tour count to admin menu
-        //add_action( 'load-post.php', 'custom_content_conversion' );
-
-        // send notification mail to receiver on sent a message
-        /*if (class_exists("Redq_YoBro")) {
-            add_filter('yobro_after_store_message', [ $this, 'after_store_new_message' ]);
-        }*/
 
         // user
         if(ENABLE_ECOMMERCE){
@@ -104,16 +83,7 @@ class SaltBase{
         add_action( 'before_delete_post', [ $this,'on_post_delete'], 10, 1 );
         add_action( 'delete_user', [ $this,'on_user_delete'], 10 );
         add_action( 'shutdown', [ $this,'delete_session_data']);
-        
-        //scripts
-        if(!is_admin()){
-            //add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
-        }else{
-            add_filter('acf/update_value', [$this, 'clear_cached_option'], 10, 3);
-            //add_action('admin_init', [$this, 'site_config_js'], 20 );       
-        }
 
-        //add_action('wp_footer', [$this, 'add_page_assets']);
         if (class_exists('Timber\Timber')) {
             if($user){
                $this->user = Timber\Timber::get_user($user);//wp_get_current_user();//new User($user);
@@ -130,21 +100,14 @@ class SaltBase{
             $this->localization = [];
         }
         
-        //if(is_admin()){
-        //    $extractor = new PageAssetsExtractor();
-        //    $this->extractor = $extractor;            
-        //}
-
         if(defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY){
             $search_history = new SearchHistory();
             $this->search_history = $search_history;            
         }
 
         $timezone = $this->user->get_timezone();
-
         if($timezone){
             if(strpos($timezone, "/") > 0){
-                //print_r($timezone);
                 date_default_timezone_set($timezone);
             }
         }
@@ -164,60 +127,6 @@ class SaltBase{
         );
     }
 
-    public static function get_cached_query($args = []) {
-        $cache_key = 'custom_query_' . md5(serialize($args));
-        //delete_transient('custom_query_' . md5(serialize($args)));
-        $cached_data = get_transient($cache_key);
-        if (false === $cached_data) {
-            $query = new WP_Query($args);
-            $cached_data = $query;
-            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS); // 1 saat cache
-        }
-        return $cached_data;
-    }
-
-    public static function get_cached_posts($args = []) {
-        $cache_key = 'custom_query_' . md5(serialize($args));
-        //delete_transient('custom_query_' . md5(serialize($args)));
-        $cached_data = get_transient($cache_key);
-        if (false === $cached_data) {
-            $query = new WP_Query($args);
-            $cached_data = $query->posts;
-            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS); // 1 saat cache
-        }
-        return $cached_data;
-    }
-
-    public static function get_cached_option($key) {
-        $cache_key = 'acf_option_' . $key;
-        $cached_value = get_transient($cache_key);
-
-        if ($cached_value !== false) {
-            return $cached_value;
-        }
-
-        $value = null; // 🟢 Başta tanımla
-
-        if (function_exists("get_field")) {
-            $value = get_field($key, 'option'); // ACF Option’dan veriyi çek
-        }
-
-        set_transient($cache_key, $value, YEAR_IN_SECONDS); // 1 yıl boyunca sakla
-
-        return $value;
-    }
-
-
-    public function clear_cached_option($value, $post_id, $field) {
-        if ($post_id !== 'options') return $value;
-        $cache_key = 'acf_option_' . $field['name'];
-        //error_log("deleting: ".$cache_key); 
-        delete_transient($cache_key); // Sadece ilgili option’ın cache’ini sil
-        //error_log("-----------------------------------");
-        return $value;
-    }
-
-    
     public function on_post_pre_update($data){
         /*if($data["post_type"] == "page"){
            $menu_order = wp_count_posts("page")->publish;
@@ -242,10 +151,6 @@ class SaltBase{
                 return;
             }
 
-        remove_action('save_post', [ $this, 'on_post_published'], 100);
-        remove_action('save_post_product', [ $this, 'on_post_published'], 100);
-        remove_action('publish_post', [ $this, 'on_post_published'], 100);
-
         if (
             defined('DOING_AJAX') && DOING_AJAX &&
             (!isset($GLOBALS['salt_ai_doing_translate']) || !$GLOBALS['salt_ai_doing_translate'])
@@ -266,6 +171,10 @@ class SaltBase{
         if ( get_post_status( $post_id ) !== 'publish' ) {
             return;
         }
+
+        remove_action('save_post', [ $this, 'on_post_published'], 100);
+        remove_action('save_post_product', [ $this, 'on_post_published'], 100);
+        remove_action('publish_post', [ $this, 'on_post_published'], 100);
 
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
@@ -311,7 +220,7 @@ class SaltBase{
                 error_log("🔹 $function çağırdı --> Dosya: $file - Satır: $line");
             }*/
 
-            $extractor = PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
+            $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_post($post_id, $post, $update);
 
             // post'un featured image'ının alt text'i eklenmemişse post'un title'ını alt text olarak kaydet.
@@ -325,8 +234,8 @@ class SaltBase{
             }
             
             self::$already_ran = false; // İşlem tamamlandı, flag'i sıfırla
-            
         }
+
         add_action('save_post', [ $this, 'on_post_published'], 100, 3);
         add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
         add_action('publish_post', [ $this, 'on_post_published'], 100, 3); 

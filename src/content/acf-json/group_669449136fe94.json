@@ -36,7 +36,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": "xl"
         },
         {
             "key": "field_66944a4f97910",
@@ -69,7 +70,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": "top"
         },
         {
             "key": "field_66944a7797911",
@@ -90,7 +92,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_68082e4e319ef",
@@ -111,7 +114,8 @@
             "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         },
         {
             "key": "field_66944ac497912",
@@ -157,7 +161,8 @@
             "create_options": 0,
             "save_options": 0,
             "allow_custom": 0,
-            "search_placeholder": ""
+            "search_placeholder": "",
+            "pll_default_value": "default"
         },
         {
             "key": "field_66944ae597913",
@@ -5067,7 +5072,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1760402610,
+    "modified": 1763565778,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

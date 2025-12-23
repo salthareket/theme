@@ -42,8 +42,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "'avenir'": "Avenir",
-                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
+                        "'DIN'": "DIN Condensed Pro",
+                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -98,8 +98,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "'avenir'": "Avenir",
-                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
+                        "'DIN'": "DIN Condensed Pro",
+                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -219,7 +219,7 @@
                     "save_options": 0,
                     "allow_custom": 0,
                     "search_placeholder": "",
-                    "pll_default_value": 400
+                    "pll_default_value": "400"
                 },
                 {
                     "key": "field_686bfc9bdd978",
@@ -332,8 +332,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "'avenir'": "Avenir",
-                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
+                        "'DIN'": "DIN Condensed Pro",
+                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -390,8 +390,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "'avenir'": "Avenir",
-                        "'ibrand', Arial, Helvetica, sans-serif": "ibrand",
+                        "'DIN'": "DIN Condensed Pro",
+                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -466,7 +466,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 1,
-                    "pll_default_value": "#111"
+                    "pll_default_value": "#111",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_68dc32da98a52",
@@ -485,7 +488,11 @@
                     "default_value": "#111",
                     "enable_opacity": 0,
                     "return_format": "string",
-                    "allow_in_bindings": 1
+                    "allow_in_bindings": 1,
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": "#111"
                 },
                 {
                     "key": "field_660e7f6b9ee6f",
@@ -506,7 +513,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 1,
-                    "pll_default_value": "#fff"
+                    "pll_default_value": "#fff",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 },
                 {
                     "key": "field_660e7f819ee70",
@@ -527,7 +537,10 @@
                     "return_format": "string",
                     "translations": "sync",
                     "allow_in_bindings": 1,
-                    "pll_default_value": "#000"
+                    "pll_default_value": "#000",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true
                 }
             ]
         }
@@ -550,6 +563,7 @@
     "active": false,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -557,7 +571,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759261430,
+    "modified": 1763565768,
     "acfe_categories": {
         "general": "General"
     }

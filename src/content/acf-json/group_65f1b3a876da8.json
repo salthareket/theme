@@ -462,7 +462,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 },
                                 {
                                     "key": "field_671baf49b7144",
@@ -483,7 +486,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 }
                             ]
                         },
@@ -527,7 +533,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 },
                                 {
                                     "key": "field_671baf49b7147",
@@ -548,7 +557,10 @@
                                     "return_format": "string",
                                     "translations": "sync",
                                     "allow_in_bindings": 0,
-                                    "pll_default_value": ""
+                                    "pll_default_value": "",
+                                    "custom_palette_source": "",
+                                    "palette_colors": "",
+                                    "show_color_wheel": true
                                 }
                             ]
                         }
@@ -621,6 +633,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -629,7 +642,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184978,
+    "modified": 1763565746,
     "acfe_categories": {
         "block": "Block"
     }

@@ -157,7 +157,6 @@
                 "\/partials\/modals\/modal-blocks": "modal-blocks",
                 "\/partials\/modals\/modal-chat-body": "modal-chat-body",
                 "\/partials\/modals\/modal-chat": "modal-chat",
-                "\/partials\/modals\/modal-daireler": "modal-daireler",
                 "\/partials\/modals\/modal-home": "modal-home",
                 "\/partials\/modals\/modal-iframe": "modal-iframe",
                 "\/partials\/modals\/new-message": "new-message"
@@ -633,10 +632,18 @@
                 "id": ""
             },
             "choices": {
-                "post": "Posts",
-                "page": "Pages",
-                "attachment": "Media",
-                "contact": "Contacts"
+                "post": "Yazılar",
+                "page": "Sayfalar",
+                "attachment": "Ortam",
+                "acik-pozisyonlar": "Açık Pozisyonlar",
+                "duyurular": "Duyurular",
+                "etkinlikler": "Etkinlikler",
+                "kampanya": "Kampanyalar",
+                "katlar": "Katlar",
+                "magazalar": "Mağazalar",
+                "ulasim": "Ulaşım",
+                "contact": "Contacts",
+                "template": "Templates"
             },
             "default_value": "",
             "return_format": "value",
@@ -672,6 +679,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -682,5 +690,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1759184973
+    "modified": 1763565729
 }

@@ -43,7 +43,256 @@ add_filter( 'timber/acf-gutenberg-blocks-preview-identifier', function( $sufix )
 
 
 
-function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4x3"], $gap=3, $class="") {
+
+
+/**
+ * Tek bir galeri öğesinin (resim/video) HTML'ini oluşturur.
+ *
+ * @param array $imageData Mevcut resim/video verileri.
+ * @param string $ratioClass Bootstrap 'ratio ratio-X' sınıfı.
+ * @param string $extraClass Medya öğesi için ek CSS sınıfları.
+ * @param string $videoViewType Video görünüm modu ('image' için poster, 'video' için oynatıcı).
+ * @param bool $lightbox LightGallery entegrasyonu aktif mi.
+ * @return string Oluşturulan HTML.
+ */
+function _generate_gallery_item_html(array $imageData, string $ratioClass, string $extraClass, string $videoViewType, bool $lightbox): string {
+    $mediaHtml = '';
+    $mediaClass = 'img-fluid object-fit-cover object-position-center ' . $extraClass;
+    
+    // 1. Medya İçeriğini Oluşturma
+    if ($imageData['type'] === 'image' && ($imageData['img-src'] ?? false)) {
+        // Resim içeriği
+        $args = [
+            "src" => $imageData["id"] ?? null,
+            "class" => $mediaClass,
+            "preview" => is_admin(),
+            "attrs" => [],
+        ];
+        $mediaHtml = get_image_set($args);
+        
+    } elseif (in_array($imageData['type'], ["file", "embed"])) {
+        // Video/Dosya içeriği
+        if ($videoViewType === "video") {
+            // Tam video oynatıcı (get_video() çağrılır)
+            $videoArgs = [
+                "video_type" => $imageData["type"],
+                "video_settings" => [
+                    "videoBg" => 1, "autoplay" => 0, "loop" => 0, "muted" => 0, "videoReact" => 1,
+                    "controls" => 1, "controls_options" => ["play-large"], "controls_options_settings" => [],
+                    "controls_hide" => 0, "ratio" => "", "custom_video_image" => "",
+                    "video_image" => $imageData["poster"] ?? null, "vtt" => ""
+                ],
+            ];
+            $videoDataKey = ($imageData["type"] == "file") ? "video_file" : "video_url";
+            $videoArgs[$videoDataKey] = ($imageData["type"] == "file") 
+                ? ["desktop" => $imageData["src"] ?? null] 
+                : $imageData["src"] ?? null;
+            
+            $mediaHtml = get_video([
+                "src" => $videoArgs, "class" => $extraClass, "init" => true, "lazy" => true, "attrs" => []
+            ]);
+            
+        } else {
+            // Poster resmi (Lightbox etkinse veya video_view_type 'image' ise)
+            $args = [
+                "src" => $imageData["poster"] ?? null,
+                "class" => $mediaClass,
+                "preview" => is_admin(),
+                "attrs" => []
+            ];
+            $mediaHtml = get_image_set($args);
+        }
+    }
+
+    if (empty($mediaHtml)) {
+        return ''; // Gerekli veri yoksa hiçbir şey döndürme.
+    }
+
+    // 2. Kapsayıcı Etiketleri ve Öznitelikleri Oluşturma
+    $tag = $lightbox ? 'a' : 'div';
+    $attrs = ' class="col ' . ($lightbox ? 'gallery-item' : '') . '"';
+    $href = '';
+    $dataAttrs = '';
+
+    if ($lightbox) {
+        if ($imageData['type'] === 'image') {
+            $href = ' href="' . esc_url($imageData['img-src'] ?? '#') . '"';
+        } elseif ($imageData['type'] !== 'image' && $videoViewType === 'image') {
+            // Video/File için Lightbox data öznitelikleri
+            $href = ' href="#"';
+            $dataAttrs .= ' data-lg-size="' . esc_attr($imageData['lg-size'] ?? '') . '"';
+            $dataAttrs .= ' data-src="' . esc_attr($imageData['src'] ?? '') . '"';
+            $dataAttrs .= ' data-poster="' . esc_attr($imageData['poster'] ?? '') . '"';
+            $dataAttrs .= ' data-sub-html="' . esc_attr($imageData['sub-html'] ?? '') . '"';
+        }
+    }
+    
+    // 3. Nihai HTML çıktısı
+    return sprintf(
+        '<%1$s%2$s%3$s%4$s><div class="%5$s">%6$s</div></%1$s>',
+        $tag, // %1$s: a veya div
+        $href, // %2$s: href özniteliği
+        $dataAttrs, // %3$s: data öznitelikleri
+        $attrs, // %4$s: class özniteliği
+        $ratioClass, // %5$s: ratio class
+        $mediaHtml // %6$s: Medya içeriği
+    );
+}
+/**
+ * Rastgele sütun sayıları ve en boy oranları ile Bootstrap ızgara galerisi oluşturur.
+ */
+function block_gallery_pattern_random(
+    array $images, 
+    int $maxCol, 
+    string $breakpoint, 
+    array $ratios = ["4x3"], 
+    int $gap = 3, 
+    string $class = "", 
+    ?string $video_view_type = "image", 
+    bool $lightbox = false
+): string {
+
+    if (empty($video_view_type)) {
+        $video_view_type = "image";
+    }
+
+    $htmlOutput = '';
+    $index = 0;
+    $totalImages = count($images);
+    
+    // Girdi sadeleştirme ve değişken tanımlama
+    $ratios = empty($ratios) ? ["4x3"] : $ratios;
+    $numRatios = count($ratios);
+    $gapClass = sprintf('gx-%d gy-%d mb-%d', $gap, $gap, $gap);
+
+    while ($index < $totalImages) {
+        $remaining = $totalImages - $index;
+        
+        // Sütun ve Oranları Rastgele Seç
+        $randomCol = min(rand(1, $maxCol), $remaining);
+        $randomRatioIndex = rand(0, $numRatios - 1);
+        $ratioClass = 'ratio ratio-' . $ratios[$randomRatioIndex];
+
+        // 1. Satır Kapsayıcıyı Oluştur
+        $rowColsClass = ($randomCol === 1) 
+            ? '' 
+            : sprintf(' row-cols-%s-%d row-cols-1', $breakpoint, $randomCol);
+            
+        $htmlOutput .= sprintf('<div class="row %s %s">', $rowColsClass, $gapClass);
+
+        // 2. Sütunları Oluştur
+        for ($i = 0; $i < $randomCol; $i++) {
+            $imageData = $images[$index];
+            
+            // Yardımcı fonksiyon ile tek bir satırda HTML üret
+            $htmlOutput .= _generate_gallery_item_html(
+                $imageData,
+                $ratioClass,
+                $class,
+                $video_view_type,
+                $lightbox
+            );
+
+            $index++;
+        }
+
+        $htmlOutput .= '</div>';
+    }
+
+    return $htmlOutput;
+}
+
+/**
+ * Önceden tanımlanmış desenlere göre Bootstrap ızgara galerisi oluşturur.
+ */
+function block_gallery_pattern(
+    array $images, 
+    ?array $patterns, 
+    int $gap = 3, 
+    string $class = "", 
+    bool $loop = false, 
+    ?string $video_view_type = "image", 
+    bool $lightbox = false
+): string {
+
+    if (empty($video_view_type)) {
+        $video_view_type = "image";
+    }
+
+    if (empty($patterns)) {
+        return '';
+    }
+
+    $htmlOutput = '';
+    $index = 0;
+    $totalImages = count($images);
+    $gapClass = sprintf('gx-%d gy-%d mb-%d', $gap, $gap, $gap);
+
+    // Döngü sayısını hesapla
+    $repeat = 1;
+    if ($loop) {
+        // PHP 7.4+ okunaklı ve tek satırda toplam sütun sayısını bulma
+        $totalColumnsInPatternSet = array_sum(array_column($patterns, 'columns'));
+        if ($totalColumnsInPatternSet > 0) {
+            $repeat = (int) ceil($totalImages / $totalColumnsInPatternSet);
+        }
+    }
+
+    // Ana Döngü (Desenin Tekrarı)
+    for ($z = 1; $z <= $repeat; $z++) {
+        
+        // Desenleri Tek Tek Uygula
+        foreach ($patterns as $pattern) {
+            
+            // Eğer tüm resimler işlenmişse, tüm döngülerden çık
+            if ($index >= $totalImages) {
+                break 2;
+            }
+            
+            // Desen parametrelerini güvenli bir şekilde al
+            $col        = (int) ($pattern["columns"] ?? 1);
+            $ratio      = $pattern["ratio"] ?? "4x3";
+            $breakpoint = $pattern["breakpoint"] ?? "md";
+            $ratioClass = 'ratio ratio-' . $ratio;
+
+            // 1. Satır Kapsayıcıyı Oluştur
+            $rowColsClass = ($col === 1) 
+                ? '' 
+                : sprintf(' row-cols-%s-%d row-cols-1', $breakpoint, $col);
+                
+            $htmlOutput .= sprintf('<div class="row %s %s">', $rowColsClass, $gapClass);
+
+            // 2. Sütunları Oluştur
+            for ($i = 0; $i < $col; $i++) {
+                if ($index >= $totalImages) {
+                    break; // Sütun döngüsünden çık
+                }
+
+                $imageData = $images[$index];
+                
+                // Yardımcı fonksiyon ile tek bir satırda HTML üret
+                $htmlOutput .= _generate_gallery_item_html(
+                    $imageData,
+                    $ratioClass,
+                    $class,
+                    $video_view_type,
+                    $lightbox
+                );
+
+                $index++;
+            }
+
+            $htmlOutput .= '</div>';
+        }
+    }
+
+    return $htmlOutput;
+}
+
+
+
+/*
+function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4x3"], $gap=3, $class="", $video_view_type= "image", $lightbox = false) {
 
     $htmlOutput = '';
     $index = 0;
@@ -71,55 +320,87 @@ function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4
             switch($images[$index]["type"]){
                 case "image":
                     if(isset($images[$index]["img-src"])){
-                        /*$htmlOutput .= '<div class="col"><div class="' . $ratioClass .'"><img src="' . $images[$index]["img-src"] . '" class="img-fluid object-fit-cover object-position-center '.$class.'"></div></div>';*/
+
                         $args = [
                             "src" => $images[$index]["id"], 
                             "class" => 'img-fluid object-fit-cover object-position-center '.$class,
                             "preview" => is_admin(),
                             "attrs" => [],
                         ];
-                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">'. get_image_set($args).'</div></div>';
+                        if($lightbox){
+                            $htmlOutput .= '<a href="'.$images[$index]["img-src"].'" class="col gallery-item">';
+                        }else{
+                            $htmlOutput .= '<div class="col">';
+                        }
+                        $htmlOutput .= '<div class="' . $ratioClass .'">'. get_image_set($args).'</div>';
+                        if($lightbox){
+                            $htmlOutput .= '</a>';
+                        }else{
+                            $htmlOutput .= '</div>';
+                        }
                         $index++;                
                     }
                 break;
                 case "file" :
                 case "embed" :
-                    $args = array(
-                        "video_type" => $images[$index]["type"],
-                        "video_settings" => array(
-                            "videoBg" => 1,
-                            "autoplay" => 0,
-                            "loop" => 0,
-                            "muted" => 0,
-                            "videoReact" => 1,
-                            "controls" => 1,
-                            "controls_options" => array(
-                                 "play-large"
-                            ),
-                            "controls_options_settings" => array(),
-                            "controls_hide" => 0,
-                            "ratio" => "",
-                            "custom_video_image" => "",
-                            "video_image" => $images[$index]["poster"],
-                            "vtt" => ""
-                        )
-                    );
-                    if($images[$index]["type"] == "file"){
-                        $args["video_file"] = array(
-                            "desktop" => $images[$index]["src"]
-                        );
+                
+                    if($lightbox && $video_view_type == "image"){
+                        $htmlOutput .= '<a href="#" data-lg-size="'.$images[$index]["lg-size"].'" data-src="'.$images[$index]["src"].'" data-poster="'.$images[$index]["poster"].'" data-sub-html="'.$images[$index]["sub-html"].'" class="col gallery-item">';
                     }else{
-                        $args["video_url"] = $images[$index]["src"];
+                        $htmlOutput .= '<div class="col">';
                     }
-                    $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">';
-                    $htmlOutput .= get_video([
-                        "src" => $args,
-                        "class" => $class,
-                        "init" => true,
-                        "lazy" => true,
-                        "attrs" => []
-                    ]);
-                    $htmlOutput .= '</div></div>';
+
+                    $htmlOutput .= '<div class="' . $ratioClass .'">';
+                    if($video_view_type == "video"){
+                        $args = array(
+                            "video_type" => $images[$index]["type"],
+                            "video_settings" => array(
+                                "videoBg" => 1,
+                                "autoplay" => 0,
+                                "loop" => 0,
+                                "muted" => 0,
+                                "videoReact" => 1,
+                                "controls" => 1,
+                                "controls_options" => array(
+                                     "play-large"
+                                ),
+                                "controls_options_settings" => array(),
+                                "controls_hide" => 0,
+                                "ratio" => "",
+                                "custom_video_image" => "",
+                                "video_image" => $images[$index]["poster"],
+                                "vtt" => ""
+                            )
+                        );
+                        if($images[$index]["type"] == "file"){
+                            $args["video_file"] = array(
+                                "desktop" => $images[$index]["src"]
+                            );
+                        }else{
+                            $args["video_url"] = $images[$index]["src"];
+                        }
+                        $htmlOutput .= get_video([
+                            "src" => $args,
+                            "class" => $class,
+                            "init" => true,
+                            "lazy" => true,
+                            "attrs" => []
+                        ]);                        
+                    }else{
+                        $args = [
+                            "src" => $images[$index]["poster"], 
+                            "class" => 'img-fluid object-fit-cover object-position-center '.$class,
+                            "preview" => is_admin(),
+                            "attrs" => []
+                        ];
+                        $htmlOutput .= get_image_set($args);
+                    }
+                    $htmlOutput .= '</div>';
+                    if($lightbox && $video_view_type == "image"){
+                        $htmlOutput .= '</a>';
+                    }else{
+                        $htmlOutput .= '</div>';
+                    }
                     $index++; 
                 break;
             }
@@ -130,7 +411,7 @@ function block_gallery_pattern_random($images, $maxCol, $breakpoint, $ratios=["4
 
     return $htmlOutput;
 }
-function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = false) {
+function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = false, $video_view_type= "image", $lightbox = false) {
     if(!$patterns){
         return;
     }
@@ -174,48 +455,79 @@ function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = fa
                                 "preview" => is_admin(),
                                 "attrs" => []
                             ];
-                            $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">'. get_image_set($args).'</div></div>';
+                            if($lightbox){
+                                $htmlOutput .= '<a href="'.$images[$index]["img-src"].'" class="col gallery-item">';
+                            }else{
+                                $htmlOutput .= '<div class="col">';
+                            }
+                            $htmlOutput .= '<div class="' . $ratioClass .'">'. get_image_set($args).'</div>';
+                            if($lightbox){
+                                $htmlOutput .= '</a>';
+                            }else{
+                                $htmlOutput .= '</div>';
+                            }
                             $index++;                
                         }
                     break;
                     case "file" :
                     case "embed" :
-                        $args = array(
-                            "video_type" => $images[$index]["type"],
-                            "video_settings" => array(
-                                "videoBg" => 1,
-                                "autoplay" => 0,
-                                "loop" => 0,
-                                "muted" => 0,
-                                "videoReact" => 1,
-                                "controls" => 1,
-                                "controls_options" => array(
-                                     "play-large"
-                                ),
-                                "controls_options_settings" => array(),
-                                "controls_hide" => 0,
-                                "ratio" => "",
-                                "custom_video_image" => "",
-                                "video_image" => $images[$index]["poster"],
-                                "vtt" => ""
-                            )
-                        );
-                        if($images[$index]["type"] == "file"){
-                            $args["video_file"] = array(
-                                "desktop" => $images[$index]["src"]
-                            );
+                        
+                        if($lightbox && $video_view_type == "image"){
+                            $htmlOutput .= '<a href="#" data-lg-size="'.$images[$index]["lg-size"].'" data-src="'.$images[$index]["src"].'" data-poster="'.$images[$index]["poster"].'" data-sub-html="'.$images[$index]["sub-html"].'" class="col gallery-item">';
                         }else{
-                            $args["video_url"] = $images[$index]["src"];
+                            $htmlOutput .= '<div class="col">';
                         }
-                        $htmlOutput .= '<div class="col"><div class="' . $ratioClass .'">';
-                        $htmlOutput .= get_video([
-                            "src" => $args,
-                            "class" => $class,
-                            "init" => true,
-                            "lazy" => true,
-                            "attrs" => []
-                        ]);
-                        $htmlOutput .= '</div></div>';
+                        $htmlOutput .= '<div class="' . $ratioClass .'">';
+                            if($video_view_type == "video"){
+                                $args = array(
+                                    "video_type" => $images[$index]["type"],
+                                    "video_settings" => array(
+                                        "videoBg" => 1,
+                                        "autoplay" => 0,
+                                        "loop" => 0,
+                                        "muted" => 0,
+                                        "videoReact" => 1,
+                                        "controls" => 1,
+                                        "controls_options" => array(
+                                             "play-large"
+                                        ),
+                                        "controls_options_settings" => array(),
+                                        "controls_hide" => 0,
+                                        "ratio" => "",
+                                        "custom_video_image" => "",
+                                        "video_image" => $images[$index]["poster"],
+                                        "vtt" => ""
+                                    )
+                                );
+                                if($images[$index]["type"] == "file"){
+                                    $args["video_file"] = array(
+                                        "desktop" => $images[$index]["src"]
+                                    );
+                                }else{
+                                    $args["video_url"] = $images[$index]["src"];
+                                }
+                                $htmlOutput .= get_video([
+                                    "src" => $args,
+                                    "class" => $class,
+                                    "init" => true,
+                                    "lazy" => true,
+                                    "attrs" => []
+                                ]);
+                            }else{
+                                $args = [
+                                    "src" => $images[$index]["poster"], 
+                                    "class" => 'img-fluid object-fit-cover object-position-center '.$class,
+                                    "preview" => is_admin(),
+                                    "attrs" => []
+                                ];
+                                $htmlOutput .= get_image_set($args);
+                            }
+                            $htmlOutput .= '</div>';
+                        if($lightbox && $video_view_type == "image"){
+                            $htmlOutput .= '</a>';
+                        }else{
+                            $htmlOutput .= '</div>';
+                        }
                         $index++; 
                     break;
                 }
@@ -225,6 +537,7 @@ function block_gallery_pattern($images, $patterns, $gap=3, $class="", $loop = fa
     }
     return $htmlOutput;
 }
+*/
 
 
 function block_responsive_classes($field=[], $type="", $block_column=""){
@@ -294,7 +607,7 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
 
 function block_container_class($container="", $add_padding = true){
     $padding = $add_padding?"px-4 px-lg-3":"";
-    $default = SaltBase::get_cached_option("default_container");//get_field("default_container", "options");
+    $default = QueryCache::get_cached_option("default_container");//get_field("default_container", "options");
     $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " {padding}";
     switch($container){
         case "" :
@@ -528,7 +841,7 @@ function block_attrs($block, $fields, $block_column){
 }
 
 
-function block_visibility($block, $fields, $block_column = null) {
+function block_visibility_v1($block, $fields, $block_column = null) {
 
     $visibility_field = $fields["block_settings"]["visibility"];
 
@@ -574,6 +887,73 @@ function block_visibility($block, $fields, $block_column = null) {
 }
 
 
+function block_visibility($block, $fields, $block_column = null) {
+
+    $visibility_field = $fields["block_settings"]["visibility"] ?? [];
+
+    if (empty($visibility_field) || !is_array($visibility_field)) return '';
+
+    // Varsayılan görünüm değeri (e.g., 'block' veya 'flex')
+    $display = $visibility_field['display'] ?? 'block'; 
+    
+    // Eğer tüm blok gizlenmişse ve admin değilsek, hemen d-none döndür.
+    if ($display === 'none' && !is_admin()) return 'd-none';
+
+    // 'hero' alanı varsa görünümü 'flex' olarak zorla (Mevcut mantık korunuyor)
+    $display = $fields["block_settings"]["hero"] ? 'flex' : $display;
+
+    $values = $visibility_field['visibility'] ?? [];
+    
+    // Eğer breakpoint ayarları boşsa, varsayılan görünüm sınıfını döndür.
+    if (empty($values)) return "d-{$display}";
+    if(!is_array($values)) return "";
+
+    $classes = [];
+    
+    // Breakpoint listesi (küçükten büyüğe sıralanmış: xs, sm, md, lg, xl, xxl, xxxl)
+    // Bu, Mobile-First sadelestirme (consolidation) mantığı için gereklidir.
+    $breakpoints = array_keys($GLOBALS["breakpoints"]); 
+    
+    $prev_value = null; // Bir önceki breakpoint'in değerini tutar (none/block/flex)
+
+    foreach ($breakpoints as $breakpoint) {
+        
+        // Breakpoint'in değeri (true/false) ayarlanmış mı?
+        $is_visible = isset($values[$breakpoint]) ? (bool) $values[$breakpoint] : null;
+
+        if ($is_visible !== null) {
+            
+            // Eğer true ise $display (block/flex), false ise 'none' olarak ata
+            $current_value = $is_visible ? $display : "none";
+
+            // 1. Kural: Değer bir önceki (daha küçük) breakpoint'teki değerden farklıysa class ekle.
+            if ($current_value !== $prev_value) {
+                
+                // Admin'de gizleme sınıfı üretme (içerik editörde kaybolmasın)
+                if (is_admin() && $current_value === 'none') {
+                    // Gizleme sınıfını yok say, varsayılan görünürlük devam etsin.
+                } else {
+                    // 2. Kural: 'xs' (mobil) için prefix kullanma.
+                    if ($breakpoint === 'xs') {
+                        // d-block, d-none, d-flex gibi prefix'siz sınıf
+                        $classes[] = "d-{$current_value}"; 
+                    } else {
+                        // Diğer breakpoint'ler için d-{breakpoint}-{value} formatını kullan.
+                        $classes[] = "d-{$breakpoint}-{$current_value}";
+                    }
+                }
+            }
+            
+            // Mevcut değeri bir sonraki döngü için kaydet.
+            $prev_value = $current_value;
+        }
+        // Eğer breakpoint değeri ayarlanmamışsa, önceki değeri koruyarak devam et.
+    }
+
+    return implode(' ', $classes);
+}
+
+
 
 
 
@@ -593,7 +973,7 @@ function block_spacing($settings) {
 function generate_spacing_classes($spacing, $prefix) {
     $classes = [];
     $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
-    $default = SaltBase::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
+    $default = QueryCache::get_cached_option("default_" . ($prefix == "m" ? "margin" : "padding"));//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
 
     // 'default' değerlerini doldur
     foreach ($spacing as $key => $item) {
@@ -3047,6 +3427,7 @@ function block_css($block, $fields, $block_column){
     }
     $height = isset($fields["block_settings"]["height"])?($fields["block_settings"]["height"] == "auto" ? false : $fields["block_settings"]["height"]) : false;
 
+
     if($height){
 
         if($height == "ratio"){
@@ -3166,7 +3547,6 @@ function block_css($block, $fields, $block_column){
             if($media_query){
                 $code_height = block_css_media_query($media_query);
             }
-            
 
         }elseif ($height == "100%"){
             $css .= "#".$selector."{
@@ -3436,7 +3816,6 @@ function block_css($block, $fields, $block_column){
         $code .= "#".$selector." > .bg-cover .jarallax-container{".$code_bg_parallax."}";
     }
     
-
     if(!empty($code_bg_color)){
        $code .= "#".$selector." > .bg-cover:before{content:'';position:absolute;top:0;bottom:0;left:0;right:0;z-index:1;".$code_bg_color."}";
     }

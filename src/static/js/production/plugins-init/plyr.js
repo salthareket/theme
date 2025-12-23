@@ -329,7 +329,9 @@ function plyr_init($obj){
 			debounce(video);
 		});
 
-		waiting_init.initElement();
+		console.log(window.waiting_init);
+
+		window.waiting_init.initElement();
 
 		$obj.addClass(token_init);
 

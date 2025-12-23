@@ -33,7 +33,7 @@ define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
 
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
 
-//include_once SH_CLASSES_PATH."class.query-cache.php";
+include_once SH_CLASSES_PATH."class.query-cache.php";
 //define("PUBLISH_URL", get_option("options_publish_url"));
 //define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
 
@@ -44,8 +44,8 @@ define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_co
 
 define("SEPERATE_CSS", get_option("options_seperate_css"));
 define("SEPERATE_JS",  get_option("options_seperate_js"));
-define("INLINE_CSS", SEPERATE_CSS && get_option("options_inline_css"));
-define("INLINE_JS",  SEPERATE_JS && get_option("options_inline_js"));
+define("INLINE_CSS", SEPERATE_CSS && (bool) get_option("options_inline_css", 0));
+define("INLINE_JS",  SEPERATE_JS && (bool) get_option("options_inline_js", 0));
 
 define("ENABLE_TWIG_CACHE",  get_option("options_enable_twig_cache"));
 
@@ -135,7 +135,7 @@ define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_option("options_enable_
 add_action('acf/init', function(){
     $regional_post_settings = array();
     if(ENABLE_REGIONAL_POSTS){
-       $regional_post_settings = SaltBase::get_cached_option('regional_post_settings');//get_field("regional_post_settings", "option");
+       $regional_post_settings = QueryCache::get_cached_option('regional_post_settings');//get_field("regional_post_settings", "option");
     }
     define("REGIONAL_POST_SETTINGS", $regional_post_settings);
 });

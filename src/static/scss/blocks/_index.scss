@@ -5,6 +5,20 @@
 @import "milestones";
 @import "hero";
 @import "text";
+@import "table-extended";
+
+
+.wp-block {
+    &[data-align] {
+        float: none;
+        position: relative;
+        height: auto;
+        >* {
+            float: none;
+            margin-right: auto;
+        }
+    }
+}
 
 .block--hero{
 	&.block-video{

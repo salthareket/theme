@@ -31,15 +31,51 @@ class Term extends Timber\Term{
         $media = $this->meta('media');
         $src   = '';
 
-        // 1) Media varsa kontrol et
-        if ($media && is_object($media)) {
-            $type = $media->media_type ?? null;
+        if ($media && is_array($media)) {
+            $type = $media["media_type"] ?? null;
 
-            if ($type === 'image') {
-                if (!empty($media->use_responsive_image) && !empty($media->image_responsive)) {
-                    $src = $media->image_responsive;
-                } elseif (!empty($media->image)) {
-                    $src = $media->image;
+            if ($type == 'image') {
+                if (!empty($media["use_responsive_image"]) && !empty($media["image_responsive"])) {
+                    $src = $media["image_responsive"];
+                } elseif (!empty($media["image"])) {
+                    $src = $media["image"];
+                }
+            }
+
+            if ($type == 'gallery') {
+
+                if (!empty($media["video_gallery"]) && count($media["video_gallery"]) > 0) {
+                    $video = $media["video_gallery"][0];
+                    $video_type = $video["type"];
+                    $video_poster = $video["image"] ?? "";
+                    $video_poster = $video_poster?$video_poster["url"]:"";
+                    $video_file = $video["file"] ?? "";
+                    $video_url = $video["url"] ?? "";
+                    $videoArgs = [
+                        "video_type" => $video_type,
+                        "video_settings" => [
+                            "videoBg" => isset($args["videoBg"]) ? $args["videoBg"] : 1, 
+                            "autoplay" => isset($args["autoplay"]) ? $args["autoplay"] : 0, 
+                            "loop" => isset($args["loop"]) ? $args["loop"] : 0,
+                            "muted" => isset($args["muted"]) ? $args["muted"] : 0,
+                            "videoReact" => isset($args["videoReact"]) ? $args["videoReact"] : 0, 
+                            "controls" => isset($args["controls"]) ? $args["controls"] : 0, 
+                            "controls_options" => [], 
+                            "controls_options_settings" => [],
+                            "controls_hide" => isset($args["controls"]) ? 1 : 0,
+                            "ratio" => "", 
+                            "custom_video_image" => "",
+                            "video_image" => $video_poster ?? null, 
+                            "vtt" => ""
+                        ],
+                    ];
+                    $videoDataKey = ($video_type == "file") ? "video_file" : "video_url";
+                    $videoArgs[$videoDataKey] = ($video_type == "file") 
+                        ? ["desktop" => $video_file ?? null] 
+                        : $video_url ?? null;
+                    return get_video([
+                        "src" => $videoArgs, "class" => $args["class"]." ", "init" => true, "lazy" => true, "attrs" => []
+                    ]);                    
                 }
             }
         }

@@ -75,7 +75,10 @@ function compile_files_config($enable_production=false){
 		"url" => [
 			$node_path . 'bootstrap/dist/js/bootstrap.bundle.min.js'
 		],
-		"css" => [],
+		"css" => [
+			$node_path . 'bootstrap/dist/css/bootstrap.css'
+		],
+		"css_only_local" => true,
 		"class" => [],
 		"attrs" => [],
 		"init"  => "",
@@ -91,6 +94,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'jquery-slinky/dist/slinky.min.css'
 		],
+		"css_only_local" => false,
 		"class" => ["slinky-menu"],
 		"attrs" => [],
 		"init"  => "init_slinky",
@@ -106,6 +110,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'bootbox/dist/bootbox.all.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs"  => [
 			'data-toggle="confirm"', 
@@ -133,6 +138,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'aos/dist/aos.css'
 		],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs"  => ['data-aos='],
 		"init" => "init_aos",
@@ -150,6 +156,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'plyr/dist/plyr.css'
 		],
+		"css_only_local" => false,
 		"class" => ["player"],
 		"attrs" => [],
 		"init"     => "plyr_init",
@@ -168,6 +175,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path .'swiper/swiper-bundle.min.css'
 		],
+		"css_only_local" => false,
 		"class" => ["swiper"],
 		"attrs" => [],
 		"init"     => "init_swiper",
@@ -186,6 +194,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'html-to-image/dist/html-to-image.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
@@ -200,9 +209,10 @@ function compile_files_config($enable_production=false){
 			$node_path . 'vanilla-lazyload/dist/lazyload.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [],
-		"init"  => "",
+		"init"  => "init_vanilla_lazyload",
 		"whitelist" => [
 			".lazy"
 		],
@@ -217,6 +227,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'justifiedGallery/dist/css/justifiedGallery.min.css'
 		],
+		"css_only_local" => false,
 		"class" => ["justified-gallery"],
 		"attrs" => ["data-gallery-type"],
 		"init"     => "",
@@ -233,6 +244,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'lightgallery/css/lightgallery-bundle.min.css'
 		],
+		"css_only_local" => false,
 		"class" => ["lightgallery"],
 		"attrs" => [],
 		"init"     => "init_lightGallery",
@@ -242,12 +254,13 @@ function compile_files_config($enable_production=false){
 		"required" => []
 	];
 	$plugins['jquery-match-height'] = [
-		"c" => true,
+		"c" => false,
 		"admin" => true,
 		"url" => [
 			$node_path . 'jquery-match-height/dist/jquery.matchHeight-min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [
 			"data-mh", 
@@ -264,6 +277,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'scrollpos-styler/scrollPosStyler.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
@@ -277,6 +291,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'is-in-viewport/lib/isInViewport.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
@@ -290,6 +305,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'letteringjs/jquery.lettering.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => ["text-effect"],
 		"attrs" => [],
 		"init"     => "",
@@ -305,6 +321,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'animate.css/animate.compat.css'
 		],
+		"css_only_local" => false,
 		"class" => ["text-effect"],
 		"attrs" => [],
 		"init"     => "text_effect",
@@ -320,6 +337,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path .'jarallax/dist/jarallax.min.css'
 		],
+		"css_only_local" => false,
 		"class" => ["jarallax", "jarallax-video"],
 		"attrs" => [],
 		"init"     => "",
@@ -333,6 +351,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'lenis/dist/lenis.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [],
 		"init"     => "",
@@ -348,6 +367,7 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path .'jquery.simple-text-rotator/simpletextrotator.css'
 		],
+		"css_only_local" => false,
 		"class" => ["text-rotator"],
 		"attrs" => [],
 		"init"     => "",
@@ -361,6 +381,7 @@ function compile_files_config($enable_production=false){
 			$node_path .'masonry-layout/dist/masonry.pkgd.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => ["data-masonry"],
 		"init"     => "",
@@ -374,6 +395,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'twig/twig.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => ["leaflet-custom", "googlemaps-custom", "container-story"],
 		"attrs" => [],
 		"condition" => get_option("options_map_view") == "js" ? 1: 0,
@@ -393,6 +415,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'leaflet.markercluster/dist/MarkerCluster.css',
 			$node_path . 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 		],
+		"css_only_local" => false,
 		"class" => ["leaflet-custom"],
 		"attrs" => [
             'data-ajax-method="map_modal"'
@@ -411,6 +434,7 @@ function compile_files_config($enable_production=false){
 			$node_path . '@googlemaps/markerclusterer/dist/index.umd.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => ["googlemaps-custom"],
 		"attrs"  => [
 			'data-ajax-method="map_modal"'
@@ -428,6 +452,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'smarquee/dist/smarquee.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => ["smarquee"],
 		"attrs" => [],
 		"init"     => "init_smarquee",
@@ -444,8 +469,9 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.css',
 		],
+		"css_only_local" => false,
 		"class" => [],
-		"attrs" => ["data-scroll"],
+		"attrs" => ["data-scroll-event-property"],
 		"init"     => "init_locomotive_scroll",
 		"whitelist" => [],
 		"required" => [] 
@@ -458,6 +484,7 @@ function compile_files_config($enable_production=false){
 			$node_path . 'jquery-zoom/jquery.zoom.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => [],
 		"attrs" => ["data-zoom"],
 		"init"     => "init_jquery_zoom",
@@ -472,6 +499,7 @@ function compile_files_config($enable_production=false){
 			$node_path . '@panzoom/panzoom/dist/panzoom.min.js'
 		],
 		"css" => [],
+		"css_only_local" => false,
 		"class" => ["panzoom"],
 		"attrs" => [],
 		"init"     => "init_panzoom",
@@ -490,12 +518,28 @@ function compile_files_config($enable_production=false){
 		"css" => [
 			$node_path . 'simplebar/dist/simplebar.min.css'
 		],
+		"css_only_local" => false,
 		"class" => ["simplebar"],
 		"attrs" => ["data-simplebar"],
 		"init"     => "init_simplebar",
 		"whitelist" => [
 			".simplebar-*"
 		],
+		"required" => []
+	];
+
+	$plugins['bs-tab-collapse'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$js_sh_path . 'plugins/bs-tab-collapse/bs-tab-collapse.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [".tab-collapse",".tab-collapse-*"],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [],
 		"required" => []
 	];
 
@@ -510,7 +554,8 @@ function compile_files_config($enable_production=false){
 			"css" => [
 				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css'
 			],
-			"class" => ["smartmenu"],
+			"css_only_local" => false,
+		"class" => ["smartmenu"],
 			"attrs" => [],
 			"init"     => "init_smartmenus",
 		    "whitelist" => [
@@ -596,15 +641,14 @@ function compile_files_config($enable_production=false){
 
 
 
-   $plugins_admin = array();
-   if($plugins){
-   	foreach($plugins as $key => $plugin){
-   		if($plugin["admin"]){
-   			$plugins_admin[$key] = $plugin["url"];   			
+    $plugins_admin = array();
+    if($plugins){
+   		foreach($plugins as $key => $plugin){
+   			if($plugin["admin"]){
+   				$plugins_admin[$key] = $plugin["url"];   			
+   			}
    		}
-   	}
-   }
-
+    }
 
 	$css = array(
 		"header" => $header_css,
@@ -623,38 +667,51 @@ function compile_files_config($enable_production=false){
 	if($enable_production){
 		$js["functions"] = array();
 		$functions = array_slice(scandir($config["prod"].'functions/'), 2);
+
 		if(!ENABLE_ECOMMERCE){
+
            if (isset($functions["wp-wc.js"])){
                unset($functions["wp-wc.js"]);
            }
-      }else{
-           if (!ENABLE_CART && isset($functions["wp-wc.js"])){
-               unset($functions["wp-wc.js"]);
-           }
-      }
-      if ((!defined('ENABLE_ECOMMERCE') || !ENABLE_ECOMMERCE) || (!defined('ENABLE_CART') || !ENABLE_CART)) {
-		    $key = array_search('wp-wc.js', $functions);
-		    if ($key !== false) { 
-		        unset($functions[$key]); // Anahtar bulunduysa sil
-		    }
+
+	    }else{
+
+	        if (!ENABLE_CART && isset($functions["wp-wc.js"])){
+	            unset($functions["wp-wc.js"]);
+	        }
+
+	    }
+	    if ((!defined('ENABLE_ECOMMERCE') || !ENABLE_ECOMMERCE) || (!defined('ENABLE_CART') || !ENABLE_CART)) {
+
+			$key = array_search('wp-wc.js', $functions);
+			if ($key !== false) { 
+			    unset($functions[$key]); // Anahtar bulunduysa sil
+			}
+
 		}
 		
 		foreach($functions as $file){
 			$js["functions"][] = $prod_path_uri.'functions/'.$file;
 		}
+
+		$js["pre"] = array();
+		$main =  array_slice(scandir($config["prod"].'pre/'), 2);
+		foreach($main as $file){
+			$js["pre"][] = $prod_path_uri.'pre/'.$file;
+		}
+
 		$js["main"] = array();
 		$main =  array_slice(scandir($config["prod"].'main/'), 2);
-		//$main = array_reverse($main);
 		foreach($main as $file){
 			$js["main"][] = $prod_path_uri.'main/'.$file;
 		}
 
-        if(is_dir($config["js_theme"])){
+	    if(is_dir($config["js_theme"])){
 			$theme_js =  array_slice(scandir($config["js_theme"]), 2);
 			foreach($theme_js as $file){
 				$js["main"][] = $config["js_theme_uri"].$file;
 			}        	
-        }
+	    }
 
 	}
 

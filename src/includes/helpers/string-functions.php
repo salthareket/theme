@@ -1,7 +1,7 @@
 <?php
 
 function trans( $text="", $theme="" ) {
-	if($theme==""){
+	if($theme == ""){
 		if(defined("TEXT_DOMAIN")){
 			$theme = TEXT_DOMAIN;
 		}

@@ -638,9 +638,11 @@ add_action('admin_init', 'redirect_to_all_languages');
 
 /**
  * Translatable olmayan içeriklerde Polylang dil parametresini engeller
- * ve default dile yönlendirir.
+ * ve daima default dile zorlar (lang=all veya lang=en durumu dahil).
  */
-function restrict_non_translatable_lang() {
+/*
+function restrict_non_translatable_lang_v4() {
+    // Admin dışında veya Polylang fonksiyonları yoksa çalışma
     if (!is_admin() || !function_exists('pll_is_translated_post_type')) {
         return;
     }
@@ -648,36 +650,206 @@ function restrict_non_translatable_lang() {
     $screen = get_current_screen();
     if (!$screen) return;
 
-    $lang = isset($_GET['lang']) ? $_GET['lang'] : '';
+    $lang = isset($_GET['lang']) ? sanitize_key($_GET['lang']) : '';
     $default_lang = function_exists('pll_default_language') ? pll_default_language() : '';
 
-    // Post edit ekranı
-    if ($screen->base === 'post' && isset($_GET['post'])) {
-        $post_id = intval($_GET['post']);
-        $post_type = get_post_type($post_id);
+    $is_non_translatable = false;
+    $current_post_type = null;
+    $current_taxonomy = null;
+    
+    // 1. Post/Post Tipi Kontrolü (Düzenleme ve Yeni Oluşturma)
+    if ($screen->base === 'post' || $screen->base === 'post-new') {
+        if (isset($_GET['post'])) { 
+            $current_post_type = get_post_type(intval($_GET['post']));
+        } elseif (isset($_GET['post_type'])) { 
+            $current_post_type = sanitize_key($_GET['post_type']);
+        }
 
-        if ($post_type && !pll_is_translated_post_type($post_type)) {
-            if ($lang && $lang !== $default_lang) {
-                $redirect_url = remove_query_arg('lang');
-                $redirect_url = add_query_arg('lang', $default_lang, $redirect_url);
-                wp_redirect($redirect_url);
-                exit;
-            }
+        if ($current_post_type && !pll_is_translated_post_type($current_post_type)) {
+            $is_non_translatable = true;
+        }
+    }
+    
+    // 2. Term/Taksonomi Kontrolü
+    if ($screen->base === 'term' || $screen->base === 'edit-tags') {
+        if (isset($_GET['taxonomy'])) {
+            $current_taxonomy = sanitize_key($_GET['taxonomy']);
+        }
+
+        if ($current_taxonomy && !pll_is_translated_taxonomy($current_taxonomy)) {
+            $is_non_translatable = true;
         }
     }
 
-    // Term edit ekranı
-    if ($screen->base === 'term' && isset($_GET['taxonomy'])) {
-        $taxonomy = sanitize_key($_GET['taxonomy']);
-
-        if ($taxonomy && !pll_is_translated_taxonomy($taxonomy)) {
-            if ($lang && $lang !== $default_lang) {
-                $redirect_url = remove_query_arg('lang');
-                $redirect_url = add_query_arg('lang', $default_lang, $redirect_url);
-                wp_redirect($redirect_url);
-                exit;
-            }
+    // --- Yönlendirme Mantığı ---
+    if ($is_non_translatable) {
+        
+        // Polylang'in UI'da All languages'ı göstermesi durumunda dahi yönlendirmeyi zorla.
+        // Yönlendirme sadece mevcut dil default dil değilse veya 'all' ise yapılmalı.
+        if ($lang !== $default_lang) {
+            
+            $redirect_url = remove_query_arg('lang');
+            
+            // Eğer URL'de hiç lang parametresi yoksa veya lang=all/lang=en ise, default dili ekle.
+            $redirect_url = add_query_arg('lang', $default_lang, $redirect_url);
+            
+            wp_redirect($redirect_url);
+            exit;
         }
     }
 }
-add_action('current_screen', 'restrict_non_translatable_lang');
+add_action('current_screen', 'restrict_non_translatable_lang_v4');
+*/
+
+
+/**
+ * Translatable olmayan içeriklerde Polylang dil parametresini engeller
+ * ve daima 'Tüm Diller' (lang=all) bağlamına yönlendirir.
+ * * @param WP_Screen $screen Mevcut admin ekranı nesnesi.
+ */
+function restrict_non_translatable_lang_v7() {
+    // Admin dışında veya Polylang fonksiyonları yoksa çalışma
+    if (!is_admin() || !function_exists('pll_is_translated_post_type') || !function_exists('pll_is_translated_taxonomy')) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if (!$screen) return;
+
+    $lang = isset($_GET['lang']) ? sanitize_key($_GET['lang']) : ''; 
+    
+    // Yönlendirmeyi sadece 'lang=all' ise atla.
+    if ($lang === 'all') {
+        return;
+    }
+
+    $is_non_translatable = false;
+    $current_post_type = null;
+    $current_taxonomy = null;
+    
+    // 1. Post/Post Tipi Kontrolü (Düzenleme, Yeni Oluşturma ve Liste)
+    if ($screen->base === 'post' || $screen->base === 'post-new' || $screen->base === 'edit') {
+        
+        // Yeni post (post-new.php) veya post listesi (edit.php) için post_type'ı URL'den al
+        if (isset($_GET['post_type'])) {
+            $current_post_type = sanitize_key($_GET['post_type']);
+        } 
+        // Mevcut bir postu düzenleme (post.php) için post_type'ı ID'den al
+        elseif ($screen->base === 'post' && isset($_GET['post'])) { 
+            $current_post_type = get_post_type(intval($_GET['post']));
+        } 
+
+        if ($current_post_type && !pll_is_translated_post_type($current_post_type)) {
+            $is_non_translatable = true;
+        }
+    }
+    
+    // 2. Term/Taksonomi Kontrolü
+    if ($screen->base === 'term' || $screen->base === 'edit-tags') {
+        if (isset($_GET['taxonomy'])) {
+            $current_taxonomy = sanitize_key($_GET['taxonomy']);
+        }
+
+        if ($current_taxonomy && !pll_is_translated_taxonomy($current_taxonomy)) {
+            $is_non_translatable = true;
+        }
+    }
+
+    // --- Yönlendirme Mantığı ---
+    if ($is_non_translatable) {
+        
+        // add_query_arg, var olan 'lang' parametresini 'all' ile değiştirir
+        $redirect_url = add_query_arg('lang', 'all');
+        
+        wp_redirect($redirect_url);
+        exit;
+    }
+}
+add_action('current_screen', 'restrict_non_translatable_lang_v7');
+
+
+
+/**
+ * Çevrilebilir olmayan Post Tipi düzenlenirken, translatable taksonomileri
+ * daima Polylang'in varsayılan diline zorlar.
+ * * Bu, Polylang'in term sorgularına uyguladığı dil filtresini geçersiz kılar.
+ *
+ * @param array $args get_terms sorgu argümanları.
+ * @return array Değiştirilmiş sorgu argümanları.
+ */
+function force_default_lang_for_non_translatable_post_type_terms( $args, $taxonomies ) {
+    
+    // Gerekli Polylang fonksiyonları ve admin kontrolü
+    if ( !is_admin() || !function_exists('pll_default_language') || !function_exists('pll_is_translated_post_type') ) {
+        return $args;
+    }
+
+    $screen = get_current_screen();
+    
+    // Eğer post düzenleme veya yeni ekleme ekranında değilsek, çık
+    if ( !$screen || ($screen->base !== 'post' && $screen->base !== 'post-new') ) {
+        return $args;
+    }
+
+    $post_type = null;
+
+    // --- DÜZELTME: Post Tipi Yakalama Mantığı ---
+    // 1. Yeni post ekleme veya edit.php (listeleme) ekranlarında URL'den al
+    if (isset($_GET['post_type'])) {
+        $post_type = sanitize_key($_GET['post_type']);
+    } 
+    // 2. Mevcut bir postu düzenleme ekranında post ID'sinden al
+    elseif ($screen->base === 'post' && isset($_GET['post'])) { 
+        $post_type = get_post_type(intval($_GET['post']));
+    }
+    // ---------------------------------------------
+    
+    // Geçerli post_type'ı bulamadıysak veya post_type çevrilebilirse, çık
+    if ( !$post_type || function_exists('pll_is_translated_post_type') && pll_is_translated_post_type($post_type) ) {
+        return $args;
+    }
+    
+    // --- Post Tipi Çevrilebilir DEĞİL, Taksonomiyi Kontrol Et ---
+    
+    $default_lang = pll_default_language();
+    
+    // Taxonomies parametresi dizi değilse diziye çevir
+    $taxonomies = is_array($taxonomies) ? $taxonomies : [$taxonomies];
+    
+    $is_translatable_taxonomy_found = false;
+    
+    // Çevrilebilir bir taksonomi sorgulanıyor mu?
+    foreach ($taxonomies as $taxonomy) {
+        if (function_exists('pll_is_translated_taxonomy') && pll_is_translated_taxonomy($taxonomy)) {
+            $is_translatable_taxonomy_found = true;
+            break;  
+        }
+    }
+    
+    // Eğer çevrilebilir bir taksonomi sorgulanıyorsa:
+    if ($is_translatable_taxonomy_found) {
+        
+        // Polylang term sorgusunu, ekran dili ne olursa olsun (All/tr/en),
+        // SİSTEMİN varsayılan diline zorla. Bu, non-translatable post tiplerinde 
+        // sadece default dil termlerinin görünmesini sağlar.
+        $args['lang'] = $default_lang;
+    }
+
+    return $args;
+}
+add_filter( 'get_terms_args', 'force_default_lang_for_non_translatable_post_type_terms', 99, 2 );
+
+function pll_set_language($lang = "en") {
+    if (function_exists('PLL') && function_exists('pll_current_language')) {
+        $current_lang = pll_current_language("slug");
+        if ($current_lang !== $lang) {
+            //$_desiredLang = PLL()->model->get_language($lang);
+            //if (false !== $_desiredLang) {
+                PLL()->curlang = $lang;//$_desiredLang;
+            //}
+            return $current_lang;
+        }
+        return $lang;
+    }
+    return $lang;
+}

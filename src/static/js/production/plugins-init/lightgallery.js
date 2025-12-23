@@ -13,14 +13,14 @@ function init_lightGallery(){
 
 		let plugins = [];
 		if(gallery_type != "dynamic"){
-	        if($(this).children("[data-src]").length > 0 || $(this).children("[data-video]").length > 0){
+	        if($(this).find("[data-src]").length > 0 || $(this).find("[data-video]").length > 0){
 	           plugins = [lgVideo];
 	        }			
 		}else{
-			console.log(id.replaceAll("-", "_"));
+			//console.log(id.replaceAll("-", "_"));
 			gallery_source = window[id.replaceAll("-", "_")];
-			console.log(gallery_source)
-			var hasVideo = gallery_source.some(item => item.poster || item.video) ? true : false;;
+			//console.log(gallery_source)
+			var hasVideo = gallery_source.some(item => item.poster || item.video) ? true : false;
 			if(hasVideo){
 				plugins = [lgVideo];
 			}
@@ -41,6 +41,7 @@ function init_lightGallery(){
 	                lightGallery(
 						document.getElementById(id),
 						{
+							selector: ".gallery-item",
 							download: false,
 							galleryId: id,
 							getCaptionFromTitleOrAlt: false,
@@ -58,6 +59,7 @@ function init_lightGallery(){
             $(this).removeClass("loading-hide");
 			let dynamicGallery = window.lightGallery(document.getElementById(id),
 			{
+				selector: ".gallery-item",
 			    dynamic: true,
 			    dynamicEl: gallery_source,
 			    plugins: plugins,
@@ -76,6 +78,7 @@ function init_lightGallery(){
 	            lightGallery(
 					document.getElementById(id),
 					{
+						selector: ".gallery-item",
 						download: false,
 						galleryId: id,
 						getCaptionFromTitleOrAlt: false,

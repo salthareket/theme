@@ -21,7 +21,8 @@
             "allow_in_bindings": 0,
             "ui_on_text": "",
             "ui_off_text": "",
-            "ui": 1
+            "ui": 1,
+            "pll_default_value": 0
         }
     ],
     "location": [
@@ -55,7 +56,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1761921023,
+    "modified": 1763565796,
     "acfe_categories": {
         "general": "General"
     }

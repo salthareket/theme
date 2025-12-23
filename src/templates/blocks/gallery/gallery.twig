@@ -23,7 +23,7 @@
 
 {% block block_content %}
 
-    {% set lightbox = not fields.settings.no_lightbox|boolval %}
+    {% set lightbox = fields.settings.lightbox|boolval %}
 
     {% set gallery = fields.gallery %}
     {% set videos = fields.videos %}
@@ -54,12 +54,11 @@
     {% endif %}
 
     {% if gallery_type == "pattern" or gallery_type == "pattern_random" %}
-        {% set lightbox = false %}
         {% set gallery_attrs = "" %}
         {% set gallery_class = "" %}
     {% endif %}
 
-    <div id="{{gallery_id}}" class="{% if lightbox %}lightgallery init-me{% endif %} position-relative p-0 w---100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="left" data-item-captions="false">
+    <div id="{{gallery_id}}" class="{% if lightbox %}lightgallery init-me{% endif %} position-relative p-0 w---100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="left" data-item-captions="false" data-lightbox="{{ lightbox}}">
 
         {% set source = lightGallerySource(fields) %}
         
@@ -68,13 +67,14 @@
             {% if gallery_type == "pattern_random" %}
 
                {% set pattern_settings = fields.settings.pattern_random %}
-               {{function("block_gallery_pattern_random", source, pattern_settings.columns_max, pattern_settings.breakpoint, pattern_settings.ratio, fields.settings.gap, fields.settings.item_class)}}
+               {{function("block_gallery_pattern_random", source, pattern_settings.columns_max, pattern_settings.breakpoint, pattern_settings.ratio, fields.settings.gap, fields.settings.item_class, fields.video_view_type, lightbox)}}
 
             {% elseif gallery_type == "pattern" %}
 
-               {{function("block_gallery_pattern", source, fields.settings.pattern, fields.settings.gap, fields.settings.item_class, fields.settings.loop)}}
+               {{function("block_gallery_pattern", source, fields.settings.pattern, fields.settings.gap, fields.settings.item_class, fields.settings.loop, fields.video_view_type, lightbox)}}
 
             {% else %}
+
                 {% for item in source %}
                     {% if item.type == "embed" %}
 
@@ -84,7 +84,7 @@
                             data-src="{{item.src}}"
                             data-poster="{{item.poster}}"
                             data-sub-html="{{item["sub-html"]}}"
-                            class="{{href_class}} cursor-hand"
+                            class="{{href_class}} cursor-hand gallery-item"
                             {% else %}
                             class="{{href_class}}"
                             {% endif %}
@@ -111,7 +111,7 @@
                             data-video='{{item.video|json_encode|replace({"{upload_url}" : site.upload_url})}}'
                             data-poster="{{item.poster|replace({"{upload_url}" : site.upload_url})}}"
                             data-sub-html="{{item["sub-html"]}}"
-                            class="{{href_class}} cursor-hand"
+                            class="{{href_class}} cursor-hand gallery-item"
                             {% else %}
                             class="{{href_class}}"
                             {% endif %}
@@ -136,7 +136,7 @@
                         <a 
                             href="{{item.href|replace({"{upload_url}" : site.upload_url})}}" 
                             title="{{item.title}}" 
-                            class="{{href_class}}"
+                            class="{{href_class}} gallery-item"
                         >
                         {% else %}
                         <div class="{{href_class}}">
@@ -162,8 +162,11 @@
 
                     {% endif %}
                 {% endfor %}
+
             {% endif %}
+
         {% else %}
+
             {% if gallery_view == "button" %}
                 {% set item = fields.settings.button %}
 
@@ -205,6 +208,7 @@
                 </div>
 
             {% else %}
+
                 {% if gallery_view == "image" %}
                     {% set thumb = source[0] %}
                     {% set thumb = thumb.poster?thumb.poster:thumb.src %}
@@ -232,6 +236,7 @@
                     {% endif %}
                 </div>
             {% endif %}
+
         {% endif %}
 
     </div>
@@ -242,4 +247,3 @@
     {% endif %}
 
 {% endblock %}
-

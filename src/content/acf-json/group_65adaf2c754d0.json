@@ -90,7 +90,10 @@
                             "return_format": "",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e15f1c169",
@@ -111,7 +114,10 @@
                             "return_format": "",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e16f1c16a",
@@ -179,7 +185,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e3c0d3027",
@@ -200,7 +209,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e3c0d3028",
@@ -268,7 +280,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e3a51c16d",
@@ -289,7 +304,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e3a51c16e",
@@ -357,7 +375,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e3e3d302b",
@@ -378,7 +399,10 @@
                             "return_format": "string",
                             "translations": "sync",
                             "allow_in_bindings": 0,
-                            "pll_default_value": ""
+                            "pll_default_value": "",
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true
                         },
                         {
                             "key": "field_68a5e3e3d302c",
@@ -708,6 +732,7 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
+    "display_title": "",
     "acfe_display_title": "",
     "acfe_autosync": [
         "json"
@@ -716,7 +741,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1759184977,
+    "modified": 1763565744,
     "acfe_categories": {
         "block": "Block"
     }

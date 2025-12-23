@@ -52,8 +52,8 @@ function getAverageLuminance(element) {
 
             // hiçbiri yoksa son çare
             console.log("son care");
-            requestIdleCallback(() => {
-                 getRenderedLuminance(element).then(resolve);
+            return requestIdleCallback(() => { 
+                getRenderedLuminance(element).then(resolve);
             });
         }
 

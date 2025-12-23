@@ -2,7 +2,7 @@
 {% set max_level = max_level is empty?9999:max_level %}
 
 {% if menu_level <= 1 %}
-<nav class="nav-menu {{class_name}}" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement">
+<nav class="nav-menu {{class_name}}" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" aria-label="{{ translate("Menü") }}">
     <ul class="nav">
 {% endif %}
 

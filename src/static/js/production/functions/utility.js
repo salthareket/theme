@@ -1,9 +1,7 @@
-function debugJS($value){
-	if(typeof site_config.debug !== "undefined"){
-		if(site_config.debug){
-			console.log($value);			
-		}
-	}
+function debugJS(value){
+    if (site_config?.debug === true) {
+        console.log(value);
+    }
 }
 
 (function ($) {
@@ -127,7 +125,6 @@ const isMobile = {
         return "";
     }
 };
-
 var observeDOM = (function(){
 	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 	return function( obj, callback ){
@@ -168,18 +165,16 @@ function domObjectToSelector(object){
 
     return selector;
 }
-    function setCookie(cname, cvalue, exdays) {
+function setCookie(cname, cvalue, exdays) {
         var d = new Date();
         d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
         var expires = "expires=" + d.toUTCString();
         document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-    }
-
-    function deleteCookie(cname){
+}
+function deleteCookie(cname){
     	setCookie(cname, "", -1);
-    }
-
-    function getCookie(cname) {
+}
+function getCookie(cname) {
         var name = cname + "=";
         var decodedCookie = decodeURIComponent(document.cookie);
         var ca = decodedCookie.split(';');
@@ -193,7 +188,7 @@ function domObjectToSelector(object){
             }
         }
         return "";
-    }
+}
 
 function getDataAttributes(node) {
     var d = {}, 
@@ -289,6 +284,7 @@ function text2clipboard(){
     });
 }
 
+/*
 $.fn.sameSize = function (width, max, keepMin = false) {
   const $elements = this;
   if (!$elements || $elements.length === 0) return this;
@@ -349,7 +345,153 @@ $.fn.sameSize = function (width, max, keepMin = false) {
   });
 
   return this;
+};*/
+
+
+// SameSize jQuery Eklentisi
+$.fn.sameSize = function (width, max, keepMin = false) {
+    const $elements = this;
+    if (!$elements || $elements.length === 0) return this;
+
+    const prop = width ? 'width' : 'height';
+    const minProp = `min-${prop}`;
+    const EQUALIZED_CLASS = 'nav-equalized';
+    const DISABLED_CLASS = 'nav-equal-disabled'; // Yeni tanımlanan sınıf
+
+    function getBreakpointPx($els) {
+        const m = ($els.eq(0).attr('class') || '').match(/nav-equal-([a-zA-Z]+)/);
+        const bpKey = m ? m[1] : 'sm';
+        // getCssValue fonksiyonunuzun Bootstrap değişkenlerini okuduğunu varsayıyoruz.
+        return getCssValue("--bs-breakpoint-"+bpKey); 
+    }
+
+    function computeMaxSize($els) {
+        if (max !== undefined) return max;
+        
+        // 1. Temizleme
+        $els.css({ [prop]: '', [minProp]: '' }); 
+
+        // 2. Reflow Zorlama (KRİTİK: Responsive görsel boyutunu doğru ölçmek için)
+        if ($elements.length > 0) {
+            $elements.get(0).offsetHeight; 
+        }
+        
+        // 3. Maksimum Genişliği Ölçme (Logo Kontrollü Mantık)
+        return Math.max(...$els.map(function () {
+            const $el = $(this);
+            
+            // Eğer ilk çocuk '.navbar-brand' ise, logo linkinin (a) genişliğini ölç
+            const $firstChild = $el.children().eq(0);
+            if ($firstChild.hasClass('navbar-brand')) {
+                const $anchor = $firstChild.find('a[href]:first');
+                if ($anchor.length) {
+                    return $anchor[prop](); 
+                }
+            }
+            
+            // Varsayılan durum: Elementin kendi genişliğini ölç
+            return $el[prop]();
+        }).get());
+    }
+
+    function applyEqualize() {
+        if (!$elements || $elements.length === 0) return;
+
+        const bp = getBreakpointPx($elements);
+        const vw = $(window).width();
+
+        // Her çağrıda temizlemeyi yapalım
+        $elements.css({ [prop]: '', [minProp]: '' });
+
+        if (vw >= bp) {
+            // **BÜYÜK EKRAN MANTIĞI (EŞİTLENMİŞ)**
+            
+            // 1. Boyutları hesapla
+            const maxSize = computeMaxSize($elements);
+            const css = { [minProp]: maxSize, [prop]: maxSize };
+            
+            // 2. CSS ve sınıfları uygula (nav-equalized EKLENDİ, nav-equal-disabled KALDIRILDI)
+            $elements
+                .css(css)
+                .addClass(EQUALIZED_CLASS)
+                .removeClass(DISABLED_CLASS); // Gerekliyse kaldır
+
+        } else {
+            // **KÜÇÜK EKRAN MANTIĞI (EŞİTLENMEMİŞ)**
+            
+            // 1. keepMin mantığını uygula (varsa)
+            if (keepMin && max !== undefined) {
+                $elements.css({ [minProp]: max });
+            }
+            
+            // 2. Sınıfları değiştir (nav-equalized KALDIRILDI, nav-equal-disabled EKLENDİ)
+            $elements
+                .removeClass(EQUALIZED_CLASS) // Eşitlenmiş sınıfı kaldır
+                .addClass(DISABLED_CLASS);    // Devre dışı sınıfını ekle
+        }
+    }
+
+    // İlk çalıştırma
+    applyEqualize();
+    
+    // Pencere yeniden boyutlandığında tekrar çalıştır (responsive davranış için)
+    $(window).on('resize.sameSize', applyEqualize);
+    
+    return this;
 };
+// Navbar Görünürlük Kontrolü
+/*function navbar_visibility() {
+    const isVisible = (el) => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    };
+
+    const checkVisibility = (parent, selector) => {
+        const children = parent.querySelectorAll(selector);
+        const visible = Array.from(children).some(isVisible);
+        parent.classList.toggle('d-none', !visible);
+    };
+
+    const headerTools = document.querySelector('.navbar-top .header-tools');
+    if (headerTools) checkVisibility(headerTools, 'ul > li');
+
+    document.querySelectorAll('.navbar-top > *').forEach(el => {
+        checkVisibility(el, ':scope > *');
+    });
+}*/
+/**
+ * navbar_visibility: 
+ * navbar-top içindeki sütunların, çocuk elementlerinin görünürlüğüne göre
+ * d-none sınıfı alıp almayacağını kontrol eder.
+ * * * KRİTİK ÇÖZÜM: Genişliği eşitleme fonksiyonu tarafından ayarlanmış elementlere 
+ * d-none eklenmesini engeller.
+ */
+function navbar_visibility() {
+    
+    const isVisible = (el) => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    };
+
+    const checkVisibility = (parent, selector) => {
+        
+        // ÇAKIŞMAYI ÖNLEYEN KRİTİK KONTROL
+        if (parent.classList.contains('nav-equalized')) {
+            parent.classList.remove('d-none');
+            return;
+        }
+
+        const children = parent.querySelectorAll(selector);
+        const visible = Array.from(children).some(isVisible);
+        
+        parent.classList.toggle('d-none', !visible);
+    };
+
+    document.querySelectorAll('.navbar-top > *').forEach(el => {
+        checkVisibility(el, ':scope > *');
+    });
+}
+
 
 function getCssValue(property){
 	var returnValue = "";
@@ -369,6 +511,51 @@ function fitToContainer() {
     });
 }
 
+function resizeDebounce(func, wait) {
+	let timeout;
+	return function(...args) {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(this, args), wait);
+	};
+}
+
+function throttle(fn, wait) {
+    let timeout = null;
+    return function() {
+        const context = this,
+        args = arguments;
+        if (!timeout) {
+            timeout = setTimeout(function() {
+                timeout = null;
+                fn.apply(context, args);
+            }, wait);
+        }
+    };
+}
+
+
+// Yönlendirme Polifili (Güvenli Yönlendirme)
+function redirect_polyfill($url, $blank = false) {
+    var linkElement = document.createElement('a');
+    linkElement.href = $url;
+    if ($blank) {
+        linkElement.target = "_blank";
+    }
+    // Elementi DOM'a eklemeye gerek yok, doğrudan click() metodu çoğu modern tarayıcıda çalışır.
+    // Ancak daha güvenli bir polifil için ekleyip çıkaralım.
+    document.body.appendChild(linkElement);
+    linkElement.click();
+    document.body.removeChild(linkElement);
+}
+
+// Sunucudan Gelen Yanıtı İşleme (Ajax)
+function errorView($data) {
+    if ($data.error) {
+        _alert('', $data.message); // Varsayılan _alert() fonksiyonunu kullanır
+        return true;
+    }
+    return false;
+}
 function ajaxResponseFilter(input) {
   if (typeof input !== "string") return null;
 
@@ -442,12 +629,66 @@ function ajaxResponseFilter(input) {
     return null;
   }
 }
+function response_view(response) {
+    var modal = $(".modal.show");
+    if (response.error) {
+        $("body").removeClass("loading-process");
+        if (response.hasOwnProperty("error_type") && response.error_type == "nonce") {
+            if (modal.length > 0) modal.modal("hide");
+            _alert(response.message, response.description, "", "", "Refresh Page", function() {
+                window.location.reload();
+            });
+        } else {
+            _alert(response.message, response.description, "", "", "", "", true);
+        }
+    } else {
+        if (response.redirect) {
+            if (response.message) {
+                if (modal.length > 0) modal.addClass("remove-on-hidden").modal("hide");
+                _alert(response.message, response.description);
+            }
+            redirect_polyfill(response.redirect, response.redirect_blank);
+        } else if (response.refresh) {
+            $("body").addClass("loading");
+            window.location.reload();
+        } else if (response.refresh_confirm) {
+            _alert(response.message, response.description, "", "", "Tamam", function() {
+                window.location.reload();
+            });
+        } else {
+            if (response.message) {
+                if (modal.length > 0) modal.addClass("remove-on-hidden").modal("hide");
+                _alert(response.message, response.description);
+            }
+            $("body").removeClass("loading-process");
+        }
+    }
+}
 
+// Yerelleştirme ve Çeviri İşlevi
+function translate(str, count = 1, replacements = {}) {
+    if(str == ""){
+        return str;
+    }
 
-function resizeDebounce(func, wait) {
-	let timeout;
-	return function(...args) {
-		clearTimeout(timeout);
-		timeout = setTimeout(() => func.apply(this, args), wait);
-	};
+    let entry = str;
+    
+    const searchKey = escapeToUnicode(str); 
+    //console.log(str + " = " +searchKey);
+    const dictEntry = site_config.dictionary?.[searchKey] || site_config.dictionary?.[str]; 
+    const defaultLang = site_config.language_default;
+    const currentLang = site_config.user_language;
+    if (dictEntry !== undefined) { // Dil ne olursa olsun, sözlükte varsa çek
+        if (Array.isArray(dictEntry)) {
+            const safeCount = parseInt(count, 10);
+            entry = safeCount === 1 ? dictEntry[0] : dictEntry[1] || dictEntry[0];
+        } else if (typeof dictEntry === 'string') {
+            entry = dictEntry;
+        }
+    }
+    entry = String(entry).replace('%count', count);
+    for (const key in replacements) {
+        entry = entry.replaceAll(key, replacements[key]);
+    }
+    return entry;
 }

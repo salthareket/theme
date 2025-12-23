@@ -1,29 +1,3 @@
-/*function translate($text){
-    if(!IsBlank($text)){
-        if(site_config.dictionary.hasOwnProperty($text)){
-            $text = site_config.dictionary[$text];
-        }
-    }
-    return $text;
-}*/
-
-function isLoadedJS_v1($name, $load = false, $callback = ""){
-    var $loaded = false;
-    if(typeof required_js !== "undefined"){
-        if(required_js.indexOf($name) >-1){
-            $loaded = true
-        }
-    }
-    if(!$loaded){
-        if(typeof conditional_js !== "undefined"){
-            if(conditional_js.indexOf($name) >-1){
-                $loaded = true
-            }
-        }
-    }
-    return $loaded; 
-}
-
 function loadCSS(href) {
     return new Promise((resolve, reject) => {
         const link = document.createElement('link');
@@ -122,7 +96,7 @@ function isLoadedJS($name, $load = false, $callback = "") {
     return false;
 }
 
-/*
+
 function function_secure($plugin, $name, $params) {
     console.log($plugin, $name, $params)
     if (isLoadedJS($plugin)) {
@@ -139,58 +113,6 @@ function function_secure($plugin, $name, $params) {
         console.error($plugin + ' is not loaded...');
     }
 }
-*/
-
-let function_secure_queue = [];
-let function_secure_processing = false;
-function function_secure_queue_process() {
-    if (function_secure_queue.length === 0) {
-        function_secure_processing = false;
-        return;
-    }
-    const task = function_secure_queue.shift(); 
-    try {
-        let func = window;
-        const parts = task.name.split('.'); 
-        for (let i = 0; i < parts.length; i++) {
-            if (func[parts[i]]) {
-                func = func[parts[i]];
-            } else {
-                // Eğer buraya düşerse, fonksiyon adı bulunamamış demektir.
-                throw new Error(task.name + ' not found in nested objects.'); 
-            }
-        }
-        const context = parts.length > 1 ? window[parts[0]] : window;
-        if (typeof func === 'function') {
-            func.apply(context, Array.isArray(task.params) ? task.params : [task.params]);
-        } else {
-            throw new Error(task.name + ' is not a function.');
-        }
-        console.log(task.name + ' is inited!!!...');
-    } catch (error) {
-        console.error(`Error executing plugin function ${task.name}:`, error);
-    }
-    setTimeout(function_secure_queue_process, 150); 
-}
-function function_secure($plugin, $name, $params) {
-    if (!IsBlank($plugin) && !isLoadedJS($plugin)) {
-        console.error($plugin + ' is not loaded...');
-        return;
-    }
-    /*if (typeof window[$name] !== 'function') {
-        console.error($name + ' is not a function...');
-        return;
-    }*/
-    function_secure_queue.push({
-        name: $name,
-        params: $params
-    });
-    if (!function_secure_processing) {
-        function_secure_processing = true;
-        setTimeout(function_secure_queue_process, 250); 
-    }
-}
-
 
 function initContactForm(){
     var obj = wpcf7;
