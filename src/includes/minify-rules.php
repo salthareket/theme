@@ -270,20 +270,25 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
-	/*$plugins['scrollpos-styler'] = [
+	$plugins['scrollposstyler'] = [
 		"c"	=> false,
 		"admin" => false,
 		"url" => [
-			$node_path . 'scrollpos-styler/scrollPosStyler.min.js'
+			$plugin_path . 'scrollposstyler\scrollposstyler.js'
 		],
 		"css" => [],
 		"css_only_local" => false,
-		"class" => [],
+		"class" => [
+			".affixed"
+		],
 		"attrs" => [],
 		"init"     => "",
-		"whitelist" => [],
+		"whitelist" => [
+			".affix",
+			".affixed"
+		],
 		"required" => []
-	];*/
+	];
 	$plugins['is-in-viewport'] = [
 		"c"	=> false,
 		"admin" => true,
@@ -581,7 +586,7 @@ function compile_files_config($enable_production=false){
    //$header_css['animate.css'] = [$node_path . 'animate.css/animate.compat.css'];
    if($plugins){
    	foreach($plugins as $key => $plugin){
-   		if(!$plugin["c"] && $plugin["css"]){
+   		if(!$plugin["c"] && $plugin["css"] && !$plugin["css_only_local"]){
    			$header_css[$key] = $plugin["css"];
    		}
    	}
@@ -591,7 +596,7 @@ function compile_files_config($enable_production=false){
    $header_css_admin = array();
    if($plugins){
    	foreach($plugins as $key => $plugin){
-   		if($plugin["admin"] && $plugin["css"]){
+   		if($plugin["admin"] && $plugin["css"] && !$plugin["css_only_local"]){
    			$header_css_admin[$key] = $plugin["css"];
    		}
    	}

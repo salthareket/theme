@@ -64,7 +64,7 @@
    
    <div class="offcanvas-footer text-center justify-content-center pb-4 flex-column {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">
 
-      {% if languages|length > 1 %}
+      {# if languages|length > 1 %}
          <ul class="nav-language list-inline" aria-labelledby="language">
             {% for item in languages %}
                <li class="list-inline-item" rel="{{item.name|lower}}">
@@ -72,7 +72,7 @@
                </li>
             {% endfor %}
          </ul>                
-      {% endif %}
+      {% endif #}
 
       {{ accounts|list_social_accounts("mt-3") }}
 

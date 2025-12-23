@@ -114,7 +114,8 @@
            for (var key in countries) {
                var code = countries[key]["value"].toUpperCase();//.toLowerCase();
                if(code){
-                  var country = document.querySelector(".world-map #"+code);
+                  var country = document.querySelector(".world-map [id^='" + code + "_']");
+                  console.log(code)
                   console.log(country)
                   if(country){
                       country.classList.add("active");

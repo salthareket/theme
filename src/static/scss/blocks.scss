@@ -12,4 +12,4 @@
 @import "#{$node_modules_path}bootstrap/scss/mixins";
 
 @import 'blocks/index';
-//@import '#{$theme_static_path}scss/blocks';
+@import '../../../../../../theme/static/scss/blocks';

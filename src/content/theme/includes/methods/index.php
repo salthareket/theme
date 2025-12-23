@@ -364,7 +364,7 @@ unset($post_args["s"]);
 }
 //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
 $html = "";
-$query = SaltBase::get_cached_query($post_args);
+$query = QueryCache::get_cached_query($post_args);
 $folder = $post_args["post_type"];
 if($args["post_type"] == "any" || is_array($args["post_type"])){
 $folder = "search";
@@ -581,7 +581,7 @@ die();
 break;
 case 'map_modal':
 $html = "";
-$map_service = SaltBase::get_cached_option("map_service");//get_cached_field("map_service", "option");
+$map_service = QueryCache::get_cached_option("map_service");//get_cached_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -630,7 +630,7 @@ $args = array(
 'posts_per_page' => -1,
 'orderby' => 'post__in',
 );
-$posts = SaltBase::get_cached_query($args);
+$posts = QueryCache::get_cached_query($args);
 $posts = Timber::get_posts($posts);
 //$posts = Timber::get_posts($ids);
 if($posts){

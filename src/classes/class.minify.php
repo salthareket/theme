@@ -859,7 +859,7 @@ class SaltMinifier{
         $css_content = file_get_contents($icons_css_path);
 
         // font-face bloklarını yakala
-        preg_match_all('/@font-face\s*{[^}]+}/i', $css_content, $matches);
+        /*preg_match_all('/@font-face\s*{[^}]+}/i', $css_content, $matches);
         $font_faces = $matches[0] ?? [];
 
         if (!empty($font_faces)) {
@@ -881,50 +881,94 @@ class SaltMinifier{
             // icons.css içinden font-face'leri çıkar
             $icons_css_clean = str_replace($font_faces, '', $css_content);
             file_put_contents($icons_css_path, $icons_css_clean);
+        }*/
+        // 1. Regex'i modernize et: 
+        // [^}] yerine (?U).+ (Ungreedy) kullanarak daha güvenli yakalarız.
+        // /s flag'i ekleyerek (dotall) satır atlamalarını da kapsarız.
+        preg_match_all('/@font-face\s*\{(?U).+\}/i', $css_content, $matches);
+        $font_faces = $matches[0] ?? [];
+
+        error_log(print_r($matches, true));
+
+        if (!empty($font_faces)) {
+            $cleaned_faces = array_map(function ($face) {
+                // URL'leri düzelt: Windows path → URL path
+                return preg_replace_callback('/url\((["\']?)([^)]+?)\1\)/i', function ($m) {
+                    $quote = $m[1]; // Orijinal tırnağı koru
+                    $raw_path = $m[2];
+                    
+                    // Windows path düzeltme ( \ -> / )
+                    $url = str_replace('\\', '/', $raw_path); 
+                    
+                    // Dosya sistemindeki path'ten site kökü çıkar
+                    $theme_path = str_replace('\\', '/', get_template_directory());
+                    $relative_path = str_replace($theme_path, '', $url);
+                    
+                    // Baştaki slash'ı garantiye al
+                    $relative_path = '/' . ltrim($relative_path, '/');
+                    
+                    $site_subfolder = getSiteSubfolder(); // Örn: /ekos-depolama/
+                    $theme_name = get_template();
+                    
+                    // Temiz URL oluştur
+                    return "url({$quote}{$site_subfolder}wp-content/themes/{$theme_name}{$relative_path}{$quote})";
+                }, $face);
+            }, $font_faces);
+
+            // 1. font-faces.css olarak kaydet
+            file_put_contents($font_faces_css_path, implode("\n\n", $cleaned_faces));
+
+            // 2. icons.css içinden font-face'leri çıkar
+            // str_replace bazen büyük bloklarda sorun çıkarabilir, 
+            // preg_replace ile yakalanan her şeyi bir kerede silmek daha garantidir.
+            $icons_css_clean = preg_replace('/@font-face\s*\{(?U).+\}/i', '', $css_content);
+            
+            // Varsa en tepedeki @charset'i koruyup dosyayı kaydet
+            file_put_contents($icons_css_path, trim($icons_css_clean));
         }
     }
     public function relocateFontFaces($font_faces_css_path) {
-        if (!file_exists($font_faces_css_path)) {
-            echo "font-faces.css bulunamadı: $font_faces_css_path";
-            return;
+        if (file_exists($font_faces_css_path)) {
+            //echo "font-faces.css bulunamadı: $font_faces_css_path";
+            //return;
+
+            $css_content = file_get_contents($font_faces_css_path);
+
+            $theme_path = str_replace('\\', '/', get_template_directory());
+            $theme_uri = str_replace('\\', '/', get_template_directory_uri());
+            $theme_slug = basename($theme_path);
+            $site_subfolder = rtrim(getSiteSubfolder(), '/'); // mesela "/xekos"
+
+            // URL'leri dönüştür
+            $updated = preg_replace_callback(
+                '/url\((["\']?)([^)]+?)\1\)/i',
+                function ($m) use ($theme_path, $theme_uri, $theme_slug, $site_subfolder) {
+                    $raw_url = str_replace('\\', '/', $m[2]);
+
+                    // Fiziksel dizin bazlı path
+                    if (strpos($raw_url, $theme_path) === 0) {
+                        $rel_path = str_replace($theme_path, '', $raw_url);
+                        return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}{$rel_path}')";
+                    }
+
+                    // URL içeriyorsa
+                    if (strpos($raw_url, $theme_uri) === 0) {
+                        $rel_path = str_replace($theme_uri, '', $raw_url);
+                        return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}{$rel_path}')";
+                    }
+
+                    // ../fonts/... varsa
+                    if (preg_match('#\.\./fonts/([^\'")]+)#', $raw_url, $match)) {
+                        return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}/static/fonts/{$match[1]}')";
+                    }
+
+                    return $m[0]; // dokunma
+                },
+                $css_content
+            );
+
+            file_put_contents($font_faces_css_path, $updated);
         }
-
-        $css_content = file_get_contents($font_faces_css_path);
-
-        $theme_path = str_replace('\\', '/', get_template_directory());
-        $theme_uri = str_replace('\\', '/', get_template_directory_uri());
-        $theme_slug = basename($theme_path);
-        $site_subfolder = rtrim(getSiteSubfolder(), '/'); // mesela "/xekos"
-
-        // URL'leri dönüştür
-        $updated = preg_replace_callback(
-            '/url\((["\']?)([^)]+?)\1\)/i',
-            function ($m) use ($theme_path, $theme_uri, $theme_slug, $site_subfolder) {
-                $raw_url = str_replace('\\', '/', $m[2]);
-
-                // Fiziksel dizin bazlı path
-                if (strpos($raw_url, $theme_path) === 0) {
-                    $rel_path = str_replace($theme_path, '', $raw_url);
-                    return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}{$rel_path}')";
-                }
-
-                // URL içeriyorsa
-                if (strpos($raw_url, $theme_uri) === 0) {
-                    $rel_path = str_replace($theme_uri, '', $raw_url);
-                    return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}{$rel_path}')";
-                }
-
-                // ../fonts/... varsa
-                if (preg_match('#\.\./fonts/([^\'")]+)#', $raw_url, $match)) {
-                    return "url('{$site_subfolder}/wp-content/themes/{$theme_slug}/static/fonts/{$match[1]}')";
-                }
-
-                return $m[0]; // dokunma
-            },
-            $css_content
-        );
-
-        file_put_contents($font_faces_css_path, $updated);
     }
     public function clearFontfaces($css_url) {
         if (!file_exists($css_url)) {
