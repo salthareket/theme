@@ -34,7 +34,14 @@ class PageAssetsExtractor
     public array $technical_taxonomies = [
         'link_category',
         'nav_menu',
-        'post_format'
+        'post_format',
+        'template-types',
+        'language',
+        'term_language',
+        'post_translations',
+        'term_translations',
+        'acf-field-group-category',
+        'wp_pattern_category'
     ];
 
     /* ======= Genel Durum ======= */
