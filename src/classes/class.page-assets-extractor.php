@@ -15,8 +15,27 @@ class PageAssetsExtractor
     const META_KEY = 'assets';
     const HTML_HASH_META_KEY = '_page_assets_last_html_hash';
 
-    protected $excluded_post_types = [];
-    protected $excluded_taxonomies = [];
+    public $excluded_post_types = [];
+    public $excluded_taxonomies = [];
+
+    public array $technical_post_types = [
+        'acf-field-group',
+        'acf-field', 
+        'acf-ui-options-page', 
+        'acf-post-type', 
+        'acf-taxonomy',
+        'revision',
+        'nav_menu_item',
+        'custom_css',
+        'customize_changeset',
+        'attachment',
+        'template'
+    ];
+    public array $technical_taxonomies = [
+        'link_category',
+        'nav_menu',
+        'post_format'
+    ];
 
     /* ======= Genel Durum ======= */
     public $type = null;                       // 'post' | 'term' | 'archive' | ...
@@ -85,27 +104,16 @@ class PageAssetsExtractor
         }
 
         $this->excluded_post_types = (array) get_option('options_exclude_post_types_from_cache', []);
-        $this->excluded_taxonomies = (array) get_option('options_exclude_taxonomies_from_cache', []);
-
-        if (!in_array('template', $this->excluded_post_types, true)) {
-            $this->excluded_post_types[] = 'template';
-        }
-
-        // ACF ve WP teknik tiplerini manuel olarak ekle
-        $technical_types = [
-            'acf-field-group',
-            'acf-field', 
-            'acf-ui-options-page', 
-            'acf-post-type', 
-            'acf-taxonomy',
-            'revision',
-            'nav_menu_item',
-            'custom_css',
-            'customize_changeset'
-        ];
-        foreach ($technical_types as $type) {
+        foreach ($this->technical_post_types as $type) {
             if (!in_array($type, $this->excluded_post_types)) {
                 $this->excluded_post_types[] = $type;
+            }
+        }
+        
+        $this->excluded_taxonomies = (array) get_option('options_exclude_taxonomies_from_cache', []);
+        foreach ($this->technical_taxonomies as $tax) {
+            if (!in_array($tax, $this->excluded_taxonomies)) {
+                $this->excluded_taxonomies[] = $tax;
             }
         }
 
@@ -155,7 +163,7 @@ class PageAssetsExtractor
         if (!$this->is_supported_post_type($post->post_type)) return;
         if ($this->disable_hooks) return;
 
-        if (in_array($post->post_type, $this->excluded_post_types)) {
+        if ($this->is_post_type_excluded($post_type)) {
             error_log("[PAE] Post {$post_id} excluded from cache generation.");
             return; // işlem yapma
         }
@@ -195,7 +203,7 @@ class PageAssetsExtractor
         if (!$this->is_supported_taxonomy($taxonomy)) return;
         if ($this->disable_hooks) return;
 
-        if (in_array($taxonomy, $this->excluded_taxonomies)) {
+        if ($this->is_taxonomy_excluded($taxonomy)) {
             error_log("[PAE] Term {$term_id} excluded from cache generation.");
             return ; // işlem yapma
         }
@@ -212,6 +220,21 @@ class PageAssetsExtractor
         }
 
         return $ok;
+    }
+
+    public function is_post_type_excluded($post_type) {
+        if (empty($this->excluded_post_types)) {
+            $options_excluded = (array) get_option('options_exclude_post_types_from_cache', []);
+            $this->excluded_post_types = array_unique(array_merge($this->technical_post_types, $options_excluded));
+        }
+        return in_array($post_type, $this->excluded_post_types, true);
+    }
+    public function is_taxonomy_excluded($taxonomy) {
+        if (empty($this->excluded_taxonomies)) {
+            $options_excluded = (array) get_option('options_exclude_taxonomies_from_cache', []);
+            $this->excluded_taxonomies = array_unique(array_merge($this->technical_taxonomies, $options_excluded));
+        }
+        return in_array($taxonomy, $this->excluded_taxonomies, true);
     }
 
     /* ===================== HTML HASH KONTROL ===================== */
@@ -1581,8 +1604,11 @@ class PageAssetsExtractor
         foreach ($xml->xpath('//ns:url/ns:loc') as $url_loc) {
             $url_string = (string)$url_loc;
 
-            if (in_array($sitemap_file_name, $this->excluded_post_types, true)) continue;
-            if (in_array($sitemap_file_name, $this->excluded_taxonomies, true)) continue;
+            if ($this->is_post_type_excluded($sitemap_file_name) continue;
+            if ($this->is_taxonomy_excluded($sitemap_file_name) continue;
+
+            //if (in_array($sitemap_file_name, $this->excluded_post_types, true)) continue;
+            //if (in_array($sitemap_file_name, $this->excluded_taxonomies, true)) continue;
 
             // === (A) ROLE-BAZLI USER SİTEMAPLERİ ===
             // Örn: /artist-sitemap.xml, /editor-sitemap.xml, projendeki özel roller...
@@ -2653,14 +2679,9 @@ function trigger_page_assets_rebuild_on_save($id) {
     // --- DURUM A: BİR POST/SAYFA KAYDEDİLDİYSE ---
     if ($current_filter === 'save_post') {
         $post_type = get_post_type($id);
-        
-        // Post Type Exclude Kontrolü
-        $excluded_posts = (array)($extractor->excluded_post_types ?? []);
-        if ($post_type && in_array($post_type, $excluded_posts)) {
+        if ($post_type && $extractor->is_post_type_excluded($post_type)) {
             return; 
         }
-
-        error_log(print_r("kontrol edilen->".$post_type."(".$id.")", true));
 
         // Sadece Post ID'sini temizle
         $extractor->clear_content_cache_and_hash($id); 
@@ -2677,8 +2698,7 @@ function trigger_page_assets_rebuild_on_save($id) {
         
         if ($term && !is_wp_error($term)) {
             // Taxonomy Exclude Kontrolü
-            $excluded_taxs = (array)($extractor->excluded_taxonomies ?? []);
-            if (in_array($term->taxonomy, $excluded_taxs)) {
+            if ($extractor->is_taxonomy_excluded($term->taxonomy)) {
                 return;
             }
 
