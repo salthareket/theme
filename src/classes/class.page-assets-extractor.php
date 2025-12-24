@@ -109,7 +109,7 @@ class PageAssetsExtractor
                 $this->excluded_post_types[] = $type;
             }
         }
-        
+
         $this->excluded_taxonomies = (array) get_option('options_exclude_taxonomies_from_cache', []);
         foreach ($this->technical_taxonomies as $tax) {
             if (!in_array($tax, $this->excluded_taxonomies)) {
@@ -1604,8 +1604,8 @@ class PageAssetsExtractor
         foreach ($xml->xpath('//ns:url/ns:loc') as $url_loc) {
             $url_string = (string)$url_loc;
 
-            if ($this->is_post_type_excluded($sitemap_file_name) continue;
-            if ($this->is_taxonomy_excluded($sitemap_file_name) continue;
+            if ($this->is_post_type_excluded($sitemap_file_name)) continue;
+            if ($this->is_taxonomy_excluded($sitemap_file_name)) continue;
 
             //if (in_array($sitemap_file_name, $this->excluded_post_types, true)) continue;
             //if (in_array($sitemap_file_name, $this->excluded_taxonomies, true)) continue;
