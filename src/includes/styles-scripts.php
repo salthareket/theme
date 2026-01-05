@@ -1,5 +1,5 @@
 <?php
-function generateFontPreloadTags($font_faces_path) {
+function generateFontPreloadTags_v1($font_faces_path) {
     if (!file_exists($font_faces_path)) {
         return '';
     }
@@ -25,6 +25,52 @@ function generateFontPreloadTags($font_faces_path) {
         $preloads[] = sprintf(
             '<link rel="preload" as="font" href="%s" type="%s" crossorigin>',
             htmlspecialchars($url),
+            $type
+        );
+    }
+
+    return implode("\n", array_unique($preloads));
+}
+
+function generateFontPreloadTags($font_faces_path) {
+    if (!file_exists($font_faces_path)) {
+        return '';
+    }
+
+    $content = file_get_contents($font_faces_path);
+    // Regex'i biraz esnettim, tek tırnak/çift tırnak ve boşluk varyasyonları için
+    preg_match_all('/src:\s*url\(([^)]+)\)\s*format\("([^"]+)"\)/i', $content, $matches, PREG_SET_ORDER);
+
+    $preloads = [];
+
+    // Mevcut sitenin path kısmını alalım (Örn: /yeni-klasor/ veya sadece /)
+    $current_home_path = parse_url(home_url(), PHP_URL_PATH) ?: '';
+    $current_home_path = rtrim($current_home_path, '/');
+
+    foreach ($matches as $match) {
+        $url = trim($match[1], '\'"');
+
+        // 1. ADIM: URL içindeki "/wp-content/" öncesini tamamen uçuralım. 
+        // Böylece "/ekos-depolama/wp-content/..." olan yer "/wp-content/..." kalır.
+        if (strpos($url, '/wp-content/') !== false) {
+            $url = strstr($url, '/wp-content/');
+        }
+
+        // 2. ADIM: Eğer site bir subfolder içindeyse (yeni klasör), başına onu ekleyelim.
+        // home_url() zaten yeni klasörü biliyor.
+        $final_url = $current_home_path . $url;
+
+        $format = strtolower($match[2]);
+        $type = match ($format) {
+            'woff2' => 'font/woff2',
+            'woff'  => 'font/woff',
+            'truetype', 'ttf' => 'font/ttf',
+            default => 'font/woff2',
+        };
+
+        $preloads[] = sprintf(
+            '<link rel="preload" as="font" href="%s" type="%s" crossorigin>',
+            htmlspecialchars($final_url),
             $type
         );
     }
@@ -70,7 +116,7 @@ function remove_jquery_migrate($scripts) {
 }
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
-function inline_css($name = "", $url = "") { // Her iki parametre de isteğe bağlı
+function inline_css_v1($name = "", $url = "") { // Her iki parametre de isteğe bağlı
     
     // DİKKAT: BU KONTROL ARTIK ÇOK DAHA KRİTİK!
     // $url parametresini de isteğe bağlı yaptığımız için, fonksiyonun boş bir URL ile
@@ -118,6 +164,66 @@ function inline_css($name = "", $url = "") { // Her iki parametre de isteğe ba�
             $rel_path = ltrim(str_replace('\\', '/', $rel_path), '/');
 
             return "url('{$subfolder}/wp-content/themes/" . basename($theme_dir) . "/{$rel_path}')";
+        },
+        $css
+    );
+}
+function inline_css($name = "", $url = "") {
+    if (empty($url) || !is_string($url) || !file_exists($url)) {
+        error_log($url);
+        error_log('[Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
+        return '';
+    }
+
+    $css = file_get_contents($url);
+    if ($css === false) {
+        error_log('[Theme] CSS dosyası okunamadı: ' . $url);
+        return '';
+    }
+
+    if ($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)) {
+        $upload_dir = wp_upload_dir();
+        $upload_url = $upload_dir['baseurl'] . "/";
+        $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
+        $code = str_replace("{home_url}", home_url("/"), $code);
+        $css .= $code;
+    }
+
+    $css = str_replace("[STATIC_URL]", STATIC_URL, $css);
+
+    $theme_dir = wp_normalize_path(get_template_directory());
+    $theme_name = basename($theme_dir);
+    $base_path = wp_normalize_path(dirname($url));
+    
+    // Güncel subfolder'ı dinamik alalım (/ekos-depolama veya boş gelir)
+    $subfolder = parse_url(home_url(), PHP_URL_PATH) ?: '';
+    $subfolder = rtrim($subfolder, '/');
+
+    // REGEX DEĞİŞTİ: Artık başında / olan yolları da yakalıyor (\/ engeli kalktı)
+    return preg_replace_callback(
+        '/url\((["\']?)(?!https?:|data:)([^)\'"]+)\1\)/i',
+        function ($m) use ($base_path, $theme_dir, $subfolder, $theme_name) {
+            $quote = $m[1];
+            $url_path = $m[2];
+
+            // EĞER YOL ABSOLUTE İSE (Başı / ile başlıyorsa ve içinde /wp-content/ varsa)
+            if (strpos($url_path, '/wp-content/') !== false) {
+                $clean_path = str_replace('\\', '/', strstr($url_path, '/wp-content/'));
+                return "url({$quote}{$subfolder}{$clean_path}{$quote})";
+            }
+
+            // EĞER YOL RELATIVE İSE (Senin eski mantığın devam ediyor)
+            $original_path = wp_normalize_path($url_path);
+            $abs_path = wp_normalize_path(realpath($base_path . DIRECTORY_SEPARATOR . $original_path));
+
+            if (!$abs_path || !str_starts_with($abs_path, $theme_dir)) {
+                return $m[0];
+            }
+
+            $rel_path = str_replace($theme_dir, '', $abs_path);
+            $rel_path = ltrim(str_replace('\\', '/', $rel_path), '/');
+
+            return "url({$quote}{$subfolder}/wp-content/themes/{$theme_name}/{$rel_path}{$quote})";
         },
         $css
     );

@@ -406,6 +406,10 @@ class Theme_Site_Exporter {
         $live_escaped = str_replace('/', '\\/', $live_url);
         $content = str_replace($local_escaped, $live_escaped, $content);
 
+        $local_escaped = addcslashes($local_url, '/');
+        $live_escaped  = addcslashes($live_url, '/');
+        $content = str_replace($local_escaped, $live_escaped, $content);
+
         // 3. RegEx ile diğer varyasyonları yakalama (daha az verimli, ancak kenar durumları kapsar)
         $pattern = preg_quote($local_url, '#');
         $content = preg_replace('#' . $pattern . '#', $live_url, $content);
