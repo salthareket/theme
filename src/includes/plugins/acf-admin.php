@@ -541,11 +541,13 @@ function get_theme_styles($variables = array(), $root = false){
 
         $offcanvas_backdrop_data = (isset($offcanvas_general["backdrop_color"]) && is_array($offcanvas_general["backdrop_color"])) ? $offcanvas_general["backdrop_color"] : [];
 
-        if(isset($offcanvas_backdrop_data["gradient"])){
+        if(!empty($offcanvas_backdrop_data["gradient"])){
+            $backdrop_color = !empty($offcanvas_backdrop_data["gradient_color"])?$offcanvas_backdrop_data["gradient_color"]:"";
             $variables["offcanvas-backdrop-color"] = "transparent";
-            $variables["offcanvas-backdrop-gradient"] = $offcanvas_backdrop_data["gradient_color"];
+            $variables["offcanvas-backdrop-gradient"] = $backdrop_color;
         }else{
-            $variables["offcanvas-backdrop-color"] = scss_variables_color($offcanvas_backdrop_data["color"] ?? "transparent");
+            $backdrop_color = !empty($offcanvas_backdrop_data["color"])?$offcanvas_backdrop_data["color"]:"";
+            $variables["offcanvas-backdrop-color"] = scss_variables_color($backdrop_color);
             $variables["offcanvas-backdrop-gradient"] = "";
         }
         $variables["offcanvas-backdrop-opacity"] = $offcanvas_general["backdrop_opacity"] ?? ".5";
@@ -747,13 +749,13 @@ function save_theme_styles_header_themes($header){
                     $color = empty($default["color"])?"null":$default["color"];
                     $color_active = empty($default["color_active"])?"null":$default["color_active"];
                     $bg_color = empty($default["bg_color"])?"null":$default["bg_color"];
-                    $logo = empty($default["logo"])?"null":$default["logo"];
+                    $logo = empty($default["logo"])?"revert-layer":$default["logo"];
                     
                     $affix = $theme["affix"];
                     $color_affix = empty($affix["color"])?"null":$affix["color"];
                     $color_active_affix = empty($affix["color_active"])?"null":$affix["color_active"];
                     $bg_color_affix = empty($affix["bg_color"])?"null":$affix["bg_color"];
-                    $logo_affix = empty($affix["logo"])?"null":$affix["logo"];
+                    $logo_affix = empty($affix["logo"])?"revert-layer":$affix["logo"];
                     $btn_reverse = scss_variables_boolean($affix["btn_reverse"]);
 
                     $code .= $selector.":not(.menu-open):not(.menu-show-header){\n";
@@ -780,10 +782,19 @@ function save_theme_styles_header_themes($header){
         }
 }
 
-function acf_theme_styles_save_hook($post_id) {
-    if (have_rows('theme_styles', $post_id)) {
-        $theme_styles = get_field('theme_styles', 'option');
-        //print_r($theme_styles);
+function acf_theme_styles_save_hook($value, $post_id, $field) {
+    if ($post_id !== 'options' || !is_array($field)) {
+        return $value;
+    }
+    if($field["name"] != "theme_styles"){
+        return $value;
+    }
+    //$field_key = "field_66350b6e61f6d";
+    //if (have_rows('theme_styles', $post_id)) {
+
+        $theme_styles = get_field('theme_styles', $post_id);
+
+        //print_r($value);
         //die;
         if($theme_styles){
             $action = $theme_styles["theme_styles_action"];
@@ -805,14 +816,9 @@ function acf_theme_styles_save_hook($post_id) {
                     $timestamp = time();
                     $filename = sanitize_title($theme_styles["theme_styles_filename"]);//.".".$timestamp;
                     $preset_file = THEME_STATIC_PATH . 'data/theme-styles/'.$filename.'.json';
-                    //$theme_styles["theme_styles_action"] = "";
-                    //$theme_styles["theme_styles_filename"] = "";
-                    //update_field('theme_styles', $theme_styles, $post_id);
                     $theme_styles["theme_styles_presets"] = "";
                     $json_data = json_encode($theme_styles);
                     file_put_contents($preset_file, $json_data);
-                    // save root variables
-                    //get_theme_styles([], true);
                     $create_root_css = true;
                 break;
                 case 'load':
@@ -824,27 +830,33 @@ function acf_theme_styles_save_hook($post_id) {
                         $theme_styles["theme_styles_action"] = "save";
                         $theme_styles["theme_styles_filename"] = $filename;
                         $theme_styles["theme_styles_presets"] = "";
+                        remove_filter('acf/update_value/name=theme_styles', 'acf_theme_styles_save_hook', 10, 3);
                         update_field('theme_styles', $theme_styles, $post_id);
+                        add_filter('acf/update_value/name=theme_styles', 'acf_theme_styles_save_hook', 10, 3);
                     }
                 break;
             }
-            // save latest
-            $preset_file = THEME_STATIC_PATH . 'data/theme-styles/latest.json';
-            $json_data = json_encode($theme_styles);
-            file_put_contents($preset_file, $json_data); 
+   
+                // save latest
+                $preset_file = THEME_STATIC_PATH . 'data/theme-styles/latest.json';
+                $json_data = json_encode($theme_styles);
+                file_put_contents($preset_file, $json_data); 
 
-            //save colors
-            $custom_colors_list = save_theme_styles_colors($theme_styles);
-            //save_theme_styles_header_themes($theme_styles["header"]);
+                //save colors
+                $custom_colors_list = save_theme_styles_colors($theme_styles);
+                //save_theme_styles_header_themes($theme_styles["header"]);
 
-            if($create_root_css && $custom_colors_list){
-                get_theme_styles(["custom-colors-list" => $custom_colors_list], true);
-            }
-            delete_transient('theme_styles');
+                if($create_root_css && $custom_colors_list){
+                    get_theme_styles(["custom-colors-list" => $custom_colors_list], true);
+                }
+                delete_transient('theme_styles');                
+           
         }
-    }
+    //}
+    return $value;
 }
-add_action('acf/save_post', 'acf_theme_styles_save_hook', 10);
+//add_action('acf/save_post', 'acf_theme_styles_save_hook', 20);
+add_filter('acf/update_value/name=theme_styles', 'acf_theme_styles_save_hook', 10, 3);
 
 function acf_theme_styles_load_presets( $field ) {
     $path = THEME_STATIC_PATH . 'data/theme-styles/';

@@ -161,7 +161,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["multilanguage"],
-    "v" => "3.7.3",
+    "v" => "3.7.5",
     "name" => "polylang-pro/polylang.php",
     "file" => "polylang-pro"
 );

@@ -1254,7 +1254,7 @@ header#header {
 
             .navbar-brand {
                 .logo-svg {
-                    @if $logo !=null {
+                    @if $logo != null {
                         @include svgColor($logo);
                     }
                 }

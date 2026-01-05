@@ -21,6 +21,16 @@ class MenuItem extends Timber\MenuItem{
 		if(!isset($args["max_level"])){
 			$args["max_level"] = 0;
 		}
+		if(!isset($args["open"])){
+			$args["open"] = false;
+		}
+
+		if($args["collapsed"]){
+			$args["collapsible"] = false;
+		}
+		if($args["collapsible"]){
+			$args["collapsed"] = false;
+		}
        
 		global $post;
 		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || in_array($this->ID, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);
@@ -49,6 +59,9 @@ class MenuItem extends Timber\MenuItem{
         $itemClass[] = $active ?'active':'';
 		if($link_type != "default" || $link_type == ""){
 			$linkClass[] = "nav-link";
+		}
+		if($args["collapsed"]){
+			$itemClass[] = "col-lg col-12";
 		}
 
 		switch($link_type){

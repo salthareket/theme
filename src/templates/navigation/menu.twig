@@ -1,28 +1,33 @@
 {% set menu_level = menu_level is empty?1:menu_level %}
+{% set max_level = max_level is empty?9999:max_level %}
 
-{% for item in menu %}
 
-    {% set props = item.get_properties({parent_link: parent_link}) %}
+{% if menu_level <= max_level %}
+	{% for item in menu %}
 
-	<li class="{{props.item.class}}" data-menu-level="{{menu_level}}">
-		<a href="{{props.link.href}}" class="text-wrap {{props.link.class}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %} {{props.link.attrs}}>
-			<span itemprop="name">{{item.title}}</span>
-            {% if item.children %}
-                <span class="sub-arrow"></span>
-            {% endif %}
-	    </a>
-		{% if item.children %}
-		<ul class="dropdown-menu {% if props.megamenu %}mega-menu mega-menu-{{item.mega_menu_template}}{% endif %} z-{{menu_level}}" {% if menu_level > 1 %}style="max-height:350px;"{% endif %}>
-		{% endif %}
+	    {% set props = item.get_properties({parent_link: parent_link, menu_level: menu_level, max_level: max_level, collapsed: collapsed}) %}
 
-		{% if props.megamenu %}
-            {% include ["navigation/mega-menu-" ~ item.mega_menu_template ~ ".twig", "navigation/mega-menu-default.twig"] with {'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'id':item.ID} %}
-        {% else %}
-		   	{% include "navigation/menu.twig" with {'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1} %}
-        {% endif %}
+		<li class="{{props.item.class}}" data-menu-level="{{menu_level}}">
+			<a href="{{props.link.href}}" class="text-wrap {{props.link.class}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %} {{props.link.attrs}}>
+				<span itemprop="name">{{item.title}}</span>
+	            {% if item.children and menu_level < max_level %}
+	                <span class="sub-arrow"></span>
+	            {% endif %}
+		    </a>
+			{% if item.children and menu_level < max_level %}
+			<ul class="dropdown-menu {% if collapsed %}show{% endif %} {% if props.megamenu %}mega-menu mega-menu-{{item.mega_menu_template}}{% endif %} z-{{menu_level}}" {% if menu_level > 1 %}style="max-height:350px;"{% endif %}>
+			{% endif %}
 
-		{% if item.children %}
-		</ul>
-		{% endif %}
-	</li>
-{% endfor %}
+			{% if props.megamenu %}
+	            {% include ["navigation/mega-menu-" ~ item.mega_menu_template ~ ".twig", "navigation/mega-menu-default.twig"] with {'menu': item, 'is_child':item.children, 'menu_level':menu_level+1, 'id':item.ID} %}
+	        {% else %}
+			   	{% include "navigation/menu.twig" with {'menu': item.children, 'is_child':item.children, 'menu_level':menu_level+1} %}
+	        {% endif %}
+
+			{% if item.children and menu_level < max_level %}
+			</ul>
+			{% endif %}
+		</li>
+	{% endfor %}
+
+{% endif %}

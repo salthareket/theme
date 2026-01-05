@@ -1,77 +1,91 @@
-<div class="row gy-3">
+<div class="row align-items-center">
 
-            <div class="col-12">
-                <div class="container-lg">
-                    <ul class="nav nav-footer justify-content-center text-center row row-cols-xl-auto row row-cols-auto row-cols-1 gy-xl-0 gy-3" data-sm-skip="true">
-                        {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.main).get_items, parent_link : false, max_level : 2, class_name: "" } %}
-                    </ul>
-                    <ul class="nav justify-content-center text-center" data-sm-skip="true">
-                        {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.legal).get_items, parent_link : false, max_level : 1, class_name: "" } %}
-                    </ul>
-                </div>
-            </div>
-
-            {# if partners %}
-            <div class="col-12">
-                <div class="container-lg">
-                    <div class="row row-cols-auto justify-content-center">
-                        {% for partner in partners %}
-                            <div class="col">
-                                {% if function('get_extension', partner.logo) == "svg" %}
-                                    {{partner.logo|inline_svg({"class": "image img-fluid rounded-4 shadow-sm"}) }}
-                                {% else %}
-                                    <img data-src="{{partner.logo}}" class="image img-fluid lazy rounded-4 shadow-sm" alt="{{ partner.title }}" width="80" height="80" style="border-radius:12px;"/>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif #}
-
-            <div class="col-xl-6 col-12 text-xl-start text-center">
-                <a class="navbar-brand d-inline-block align-self-center mb-4" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
-                    {% if function('get_extension', footer_options.logo) == "svg" %}
-                        {{function('inline_svg', footer_options.logo, {"class": "svg-white logo"})}}
-                    {% else %}
-                        {% set footer_logo_dim = function("get_attachment_dimensions_by_url", footer_options.logo) %}
-                        <img data-src="{{footer_options.logo}}" class="logo img-fluid lazy" alt="{{site.name}}" width="{{footer_logo_dim.width}}" height="{{footer_logo_dim.height}}" />
-                    {% endif %}
-                </a>
-                <ul class="list-branding list-inline">
-                    <li class="list-inline-item">
-                        © {{contact.title}} — <span>{{footer_options.text}}</span>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="col-xl-6 col-12 d-flex align-items-xl-end justify-content-xl-end justify-content-center text-xl-end text-center">
-                <ul class="list-contact list-inline">
-                    <li class="list-inline-item">
-                        <address>
-                         {{ contact.contact_city }} / {{ contact.contact_country }}
-                        </address>
-                    </li>
-                    <li class="list-inline-item">
-                        {% if contact.contact_email %}
-                        <ul class="list-email list-inline">
-                            {% if contact.contact_email %}
-                                {% for email in contact.contact_email %}
-                                    {% if email.type == "default" %}
-                                        <li class="list-inline-item">
-                                            <div class="email">{{email.email|email_link}}</div>
-                                        </li>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </ul>
-                        {% endif %}
-                    </li>
-                    <li class="list-inline-item">
-                        {{ accounts|list_social_accounts("lh-1") }}
-                    </li>
-                    
-                </ul>
-            </div>
+    <div class="col-12">
+        <div class="container-xl mb-5">
+            <ul class="nav nav-footer nav-collapsed justify-content-center-text-center" data-sm-skip="true">
+                {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.legal).get_items, parent_link : false, max_level : 2, collapsed: true } %}
+            </ul>
         </div>
-        <div class="img-footer position-absolute-fill ignore-padding z-n1"></div>
+    </div>
+
+    <div class="col-lg-2 col-12 text-center text-lg-start">
+        <a class="navbar-brand d-inline-block align-self-center" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+            {% if function('get_extension', footer_options.logo) == "svg" %}
+                {{function('inline_svg', footer_options.logo, {"class": "logo"})}}
+            {% else %}
+                {% set footer_logo_dim = function("get_attachment_dimensions_by_url", footer_options.logo) %}
+                <img data-src="{{footer_options.logo}}" class="logo img-fluid lazy" alt="{{site.name}}" width="{{footer_logo_dim.width}}" height="{{footer_logo_dim.height}}" />
+            {% endif %}
+        </a>
+    </div>
+    <div class="col-lg-10 col-12 d-flex align-items-lg-end justify-content-lg-end justify-content-center text-lg-end text-center mt-lg-0 mt-4">
+        <ul class="list-contact list-inline d-flex m-0">
+            <li class="list-inline-item">
+                © {{"now"|date('Y')}} {{contact.title}}{% if footer_options.text %} — <span>{{footer_options.text}}</span>{% endif %}
+            </li>
+            <li class="list-inline-item">
+                {{ accounts|list_social_accounts("lh-1") }}
+            </li>
+
+        </ul>
+    </div>
+    
+
+    {#<div class="col-12">
+        <div class="container-lg">
+            <ul class="nav nav-collapsed justify-content-center-text-center" data-sm-skip="true">
+                {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.legal).get_items, parent_link : false, max_level : 2, collapsed: true } %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-xl-6 col-12 text-xl-start text-center">
+        <a class="navbar-brand d-inline-block align-self-center mb-4" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+            {% if function('get_extension', footer_options.logo) == "svg" %}
+                {{function('inline_svg', footer_options.logo, {"class": "logo"})}}
+            {% else %}
+                {% set footer_logo_dim = function("get_attachment_dimensions_by_url", footer_options.logo) %}
+                <img data-src="{{footer_options.logo}}" class="logo img-fluid lazy" alt="{{site.name}}" width="{{footer_logo_dim.width}}" height="{{footer_logo_dim.height}}" />
+            {% endif %}
+        </a>
+        <ul class="list-branding list-inline">
+            <li class="list-inline-item">
+                © {{contact.title}} — <span>{{footer_options.text}}</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="col-xl-6 col-12 d-flex align-items-xl-end justify-content-xl-end justify-content-center text-xl-end text-center">
+        <ul class="list-contact list-inline m-0">
+            <li class="list-inline-item">
+                <address>
+                    {{ contact.contact_city }} / {{ contact.contact_country }}
+                </address>
+            </li>
+            <li class="list-inline-item">
+                {% if contact.contact_email %}
+                <ul class="list-email list-inline">
+                    {% if contact.contact_email %}
+                        {% for email in contact.contact_email %}
+                            {% if email.type == "default" %}
+                            <li class="list-inline-item">
+                                <div class="email">{{email.email|email_link}}</div>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+                {% endif %}
+            </li>
+            <li class="list-inline-item">
+                © {{contact.title}} — <span>{{footer_options.text}}</span>
+            </li>
+            <li class="list-inline-item">
+                {{ accounts|list_social_accounts("lh-1") }}
+            </li>
+                    
+        </ul>
+    </div>#}
+
+</div>
+<div class="img-footer position-absolute-fill ignore-padding z-n1"></div>

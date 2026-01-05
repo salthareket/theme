@@ -170,7 +170,7 @@ class PageAssetsExtractor
         if (!$this->is_supported_post_type($post->post_type)) return;
         if ($this->disable_hooks) return;
 
-        if ($this->is_post_type_excluded($post_type)) {
+        if ($this->is_post_type_excluded($post->post_type)) {
             error_log("[PAE] Post {$post_id} excluded from cache generation.");
             return; // işlem yapma
         }
@@ -782,9 +782,9 @@ class PageAssetsExtractor
             $header_node->delete(); 
         }
 
-        /*$footer_node = $html_temp->findOne('#footer');
+        $footer_node = $html_temp->findOne('#footer');
         $footer_content = '';
-        if ($footer_node) { $footer_content = $footer_node->outerHtml(); $footer_node->delete(); }*/
+        if ($footer_node) { $footer_content = $footer_node->outerHtml(); $footer_node->delete(); }/**/
 
         $main_node = $html_temp->findOne('main');
         $main_content = '';

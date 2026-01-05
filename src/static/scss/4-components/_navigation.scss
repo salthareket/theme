@@ -288,3 +288,24 @@
 		}
 	}
 }
+
+
+.nav{
+	&.nav-collapsed{
+		.dropdown-menu{
+			position:relative;
+			transform:none;
+			--bs-dropdown-padding-y:0px;
+			--bs-dropdown-bg:transparent;
+			--bs-dropdown-border-width:0;
+			--bs-dropdown-border-color:transparent;
+			--bs-dropdown-border-radius:0;
+			--bs-dropdown-zindex:auto;
+			.nav-item{
+				.nav-link{
+					--bs-nav-link-padding-y:3px!important;
+				}				
+			}
+		}
+	}
+}

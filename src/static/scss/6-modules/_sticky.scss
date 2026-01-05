@@ -69,25 +69,45 @@ body{
         .d-sticked{
             //display:block;
             visibility: visible;
+            opacity: 1;
+            //height: auto; /* Ya da sabit bir değer */
+            order:-1;
         }
         .d-sticked-none{
             //display:none;
+            //visibility: hidden;
             visibility: hidden;
+            opacity: 0;
+            //height: 0;
+            overflow: hidden;
+            transition: opacity 0.3s ease;
+            order:999;
         }
     }
     &:not(.sticked){
         .d-sticked{
             //display:none;
+            //visibility: hidden;
             visibility: hidden;
+            opacity: 0;
+            //height: 0;
+            overflow: hidden;
+            transition: opacity 0.3s ease;
+            order:999;
         }
         .d-sticked-none{
             //display:block;
             visibility: visible;
+            opacity: 1;
+            //height: aut
+            order:-1;
         }
     }
 }
 .sticky-top,
 .sticky-bottom{
+    display:flex;
+    flex-direction:column;
     &:not(.sticked){
         z-index: auto;
     }
