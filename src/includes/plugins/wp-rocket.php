@@ -775,3 +775,26 @@ class WP_Rocket_Manifest_Manager {
         error_log("[RocketManifest] " . $message);
     }
 }
+
+
+/**
+ * WP Rocket'in Veritabanını Taciz Etmesini Engelleyen Balyoz
+ */
+// 1. Müşteri verisi transient güncellemesini engelle
+add_filter('pre_update_option__transient_wp_rocket_customer_data', function($value, $old_value) {
+    return $old_value; // Yeni değeri reddet, eskisi neyse o kalsın
+}, 10, 2);
+
+add_filter('pre_update_option__transient_timeout_wp_rocket_customer_data', function($value, $old_value) {
+    return $old_value; // Timeout süresini de sabit tut, sürekli UPDATE atmasın
+}, 10, 2);
+
+// 2. Lisans kontrolü seçeneğini '0' (sorun yok) olarak dondur
+add_filter('pre_update_option_wp_rocket_no_licence', function($value, $old_value) {
+    return '0'; // Ne gelirse gelsin veritabanına '0' yaz (veya yazmaya çalışma)
+}, 10, 2);
+
+// 3. get_option çağrıldığında da direkt '0' döndür ki DB'ye gitmesin
+add_filter('pre_option_wp_rocket_no_licence', function() {
+    return '0';
+});

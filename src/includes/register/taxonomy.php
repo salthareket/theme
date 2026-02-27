@@ -109,13 +109,13 @@ if(is_admin()){
                    'slug' => 'standard',
                    'parent' => 0
                 ));
-                if(!is_wp_error($term) || empty(get_option( 'contact_type_standard'))){
+                if(!is_wp_error($term) || empty(QueryCache::get_option( 'contact_type_standard'))){
                     add_term_meta( $term["term_id"], 'delete-protect', true, true );
                     add_option( 'contact_type_standard', $term["term_id"]);
                 }
             }else{
                 $term = get_term_by("slug", "standard", "contact-type");
-                if(empty(get_option( 'contact_type_standard'))){
+                if(empty(QueryCache::get_option( 'contact_type_standard'))){
                     add_term_meta( $term->term_id, 'delete-protect', true, true );
                     add_option( 'contact_type_standard', $term->term_id);
                 }
@@ -132,8 +132,8 @@ function on_save_contact_type($term_id, $tt_id, $taxonomy) {
     if($taxonomy != "contact-type"){
         return;
     }
-    $term = get_term($term_id, $taxonomy);
-    if(empty(get_option( 'contact_type_'.$term->slug))){
+    $term = QueryCache::get_term($term_id, $taxonomy);
+    if(empty(QueryCache::get_option( 'contact_type_'.$term->slug))){
         add_term_meta( $term->term_id, 'delete-protect', true, true );
         add_option( 'contact_type_'.$term->slug, $term->term_id);
     }
@@ -144,7 +144,7 @@ function on_save_contact_type($term_id, $tt_id, $taxonomy) {
 
 add_action( 'category_edit_form', 'remove_delete_edit_term_form', 10, 2);
 function remove_delete_edit_term_form ($term, $taxonomy){
-    $delete_protected = get_term_meta ($term->term_id, 'delete-protect', true);
+    $delete_protected = get_term_meta($term->term_id, 'delete-protect', true);
     if ($delete_protected){
         echo '<style type="text/css">#tag-'.$term->term_id.' .delete {display: none !important;}</style>';
     }
@@ -153,7 +153,7 @@ add_action ('pre_delete_term', 'taxonomy_delete_protection', 10, 1 );
 function taxonomy_delete_protection ( $term_id ){
     $delete_protected = get_term_meta($term_id, 'delete-protect', true);
     if ($delete_protected){
-        $term = get_term ($term_id);
+        $term = QueryCache::get_term($term_id);
         $error = new WP_Error ();
         $error->add (1, '<h2>Delete Protection Active!</h2>You cannot delete "' . $term->name . '"<br><a href="javascript:history.back()">Go Back</a>');
         wp_die ($error);

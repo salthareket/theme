@@ -161,7 +161,7 @@ function acf_get_contacts($type = "") {
     // Kategori filtresi varsa ekle
     if (!empty($type)) {
         // Options sayfasından kategori ID'sini alıyoruz
-        $category_id = get_option("options_contact_type_" . $type); // ACF genelde başına 'options_' ekler
+        $category_id = QueryCache::get_option("options_contact_type_" . $type); // ACF genelde başına 'options_' ekler
         
         if ($category_id) {
             $args["tax_query"] = array(
@@ -177,7 +177,7 @@ function acf_get_contacts($type = "") {
 
     // 1. HATA: Metot adı QueryCache::get_cached_query olmalı
     // 2. DETAY: Timber ile kullanırken 'ids' modunda çekmek en hızlısıdır
-    $post_ids = get_posts($args);
+    $post_ids = QueryCache::get_posts($args);
 
     if (!empty($post_ids)) {
         // Timber'a ID listesini verip objeleri alıyoruz
@@ -260,7 +260,7 @@ function acf_get_accounts($post = array()){
     if ($post_id) {
         // 🔥 Sınıfın yeni metodunu çağırıyoruz. 
         // Bu işlem veriyi cache'ler ve manifest'e "post_id" ile bağlar.
-        $accounts = get_field("contact_accounts", $post_id);
+        $accounts = QueryCache::get_field("contact_accounts", $post_id);
     }
     
     return $accounts;

@@ -1,39 +1,51 @@
 <?php
-
-
-
-function get_menu($name){
-	/*if (class_exists('Polylang')) {
-        global $polylang;
-        // Polylang'ın menü elemanlarını kurcalayan filtresini kaldırıyoruz
-        if (isset($polylang->nav_menu)) {
-            remove_filter('wp_get_nav_menu_items', array($polylang->nav_menu, 'wp_get_nav_menu_items'), 10);
-        }
-    }*/
-
-    // Menüyü Timber ile çekiyoruz
-
+function timber_get_menu($name) {
+    global $wpdb;
+    
+    // 1. RUNTIME CACHE (RAM): Sayfa içinde mükerrer sorguyu engeller
+    static $runtime_menu_cache = [];
+    
     $lang = function_exists('ml_get_current_language') ? ml_get_current_language() : get_locale();
-    $key = 'menu_html_' . $name . '_' . $lang;
+    $key = '_transient_qcache_menu_' . $name . '_' . $lang;
 
-    // Menüyü direkt HTML string olarak cache'le, Timber nesnesiyle uğraşma
-    return \QueryCache::wrap($key, function() use ($name) {
-        $menu = Timber::get_menu($name);
-        // Timber nesnesini değil, onun render edilmiş halini veya 
-        // içindeki itemları sadeleştirip döndürmen lazım.
-        // Ama en temizi Timber'ın twig tarafında render ettiği şeyi tutmaktır.
-        return $menu; 
-    }, ['opt' => 'global']);
+    // Eğer bu menü bu sayfa yüklenirken zaten çekildiyse, DB'ye gitme, RAM'den ver
+    if (isset($runtime_menu_cache[$key])) {
+        // error_log("RAM'DEN GELDİ BELEŞ: " . $key);
+        return $runtime_menu_cache[$key];
+    }
 
-    //$menu = Timber::get_menu($name);
+    // 2. Şalter Kontrolü
+    if (\QueryCache::$cache === false || (\QueryCache::$config['menu'] ?? true) === false) {
+        return Timber::get_menu($name);
+    }
 
-    // İşlem bitince filtreyi geri takıyoruz (Sitenin geri kalanı için lazım)
-    /*if (class_exists('Polylang')) {
-        global $polylang;
-        if (isset($polylang->nav_menu)) {
-            add_filter('wp_get_nav_menu_items', array($polylang->nav_menu, 'wp_get_nav_menu_items'), 10, 3);
-        }
-    }*/
+    // 3. DB'DEN ÇEK (Eğer RAM'de yoksa)
+    $cached_val = $wpdb->get_var($wpdb->prepare(
+        "SELECT option_value FROM $wpdb->options WHERE option_name = %s", 
+        $key
+    ));
+    
+    if ($cached_val) {
+        $menu_obj = unserialize($cached_val);
+        // Gelecek sefer için RAM'e at
+        $runtime_menu_cache[$key] = $menu_obj;
+        return $menu_obj;
+    }
+
+    // 4. YOKSA TIMBER İLE OLUŞTUR VE DB'YE GÖM
+    $menu = Timber::get_menu($name);
+
+    if ($menu) {
+        $serialized_menu = serialize($menu);
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO $wpdb->options (option_name, option_value, autoload) 
+             VALUES (%s, %s, 'no') 
+             ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+            $key, $serialized_menu
+        ));
+        // RAM'e de yazalım
+        $runtime_menu_cache[$key] = $menu;
+    }
 
     return $menu;
 }

@@ -1,6 +1,7 @@
 <?php
 
 class MenuItem extends Timber\MenuItem{
+
 	public function get_properties($args=array()){
 
 		if(!isset($args["parent_link"])){
@@ -32,8 +33,51 @@ class MenuItem extends Timber\MenuItem{
 			$args["collapsed"] = false;
 		}
        
-		global $post;
-		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || in_array($this->ID, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);
+		/*global $post;
+		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || in_array($this->ID, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);*/
+
+		// MenuItem.php - get_properties metodu içindeki $active satırını bununla değiştir:
+
+		global $wp, $post;
+
+		// 1. CANLI URL KONTROLÜ (Slug silinse de, cache olsa da en garantisi budur)
+		$current_url = home_url(add_query_arg([], $wp->request));
+		$item_url = $this->get_link();
+		$is_truly_active = (untrailingslashit($item_url) === untrailingslashit($current_url));
+
+		// 2. TAXONOMY / TERM KONTROLÜ (Kategori, Etiket, Özel Tax)
+		$is_tax_active = false;
+		if (is_category() || is_tag() || is_tax()) {
+		    $queried_obj = get_queried_object();
+		    if (isset($queried_obj->term_id) && $queried_obj->term_id == $this->object_id) {
+		        $is_tax_active = true;
+		    }
+		}
+
+		// 3. ARCHIVE KONTROLÜ (CPT Arşivi veya Tarih Arşivleri)
+		$is_archive_active = false;
+		if (is_archive()) {
+		    if (is_post_type_archive()) {
+		        $post_type = get_query_var('post_type');
+		        if (is_array($post_type)) $post_type = reset($post_type);
+		        // Menü elemanı bir CPT arşivi mi?
+		        if ($this->type === 'post_type_archive' && $this->object === $post_type) {
+		            $is_archive_active = true;
+		        }
+		    }
+		}
+
+		// 4. BİRLEŞTİRİLMİŞ ACTIVE KARARI
+		$active = $is_truly_active || 
+		          $is_tax_active || 
+		          $is_archive_active || 
+		          (isset($post->ID) && ($post->ID == $this->object_id || $post->ID == $this->ID)) || 
+		          $this->current_item_parent || 
+		          $this->current_item_ancestor ||
+		          in_array($this->object_id, $args["nodes"]) || 
+		          in_array($this->ID, $args["nodes"]);
+
+
 		
 		$properties = array(
 			"link" => array(

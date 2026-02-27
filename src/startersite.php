@@ -645,7 +645,7 @@ class StarterSite extends Timber\Site{
             'callable' => '_get_page',
         ];
         $functions['get_menu'] = [
-            'callable' => 'Timber::get_menu',
+            'callable' => 'timber_get_menu',//'Timber::get_menu',
         ];
         $functions['localization'] = [
             'callable' => 'localization',
