@@ -116,10 +116,9 @@ class QueryCache {
         
         $bulk_key = ($resolved['type'] === 'opt') ? self::ACF_BULK_OPTION_KEY : self::PREFIX . $resolved['type'] . '_' . $resolved['id'] . '_bulk';*/
 
-
         // Config kapalıysa veya çekim yapılıyorsa direkt ACF'e git, Bulk mekanizmasına hiç girme!
-        if (self::$cache === false || self::$config['get_field'] === false || self::$is_processing) {
-            return get_field($selector, $post_id);
+        if (!self::$cache  || !self::$config['get_field'] || self::$is_processing) {
+            return get_field($selector, $post_id, $format);
         }
 
         $post_id = $post_id ?: get_the_ID();

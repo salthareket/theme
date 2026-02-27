@@ -83,6 +83,22 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
+	$plugins['vanilla-lazyload'] = [
+		"c"   => false,
+		"admin" => true,
+		"url" => [
+			$node_path . 'vanilla-lazyload/dist/lazyload.min.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"  => "init_vanilla_lazyload",
+		"whitelist" => [
+			".lazy"
+		],
+		"required" => []
+	];
 	$plugins['bootstrap'] = [
 		"c"   => false,
 		"admin" => false,
@@ -213,23 +229,6 @@ function compile_files_config($enable_production=false){
 		"attrs" => [],
 		"init"     => "",
 		"whitelist" => [],
-		"required" => []
-	];
-	
-	$plugins['vanilla-lazyload'] = [
-		"c"   => false,
-		"admin" => true,
-		"url" => [
-			$node_path . 'vanilla-lazyload/dist/lazyload.min.js'
-		],
-		"css" => [],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => [],
-		"init"  => "init_vanilla_lazyload",
-		"whitelist" => [
-			".lazy"
-		],
 		"required" => []
 	];
 	$plugins['justifiedGallery'] = [
