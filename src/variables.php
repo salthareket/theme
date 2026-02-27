@@ -354,17 +354,23 @@ if ($is_admin ) {
     include_once SH_INCLUDES_PATH . "actions-admin.php";  
 }
 
-// Genel Sınıflar ve Helperlar
-//include 'classes/class.geolocation.query.php';
-include_once SH_CLASSES_PATH . "class.oembed-video.php";
-include_once SH_CLASSES_PATH . "class.image.php";
-include_once SH_CLASSES_PATH . "class.shortcodes.php";
-include_once SH_CLASSES_PATH . "class.logger.php";    
-include_once SH_CLASSES_PATH . "class.encrypt.php";
-include_once SH_CLASSES_PATH . "class.paginate.php";
-include_once SH_CLASSES_PATH . "class.lcp.php";
-include_once SH_CLASSES_PATH . "class.assets-manager.php";
-include_once SH_INCLUDES_PATH . "rewrite.php";
+
+    // Genel Sınıflar ve Helperlar
+    //include 'classes/class.geolocation.query.php';
+    include_once SH_CLASSES_PATH . "class.oembed-video.php";
+    include_once SH_CLASSES_PATH . "class.image.php";
+    include_once SH_CLASSES_PATH . "class.shortcodes.php";
+    include_once SH_CLASSES_PATH . "class.logger.php";    
+
+    include_once SH_INCLUDES_PATH . "rewrite.php";
+
+if(get_sh_config('sh_theme_tasks_status')){
+    include_once SH_CLASSES_PATH . "class.encrypt.php";
+    include_once SH_CLASSES_PATH . "class.paginate.php";
+    include_once SH_CLASSES_PATH . "class.lcp.php";
+    include_once SH_CLASSES_PATH . "class.assets-manager.php";
+}
+
 include_once SH_INCLUDES_PATH . "ajax.php";
 include_once SH_INCLUDES_PATH . "custom.php";
 

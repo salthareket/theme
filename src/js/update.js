@@ -26,7 +26,7 @@ jQuery(document).ready(function ($) {
     function parseAjaxResponse(response) {
         // Eğer response zaten bir nesne ise direkt dön
         if (typeof response === "object") {
-            debugJS("JSON Data:", response);
+            console.log("JSON Data:", response);
             return response;
         }
 
@@ -39,7 +39,7 @@ jQuery(document).ready(function ($) {
             try {
                 // JSON kısmını ayıkla ve parse et
                 const jsonData = JSON.parse(match[0]);
-                debugJS("JSON Data:", jsonData);
+                console.log("JSON Data:", jsonData);
                 return jsonData;
             } catch (error) {
                 console.error("JSON parse hatası:", error);
@@ -209,7 +209,7 @@ jQuery(document).ready(function ($) {
                 _ajax_nonce: updateAjax.nonce
             },
             success: function (response) {
-                debugJS(response);
+                console.log(response);
                 if (response.success) {
                     if(response.data.action == "update"){
                         runUpdateTask(0, response.data); // İlk görevi çalıştır
@@ -290,9 +290,9 @@ jQuery(document).ready(function ($) {
                 package: packageName
             },
             function (response) {
-                debugJS(response)
-                debugJS(response.data)
-                debugJS(response.data.action)
+                console.log(response)
+                console.log(response.data)
+                console.log(response.data.action)
                 if (response.success) {
                     $('#remove-package-name option[value="' + packageName + '"]').remove();
                     composer_message(response.data.message, response.data.action, "remove");
@@ -320,7 +320,7 @@ jQuery(document).ready(function ($) {
                 _ajax_nonce: updateAjax.nonce
             },
             success: function (response) {
-                debugJS(response);
+                console.log(response);
                 if (response.success) {
                     composer_message(response.data.message, response.data.action, "install");
                 } else {

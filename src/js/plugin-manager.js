@@ -3,7 +3,7 @@ jQuery(document).ready(function ($) {
     function parseAjaxResponse(response) {
         // Eğer response zaten bir nesne ise direkt dön
         if (typeof response === "object") {
-            debugJS("JSON Data:", response);
+            console.log("JSON Data:", response);
             return response;
         }
 
@@ -16,7 +16,7 @@ jQuery(document).ready(function ($) {
             try {
                 // JSON kısmını ayıkla ve parse et
                 const jsonData = JSON.parse(match[0]);
-                debugJS("JSON Data:", jsonData);
+                console.log("JSON Data:", jsonData);
                 return jsonData;
             } catch (error) {
                 console.error("JSON parse hatası:", error);

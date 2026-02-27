@@ -1888,7 +1888,7 @@ class Update {
                 case 'fix_packages':
                     self::fix_packages();
                     self::update_task_status('fix_packages', true);
-                    $tasks_status = json_encode(self::$tasks_status);
+                    $tasks_status = self::$tasks_status;//json_encode(self::$tasks_status);
                     wp_send_json_success(['message' => 'Composer packages fixed successfully', 'tasks_status' => $tasks_status ]);
                     break;
                 case "update_theme_apperance" :

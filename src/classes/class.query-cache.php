@@ -79,8 +79,6 @@ class QueryCache {
 
         add_action('shutdown', [$class, 'save_runtime_manifest'], 999);
 
-        error_log("QueryCache bırda init oldu");
-
         self::$initiated = true;
     }
 

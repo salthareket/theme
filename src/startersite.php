@@ -518,6 +518,9 @@ class StarterSite extends Timber\Site{
     }
 
     function add_to_twig($twig){
+        if (!class_exists('\App\Twig\AppExtension')) {
+            @include_once SH_INCLUDES_PATH . "plugins/twig.php";
+        }
         $twig->addExtension(new  \App\Twig\AppExtension());
         return $twig;
     }
