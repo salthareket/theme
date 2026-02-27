@@ -643,8 +643,7 @@
                     "choices": {
                         "default": "Default",
                         "post\/tease": "Post Tease (Predefined)",
-                        "theme\/templates\/_custom\/icon-circle": "icon-circle",
-                        "theme\/templates\/_custom\/numeric-list": "numeric-list"
+                        "theme\/templates\/_custom\/slider-post": "slider-post"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -764,7 +763,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535292,
+    "modified": 1767582639,
     "acfe_categories": {
         "block": "Block"
     }

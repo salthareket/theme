@@ -227,19 +227,25 @@
                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                 "16x9": "16:9 Widescreen TV, Monitor",
                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                "1200x500": "Slider Desktop"
             },
             "default_value": "",
             "return_format": "value",
             "multiple": 0,
+            "translations": "ignore",
+            "acfe_settings": "",
+            "acfe_validate": "",
             "allow_null": 0,
+            "acfe_permissions": "",
+            "allow_in_bindings": 1,
             "ui": 0,
             "ajax": 0,
             "placeholder": "",
-            "allow_custom": 0,
-            "search_placeholder": "",
             "create_options": 0,
             "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
             "pll_default_value": ""
         },
         {
@@ -266,10 +272,8 @@
             },
             "layout": "block",
             "acfe_seamless_style": 1,
-            "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large",
+            "acfe_settings": "",
+            "acfe_permissions": "",
             "sub_fields": [
                 {
                     "key": "field_66f7d2bbe16b4",
@@ -366,7 +370,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -480,7 +485,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -594,7 +600,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -708,7 +715,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -822,7 +830,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -936,7 +945,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -1039,6 +1049,7 @@
                                 "class": "acf-ratio-value",
                                 "id": ""
                             },
+                            "acfe_permissions": "",
                             "choices": {
                                 "1x1": "1:1 Square",
                                 "3x2": "3:2 35mm Movie",
@@ -1050,26 +1061,33 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1200x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
                             "multiple": 0,
-                            "translations": "sync",
+                            "translations": "ignore",
+                            "acfe_settings": "",
+                            "acfe_validate": "",
                             "allow_null": 0,
                             "allow_in_bindings": 0,
                             "ui": 0,
                             "ajax": 0,
                             "placeholder": "",
-                            "allow_custom": 0,
-                            "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
+                            "allow_custom": 0,
+                            "search_placeholder": "",
                             "pll_default_value": ""
                         }
                     ]
                 }
-            ]
+            ],
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         },
         {
             "key": "field_6739db4899ee0",
@@ -3253,9 +3271,10 @@
     ],
     "acfe_permissions": "",
     "acfe_form": 1,
+    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535291,
+    "modified": 1770450066,
     "acfe_categories": {
         "common": "Common"
     }

@@ -269,10 +269,6 @@
                                 "warning": "warning",
                                 "light": "light",
                                 "dark": "dark",
-                                "green-medium": "green-medium",
-                                "green-dark": "green-dark",
-                                "yellow": "yellow",
-                                "gray-light": "gray-light",
                                 "custom": "Custom"
                             },
                             "default_value": "",
@@ -849,7 +845,8 @@
                         "9x16": "9:16 Vertical - Stories, Reels etc.",
                         "16x9": "16:9 Widescreen TV, Monitor",
                         "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                        "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                        "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                        "1528x500": "Slider Desktop"
                     },
                     "default_value": "",
                     "return_format": "value",
@@ -1036,7 +1033,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1528x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -1191,7 +1189,8 @@
                                 "9x16": "9:16 Vertical - Stories, Reels etc.",
                                 "16x9": "16:9 Widescreen TV, Monitor",
                                 "21x9": "21:9 Ultra Widescreen TV, Monitor",
-                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor"
+                                "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
+                                "1528x500": "Slider Desktop"
                             },
                             "default_value": "",
                             "return_format": "value",
@@ -1830,7 +1829,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535293,
+    "modified": 1767582656,
     "acfe_categories": {
         "block": "Block"
     }

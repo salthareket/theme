@@ -1,0 +1,277 @@
+{
+    "key": "group_697a75a365639",
+    "title": "Settings Offcanvas",
+    "fields": [
+        {
+            "key": "field_697a75a4476d6",
+            "label": "Visibility",
+            "name": "visibility",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "offcanvas": "Always Offcanvas",
+                "offcanvas-sm": "On sm",
+                "offcanvas-md": "On md",
+                "offcanvas-lg": "On lg",
+                "offcanvas-xl": "On xl",
+                "offcanvas-xxl": "On xxl"
+            },
+            "default_value": "offcanvas",
+            "return_format": "value",
+            "multiple": 0,
+            "allow_custom": 0,
+            "placeholder": "",
+            "search_placeholder": "",
+            "translations": "ignore",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "create_options": 0,
+            "save_options": 0,
+            "pll_default_value": "offcanvas"
+        },
+        {
+            "key": "field_697a7648476d7",
+            "label": "Position",
+            "name": "position",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "top": "top",
+                "bottom": "bottom",
+                "start": "start",
+                "end": "end"
+            },
+            "default_value": "top",
+            "return_format": "value",
+            "multiple": 0,
+            "translations": "ignore",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "top"
+        },
+        {
+            "key": "field_697a7683476d8",
+            "label": "Fullscreen",
+            "name": "fullscreen",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "ignore",
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1,
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_697a76a3476d9",
+            "label": "Show Page Header",
+            "name": "page_header",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1,
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_697a772c476da",
+            "label": "Container",
+            "name": "container",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_697a7683476d8",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "no": "No Container",
+                "default": "Default",
+                "\"\"": "XXXLarge",
+                "xxl": "XXLarge",
+                "xl": "XLarge",
+                "lg": "Large",
+                "md": "Medium",
+                "sm": "Small",
+                "xs": "XSmall"
+            },
+            "default_value": "default",
+            "return_format": "value",
+            "multiple": 0,
+            "translations": "ignore",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "default"
+        },
+        {
+            "key": "field_697a776a476db",
+            "label": "Container Apply",
+            "name": "container_apply",
+            "aria-label": "",
+            "type": "checkbox",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_697a7683476d8",
+                        "operator": "==",
+                        "value": "1"
+                    },
+                    {
+                        "field": "field_697a772c476da",
+                        "operator": "!=",
+                        "value": "no"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "header": "header",
+                "body": "body",
+                "footer": "footer"
+            },
+            "default_value": [
+                "body"
+            ],
+            "return_format": "value",
+            "translations": "ignore",
+            "allow_custom": 0,
+            "allow_in_bindings": 0,
+            "layout": "horizontal",
+            "toggle": 0,
+            "save_custom": 0,
+            "custom_choice_button_text": "Yeni seçenek ekle",
+            "pll_default_value": [
+                "body"
+            ]
+        },
+        {
+            "key": "field_697a77a6476dd",
+            "label": "Background",
+            "name": "background_settings",
+            "aria-label": "",
+            "type": "clone",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "clone": [
+                "group_66565b725fbdb"
+            ],
+            "display": "group",
+            "layout": "block",
+            "prefix_label": 0,
+            "prefix_name": 0,
+            "acfe_seamless_style": 1,
+            "acfe_clone_modal": 0,
+            "acfe_clone_modal_close": 0,
+            "acfe_clone_modal_button": "",
+            "acfe_clone_modal_size": "large"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "post"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": false,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "acfe_autosync": [
+        "json"
+    ],
+    "acfe_form": 0,
+    "pll_display_field_instructions": 1,
+    "acfe_meta": "",
+    "acfe_note": "",
+    "modified": 1769633926,
+    "acfe_categories": {
+        "common": "Common",
+        "general": "General"
+    }
+}

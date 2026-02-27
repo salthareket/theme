@@ -431,7 +431,7 @@
     "label_placement": "top",
     "instruction_placement": "label",
     "hide_on_screen": "",
-    "active": false,
+    "active": true,
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
@@ -442,7 +442,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535288,
+    "modified": 1767582557,
     "acfe_categories": {
         "common": "Common"
     }

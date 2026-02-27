@@ -42,7 +42,8 @@
                         "initial": "initial",
                         "inherit": "inherit",
                         "##Custom Fonts": "##Custom Fonts",
-                        "'Cabin'": "Cabin",
+                        "'DIN'": "DIN Condensed Pro",
+                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -837,7 +838,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535295,
+    "modified": 1767582736,
     "acfe_categories": {
         "general": "General"
     }

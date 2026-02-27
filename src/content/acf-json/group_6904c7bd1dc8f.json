@@ -1,13 +1,13 @@
 {
-    "key": "group_66e9f0369e69c",
-    "title": "Search Ranks",
+    "key": "group_6904c7bd1dc8f",
+    "title": "Settings Template",
     "fields": [
         {
-            "key": "field_66e9f03698857",
-            "label": "Search Ranks",
-            "name": "",
+            "key": "field_6904c7df6c1e3",
+            "label": "Render Template",
+            "name": "render_template",
             "aria-label": "",
-            "type": "message",
+            "type": "true_false",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
@@ -17,22 +17,31 @@
                 "id": ""
             },
             "message": "",
-            "new_lines": "",
-            "esc_html": 0
+            "default_value": 0,
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1,
+            "pll_default_value": 0
         }
     ],
     "location": [
         [
             {
-                "param": "options_page",
+                "param": "post_type",
                 "operator": "==",
-                "value": "search-ranks"
+                "value": "template"
+            },
+            {
+                "param": "post_taxonomy",
+                "operator": "!=",
+                "value": "template-types:custom"
             }
         ]
     ],
     "menu_order": 0,
     "position": "normal",
-    "style": "seamless",
+    "style": "default",
     "label_placement": "top",
     "instruction_placement": "label",
     "hide_on_screen": "",
@@ -46,7 +55,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582904,
+    "modified": 1767583089,
     "acfe_categories": {
         "general": "General"
     }

@@ -30,6 +30,29 @@
             "acfe_seamless_style": 0
         },
         {
+            "key": "field_699da11989921",
+            "label": "Sticky Header",
+            "name": "table_sticky_header",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "15",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 1,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1,
+            "pll_default_value": 0
+        },
+        {
             "key": "field_68a3bd71d63ce",
             "label": "Striped Rows",
             "name": "table_striped",
@@ -131,7 +154,7 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "40",
+                "width": "25",
                 "class": "acf-breakpoints acf-breakpoints-none",
                 "id": ""
             },
@@ -256,7 +279,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535304,
+    "modified": 1771938120,
     "acfe_categories": {
         "block": "Block"
     }

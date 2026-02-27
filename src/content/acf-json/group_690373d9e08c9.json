@@ -270,7 +270,8 @@
             },
             "choices": {
                 "header-menu": "Header Menu",
-                "footer-menu": "Footer Menu"
+                "footer-menu": "Footer Menu",
+                "sidebar-corporate": "Sidebar Corporate"
             },
             "default_value": "",
             "return_format": "value",
@@ -312,7 +313,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535304,
+    "modified": 1767583088,
     "acfe_categories": {
         "block": "Block"
     }

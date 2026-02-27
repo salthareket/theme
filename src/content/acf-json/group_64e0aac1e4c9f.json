@@ -91,15 +91,7 @@
             "type": "true_false",
             "instructions": "",
             "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_64e0aac20e069",
-                        "operator": "==",
-                        "value": "1"
-                    }
-                ]
-            ],
+            "conditional_logic": 0,
             "wrapper": {
                 "width": "",
                 "class": "",
@@ -122,15 +114,7 @@
             "type": "true_false",
             "instructions": "",
             "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_64e0aac20e069",
-                        "operator": "==",
-                        "value": "1"
-                    }
-                ]
-            ],
+            "conditional_logic": 0,
             "wrapper": {
                 "width": "",
                 "class": "",
@@ -138,6 +122,8 @@
             },
             "message": "",
             "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
             "ui": 1,
@@ -151,15 +137,7 @@
             "type": "true_false",
             "instructions": "",
             "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_64e0aac20e069",
-                        "operator": "==",
-                        "value": "1"
-                    }
-                ]
-            ],
+            "conditional_logic": 0,
             "wrapper": {
                 "width": "",
                 "class": "",
@@ -167,6 +145,8 @@
             },
             "message": "",
             "default_value": 0,
+            "translations": "sync",
+            "allow_in_bindings": 1,
             "ui_on_text": "",
             "ui_off_text": "",
             "ui": 1,
@@ -183,7 +163,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "button_value": "Set Default Settings",
@@ -204,15 +184,7 @@
             "type": "acfe_button",
             "instructions": "",
             "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_64e0aac20e069",
-                        "operator": "==",
-                        "value": "1"
-                    }
-                ]
-            ],
+            "conditional_logic": 0,
             "wrapper": {
                 "width": "",
                 "class": "acf-export-button",
@@ -225,6 +197,7 @@
             "button_before": "",
             "button_after": "",
             "button_ajax": 0,
+            "translations": "sync",
             "allow_in_bindings": 0
         },
         {
@@ -235,26 +208,14 @@
             "type": "group",
             "instructions": "",
             "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_64e0aac20e069",
-                        "operator": "==",
-                        "value": "1"
-                    }
-                ]
-            ],
+            "conditional_logic": 0,
             "wrapper": {
                 "width": "",
                 "class": "",
                 "id": ""
             },
-            "layout": "table",
+            "layout": "block",
             "acfe_seamless_style": 1,
-            "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
                     "key": "field_691c86ddcf236",
@@ -330,8 +291,282 @@
                     "button_after": "",
                     "button_ajax": 0,
                     "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_6964e115bc849",
+                    "label": "",
+                    "name": "config",
+                    "aria-label": "",
+                    "type": "group",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_691b155889554",
+                                "operator": "==",
+                                "value": "full"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "layout": "block",
+                    "acfe_seamless_style": 1,
+                    "sub_fields": [
+                        {
+                            "key": "field_69654b213ebdb",
+                            "label": "wp-includes",
+                            "name": "wp-includes",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "20",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 1,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 1
+                        },
+                        {
+                            "key": "field_69654b453ebdc",
+                            "label": "wp-admin",
+                            "name": "wp-admin",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "20",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 1,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 1
+                        },
+                        {
+                            "key": "field_69654b553ebdd",
+                            "label": "wp-content",
+                            "name": "wp-content",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "20",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 1,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 1
+                        },
+                        {
+                            "key": "field_69654b653ebde",
+                            "label": "Root Files",
+                            "name": "root-files",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "20",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 1,
+                            "translations": "sync",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 1
+                        },
+                        {
+                            "key": "field_698aa51e757f3",
+                            "label": "Table Prefix",
+                            "name": "table_prefix",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": 0,
+                            "wrapper": {
+                                "width": "20",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "wp_",
+                            "translations": "ignore",
+                            "maxlength": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "pll_default_value": "wp_"
+                        },
+                        {
+                            "key": "field_6964e15fbc84a",
+                            "label": "wp config.php",
+                            "name": "wp-config",
+                            "aria-label": "",
+                            "type": "true_false",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_69654b653ebde",
+                                        "operator": "==",
+                                        "value": "1"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "25",
+                                "class": "",
+                                "id": ""
+                            },
+                            "message": "",
+                            "default_value": 0,
+                            "translations": "ignore",
+                            "allow_in_bindings": 0,
+                            "ui_on_text": "",
+                            "ui_off_text": "",
+                            "ui": 1,
+                            "pll_default_value": 0
+                        },
+                        {
+                            "key": "field_6964e19ebc84b",
+                            "label": "Database",
+                            "name": "database",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_6964e15fbc84a",
+                                        "operator": "==",
+                                        "value": "1"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "25",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "translations": "translate",
+                            "maxlength": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "pll_default_value": ""
+                        },
+                        {
+                            "key": "field_6964e1b4bc84c",
+                            "label": "User",
+                            "name": "user",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_6964e15fbc84a",
+                                        "operator": "==",
+                                        "value": "1"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "25",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "translations": "translate",
+                            "maxlength": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "pll_default_value": ""
+                        },
+                        {
+                            "key": "field_6964e1bebc84d",
+                            "label": "Pass",
+                            "name": "pass",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": [
+                                [
+                                    {
+                                        "field": "field_6964e15fbc84a",
+                                        "operator": "==",
+                                        "value": "1"
+                                    }
+                                ]
+                            ],
+                            "wrapper": {
+                                "width": "25",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "translations": "translate",
+                            "maxlength": "",
+                            "allow_in_bindings": 0,
+                            "placeholder": "",
+                            "prepend": "",
+                            "append": "",
+                            "pll_default_value": ""
+                        }
+                    ],
+                    "acfe_group_modal": 0,
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large"
                 }
-            ]
+            ],
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
         }
     ],
     "location": [
@@ -357,9 +592,10 @@
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535288,
+    "modified": 1770693986,
     "acfe_categories": {
         "general": "General"
     }

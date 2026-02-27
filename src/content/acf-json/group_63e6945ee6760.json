@@ -24,44 +24,6 @@
             "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
-                    "key": "field_63e69449f63a8",
-                    "label": "Category",
-                    "name": "category",
-                    "aria-label": "",
-                    "type": "acfe_taxonomy_terms",
-                    "instructions": "",
-                    "required": 0,
-                    "conditional_logic": 0,
-                    "wrapper": {
-                        "width": "",
-                        "class": "",
-                        "id": ""
-                    },
-                    "taxonomy": [
-                        "contact-type"
-                    ],
-                    "allow_terms": "",
-                    "allow_level": "",
-                    "field_type": "radio",
-                    "default_value": false,
-                    "return_format": "id",
-                    "allow_null": 0,
-                    "layout": "horizontal",
-                    "save_terms": 1,
-                    "load_terms": 1,
-                    "allow_in_bindings": 1,
-                    "choices": [],
-                    "ui": 0,
-                    "multiple": 0,
-                    "ajax": 0,
-                    "placeholder": "",
-                    "search_placeholder": "",
-                    "toggle": 0,
-                    "allow_custom": 0,
-                    "other_choice": 0,
-                    "pll_default_value": false
-                },
-                {
                     "key": "field_670ee1a9a515f",
                     "label": "Contact Details",
                     "name": "",
@@ -1098,27 +1060,6 @@
                     "esc_html": 0
                 },
                 {
-                    "key": "field_6731e211669ab",
-                    "label": "Map",
-                    "name": "map_google",
-                    "aria-label": "",
-                    "type": "google_map",
-                    "instructions": "",
-                    "required": 0,
-                    "conditional_logic": 0,
-                    "wrapper": {
-                        "width": "",
-                        "class": "",
-                        "id": ""
-                    },
-                    "center_lat": "",
-                    "center_lng": "",
-                    "zoom": "",
-                    "height": "",
-                    "translations": "sync",
-                    "allow_in_bindings": 1
-                },
-                {
                     "key": "field_63e69449f63b5",
                     "label": "Embed Url",
                     "name": "map_url",
@@ -1139,6 +1080,27 @@
                     "prepend": "",
                     "append": "",
                     "pll_default_value": ""
+                },
+                {
+                    "key": "field_69a0b856c2070",
+                    "label": "Map",
+                    "name": "map_google",
+                    "aria-label": "",
+                    "type": "google_map",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "center_lat": "",
+                    "center_lng": "",
+                    "zoom": "",
+                    "height": "",
+                    "translations": "ignore",
+                    "allow_in_bindings": 0
                 }
             ]
         }
@@ -1166,9 +1128,10 @@
         "json"
     ],
     "acfe_form": 0,
+    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1766535286,
+    "modified": 1772149632,
     "acfe_categories": {
         "general": "General"
     }
