@@ -167,13 +167,14 @@ function woo_product_badges($product, $free_shipping_min_amount, $types){
     if(is_array($price)){
        $price_highest    = max($price_highest);
     }
-
+    
+    $query_vars = Data::get('query_vars');
     $low_stock_forced = false; 
-    if(!empty($GLOBALS['query_vars'])){
-        if(in_array("tukenmek-uzere", array_values($GLOBALS['query_vars']))){
+    if($query_vars){
+        if(in_array("tukenmek-uzere", array_values($query_vars)){
             $low_stock_forced = true;
         }else{
-            foreach($GLOBALS['query_vars'] as $var){
+            foreach($$query_vars as $var){
                 if(!empty($var->slug)){
                     if($var->slug == "durum"){
                         if(in_array("tukenmek-uzere", array_values($var["terms"]))){

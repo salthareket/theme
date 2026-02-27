@@ -7,8 +7,8 @@ function text_effect(){
 		let split_lines = obj.data("split_lines");
 
 		let viewport = obj.data("viewport");
-		console.log(obj.data());
-		console.log(viewport)
+		debugJS(obj.data());
+		debugJS(viewport)
 		if(typeof viewport !== "undefined"){
 			obj
 			.addClass("viewport")
@@ -77,7 +77,7 @@ function text_effect(){
 	});
 }
 function text_effect_start(obj){
-	console.log(obj);
+	debugJS(obj);
 	obj
 	.textillate('start');
 }

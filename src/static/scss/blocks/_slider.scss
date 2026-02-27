@@ -1,5 +1,6 @@
 /*! purgecss start ignore */
-.block-slider{
+.block-slider,
+.block-slider-advanced{
 	.container{
 		min-height:inherit;
 		>*{
@@ -24,6 +25,12 @@
 			    }
 			}
 		}
+        .swiper-button-prev,
+        .swiper-button-next{
+            width:auto;
+            height:auto;
+            z-index: auto;
+        }
 	}
 	.swiper-slide{
 		.description{
@@ -81,7 +88,8 @@ $breakpoints: (
 }
 /*! purgecss end ignore */
 
-.block-slider {
+.block-slider,
+.block-slider-advanced {
     .swiper {
         height: 100%;
         width: 100%;

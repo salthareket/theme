@@ -15,7 +15,7 @@ $required_setting = ENABLE_MEMBERSHIP;
                 if($post_id){
                     $url = get_permalink($post_id);
                 }else{
-                    $url = $GLOBALS['base_urls']["messages"];
+                    $url = Data::get("base_urls.messages");//$GLOBALS['base_urls']["messages"];
                     $url .= $conversation->conv_id."/chat/".$reciever_id."/";                     
                 }
                 if(is_true($vars["static"])){

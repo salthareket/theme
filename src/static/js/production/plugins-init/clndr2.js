@@ -14,7 +14,7 @@ function calendar(){
 	       	if(!IsBlank($template)){
 	        	twig({
 						href : ajax_request_vars.theme_url+"static/templates/"+$template+".twig",
-						async : false,
+						async : true,
 						allowInlineIncludes : true,
 						load: function(template) {
 							moment.locale(root.lang);

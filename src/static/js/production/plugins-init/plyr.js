@@ -1,57 +1,17 @@
-$.fn.fitEmbedBackground = function() {
-        return this.each(function() {
-            var container = $(this),
-                iframe = container.find('iframe');
 
-            // Video boyutunu yeniden hesapla
-            function resizeVideo() {
-                var containerWidth = container.width(),
-                    containerHeight = container.height(),
-                    containerRatio = containerWidth / containerHeight,
-                    videoRatio = 16 / 9;
 
-                // Genişlik/Yükseklik oranlarına göre iframe boyutunu ayarla
-                if (containerRatio > videoRatio) {
-                    iframe.css({
-                        width: containerWidth + 'px',
-                        height: (containerWidth / videoRatio) + 'px'
-                    });
-                } else {
-                    iframe.css({
-                        width: (containerHeight * videoRatio) + 'px',
-                        height: containerHeight + 'px'
-                    });
-                }
-            }
-
-            // İlk çalıştırma
-            resizeVideo();
-
-            // Gecikmeli resize
-            var debounce = resizeDebounce(resizeVideo, 10);
-
-            // Resize ve fullscreen olaylarını dinle
-            $(window).on('resize', debounce);
-            $(document).on(
-                'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange',
-                debounce
-            );
-
-        });
-};
-
-function plyr_init_all(){
+function init_plyr_all(){
 	if(!isLoadedJS("plyr")){
 		return false;
 	}
 	$(".player").each(function(){
 		if($(this).closest(".swiper-slide").length == 0 && !$(this).hasClass("plyr-init")){
-			plyr_init($(this));			
+			init_plyr($(this));			
 		}
 	});
 }
 
-function plyr_init($obj){
+function init_plyr($obj){
 	if(!isLoadedJS("plyr")){
 		return false;
 	}
@@ -126,7 +86,7 @@ function plyr_init($obj){
 
 	    const video = new Plyr($obj);
 
-	    console.log(video);
+	    debugJS(video);
 
 	    if(type == "embed"){
 			if($obj.find("iframe").attr("src").includes("dailymotion.com")){
@@ -184,20 +144,20 @@ function plyr_init($obj){
 
 			if(!config?.autoplay){
 				video_container.addClass("paused");
-				console.log("pausedddddd")
+				debugJS("pausedddddd")
 			}else{
 				if(video_container.is(":in-viewport") && !document.hidden){
 					if(swiper && !video_container.hasClass("swiper-slide-active")){
                         video.pause();
 					}else{
 						video.play();
-						console.log("plaaaayyyiiiiiingg")
+						debugJS("plaaaayyyiiiiiingg")
 					}
-					//console.log(swiper)
-					//console.log(video_container.index())
+					//debugJS(swiper)
+					//debugJS(video_container.index())
 					
-					//console.log(video_container);
-					//console.log(video_container.is(":in-viewport"))
+					//debugJS(video_container);
+					//debugJS(video_container.is(":in-viewport"))
 					
 				}
 			}
@@ -329,9 +289,9 @@ function plyr_init($obj){
 			debounce(video);
 		});
 
-		console.log(window.waiting_init);
+		debugJS(waiting_init);
 
-		window.waiting_init.initElement();
+		waiting_init.initElement();
 
 		$obj.addClass(token_init);
 
@@ -345,10 +305,10 @@ function plyr_init($obj){
 }
 
 $(".player.init-me").not(".lazy-container").each(function(){
-	plyr_init($(this));
+	init_plyr($(this));
 });
 
 $('.wp-block-video video').each(function() {
 	$(this).addClass("player");
-	plyr_init($(this));
+	init_plyr($(this));
 });

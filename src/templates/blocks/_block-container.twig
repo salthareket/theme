@@ -63,6 +63,7 @@
     {% if is_preview or fetch %}
        {% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
     {% else %}
+    	{# get block from db #}
 		{% set block_meta = function("get_option", fields.block_settings.custom_id) %}
 		{% if not block_meta or block_meta == "" %}
 		    {% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
@@ -121,11 +122,15 @@
 		<div style="background-color:red;color:#fff;padding:8px 22px;top:0;left:0;position:absolute;z-index:10;">Admin Preview</div>
 	{% endif %}
 
-	<div class="{{block_meta_classes}} block-salt-theme" {{block_meta.attrs}}>
+	<div class="{{block_meta_classes}} block-salt-theme {% if is_preview %}is-preview{% endif %}" {{block_meta.attrs}}>
 
 	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
 		<div class="sticky-top">
 	{% endif %}
+
+	    {% if block_extra_html.top != "" %}
+	    	{{ block_extra_html.top }}
+	    {% endif %}
         
        {% if block('block_content_outer')|trim == "" %}
 	    {{ block_meta.bg_image }}
@@ -155,6 +160,8 @@
 		    </div>
 		    {% endif %}
 
+		    {% block block_content_inner %}{% endblock %}
+
 		{% if block_meta.container and not block_column %}
 		    </div>
 		{% endif %}
@@ -167,7 +174,11 @@
 
 	{% if block_meta.css and (fetch or enable_production or is_preview) %}
        {{ block_meta.css }}
-    {% endif %}
+   {% endif %}
+
+   {% if block_extra_html.bottom != "" %}
+	    {{ block_extra_html.bottom }}
+	{% endif %}
 		
 	</div>
 

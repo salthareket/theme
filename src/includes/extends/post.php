@@ -41,7 +41,7 @@ class Post extends Timber\Post{
 
     public function get_map_data($popup=false){
         $data = array();
-        $map_service = QueryCache::get_cached_option("map_service");//get_field("map_service", "option");
+        $map_service = QueryCache::get_field("map_service", "options");//get_option("options_map_service");
         $location_data = $this->contact["map_".$map_service];
         $map_url = $this->contact["map_url"];
         if($location_data){
@@ -49,10 +49,10 @@ class Post extends Timber\Post{
             if($map_marker){
                 $marker = $map_marker;
             }else{
-                $marker = QueryCache::get_cached_option("map_marker");//get_field("map_marker", "option");
+                $marker = QueryCache::get_field("map_marker", "options");
             }
             if(!$marker){
-                 $marker = QueryCache::get_cached_option("logo_marker");//get_field("logo_marker", "option");
+                 $marker = QueryCache::get_field("logo_marker", "options");
             }
             $data = array(
                 "id"        => $this->ID,
@@ -114,6 +114,7 @@ class Post extends Timber\Post{
 
     public function get_map_popup(){
         $map_data = $this->get_map_data();
+        $user = Data::get("user");
         return  "<div class='row gx-3 gy-2'>" .
                     "<div class='col-auto'>" .
                          "<img src='" . $map_data["image"] . "' class='img-fluid rounded' style='max-width:50px;'/>" .
@@ -125,7 +126,7 @@ class Post extends Timber\Post{
                         "</ul>" .
                     "</div>" .
                     "<div class='col-12 text-primary' style='font-size:12px;'>" .
-                        $this->get_local_date("","",$GLOBALS["user"]->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
+                        $this->get_local_date("", "", $user->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
                     "</div>" .
                 "</div>";
     }
@@ -171,9 +172,10 @@ class Post extends Timber\Post{
         return $content;
     }
 
-    public function get_blocks($args = []) {
-
-        //error_log(print_r($args, true));
+    /*public function get_blocks($args = []) {
+        
+        $content = '';
+        $all_required_js = [];
 
         if (has_blocks($this)) {
 
@@ -193,6 +195,18 @@ class Post extends Timber\Post{
                     return false;
                 });
             }
+            
+            foreach ($blocks as $block) {
+                $block_type = WP_Block_Type_Registry::get_instance()->get_registered($block['blockName']);
+                if (isset($block_type->required_js) && !empty($block_type->required_js)) {
+                    $all_required_js = array_merge($all_required_js, $block_type->required_js);
+                }
+
+                if (isset($block_type->cache_html) && !empty($block_type->cache_html)) {
+                    //echo render_block($block);
+                    //echo "evet cachre haşyieme ".$block['blockName'];
+                }
+            }
 
             $blocks = array_values($blocks);
 
@@ -205,21 +219,7 @@ class Post extends Timber\Post{
                 return $block;
             }, $blocks);
 
-            //print_r($blocks);
-
-
             $content = join('', array_map('render_block', $blocks));
-
-
-            /*$content = join('', array_map(function ($block) {
-                // Eğer blok embed ise manuel render
-                if ($block['blockName'] === 'core/embed' && isset($block['attrs']['url'])) {
-                    return $this->render_embed_block($block['attrs']['url']);
-                }
-
-                // Diğer bloklar için normal render
-                return render_block($block);
-            }, $blocks));*/
 
             if(isset($args["extract_js"])){
                 $html = "";
@@ -256,7 +256,140 @@ class Post extends Timber\Post{
             }
             $content = $this->content;
         }
-        return $content;
+
+        return array(
+            "html" => $content,
+            "required_js" => array_values(array_unique($all_required_js))
+        ); 
+    }*/
+
+    public function get_blocks($args = []) {
+        $content = '';
+        $all_required_js = [];
+        $lang = Data::get("language") ?? 'tr'; // Dili alıyoruz
+
+        if (has_blocks($this)) {
+            $blocks = parse_blocks($this->post_content);
+
+            // 1. HERO ve Filtreleme İşlemleri (Mevcut mantığın)
+            $blocks = array_filter($blocks, function ($block) {
+                return !isset($block['attrs']['data']['block_settings_hero']) || !$block['attrs']['data']['block_settings_hero'];
+            });
+
+            if (in_array(get_query_var("qpt_settings"), [2, 3])) {
+                $blocks = array_filter($blocks, function ($block) {
+                    if (isset($block['attrs']["name"])) {
+                        return (
+                            ($block['attrs']["name"] == "acf/text" && has_shortcode($block['attrs']["data"]["text"], "search_field")) 
+                            || $block['attrs']["name"] == "acf/search-results"
+                        );
+                    }
+                    return false;
+                });
+            }
+
+            // 2. BLOKLARI İŞLEME VE RENDER (İşte sihir burada başlıyor)
+            $final_html = '';
+            $index = 0;
+
+            foreach ($blocks as $block) {
+                if (empty($block['blockName'])) continue;
+
+                $block_type = WP_Block_Type_Registry::get_instance()->get_registered($block['blockName']);
+                
+                // Required JS toplama
+                if (isset($block_type->required_js) && !empty($block_type->required_js)) {
+                    $all_required_js = array_merge($all_required_js, $block_type->required_js);
+                }
+
+                // Index ekle (Zero-based)
+                $block['attrs']['index'] = $index;
+                $index++;
+
+                // --- CACHE KONTROLÜ ---
+                $block_html = '';
+                $custom_id = $block['attrs']['data']['block_settings_custom_id'] ?? null;
+
+                /*if ($custom_id && isset($block_type->cache_html) && $block_type->cache_html) {
+                    // Option Name: block_id . _html_ . language
+                    $option_name = $custom_id . '_html_' . $lang;
+                    $block_html = "cache abi".get_option($option_name)."ablam"; // Veritabanından direkt oku
+                }*/
+
+                // Eğer cache yoksa veya cache özelliği kapalıysa normal render et
+                if (empty($block_html)) {
+                    $block_html = render_block($block);
+                }
+
+                $final_html .= $block_html;
+            }
+
+            $content = $final_html;
+
+            // 3. JS ve CSS AYRIŞTIRMA (Mevcut mantığın)
+            if (isset($args["extract_js"])) {
+                $html_only = "";
+                $js_only = "";
+                $html_only = preg_replace_callback('/<script\b[^>]*>(.*?)<\/script>/is', function($matches) use (&$js_only) {
+                    $js_only .= $matches[0] . "\n";
+                    return '';
+                }, $content);
+                $content = array(
+                    "html" => $html_only,
+                    "js" => $js_only
+                ); 
+            }
+
+            $seperate_css = isset($args["seperate_css"]) ? (bool)$args["seperate_css"] : SEPERATE_CSS;
+            $seperate_js = isset($args["seperate_js"]) ? (bool)$args["seperate_js"] : SEPERATE_JS;
+        
+            if (!isset($_GET["fetch"]) && ($seperate_css || $seperate_js)) { 
+                $tags = "";
+                if ($seperate_css) $tags = "<style>";
+                if ($seperate_js) $tags .= "<script>";
+                
+                if (!empty($tags)) {
+                    // Eğer content array ise (extract_js yapılmışsa) sadece html kısmını işle
+                    if (is_array($content)) {
+                        $content["html"] = $this->strip_tags($content["html"], $tags);
+                    } else {
+                        $content = $this->strip_tags($content, $tags);
+                    }
+                }
+            }
+
+        } else {
+            if (in_array(get_query_var("qpt_settings"), [2, 3])) return "";
+            $content = $this->content;
+        }
+
+        return array(
+            "html" => $content,
+            "required_js" => array_values(array_unique($all_required_js))
+        ); 
+    }
+
+
+
+    private function get_block_dependencies($block_name) {
+        $slug = str_replace('acf/', '', $block_name);
+        
+        // Twig dosyasının yolunu belirle (Kendi klasör yapına göre güncelle)
+        $file_path = get_template_directory() . '/views/blocks/' . $slug . '.twig';
+
+        if (!file_exists($file_path)) return [];
+
+        $content = file_get_contents($file_path);
+        
+        // Yorum bloğu içindeki "Required:" satırını yakala
+        preg_match('/Required:\s*(.*)/i', $content, $matches);
+
+        if (isset($matches[1])) {
+            // Virgülle ayrılmış kütüphaneleri temizleyip array yap
+            return array_map('trim', explode(',', $matches[1]));
+        }
+
+        return [];
     }
 
     private function render_embed_block($url) {
@@ -319,13 +452,13 @@ class Post extends Timber\Post{
         return post2Breadcrumb($this->ID, $link);
     }
 
-    public function strip_tags($content = "", $allowed_tags = "<script><style>") {
+    /*public function strip_tags($content = "", $allowed_tags = "<script><style>") {
          // DOMDocument başlat
         $dom = new DOMDocument('1.0', 'UTF-8');
         libxml_use_internal_errors(true); // Hataları gizle
 
         // HTML'yi yükle (UTF-8 desteği için encoding belirtildi)
-        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $content , LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
 
         // İzin verilen tagleri al
@@ -348,6 +481,76 @@ class Post extends Timber\Post{
 
         // Sonuç HTML'yi döndür (daha güvenli string işlemi)
         $output = $dom->saveHTML();
+        return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    }*/
+
+    /*
+    public function strip_tags($content = "", $allowed_tags = "<script><style>") {
+        if (empty($content)) return "";
+
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        libxml_use_internal_errors(true);
+
+        // UTF-8 için başlangıcı ekle
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $allowed_tags_array = explode('><', trim($allowed_tags, '<>'));
+
+        foreach ($allowed_tags_array as $tag) {
+            $elements = $dom->getElementsByTagName($tag);
+            for ($i = $elements->length - 1; $i >= 0; $i--) {
+                $element = $elements->item($i);
+                // data-inline="true" değilse SİL
+                if (!$element->hasAttribute('data-inline') || $element->getAttribute('data-inline') !== 'true') {
+                    $element->parentNode->removeChild($element);
+                }
+            }
+        }
+
+        // saveHTML() yerine saveXML() dersen <source /> şeklinde kapatır
+        // Ama HTML standartı için saveHTML() kalmalı.
+        $output = $dom->saveHTML();
+
+        // XML başlığını temizle
+        $output = str_replace('<?xml encoding="utf-8" ?>', '', $output);
+
+        return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    }
+    */
+
+    public function strip_tags($content = "", $allowed_tags = "<script><style>") {
+        if (empty($content)) return "";
+
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        libxml_use_internal_errors(true);
+
+        // UTF-8 desteği için başlangıcı ekle
+        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $allowed_tags_array = explode('><', trim($allowed_tags, '<>'));
+
+        foreach ($allowed_tags_array as $tag) {
+            $elements = $dom->getElementsByTagName($tag);
+            for ($i = $elements->length - 1; $i >= 0; $i--) {
+                $element = $elements->item($i);
+                if (!$element->hasAttribute('data-inline') || $element->getAttribute('data-inline') !== 'true') {
+                    $element->parentNode->removeChild($element);
+                }
+            }
+        }
+
+        // Normal HTML çıktısını al
+        $output = $dom->saveHTML();
+
+        // 1. Gereksiz XML başlangıcını temizle
+        $output = str_replace('<?xml encoding="utf-8" ?>', '', $output);
+
+        // 2. 🔥 EN TEMİZ ÇÖZÜM: Hatalı </source> kapatmalarını Regex ile temizle
+        // Bu sayede hiyerarşi bozulmadan sadece o "kırmızı" yapan tagleri sileriz.
+        $output = preg_replace('/<\/source>/i', '', $output);
+
         return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
@@ -417,7 +620,7 @@ class Post extends Timber\Post{
             $image = new \SaltHareket\Image($args);
             return $image->init();
         } catch (\Throwable $e) {
-            error_log('get_thumbnail failed: '.$e->getMessage());
+            //error_log('get_thumbnail failed: '.$e->getMessage());
             return '';
         }
     }*/
@@ -479,7 +682,7 @@ class Post extends Timber\Post{
             $image = new \SaltHareket\Image($args);
             return $image->init();
         } catch (\Throwable $e) {
-            error_log('get_thumbnail failed: ' . $e->getMessage());
+            //error_log('get_thumbnail failed: ' . $e->getMessage());
             return '';
         }
     }
@@ -526,12 +729,38 @@ class Post extends Timber\Post{
         }
         return $default_id;
     }
+    public function pll_get_terms_default($taxonomy, $lang = null) {
+        if (!$taxonomy) return [];
 
-    /**
-     * Varsayılan dil slug’ını döndürür.
-     * Polylang / WPML / qTranslate-XT (slug çeviri aktifse) destekler.
-     * Hiçbiri yoksa normal slug döner.
-     */
+        $terms = wp_get_post_terms($this->ID, $taxonomy);
+
+        if (empty($terms)) return [];
+
+        $result = [];
+        foreach ($terms as $term) {
+            $term_id = null;
+
+            if ($term instanceof Term) {
+                $term_id = $term->id;
+            } elseif ($term instanceof WP_Term) {
+                $term_id = $term->term_id;
+            } elseif (is_numeric($term)) {
+                $term_id = intval($term);
+            }
+
+            if ($term_id && function_exists('pll_get_term')) {
+                $target_lang = $lang ?: pll_default_language();
+                $translated_id = pll_get_term($term_id, $target_lang);
+                if ($translated_id) {
+                    $term_id = $translated_id;
+                }
+            }
+
+            $result[] = Timber::get_term($term_id);
+        }
+
+        return $result;
+    }
     public function get_slug_default(): string {
         $fallback = $this->post_name ?: ($this->slug ?? '');
         $ml = trim((string) (ENABLE_MULTILANGUAGE ?? ''));
@@ -610,41 +839,10 @@ class Post extends Timber\Post{
         }
     }
 
-    public function get_terms_default($taxonomy, $lang = null) {
-        if (!$taxonomy) return [];
 
-        $terms = wp_get_post_terms($this->ID, $taxonomy);
-
-        if (empty($terms)) return [];
-
-        $result = [];
-        foreach ($terms as $term) {
-            $term_id = null;
-
-            if ($term instanceof Term) {
-                $term_id = $term->id;
-            } elseif ($term instanceof WP_Term) {
-                $term_id = $term->term_id;
-            } elseif (is_numeric($term)) {
-                $term_id = intval($term);
-            }
-
-            if ($term_id && function_exists('pll_get_term')) {
-                $target_lang = $lang ?: pll_default_language();
-                $translated_id = pll_get_term($term_id, $target_lang);
-                if ($translated_id) {
-                    $term_id = $translated_id;
-                }
-            }
-
-            $result[] = Timber::get_term($term_id);
-        }
-
-        return $result;
-    }
 
     public function merge_dates() {
-        Carbon::setLocale($GLOBALS["language"] ?? 'tr');
+        Carbon::setLocale(Data::get("language") ?? 'tr');
 
         $dt1_raw = trim((string) $this->meta("start_date"));
         $dt2_raw = trim((string) $this->meta("end_date"));
@@ -759,6 +957,4 @@ class Post extends Timber\Post{
 
         return null;
     }
-
-
 }

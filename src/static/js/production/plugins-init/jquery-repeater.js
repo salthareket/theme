@@ -102,7 +102,7 @@ function form_repeater(){
                 if(!IsBlank(repeaterForm)){
                     var cookie = Cookies.get(repeaterForm);
                     if(!IsBlank(cookie)){
-                        cookie = $.parseJSON(cookie);
+                        cookie = JSON.parse(cookie);
                         var values = cookie[repeaterId];
                         if(!IsBlank(values)){
                             repeater_obj.setList(values);

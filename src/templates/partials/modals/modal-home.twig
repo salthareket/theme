@@ -1,4 +1,4 @@
-{% set modal_home = function("_get_option", "modal_home") %}
+{% set modal_home = function("_get_option", "options_modal_home") %}
 {% if is_home and modal_home.modal_type != "off" %}
     {% if (modal_home.type == "video" and ((modal_home.video.video_type == "file" and modal_home.video.video_file|values) or (modal_home.video.video_type == "embed" and modal_home.video.video_url))) or (modal_home.type == "image" and modal_home.image.image) %}
         <div class="modal" id="modal_home" tabindex="-1" aria-labelledby="modal_homeLabel" aria-modal="false" role="dialog">

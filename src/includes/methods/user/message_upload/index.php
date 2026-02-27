@@ -9,7 +9,7 @@ $new_message = json_decode(
             if (isset($allFiles) && !empty($allFiles)) {
                 $uploaded_files = [];
                 foreach ($allFiles as $key => $singleFile) {
-                    $s3 = new Salt();
+                    $s3 = Salt::get_instance();//new Salt();
                     $uploaded_files = [];
                     foreach ($allFiles as $key => $singleFile) {
                         /*$uploaded_files[$key]['url'] = $s3->send_message_upload($singleFile, 'false');

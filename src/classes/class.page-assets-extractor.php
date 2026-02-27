@@ -3,8 +3,8 @@ use MatthiasMullie\Minify;
 use voku\helper\HtmlDomParser;
 use Irmmr\RTLCss\Parser as RTLParser;
 
-class PageAssetsExtractor
-{
+class PageAssetsExtractor{
+
     /**
      * Sınıfın tekil örneğini (instance) tutar
      * @var PageAssetsExtractor|null
@@ -45,8 +45,10 @@ class PageAssetsExtractor
     ];
 
     /* ======= Genel Durum ======= */
-    public $type = null;                       // 'post' | 'term' | 'archive' | ...
+    public $type = null;                       // 'post' | 'term' | 'archive' | 'search' ...
     public $mass = false;
+    public $mass_index = 0;
+    public $mass_total = 0;
     public $disable_hooks = false;
     public $force_rebuild = false;
 
@@ -83,6 +85,7 @@ class PageAssetsExtractor
     private bool   $twig_paths_initialized = false;
     private array  $twig_options = []; // dışarıdan gelen opsiyonlar saklansın
 
+
     public function __construct() {
         error_log("PageAssetsExtractor initialized in admin.");
 
@@ -110,7 +113,17 @@ class PageAssetsExtractor
             $this->manifest_write();
         }
 
-        $this->excluded_post_types = (array) get_option('options_exclude_post_types_from_cache', []);
+        /*$this->excluded_post_types = (array) get_option('options_exclude_post_types_from_cache', []);
+        foreach ($this->technical_post_types as $type) {
+            if (!in_array($type, $this->excluded_post_types)) {
+                $this->excluded_post_types[] = $type;
+            }
+        }*/
+
+        $ex_archives = (array) get_option('options_exclude_post_types_from_cache', []); // Arşivden kovulanlar
+        $ex_singles  = (array) get_option('options_exclude_posts_from_cache', []);      // Single'dan kovulanlar
+        $user_excluded = array_unique(array_merge($ex_archives, $ex_singles));
+        $this->excluded_post_types = $user_excluded;
         foreach ($this->technical_post_types as $type) {
             if (!in_array($type, $this->excluded_post_types)) {
                 $this->excluded_post_types[] = $type;
@@ -124,6 +137,8 @@ class PageAssetsExtractor
             }
         }
 
+        $this->pae_lang_list();
+
         add_action('acf/render_field/name=page_assets', [$this, 'update_page_assets_message_field']);
         add_action('wp_ajax_page_assets_update', [$this,'page_assets_update']);
         add_action('wp_ajax_nopriv_page_assets_update', [$this,'page_assets_update']);
@@ -132,6 +147,7 @@ class PageAssetsExtractor
         // Dün oluşturduğumuz statik metodları burası tetikleyecek.
         add_action('wp', [__CLASS__, 'schedule_cleanup_event']);
         add_action('my_daily_assets_cleanup', [__CLASS__, 'run_cleanup_task']);
+
     }
 
     /**
@@ -158,21 +174,119 @@ class PageAssetsExtractor
      */
     public function __wakeup() {}
 
+    /**
+     * Ağır işlem öncesi kilitleme yapar.
+     * Eğer işlem zaten çalışıyorsa hata fırlatmaz, sadece FALSE döner.
+     */
+    private function start_heavy_process() {
+        // 1. AYNI REQUEST İÇİNDE KONTROL (Static Lock)
+        static $is_already_running = false;
+        if ($is_already_running) {
+            return false;
+        }
+
+        // 2. VERİTABANI SEVİYESİNDE KONTROL (Global Lock)
+        if (get_transient('pae_global_lock')) {
+            error_log("PAE: İşlem zaten başka bir süreçte çalışıyor, çakışma engellendi.");
+            return false;
+        }
+
+        // 3. KİLİDİ KOY (2 Dakika)
+        set_transient('pae_global_lock', 'true', 120);
+        $is_already_running = true;
+
+        // 4. STANDART WP CRON DURDURMA
+        if (!defined('DISABLE_WP_CRON')) {
+            define('DISABLE_WP_CRON', true);
+        }
+        add_filter('pre_spawn_cron', '__return_false');
+
+        // 5. ACTION SCHEDULER (AS) ENGELLEME
+        // Loglarda gördüğün as_async_request_queue_runner'ı durdurur
+        add_filter('action_scheduler_allow_async_request', '__return_false', 999);
+        
+        // 6. DİĞER ARKA PLAN İŞLEMCİLERİ (WP-Optimize, RankMath vb.)
+        // Birçok modern eklenti arka plan işlemleri için bu filtreyi kontrol eder
+        add_filter('wp_doing_cron', '__return_true'); // Sisteme "zaten cron çalışıyor" dedirtip ikinciyi başlatmasını önleriz
+
+        error_log("PAE: Heavy Process BAŞLADI. Tüm arka plan işlemleri (Cron, AS) susturuldu.");
+
+        return true;
+    }
+
+    /**
+     * İşlem bittiğinde kilidi kaldırır ve sistemi normale döndürür.
+     */
+    private function end_heavy_process() {
+        // Filtreleri kaldır
+        remove_filter('pre_spawn_cron', '__return_false');
+        remove_filter('action_scheduler_allow_async_request', '__return_false', 999);
+        remove_filter('wp_doing_cron', '__return_true');
+
+        // Kilidi veritabanından sil
+        delete_transient('pae_global_lock');
+        
+        error_log("PAE: Heavy Process BİTTİ. Cron ve Action Scheduler artık serbest.");
+    }
+
     /* ===================== HOOK AKIŞI ===================== */
 
-    public function on_save_post($post_id, $post, $update) {
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
-        if (function_exists('wp_is_post_revision') && wp_is_post_revision($post_id)) return;
+    /**
+     * Post'un işlenmeye (extract/cache) uygun olup olmadığını kontrol eder.
+     * * @param int $post_id
+     * @param \WP_Post|null $post
+     * @return bool
+     */
+    public function is_fetch_available($post_id, $post = null) {
+        // 1. Autosave kontrolü
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return false;
+        }
 
+        // 2. Revision kontrolü (Revizyonlar için asset üretilmez)
+        if (function_exists('wp_is_post_revision') && wp_is_post_revision($post_id)) {
+            return false;
+        }
+
+        // 3. Post objesi kontrolü
         $post = empty($post) && function_exists('get_post') ? get_post($post_id) : $post;
-        if (!$post) return;
-        if ($post->post_status !== 'publish') return;
-        if (!$this->is_supported_post_type($post->post_type)) return;
-        if ($this->disable_hooks) return;
+        if (!$post) {
+            return false;
+        }
 
-        if ($this->is_post_type_excluded($post->post_type)) {
+        // 4. Durum kontrolü (Sadece yayında olanlar)
+        if ($post->post_status !== 'publish') {
+            return false;
+        }
+
+        // 5. Desteklenen Post Type kontrolü
+        if (method_exists($this, 'is_supported_post_type') && !$this->is_supported_post_type($post->post_type)) {
+            return false;
+        }
+
+        // 6. Hook engelleme kontrolü (Sınıf içindeki genel disable bayrağı)
+        if (isset($this->disable_hooks) && $this->disable_hooks) {
+            return false;
+        }
+
+        // 7. Hariç tutulan (Exclude) Post Type kontrolü
+        if (method_exists($this, 'is_post_type_excluded') && $this->is_post_type_excluded($post->post_type)) {
             error_log("[PAE] Post {$post_id} excluded from cache generation.");
-            return; // işlem yapma
+            return false;
+        }
+
+        // Tüm engelleri aştıysa vizeyi veriyoruz
+        return true;
+    }
+
+    public function on_save_post($post_id, $post, $update) {
+
+        if (!$this->is_fetch_available($post_id, $post)) {
+            // BURASI ÖNEMLİ: Kabul edilmediği durumda çalışmasını istediğin func'ı buraya yaz.
+            // $this->baska_bi_islem($post_id);
+            $wp_rocket = WP_Rocket_Manifest_Manager::getInstance();
+            $wp_rocket->catch_post_for_shutdown($post_id);
+            return; 
         }
 
         error_log("Saved post : {$post_id} | type: " . $post->post_type);
@@ -198,7 +312,7 @@ class PageAssetsExtractor
         $this->fetch_and_save_archives_assets($post->post_type);
 
         if ($ok !== false) {
-            error_log('[PAE] on_save_post fallback build_related_assets call');
+            //error_log('[PAE] on_save_post fallback build_related_assets call');
             $this->build_related_assets($post_id, $post->post_type);
         }
 
@@ -206,12 +320,12 @@ class PageAssetsExtractor
     }
 
     public function on_save_term($term_id, $tt_id, $taxonomy) {
-        error_log("on_save_term : {$term_id} | taxonomy: {$taxonomy}");
+        //error_log("on_save_term : {$term_id} | taxonomy: {$taxonomy}");
         if (!$this->is_supported_taxonomy($taxonomy)) return;
         if ($this->disable_hooks) return;
 
         if ($this->is_taxonomy_excluded($taxonomy)) {
-            error_log("[PAE] Term {$term_id} excluded from cache generation.");
+            //error_log("[PAE] Term {$term_id} excluded from cache generation.");
             return ; // işlem yapma
         }
 
@@ -253,7 +367,7 @@ class PageAssetsExtractor
             : get_term_meta($id, self::HTML_HASH_META_KEY, true);
 
         if ($current_html_hash !== $last_html_hash) {
-            error_log("[PAE] {$context} HTML değişmiş, manifest purge ediliyor...");
+            //error_log("[PAE] {$context} HTML değişmiş, manifest purge ediliyor...");
             $this->force_rebuild = true;
 
             if ($context === 'post') {
@@ -265,7 +379,7 @@ class PageAssetsExtractor
             $this->purge_page_assets_manifest();
             $this->manifest_write();
         } else {
-            error_log("[PAE] {$context} HTML aynı, rebuild gerek yok.");
+            //error_log("[PAE] {$context} HTML aynı, rebuild gerek yok.");
         }
     }
 
@@ -286,7 +400,7 @@ class PageAssetsExtractor
     public function fetch_post_url($post_id) {
         $url = function_exists('get_permalink') ? get_permalink($post_id) : '';
         $this->url = $url;
-        error_log("fetch_post_url : ".json_encode($url));
+        //error_log("fetch_post_url : ".json_encode($url));
         return $this->fetch($url, $post_id, 'post');
     }
 
@@ -294,7 +408,7 @@ class PageAssetsExtractor
         $term = function_exists('get_term') ? get_term($term_id, $taxonomy) : null;
         $url  = function_exists('get_term_link') ? get_term_link($term) : '';
         $this->url = $url;
-        error_log("fetch_term_url : {$url}");
+        //error_log("fetch_term_url : {$url}");
         if (!function_exists('is_wp_error') || !is_wp_error($url)) {
             return $this->fetch($url, $term_id, 'term');
         }
@@ -302,11 +416,13 @@ class PageAssetsExtractor
 
     public function fetch($url, $id, $forceType = null) {
 
+        $this->start_heavy_process();
+
         // En başta: sadece site içi URL’leri fetch et
         $parsed_url = parse_url($url);
         $wp_domain = parse_url(home_url(), PHP_URL_HOST);
         if (($parsed_url['host'] ?? '') !== $wp_domain) {
-            error_log('[PAE] fetch SKIP: domain not whitelisted (WP domain only): ' . ($parsed_url['host'] ?? ''));
+            //error_log('[PAE] fetch SKIP: domain not whitelisted (WP domain only): ' . ($parsed_url['host'] ?? ''));
             return false;
         }
 
@@ -316,7 +432,7 @@ class PageAssetsExtractor
         error_log('[PAE] fetch ENTER type=' . $this->type . ' id=' . $id . ' url=' . $url);
 
         if ($this->acquire_lock($id) === false) {
-            error_log("[PAE] fetch SKIP (lock) id={$id}");
+            //error_log("[PAE] fetch SKIP (lock) id={$id}");
             if ($forceType) $this->type = $prevType;
             return false;
         }
@@ -331,19 +447,32 @@ class PageAssetsExtractor
             if (function_exists('get_page_status')) {
                 $st = @get_page_status($fetch_url);
                 error_log('[PAE] get_page_status=' . $st . ' for ' . $fetch_url);
-                if ($st != 200) { return false; }
+
+                if ($st != 200) {
+                    if ($this->type !== 'dynamic') {
+                        error_log("PAE: Fetch Error! Status: {$st} for URL: {$fetch_url}");
+                        return false;
+                    }
+                    if ($st >= 500) {
+                        error_log("PAE: Server Error! Status: {$st} for URL: {$fetch_url}");
+                        return false;
+                    }
+                    error_log("PAE: Warning! Status: {$st} but type is 'dynamic', continuing... URL: {$fetch_url}");
+                }
             }
 
             $this->url = $fetch_url;
 
             $response = wp_remote_get($fetch_url, [
-                'timeout' => 10,
+                'timeout' => 20,
                 'headers' => [
                     'User-Agent' => 'MyFetchBot/1.0',
                     'X-Internal-Fetch' => '1',
                 ],
-                'httpversion' => '1.1',
+                'httpversion' => '1.1'
             ]);
+
+            $html_content = null;
 
             if (is_wp_error($response)) {
                 error_log('PAE wp_remote_get ERROR: ' . $response->get_error_message());
@@ -371,7 +500,8 @@ class PageAssetsExtractor
                 'script' => ['src'],
                 'link'   => ['href'], // özellikle stylesheet için
                 'video'  => ['src'],
-                'audio'  => ['src']
+                'audio'  => ['src'],
+                'a'      => ['data-full-res', 'data-src', 'href']
             ];
 
             $new_domains = [];
@@ -388,7 +518,8 @@ class PageAssetsExtractor
                 'script' => 'script-src',
                 'link'   => 'style-src', // link genelde stylesheet
                 'video'  => 'media-src',
-                'audio'  => 'media-src'
+                'audio'  => 'media-src',
+                'a'      => 'img-src' // a içindeki data-full-res genelde resimdir
             ];
 
             foreach ($tags_to_check as $tag => $attributes) {
@@ -443,22 +574,24 @@ class PageAssetsExtractor
                 update_option('csp_approved_domains', $approved_domains);
             }
 
-
             if (is_numeric($id) && function_exists('get_post') && get_post($id)) {
                 $this->type = 'post';
             }
 
             if ($this->type === 'post') {
                 $this->build_related_assets($id, $this->detect_post_type($id));
-                error_log('[PAE] build_related_assets CALLED');
+                //error_log('[PAE] build_related_assets CALLED');
             }
 
             return $result;
 
         } finally {
             $this->release_lock($id);
-            error_log('[PAE] fetch EXIT id=' . $id);
+            //error_log('[PAE] fetch EXIT id=' . $id);
             if ($forceType) $this->type = $prevType;
+            if(!$this->mass){
+                $this->end_heavy_process();
+            }
         }
     }
 
@@ -519,7 +652,7 @@ class PageAssetsExtractor
                 @unlink($file);
             }
         }*/
-        error_log("[PAE] remove_critical_css metodu çağrıldı. Akıllı temizlik kullanıldığı için bu işlem atlanmıştır.");
+        //error_log("[PAE] remove_critical_css metodu çağrıldı. Akıllı temizlik kullanıldığı için bu işlem atlanmıştır.");
         return;
     }
 
@@ -663,7 +796,7 @@ class PageAssetsExtractor
 
     // Sadece var/yok kontrolü (içerik kalitesi/anahtarlar umursanmaz)
     private function has_assets_simple(string $type, $id): bool {
-        if ($type === 'archive') {
+        if ($type === 'archive' || $type == "dynamic") {
             $opt = function_exists('get_option') ? get_option($id . '_assets', null) : null;
             return is_array($opt) && $opt !== [];
         }
@@ -673,13 +806,25 @@ class PageAssetsExtractor
 
     /* ====== DİL HELPER’LARI ====== */
     private function pae_lang_default(): string {
-        return isset($GLOBALS['language_default']) ? (string)$GLOBALS['language_default'] : '';
+        //return isset($GLOBALS['language_default']) ? (string)$GLOBALS['language_default'] : '';
+        return Data::has('language_default') ? (string)Data::get('language_default') : '';
     }
 
-    private function pae_lang_list(): array {
-        if (isset($GLOBALS['languages']) && is_array($GLOBALS['languages'])) {
-            $names = array_column($GLOBALS['languages'], 'name');
+    private function pae_lang_list(): array { 
+        //if (isset($GLOBALS['languages']) && is_array($GLOBALS['languages'])) {
+        if (Data::has('languages') && is_array(Data::get('languages'))) {
+            $names = array_column(Data::get('languages'), 'name');
             return array_values(array_filter(array_map('strval', $names)));
+        }else{
+            if (class_exists('SaltHareket\Theme')) {
+                $theme = \SaltHareket\Theme::getInstance();
+                if (ENABLE_MULTILANGUAGE) {
+                    $theme->language_settings(); // Dilleri burada zorla ayarla
+                }else{
+                    $theme->language_settings_basic(); // Dilleri burada zorla ayarla
+                }
+                return $this->pae_lang_list();
+            }
         }
         return $this->pae_lang_default() ? [$this->pae_lang_default()] : [];
     }
@@ -725,7 +870,7 @@ class PageAssetsExtractor
                 foreach ($pluginMap[$p]['required'] as $dep) {
                     $dep = trim((string)$dep);
                     if ($dep === '' || !isset($pluginMap[$dep])) {
-                        if ($dep !== '') error_log("[PAE] WARN: required '{$dep}' tanımsız (source: {$p})");
+                        if ($dep !== '') //error_log("[PAE] WARN: required '{$dep}' tanımsız (source: {$p})");
                         continue;
                     }
                     if (!isset($seen[$dep])) {
@@ -743,6 +888,7 @@ class PageAssetsExtractor
     public function extract_assets($html_content, $id) {
         $js = [];
         $css = [];
+        //$css_rtl = [];
         $css_page = "";
         $css_page_rtl = "";
         $plugins = [];
@@ -762,13 +908,13 @@ class PageAssetsExtractor
             $bodyNode = $html_content->find('main', 0);
             if ($bodyNode) {
                 $bodyNode->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
-                error_log('[PAE] extra html appended into <body>');
+                //error_log('[PAE] extra html appended into <body>');
             } else {
                 $html_content->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
-                error_log('[PAE] extra html appended into root (no body)');
+                //error_log('[PAE] extra html appended into root (no body)');
             }
         } else {
-            error_log('[PAE] no extra twig html collected');
+            //error_log('[PAE] no extra twig html collected');
         }
 
 
@@ -811,8 +957,8 @@ class PageAssetsExtractor
         $html_temp = null;
 
         $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string . $footer_content;
+        //$final_html_string = $main_content . $block_content . $offcanvas_string;
         $html = HtmlDomParser::str_get_html($final_html_string);
-
 
         /*$theme_dir = get_template_directory();
         $file_path = $theme_dir . '/test.html';
@@ -857,62 +1003,57 @@ class PageAssetsExtractor
                 $js = str_replace($this->home_url_encoded, "{home_url}", $js);
             }*/
 
+            $blocks = $html->findMulti('.block-salt-theme');
+            $js_codes = [];
+            $js = '';
 
-
-        $blocks = $html->findMulti('.block-salt-theme');
-        $js_codes = [];
-        $js = '';
-
-        if (!empty($blocks)) {
-            foreach ($blocks as $block) {
-                
-                // Artık HTML dengeli olduğu için, kütüphane bu aramanın kapsamını 
-                // doğru şekilde $block elementi ile sınırlayacaktır.
-                $scripts = $block->findMulti('script'); 
-                
-                foreach ($scripts as $script) {
-                    if ($script->hasAttribute('data-inline')) {
-                        continue;
-                    }
-                    if (isset($script->src) && !empty($script->src)) {
-                        continue;
-                    }
-                    if (isset($script->type) && strtolower(trim($script->type)) !== 'text/javascript') {
-                        continue;
-                    }
-                    if (is_object($script) && method_exists($script, 'innerHtml')) {
-                        $code = trim($script->innerHtml());
-                        if ($code !== '') {
-                            $js_codes[] = $code;
+            if (!empty($blocks)) {
+                foreach ($blocks as $block) {
+                    
+                    // Artık HTML dengeli olduğu için, kütüphane bu aramanın kapsamını 
+                    // doğru şekilde $block elementi ile sınırlayacaktır.
+                    $scripts = $block->findMulti('script'); 
+                    
+                    foreach ($scripts as $script) {
+                        if ($script->hasAttribute('data-inline')) {
+                            continue;
+                        }
+                        if (isset($script->src) && !empty($script->src)) {
+                            continue;
+                        }
+                        if (isset($script->type) && strtolower(trim($script->type)) !== 'text/javascript') {
+                            continue;
+                        }
+                        if (is_object($script) && method_exists($script, 'innerHtml')) {
+                            $code = trim($script->innerHtml());
+                            if ($code !== '') {
+                                $js_codes[] = $code;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (!empty($js_codes)) {
-            $js_codes = array_unique($js_codes);
-            $js = implode("\n", $js_codes);
-            
-            $minifier = new Minify\JS();
-            $minifier->add($js);
-            $js = $minifier->minify();
-            
-            $js = str_replace([
-                $this->upload_url,
-                $this->upload_url_encoded,
-                $this->home_url,
-                $this->home_url_encoded
-            ], [
-                "{upload_url}",
-                "{upload_url}",
-                "{home_url}",
-                "{home_url}"
-            ], $js);
-        }
-
-            
-
+            if (!empty($js_codes)) {
+                $js_codes = array_unique($js_codes);
+                $js = implode("\n", $js_codes);
+                
+                $minifier = new Minify\JS();
+                $minifier->add($js);
+                $js = $minifier->minify();
+                
+                $js = str_replace([
+                    $this->upload_url,
+                    $this->upload_url_encoded,
+                    $this->home_url,
+                    $this->home_url_encoded
+                ], [
+                    "{upload_url}",
+                    "{upload_url}",
+                    "{home_url}",
+                    "{home_url}"
+                ], $js);
+            }
 
             $styles = $html->findMulti('style');
             $styles_filtered = [];
@@ -937,6 +1078,13 @@ class PageAssetsExtractor
                 //$css = str_replace($this->upload_url_encoded, "{upload_url}", $css);
                 //$css = str_replace($this->home_url, "{home_url}", $css);
                 //$css = str_replace($this->home_url_encoded, "{home_url}", $css);
+
+                /*// RTL üretimi
+                $parser = new \Sabberworm\CSS\Parser($css);
+                $tree   = $parser->parse();
+                $rtlcss = new RTLParser($tree);
+                $rtlcss->flip();
+                $css_rtl = $tree->render();*/
             }
         }
 
@@ -944,6 +1092,7 @@ class PageAssetsExtractor
         if (!function_exists("compile_files_config")) {
             require SH_INCLUDES_PATH . "minify-rules.php";
         }
+
         $files = compile_files_config(true);
 
         if (!empty($files["js"]["plugins"])) {
@@ -956,10 +1105,10 @@ class PageAssetsExtractor
                             $pattern = '/class\s*=\s*["\'][^"\']*\b' . preg_quote($class, '/') . '\b[^"\']*["\']/i';
                             $matches = [];
                             $exists = preg_match($pattern, $final_html_string, $matches);
-                            error_log($key." için ".$class." varmı = ".($exists ? 'true' : 'false'));
+                            //error_log($key." için ".$class." varmı = ".($exists ? 'true' : 'false'));
                             /*if ($exists) {
                                 $matched_html = $matches[0];
-                                error_log(" | EŞLEŞEN HTML (Open Tag): " . substr($matched_html, 0, 150) . "...");
+                                //error_log(" | EŞLEŞEN HTML (Open Tag): " . substr($matched_html, 0, 150) . "...");
                             }*/
                             if ($exists && $condition) { 
                                 $plugins[] = $key; 
@@ -1050,6 +1199,8 @@ class PageAssetsExtractor
         $plugins_key = '';
         if(!empty($plugins) && !empty($files["js"]["plugins"])){
 
+            error_log("Plugins boş diil ");
+
             $plugins_key = sha1(json_encode($plugins));
             $plugin_manifest = $this->manifest['plugins'][$plugins_key] ?? null;
 
@@ -1098,7 +1249,9 @@ class PageAssetsExtractor
                     $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js"; 
                 }
                 if($plugin_files_js){
+                    //module
                     $plugin_js = $this->combine_and_cache_files("js", $plugin_files_js);
+                                 $this->combine_and_cache_modules($plugins, $plugin_js);
                     $plugin_js = str_replace(STATIC_URL, '', $plugin_js);
                 }
 
@@ -1113,6 +1266,9 @@ class PageAssetsExtractor
 
         /* --------- TEMPLATE/PAGE PRUNED CSS (manifest + FS-check) + RTL --------- */
         if($html_content){
+
+            error_log("HTML var ");
+
             $tpl_manifest = $this->manifest['templates'][$this->structure_fp] ?? null;
             $need_rebuild_tpl = true;
 
@@ -1131,6 +1287,9 @@ class PageAssetsExtractor
             }
 
             if ($need_rebuild_tpl) {
+
+                error_log("need_rebuild_tpl ");
+
                 $css_page_raw = $this->remove_unused_css_cached($html_content, "", $plugin_files_whitelist);
 
                 $cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
@@ -1146,11 +1305,6 @@ class PageAssetsExtractor
                 // RTL üretimi
                 $parser = new \Sabberworm\CSS\Parser($css_page_raw);
                 $tree   = $parser->parse();
-
-                /*
-                $rtlcss = new \PrestaShop\RtlCss\RtlCss($tree);
-                $rtlcss->flip();
-                $css_page_rtl_raw  = $tree->render();*/
 
                 $rtlcss = new RTLParser($tree);
                 $rtlcss->flip();
@@ -1176,6 +1330,7 @@ class PageAssetsExtractor
         $result = [
             "js"            => $js,
             "css"           => $css,
+            //"css_rtl"       => $css_rtl,
             "css_page"      => $css_page,
             "css_page_rtl"  => $css_page_rtl,
             "plugins"       => $plugins,
@@ -1184,7 +1339,9 @@ class PageAssetsExtractor
             "plugin_css_rtl"=> $plugin_css_rtl ?? '',
             "wp_js"         => $wp_js,
         ];
+
         $this->fix_js_data($result, ["js", "plugin_js", "wp_js"]);
+
         error_log("PAE result summary: css_page={$result['css_page']} | plugin_css={$result['plugin_css']} | plugins=".count($plugins));
 
         return $this->save_meta($result, $id);
@@ -1193,18 +1350,18 @@ class PageAssetsExtractor
     /* ===================== DİLLER & ARŞİV ===================== */
 
     private function build_related_assets($id, $post_type_val = '') {
-        error_log('[PAE] build_related_assets ENTER type=' . $this->type . ' id=' . $id . ' disable=' . ($this->disable_hooks ? '1':'0'));
+        //error_log('[PAE] build_related_assets ENTER type=' . $this->type . ' id=' . $id . ' disable=' . ($this->disable_hooks ? '1':'0'));
         if ($this->disable_hooks) { error_log('[PAE] build_related_assets EARLY-RETURN (disable_hooks)'); return; }
 
         $this->disable_hooks = true;
         try {
             if ($this->type === 'post') {
                 $post = function_exists('get_post') ? get_post($id) : null;
-                error_log('[PAE] post obj=' . ($post ? ('ok#'.$post->ID) : 'null'));
+                //error_log('[PAE] post obj=' . ($post ? ('ok#'.$post->ID) : 'null'));
 
                 // Arşivleri (tüm diller) güncelle
                 $pt = $post_type_val ?: ($post ? $post->post_type : '');
-                error_log('[PAE] pt=' . $pt);
+                //error_log('[PAE] pt=' . $pt);
                 if ($pt) { $this->fetch_and_save_archives_assets($pt); }
 
             } elseif ($this->type === 'term') {
@@ -1214,7 +1371,7 @@ class PageAssetsExtractor
             error_log("build_related_assets error: " . $e->getMessage());
         }
         $this->disable_hooks = false;
-        error_log('[PAE] build_related_assets EXIT');
+        //error_log('[PAE] build_related_assets EXIT');
     }
 
     /**
@@ -1231,8 +1388,8 @@ class PageAssetsExtractor
 
         $slug = isset($pto->rewrite['slug']) ? trim($pto->rewrite['slug'], '/') : trim($post_type, '/');
 
-        $langs   = (isset($GLOBALS['languages']) && is_array($GLOBALS['languages'])) ? $GLOBALS['languages'] : [];
-        $default = isset($GLOBALS['language_default']) ? (string)$GLOBALS['language_default'] : '';
+        $langs   = (Data::has("languages") && is_array(Data::get("languages"))) ? Data::get("languages") : [];
+        $default = Data::has("language_default") ? (string)Data::get("language_default") : '';
 
         if (!$langs) { 
             $langs = [ ['name' => $default ?: ''] ]; 
@@ -1260,19 +1417,20 @@ class PageAssetsExtractor
         return $urls;
     }
 
+
+
     private function fetch_and_save_archives_assets($post_type) {
         $archives = $this->get_post_type_archive_urls_all_lang($post_type);
-        error_log('[PAE] archive urls count=' . count($archives));
+        //error_log('[PAE] archive urls count=' . count($archives));
         if (!$archives) {
-            error_log('[PAE] NO ARCHIVE URLS (has_archive false olabilir ya da rewrite yok)');
+            //error_log('[PAE] NO ARCHIVE URLS (has_archive false olabilir ya da rewrite yok)');
             return;
         }
-
         foreach ($archives as $item) {
             $lang = $item['lang'];
             $url  = $item['url'];
 
-            $result = $this->fetch($url, "{$post_type}_archive_{$lang}", 'archive');
+            $this->fetch($url, "{$post_type}_archive_{$lang}", 'archive');
             // save_meta() archive için zaten "{$id}_assets" option’ına yazar.
         }
     }
@@ -1310,6 +1468,28 @@ class PageAssetsExtractor
         );
         return str_replace('</script', '<\/script', $js);
     }
+    private function combine_and_cache_modules($plugins, $hash=""){
+        $type = "js";
+        $combined_content = "";
+
+        $cache_dir = rtrim(STATIC_PATH,'/').'/'.$type . '/cache/';
+        if (!file_exists($cache_dir)) { @mkdir($cache_dir, 0755, true); }
+
+        foreach($plugins as $plugin){
+            $combined_content .= "import '" . STATIC_URL . "js/modules/plugins/" . $plugin . ".js';" . PHP_EOL;
+            if(file_exists(STATIC_PATH . "js/modules/plugins/" . $plugin . "-init.js")){
+               $combined_content .= "import '" . STATIC_URL . "js/modules/plugins/" . $plugin . "-init.js';" . PHP_EOL;
+            }
+        }
+        if($hash == ""){
+           $hash = $this->content_hash($combined_content, $type); 
+        }
+        $cache_file = $cache_dir . $hash . '-module.' . $type;
+        if (!file_exists($cache_file)) {
+            @file_put_contents($cache_file, $this->normalize_content($combined_content, $type));
+        }
+        return $type . '/cache/' . $hash . '-module.' . $type;
+    }
 
     /* ===================== BİRLEŞTİRME & CACHE ===================== */
     public function combine_and_cache_files($type, $files, $whitelist = []) {
@@ -1340,7 +1520,7 @@ class PageAssetsExtractor
                 if (file_exists($cand)) { $file_system_path = $cand; break; }
             }
             if ($file_system_path === '') {
-                error_log("PAE missing file: {$plugin_name}");
+                //error_log("PAE missing file: {$plugin_name}");
                 continue;
             }
             $content = @file_get_contents($file_system_path);
@@ -1370,6 +1550,100 @@ class PageAssetsExtractor
         return $type . '/cache/' . $hash . '.' . $type;
     }
 
+
+
+
+
+    /**
+     * İçeriğin tipine ve ID'sine göre dil kodunu tespit eder
+     */
+    public function get_content_lang($id, $type = null) {
+        $lang = '';
+        $type = $type ?: $this->type; // Tip verilmediyse sınıfın o anki tipini kullan
+
+        if (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE === 'polylang') {
+            
+            // 0. DYNAMIC (Format: {$post_type}_{$lang})
+            if ($type === 'dynamic') {
+                $parts = explode('_', $id);
+                $lang = end($parts);
+            }
+            // 1. ARCHIVE (Format: {$post_type}_archive_{$lang})
+            if ($type === 'archive') {
+                $parts = explode('_', $id);
+                $lang = end($parts);
+            } 
+            // 2. POST (Page, Post, CPT)
+            elseif ($type === 'post' && function_exists('pll_get_post_language')) {
+                $lang = pll_get_post_language($id);
+            } 
+            // 3. TERM (Category, Tag, Tax)
+            elseif ($type === 'term' && function_exists('pll_get_term_language')) {
+                $lang = pll_get_term_language($id);
+            } 
+            // 4. USER
+            elseif ($type === 'user') {
+                if (function_exists('pll_get_member_languages')) {
+                    $lang = pll_current_language(); 
+                } else {
+                    $lang = get_user_meta($id, 'description', true); // Fallback
+                }
+            }
+            // 5. COMMENT
+            elseif ($type === 'comment') {
+                $comment = get_comment($id);
+                if ($comment && function_exists('pll_get_post_language')) {
+                    $lang = pll_get_post_language($comment->comment_post_ID);
+                }
+            }
+        }
+
+        return !empty($lang) ? strtolower($lang) : '';
+    }
+    /**
+     * Verilen dil kodunun RTL olup olmadığını kontrol eder
+     */
+    public function is_lang_rtl($lang) {
+        if (empty($lang)) return false;
+
+        $rtl_codes = [
+            'ar', 'ara', 'ary', 'arz', // Arapça varyantları
+            'fa', 'per', 'fas', 'jpr', // Farsça varyantları
+            'ur', 'urd',               // Urduca
+            'he', 'heb', 'iw',         // İbranice
+            'ps', 'pus',               // Peştuca
+            'sd', 'snd',               // Sindhi
+            'ku', 'kur', 'ckb',        // Kürtçe (Sorani)
+            'ug', 'uig',               // Uygurca
+            'dv', 'div',               // Dhivehi
+            'yi', 'yid'                // Yidiş
+        ];
+
+        $lang = strtolower($lang);
+        foreach ($rtl_codes as $code) {
+            if (strpos($lang, $code) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * CSS stringini RTL'ye çevirir
+     */
+    private function flip_css_rtl($css) {
+        if (empty($css)) return $css;
+        try {
+            $parser = new \Sabberworm\CSS\Parser($css);
+            $tree   = $parser->parse();
+            $rtlcss = new RTLParser($tree);
+            $rtlcss->flip();
+            return $tree->render();
+        } catch (\Throwable $e) {
+            //error_log("[PAE] CSS RTL Flip Error: " . $e->getMessage());
+            return $css; // Hata olursa orijinali bozma
+        }
+    }
+
     /* ===================== META KAYIT ===================== */
     public function save_meta($result, $id) {
 
@@ -1389,36 +1663,70 @@ class PageAssetsExtractor
         }
 
         $default_lcp = ['desktop' => [], 'mobile' => []];
-
+        
         // ---- ARCHIVE (option) ----
-        if ($this->type === 'archive') {
-            $option_name  = $id . '_assets';
-            $existing_opt = function_exists('get_option') ? get_option($option_name, null) : null;
-            $existing     = is_array($existing_opt) ? $existing_opt : [];
+        if ($this->type === 'archive' || $this->type === 'dynamic') {
+            $base_option_name = $id . '_assets'; // Orijinal ismi koru
+            $default_lang = $this->pae_lang_default();
+            $archive_lang = $this->get_content_lang($id);
 
-            // META: varsa DEĞİŞME; yoksa oluştur
-            if (isset($existing['meta']) && is_array($existing['meta'])) {
-                $result['meta'] = $existing['meta'];
-            } else {
-                $result['meta'] = ['type' => 'archive', 'id' => $id];
+            // Başlangıç verisini hazırla (LCP ve Meta)
+            if (!isset($result['meta'])) {
+                $result['meta'] = ['type' => $this->type, 'id' => $id];
             }
-
-            // LCP: yoksa ekle; varsa dokunma
             if (!isset($result['lcp'])) {
-                $result['lcp'] = (isset($existing['lcp']) && is_array($existing['lcp'])) ? $existing['lcp'] : $default_lcp;
+                $result['lcp'] = $default_lcp;
             }
 
-            // Diğer alanlar: eskiyi koru, yenileri yaz
-            $merged = array_replace_recursive($existing, $result);
+            $merged = $result;
 
-            if ($existing_opt !== null) {
-                if (function_exists('update_option')) update_option($option_name, $merged);
+            // Default dil kaydediliyorsa diğer dillere de dağıt
+            if ($archive_lang == $default_lang) {
+                $lang_list = $this->pae_lang_list();
+
+                foreach ($lang_list as $lang_item) {
+                    // 1. Her dil için temiz bir kopya oluştur
+                    $current_merged = $result;//array_replace_recursive($existing, $result);
+                    
+                    // 2. Option adını her seferinde orijinal üzerinden üret
+                    $current_option_name = str_replace("_archive_{$default_lang}_assets", "_archive_{$lang_item}_assets", $base_option_name);
+
+                    if ($current_option_name === $base_option_name && $lang_item !== $default_lang) {
+                         $current_option_name = preg_replace('/_'.$default_lang.'_/', '_'.$lang_item.'_', $base_option_name);
+                    }
+                    
+                    // 3. Eğer hedef dil RTL ise CSS'i çevir
+                    if ($this->is_lang_rtl($lang_item) && !empty($current_merged['css'])) {
+                        $current_merged['css'] = $this->flip_css_rtl($current_merged['css']);
+                    }
+
+                    // 4. Veritabanı işlemi
+                    $existing_opt = get_option($current_option_name, null);
+                    if ($existing_opt !== null) {
+                        update_option($current_option_name, $current_merged);
+                    } else {
+                        add_option($current_option_name, $current_merged);
+                    }
+                    
+                    error_log("ARCHIVE AUTO-SYNC | Lang: {$lang_item} | Key: {$current_option_name}");
+                }
             } else {
-                if (function_exists('add_option')) add_option($option_name, $merged);
-            }
+                // Sadece tek bir alt dil (örneğin sadece Arapça arşiv) güncelleniyorsa
+                $merged = $result;//array_replace_recursive($existing, $result);
+                
+                if ($this->is_lang_rtl($archive_lang) && !empty($merged['css'])) {
+                    $merged['css'] = $this->flip_css_rtl($merged['css']);
+                }
 
-            error_log("META SAVED | type=archive | key={$option_name} | css_page=" . ($merged['css_page'] ?? '') . " | plugin_js=" . ($merged['plugin_js'] ?? ''));
-            return $merged;
+                $existing_opt = get_option($base_option_name, null);
+                if ($existing_opt !== null) {
+                    update_option($base_option_name, $merged);
+                } else {
+                    add_option($base_option_name, $merged);
+                }
+            }
+            
+            return $merged;//$result; // Fonksiyonun doğası gereği işlenmiş sonucu dön
         }
 
         // ---- POST/TERM/USER/COMMENT (meta) ----
@@ -1451,15 +1759,20 @@ class PageAssetsExtractor
         }
 
         $this->disable_hooks = false;
-        error_log("META SAVED | type={$this->type} | key=assets | css_page=" . ($merged['css_page'] ?? '') . " | plugin_js=" . ($merged['plugin_js'] ?? ''));
+        error_log("META SAVED | type={$this->type} id={$id} | key=assets | css_page=" . ($merged['css_page'] ?? '') . " | plugin_js=" . ($merged['plugin_js'] ?? ''));
         $this->maybe_copy_meta_to_translations($id, $merged);
+
         return $merged;
     }
     private function maybe_copy_meta_to_translations($id, $merged) {
         if (! function_exists('pll_default_language')) return;
+
+        //remove_all_filters('pll_copy_post_metas');
+
         try {
             $default = pll_default_language();
 
+            // --- POST TİPİ İÇİN ---
             if ($this->type === 'post' && function_exists('pll_get_post_language')) {
                 $lang = pll_get_post_language($id);
                 if ($lang !== $default) return;
@@ -1467,24 +1780,68 @@ class PageAssetsExtractor
                 $translations = pll_get_post_translations($id);
                 if (!is_array($translations)) return;
 
-                $prev = $this->disable_hooks; $this->disable_hooks = true;
+                if (isset($GLOBALS['polylang'])) {
+                    remove_action('save_post', array($GLOBALS['polylang']->sync_post, 'save_post'), 10);
+                }
+
+                $prev = $this->disable_hooks; 
+                $this->disable_hooks = true;
+
                 foreach ($translations as $l => $pid) {
                     if (!$pid || (int)$pid === (int)$id) continue;
-                    update_post_meta((int)$pid, self::META_KEY, $merged);
+                    if ($l === $default) continue;
+
+                    // ÖNEMLİ: Her dil için orijinal veriden temiz bir kopya al
+                    $current_data = $merged; 
+
+                    if ($this->is_lang_rtl($l) && !empty($current_data['css'])) {
+                        $current_data['css'] = $this->flip_css_rtl($current_data['css']);
+                        //error_log("maybe_copy_meta_to_translations (post) : {$l} için CSS RTL yapıldı.");
+                    }
+                    //update_post_meta((int)$pid, self::META_KEY, $current_data);
+
+                    // 1. Önbelleği temizle (WP'nin eski veriyi hatırlamasını engelle)
+                    //clean_post_cache((int)$pid);
+
+                    delete_post_meta((int)$pid, self::META_KEY);
+                    
+                    // 3. Yeni veriyi ekliyoruz (Zorlama 2)
+                    $res = add_post_meta((int)$pid, self::META_KEY, $current_data, true);
+                    
+                    if (!$res) {
+                        // Eğer add_post_meta başarısız olursa (bazı DB'lerde olabilir), update ile son bir kez dene
+                        update_post_meta((int)$pid, self::META_KEY, $current_data);
+                    }
                 }
+
                 $this->disable_hooks = $prev;
+                if (isset($GLOBALS['polylang'])) {
+                   add_action('save_post', array($GLOBALS['polylang']->sync_post, 'save_post'), 10, 3);
+                }
                 return;
             }
 
+            // --- TERM TİPİ İÇİN ---
             if ($this->type === 'term' && function_exists('pll_get_term_translations')) {
                 $translations = pll_get_term_translations($id);
                 if (!is_array($translations)) return;
-                if (!isset($translations[$default]) || (int)$translations[$default] !== (int)$id) return;
+                
+                $current_lang = function_exists('pll_get_term_language') ? pll_get_term_language($id) : '';
+                if ($current_lang !== $default) return;
 
                 $prev = $this->disable_hooks; $this->disable_hooks = true;
                 foreach ($translations as $l => $tid) {
                     if (!$tid || (int)$tid === (int)$id) continue;
-                    update_term_meta((int)$tid, self::META_KEY, $merged);
+
+                    // ÖNEMLİ: Her dil için temiz kopya
+                    $current_data = $merged;
+
+                    if ($this->is_lang_rtl($l) && !empty($current_data['css'])) {
+                        $current_data['css'] = $this->flip_css_rtl($current_data['css']);
+                        //error_log("maybe_copy_meta_to_translations (term) : {$l} için CSS RTL yapıldı.");
+                    }
+
+                    update_term_meta((int)$tid, self::META_KEY, $current_data);
                 }
                 $this->disable_hooks = $prev;
             }
@@ -1548,12 +1905,12 @@ class PageAssetsExtractor
             case "term":    $existing = $this->meta_get('term', $id);    $this->meta_delete('term', $id);    break;
             case "user":    $existing = $this->meta_get('user', $id);    $this->meta_delete('user', $id);    break;
             case "comment": $existing = $this->meta_get('comment', $id); $this->meta_delete('comment', $id); break;
-            case "archive": $option_name = $id . '_assets'; $existing = get_option($option_name); if ($existing !== false) delete_option($option_name); break;
+            case "archive": 
+            case "dynamic": $option_name = $id . '_assets'; $existing = get_option($option_name); if ($existing !== false) delete_option($option_name); break;
             default:        $existing = null;
         }
 
-        error_log("[PAE] delete_existing_assets(".$this->type.", ".$id);
-        error_log(print_r($existing, true));
+        /*error_log("[PAE] delete_existing_assets(".$this->type.", ".$id);
 
         if (is_array($existing)) {
             foreach (['plugin_js','plugin_css','plugin_css_rtl'] as $k) {
@@ -1563,7 +1920,7 @@ class PageAssetsExtractor
                     if (file_exists($abs)) @unlink($abs);
                 }
             }
-        }
+        }*/
     }
     
     public function purge_page_assets_manifest() {
@@ -1576,9 +1933,12 @@ class PageAssetsExtractor
         $this->remove_critical_css();
     }
 
+
+
+
     /* ===================== SİTEMAP & DİĞERLERİ ===================== */
 
-    public function get_all_urls($sitemap_url = null, $urls = []) {
+    /*public function get_all_urls_v1($sitemap_url = null, $urls = []) {
         if ($sitemap_url === null) {
             $sitemap_url = function_exists('site_url') ? site_url('/sitemap_index.xml') : '/sitemap_index.xml';
         }
@@ -1727,74 +2087,228 @@ class PageAssetsExtractor
         return $urls;
     }
 
-    /* ======== Tema için güvenli okuma (opsiyonel) ======== */
-    public static function get_post_assets_safe($post_id) {
-        $assets = function_exists('get_post_meta') ? get_post_meta($post_id, self::META_KEY, true) : null;
-        if ($assets) return $assets;
-        return function_exists('get_option') ? get_option('site_assets') : null;
-    }
-
-    // evrensel meta get/set/delete
-    private function meta_get($type, $id) {
-        error_log("--- start meta_get");
-        error_log(print_r(get_post_meta($id, self::META_KEY, true), true));
-        error_log("--- end meta_get");
-        switch ($type) {
-            case 'post':    return get_post_meta($id, self::META_KEY, true);
-            case 'term':    return get_term_meta($id, self::META_KEY, true);
-            case 'user':    return get_user_meta($id, self::META_KEY, true);
-            case 'comment': return get_comment_meta($id, self::META_KEY, true);
+    public function get_all_urls_v2($sitemap_url = null, &$urls = []) {
+        // 1. ADIM: Başlangıç Ayarları
+        if ($sitemap_url === null) {
+            $sitemap_url = function_exists('site_url') ? site_url('/sitemap_index.xml') : '/sitemap_index.xml';
         }
 
-        return null;
-    }
-    private function meta_update($type, $id, $val) {
-        switch ($type) {
-            case 'post':    update_post_meta($id, self::META_KEY, $val);    break;
-            case 'term':    update_term_meta($id, self::META_KEY, $val);    break;
-            case 'user':    update_user_meta($id, self::META_KEY, $val);    break;
-            case 'comment': update_comment_meta($id, self::META_KEY, $val); break;
+        // Static cache: Aynı çalışma anında (request) aynı sitemap'i tekrar indirme
+        static $downloaded = [];
+        if (isset($downloaded[$sitemap_url])) return $urls;
+
+        // 2. ADIM: Transient Cache (Ağ yükünü 1 saatliğine sıfırlar)
+        $cache_key = 'sh_turbo_sitemap_' . md5($sitemap_url);
+        $sitemap_content = get_transient($cache_key);
+
+        if (false === $sitemap_content) {
+            $response = wp_remote_get($sitemap_url, ['timeout' => 20, 'sslverify' => false]);
+            if (is_wp_error($response)) {
+                $sitemap_content = @file_get_contents($sitemap_url); // Fallback
+            } else {
+                $sitemap_content = wp_remote_retrieve_body($response);
+            }
+            if ($sitemap_content) {
+                set_transient($cache_key, $sitemap_content, HOUR_IN_SECONDS);
+            }
         }
-    }
-    private function meta_add($type, $id, $val) {
-        switch ($type) {
-            case 'post':    add_post_meta($id, self::META_KEY, $val, true);    break;
-            case 'term':    add_term_meta($id, self::META_KEY, $val, true);    break;
-            case 'user':    add_user_meta($id, self::META_KEY, $val, true);    break;
-            case 'comment': add_comment_meta($id, self::META_KEY, $val, true); break;
+
+        if (!$sitemap_content) return $urls;
+
+        // 3. ADIM: XML Yükleme ve Namespace Tanımlama
+        $xml = @simplexml_load_string($sitemap_content);
+        if (!$xml) return $urls;
+
+        $downloaded[$sitemap_url] = true;
+        $namespaces = $xml->getDocNamespaces(true);
+        $xml->registerXPathNamespace('ns', $namespaces[''] ?? 'http://www.sitemaps.org/schemas/sitemap/0.9');
+
+        $sitemap_path      = parse_url($sitemap_url, PHP_URL_PATH) ?: '';
+        $sitemap_file_name = preg_replace('/-sitemap\.xml$/', '', basename($sitemap_path));
+        $roles             = method_exists($this, 'get_roles') ? (array) $this->get_roles() : [];
+
+        // 4. ADIM: Alt Sitemap'ler (Recursive Call)
+        $sub_sitemaps = $xml->xpath('//ns:sitemap/ns:loc');
+        if ($sub_sitemaps) {
+            foreach ($sub_sitemaps as $loc) {
+                $this->get_all_urls((string)$loc, $urls);
+            }
+            return $urls;
         }
-    }
-    private function meta_delete($type, $id) {
-        switch ($type) {
-            case 'post':    delete_post_meta($id, self::META_KEY);    break;
-            case 'term':    delete_term_meta($id, self::META_KEY);    break;
-            case 'user':    delete_user_meta($id, self::META_KEY);    break;
-            case 'comment': delete_comment_meta($id, self::META_KEY); break;
+
+        // 5. ADIM: URL Döngüsü
+        $url_nodes = $xml->xpath('//ns:url/ns:loc');
+        if (!$url_nodes) return $urls;
+
+        // Hariç tutulan post type veya taxonomy ise direkt bu sitemap'i atla (Hız kazandırır)
+        if ($this->is_post_type_excluded($sitemap_file_name) || $this->is_taxonomy_excluded($sitemap_file_name)) {
+            return $urls;
         }
+
+        foreach ($url_nodes as $url_loc) {
+            $url_string = (string)$url_loc;
+            $post_id = 0;
+            $data = [ "url" => $url_string, "post_type" => $sitemap_file_name ];
+
+            // === (A) ROLE-BAZLI / COMMENT / AUTHOR ===
+            if ((!empty($roles) && in_array($sitemap_file_name, $roles, true)) || $sitemap_file_name === 'comment' || $sitemap_file_name === 'author') {
+                $slug = basename(rtrim($url_string, '/'));
+                if ($sitemap_file_name === 'author' && preg_match('~/author/([^/]+)/?~i', $url_string, $m)) {
+                    $slug = sanitize_title($m[1]);
+                }
+                
+                $user = function_exists('get_user_by') ? get_user_by('slug', $slug) : null;
+                if ($user) {
+                    $urls[$user->ID] = array_merge($data, ["type" => ($sitemap_file_name === 'comment' ? "comment" : "user")]);
+                }
+                continue;
+            }
+
+            // === (B) POST / PAGE / CPT ===
+            if ($sitemap_file_name === 'post' || $sitemap_file_name === 'page' || (function_exists('post_type_exists') && post_type_exists($sitemap_file_name))) {
+                
+                $post_id = function_exists('url_to_postid') ? url_to_postid($url_string) : 0;
+
+                // Senin Arşiv Kontrolün (Turbo hale getirildi)
+                if (!$post_id && function_exists('getUrlEndpoint')) {
+                    if (getUrlEndpoint($url_string) == $sitemap_file_name && $this->pae_is_default_lang_url($url_string)) {
+                        $urls[$sitemap_file_name] = array_merge($data, ["type" => "archive"]);
+                        continue;
+                    }
+                }
+
+                // Fallback: Hala ID yoksa slug ile hızlıca bak (Sadece CPT ise)
+                if (!$post_id && $sitemap_file_name !== 'page' && $sitemap_file_name !== 'post') {
+                    $slug = basename(rtrim($url_string, '/'));
+                    $post_obj = get_page_by_path($slug, OBJECT, $sitemap_file_name);
+                    if ($post_obj) $post_id = $post_obj->ID;
+                }
+
+                if ($post_id) {
+                    $urls[$post_id] = array_merge($data, [
+                        "type" => "post",
+                        "post_type" => function_exists('get_post_type') ? get_post_type($post_id) : $sitemap_file_name
+                    ]);
+                }
+                continue;
+            }
+
+            // === (C) TAXONOMY ===
+            $tax_alias = ['format' => 'post_format'];
+            $tax_name  = $tax_alias[$sitemap_file_name] ?? $sitemap_file_name;
+
+            if (in_array($sitemap_file_name, ['category','post_tag','post_format'], true) || (function_exists('taxonomy_exists') && taxonomy_exists($tax_name))) {
+                $term_slug = sanitize_title(basename(rtrim($url_string, '/')));
+                $term = get_term_by('slug', $term_slug, $tax_name);
+
+                if ($term && !is_wp_error($term)) {
+                    $urls[$term->term_id] = array_merge($data, ["type" => "term", "post_type" => $tax_name]);
+                }
+                continue;
+            }
+
+            // === (D) DİĞERLERİ (Archive/Özel) ===
+            // Key olarak sitemap adını kullanıyoruz (Senin istediğin arşiv mantığı)
+            $urls[$sitemap_file_name] = array_merge($data, ["type" => "archive"]);
+        }
+
+        return $urls;
+    }*/
+
+    public function get_all_urls($sitemap_url = null, &$urls = []) {
+        // 1. ADIM: Başlangıç Ayarları ve Sanal Sayfaların Enjeksiyonu
+        if ($sitemap_url === null) {
+            $sitemap_url = function_exists('site_url') ? site_url('/sitemap_index.xml') : '/sitemap_index.xml';
+
+            // Search ve 404 sayfalarını 'archive' yapısında enjekte ediyoruz
+            $urls['search'] = [ 
+                "url"       => get_search_link('turbo-cache-warmup'), 
+                "post_type" => "search", 
+                "type"      => "dynamic" 
+            ];
+
+            $urls['404'] = [ 
+                "url"       => site_url('/404-css-cache-trigger'), 
+                "post_type" => "404", 
+                "type"      => "dynamic" 
+            ];
+        }
+
+        static $downloaded = [];
+       // if (isset($downloaded[$sitemap_url])) return $urls;
+
+        $cache_key = 'sh_turbo_sitemap_' . md5($sitemap_url);
+        $sitemap_content = get_transient($cache_key);
+
+        if (false === $sitemap_content) {
+            $response = wp_remote_get($sitemap_url, ['timeout' => 20, 'sslverify' => false]);
+            $sitemap_content = is_wp_error($response) ? @file_get_contents($sitemap_url) : wp_remote_retrieve_body($response);
+            if ($sitemap_content) set_transient($cache_key, $sitemap_content, HOUR_IN_SECONDS);
+        }
+
+        if (!$sitemap_content) return $urls;
+
+        $xml = @simplexml_load_string($sitemap_content);
+        if (!$xml) return $urls;
+
+        $downloaded[$sitemap_url] = true;
+        $namespaces = $xml->getDocNamespaces(true);
+        $xml->registerXPathNamespace('ns', $namespaces[''] ?? 'http://www.sitemaps.org/schemas/sitemap/0.9');
+
+        $sitemap_path      = parse_url($sitemap_url, PHP_URL_PATH) ?: '';
+        $sitemap_file_name = preg_replace('/-sitemap\.xml$/', '', basename($sitemap_path));
+        $roles             = method_exists($this, 'get_roles') ? (array) $this->get_roles() : [];
+
+        $sub_sitemaps = $xml->xpath('//ns:sitemap/ns:loc');
+        if ($sub_sitemaps) {
+            foreach ($sub_sitemaps as $loc) { $this->get_all_urls((string)$loc, $urls); }
+            return $urls;
+        }
+
+        $url_nodes = $xml->xpath('//ns:url/ns:loc');
+        if (!$url_nodes) return $urls;
+
+        if ($this->is_post_type_excluded($sitemap_file_name) || $this->is_taxonomy_excluded($sitemap_file_name)) return $urls;
+
+        foreach ($url_nodes as $url_loc) {
+            $url_string = (string)$url_loc;
+            $data = [ "url" => $url_string, "post_type" => $sitemap_file_name ];
+
+            if ((!empty($roles) && in_array($sitemap_file_name, $roles, true)) || $sitemap_file_name === 'author') {
+                $slug = basename(rtrim($url_string, '/'));
+                $user = function_exists('get_user_by') ? get_user_by('slug', $slug) : null;
+                if ($user) $urls[$user->ID] = array_merge($data, ["type" => "user"]);
+                continue;
+            }
+
+            if ($sitemap_file_name === 'post' || $sitemap_file_name === 'page' || post_type_exists($sitemap_file_name)) {
+                $post_id = url_to_postid($url_string);
+                if (!$post_id && function_exists('getUrlEndpoint')) {
+                    if (getUrlEndpoint($url_string) == $sitemap_file_name && $this->pae_is_default_lang_url($url_string)) {
+                        $urls[$sitemap_file_name] = array_merge($data, ["type" => "archive"]);
+                        continue;
+                    }
+                }
+                if ($post_id) {
+                    $urls[$post_id] = array_merge($data, ["type" => "post", "post_type" => get_post_type($post_id)]);
+                }
+                continue;
+            }
+
+            $tax_name = ($sitemap_file_name === 'format') ? 'post_format' : $sitemap_file_name;
+            if (taxonomy_exists($tax_name)) {
+                $term_slug = basename(rtrim($url_string, '/'));
+                $term = get_term_by('slug', $term_slug, $tax_name);
+                if ($term) $urls[$term->term_id] = array_merge($data, ["type" => "term", "post_type" => $tax_name]);
+                continue;
+            }
+
+            $urls[$sitemap_file_name] = array_merge($data, ["type" => "archive"]);
+        }
+        return $urls;
     }
 
-
-
-
-    public function get_roles() {
-        global $wp_roles;
-        $roles = [];
-        if (!isset($wp_roles)) {
-            $wp_roles = new WP_Roles();
-        }
-        foreach ($wp_roles->roles as $role_key => $role_details) {
-            $name = $role_details['name'];
-            $roles[] = $role_key;
-        }
-        return $roles;
-    }
-
-
-
-
-
-
-    public function display_page_assets_table() {
+    /*public function display_page_assets_table_v1() {
         $raw = $this->get_all_urls();
 
         // --- Sadece default dil URL'leri ---
@@ -1887,7 +2401,145 @@ class PageAssetsExtractor
                     url: ajaxurl,
                     type: 'post',
                     dataType: 'json',
-                    data: { action:'page_assets_update', url: urls[i] },
+                    data: { 
+                        action:'page_assets_update',
+                        data: {
+                            id: urls[i].id,       // urls[i] objesinin içindeki id
+                            type: urls[i].type,   // urls[i] objesinin içindeki type
+                            url: urls[i].url,     // urls[i] objesinin içindeki url
+                            index: (i + 1), 
+                            total: urls.length 
+                        }
+                    },
+                    success: function(res){
+                        $row.find("td").addClass("bg-success text-white");
+                        $row.find(".actions").removeClass("loading loading-xs").html("<strong>OK</strong>");
+                        if(!single){
+                            var percent = ((i+1) * 100) / urls.length;
+                            jQuery(".progress-page-assets .progress-bar").css("width", percent+"%");
+                            if(i < urls.length-1){ page_assets_update(i+1, false); }
+                            else {
+                                jQuery(".progress-page-assets").addClass("d-none");
+                                jQuery(".table-page-assets-status").prepend("<div class='text-success fs-5 fw-bold mb-2'>COMPLETED</div>");
+                                jQuery(".btn-page-assets-update, .btn-page-assets-single").removeClass("disabled");
+                            }
+                        } else {
+                            jQuery(".btn-page-assets-single").removeClass("disabled");
+                        }
+                    },
+                    error: function(xhr, st, err){
+                        console.error('AJAX Error: ' + st + ' - ' + err);
+                        $row.find(".actions").removeClass("loading loading-xs").html("<strong class='text-danger'>ERR</strong>");
+                    }
+                });
+            }
+        </script>
+        <?php
+    }*/
+    public function display_page_assets_table() {
+        $raw = $this->get_all_urls();
+        $rows = [];
+
+        foreach ($raw as $key => $item) {
+            $url = (string)($item['url'] ?? '');
+            if (!$url || !$this->pae_is_default_lang_url($url)) continue;
+
+            $type      = $item['type']      ?? 'post';
+            $post_type = $item['post_type'] ?? $type;
+            $id        = $key;
+
+            // Arşiv, Search ve 404 kontrolü ile ID/Key yapılandırması
+            if ($type == "archive") {
+                $lang = $this->pae_lang_from_url($url);
+                $id = $key . '_archive_' . $lang;
+            }
+            if($type == "dynamic"){
+                $lang = $this->pae_lang_from_url($url);
+                $id = $post_type.'_' . $lang;
+            }
+
+            $url_short = str_replace(home_url(), "", $url);
+
+            $rows[] = [
+                'id'        => $id,
+                'type'      => $type,
+                'post_type' => $post_type,
+                'url'       => $url,
+                'url_short' => $url_short
+            ];
+        }
+
+        $total   = count($rows);
+        $message = $total
+            ? "JS & CSS Extraction process completed with <strong>{$total} default-language pages.</strong>"
+            : "Not found any pages to extract process.";
+
+        echo '<div class="bg-white rounded-3 p-3 shadow-sm">';
+        echo '<div class="mb-3">'.$message.'</div>';
+
+        if ($rows) {
+            echo '<table class="table-page-assets table table-sm table-hover table-striped" style="width:100%; border-collapse: collapse;background-color:#fff;">';
+            echo '<thead><tr style="background-color:#f2f2f2; text-align:left;">';
+            echo '<th style="padding:10px; border-bottom:1px solid #ddd;">ID / Key</th>';
+            echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Type</th>';
+            echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Url</th>';
+            echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Actions</th>';
+            echo '</tr></thead><tbody>';
+
+            foreach ($rows as $i => $row) {
+                echo '<tr id="'.esc_attr($row["type"].'_'.$row["id"]).'" data-index="'.$i.'" style="vertical-align:middle;">';
+                echo '<td data-id="'.esc_attr($row["id"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["id"]).'</td>';
+                echo '<td data-type="'.esc_attr($row["type"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["post_type"]).'</td>';
+                echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">'.esc_html($row["url_short"]).' <a href="'.esc_attr($row["url"]).'" target="_blank"><i class="fa-solid fa-link"></i></a></td>';
+                echo '<td class="actions" style="width:80px;padding:10px; border-bottom:1px solid #ddd;"><a href="#" class="btn-page-assets-single btn btn-success btn-sm">Fetch</a></td>';
+                echo '</tr>';
+            }
+
+            echo '</tbody></table>';
+            echo '<div class="table-page-assets-status text-center py-4">';
+            echo '<div class="progress-page-assets progress d-none mb-4" role="progressbar" aria-label="Animated striped" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>';
+            echo '<a href="#" class="btn-page-assets-update btn btn-success btn-lg px-4">Start Mass Update</a>';
+            echo '</div>';
+        } else {
+            echo '<p>No data found.</p>';
+        }
+        echo '</div>';
+        ?>
+        <script type="text/javascript">
+            var urls = <?php echo json_encode(array_values($rows));?>;
+            jQuery(function($) {
+                $(".btn-page-assets-single").on("click", function(e){
+                    e.preventDefault();
+                    var $row = $(this).closest("tr");
+                    var idx  = parseInt($row.attr("data-index"),10) || 0;
+                    $(this).addClass("disabled");
+                    page_assets_update(idx, true);
+                });
+                $(".btn-page-assets-update").on("click", function(e){
+                    e.preventDefault();
+                    $(this).addClass("disabled");
+                    $(".progress-page-assets").removeClass("d-none");
+                    page_assets_update(0, false);
+                });
+            });
+            function page_assets_update(i, single){
+                var $row = $(".table-page-assets").find("tr[data-index='"+i+"']");
+                $row.find(".actions").empty().addClass("loading loading-xs position-relative");
+                jQuery.ajax({
+                    url: ajaxurl,
+                    type: 'post',
+                    dataType: 'json',
+                    data: { 
+                        action:'page_assets_update',
+                        data: {
+                            id: urls[i].id,
+                            type: urls[i].type,
+                            url: urls[i].url,
+                            index: (i + 1), 
+                            total: urls.length,
+                            mass: single?false:true
+                        }
+                    },
                     success: function(res){
                         $row.find("td").addClass("bg-success text-white");
                         $row.find(".actions").removeClass("loading loading-xs").html("<strong>OK</strong>");
@@ -1920,15 +2572,31 @@ class PageAssetsExtractor
         return $field;
     }
     public function page_assets_update(){
-        $row = isset($_POST["url"]) ? (array) $_POST["url"] : [];
+        $row = isset($_POST["data"]) ? (array) $_POST["data"] : [];
         $id   = $row["id"]   ?? 0;
         $type = $row["type"] ?? 'post';
         $url  = $row["url"]  ?? '';
+        $index = intval($row["index"] ?? 0);
+        $total = intval($row["total"] ?? 0);
+        $mass = isset($row["mass"]) ? filter_var($row["mass"], FILTER_VALIDATE_BOOLEAN) : false;
 
-        $this->mass = true;
         $this->type = $type;
+        $this->mass = $mass;
+
+        $end_process = true;
+
+        if($mass){
+            $this->mass_index = $index;
+            $this->mass_total = $total;
+            $end_process = $this->mass_index == $this->mass_total?true:false;
+            error_log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ".$this->mass_index."/".$this->mass_total);            
+        }
 
         $data = $this->fetch($url, $id, $type);
+
+        if($end_process){
+            $this->end_heavy_process();
+        }
         wp_send_json([
             "error"   => false,
             "message" => "",
@@ -1939,6 +2607,75 @@ class PageAssetsExtractor
 
 
 
+
+    /* ======== Tema için güvenli okuma (opsiyonel) ======== */
+    public static function get_post_assets_safe($post_id) {
+        $assets = function_exists('get_post_meta') ? get_post_meta($post_id, self::META_KEY, true) : null;
+        if ($assets) return $assets;
+        return function_exists('get_option') ? get_option('site_assets') : null;
+    }
+
+    // evrensel meta get/set/delete
+    private function meta_get($type, $id) {
+        switch ($type) {
+            case 'post':    return get_post_meta($id, self::META_KEY, true);
+            case 'term':    return get_term_meta($id, self::META_KEY, true);
+            case 'user':    return get_user_meta($id, self::META_KEY, true);
+            case 'comment': return get_comment_meta($id, self::META_KEY, true);
+        }
+
+        return null;
+    }
+    private function meta_update($type, $id, $val) {
+        switch ($type) {
+            case 'post':    update_post_meta($id, self::META_KEY, $val);    break;
+            case 'term':    update_term_meta($id, self::META_KEY, $val);    break;
+            case 'user':    update_user_meta($id, self::META_KEY, $val);    break;
+            case 'comment': update_comment_meta($id, self::META_KEY, $val); break;
+        }
+    }
+    private function meta_add($type, $id, $val) { 
+        switch ($type) {
+            case 'post':    add_post_meta($id, self::META_KEY, $val, true);    break;
+            case 'term':    add_term_meta($id, self::META_KEY, $val, true);    break;
+            case 'user':    add_user_meta($id, self::META_KEY, $val, true);    break;
+            case 'comment': add_comment_meta($id, self::META_KEY, $val, true); break;
+        }
+    }
+    private function meta_delete($type, $id) {
+        switch ($type) {
+            case 'post':    delete_post_meta($id, self::META_KEY);    break;
+            case 'term':    delete_term_meta($id, self::META_KEY);    break;
+            case 'user':    delete_user_meta($id, self::META_KEY);    break;
+            case 'comment': delete_comment_meta($id, self::META_KEY); break;
+        }
+    }
+
+    public function get_roles() {
+        global $wp_roles;
+        $roles = [];
+        if (!isset($wp_roles)) {
+            $wp_roles = new WP_Roles();
+        }
+        foreach ($wp_roles->roles as $role_key => $role_details) {
+            $name = $role_details['name'];
+            $roles[] = $role_key;
+        }
+        return $roles;
+    }
+
+    
+    /**
+     * Harici olarak Twig şablon yollarını ayarlar.
+     * Bu, sınıfın Timber/Twig bulucuya uymasını sağlar.
+     *
+     * @param array $paths Aranacak dizinlerin tam yollarını içeren dizi
+     */
+    public function set_twig_template_paths(array $paths)
+    {
+            // Sınıfınızdaki özelliğin adı 'twig_template_paths'
+            $this->twig_template_paths = $paths;
+    }
     private function detectTimberTemplatePaths(): array {
         $paths = [];
         $checked = [];
@@ -1979,7 +2716,6 @@ class PageAssetsExtractor
         $paths = array_values(array_unique(array_filter($paths, 'is_dir')));
         error_log('[PAE] detectTimberTemplatePaths checked=' . json_encode($checked, JSON_UNESCAPED_SLASHES));
         error_log('[PAE] detectTimberTemplatePaths final='   . json_encode($paths,   JSON_UNESCAPED_SLASHES));
-
         return $paths;
     }
     private function ensureTwigPaths(): void {
@@ -1997,7 +2733,7 @@ class PageAssetsExtractor
             $this->twig_paths_initialized = true;
         }
 
-        error_log('[PAE] twig_paths (lazy)=' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
+        //error_log('[PAE] twig_paths (lazy)=' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
     }
     private function resolveTimberDirnamesToAbsolute(array $dirnames, array &$checked): array {
         $roots = [];
@@ -2091,16 +2827,16 @@ class PageAssetsExtractor
                         if ($sub !== false) {
                             $out .= "\n" . $sub;
                             $found = true;
-                            error_log('[PAE] include resolved: ' . $inc . ' -> ' . $file);
+                            //error_log('[PAE] include resolved: ' . $inc . ' -> ' . $file);
                             // rekürsif
                             $out .= "\n" . $this->collectIncludedTwigRaw($sub, dirname($file), $visited);
                         } else {
-                            error_log('[PAE] include read fail: ' . $file);
+                            //error_log('[PAE] include read fail: ' . $file);
                         }
                     }
                 }
                 if (!$found) {
-                    error_log('[PAE] include NOT found: ' . $inc);
+                    //error_log('[PAE] include NOT found: ' . $inc);
                 }
             }
         }
@@ -2112,7 +2848,7 @@ class PageAssetsExtractor
 
         $frag = HtmlDomParser::str_get_html($html);
         if (!$frag) {
-            error_log('[PAE] logApproxHtmlSelectors: failed to parse approx html for ' . $label);
+            //error_log('[PAE] logApproxHtmlSelectors: failed to parse approx html for ' . $label);
             return;
         }
 
@@ -2138,9 +2874,9 @@ class PageAssetsExtractor
         $sampleClasses = array_slice($classes, 0, 30);
         $sampleIds     = array_slice($ids, 0, 30);
 
-        error_log(sprintf('[PAE] selectors from %s | classes=%d ids=%d', $label, count($classes), count($ids)));
-        error_log('[PAE] classes sample: ' . implode(', ', $sampleClasses));
-        error_log('[PAE] ids sample: ' . implode(', ', $sampleIds));
+        //error_log(sprintf('[PAE] selectors from %s | classes=%d ids=%d', $label, count($classes), count($ids)));
+        //error_log('[PAE] classes sample: ' . implode(', ', $sampleClasses));
+        //error_log('[PAE] ids sample: ' . implode(', ', $sampleIds));
     }
     private function twigToApproxHtml(string $twig): string {
         $s = $twig;
@@ -2169,7 +2905,7 @@ class PageAssetsExtractor
     private function collectTwigLoadedHtml(\voku\helper\HtmlDomParser $dom): string {
         $nodes = $dom->find("*[{$this->twig_attr}]");
         if (!$nodes || count($nodes) === 0) {
-            error_log('[PAE] data-template: node bulunamadı');
+            //error_log('[PAE] data-template: node bulunamadı');
             return '';
         }
 
@@ -2191,7 +2927,7 @@ class PageAssetsExtractor
 
         $all = array_keys($uniqueTemplates);
         if (empty($all)) {
-            error_log('[PAE] data-template: template değeri yok (boş)');
+            //error_log('[PAE] data-template: template değeri yok (boş)');
             return '';
         }
 
@@ -2205,11 +2941,11 @@ class PageAssetsExtractor
         }
 
         if (empty($toProcess)) {
-            error_log('[PAE] data-template: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
+            //error_log('[PAE] data-template: tüm template değerleri önceden işlenmiş, atlandı. uniq=' . count($all));
             return '';
         }
 
-        error_log('[PAE] data-template: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
+        //error_log('[PAE] data-template: uniq=' . count($all) . ', yeni_islenecek=' . count($toProcess));
         $html_chunks = [];
         $foundFiles  = [];
         $missed      = [];
@@ -2248,14 +2984,14 @@ class PageAssetsExtractor
 
         // 5) Log
         if ($foundFiles) {
-            error_log('[PAE] Twig bulundu: ' . count($foundFiles));
+            //error_log('[PAE] Twig bulundu: ' . count($foundFiles));
             foreach ($foundFiles as $f) {
-                error_log('[PAE]  - ' . $f);
+                //error_log('[PAE]  - ' . $f);
             }
         }
         if ($missed) {
-            error_log('[PAE] Twig bulunamadı: ' . json_encode($missed, JSON_UNESCAPED_SLASHES));
-            error_log('[PAE]  aranan_yollar: ' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
+            //error_log('[PAE] Twig bulunamadı: ' . json_encode($missed, JSON_UNESCAPED_SLASHES));
+            //error_log('[PAE]  aranan_yollar: ' . json_encode($this->twig_template_paths, JSON_UNESCAPED_SLASHES));
         }
 
         // Örnek: basit sınıf/ID istatistiği (yaklaşık)
@@ -2271,170 +3007,162 @@ class PageAssetsExtractor
             }
         }
         $ids = array_unique($m2[1] ?? []);
-        error_log('[PAE] approx selectors: classes=' . count($classes) . ' ids=' . count($ids));
+        //error_log('[PAE] approx selectors: classes=' . count($classes) . ' ids=' . count($ids));
 
         return implode("\n", $html_chunks);
     }
 
 
 
+
+
     /**
-     * Çöp Toplayıcı: Yetim kalmış varlıkları (CSS/JS) ve manifest kayıtlarını temizler.
-     * Bu metodun bir WP Cron görevi ile periyodik (örn. günde 1) çalıştırılması önerilir.
+     * YENİ: Güncellenen hash değerlerine göre CSS kullanımını kaydeder ve kullanılmayan eski dosyayı siler.
+     * KRİTİK: Ortak kullanılan dosyaların silinmesini engeller.
+     *
+     * @param string $old_hash Eski kullanılan CSS dosyası hash'i.
+     * @param string $new_hash Yeni kullanılan CSS dosyası hash'i.
+     * @param int|string $content_id Etkin olan içeriğin (Post ID, Term ID, Options String vb.) ID'si.
      */
-    public function cleanup_orphaned_assets()
-    {
-        error_log('[PAE] Çöp toplama (GC) başlatılıyor...');
+    protected function update_css_usage_and_cleanup(string $old_hash, string $new_hash, $content_id): void {
+        // Güncel manifesti oku
+        $this->manifest_read(); 
+        $content_id = (string) $content_id;
 
-        // 1. Manifest'i güvenli bir şekilde oku (Bkz. Bölüm 2: get_manifest)
-        $manifest = $this->get_manifest();
-        if (empty($manifest['templates']) && empty($manifest['plugins'])) {
-            error_log('[PAE] GC: Manifest boş veya okunamadı. İşlem iptal.');
-            return false;
-        }
-
-        // 2. Veritabanından "aktif" olarak kullanılan TÜM structure_fp'leri topla
-        // Sınıfınız 'assets' meta_key'ini kullanıyor gibi görünüyor.
-        global $wpdb;
-        $active_structure_hashes = [];
-        
-        // Yazı (Post) meta verilerini tara
-        $post_meta_key = self::META_KEY; // 'assets'
-        $results = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT meta_value FROM $wpdb->postmeta WHERE meta_key = %s",
-            $post_meta_key
-        ));
-
-        foreach ($results as $meta_value) {
-            $data = maybe_unserialize($meta_value);
-            if (is_array($data) && !empty($data['structure_fp'])) {
-                $active_structure_hashes[$data['structure_fp']] = 1; // Hızlı lookup için hash map kullan
+        // 1. Yeni Hash'i Deftere İşle
+        if (!empty($new_hash)) {
+            if (!isset($this->manifest['css_usage'][$new_hash])) {
+                $this->manifest['css_usage'][$new_hash] = [];
             }
-        }
-
-        // Terim (Term) meta verilerini tara ve aktif listesine ekle (EKLEMENİZ GEREKEN KISIM)
-        $term_meta_results = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT meta_value FROM $wpdb->termmeta WHERE meta_key = %s",
-            $post_meta_key // Term meta için de aynı 'assets' anahtarını kullanıyorsunuz
-        ));
-        foreach ($term_meta_results as $meta_value) {
-            $data = maybe_unserialize($meta_value);
-            if (is_array($data) && !empty($data['structure_fp'])) {
-                $active_structure_hashes[$data['structure_fp']] = 1;
+            if (!in_array($content_id, $this->manifest['css_usage'][$new_hash])) {
+                $this->manifest['css_usage'][$new_hash][] = $content_id;
             }
+            // Temiz liste
+            $this->manifest['css_usage'][$new_hash] = array_unique($this->manifest['css_usage'][$new_hash]);
         }
 
-        // (İsteğe bağlı) Terim (Term) meta verilerini tara
-        // Eğer term'ler için de bu sistemi kullanıyorsanız, buraya benzer bir sorgu ekleyin
-        // $results = $wpdb->get_col("... $wpdb->termmeta ...");
-        // ...
-
-        $active_structure_hashes = array_keys($active_structure_hashes);
-        error_log('[PAE] GC: ' . count($active_structure_hashes) . ' adet aktif yapı (structure) bulundu.');
-
-        // 3. Manifest'teki "tüm" kayıtları al
-        $manifest_templates = $manifest['templates'];
-        $manifest_plugins = $manifest['plugins'];
-        $all_manifest_structures = array_keys($manifest_templates);
-
-        // 4. Yetim (orphaned) yapıları bul (Manifest'te var ama aktifte yok)
-        $orphaned_structures = array_diff($all_manifest_structures, $active_structure_hashes);
-        
-        if (empty($orphaned_structures)) {
-            error_log('[PAE] GC: Yetim yapı bulunamadı. Temizlik tamamlandı.');
-            return true; // Temizlenecek bir şey yok
-        }
-
-        error_log('[PAE] GC: ' . count($orphaned_structures) . ' adet yetim yapı (structure) bulundu.');
-
-        // 5. Hangi dosyaların ve eklenti (plugin) hash'lerinin SİLİNECEĞİNİ ve hangilerinin KORUNACAĞINI belirle
-        $files_to_delete = [];
-        $plugins_to_delete = [];
-        $files_to_keep = [];
-        $plugins_to_keep = [];
-
-        // Önce "korunacakları" bulalım
-        foreach ($active_structure_hashes as $hash) {
-            if (!isset($manifest_templates[$hash])) continue;
-            
-            $template = $manifest_templates[$hash];
-            if (!empty($template['css'])) $files_to_keep[$template['css']] = 1;
-            if (!empty($template['css_rtl'])) $files_to_keep[$template['css_rtl']] = 1;
-            if (!empty($template['critical_css'])) $files_to_keep[$template['critical_css']] = 1;
-            if (!empty($template['plugins'])) $plugins_to_keep[$template['plugins']] = 1;
-        }
-
-        // Şimdi "silinecek adayları" bulalım
-        foreach ($orphaned_structures as $hash) {
-            if (!isset($manifest_templates[$hash])) continue;
-
-            $template = $manifest_templates[$hash];
-            if (!empty($template['css'])) $files_to_delete[$template['css']] = 1;
-            if (!empty($template['css_rtl'])) $files_to_delete[$template['css_rtl']] = 1;
-            if (!empty($template['critical_css'])) $files_to_delete[$template['critical_css']] = 1;
-            if (!empty($template['plugins'])) $plugins_to_delete[$template['plugins']] = 1;
-
-            // Bu "yetim" kaydı manifest'ten sil
-            unset($manifest['templates'][$hash]);
-        }
-
-        // 6. Eklenti (plugin) hash'lerini ve dosyalarını netleştir
-        $orphaned_plugin_hashes = array_diff(array_keys($plugins_to_delete), array_keys($plugins_to_keep));
-        
-        foreach($orphaned_plugin_hashes as $plugin_hash) {
-            if (!isset($manifest_plugins[$plugin_hash])) continue;
-            
-            $plugin_files = $manifest_plugins[$plugin_hash];
-            if (!empty($plugin_files['css'])) $files_to_delete[$plugin_files['css']] = 1;
-            if (!empty($plugin_files['css_rtl'])) $files_to_delete[$plugin_files['css_rtl']] = 1;
-            if (!empty($plugin_files['js'])) $files_to_delete[$plugin_files['js']] = 1;
-
-            // Bu "yetim" eklenti kaydını manifest'ten sil
-            unset($manifest['plugins'][$plugin_hash]);
-        }
-        
-        // 7. Silinecek son dosya listesini belirle (ÖNEMLİ: Korunacaklar listesinden çıkar)
-        $final_files_to_delete = array_diff(array_keys($files_to_delete), array_keys($files_to_keep));
-
-        // 8. Fiziksel dosyaları sil
-        $deleted_count = 0;
-        $base_path = rtrim(STATIC_PATH, '/'); // Varsayılan yol, gerekirse düzeltin
-
-        foreach ($final_files_to_delete as $relative_path) {
-            $file_path = $base_path . '/' . ltrim($relative_path, '/');
-            if (file_exists($file_path)) {
-                if (@unlink($file_path)) {
-                    $deleted_count++;
-                    error_log('[PAE] GC: Dosya silindi: ' . $file_path);
-                } else {
-                    error_log('[PAE] GC: HATA! Dosya silinemedi: ' . $file_path);
+        // 2. Eski Hash'ten ID'yi Düş
+        if (!empty($old_hash) && $old_hash !== $new_hash) {
+            if (isset($this->manifest['css_usage'][$old_hash])) {
+                $this->manifest['css_usage'][$old_hash] = array_diff($this->manifest['css_usage'][$old_hash], [$content_id]);
+                
+                // Eğer bu hash'i kullanan kimse kalmadıysa listeden temizle
+                // AMA DOSYAYI SİLME! Gece Cron'u halledecek.
+                if (empty($this->manifest['css_usage'][$old_hash])) {
+                    unset($this->manifest['css_usage'][$old_hash]);
                 }
             }
         }
 
-        $structure_fp = $this->structure_fp; 
-        if (!empty($structure_fp)) {
-            
-            // 2. Kritik CSS dosya yolunu (structure_fp tabanlı) hesapla
-            $critical_css_relative_path = 'css/cache/' . $structure_fp . '-critical.css';
+        // Defteri diske yaz
+        $this->manifest_write(); 
+    }
+    /**
+     * Varlık çıkarma işlemi tamamlandıktan sonra çağrılır.
+     * Eski/yeni CSS hash'lerini karşılaştırır, Usage Manifest'i günceller
+     * ve içeriğin (Post/Term/Options) meta verisini günceller.
+     * * @param int|string $content_id İçeriğin ID'si.
+     * @param array $new_assets_data Yeni çıkarılan varlık verileri (içinde css_hash ve plugin_css_hash olmalı).
+     */
+    public function finalize_assets_and_cleanup($content_id, array $new_assets_data): void {
+        $type = $this->type;
+        $old_assets_data = $this->meta_get($type, $content_id);
 
-            // 3. Manifest'teki templates kaydına kritik CSS yolunu ekle
-            // (Manifest'te ilgili $structure_fp kaydının zaten oluşturulmuş olduğunu varsayıyoruz)
-            $this->manifest['templates'][$structure_fp]['critical_css'] = $critical_css_relative_path;
+        // Takip edilecek tüm anahtarlar
+        $asset_hash_keys = ['css_hash', 'plugin_css_hash', 'critical_css_hash'];
+
+        foreach ($asset_hash_keys as $key) {
+            $old_hash = $old_assets_data[$key] ?? '';
+            $new_hash = $new_assets_data[$key] ?? '';
+            
+            // Defteri (Manifest) güncelle ama silme tetikleme
+            if (!empty($old_hash) || !empty($new_hash)) {
+                $this->update_css_usage_and_cleanup($old_hash, $new_hash, $content_id);
+            }
         }
 
-        // 9. Temizlenmiş manifest'i kaydet (Bkz. Bölüm 2: save_manifest)
-        $this->save_manifest($manifest);
-
-        error_log("[PAE] GC: Temizlik tamamlandı. $deleted_count dosya silindi. " . count($orphaned_structures) . " yapı kaydı manifest'ten kaldırıldı.");
-        return true;
+        // YENİ ASSETLERİ DB'YE YAZ (Sayfanın bozulmaması için en kritik yer burası)
+        if (!empty($new_assets_data)) {
+            $this->meta_update($type, $content_id, $new_assets_data);
+        }
     }
+
+
+    /**
+     * Çöp Toplayıcı: Yetim kalmış varlıkları (CSS/JS) ve manifest kayıtlarını temizler.
+     * Bu metodun bir WP Cron görevi ile periyodik (örn. günde 1) çalıştırılması önerilir.
+     
+    public function cleanup_orphaned_assets()
+    {
+        $manifest = $this->get_manifest();
+        if (empty($manifest['templates'])) return false;
+
+        global $wpdb;
+        $active_structure_hashes = [];
+        $post_meta_key = self::META_KEY; // 'assets'
+
+        // TÜM VERİTABANINI TARA (Arapça, Türkçe, Hepsi Dahil)
+        $queries = [
+            "SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = %s",
+            "SELECT meta_value FROM $wpdb->termmeta WHERE meta_key = %s",
+            "SELECT meta_value FROM $wpdb->usermeta WHERE meta_key = %s",
+            "SELECT option_value FROM $wpdb->options WHERE option_name LIKE '%_assets'"
+        ];
+
+        foreach ($queries as $query) {
+            $sql = (strpos($query, 'LIKE') !== false) ? $query : $wpdb->prepare($query, $post_meta_key);
+            $results = $wpdb->get_col($sql);
+            foreach ($results as $meta_value) {
+                $data = maybe_unserialize($meta_value);
+                if (is_array($data) && !empty($data['structure_fp'])) {
+                    $active_structure_hashes[$data['structure_fp']] = 1;
+                }
+            }
+        }
+
+        // Sahibi olan dosyaları "koruma" listesine al
+        $files_to_keep = [];
+        foreach (array_keys($active_structure_hashes) as $hash) {
+            if (isset($manifest['templates'][$hash])) {
+                foreach (['css', 'css_rtl', 'critical_css'] as $t) {
+                    if (!empty($manifest['templates'][$hash][$t])) $files_to_keep[$manifest['templates'][$hash][$t]] = 1;
+                }
+            }
+        }
+
+        // SİLME İŞLEMİ
+        $base_path = rtrim(STATIC_PATH, '/');
+        $deleted_count = 0;
+
+        foreach ($manifest['templates'] as $hash => $template) {
+            // Eğer veritabanında bu yapıya dair hiçbir kayıt yoksa (Yetimse)
+            if (!isset($active_structure_hashes[$hash])) {
+                foreach (['css', 'css_rtl', 'critical_css'] as $type) {
+                    if (empty($template[$type])) continue;
+                    
+                    $rel_path = $template[$type];
+                    $full_path = $base_path . '/' . ltrim($rel_path, '/');
+
+                    // KORUMA: Başka bir yer kullanmıyorsa VE 24 saatten eskiyse sil
+                    if (!isset($files_to_keep[$rel_path]) && file_exists($full_path)) {
+                        if (filemtime($full_path) < (time() - 86400)) {
+                            if (@unlink($full_path)) $deleted_count++;
+                        }
+                    }
+                }
+                unset($manifest['templates'][$hash]); // Defterden de sil
+            }
+        }
+
+        $this->save_manifest($manifest);
+        return true;
+    }*/
 
     /**
      * Manifest dosyasını "kilitleyerek" güvenli bir şekilde okur.
      * Yarış durumlarını (race conditions) engeller.
      * @return array Manifest içeriği
-     */
+     
     protected function get_manifest()
     {
         // $this->manifest_path sınıfınızda tanımlı
@@ -2460,7 +3188,7 @@ class PageAssetsExtractor
         }
 
         if ($content === false) {
-            error_log('[PAE] Manifest dosyası okunamadı (belki kilitli?): ' . $path);
+            //error_log('[PAE] Manifest dosyası okunamadı (belki kilitli?): ' . $path);
             // Okuma başarısız olursa (çok düşük ihtimal), varsayılanı döndür
             return $this->manifest;
         }
@@ -2468,20 +3196,20 @@ class PageAssetsExtractor
         $data = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('[PAE] Manifest JSON hatası! Dosya bozulmuş olabilir: ' . $path);
+            //error_log('[PAE] Manifest JSON hatası! Dosya bozulmuş olabilir: ' . $path);
             // Bozuksa, varsayılanı döndür (ve üzerine yazılmasını sağla)
             return $this->manifest;
         }
 
         // Gelen veriyi sınıfın varsayılanı ile birleştir, eksik key'ler sorun çıkarmasın
         return array_merge($this->manifest, $data);
-    }
+    }*/
 
     /**
      * Manifest dosyasını "kilitleyerek" güvenli bir şekilde yazar.
      * @param array $data Kaydedilecek manifest dizisi
      * @return bool Başarı durumu
-     */
+    
     protected function save_manifest(array $data)
     {
         $path = $this->manifest_path;
@@ -2489,7 +3217,7 @@ class PageAssetsExtractor
 
         $fp = @fopen($path, 'w'); // Yazma modunda aç (dosyayı oluşturur/sıfırlar)
         if (!$fp) {
-            error_log('[PAE] Manifest dosyası yazmak için açılamadı! İzinleri kontrol edin: ' . $path);
+            //error_log('[PAE] Manifest dosyası yazmak için açılamadı! İzinleri kontrol edin: ' . $path);
             return false;
         }
 
@@ -2502,157 +3230,41 @@ class PageAssetsExtractor
             fclose($fp);
             
             if ($result === false) {
-                error_log('[PAE] Manifest dosyasına yazma hatası: ' . $path);
+                //error_log('[PAE] Manifest dosyasına yazma hatası: ' . $path);
                 return false;
             }
             return true;
         } else {
             fclose($fp);
-            error_log('[PAE] Manifest dosyası kilitlenemedi! (Başka bir süreç kilitledi): ' . $path);
+            //error_log('[PAE] Manifest dosyası kilitlenemedi! (Başka bir süreç kilitledi): ' . $path);
             return false;
         }
-    }
-
-    /**
-     * Harici olarak Twig şablon yollarını ayarlar.
-     * Bu, sınıfın Timber/Twig bulucuya uymasını sağlar.
-     *
-     * @param array $paths Aranacak dizinlerin tam yollarını içeren dizi
-     */
-    public function set_twig_template_paths(array $paths)
-    {
-        // Sınıfınızdaki özelliğin adı 'twig_template_paths'
-        $this->twig_template_paths = $paths;
-    }
-
-    /**
-     * YENİ: Güncellenen hash değerlerine göre CSS kullanımını kaydeder ve kullanılmayan eski dosyayı siler.
-     * KRİTİK: Ortak kullanılan dosyaların silinmesini engeller.
-     *
-     * @param string $old_hash Eski kullanılan CSS dosyası hash'i.
-     * @param string $new_hash Yeni kullanılan CSS dosyası hash'i.
-     * @param int|string $content_id Etkin olan içeriğin (Post ID, Term ID, Options String vb.) ID'si.
-     */
-    protected function update_css_usage_and_cleanup(string $old_hash, string $new_hash, $content_id): void {
-        
-        // manifest_read() çağrılır: Manifest'in güncel halini okur ve css_usage'ı hazırlar.
-        $this->manifest_read(); 
-
-        $content_id = (string) $content_id;
-
-        // 1. Yeni Hash'i Kaydet
-        if (!empty($new_hash)) {
-            if (!isset($this->manifest['css_usage'][$new_hash])) {
-                $this->manifest['css_usage'][$new_hash] = [];
-            }
-            if (!in_array($content_id, $this->manifest['css_usage'][$new_hash])) {
-                $this->manifest['css_usage'][$new_hash][] = $content_id;
-            }
-            $this->manifest['css_usage'][$new_hash] = array_unique($this->manifest['css_usage'][$new_hash]);
-        }
-
-        // 2. Eski Hash'i Temizle ve Silme Kontrolü
-        if (!empty($old_hash) && $old_hash !== $new_hash) {
-            
-            if (isset($this->manifest['css_usage'][$old_hash])) {
-                $this->manifest['css_usage'][$old_hash] = array_diff($this->manifest['css_usage'][$old_hash], [$content_id]);
-                
-                // EĞER KULLANIM LİSTESİ BOŞALIRSA (Kullanım Sayacı Kontrolü)
-                if (empty($this->manifest['css_usage'][$old_hash])) {
-                    
-                    // Fiziksel dosyayı sil
-                    $file_path_pattern = trailingslashit($this->upload_dir) . 'assets/' . $old_hash . '*.css';
-                    
-                    foreach (glob($file_path_pattern) as $file_path) {
-                        if (is_file($file_path)) {
-                            @unlink($file_path);
-                            error_log("CSS Asset Silindi (Manifest Onaylı): " . basename($file_path));
-                        }
-                    }
-                    
-                    // Manifest'ten de hash kaydını sil
-                    unset($this->manifest['css_usage'][$old_hash]);
-                }
-            }
-        }
-
-        // manifest_write() çağrılır: Manifest'in güncel halini diske yazar.
-        $this->manifest_write(); 
-    }
-
-    /**
- * Varlık çıkarma işlemi tamamlandıktan sonra çağrılır.
- * Eski/yeni CSS hash'lerini karşılaştırır, Usage Manifest'i günceller
- * ve içeriğin (Post/Term/Options) meta verisini günceller.
- * * @param int|string $content_id İçeriğin ID'si.
- * @param array $new_assets_data Yeni çıkarılan varlık verileri (içinde css_hash ve plugin_css_hash olmalı).
- */
-    public function finalize_assets_and_cleanup($content_id, array $new_assets_data): void {
-        
-        $type = $this->type;
-        $old_assets_data = $this->meta_get($type, $content_id);
-
-        // Tüm takip edilmesi gereken hash anahtarlarını tanımla
-        $asset_hash_keys = [
-            'css_hash',         // Ana CSS dosyası
-            'plugin_css_hash',  // Plugin CSS dosyası (Büyük ihtimalle bu siliniyordu)
-            // Eğer başka hash'ler de varsa buraya eklenmeli
-        ];
-
-        $has_new_hash = false;
-        
-        foreach ($asset_hash_keys as $key) {
-            $old_hash = $old_assets_data[$key] ?? '';
-            $new_hash = $new_assets_data[$key] ?? '';
-            
-            // Eğer yeni hash varsa, DB kaydının yapılacağını işaretle
-            if (!empty($new_hash)) {
-                $has_new_hash = true;
-            }
-
-            // Eski veya yeni hash mevcutsa Manifest güncellemesini çalıştır
-            if (!empty($old_hash) || !empty($new_hash)) {
-                $this->update_css_usage_and_cleanup($old_hash, $new_hash, $content_id);
-            }
-        }
-
-        if (!$has_new_hash) {
-             error_log("[PAE] FINALIZE: Hiçbir yeni CSS hash bulunamadı. Temizlik atlandı.");
-             return; 
-        }
-
-        // Yeni varlık verilerini (tüm hash'ler dahil) meta verisine kaydet
-        $this->meta_update($type, $content_id, $new_assets_data);
-
-        error_log("[PAE] FINALIZE: Asset meta verisi güncellendi. Content ID: {$content_id}");
-    }
-
+    } */
 
     // =========================================================
     //                STATİK CRON METODLARI
     // =========================================================
     // Bunlar dün oluşturduğumuz gibi kalabilir,
     // `__construct` tarafından statik olarak çağrılmaları temiz bir yöntemdir.
-    public static function schedule_cleanup_event(){
+    /*public static function schedule_cleanup_event(){
         if (!wp_next_scheduled('my_daily_assets_cleanup')) {
             wp_schedule_event(time(), 'daily', 'my_daily_assets_cleanup');
         }
     }
     public static function run_cleanup_task(){
-        error_log('[PAE] Cron (run_cleanup_task) tetiklendi. Temizlik başlıyor...');
+        //error_log('[PAE] Cron (run_cleanup_task) tetiklendi. Temizlik başlıyor...');
         // Statik bir metodun içindeyiz, bu yüzden SADECE `get_instance()` 
         // kullanarak sınıfın çalışan örneğini alabiliriz.
         // YENİ BİR TANE OLUŞTURMAYIZ (`new`), mevcudu alırız.
         $extractor = PageAssetsExtractor::get_instance();
         $extractor->cleanup_orphaned_assets();
     }
-
     public function clear_content_cache_and_hash($id)
     {
         // Yalnızca o içeriğe ait kullanılan sınıflar listesini tutan önbelleği sil.
         // Bu, PageAssetsExtractor'ın bir sonraki yüklemede bu içeriği yeniden analiz etmesini sağlar.
-        delete_metadata('post', $id, self::META_KEY); 
-        delete_metadata('term', $id, self::META_KEY);
+        //delete_metadata('post', $id, self::META_KEY); 
+        //delete_metadata('term', $id, self::META_KEY);
         
         // O içeriğe ait son kullanılan HTML hash'ini sil.
         // Bu, içeriğin yeniden parse edilmesini tetikler ve yeni bir CSS Hash'inin hesaplanmasını sağlar.
@@ -2661,16 +3273,95 @@ class PageAssetsExtractor
         
         // ACF Option Page ID'leri için
         if (!is_numeric($id)) {
-            delete_option(self::META_KEY . '_' . $id);
+            //delete_option(self::META_KEY . '_' . $id);
             delete_option(self::HTML_HASH_META_KEY . '_' . $id);
         }
 
-        error_log("[PAE] İçerik önbelleği temizlendi (ID: {$id}). Yeni CSS Hash hesaplanacak.");
-    }
+        //error_log("[PAE] İçerik önbelleği temizlendi (ID: {$id}). Yeni CSS Hash hesaplanacak.");
+    }*/
 
+
+
+
+    public static function schedule_cleanup_event(){
+        // Gece çalışması için WP-Cron Hook'u (Opsiyonel)
+        if (!wp_next_scheduled('salt_daily_cleanup_hook')) {
+            wp_schedule_event(time(), 'daily', 'salt_daily_cleanup_hook');
+        }
+    }
+    public function run_cleanup_task($limit = 150) {
+        global $wpdb;
+
+        // 1. ADIM: BEYAZ LİSTE (WHITELIST) OLUŞTURMA
+        // Tüm aktif dosya isimlerini topluyoruz
+        $active_files = [];
+
+        // Taranacak tüm kaynaklar
+        $sources = [
+            "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = 'assets'",
+            "SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_key = 'assets'",
+            "SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = 'assets'",
+            "SELECT meta_value FROM {$wpdb->commentmeta} WHERE meta_key = 'assets'",
+            "SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE '%_assets'"
+        ];
+
+        foreach ($sources as $query) {
+            $results = $wpdb->get_col($query);
+            foreach ($results as $raw_data) {
+                $data = maybe_unserialize($raw_data);
+                if (is_array($data)) {
+                    // Array içindeki tüm değerleri (css_page, plugin_js vb.) tara
+                    array_walk_recursive($data, function($value) use (&$active_files) {
+                        if (is_string($value) && (str_contains($value, '.css') || str_contains($value, '.js'))) {
+                            $active_files[] = basename($value);
+                        }
+                    });
+                }
+            }
+        }
+        // Benzersiz hale getir (hız için)
+        $active_files = array_flip(array_unique($active_files));
+
+        // 2. ADIM: KLASÖR TARAMASI VE TEMİZLİK
+        $folders = [
+            STATIC_PATH . "css/cache/",
+            STATIC_PATH . "js/cache/"
+        ];
+
+        $deleted_count = 0;
+        $checked_count = 0;
+        $one_day_ago = time() - 86400; // 24 saatlik güvenlik marjı
+
+        foreach ($folders as $path) {
+            if (!is_dir($path)) continue;
+
+            $files = scandir($path);
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..' || str_ends_with($file, '.php')) continue;
+
+                $checked_count++;
+                
+                // Veritabanında YOKSA ve 24 saatten ESKİYSE sil
+                if (!isset($active_files[$file])) {
+                    $full_path = $path . $file;
+                    if (filemtime($full_path) < $one_day_ago) {
+                        unlink($full_path);
+                        $deleted_count++;
+                    }
+                }
+
+                // Belirlenen limite ulaştıysak dur (Server sıkışmasın)
+                if (($deleted_count + $checked_count) >= $limit) break 2;
+            }
+        }
+
+        error_log("İşlem Tamam: {$checked_count} dosya kontrol edildi, {$deleted_count} yetim dosya silindi.");
+
+        return "İşlem Tamam: {$checked_count} dosya kontrol edildi, {$deleted_count} yetim dosya silindi.";
+    }
 }
 
-
+/*
 function trigger_page_assets_rebuild_on_save($id) {
     // 1. Temel engellemeler
     if (wp_is_post_revision($id) || wp_is_post_autosave($id)) {
@@ -2730,6 +3421,7 @@ function trigger_page_assets_rebuild_on_save($id) {
 add_action('save_post', 'trigger_page_assets_rebuild_on_save', 20, 1);
 add_action('edited_term', 'trigger_page_assets_rebuild_on_save', 20, 1);
 add_action('created_term', 'trigger_page_assets_rebuild_on_save', 20, 1);
+*/
 
 /**
  * ===================================================================

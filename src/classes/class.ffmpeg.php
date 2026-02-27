@@ -60,8 +60,8 @@ class VideoProcessor{
                     continue;
                 }
             }
-            error_log(print_r($video_tasks, true));
-            error_log("remove:" . $remove);
+            //error_log(print_r($video_tasks, true));
+            //error_log("remove:" . $remove);
             if($remove){
                 delete_post_meta($post_id, 'video_tasks');
             }else{
@@ -179,7 +179,7 @@ class VideoProcessor{
         $format = new X264('aac', 'libx264');
         $audioStream = $video->getStreams()->audios()->first();
         if (!$audioStream) {
-            error_log("Sessiz video işleniyor.");
+            //error_log("Sessiz video işleniyor.");
             $format->setAudioCodec("copy");
         }
 
@@ -248,8 +248,8 @@ class VideoProcessor{
         $this->logVideoDetails($outputPath);
 
         // Debug için log
-        error_log("Processed Video - Height: $height, CRF: $crf, Scaled Bitrate: $scaled_bitrate kbps");
-        ///error_log(print_r($video_info, true));
+        //error_log("Processed Video - Height: $height, CRF: $crf, Scaled Bitrate: $scaled_bitrate kbps");
+        /////error_log(print_r($video_info, true));
     }
 
     private function generatePosterFrame($inputPath, $posterPath){

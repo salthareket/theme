@@ -23,8 +23,8 @@ class FluidCss {
         $this->variables_media_query_set = $variables_media_query_set;
 
         $this->variables_mobile_added = false;
-        $this->breakpoints = $GLOBALS['breakpoints'];
-        $this->breakpoint_keys = array_keys($GLOBALS['breakpoints']);
+        $this->breakpoints = Data::get("breakpoints");//$GLOBALS['breakpoints'];
+        $this->breakpoint_keys = array_keys($this->breakpoints);
     }
 
     public function generate(){
@@ -220,8 +220,8 @@ class FluidCss {
         preg_match('/([\d\.]+)([a-z%]*)/', trim($min_value), $min_matches);
         preg_match('/([\d\.]+)([a-z%]*)/', trim($max_value), $max_matches);
 
-        //error_log(print_r($min_matches, true));
-        //error_log(print_r($max_matches, true));
+        ////error_log(print_r($min_matches, true));
+        ////error_log(print_r($max_matches, true));
 
         $min_num = isset($min_matches[1]) ? floatval($min_matches[1]) : 0;
         $min_unit = isset($min_matches[2]) && $min_matches[2] !== '' ? $min_matches[2] : 'px';

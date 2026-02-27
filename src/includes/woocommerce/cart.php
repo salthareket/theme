@@ -12,8 +12,9 @@ function custom_empty_cart_message() {
 add_action("template_redirect", 'redirect_empty_cart');
 function redirect_empty_cart(){
     global $woocommerce;
-    if( is_cart() && WC()->cart->cart_contents_count == 0 && !empty($GLOBALS["woo_redirect_empty_cart"])){
-        wp_safe_redirect( $GLOBALS["woo_redirect_empty_cart"] );
+    $woo_redirect_empty_cart = Data::get("woo_redirect_empty_cart");
+    if( is_cart() && WC()->cart->cart_contents_count == 0 && !empty($woo_redirect_empty_cart)){
+        wp_safe_redirect( $woo_redirect_empty_cart );
         exit;
     }
 }

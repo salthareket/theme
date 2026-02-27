@@ -15,8 +15,8 @@ function my_mce_before_init_insert_formats( $init_array ) {
 
     // Buttons from costom colors
     $buttons = array();
-    if(isset($GLOBALS["mce_text_colors"])){
-        foreach ($GLOBALS["mce_text_colors"] as $value) {
+    if(Data::has("mce_text_colors")){
+        foreach (Data::get("mce_text_colors") as $value) {
             $slug = strtolower($value);
             $buttons[] = array(  
                 'title' => 'btn-'.$slug,  
@@ -62,8 +62,8 @@ function my_mce_before_init_insert_formats( $init_array ) {
        "items" => $style_formats
     ];
 
-    
-    if($GLOBALS["breakpoints"]){
+    $breakpoints = Data::get("breakpoints");
+    if($breakpoints){
         $typography = [];
         $theme_styles = acf_get_theme_styles();
         if($theme_styles){
@@ -71,7 +71,7 @@ function my_mce_before_init_insert_formats( $init_array ) {
                 $typography = $theme_styles["typography"];                  
             }
         }
-        foreach($GLOBALS["breakpoints"] as $key => $breakpoint){
+        foreach($breakpoints as $key => $breakpoint){
             $size = "";
             if(isset($typography["title"][$key]) && !empty($typography["title"][$key]["value"])){
                $size = " - ".$typography["title"][$key]["value"].$typography["title"][$key]["unit"];
@@ -145,11 +145,12 @@ function my_mce_before_init_insert_formats( $init_array ) {
         "items" => $margins
     ];
     
-    if(isset($GLOBALS["mce_styles"]) && is_array($GLOBALS["mce_styles"])){
-        $style_formats = array_merge($GLOBALS["mce_styles"], $style_formats);
+    $mce_styles = Data::get("mce_styles");
+    if(isset($mce_styles) && is_array($mce_styles)){
+        $style_formats = array_merge($mce_styles, $style_formats);
         $new_styles[] = [
             "title" => "Extras",
-            "items" => $GLOBALS["mce_styles"]
+            "items" => $mce_styles
         ];
     }  
     // Insert the array, JSON ENCODED, into 'style_formats'
@@ -157,9 +158,10 @@ function my_mce_before_init_insert_formats( $init_array ) {
 
 
     //colors
-    if(isset($GLOBALS["mce_text_colors"])){
+    $mce_text_colors = Data::get("mce_text_colors");
+    if(isset($mce_text_colors)){
         $mce_colors = '';
-        foreach ($GLOBALS["mce_text_colors"] as $key => $value) {
+        foreach ($mce_text_colors as $key => $value) {
             $mce_colors .= '"' . str_replace("#", "", $key) . '", "' . $value . '", ';
         }
         $mce_colors = rtrim($mce_colors, ', ');

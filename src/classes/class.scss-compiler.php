@@ -86,7 +86,7 @@ class SCSSCompiler {
             $compilationResult = $this->scssc->compileString($scss_string);
             return $compilationResult->getCss();
         } catch (Exception $e) {
-            error_log("SCSS compile_string error: " . $e->getMessage());
+            //error_log("SCSS compile_string error: " . $e->getMessage());
             return ""; // veya istersen false dönebilirsin
         }
     }

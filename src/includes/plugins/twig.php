@@ -39,10 +39,26 @@ if (wp_using_ext_object_cache() && wp_cache_get('test_cache', 'test_group')) {
     });
 }
 
-if(ENABLE_TWIG_CACHE){
-    add_filter('timber/twig/environment/options', function ($options) {
-        $options['cache'] = STATIC_PATH . 'twig_cache'; // Önbellek dizinini belirtin
-        $options['auto_reload'] = ENABLE_PRODUCTION;
-        return $options;
-    });    
-}
+add_filter('timber/cache/location', function($path) {
+    return STATIC_PATH . 'twig_cache'; 
+});
+
+add_filter('timber/twig/environment/options', function ($options) {
+    $cache_dir = STATIC_PATH . 'twig_cache';
+
+    if (defined('ENABLE_TWIG_CACHE') && ENABLE_TWIG_CACHE) {
+        // Eğer klasör yoksa oluştur
+        if (!file_exists($cache_dir)) {
+            wp_mkdir_p($cache_dir);
+        }
+        
+        $options['cache'] = $cache_dir;
+        $options['auto_reload'] = !ENABLE_PRODUCTION;
+    } else {
+        // BURASI KRİTİK: Eğer cache kapalıysa, Timber'ın vendor içine gitmesini 
+        // engellemek için burayı kesin olarak false yapmalısın.
+        $options['cache'] = false;
+    }
+
+    return $options;
+}, 999); // Önceliği yüksek tutalım ki başka eklenti ezmesin

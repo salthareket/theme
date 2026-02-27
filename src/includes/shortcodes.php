@@ -1,13 +1,10 @@
 <?php
 
-
-
-
 function get_option_shortcode( $atts ) {
     $a = shortcode_atts( array(
        'field' => ""
     ), $atts );
-    return QueryCache::get_cached_option($a["field"]);//get_field($a["field"], "option");
+    return get_option($a["field"]);//get_field($a["field"], "option");
 }
 add_shortcode( 'get_option', 'get_option_shortcode' );
 
@@ -35,28 +32,6 @@ function translate_shortcode($atts, $content = null) {
 }
 add_shortcode('translate', 'translate_shortcode');
 
-
-if(!ENABLE_ECOMMERCE){
-   function salt_login_form_shortcode() {
-      if (!is_user_logged_in()){
-         $context = Timber::context();
-         $post = Timber::get_post();
-         $context['post'] = $post;
-         Timber::render( array( 'my-account/form-login-native.twig' ), $context );
-      }else{
-        if(function_exists("my_account_content")){
-           my_account_content(getUrlEndpoint());
-        }
-      }
-   }
-   function salt_add_login_shortcode() {
-      add_shortcode( 'salt_my_account', 'salt_login_form_shortcode' );
-   }
-   add_action( 'init', 'salt_add_login_shortcode' );
-}
-
-
-
 add_action('wp_ajax_render_shortcode', 'render_shortcode_ajax');
 add_action('wp_ajax_nopriv_render_shortcode', 'render_shortcode_ajax');
 function render_shortcode_ajax() {
@@ -80,7 +55,7 @@ add_action("init", function(){
                 $context["keyword"] = get_query_var("q");
                 $context["atts"] = $atts;
                 if (defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY) {
-                    $context["salt"] = $GLOBALS["salt"];
+                    $context["salt"] = Data::get("salt");
                 }
                 return Timber::compile("partials/snippets/search-field.twig", $context);
             },
@@ -410,12 +385,30 @@ add_action("init", function(){
         ];    
     }
 
-    if(isset($GLOBALS["custom_shortcodes"]) && $GLOBALS["custom_shortcodes"]){
-       $shortcodes_list = array_merge($shortcodes_list, $GLOBALS["custom_shortcodes"]);
+    if(Data::get("custom_shortcodes")){
+       $shortcodes_list = array_merge($shortcodes_list, Data::get("custom_shortcodes"));
     }
 
     $shortcodes = customShortcodes::getInstance();
     $shortcodes->add($shortcodes_list);
-
 });
 
+
+if(!ENABLE_ECOMMERCE){
+   function salt_login_form_shortcode() {
+      if (!is_user_logged_in()){
+         $context = Timber::context();
+         $post = Timber::get_post();
+         $context['post'] = $post;
+         Timber::render( array( 'my-account/form-login-native.twig' ), $context );
+      }else{
+        if(function_exists("my_account_content")){
+           my_account_content(getUrlEndpoint());
+        }
+      }
+   }
+   function salt_add_login_shortcode() {
+      add_shortcode( 'salt_my_account', 'salt_login_form_shortcode' );
+   }
+   add_action( 'init', 'salt_add_login_shortcode' );
+}

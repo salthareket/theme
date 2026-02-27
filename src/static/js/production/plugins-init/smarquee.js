@@ -1,5 +1,5 @@
 function init_smarquee() {
-    console.log("smarquee");
+    debugJS("smarquee");
     var token_init = "smarquee-init";
     $(".smarquee").not("."+token_init).each(function() {
         let id = $(this).attr("id");
@@ -31,6 +31,6 @@ function init_smarquee() {
         }
         $(this).addClass("show "+token_init);
         smarquee.play();
-        console.log(smarquee)
+        debugJS(smarquee)
     })
 }

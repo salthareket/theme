@@ -1,3 +1,45 @@
+$.fn.fitEmbedBackground = function() {
+        return this.each(function() {
+            var container = $(this),
+                iframe = container.find('iframe');
+
+            // Video boyutunu yeniden hesapla
+            function resizeVideo() {
+                var containerWidth = container.width(),
+                    containerHeight = container.height(),
+                    containerRatio = containerWidth / containerHeight,
+                    videoRatio = 16 / 9;
+
+                // Genişlik/Yükseklik oranlarına göre iframe boyutunu ayarla
+                if (containerRatio > videoRatio) {
+                    iframe.css({
+                        width: containerWidth + 'px',
+                        height: (containerWidth / videoRatio) + 'px'
+                    });
+                } else {
+                    iframe.css({
+                        width: (containerHeight * videoRatio) + 'px',
+                        height: containerHeight + 'px'
+                    });
+                }
+            }
+
+            // İlk çalıştırma
+            resizeVideo();
+
+            // Gecikmeli resize
+            var debounce = resizeDebounce(resizeVideo, 10);
+
+            // Resize ve fullscreen olaylarını dinle
+            $(window).on('resize', debounce);
+            $(document).on(
+                'fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange',
+                debounce
+            );
+
+        });
+};
+
 function notification_alert(){
 	var token_init = "notification-alert-init";
     $("[data-toggle='notification']").on("click", function(e){
@@ -115,7 +157,7 @@ function btn_loading(){
     });	
 }
 function btn_loading_page(){
-	var token_init = "btn-loading-page-init";
+	/*var token_init = "btn-loading-page-init";
 	$(".btn-loading-page").not("."+token_init).each(function(){
         $(this)
         .on("click", function(e){
@@ -134,7 +176,7 @@ function btn_loading_page(){
         	}
         })
         .addClass(token_init);
-	});
+	});*/
 }
 function btn_loading_page_hide(){
 	var token_init = "btn-loading-page-hide-init";
@@ -170,17 +212,18 @@ function btn_loading_parent(){
 }
 function btn_ajax_method(){ /// ***new*** updated function
 	var token_init = "btn-ajax-method-init";
-	function init_ajax($obj, $button){
-		debugJS("btn_ajax_method="+$obj.data("ajax-method"))
-		debugJS("obj")
-		debugJS($obj)
-		debugJS("button")
-		debugJS($button)
+
+	function init_ajax_v1($obj, $button){
+		console.log("btn_ajax_method="+$obj.data("ajax-method"))
+		console.log("obj")
+		console.log($obj)
+		console.log("button")
+		console.log($button)
 		    var $data = $obj.data();
         	var $form = {};
-        	if($data.hasOwnProperty("form")){
-               $data["form"] = $($data["form"])
-        	}
+        	if ($data && Object.prototype.hasOwnProperty.call($data, "form")) {
+			    $data["form"] = $($data["form"]);
+			}
 			delete $data["method"];
 			var callback = function(){
 	            var query = new ajax_query();
@@ -209,6 +252,37 @@ function btn_ajax_method(){ /// ***new*** updated function
                 callback();
 			}
 	}
+
+	function init_ajax($obj, $button){
+	    // 1. Önce butondaki TÜM datayı temizce alalım
+	    var $data = JSON.parse(JSON.stringify($obj.data())); 
+	    
+	    // 2. Metodun pagination_ajax olduğundan emin olalım
+	    var currentMethod = $obj.attr("data-ajax-method"); 
+	    
+	    var callback = function(){
+	        var query = new ajax_query();
+	        query.method = currentMethod; // Direkt attribute'dan oku, risk alma
+	        query.vars = $data;
+	        
+	        // Pagination için butonun kendisi lazım, paketleme yapma direkt gönder
+	        query.objs = $obj; 
+	        
+	        console.log("Giden Sorgu:", query.method, query.vars); // Buraya bak abi ne gidiyor?
+	        query.request();
+	    }
+	    
+	    if($data["confirm"]){
+				var confirm_message = $data["confirm-message"];
+				if(IsBlank(confirm_message)){
+                   confirm_message =  "Are you sure?";
+				}
+				var modal = _confirm(confirm_message, "", "md", "modal-confirm", "Yes", "No", callback);
+		}else{
+            callback();
+		}
+	}
+
 	$("[data-ajax-method]").not("."+token_init).not("[data-ajax-init='false']").each(function(){
 		var $obj = $(this);
 		var is_button = $obj.is('button, a, input[type="button"], input[type="submit"], [role="button"]');
@@ -218,7 +292,9 @@ function btn_ajax_method(){ /// ***new*** updated function
 	        $obj
 	        .on("click", function(e){
 	        	e.preventDefault();
-			    init_ajax($(this), true);
+	        	let $btn = $(this);
+	        	console.log("buttona tıklandı")
+			    init_ajax($btn, true);
 	        });
         }else{
             init_ajax($obj, is_button);
@@ -599,26 +675,226 @@ function updateDonutChart(el, percent, donut) {
      el.find('.left-side').css('transform', 'rotate(' + deg + 'deg)');
 }
 
-function table_responsive(){
+/**
+ * @function table_responsive_stack
+ * @description Tabloları akıllıca kart yapısına (stack) dönüştürür.
+ */
+ function table_responsive_stack() {
+    // Sınıfı içeren tüm tabloları yakala (Stack, Auto veya Breakpoint fark etmeksizin)
+    const tables = document.querySelectorAll('[class*="table-responsive-stack"]');
+    if (!tables.length) return;
 
-	const responsiveTables = document.querySelectorAll('.table-responsive');
+    // --- İç Fonksiyon: Başlık Senkronu (data-label) ---
+    const syncHeaders = (table) => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+        table.querySelectorAll('tbody tr').forEach(row => {
+            row.querySelectorAll('td').forEach((td, index) => {
+                if (headers[index] && !td.getAttribute('data-label')) {
+                    td.setAttribute('data-label', headers[index]);
+                }
+            });
+        });
+    };
 
-        // Her bir tabloyu dön
-        responsiveTables.forEach(table => {
-		  var bodyTrCollection = table.querySelectorAll('tbody tr');
-		  var th = table.querySelectorAll('th');
-		  var thCollection = Array.from(th);
+    // --- Ana Döngü ---
+    tables.forEach(table => {
+        syncHeaders(table);
 
-		  for (var i = 0; i < bodyTrCollection.length; i++) {
-		    var td = bodyTrCollection[i].querySelectorAll('td');
-		    var tdCollection = Array.from(td);
-		    for (var j = 0; j < tdCollection.length; j++) {
-		      if (j === thCollection.length) {
-		        continue;
-		      }
-		      var headerLabel = thCollection[j].innerHTML;
-		      tdCollection[j].setAttribute('data-label', headerLabel);
-		    }
-		  }
-		});
+        const classList = Array.from(table.classList);
+        const hasAuto = classList.some(cls => cls === 'table-responsive-stack-auto');
+        const hasSpecificBp = classList.some(cls => /table-responsive-stack-(sm|md|lg|xl)/.test(cls));
+        
+        // 1. SÜPER ZEKA (Auto Modu)
+        if (hasAuto) {
+            const checkAuto = () => {
+                const isOverflowing = table.parentElement.scrollWidth > table.parentElement.clientWidth;
+                table.classList.toggle('is-stacked', isOverflowing);
+            };
+            window.addEventListener('resize', checkAuto);
+            checkAuto();
+        } 
+        
+        // 2. DEFAULT DURUM (Eğer ne Auto ne de manuel BP verilmişse)
+        // Sadece .table-responsive-stack yazıldıysa 'lg' default olsun
+        else if (!hasSpecificBp && table.classList.contains('table-responsive-stack')) {
+            table.classList.add('table-responsive-stack-lg'); 
+        }
+    });
 }
+
+
+
+
+
+/**
+ * UI Ajax Yönetim Sistemi
+ * Favorites, Cart ve Messages için merkezi yönetim
+ */
+
+// 1. TEMEL YÖNETİCİ (Tüm ortak işler burada)
+class BaseManager {
+    constructor() {
+        this.nonce = typeof ajax_request_vars !== 'undefined' ? ajax_request_vars.ajax_nonce : '';
+        this.host = typeof host !== 'undefined' ? host : '';
+    }
+
+    // Ortak AJAX isteği metodu
+    async request(obj, data) {
+        // Standart veri eklemeleri
+        data["vars"] = data["vars"] || {};
+        data["vars"]["ajax"] = true;
+        data["ajax"] = "query";
+        data["_wpnonce"] = this.nonce;
+
+        try {
+            const response = await $.post(this.host, data);
+            const parsed = typeof response === "string" ? JSON.parse(response) : response;
+
+            // Global hata görünümü kontrolü
+            if (typeof errorView === "function" && errorView(parsed)) {
+                obj.removeClass("disabled loading loading-process");
+                return null;
+            }
+            return parsed;
+        } catch (error) {
+            console.error("UI Request Error:", error);
+            obj.removeClass("disabled loading loading-process");
+            // alert("error"); // İsteğe bağlı
+            return null;
+        }
+    }
+
+    // Bildirim sayılarını güncelleyen ortak metod
+    updateBadge(type, count) {
+        const container = $(`.dropdown-notifications[data-type='${type}'] > a`);
+        let counter = container.find(".notification-count");
+
+        if (count > 0) {
+            if (counter.length === 0) {
+                container.prepend("<div class='notification-count'></div>");
+                counter = container.find(".notification-count");
+            }
+            counter.html(count);
+        } else if (counter.length > 0) {
+            counter.remove();
+        }
+    }
+}
+
+// 2. FAVORİ YÖNETİMİ
+class FavoritesManager extends BaseManager {
+    constructor() {
+        super();
+        this.classTease = ".card-profile-tease";
+    }
+
+    async add(obj) {
+        const id = obj.data("id");
+        obj.addClass("disabled loading");
+        
+        const res = await this.request(obj, { method: "favorites_add", vars: { id } });
+        if (res) {
+            obj.removeClass("disabled loading").addClass("active");
+            $(`.btn-favorite[data-id='${id}']`).addClass("active");
+            this.sync(res.data);
+            this.updateBadge("favorites", res.count);
+            if (res.html) obj.find(".info").html(res.html);
+            this.notify(res.message, 'add');
+        }
+    }
+
+    async remove(obj) {
+        const id = obj.data("id");
+        obj.addClass("disabled loading");
+        if (obj.data("type") == "favorites") obj.closest(this.classTease).addClass("loading-process");
+
+        const res = await this.request(obj, { method: "favorites_remove", vars: { id } });
+        if (res) {
+            obj.removeClass("active disabled loading");
+            $(`.btn-favorite[data-id='${id}']`).removeClass("active");
+            
+            // Eğer sayfa favoriler sayfasıysa kartı kaldır
+            if (obj.data("type") == "favorites") {
+                obj.closest(this.classTease).parent().remove();
+            }
+
+            this.sync(res.data);
+            this.updateBadge("favorites", res.count);
+            this.notify(res.message, 'remove');
+        }
+    }
+
+    sync(data) {
+        if (typeof site_config !== 'undefined') site_config.favorites = data;
+        $(".dropdown-notifications[data-type='favorites']").toggleClass("active", data.length > 0);
+    }
+
+    notify(msg, type) {
+        if (typeof toast_notification === "function") {
+            const img = type === 'add' ? 'favorites-add.jpg' : 'favorites-remove.jpg';
+            toast_notification({
+                message: msg,
+                sender: { image: `<img src='${ajax_request_vars.theme_url}/static/img/notification/${img}' class='img-fluid' />` }
+            });
+        }
+    }
+}
+var favorites = new FavoritesManager();
+
+// 3. SEPET YÖNETİMİ
+class CartManager extends BaseManager {
+    async get(obj, type) {
+        obj.addClass("loading-process");
+        const res = await this.request(obj, { method: "get_cart", vars: { type } });
+        if (res) this.render(obj, res);
+    }
+
+    async removeItem(obj, type) {
+        const key = obj.data("key");
+        const container = obj.closest(".load-container");
+        obj.addClass("loading-process");
+        
+        const res = await this.request(container, { method: "wc_cart_item_remove", vars: { key, type } });
+        if (res) this.render(container, res);
+    }
+
+    render(obj, res) {
+        const $html = $("<div class='temp'>" + res.html + "</div>");
+        let footer = "";
+        
+        if ($html.find(".offcanvas-footer").length > 0) {
+            footer = $html.find(".offcanvas-footer").html();
+            $html.find(".offcanvas-footer").remove();
+        }
+
+        obj.html($html.html()).removeClass("loading-process");
+        const footerObj = obj.next(".offcanvas-footer");
+        if (footerObj.length) footerObj.html(footer).toggleClass("d-none", !footer);
+
+        const count = (res.data && res.data.count) || 0;
+        this.updateBadge("cart", count);
+        $(".dropdown-notifications[data-type='cart'] .dropdown-container").toggleClass("has-dropdown-item", count > 0);
+    }
+}
+var cart = new CartManager();
+
+// 4. MESAJ YÖNETİMİ
+class MessageManager extends BaseManager {
+    async get(obj) {
+        obj.addClass("loading-process");
+        const res = await this.request(obj, { 
+            method: "get_messages", 
+            vars: { template: "partials/offcanvas/archive" } 
+        });
+        
+        if (res) {
+            obj.html(res.html).removeClass("loading-process");
+            this.updateBadge("messages", (res.data && res.data.count) || 0);
+            if (typeof SimpleScrollbar !== 'undefined') {
+                const scrollEl = obj.find(".dropdown-body")[0];
+                if (scrollEl) SimpleScrollbar.initEl(scrollEl);
+            }
+        }
+    }
+}
+var messages = new MessageManager();

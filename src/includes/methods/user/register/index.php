@@ -1,6 +1,6 @@
 <?php
 $required_setting = ENABLE_MEMBERSHIP;
 
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
 echo json_encode($salt->register($vars));
 die();

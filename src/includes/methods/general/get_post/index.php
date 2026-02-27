@@ -8,7 +8,7 @@ if (isset($vars["id"])) {
     $error = false;
     $message = "";
     if ($post_data) {
-        $post_content = $post_data->get_blocks();
+        $post_content = $post_data->get_blocks()["html"];
         if(ENABLE_MULTILANGUAGE){
             switch(ENABLE_MULTILANGUAGE){
                 case "qtranslate-xt" :

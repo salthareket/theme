@@ -1143,7 +1143,6 @@ header#header {
 }
 
 
-
 .nav-toggler-custom {
     $width: 40px;
     $weight: 2px;
@@ -1283,6 +1282,22 @@ header#header {
                                 }
                             }
 
+                            a:not(.btn) {
+                                    color: $color !important;
+
+                                    &:hover {
+                                        color: $color !important;
+
+                                        >i {
+                                            color: $color !important;
+                                        }
+                                    }
+
+                                    >i {
+                                        color: $color !important;
+                                    }
+                            }
+
                             .nav-toggler-custom {
                                 span {
                                     background-color: $color;
@@ -1355,6 +1370,22 @@ header#header {
                     >.nav {
                         >.nav-item {
                             div:not(.navbar-container) {
+                                a:not(.btn) {
+                                    color: $colorAffix !important;
+
+                                    &:hover {
+                                        color: $colorAffix !important;
+
+                                        >i {
+                                            color: $colorAffix !important;
+                                        }
+                                    }
+
+                                    >i {
+                                        color: $colorAffix !important;
+                                    }
+                                }
+
                                 a:not(.btn) {
                                     color: $colorAffix !important;
 
@@ -1482,8 +1513,8 @@ body {
                 }
             }
         }
-
-        &.menu-show-header {
+    }
+    &.menu-show-header {
             @include headerTheme(#fff, #fff, transparent, #fff, #fff, #fff, transparent, #fff, 1046);
 
             &.loading:not(.loaded) {
@@ -1508,7 +1539,6 @@ body {
                 }
             }
         }
-    }
 }
 
 .dropdown {
@@ -1527,31 +1557,27 @@ body {
     .closed {
         display: flex !important;
     }
-
     .opened {
         display: none !important;
     }
 }
 
-.menu-open {
+/*.menu-open {
     .nav-search {
         .closed {
             display: none !important;
-            ;
         }
-
         .opened {
             display: flex !important;
         }
     }
-}
+}*/
 
 .search-open {
     .nav-search {
         .closed {
             display: none !important;
         }
-
         .opened {
             display: flex !important;
         }

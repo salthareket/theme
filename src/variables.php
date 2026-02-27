@@ -1,213 +1,252 @@
 <?php
+
 if (defined('VARIABLES_LOADED')) {
     return; // Eğer daha önce yüklendiyse tekrar yükleme
 }
+
 if (!function_exists("get_home_path")) {
     include_once ABSPATH . "/wp-admin/includes/file.php";
 }
 
+// Performans için yolları bir kez alalım
+$template_uri  = get_template_directory_uri();
+$template_path = get_template_directory();
+$is_admin      = is_admin() || (defined('REST_REQUEST') && REST_REQUEST) || (defined('DOING_AJAX') && DOING_AJAX);
+
 define('IS_INTERNAL_FETCH', !empty($_SERVER['HTTP_X_INTERNAL_FETCH']));
 
-// SaltHareket/Theme paths
-define('SH_PATH',  __DIR__ . '/');
+// SaltHareket/Theme paths - Dinamik URİ'ler değişken üzerinden
+define('SH_PATH',           __DIR__ . '/');
 define('SH_INCLUDES_PATH',  __DIR__ . '/includes/');
-define('SH_CLASSES_PATH', __DIR__ .  '/classes/');
-define('SH_STATIC_PATH',  __DIR__ . '/static/');
+define('SH_CLASSES_PATH',   __DIR__ . '/classes/');
+define('SH_STATIC_PATH',    __DIR__ . '/static/');
 
-define('SH_URL',  get_template_directory_uri() . "/vendor/salthareket/theme/");
-define('SH_INCLUDES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/includes/");
-define('SH_CLASSES_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/classes/");
-define('SH_STATIC_URL', get_template_directory_uri() . "/vendor/salthareket/theme/src/static/");
+define('SH_URL',            $template_uri . "/vendor/salthareket/theme/");
+define('SH_INCLUDES_URL',   $template_uri . "/vendor/salthareket/theme/src/includes/");
+define('SH_CLASSES_URL',    $template_uri . "/vendor/salthareket/theme/src/classes/");
+define('SH_STATIC_URL',     $template_uri . "/vendor/salthareket/theme/src/static/");
 
-define('STATIC_PATH',  get_template_directory() . '/static/');
-define('STATIC_URL',   get_template_directory_uri() . "/static/");
+define('STATIC_PATH',       $template_path . '/static/');
+define('STATIC_URL',        $template_uri . "/static/");
 
-define('THEME_INCLUDES_PATH',  get_template_directory() . '/theme/includes/');
-define('THEME_STATIC_PATH',    get_template_directory() . '/theme/static/');
+define('THEME_INCLUDES_PATH', $template_path . '/theme/includes/');
+define('THEME_STATIC_PATH',   $template_path . '/theme/static/');
 
-define('THEME_INCLUDES_URL',  get_template_directory_uri() . '/theme/includes/');
-define('THEME_STATIC_URL',     get_template_directory_uri() . "/theme/static/");
-
-define('SH_THEME_EXISTS', \Update::is_task_completed("copy_theme"));
-//define('SH_THEME_EXISTS', in_array("copy_theme", array_keys(get_option('sh_theme_tasks_status', []))));
+define('THEME_INCLUDES_URL',  $template_uri . '/theme/includes/');
+define('THEME_STATIC_URL',    $template_uri . "/theme/static/");
 
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
+define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
 
+// Gerekli sınıflar
+include_once SH_CLASSES_PATH . "class.config.php";
 include_once SH_CLASSES_PATH."class.query-cache.php";
-//define("PUBLISH_URL", get_option("options_publish_url"));
-//define("ENABLE_PUBLISH", !empty(PUBLISH_URL) && get_option("options_enable_publish"));
 
-//define("ENABLE_PRODUCTION", !ENABLE_PUBLISH && get_option("options_enable_production"));
-define("ENABLE_PRODUCTION", get_option("options_enable_production"));
-define("ENABLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_logs"));
-define("ENABLE_CONSOLE_LOGS", ENABLE_PRODUCTION && get_option("options_enable_console_logs"));
+function get_sh_config($key, $default = false) {
+    return \SaltHareket\SaltConfig::get($key, $default);
+}
 
-define("SEPERATE_CSS", get_option("options_seperate_css"));
-define("SEPERATE_JS",  get_option("options_seperate_js"));
-define("INLINE_CSS", SEPERATE_CSS && (bool) get_option("options_inline_css", 0));
-define("INLINE_JS",  SEPERATE_JS && (bool) get_option("options_inline_js", 0));
+// Tema kontrolü
+define('SH_THEME_EXISTS', (is_array($status = get_sh_config('sh_theme_tasks_status', [])) && array_key_exists("copy_theme", $status)));
 
-define("ENABLE_TWIG_CACHE",  get_option("options_enable_twig_cache"));
+// Üretim ve Log Ayarları
+define("ENABLE_PRODUCTION",     get_sh_config("options_enable_production"));
+define("ENABLE_LOGS",           ENABLE_PRODUCTION && get_sh_config("options_enable_logs"));
+define("ENABLE_CONSOLE_LOGS",   ENABLE_PRODUCTION && get_sh_config("options_enable_console_logs"));
+define("ENABLE_TWIG_CACHE",     get_sh_config("options_enable_twig_cache"));
+define("SEPERATE_CSS",          get_sh_config("options_seperate_css"));
+define("SEPERATE_JS",           get_sh_config("options_seperate_js"));
+define("INLINE_CSS",            SEPERATE_CSS && (bool) get_sh_config("options_inline_css", 0));
+define("INLINE_JS",             SEPERATE_JS && (bool) get_sh_config("options_inline_js", 0));
 
-$exclude_from_search = get_option("options_exclude_from_search");
-$exclude_from_search = $exclude_from_search?$exclude_from_search:[];
-define("EXCLUDE_FROM_SEARCH", $exclude_from_search);
+$exclude_from_search = get_sh_config("options_exclude_from_search", []);
+define("EXCLUDE_FROM_SEARCH", is_array($exclude_from_search) ? $exclude_from_search : []);
+define("DISABLE_COMMENTS",      true);
+define("DISABLE_REVIEW_APPROVE", get_sh_config("options_disable_review_approve"));
+define("ENABLE_SEARCH_HISTORY", get_sh_config("options_enable_search_history"));
+define("ENABLE_ECOMMERCE",      class_exists("WooCommerce"));
 
-define("DISABLE_COMMENTS", true);
-define("DISABLE_REVIEW_APPROVE", get_option("options_disable_review_approve"));
-define("ENABLE_SEARCH_HISTORY", get_option("options_enable_search_history"));
 
-define("ENABLE_ECOMMERCE", class_exists("WooCommerce"));
-
-define("ENABLE_MEMBERSHIP", get_option("options_enable_membership"));
-define("ENABLE_MEMBERSHIP_ACTIVATION", ENABLE_MEMBERSHIP && get_option("options_enable_membership_activation"));
-define("MEMBERSHIP_ACTIVATION_TYPE", ENABLE_MEMBERSHIP_ACTIVATION?get_option("options_membership_activation_settings"):"");
-define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? get_option("options_enable_activation_email_autologin") : false);
-
+// Üyelik Ayarları
+define("ENABLE_MEMBERSHIP",             get_sh_config("options_enable_membership"));
+define("ENABLE_MEMBERSHIP_ACTIVATION",  ENABLE_MEMBERSHIP && get_sh_config("options_enable_membership_activation"));
+define("MEMBERSHIP_ACTIVATION_TYPE",    ENABLE_MEMBERSHIP_ACTIVATION ? get_sh_config("options_membership_activation_settings") : "");
+define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? get_sh_config("options_enable_activation_email_autologin") : false);
 $enable_registration = true;
-if(ENABLE_MEMBERSHIP){
-   if(ENABLE_ECOMMERCE){
-      $enable_registration = get_option("woocommerce_enable_myaccount_registration")=="yes"?true:false;
-   }else{
-      $enable_registration = get_option("options_enable_registration");
-   }
+if (ENABLE_MEMBERSHIP) {
+    if (ENABLE_ECOMMERCE) {
+        $enable_registration = get_sh_config("woocommerce_enable_myaccount_registration") == "yes";
+    } else {
+        $enable_registration = get_sh_config("options_enable_registration");
+    }
 }
 define("ENABLE_REGISTRATION", $enable_registration);
+define("ENABLE_REMEMBER_LOGIN", ENABLE_MEMBERSHIP && get_sh_config("options_enable_remember_login"));
+define("ENABLE_SOCIAL_LOGIN",   ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && get_sh_config("options_enable_social_login"));
+define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && get_sh_config("options_enable_lost_password"));
+define("ENABLE_PASSWORD_RECOVER", ENABLE_MEMBERSHIP && get_sh_config("options_enable_password_recover"));
+define("PASSWORD_RECOVER_TYPE", (ENABLE_LOST_PASSWORD || ENABLE_PASSWORD_RECOVER) ? get_sh_config("options_password_recover_settings", []) : []);
 
-define("ENABLE_REMEMBER_LOGIN",  ENABLE_MEMBERSHIP && get_option("options_enable_remember_login"));
-define("ENABLE_SOCIAL_LOGIN",  ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && get_option("options_enable_social_login"));
 
-define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && get_option("options_enable_lost_password"));
-define("ENABLE_PASSWORD_RECOVER",  ENABLE_MEMBERSHIP && get_option("options_enable_password_recover"));
-define("PASSWORD_RECOVER_TYPE", ENABLE_LOST_PASSWORD||ENABLE_PASSWORD_RECOVER?get_option("options_password_recover_settings"):array());
-
-define("ENABLE_FAVORITES", ENABLE_MEMBERSHIP && get_option("options_enable_favorites"));
-$favorite_types = array(
-    "post_types" => array(),
-    "taxonomies" => array(),
-    "roles"      => array()
-);
-if(ENABLE_FAVORITES){
-    $favorite_post_types = get_option("options_favorite_types_post_types");
-    if($favorite_post_types){
-       $favorite_types["post_types"] = $favorite_post_types;
-    }
-    $favorite_taxonomies = get_option("options_favorite_types_taxonomies");
-    if($favorite_taxonomies){
-       $favorite_types["taxonomies"] = $favorite_taxonomies;
-    }
-    $favorite_user_roles = get_option("options_favorite_types_user_roles");
-    if($favorite_user_roles){
-       $favorite_types["roles"] = $favorite_user_roles;
-    }
-}
+// Favori ve Takip Sistemleri
+define("ENABLE_FAVORITES", ENABLE_MEMBERSHIP && get_sh_config("options_enable_favorites"));
+$favorite_types = [
+    "post_types" => get_sh_config("options_favorite_types_post_types", []),
+    "taxonomies" => get_sh_config("options_favorite_types_taxonomies", []),
+    "roles"      => get_sh_config("options_favorite_types_user_roles", [])
+];
 define("FAVORITE_TYPES", $favorite_types);
-define("ENABLE_FOLLOW", ENABLE_MEMBERSHIP && get_option("options_enable_follow"));
-$follow_types = array(
-    "post_types" => array(),
-    "taxonomies" => array(),
-    "roles"      => array()
-);
-if(ENABLE_FOLLOW){
-    $follow_post_types = get_option("options_follow_types_post_types");
-    if($follow_post_types){
-       $follow_types["post_types"] = $follow_post_types;
-    }
-    $follow_taxonomies = get_option("options_follow_types_taxonomies");
-    if($follow_taxonomies){
-       $follow_types["taxonomies"] = $follow_taxonomies;
-    }
-    $follow_user_roles = get_option("options_follow_types_user_roles");
-    if($follow_user_roles){
-       $follow_types["roles"] = $follow_user_roles;
-    }
-}
+define("ENABLE_FOLLOW", ENABLE_MEMBERSHIP && get_sh_config("options_enable_follow"));
+$follow_types = [
+    "post_types" => get_sh_config("options_follow_types_post_types", []),
+    "taxonomies" => get_sh_config("options_follow_types_taxonomies", []),
+    "roles"      => get_sh_config("options_follow_types_user_roles", [])
+];
 define("FOLLOW_TYPES", $follow_types);
-define("ENABLE_CHAT", ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && get_option("options_enable_chat"));
-define("ENABLE_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_option("options_enable_notifications"));
-define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_option("options_enable_sms_notifications"));
+define("ENABLE_CHAT",           ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && get_sh_config("options_enable_chat"));
+define("ENABLE_NOTIFICATIONS",  ENABLE_MEMBERSHIP && get_sh_config("options_enable_notifications"));
+define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_sh_config("options_enable_sms_notifications"));
+define("ENABLE_ROLE_THEMES",    ENABLE_MEMBERSHIP && get_sh_config("options_role_themes") && is_user_logged_in());
 
-define("ENABLE_ROLE_THEMES", ENABLE_MEMBERSHIP && get_option("options_role_themes") && is_user_logged_in());
 
-define("ENABLE_IP2COUNTRY", get_option("options_enable_ip2country"));
-define("ENABLE_IP2COUNTRY_DB", get_option("options_ip2country_settings")=="db"?true:false);
-define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_option("options_enable_regional_posts"));
-add_action('acf/init', function(){
-    $regional_post_settings = array();
-    if(ENABLE_REGIONAL_POSTS){
-       $regional_post_settings = QueryCache::get_cached_option('regional_post_settings');//get_field("regional_post_settings", "option");
-    }
-    define("REGIONAL_POST_SETTINGS", $regional_post_settings);
-});
+// Lokasyon ve Bölgesel Ayarlar
+define("ENABLE_IP2COUNTRY",     get_sh_config("options_enable_ip2country"));
+define("ENABLE_IP2COUNTRY_DB",  get_sh_config("options_ip2country_settings") == "db");
+define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_sh_config("options_enable_regional_posts"));
+define("ENABLE_LOCATION_DB",    get_sh_config("options_enable_location_db"));
+$regional_post_settings = [];
+if (ENABLE_REGIONAL_POSTS) {
+    $regional_post_settings = \SaltHareket\get_option('options_regional_post_settings');
+}
+define("REGIONAL_POST_SETTINGS", $regional_post_settings);
 
-define("ENABLE_LOCATION_DB", get_option("options_enable_location_db"));
 
-define("ACTIVATE_UNDER_CONSTRUCTION", get_option("underConstructionActivationStatus"));
-$white_pages = get_option("options_white_pages");
-define("WHITE_PAGES_UNDER_CONSTRUCTION", is_array($white_pages)?$white_pages:array());
-/*function visibility_under_construction(){
-    if(defined("VISIBILITY_UNDER_CONSTRUCTION")){
-        return;
-    }
-    $page_id = url_to_postid(current_url()); 
-    $visibility_under_construction = false;
-    if(isset($GLOBALS["user"]->ID)){
-        if($GLOBALS["user"]->get_role() != "administrator"){
-            if(ACTIVATE_UNDER_CONSTRUCTION){
-               if(in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)){
-                    $visibility_under_construction = true;
-                }
-            }else{
-                $visibility_under_construction = true;
-            }  
-        }else{
-            $visibility_under_construction = true;
-        }        
-    }else{
-        if(ACTIVATE_UNDER_CONSTRUCTION){
-            if(in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)){
-                $visibility_under_construction = true;
-            }
-        }else{
-            $visibility_under_construction = true;
-        }
-    }
-    define("VISIBILITY_UNDER_CONSTRUCTION", $visibility_under_construction);
-    add_filter( 'option_underConstructionActivationStatus', function( $status ){
-        if($status == "1"){
-            if(VISIBILITY_UNDER_CONSTRUCTION && !is_admin()){
-                $status = "0";
-            }
-        }
-        return $status;
-    });
-}*/
+// Under Construction Ayarları
+define("ACTIVATE_UNDER_CONSTRUCTION", get_sh_config("underConstructionActivationStatus"));
+$white_pages = get_sh_config("options_white_pages", []);
+define("WHITE_PAGES_UNDER_CONSTRUCTION", is_array($white_pages) ? $white_pages : []);
 
+
+// E-Ticaret Ek Ayarlar
+define("ENABLE_WOO_API",        get_sh_config("options_enable_woo_api"));
+define("ENABLE_CART",           ENABLE_ECOMMERCE && get_sh_config("options_enable_cart"));
+define("ENABLE_FILTERS",        defined('YITH_WCAN'));
+define("DISABLE_DEFAULT_CAT",   get_sh_config("options_disable_default_cat"));
+define("ENABLE_POSTCODE_VALIDATION", get_sh_config("options_enable_postcode_validation"));
+
+
+/**
+ * Bakım modu görünürlük kontrolü
+ */
 function visibility_under_construction() {
     if (defined("VISIBILITY_UNDER_CONSTRUCTION")) return;
 
-    $page_id = url_to_postid(current_url()); 
-    $whitelisted = in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION);
-    $is_admin = current_user_can("administrator");
-    
-    $visible = true;
+    // 1. ÖNCE PLUGIN AKTİF Mİ ONA BAKALIM
+    // ACTIVATE_UNDER_CONSTRUCTION zaten yukarıda bir yerlerde get_option ile tanımlanmış olmalı.
+    // Eğer plugin pasifse, hiç post_id veya whitelist kontrolüne girmeden çıkalım.
+    if (!ACTIVATE_UNDER_CONSTRUCTION) {
+        define("VISIBILITY_UNDER_CONSTRUCTION", true);
+        return;
+    }
 
-    if (!is_admin()) {
-        $visible = !ACTIVATE_UNDER_CONSTRUCTION || $whitelisted || $is_admin;
+    // 2. ADMIN KONTROLÜ (Çok hızlıdır, DB yormaz)
+    if (current_user_can("administrator")) {
+        define("VISIBILITY_UNDER_CONSTRUCTION", true);
+        return;
+    }
+
+    // 3. WHITELIST KONTROLÜ (Sadece gerekliyse url_to_postid çalıştır)
+    // Eğer whitelist boşsa veya ana sayfadaysak url_to_postid'ye gerek kalmayabilir
+    $visible = false;
+    
+    // Global post objesi varsa url_to_postid'ye gerek kalmaz, direkt ID'yi alırız
+    global $post;
+    $page_id = (isset($post->ID)) ? $post->ID : url_to_postid(current_url()); 
+
+    if (in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)) {
+        $visible = true;
     }
 
     define("VISIBILITY_UNDER_CONSTRUCTION", $visible);
     
+    // Pluginin davranışını manipüle et
     add_filter("option_underConstructionActivationStatus", function ($status) use ($visible) {
-        return ($status == "1" && !$visible) ? "0" : $status;
+        return ($status == "1" && $visible) ? "0" : $status;
     });
 }
 
-define("ENABLE_WOO_API", get_option("options_enable_woo_api"));
-define("ENABLE_CART", ENABLE_ECOMMERCE && get_option("options_enable_cart"));
-define("ENABLE_FILTERS", defined( 'YITH_WCAN' ));
-define("DISABLE_DEFAULT_CAT", get_option("options_disable_default_cat"));
-define("ENABLE_POSTCODE_VALIDATION", get_option("options_enable_postcode_validation"));
+/*add_action('acf/init', function() {
+    $regional_post_settings = [];
+    if (ENABLE_REGIONAL_POSTS) {
+        $regional_post_settings = \SaltHareket\get_option('options_regional_post_settings');
+    }
+    define("REGIONAL_POST_SETTINGS", $regional_post_settings);
+});*/
+
+/* eski hali
+add_action('init', function () {
+    $theme = wp_get_theme();
+    define("TEXT_DOMAIN", $theme->get('TextDomain'));
+    $GLOBALS["is_admin"] = is_admin();
+    $GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
+    $GLOBALS["language_default"] = $GLOBALS["language"];
+    $GLOBALS["post_id"] = is_singular() ? get_the_ID() : 0;
+});
+*/
+
+// Timber / Twig Yapılandırması
+add_action('after_setup_theme', function () use ($is_admin) {
+    
+    // 1. Sabit Tanımlamaları
+    $theme = wp_get_theme();
+    if (!defined("TEXT_DOMAIN")) {
+        define("TEXT_DOMAIN", $theme->get('TextDomain'));
+    }
+
+    $is_ajax = (defined('DOING_AJAX') && DOING_AJAX);
+    $timber_exists = class_exists("Timber");
+
+    // 2. Timber Yoksa: Sadece ekranda (Front/Admin) alert ver, AJAX'ta sessiz kal.
+    if (!$timber_exists) {
+        if (!$is_ajax) {
+            if ($is_admin) {
+                add_action("admin_notices", function () {
+                    echo '<div class="notice notice-error"><p>Timber not activated...</p></div>';
+                });            
+            }
+            add_filter("template_include", function () {
+                return SH_STATIC_PATH . "no-timber.html";
+            });
+        }
+        return; 
+    }
+
+    // 3. Timber Varsa: Ayarları Yükle
+    // AJAX'ta render yapıyorsan bu ayarlar (templates dizini vb.) şart!
+    \Timber\Timber::$dirname = ['theme/templates', 'vendor/salthareket/theme/src/templates', 'templates'];
+    \Timber\Timber::$autoescape = false;
+    
+    // Twig Uzantıları (Cron değilse yükle, AJAX'ta lazım olabilir)
+    if (!defined('DOING_CRON') || !DOING_CRON) {
+        include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
+        include_once SH_INCLUDES_PATH . 'twig-extends.php';
+        
+        if (defined('SH_THEME_EXISTS') && SH_THEME_EXISTS) {
+            include_once THEME_INCLUDES_PATH . "twig-extends.php";
+        }
+        
+        if (class_exists('Timber_Acf_Wp_Blocks')) {
+            include_once SH_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
+        }
+    }
+
+    // 4. ACF Kontrolü (Sadece front-end render sırasında yönlendir)
+    if (!class_exists("ACF") && !$is_ajax && !$is_admin) {
+        add_filter("template_include", function () {
+            return SH_STATIC_PATH . "no-acf.html";
+        });
+    }
+}, 1);
 
 $multilanguage = false;
 if(function_exists("qtranxf_getSortedLanguages")){
@@ -221,245 +260,142 @@ if(function_exists("qtranxf_getSortedLanguages")){
     include_once SH_INCLUDES_PATH . "plugins/polylang.php";
 }
 define("ENABLE_MULTILANGUAGE", $multilanguage);
-if (ENABLE_MULTILANGUAGE){
+//if (ENABLE_MULTILANGUAGE){
     include_once SH_INCLUDES_PATH . "multilanguage.php";
-}
+//}
+Data::set("is_admin", $is_admin);
+Data::set("language", ml_get_current_language());
+Data::set("language_default", ml_get_default_language());
 
-define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
-
-add_action('init', function () {
-    $theme = wp_get_theme();
-    define("TEXT_DOMAIN", $theme->get('TextDomain'));
-    $GLOBALS["is_admin"] = is_admin();
-    $GLOBALS["language"] = strtolower(substr(get_locale(), 0, 2));
-    $GLOBALS["language_default"] = $GLOBALS["language"];
-    $GLOBALS["post_id"] = is_singular() ? get_the_ID() : 0;
-});
-
-if (class_exists("acf")) {
-    $GLOBALS["google_maps_api_key"] = get_option("options_google_maps_api_key"); //get_post_meta
-}
-
-add_action('after_setup_theme', function () {
-    if (!class_exists("Timber")) {
-        if(is_admin()){
-            add_action("admin_notices", function () {
-                echo '<div class="alert alert-danger text-center"><p>Timber not activated. Make sure you activate the plugin in <a href="' .
-                    esc_url(admin_url("plugins.php#timber")) .
-                    '">' .
-                    esc_url(admin_url("plugins.php")) .
-                    "</a></p></div>";
-            });            
-        }
-        add_filter("template_include", function ($template) {
-            return SH_STATIC_PATH . "no-timber.html";
-        });
-        return;
-    } else {
-        Timber::$dirname = array('theme/templates', 'vendor/salthareket/theme/src/templates', 'templates' );
-        Timber::$autoescape = false;
-        //Timber::$cache = false;
-        include_once SH_INCLUDES_PATH . "plugins/twig.php"; 
-        include_once SH_INCLUDES_PATH . 'twig-extends.php';
-        if(SH_THEME_EXISTS){
-            include_once THEME_INCLUDES_PATH . "twig-extends.php";
-        }
-        if ( class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
-            include_once SH_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
-        }
-    }
-
-    if (!class_exists("ACF")) {
-        add_filter("template_include", function ($template) {
-            return SH_STATIC_PATH . "no-acf.html";
-        });
-        return;
-    }
-});
-
-include_once SH_INCLUDES_PATH . "notices.php";
-
+// Dahili Dosyalar
 include_once SH_INCLUDES_PATH . "helpers/index.php";
-if(SH_THEME_EXISTS || file_exists(THEME_INCLUDES_PATH . "globals.php")){
+if (SH_THEME_EXISTS){// || file_exists(THEME_INCLUDES_PATH . "globals.php")) {
     include_once THEME_INCLUDES_PATH . "globals.php";
 }
 include_once SH_INCLUDES_PATH . "blocks.php";
-include_once SH_INCLUDES_PATH . "styles-scripts.php";
 
 if (ENABLE_MEMBERSHIP) {
-   include_once SH_CLASSES_PATH . "class.otp.php";
+    include_once SH_CLASSES_PATH . "class.otp.php";
 }
 
+// Güvenlik: Giriş yapmış normal kullanıcıları admin panelinden uzak tut
 if (!ENABLE_ECOMMERCE) {
     $current_page = $_SERVER['REQUEST_URI']; 
-    $admin_path = '/wp-admin/';
-    if (defined('WP_ADMIN_DIR')) {
-        $admin_path = '/' . trim(WP_ADMIN_DIR, '/') . '/';
-    }
-    if (!ENABLE_MEMBERSHIP && is_user_logged_in() && !is_admin() && strpos($current_page, $admin_path) === false && !current_user_can('manage_options')) {
-        if (defined('DOING_AJAX') && DOING_AJAX) {
-            return;
+    if (!ENABLE_MEMBERSHIP && is_user_logged_in() && !$is_admin && !current_user_can('manage_options')) {
+        if (!defined('DOING_AJAX') && !defined('DOING_CRON')) {
+            wp_logout();
+            wp_redirect(home_url());
+            exit;
         }
-        if (defined('DOING_CRON') && DOING_CRON) {
-            return;
-        }
-        wp_logout();
-        wp_redirect(home_url());
-        exit;
     }
 }
 
-if (ENABLE_FAVORITES) {
-    include_once SH_CLASSES_PATH . "class.favorites.php";
-}
 
-if (ENABLE_SEARCH_HISTORY) {
-    include_once SH_CLASSES_PATH . "class.search-history.php";
-}
+// Sınıf Yüklemeleri
+if (ENABLE_FAVORITES) include_once SH_CLASSES_PATH . "class.favorites.php";
+if (ENABLE_SEARCH_HISTORY) include_once SH_CLASSES_PATH . "class.search-history.php";
+if (ENABLE_NOTIFICATIONS) include_once SH_CLASSES_PATH . "class.notifications.php";
+if ($GLOBALS["pagenow"] === "wp-login.php") include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 
-if (ENABLE_NOTIFICATIONS) {
-    include_once SH_CLASSES_PATH . "class.notifications.php";
-}
-
-if ($GLOBALS["pagenow"] === "wp-login.php") {
-    include_once SH_INCLUDES_PATH . "admin/custom-login.php";
-}
-
+// ACF ve Plugin Entegrasyonları
 if (class_exists("ACF")) {
+    Data::set("google_maps_api_key", get_sh_config("options_google_maps_api_key"));
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
-
-    if(class_exists('ACFE')){
-       include_once SH_INCLUDES_PATH . "plugins/acfe.php";
-    }
-    if(class_exists("OpenStreetMap")){
-        //die;
-        include_once SH_INCLUDES_PATH . "plugins/acf-osm.php";
-    }
-    if(is_admin()){
-        include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
-    }
+    if (class_exists('ACFE')) include_once SH_INCLUDES_PATH . "plugins/acfe.php";
+    if (class_exists("OpenStreetMap")) include_once SH_INCLUDES_PATH . "plugins/acf-osm.php";
+    if ($is_admin) include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
 }
 
-if (class_exists("WPCF7")) {
-    include_once SH_INCLUDES_PATH . "plugins/cf7.php";
-}
-
+// Diğer Eklentiler
+if (class_exists("WPCF7")) include_once SH_INCLUDES_PATH . "plugins/cf7.php";
 if (defined("WPSEO_FILE")) {
     include_once SH_CLASSES_PATH . "class.schema_breadcrumbs.php";
     include_once SH_INCLUDES_PATH . "plugins/yoast-seo.php";
 }
+if (class_exists("Loco_Locale")) include_once SH_INCLUDES_PATH . "plugins/loco-translate.php";
+if (function_exists("yasr_fs")) include_once SH_INCLUDES_PATH . "plugins/yasr-star-rating.php";
+if (class_exists("APSS_Class")) include_once SH_INCLUDES_PATH . "plugins/apps.php";
+if (class_exists("Redq_YoBro")) include_once SH_INCLUDES_PATH . "plugins/yobro.php";
+if (class_exists("Newsletter")) include_once SH_INCLUDES_PATH . "plugins/newsletter.php";
 
-if (class_exists("Loco_Locale")) {
-    include_once SH_INCLUDES_PATH . "plugins/loco-translate.php";
-}
-
-if (function_exists("yasr_fs")) {
-    include_once SH_INCLUDES_PATH . "plugins/yasr-star-rating.php";
-}
-
-if (class_exists("APSS_Class")) {
-    include_once SH_INCLUDES_PATH . "plugins/apps.php";
-}
-
-if (class_exists("Redq_YoBro")) {
-    include_once SH_INCLUDES_PATH . "plugins/yobro.php";
-}
-
-if (class_exists("Newsletter")) {
-    include_once SH_INCLUDES_PATH . "plugins/newsletter.php";
-}
-
+// E-Ticaret Eklenti Kontrolleri
 if (ENABLE_ECOMMERCE) {
-    if (class_exists("YITH_WC_Dynamic_Discounts")) {
-        include_once SH_INCLUDES_PATH . "plugins/yith-dynamic-pricing-and-discounts.php";
-    }
-
-    if (class_exists("YITH_WCBR")) {
-        include_once SH_INCLUDES_PATH . "plugins/yith-brands-add-on.php";
-    }
-
-    if ( function_exists( 'wpcbr_init' ) ) {
-        include_once SH_INCLUDES_PATH . "plugins/wpc-brands.php";
-    }
-
-    if ( defined( 'YITH_WCAN' ) ) {
-        include_once SH_INCLUDES_PATH . "plugins/yith-ajax-product-filter.php";
-    }
-
-    if ( class_exists( 'DGWT_WC_Ajax_Search' )){
-        include_once SH_INCLUDES_PATH . "plugins/ajax-search-for-woocommerce.php";
-    }
-
-    if (class_exists("WC_Bundles")) {
-        include_once SH_INCLUDES_PATH . "plugins/product-bundles.php";
-    }
-
-    if ( function_exists( 'woosb_init' ) ) {
-        include_once SH_INCLUDES_PATH . "plugins/wpc-product-bundles.php";
-    }
+    if (class_exists("YITH_WC_Dynamic_Discounts")) include_once SH_INCLUDES_PATH . "plugins/yith-dynamic-pricing-and-discounts.php";
+    if (class_exists("YITH_WCBR")) include_once SH_INCLUDES_PATH . "plugins/yith-brands-add-on.php";
+    if (function_exists('wpcbr_init')) include_once SH_INCLUDES_PATH . "plugins/wpc-brands.php";
+    if (defined('YITH_WCAN')) include_once SH_INCLUDES_PATH . "plugins/yith-ajax-product-filter.php";
+    if (class_exists('DGWT_WC_Ajax_Search')) include_once SH_INCLUDES_PATH . "plugins/ajax-search-for-woocommerce.php";
+    if (class_exists("WC_Bundles")) include_once SH_INCLUDES_PATH . "plugins/product-bundles.php";
+    if (function_exists('woosb_init')) include_once SH_INCLUDES_PATH . "plugins/wpc-product-bundles.php";
 }
 
-if (function_exists("mt_profile_img")) {
-    include_once SH_INCLUDES_PATH . "plugins/metronet-profile-picture.php";
-}
+if (function_exists("mt_profile_img")) include_once SH_INCLUDES_PATH . "plugins/metronet-profile-picture.php";
+if (defined("WP_ROCKET_VERSION")) include_once SH_INCLUDES_PATH . "plugins/wp-rocket.php";
+if (class_exists("WP_Socializer")) include_once SH_INCLUDES_PATH . "plugins/wpsr.php";
+if (ENABLE_SOCIAL_LOGIN) include_once SH_INCLUDES_PATH . "plugins/nsl.php";
+if (class_exists("YABE_WEBFONT") && $is_admin) include_once SH_INCLUDES_PATH . "plugins/yabe-font.php";
 
-if (defined("WP_ROCKET_VERSION")) {
-    include_once SH_INCLUDES_PATH . "plugins/wp-rocket.php";
-}
-if (class_exists("WP_Socializer")) {
-    include_once SH_INCLUDES_PATH . "plugins/wpsr.php";
-}
+if (ENABLE_PRODUCTION) include_once SH_INCLUDES_PATH . "minify-rules.php";
 
-if(ENABLE_SOCIAL_LOGIN){
-    include_once SH_INCLUDES_PATH . "plugins/nsl.php";
-}
-
-if (class_exists("YABE_WEBFONT")) {
-    include_once SH_INCLUDES_PATH . "plugins/yabe-font.php";
-}
-
-if (ENABLE_PRODUCTION) {
-    include_once SH_INCLUDES_PATH . "minify-rules.php";
-}
-
-//if(is_admin()){
+// Admin Tarafı Sınıfları
+if ($is_admin ) {
+    include_once SH_INCLUDES_PATH . "notices.php";
     include_once SH_CLASSES_PATH . "class.avif.php";
     include_once SH_CLASSES_PATH . "class.scss-compiler.php";
+    include_once SH_CLASSES_PATH . "class.merge-css.php";
     include_once SH_CLASSES_PATH . "class.remove-unused-css.php";
     include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
-    include_once SH_CLASSES_PATH . "class.oembed-video.php";
     include_once SH_CLASSES_PATH . "class.featured-image.php";
-    include_once SH_CLASSES_PATH . "class.ffmpeg.php";   
-//}
+    include_once SH_CLASSES_PATH . "class.ffmpeg.php";
+    include_once SH_CLASSES_PATH . "class.assets-packer.php";
+    include_once SH_CLASSES_PATH . "class.fluidcss.php";
+    include_once SH_CLASSES_PATH . "class.columns-thumbnail.php";
+    include_once SH_CLASSES_PATH . "class.theme-export.php";
+    include_once SH_INCLUDES_PATH . "actions-admin.php";  
+}
 
-
+// Genel Sınıflar ve Helperlar
+//include 'classes/class.geolocation.query.php';
+include_once SH_CLASSES_PATH . "class.oembed-video.php";
 include_once SH_CLASSES_PATH . "class.image.php";
 include_once SH_CLASSES_PATH . "class.shortcodes.php";
 include_once SH_CLASSES_PATH . "class.logger.php";    
 include_once SH_CLASSES_PATH . "class.encrypt.php";
 include_once SH_CLASSES_PATH . "class.paginate.php";
-include_once SH_CLASSES_PATH . "class.localization.php";
 include_once SH_CLASSES_PATH . "class.lcp.php";
-//include 'classes/class.geolocation.query.php';
-
-
+include_once SH_CLASSES_PATH . "class.assets-manager.php";
 include_once SH_INCLUDES_PATH . "rewrite.php";
 include_once SH_INCLUDES_PATH . "ajax.php";
 include_once SH_INCLUDES_PATH . "custom.php";
 
-if(!is_admin()){
-   include_once SH_CLASSES_PATH . "class.custom-menu-items.php";
-   include_once SH_INCLUDES_PATH . "menu.php"; 
-}
-if(is_admin()){
-    include_once SH_CLASSES_PATH . "class.fluidcss.php";
-    include_once SH_CLASSES_PATH . "class.columns-thumbnail.php";
-    include_once SH_CLASSES_PATH . "class.theme-export.php";
+if ((defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOCATION_DB') && ENABLE_LOCATION_DB)) {
+    include_once SH_CLASSES_PATH . "class.localization.php";
 }
 
-if(ENABLE_REGIONAL_POSTS){
-    include_once SH_INCLUDES_PATH . "regional-posts/index.php";
+if (!$is_admin) {
+    include_once SH_CLASSES_PATH . "class.custom-menu-items.php";
+    include_once SH_INCLUDES_PATH . "menu.php"; 
 }
+
+if (ENABLE_REGIONAL_POSTS) include_once SH_INCLUDES_PATH . "regional-posts/index.php";
+
+// Tema ve Admin Genişletmeleri
+if (SH_THEME_EXISTS){// || file_exists($template_path . "/theme/index.php")) {
+    include_once $template_path . "/theme/index.php";
+}
+
+if (SH_THEME_EXISTS && $is_admin) {
+    include_once THEME_INCLUDES_PATH . "admin/index.php";
+    if (!function_exists("acf_general_settings_rewrite")) {
+        include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
+    }
+    add_action('admin_init', function() {
+        new AdminThumbnailColumns();
+    });
+}
+
+include_once SH_INCLUDES_PATH . "shortcodes.php";
+include_once SH_INCLUDES_PATH . "actions.php";
 
 /*if (ENABLE_ECOMMERCE) {
     if (ENABLE_MEMBERSHIP) {
@@ -470,25 +406,6 @@ if(ENABLE_REGIONAL_POSTS){
     include_once SH_INCLUDES_PATH . "woocommerce.php";
 }*/
 
-// extend with theme files
-if(SH_THEME_EXISTS || file_exists(get_template_directory() . "/theme/index.php")){
-    include_once get_template_directory() . "/theme/index.php";
-}
-
-if (SH_THEME_EXISTS && is_admin()) {
-    include_once THEME_INCLUDES_PATH . "admin/index.php";
-    if(!function_exists("acf_general_settings_rewrite")){
-        include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
-    }
-    add_action('admin_init', function(){
-        new AdminThumbnailColumns();
-    });
-}
-include_once SH_INCLUDES_PATH . "shortcodes.php";
-include_once SH_INCLUDES_PATH . "actions.php";
-if(is_admin()){
-    include_once SH_INCLUDES_PATH . "actions-admin.php";
-}
 /*
 $GLOBALS["base_urls"] = array();
 //if (ENABLE_MEMBERSHIP) {
@@ -507,12 +424,16 @@ if(isLocalhost()){
 }
 
 
-if(SH_THEME_EXISTS){
-    $salt = new \Salt();
-}else{
-    $salt = new \SaltBase();
+if (defined('SH_THEME_EXISTS') && SH_THEME_EXISTS) {
+    if (class_exists('\Salt')) {
+        $salt = \Salt::get_instance();
+    }
+} else {
+    if (class_exists('\SaltBase')) {
+        $salt = \SaltBase::get_instance();
+    }
 }
 //$salt->init();
-$GLOBALS["salt"] = $salt;
+Data::set("salt", $salt);
 
 define('VARIABLES_LOADED', true);

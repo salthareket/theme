@@ -1,7 +1,7 @@
 <?php
 $required_setting = ENABLE_ECOMMERCE;
 
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
             $id = $vars["id"];
             $salt->remove_cart_content();
             //$salt->update_product_price($id);

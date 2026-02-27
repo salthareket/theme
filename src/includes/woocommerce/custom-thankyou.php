@@ -37,7 +37,7 @@ function wc_custom_thankyou( $content ) {
     $order_key = apply_filters( 'woocommerce_thankyou_order_key', empty( $_GET['key'] ) ? '' : wc_clean( $_GET['key'] ) );
     $order     = wc_get_order( $order_id );
 
-    if($GLOBALS["user"]->ID != $order->get_customer_id()){
+    if(Data::get("user.ID") != $order->get_customer_id()){
         header("HTTP/1.1 301 Moved Permanently");
         header("Location: ".get_home_url());
         exit;

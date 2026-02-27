@@ -17,9 +17,10 @@ function bg_check(){
 		        }else{
 
 			        //if (!(attr in hash)) hash[attr] = [];
-			        if(!hash.hasOwnProperty(attr)){
-	                   hash[attr] = [];
-			        }
+			        // Güvenli ve modern versiyon
+					if (!Object.prototype.hasOwnProperty.call(hash, attr)) {
+					    hash[attr] = [];
+					}
 			        var dom = domObjectToSelector(obj);
 			        if($(dom).length > 0){
 			        	hash[attr].push(dom);	      

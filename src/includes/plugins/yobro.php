@@ -15,22 +15,29 @@
 	*/
 
     //add required columns to conversation table
-	$table_name = "wp_yobro_conversation";
+	global $wpdb;
+
+	// Tablo ismini dinamik prefix ile alıyoruz
+	$table_name = $wpdb->prefix . "yobro_conversation";
+
+	// Collation'ı sunucunun mevcut ayarına göre dinamik çekiyoruz
+	$charset_collate = $wpdb->get_charset_collate();
+
 	$columns = array(
-		array(
-			"table" => "wp_yobro_conversation",
-			"name"  => "post_id",
-			"type"  => "bigint(200) NOT NULL DEFAULT 0"
-		),
-		array(
-			"table" => "wp_yobro_messages",
-			"name" => "notification",
-		    "type" => "tinytext COLLATE utf8mb4_unicode_520_ci"
-		)
+	    array(
+	        "table" => $wpdb->prefix . "yobro_conversation",
+	        "name"  => "post_id",
+	        "type"  => "bigint(20) NOT NULL DEFAULT 0" // bigint(200) standart dışıdır, (20) idealdir
+	    ),
+	    array(
+	        "table" => $wpdb->prefix . "yobro_messages",
+	        "name"  => "notification",
+	        "type"  => "tinytext $charset_collate" // Sabit collation yerine sisteminkini kullandık
+	    )
 	);
 	if($columns){
 		global $wpdb;
-		$database = $wpdb->dbname;;
+		$database = $wpdb->dbname;
 		foreach($columns as $column){
 			$table = $column["table"];
 			$column_name = $column["name"];
@@ -49,229 +56,131 @@
 	}
 
 
-	function yobro_notification_messages($action = ""){
-		global $wpdb;
-    	$yobro_settings = get_option('yo_bro_settings', true);
-    	$chat_page_url = get_account_endpoint_url('messages');//get_account_endpoint_url('messages');
-    	$user_id = get_current_user_id();
-    	$user = new User($user_id);
-    	$sql_action_query = "";
-    	if(isset($action)){
-    	   switch($action){
-    	   	   case "seen":
-                    $sql_action_query = " and messages.seen is null";
-    	   	   break;
-    	   	   case "notification":
-                    $sql_action_query = " and messages.notification is null";
-    	   	   break;
-    	   }
-    	}
-    	$sql = "SELECT DISTINCT messages.id, messages.conv_id, messages.sender_id, messages.message, messages.created_at, conversation.post_id
-					  FROM wp_yobro_messages messages
-					  INNER JOIN wp_yobro_conversation conversation
-					  ON messages.conv_id = conversation.id 
-					  where messages.reciever_id=$user_id". $sql_action_query ."
-					  order by messages.created_at ASC limit 1";
-		$messages = $wpdb->get_results($sql);
-	    $unseen_messages = array();
-	    $timeAgo = new Westsworld\TimeAgo();
-	    global $post;
-	    foreach($messages as $message){
-	    	$url = "?conversationId=".$message->conv_id."&action=error";
-	    	$title = "";
-	    	if(isset($message->post_id) && $message->post_id == 0){
-		       $url = get_account_endpoint_url("messages").$message->conv_id."/chat/".$message->sender_id;
-		       $title = "Message from Bot";
-		    }
-		    if(isset($message->post_id) && $message->post_id > 0){
-		       $url = get_permalink($message->post_id)."#messages";
-		       $title = get_the_title( $message->post_id );
-		    }
-		    $sender = new User($message->sender_id);//get_user_by("id", $message->sender_id);
+	/**
+	 * Bildirim mesajlarını getirir ve 'bildirim gönderildi' olarak işaretler.
+	 */
+	function yobro_notification_messages($action = "") {
+	    global $wpdb;
+	    $user_id = get_current_user_id();
+	    if (!$user_id) return array();
 
-	    	$item = array(
-	    		"id"      => $message->conv_id,
-	    		"type"    => "message",
-	    		"title"   => $title,
-                "sender"  => array(
-                	             "id"    => $message->sender_id,
-                	             "image" => get_avatar( $message->sender_id, 32, 'mystery', $sender->display_name),
-                	             "name"  => $sender->display_name
-                	         ),
-                "message" => truncate(strip_tags(encrypt_decrypt($message->message, $message->sender_id, 'decrypt')), 150),
-                "url"     => $url,
-                "time"    => $timeAgo->inWordsFromStrings($user->get_local_date($message->created_at, "GMT", $user->get_timezone()))
-	    	);
-	    	if(function_exists("notification_update_map")){
-	    		$update = notification_update_map($item);
-	    		if($update){
-	    			$item["update"] = $update;
-	    		}
-	    	}
-	    	$unseen_messages[] = $item;
-	    	$wpdb->query("UPDATE wp_yobro_messages SET notification=1 WHERE id=".$message->id);
+	    $user = new User($user_id);
+	    $sql_action_query = "";
+	    
+	    // Switch case ile güvenli query ekleme
+	    switch ($action) {
+	        case "seen":
+	            $sql_action_query = " AND messages.seen IS NULL";
+	            break;
+	        case "notification":
+	            $sql_action_query = " AND messages.notification IS NULL";
+	            break;
 	    }
-	    return $unseen_messages ;
-	}
 
+	    $sql = $wpdb->prepare("
+	        SELECT DISTINCT messages.id, messages.conv_id, messages.sender_id, messages.message, messages.created_at, conversation.post_id
+	        FROM {$wpdb->prefix}yobro_messages messages
+	        INNER JOIN {$wpdb->prefix}yobro_conversation conversation ON messages.conv_id = conversation.id 
+	        WHERE messages.reciever_id = %d $sql_action_query
+	        ORDER BY messages.created_at ASC LIMIT 1
+	    ", $user_id);
 
-
-	function yobro_unseen_messages_count($conv_id=0){
-		global $wpdb;
-		//"select count(*) from wp_yobro_messages where receiver_id=$user_id and not seen = 1"
-        $user_id = get_current_user_id();
-        $sql = "SELECT COUNT(DISTINCT conv_id) FROM wp_yobro_messages where reciever_id=$user_id and seen is null ".($conv_id>0?" and conv_id=$conv_id":"");
-		return $wpdb->get_var($sql);
-	}
-	function yobro_unseen_post_messages_count($post_id=0){
-		global $wpdb;
-		//"select count(*) from wp_yobro_messages where receiver_id=$user_id and not seen = 1"
-        $user_id = get_current_user_id();
-        $sql = "SELECT COUNT(*) 
-                   FROM wp_yobro_messages m
-                   INNER JOIN wp_yobro_conversation AS c ON (m.conv_id = c.id)
-                   where 
-                          m.reciever_id=$user_id
-                      and m.seen is null 
-                      and c.post_id=$post_id";
-		return $wpdb->get_var($sql);
-	}
-    function yobro_unseen_messages(){
-    	global $wpdb;
-    	$yobro_settings = get_option('yo_bro_settings', true);
-    	$chat_page_url = get_account_endpoint_url('messages');//$yobro_settings['chat_page_url'];
-    	$user_id = get_current_user_id();
-    	$user = new User($user_id);
-    	$sql = "SELECT DISTINCT messages.conv_id, messages.sender_id, messages.message, messages.created_at, conversation.post_id 
-					  FROM wp_yobro_messages messages
-					  INNER JOIN wp_yobro_conversation conversation
-					  ON messages.conv_id = conversation.id 
-					  where messages.reciever_id=$user_id and messages.seen is null
-					  group by messages.conv_id
-					  order by messages.created_at DESC,messages.id asc";
 	    $messages = $wpdb->get_results($sql);
 	    $unseen_messages = array();
 	    $timeAgo = new Westsworld\TimeAgo();
-	    foreach($messages as $message){
-	    	$url_query = $message->conv_id."/chat/".$message->sender_id."/";
 
-	    	$title = "";
-		    if(isset($message->post_id) && $message->post_id > 0){
-		       $url_query = $message->conv_id."&action=post&post_id=".$message->post_id;
-		       $title = get_the_title( $message->project_id );
-		    }
-		    if(!isset($message->post_id)){
-		       $url_query = $message->conv_id."&action=project&post_id=".$message->post_id;
-		       $title = get_the_title( $message->post_id );
-		    }
-		    $sender = get_user_by("id", $message->sender_id);
-	    	$unseen_messages[] = array(
-	    		"id"      => $message->conv_id,
-	    		"title"   => $title,
-                "sender"  => array(
-                	             "image" => get_avatar( $message->sender_id, 32, 'mystery', $sender->display_name),
-                	             "name"  => $sender->display_name
-                 ),
-                "message" => removeUrls(strip_tags(encrypt_decrypt($message->message, $message->sender_id, 'decrypt'))),
-                "url"     => $chat_page_url.$url_query,
-                "time"    => $timeAgo->inWordsFromStrings($user->get_local_date($message->created_at, "GMT", $user->get_timezone()))
-	    	);
+	    foreach ($messages as $message) {
+	        $title = "Message";
+	        $url = get_account_endpoint_url("messages") . $message->conv_id;
+
+	        if (isset($message->post_id) && $message->post_id > 0) {
+	            $url = get_permalink($message->post_id) . "#messages";
+	            $title = get_the_title($message->post_id);
+	        } elseif ($message->post_id == 0) {
+	            $title = "Message from Bot";
+	        }
+
+	        $sender = new User($message->sender_id);
+	        $item = array(
+	            "id"      => $message->conv_id,
+	            "type"    => "message",
+	            "title"   => $title,
+	            "sender"  => array(
+	                "id"    => $message->sender_id,
+	                "image" => get_avatar($message->sender_id, 32),
+	                "name"  => $sender->display_name
+	            ),
+	            "message" => truncate(strip_tags(encrypt_decrypt($message->message, $message->sender_id, 'decrypt')), 150),
+	            "url"     => $url,
+	            "time"    => $timeAgo->inWordsFromStrings($user->get_local_date($message->created_at, "GMT", $user->get_timezone()))
+	        );
+
+	        $unseen_messages[] = $item;
+
+	        // Bildirim olarak işaretle (Güvenli Update)
+	        $wpdb->update(
+	            "{$wpdb->prefix}yobro_messages",
+	            array('notification' => 1),
+	            array('id' => $message->id),
+	            array('%d'),
+	            array('%d')
+	        );
 	    }
-	    return $unseen_messages ;
+	    return $unseen_messages;
 	}
 
-	function yobro_messages(){
-    	global $wpdb;
-    	$yobro_settings = get_option('yo_bro_settings', true);
-    	$chat_page_url = get_account_endpoint_url('messages');//$yobro_settings['chat_page_url'];
-    	$user_id = get_current_user_id();
-    	$user = $GLOBALS["user"];
-		$sql = "SELECT messages.conv_id, messages.sender_id, messages.message, messages.created_at, conversation.post_id, messages.seen
-				FROM wp_yobro_messages messages
-				INNER JOIN wp_yobro_conversation conversation ON messages.conv_id = conversation.id
-				WHERE messages.reciever_id = $user_id
-				AND messages.id = (
-				    SELECT MAX(id)
-				    FROM wp_yobro_messages
-				    WHERE conv_id = messages.conv_id and reciever_id = $user_id
-				)
-				ORDER BY messages.created_at DESC";
-	    $messages = $wpdb->get_results($sql);
-	    $unseen_messages = array();
-	    $timeAgo = new Westsworld\TimeAgo();
-	    foreach($messages as $message){
-	    	$url = $chat_page_url.$message->conv_id."/chat/".$message->sender_id."/";
-	    	$title = "";
-		    if(isset($message->post_id) && $message->post_id > 0){
-		       $url = get_permalink($message->post_id)."#messages";//$message->conv_id."&action=project&post_id=".$message->post_id;
-		       $title = get_the_title( $message->post_id );
-		    }
-		    $sender = new User($message->sender_id);
-	    	$unseen_messages[] = array(
-	    		"id"      => $message->conv_id,
-	    		"title"   => $title,
-                "sender"  => array(
-                	"image" => $sender->get_avatar(32),// get_avatar( $message->sender_id, 32, 'mystery', $sender->display_name),
-                    "name"  => $sender->get_title()
-                 ),
-                "message" => removeUrls(strip_tags(encrypt_decrypt($message->message, $message->sender_id, 'decrypt'))),
-                "url"     => $url,
-                "time"    => $timeAgo->inWordsFromStrings($user->get_local_date($message->created_at, "GMT", $user->get_timezone())),
-                "seen"    => $message->seen
-	    	);
-	    }
-	    return $unseen_messages ;
+	/**
+	 * Okunmamış mesaj sayısını döner.
+	 */
+	function yobro_unseen_messages_count($conv_id = 0) {
+	    global $wpdb;
+	    $user_id = get_current_user_id();
+	    $where = $conv_id > 0 ? $wpdb->prepare(" AND conv_id = %d", $conv_id) : "";
+	    
+	    return $wpdb->get_var($wpdb->prepare("
+	        SELECT COUNT(DISTINCT conv_id) 
+	        FROM {$wpdb->prefix}yobro_messages 
+	        WHERE reciever_id = %d AND seen IS NULL $where
+	    ", $user_id));
 	}
 
+	/**
+	 * Yeni bir konuşma ve ilk mesajı başlatır.
+	 */
+	function yobro_new_conversation($sender_id, $reciever_id, $message = "", $post_id = 0) {
+	    global $wpdb;
 
-
-    function yobro_first_conversation($post_id, $sender_id, $reciever_id){
-    	global $wpdb;
-        $sql = "SELECT * FROM wp_yobro_conversation where reciever=$reciever_id and sender=$sender_id ". ($post_id > 0 ?"and post_id = $post_id":"")." order by created_at DESC limit 1";
-		return $wpdb->get_results($sql);
-    }
-    function yobro_first_admin_conversation($post_id, $reciever_id){
-    	global $wpdb;
-    	$administrator = QueryCache::get_cached_option("site_admin");//get_field("site_admin", "option");
-	    $admin_id =  $administrator["ID"];
-        $sql = "SELECT * FROM wp_yobro_conversation where reciever=$reciever_id and sender=$admin_id and post_id = $post_id order by created_at DESC limit 1";
-		return $wpdb->get_results($sql);
-    }
-    function yobro_has_admin_conversation($post_id, $reciever_id){
-    	global $wpdb;
-    	$administrator = QueryCache::get_cached_option("site_admin");//get_field("site_admin", "option");
-	    $admin_id =  $administrator["ID"];
-		$sql = "SELECT COUNT(DISTINCT id) FROM wp_yobro_conversation where reciever=$reciever_id and sender=$admin_id and post_id = $post_id order by created_at DESC limit 1";
-		return $wpdb->get_var($sql);
-    }
-    
-    function yobro_new_conversation($sender_id, $reciever_id, $message="", $post_id=0){
-    	global $wpdb;
-		$new_conversation =  \YoBro\App\Conversation::create(array(
-	      'sender'   => $sender_id,
-	      'reciever' => $reciever_id
+	    // Konuşmayı oluştur (Varsayılan sınıfla)
+	    $new_conversation = \YoBro\App\Conversation::create(array(
+	        'sender'   => $sender_id,
+	        'reciever' => $reciever_id
 	    ));
-	    if($post_id > 0){
-	    	$wpdb->query("UPDATE wp_yobro_conversation SET post_id=".$post_id." WHERE id=".$new_conversation['id']);
-	    }
-	    $created_at = new DateTime("now");
-        $created_at->setTimezone(new DateTimeZone('GMT'));
-        $created_at = $created_at->format("Y-m-d H:i:s");
-        $wpdb->query("UPDATE wp_yobro_conversation SET created_at='".$created_at."' WHERE id=".$new_conversation['id']);
 
-	    if(!empty($message)){
-		    return  \YoBro\App\Message::create(array(
-		      'conv_id' => $new_conversation['id'],
-		      'sender_id' => $sender_id,
-		      'reciever_id' => $reciever_id ,
-		      'message' => encrypt_decrypt($message, $sender_id),
-		      'attachment_id' => null ,
-			  'created_at' => $created_at,
-		    ));	    	
-	    }else{
-            return $new_conversation['id'];
+	    if (!$new_conversation || !isset($new_conversation['id'])) return false;
+
+	    $conv_id = $new_conversation['id'];
+	    $created_at = current_time('mysql', 1); // WordPress usulü GMT zamanı
+
+	    // Konuşmayı güncelle (Tek bir UPDATE sorgusunda birleştirdik)
+	    $wpdb->update(
+	        "{$wpdb->prefix}yobro_conversation",
+	        array('post_id' => $post_id, 'created_at' => $created_at),
+	        array('id' => $conv_id),
+	        array('%d', '%s'),
+	        array('%d')
+	    );
+
+	    if (!empty($message)) {
+	        return \YoBro\App\Message::create(array(
+	            'conv_id'     => $conv_id,
+	            'sender_id'   => $sender_id,
+	            'reciever_id' => $reciever_id,
+	            'message'     => encrypt_decrypt($message, $sender_id),
+	            'created_at'  => $created_at,
+	        ));
 	    }
-    }
+	    return $conv_id;
+	}
 
     function yobro_send_message($conv_id, $sender_id, $reciever_id, $message){
     	$args = array(
@@ -283,108 +192,197 @@
 		return do_store_message($args);
     }
 
-    function yobro_check_conversation_exist($post_id=0, $sender_id=0, $reciever_id=0, $forced=false){
-    	global $wpdb;
-    	if($sender_id <= 0 || $reciever_id <= 0){
-           return false;
-    	}
-    	if($sender_id == $reciever_id && $post_id > 0){
-    		$where_user = " reciever=$sender_id or sender=$sender_id ";
-    	}else{
-            $where_user = "((reciever=$reciever_id and sender=$sender_id )".($forced?" or (reciever=$sender_id and sender=$reciever_id)":"").")";
-    	}
-        //$sql = "SELECT id FROM wp_yobro_conversation where ". $where_user . ($post_id > 0 ?"and post_id = $post_id":"")." order by id ASC limit 1";
-        $sql = "SELECT id FROM wp_yobro_conversation where $where_user and post_id = ".($post_id > 0 ?"$post_id":"0")." order by id ASC limit 1";
-		return $wpdb->get_var($sql);
+    /**
+ * Konuşmanın var olup olmadığını kontrol eder.
+ */
+function yobro_check_conversation_exist($post_id = 0, $sender_id = 0, $reciever_id = 0, $forced = false) {
+    global $wpdb;
+
+    if ($sender_id <= 0 || $reciever_id <= 0) {
+        return false;
     }
 
-    function yobro_remove_conversation($sender, $reciever, $post_id){
-    	global $wpdb;
-    	if($sender){
-    	    foreach($sender as $sender_id){
-    	   	    $conv_id = $wpdb->get_var("select id from wp_yobro_conversation where sender=".$sender_id." and reciever=".$reciever." and post_id=".$post_id);
-    	   	    yobro_remove_conversation_by_id($conv_id);
-    	    }
-    	}
+    $post_id = (int)$post_id;
+    $table = $wpdb->prefix . "yobro_conversation";
+
+    if ($sender_id == $reciever_id && $post_id > 0) {
+        // Aynı kullanıcılar arasındaki konuşma
+        $where_user = $wpdb->prepare("(reciever = %d OR sender = %d)", $sender_id, $sender_id);
+    } else {
+        // İki farklı kullanıcı arasındaki konuşma
+        $condition = "(reciever = %d AND sender = %d)";
+        if ($forced) {
+            $condition = "((reciever = %d AND sender = %d) OR (reciever = %d AND sender = %d))";
+            $where_user = $wpdb->prepare($condition, $reciever_id, $sender_id, $sender_id, $reciever_id);
+        } else {
+            $where_user = $wpdb->prepare($condition, $reciever_id, $sender_id);
+        }
     }
-    function yobro_remove_conversation_by_post($post_id){
-    	global $wpdb;
-    	$conversations = $wpdb->get_results("select id from wp_yobro_conversation where post_id=".$post_id);
-    	if($conversations){
-    	   $conversations = wp_list_pluck($conversations, "id");
-    	   foreach($conversations as $conversation){
-    	   	  yobro_remove_conversation_by_id($conversation);
-    	   }
-    	}
+
+    $sql = "SELECT id FROM {$table} WHERE $where_user AND post_id = %d ORDER BY id ASC LIMIT 1";
+    return $wpdb->get_var($wpdb->prepare($sql, $post_id));
+}
+
+/**
+ * Belirli bir konuşmayı ve o konuşmaya ait tüm mesajları siler.
+ */
+function yobro_remove_conversation_by_id($conv_id) {
+    global $wpdb;
+    $conv_id = (int)$conv_id;
+
+    if ($conv_id > 0) {
+        // Mesajları sil
+        $wpdb->delete($wpdb->prefix . "yobro_messages", array('conv_id' => $conv_id), array('%d'));
+        // Konuşmayı sil
+        $wpdb->delete($wpdb->prefix . "yobro_conversation", array('id' => $conv_id), array('%d'));
     }
-    function yobro_remove_conversation_by_user($user_id){
-    	global $wpdb;
-    	$conversations = $wpdb->get_results("select id from wp_yobro_conversation where sender=$user_id or reciever=$user_id");
-    	if($conversations){
-    	   $conversations = wp_list_pluck($conversations, "id");
-    	   foreach($conversations as $conversation){
-    	   	  yobro_remove_conversation_by_id($conversation);
-    	   }
-    	}
+}
+
+/**
+ * Bir kullanıcıya ait tüm konuşmaları temizler.
+ */
+function yobro_remove_conversation_by_user($user_id) {
+    global $wpdb;
+    $user_id = (int)$user_id;
+
+    $table = $wpdb->prefix . "yobro_conversation";
+    $conversations = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$table} WHERE sender = %d OR reciever = %d", $user_id, $user_id));
+
+    if (!empty($conversations)) {
+        foreach ($conversations as $conversation_id) {
+            yobro_remove_conversation_by_id($conversation_id);
+        }
     }
-    function yobro_remove_conversation_by_id($conv_id){
-    	global $wpdb;
-    	if($conv_id > 0){
-    	   	$wpdb->delete( "wp_yobro_messages", array( 'conv_id' => $conv_id ) );
-    	   	$wpdb->delete( "wp_yobro_conversation", array( 'id' => $conv_id ) );  	   	  	
-    	}
+}
+
+/**
+ * Bir ilana (post) ait tüm konuşmaları temizler.
+ */
+function yobro_remove_conversation_by_post($post_id) {
+    global $wpdb;
+    $post_id = (int)$post_id;
+
+    $table = $wpdb->prefix . "yobro_conversation";
+    $conversations = $wpdb->get_col($wpdb->prepare("SELECT id FROM {$table} WHERE post_id = %d", $post_id));
+
+    if (!empty($conversations)) {
+        foreach ($conversations as $conversation_id) {
+            yobro_remove_conversation_by_id($conversation_id);
+        }
     }
+}
 
 
 
-    function yobro_has_reciever_conservations($user_id=0){
-		global $wpdb;
-		if($user_id == 0){
-		   $user_id = get_current_user_id();
-		}
-        $sql = "SELECT COUNT(DISTINCT conv_id) FROM wp_yobro_messages where reciever_id=$user_id";
-		return $wpdb->get_var($sql);
+    /**
+ * Kullanıcının kaç farklı kişiden mesaj (konuşma) aldığını sayar.
+ */
+function yobro_has_reciever_conservations($user_id = 0) {
+    global $wpdb;
+    if ($user_id == 0) {
+        $user_id = get_current_user_id();
+    }
+    
+    // COUNT(DISTINCT) sorgusu performansı etkiler, prepare ile koruyoruz.
+    $sql = $wpdb->prepare(
+        "SELECT COUNT(DISTINCT conv_id) FROM {$wpdb->prefix}yobro_messages WHERE reciever_id = %d",
+        $user_id
+    );
+    return $wpdb->get_var($sql);
+}
+
+/**
+ * Konuşmanın genel bilgilerini (meta verilerini) tek bir satır olarak döner.
+ */
+function yobro_get_conversation_row($conv_id = 0) {
+    global $wpdb;
+    
+    // DISTINCT * yerine direkt get_row kullanmak daha mantıklı.
+    $sql = $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}yobro_conversation WHERE id = %d LIMIT 1",
+        $conv_id
+    );
+    return $wpdb->get_row($sql);
+}
+
+/**
+ * Bir konuşmaya ait tüm mesajları tarih sırasına göre getirir.
+ */
+function yobro_get_conversation($conv_id = 0) {
+    global $wpdb;
+    
+    // Mesajları çekerken ID ve zaman damgası kontrolü önemli.
+    $sql = $wpdb->prepare(
+        "SELECT id, conv_id, sender_id, message, created_at 
+         FROM {$wpdb->prefix}yobro_messages 
+         WHERE conv_id = %d 
+         ORDER BY created_at ASC",
+        $conv_id
+    );
+    return $wpdb->get_results($sql);
+}
+
+/**
+ * Konuşma verilerini dizi (array) formatında döner.
+ */
+function yobro_get_conversation_data($conv_id = 0) {
+    global $wpdb;
+    
+    $sql = $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}yobro_conversation WHERE id = %d LIMIT 1",
+        $conv_id
+    );
+    return $wpdb->get_results($sql);
+}
+
+    function yobro_get_reciever_conversations($user_id) {
+	    global $wpdb;
+	    // wp_yobro_conversation -> {$wpdb->prefix}yobro_conversation
+	    // wp_posts -> {$wpdb->posts}
+	    // wp_users -> {$wpdb->users}
+	    
+	    $sql = $wpdb->prepare("
+	        SELECT c.id as conversation_id, t.post_title as title, u.display_name as agent 
+	        FROM {$wpdb->prefix}yobro_conversation c
+	        INNER JOIN {$wpdb->posts} t ON c.post_id = t.ID
+	        INNER JOIN {$wpdb->users} u ON c.sender = u.ID
+	        WHERE t.post_type = 'project' 
+	        AND c.reciever = %d
+	    ", $user_id);
+	    
+	    return $wpdb->get_results($sql);
 	}
-	function yobro_get_conversation_row($conv_id=0){
-    	global $wpdb;
-    	$sql = "SELECT DISTINCT *
-					  FROM wp_yobro_conversation 
-					  where id = ".$conv_id;
-		return $wpdb->get_row($sql);
-    }
 
-	function yobro_get_conversation($conv_id=0){
-    	global $wpdb;
-    	$sql = "SELECT DISTINCT messages.id, messages.conv_id, messages.sender_id, messages.message, messages.created_at
-					  FROM wp_yobro_messages messages
-					  where messages.conv_id = $conv_id
-					  order by messages.created_at ASC";
-		return $wpdb->get_results($sql);
-    }
+	function yobro_get_sender_conversations($user_id) {
+	    global $wpdb;
+	    
+	    $sql = $wpdb->prepare("
+	        SELECT c.id as conversation_id, t.post_title as title, u.display_name as agent 
+	        FROM {$wpdb->prefix}yobro_conversation c
+	        INNER JOIN {$wpdb->posts} t ON c.post_id = t.ID
+	        INNER JOIN {$wpdb->users} u ON c.sender = u.ID
+	        WHERE t.post_type = 'project' 
+	        AND c.sender = %d
+	    ", $user_id);
+	    
+	    return $wpdb->get_results($sql);
+	}
 
-    function yobro_get_conversation_data($conv_id=0){
-    	global $wpdb;
-    	$sql = "SELECT DISTINCT *
-					  FROM wp_yobro_conversation
-					  where id = $conv_id limit 1";
-		return $wpdb->get_results($sql);
-    }
-
-    function yobro_get_reciever_conversations($user_id){
-    	global $wpdb;
-    	$sql = "Select c.id as conversation_id, t.post_title as title, u.display_name as agent from wp_yobro_conversation c, wp_posts t, wp_users u where t.post_type='project' and c.reciever=".$user_id." and c.post_id = t.ID and c.sender = u.ID";
-    	return $wpdb->get_results($sql);
-    }
-    function yobro_get_sender_conversations($user_id){
-    	global $wpdb;
-    	$sql = "Select c.id as conversation_id, t.post_title as title, u.display_name as agent from wp_yobro_conversation c, wp_posts t, wp_users u where t.post_type='project' and c.sender=".$user_id." and c.post_id = t.ID and c.sender = u.ID";
-    	return $wpdb->get_results($sql);
-    }
-    function yobro_get_all_conversations($user_id){
-    	global $wpdb;
-    	$sql = "Select c.id as conversation_id, t.post_title as title from wp_yobro_conversation c, wp_posts t, wp_users u where t.post_type='project' and (c.sender=".$user_id." or c.reciever=".$user_id.") and c.post_id = t.ID and c.sender = u.ID";
-    	return $wpdb->get_results($sql);
-    }
+	function yobro_get_all_conversations($user_id) {
+	    global $wpdb;
+	    
+	    // Not: Burada 'u.display_name' kısmını sender'a göre alıyoruz, 
+	    // ama 'all' dediğin için display_name kafa karıştırabilir, sadece başlıkları bıraktım.
+	    $sql = $wpdb->prepare("
+	        SELECT c.id as conversation_id, t.post_title as title 
+	        FROM {$wpdb->prefix}yobro_conversation c
+	        INNER JOIN {$wpdb->posts} t ON c.post_id = t.ID
+	        WHERE t.post_type = 'project' 
+	        AND (c.sender = %d OR c.reciever = %d)
+	    ", $user_id, $user_id);
+	    
+	    return $wpdb->get_results($sql);
+	}
 
     function yobro_create_conversation_dropdown($user_id){
     	$chat_page_url = get_account_endpoint_url('messages');
@@ -459,105 +457,119 @@
 	}
 
     
-    function yobro_get_conversation_last_message($conv_id=0, $sender_id=0){
-    	global $wpdb;
-    	$sql = "SELECT DISTINCT messages.id, messages.conv_id, messages.sender_id, messages.message, messages.created_at, messages.seen
-					  FROM wp_yobro_messages messages
-					  where messages.conv_id = $conv_id ".
-					  ($sender_id>0?" and sender_id=".$sender_id:"").
-					  " order by messages.created_at DESC limit 1";
-		$results = $wpdb->get_results($sql);
-		if(count($results)>0){
-			$results=$results[0];
-		}
-		return $results;
-    } 
-	function yobro_get_post_conversations($post_id=0, $user_id=0){
-		global $wpdb;
-	    $sql = "SELECT DISTINCT messages.created_at, messages.conv_id, conversation.post_id, conversation.sender, conversation.reciever, (count(messages.id) - count(messages.seen)) as new_messages, messages.message, messages.created_at, messages.seen
-					FROM 
-						wp_yobro_messages messages 
-					INNER JOIN 
-						wp_yobro_conversation conversation 
-					ON 
-						messages.conv_id = conversation.id 
-					where 
-						(conversation.reciever=$user_id or conversation.sender=$user_id) ".($post_id>0?" and conversation.post_id=$post_id ":"").
-					"group by 
-						messages.conv_id 
-					order by new_messages DESC, messages.created_at DESC";
-		$results =  $wpdb->get_results($sql);
-        $output = array();
-		foreach($results as $result){
-			$sender_id = $user_id==$result->sender?$result->reciever:$result->sender;
-			$sender = new User($sender_id);
-			$message = yobro_get_conversation_last_message($result->conv_id);
-            $item = array(
-	    		"id"      => $result->conv_id,
-	    		"post_id"      => $result->post_id,
-                "sender"  => array(
-                	             "id"    => $sender_id,
-                	             "image" => $sender->get_avatar_url,
-                	             "name"  => $sender->get_title
-                ),
-                "message" => "",
-                //"url"     => $chat_page_url.$url_query,
-                "new_messages" => 0,
-                "time"    => $result->created_at
-	    	);
-	    	if($message){
-	    		/*$item["sender"] = array(
-                	             "id"    => $message->sender_id,
-                	             "image" => $sender->get_avatar_url,
-                	             "name"  => $sender->get_title
-                );*/
-                $item["message"] = removeUrls(strip_tags(encrypt_decrypt($message->message, $message->sender_id, 'decrypt')));
-                $item["new_messages"] = $result->new_messages;
-                $item["time"] = $message->created_at;
-                $item["seen"] = $message->seen;
-	    	}
-            $output[] = $item;
-		}
-		return $output;	
-	}
+    /**
+ * Bir konuşmadaki son mesajı getirir.
+ */
+function yobro_get_conversation_last_message($conv_id = 0, $sender_id = 0) {
+    global $wpdb;
+    $conv_id = (int)$conv_id;
+    $sender_id = (int)$sender_id;
 
-	function yobro_get_unseen_by($conv_id = 0, $user_id = 0){
-		global $wpdb;
-    	$sql = "SELECT DISTINCT *
-				FROM wp_yobro_messages 
-				where conv_id =". $conv_id ." and reciever_id = ".$user_id." and seen is null order by created_at asc";
-		$items = $wpdb->get_results($sql, ARRAY_A);
-        foreach($items as $key => $item){
-		        $items[$key]["message"] = encrypt_decrypt($item["message"], $item["sender_id"], 'decrypt');
-				if ($item["sender_id"] == get_current_user_id()) {
-					$items[$key]["owner"] = 'true';
-					$sender = $GLOBALS["user"];
-					$reciever = new User($item["reciever_id"]);
-					$time = $sender->get_local_date($item["created_at"],  "GMT", $sender->get_timezone());
-				} else {
-					$items[$key]["owner"] = 'false';
-					$sender = new User($item["reciever_id"]);
-					$reciever = $GLOBALS["user"];
-					$time = $sender->get_local_date($item["created_at"], "GMT", $sender->get_timezone());
-				}
-				if (get_avatar($item["sender_id"])) {
-					$items[$key]["pic"] =  get_avatar($item["sender_id"]);
-				} else {
-					$items[$key]["pic"] =  get_avatar($item["sender_id"]);
-				}
+    $sender_query = $sender_id > 0 ? $wpdb->prepare(" AND sender_id = %d", $sender_id) : "";
 
-				if (isset($item["attachment_id"]) && $item["attachment_id"] != null) {
-					$items[$key]["attachments"] = YoBro\App\Attachment::where('id', '=', $item["attachment_id"])->first();
-				}
-				$items[$key]["reciever_name"] = get_user_name_by_id($item["reciever_id"]) ?  get_user_name_by_id($item["reciever_id"]) : 'Untitled';
-				$items[$key]["sender_name"] = get_user_name_by_id($item["sender_id"]) ?  get_user_name_by_id($item["sender_id"]) : 'Untitled';
-				$timeAgo = new Westsworld\TimeAgo();
-				$time = $timeAgo->inWordsFromStrings($time);
-				$items[$key]["created_at"] = $time;	
-				$items[$key]["time"] = $time;	
+    $sql = $wpdb->prepare("
+        SELECT id, conv_id, sender_id, message, created_at, seen 
+        FROM {$wpdb->prefix}yobro_messages 
+        WHERE conv_id = %d $sender_query 
+        ORDER BY created_at DESC LIMIT 1
+    ", $conv_id);
+
+    return $wpdb->get_row($sql);
+}
+
+/**
+ * Belirli bir ilana ait konuşmaları ve okunmamış mesaj sayılarını listeler.
+ */
+function yobro_get_post_conversations($post_id = 0, $user_id = 0) {
+    global $wpdb;
+    $post_id = (int)$post_id;
+    $user_id = (int)$user_id;
+
+    $post_query = $post_id > 0 ? $wpdb->prepare(" AND conversation.post_id = %d", $post_id) : "";
+
+    $sql = $wpdb->prepare("
+        SELECT 
+            m.conv_id, 
+            c.post_id, 
+            c.sender, 
+            c.reciever, 
+            (COUNT(m.id) - COUNT(m.seen)) as new_messages, 
+            MAX(m.created_at) as last_date
+        FROM {$wpdb->prefix}yobro_messages m
+        INNER JOIN {$wpdb->prefix}yobro_conversation c ON m.conv_id = c.id
+        WHERE (c.reciever = %d OR c.sender = %d) $post_query
+        GROUP BY m.conv_id
+        ORDER BY new_messages DESC, last_date DESC
+    ", $user_id, $user_id);
+
+    $results = $wpdb->get_results($sql);
+    $output = array();
+
+    foreach ($results as $result) {
+        $other_user_id = ($user_id == $result->sender) ? $result->reciever : $result->sender;
+        $other_user = new User($other_user_id);
+        $last_msg = yobro_get_conversation_last_message($result->conv_id);
+
+        $item = array(
+            "id"           => $result->conv_id,
+            "post_id"      => $result->post_id,
+            "sender"       => array(
+                "id"    => $other_user_id,
+                "image" => $other_user->get_avatar_url,
+                "name"  => $other_user->get_title
+            ),
+            "message"      => "",
+            "new_messages" => (int)$result->new_messages,
+            "time"         => $result->last_date
+        );
+
+        if ($last_msg) {
+            $item["message"] = removeUrls(strip_tags(encrypt_decrypt($last_msg->message, $last_msg->sender_id, 'decrypt')));
+            $item["time"]    = $last_msg->created_at;
+            $item["seen"]    = $last_msg->seen;
         }
-        return $items;
-	}
+        $output[] = $item;
+    }
+    return $output;
+}
+
+/**
+ * Bir kullanıcıya gelen ancak henüz görülmemiş mesajları detaylı getirir.
+ */
+function yobro_get_unseen_by($conv_id = 0, $user_id = 0) {
+    global $wpdb;
+    $current_uid = get_current_user_id();
+
+    $sql = $wpdb->prepare("
+        SELECT * FROM {$wpdb->prefix}yobro_messages 
+        WHERE conv_id = %d AND reciever_id = %d AND seen IS NULL 
+        ORDER BY created_at ASC
+    ", $conv_id, $user_id);
+
+    $items = $wpdb->get_results($sql, ARRAY_A);
+    $timeAgo = new Westsworld\TimeAgo();
+
+    foreach ($items as $key => $item) {
+        $items[$key]["message"] = encrypt_decrypt($item["message"], $item["sender_id"], 'decrypt');
+        
+        // Kullanıcı nesneleri ve zaman ayarları
+        $is_owner = ($item["sender_id"] == $current_uid);
+        $items[$key]["owner"] = $is_owner ? 'true' : 'false';
+        
+        $user_obj = $is_owner ? Data::get("user") : new User($item["sender_id"]);
+        $local_time = $user_obj->get_local_date($item["created_at"], "GMT", $user_obj->get_timezone());
+        
+        $items[$key]["pic"] = get_avatar($item["sender_id"], 32);
+        $items[$key]["time"] = $timeAgo->inWordsFromStrings($local_time);
+        $items[$key]["created_at"] = $items[$key]["time"];
+
+        // Ekler (Attachment) kontrolü
+        if (!empty($item["attachment_id"])) {
+            $items[$key]["attachments"] = \YoBro\App\Attachment::where('id', '=', $item["attachment_id"])->first();
+        }
+    }
+    return $items;
+}
 
 
 
@@ -602,38 +614,55 @@ add_action( 'wp_print_styles', 'yobro_deregister_styles', 100 );
 
 
 add_filter('yobro_before_store_new_message', 'before_store_new_message');
-function before_store_new_message($message){
-	    $user = $GLOBALS["user"];
-    	$attributes = $message["attributes"];
 
-    	$created_at = new DateTime("now");
-        $created_at->setTimezone(new DateTimeZone('GMT'));
-        $created_at = $created_at->format("Y-m-d H:i:s");
-        
-    	$conversation = yobro_get_conversation_row($attributes["conv_id"]);
-        if($conversation->reciever == $user->ID){
-        	$other_id = $conversation->sender;
-        }else{
-        	$other_id = $conversation->reciever;
-        }
-        global $wpdb;
-        $wpdb->query("UPDATE wp_yobro_messages SET reciever_id=".$other_id." WHERE id=".$attributes['id']);
-        $wpdb->query("UPDATE wp_yobro_messages SET created_at='".$created_at."' WHERE id=".$attributes['id']);
-    	//$this->send_mail($post_id, "on_sent_new_message", 0, $attrs);
+function before_store_new_message($message) {
+    global $wpdb;
+    
+    $user = Data::get("user");
+    $attributes = $message["attributes"];
+    $msg_id = (int)$attributes['id'];
 
-    	$timeAgo = new Westsworld\TimeAgo();
-    	$created_at = $user->get_local_date($created_at, "GMT", $user->get_timezone(), "Y-m-d H:i:s");
-    	$created_at = $timeAgo->inWordsFromStrings($created_at);
-	    $attributes["created_at"] = $created_at;
-    	return $attributes;
+    // 1. Zamanı WordPress standartlarında GMT olarak alıyoruz
+    $created_at_gmt = current_time('mysql', 1); 
+    
+    // 2. Konuşma verisini çekiyoruz (zaten hazırladığımız güvenli fonksiyonu kullanıyor)
+    $conversation = yobro_get_conversation_row($attributes["conv_id"]);
+    
+    if (!$conversation) {
+        return $attributes;
+    }
+
+    // Alıcıyı belirle
+    $other_id = ($conversation->reciever == $user->ID) ? $conversation->sender : $conversation->reciever;
+
+    // 3. Tek bir UPDATE sorgusu ile hem alıcıyı hem zamanı güncelliyoruz
+    // wp_ prefix'i yerine dinamik prefix ve prepare süzgeci
+    $wpdb->update(
+        "{$wpdb->prefix}yobro_messages",
+        array(
+            'reciever_id' => (int)$other_id,
+            'created_at'  => $created_at_gmt
+        ),
+        array('id' => $msg_id),
+        array('%d', '%s'),
+        array('%d')
+    );
+
+    // 4. TimeAgo formatlaması
+    $timeAgo = new Westsworld\TimeAgo();
+    $local_date = $user->get_local_date($created_at_gmt, "GMT", $user->get_timezone(), "Y-m-d H:i:s");
+    
+    $attributes["created_at"] = $timeAgo->inWordsFromStrings($local_date);
+    
+    return $attributes;
 }
 
 add_filter('yobro_after_store_message', 'after_store_new_message');
 function after_store_new_message($message){
-    $user = $GLOBALS["user"];
+    $user = Data::get("user");
 	$attributes = $message;
 
-    $salt = new Salt();
+    $salt = Salt::get_instance();//new Salt();
     $reciever_is_online = $salt->user_is_online($attributes["reciever_id"]);
             
     if(!$reciever_is_online){
@@ -661,7 +690,7 @@ function yobro_pull_messages($messages){
 	if(empty($conv_id)){
 		$conv_id = $_POST['conv_id'];
 	}
-	$user = $GLOBALS["user"];
+	$user = Data::get("user");
 	$messages_unseen = yobro_get_unseen_by($conv_id, $user->ID);
 	$messages["new_unseen_messages"] = $messages_unseen;
 	return $messages;
@@ -677,7 +706,7 @@ function yobro_grab_conversation_message($messages=array()){
 				$sender_id = $message["sender_id"];
 				$time = $message["time"];
 				$created_at = $message["created_at"];
-				$user = $GLOBALS["user"];
+				$user = Data::get("user");
 				$sender = new User($sender_id);
 				$reciever = new User($reciever_id);
 				if($message["owner"] == "true"){
@@ -696,8 +725,24 @@ function yobro_grab_conversation_message($messages=array()){
 
 
 add_filter("yobro_message_deleted", "yobro_on_delete_message");
-function yobro_on_delete_message($message_id){
-	global $wpdb;
-	$conv_id = $wpdb->get_results("select conv_id from wp_yobro_messages where id=".$message_id);
-}
 
+function yobro_on_delete_message($message_id) {
+    global $wpdb;
+
+    // 1. message_id'nin tam sayı olduğundan emin oluyoruz (Güvenlik)
+    $message_id = (int)$message_id;
+    if ($message_id <= 0) return;
+
+    // 2. get_var kullanarak tek bir hücre (conv_id) çekiyoruz. 
+    // Prepare ve dinamik prefix ile zırhlı hale getirdik.
+    $conv_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT conv_id FROM {$wpdb->prefix}yobro_messages WHERE id = %d",
+        $message_id
+    ));
+
+    // Buradan sonra $conv_id ile ne yapacaksan (Örn: konuşmayı güncelleme, log tutma vb.)
+    // güvenle yapabilirsin abi.
+    if ($conv_id) {
+        // İşlemlerin...
+    }
+}

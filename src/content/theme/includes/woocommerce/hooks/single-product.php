@@ -431,7 +431,7 @@ function ec_child_modify_wc_variation_desc_position() {
               }
          });
          $( ".variations_form" ).on( "woocommerce_variation_select_change", function (e) {
-              //console.log(e)
+              //debugJS(e)
          });
      })( jQuery );
 </script>

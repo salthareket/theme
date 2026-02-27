@@ -1,313 +1,261 @@
 <?php
+/**
+ * QueryCache Engine v6.7 - "The DB Crusher"
+ * Sorun: Bulk Cache boşken tek tek sorgu atıyordu.
+ * Çözüm: Bulk boşsa, SQL ile tüm options_% verilerini tek seferde çeker.
+ */
 
 class QueryCache {
 
-    // --- SABİTLER (CONSTANTS) ---
-    const MANIFEST_OPTION_KEY = 'salt_query_cache_manifest';
-    const CACHE_KEY_PREFIX = 'custom_query_';
-    const ACF_BULK_OPTION_KEY = 'salt_options_bulk';
+    const PREFIX              = 'qcache_';
+    const DEFAULT_TTL         = 30 * DAY_IN_SECONDS;
+    const ACF_BULK_OPTION_KEY = 'qcache_options_bulk';
+    const NOT_FOUND           = '__QC_NF__'; 
 
-    /** @var bool Tüm cache sistemini devre dışı bırakır */
-    public static $disable_caching = false; // TRUE ise tüm cache'ler bypass edilir
+    public static $cache        = true; 
+    public static $enable_admin = false;
+    public static $ttl          = self::DEFAULT_TTL;
 
-    /** @var array|null ACF option'ları için Ram Cache (Tek veritabanı sorgusu için) */
-    protected static $bulk_options = null;
-    
-    // --- BAŞLANGIÇ VE HOOK KAYITLARI ---
+    public static $config = [
+        'wrap'       => true,
+        'get_field'  => true,
+        'get_posts'  => true,
+        'get_post'   => true,
+        'get_terms'  => true,
+        'get_term'   => true,
+        'wp_options' => true,
+        'menu'       => true
+    ];
+
+    protected static $runtime_cache    = [];
+    protected static $initial_hashes   = []; 
+    private static   $is_processing    = false; 
+    private static   $is_saving        = false; 
+
+    public static function init($args = []) {
+        if (isset($args['cache'])) self::$cache = $args['cache'];
+        if (isset($args['ttl']))   self::$ttl   = $args['ttl'];
+        if (is_admin() && !self::$enable_admin) { self::$cache = false; return; }
+
+        if (isset($options['config']) && is_array($options['config'])) {
+            self::$config = array_merge(self::$config, $options['config']);
+        }
+
+        $class = get_called_class();
+
+        add_action('updated_option', [$class, 'rebuild_options_bulk'], 10, 3);
+        add_action('added_option',   [$class, 'rebuild_options_bulk'], 10, 3);
+        add_action('deleted_option', [$class, 'rebuild_options_bulk'], 10, 3);
+
+        add_action('save_post', [$class, 'handle_post_change'], 10, 3);
+        add_action('delete_post', [$class, 'handle_post_change']);
+        add_action('transition_post_status', function($new, $old, $post) use ($class) {
+            if ($new === 'publish' || $old === 'publish') $class::handle_post_change($post->ID);
+        }, 10, 3);
+
+        add_action('created_term', [$class, 'handle_term_change'], 99, 3);
+        add_action('edited_term',  [$class, 'handle_term_change'], 99, 3);
+        add_action('delete_term',  [$class, 'handle_term_change'], 99, 3);
+
+        // OTOMATİK MENÜ KANCASI
+        if (self::$config['menu']) {
+            add_filter('pre_wp_nav_menu', [$class, 'get_menu_cache'], 10, 2);
+            add_filter('wp_nav_menu', [$class, 'set_menu_cache'], 10, 2);
+        }
+
+        add_action('shutdown', [$class, 'save_runtime_manifest'], 999);
+    }
 
     /**
-     * Sınıfın hook'larını WordPress'e kaydeder.
-     * Bu metot, sınıf tanımlandıktan sonra bir kere çağrılmalıdır.
-     * Örneğin: SaltBase::initialize_hooks();
+     * EKSİK OLAN MANTIK BURASI:
+     * Eğer bulk cache yoksa, gidip 'options_%' ile başlayan her şeyi tek SQL'de alır.
      */
-    public static function initialize_hooks() {
-        if (self::$disable_caching) return;
+    private static function ensure_bulk_loaded($bulk_key) {
+        if (isset(self::$runtime_cache[$bulk_key])) return;
 
-        // Query Cache Manifest Temizleme Hook'ları
-        add_action('save_post', [__CLASS__, 'clear_cache_on_post_change'], 20, 2);
-        add_action('deleted_post', [__CLASS__, 'clear_cache_on_post_change'], 20, 2);
-        add_action('edit_term', [__CLASS__, 'clear_cache_on_term_change'], 20, 3);
-        add_action('delete_term', [__CLASS__, 'clear_cache_on_term_change'], 20, 4);
+        // Önce mevcut cache'i kontrol et
+        $stored = get_option($bulk_key);
 
-        // ACF Option Cache Yönetimi Hook'ları
-        // Bu hook'lar statik olmayan metotları işaret etmeli (Örnek oluşturulacaksa) veya static yapılmalı.
-        // Basitlik ve tutarlılık için Hepsini static yapıyoruz.
-        add_action('acf/update_value', [__CLASS__, 'clear_cached_option_on_update'], 19, 3);
-        add_action('acf/save_post', [__CLASS__, 'rebuild_salt_options_cache'], 99, 1);
-        add_filter('acf/load_value', [__CLASS__, 'load_value_to_cache'], 20, 3);
-    }
-    
-    // --- QUERY CACHE İŞLEMLERİ (MANIFEST DESTEKLİ) ---
-
-    /** 🔥 WP_Query sonuçlarını cache'li veya cache'siz getirir */
-    public static function get_cached_query($args = [], $mode = 'object') {
-
-        if (self::$disable_caching) {
-            return self::run_query($args, $mode);
-        } 
-
-        // Cache anahtarını post tipi ve mode bilgisi ile oluşturuyoruz (hata ayıklamada kolaylık)
-        $post_type_identifier = isset($args['post_type']) ? (is_array($args['post_type']) ? implode('_', $args['post_type']) : $args['post_type']) : 'any';
-        $cache_key = self::CACHE_KEY_PREFIX . $post_type_identifier . '_' . $mode . '_' . md5(serialize($args));
-        
-        $cached = get_transient($cache_key);
-
-        if ($cached === false) {
-            $cached = self::run_query($args, $mode);
+        if (empty($stored) && $bulk_key === self::ACF_BULK_OPTION_KEY) {
+            // 🔥 KRİTİK NOKTA: Cache boşsa DB'yi süpür!
+            global $wpdb;
+            $results = $wpdb->get_results("SELECT option_name, option_value FROM $wpdb->options WHERE option_name LIKE 'options_%'");
             
-            // Manifest'e kaydetme: Önbellek hangi post/term değişikliğinde silinecek?
-            $dependencies = self::extract_dependencies_from_args($args);
-            self::register_cache_key($cache_key, $dependencies);
-            
-            set_transient($cache_key, $cached, HOUR_IN_SECONDS);
+            $stored = [];
+            foreach ($results as $row) {
+                // ACF verilerini unserialize et (WordPress get_option mantığıyla)
+                $stored[$row->option_name] = maybe_unserialize($row->option_value);
+            }
         }
 
-        return $cached;
+        self::$runtime_cache[$bulk_key] = is_array($stored) ? $stored : [];
+        self::$initial_hashes[$bulk_key] = md5(serialize(self::$runtime_cache[$bulk_key]));
     }
 
-    /** 🔎 WP_Query çalıştırır ve istenen formata çevirir (QueryCache'ten alındı) */
-    protected static function run_query($args, $mode) {
-        $query = new WP_Query($args);
+    public static function get_field($selector, $post_id = null, $format = true) {
+        if (!function_exists("get_field") || !self::$cache) return get_field($selector, $post_id, $format);
 
-        return match ($mode) {
-            'posts' => $query->posts,
-            'data' => [
-                'posts' => $query->posts,
-                'found_posts' => $query->found_posts,
-                'max_num_pages' => $query->max_num_pages,
-                // ... diğer query istatistikleri
-            ],
-            default => $query,
-        };
-    }
-
-    // --- MANIFEST İŞLEMLERİ (ÖNBELLEK TEMİZLEME HARİTASI) ---
-
-    private static function get_manifest() {
-        return get_option(self::MANIFEST_OPTION_KEY, []);
-    }
-
-    private static function save_manifest($manifest) {
-        update_option(self::MANIFEST_OPTION_KEY, $manifest);
-    }
-
-    private static function register_cache_key($cache_key, $dependencies) {
-        $manifest = self::get_manifest();
+        $post_id = $post_id ?: get_the_ID();
+        $resolved = self::resolve_acf_target($post_id);
         
-        foreach ($dependencies as $type => $value) {
-            if (!isset($manifest[$type])) $manifest[$type] = [];
-            if (!isset($manifest[$type][$value])) $manifest[$type][$value] = [];
-
-            if (!in_array($cache_key, $manifest[$type][$value])) {
-                $manifest[$type][$value][] = $cache_key;
-            }
-        }
-        self::save_manifest($manifest);
-    }
-
-    private static function extract_dependencies_from_args($args) {
-        $dependencies = [];
-
-        // 1. Post Tipi Bağımlılığı (Örn: post_type => news)
-        $post_type = isset($args['post_type']) ? (array) $args['post_type'] : ['post'];
-        $dependencies['post_type'] = $post_type[0]; // Sadece ilk post tipini kullanıyoruz
-
-        // 2. Taksonomi Bağımlılığı (Örn: taxonomy => category:15)
-        if (!empty($args['tax_query'])) {
-            foreach ($args['tax_query'] as $tax_query) {
-                if (isset($tax_query['taxonomy']) && isset($tax_query['terms'])) {
-                    $taxonomy = $tax_query['taxonomy'];
-                    $terms = (array) $tax_query['terms'];
-                    
-                    foreach ($terms as $term_id) {
-                        $dependencies['taxonomy'] = $taxonomy . ':' . $term_id; 
-                    }
-                }
-            }
-        }
-        return $dependencies;
-    }
-    
-    // --- QUERY CACHE TEMİZLEME MEKANİZMASI ---
-
-    public static function clear_cache_on_post_change($post_id, $post = null) {
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
-        if (wp_is_post_revision($post_id)) return;
-        if (self::$disable_caching) return;
+        $bulk_key = ($resolved['type'] === 'opt') ? self::ACF_BULK_OPTION_KEY : self::PREFIX . $resolved['type'] . '_' . $resolved['id'] . '_bulk';
         
-        $dependencies_to_clear = [];
-        $post_type = get_post_type($post_id);
-        
-        // Post Type bağımlılığını ekle
-        $dependencies_to_clear['post_type'] = $post_type;
+        self::ensure_bulk_loaded($bulk_key);
 
-        // İlişkili olduğu tüm taksonomi/term bağımlılıklarını ekle
-        $taxonomies = get_object_taxonomies($post_type);
-        foreach ($taxonomies as $taxonomy) {
-            $terms = wp_get_post_terms($post_id, $taxonomy, ['fields' => 'ids']);
-            foreach ($terms as $term_id) {
-                $dependencies_to_clear['taxonomy'] = $taxonomy . ':' . $term_id; 
-            }
+        $check_key = ($resolved['type'] === 'opt' && strpos($selector, 'options_') !== 0) ? 'options_' . $selector : $selector;
+
+        if (array_key_exists($check_key, self::$runtime_cache[$bulk_key])) {
+            $val = self::$runtime_cache[$bulk_key][$check_key];
+            return ($val === self::NOT_FOUND) ? false : $val;
         }
 
-        self::process_cache_clearing($dependencies_to_clear);
-    }
-    
-    public static function clear_cache_on_term_change($term_id, $tt_id, $taxonomy) {
-        if (self::$disable_caching) return;
-        // Sadece bu taksonomi/term bağımlılığını temizle
-        self::process_cache_clearing(['taxonomy' => $taxonomy . ':' . $term_id]);
-    }
+        // Eğer hala yoksa (tekil bir field ise bulk içinde olmayabilir)
+        self::$is_processing = true;
+        $value = get_field($selector, $post_id, $format);
+        self::$is_processing = false;
 
-    private static function process_cache_clearing($dependencies_to_clear) {
-        $manifest = self::get_manifest();
-        $keys_to_delete = [];
-
-        foreach ($dependencies_to_clear as $type => $value) {
-            if (isset($manifest[$type][$value])) {
-                $keys_to_delete = array_merge($keys_to_delete, $manifest[$type][$value]);
-                
-                // Temizlenen anahtarları manifest'ten sil (pruning)
-                unset($manifest[$type][$value]);
-            }
-        }
-        self::save_manifest($manifest); // Manifest'i güncelle
-
-        $keys_to_delete = array_unique($keys_to_delete);
-        foreach ($keys_to_delete as $cache_key) {
-            delete_transient($cache_key);
-        }
-    }
-    
-    // --- ACF VE OPTION CACHE İŞLEMLERİ (QueryCache'ten alındı) ---
-
-    /** ✅ Tek bir option değerini cache'li ya da doğrudan getirir (Bulk Option Cache) */
-    public static function get_cached_option($key, $method = 'auto') {
-
-        if (self::$disable_caching) {
-            return ($method === 'acf' || ($method === 'auto' && function_exists('get_field')))
-                ? get_field($key, 'option')
-                : get_option("options_{$key}");
-        }
-
-        // Toplu cache yüklü değilse, veritabanından tek seferde çek (Bulk Load)
-        if (self::$bulk_options === null) {
-            self::$bulk_options = get_option(self::ACF_BULK_OPTION_KEY, []);
-        }
-
-        if (isset(self::$bulk_options[$key])) {
-            return self::$bulk_options[$key]; // Ram Cache hit!
-        }
-
-        $polylang_filter_found = self::remove_polylang_option_filter($key);
-
-        // Eğer bulk'ta yoksa, normal yoldan çek ve bulk'a ekle
-        $value = ($method === 'acf' || ($method === 'auto' && function_exists('get_field')))
-            ? get_field($key, 'option')
-            : get_option("options_{$key}");
-
-        self::add_polylang_option_filter($key, $polylang_filter_found);
-
-        self::$bulk_options[$key] = $value;
-        update_option(self::ACF_BULK_OPTION_KEY, self::$bulk_options);
-
-        return $value;
-    }
-    
-    /** 🧽 ACF option kaydında cache temizler */
-    public static function clear_cached_option_on_update($value, $post_id, $field) {
-        if ($post_id !== 'options' || self::$disable_caching) return $value;
-
-        // Tekil transient temizliğine gerek yok, sadece Bulk Option'ı silmek yeterli
-        delete_option(self::ACF_BULK_OPTION_KEY);
-
+        self::$runtime_cache[$bulk_key][$check_key] = ($value === null || $value === false) ? self::NOT_FOUND : $value;
         return $value;
     }
 
-    /** ♻️ ACF option cache yeniden kurar (ACF'nin save_post hook'unda) */
-    public static function rebuild_salt_options_cache($post_id) {
-        if ($post_id !== 'options' || self::$disable_caching) return;
-
-        $bulk = [];
-        // Tüm option field'larını çekip, tek bir option key'ine kaydet
-        if (function_exists('get_fields')) {
-             foreach (get_fields('option') as $k => $v) {
-                $bulk[$k] = $v;
-             }
-        }
-        update_option(self::ACF_BULK_OPTION_KEY, $bulk);
-        self::$bulk_options = $bulk; // Ram Cache'i de güncelle
-    }
-    
-    /** 🎯 ACF'den gelen field'ı RAM cache'e alır (Tekil Field Hızlandırma) */
-    public static function load_value_to_cache($value, $post_id, $field) {
-        if (self::$disable_caching) return $value;
-        if (!is_scalar($value) && !is_array($value)) return $value;
-
-        $excluded_types = ['repeater', 'flexible_content', 'gallery', 'post_object', 'file', 'image'];
-        if (isset($field['type']) && in_array($field['type'], $excluded_types)) return $value;
-
-        // wp_cache_set kullanarak hızlı Ram Cache'e kaydet
-        $key = "acf_field_{$field['name']}_{$post_id}_1";
-        wp_cache_set($key, $value, 'acf');
-
-        return $value;
-    }
-
-    private static function remove_polylang_option_filter(string $key): bool {
-        if (!function_exists('pll_current_language')) {
-            return false;
-        }
+    public static function get_option($option, $default = false) {
+        if (!self::$cache || !self::$config['wp_options'] || $option === self::ACF_BULK_OPTION_KEY) return get_option($option, $default);
         
-        global $polylang;
-        
-        // Polylang nesnesinin varlığını ve gerekli metodu kontrol et
-        if (isset($polylang) && is_object($polylang) && method_exists($polylang, 'filter_options')) {
-            // Polylang'ın get_option filtresini kaldır: 'pre_option_{$key}'
-            // Bu, Polylang'ın çeviri çekme mantığını atlayarak ACF formatlamasına izin verir.
-            if (has_filter('pre_option_' . $key, array($polylang, 'filter_options'))) {
-                remove_filter('pre_option_' . $key, array($polylang, 'filter_options'));
-                return true;
+        // Eğer option 'options_' ile başlıyorsa bulk cache'den bak
+        if (strpos($option, 'options_') === 0) {
+            self::ensure_bulk_loaded(self::ACF_BULK_OPTION_KEY);
+            if (array_key_exists($option, self::$runtime_cache[self::ACF_BULK_OPTION_KEY])) {
+                $val = self::$runtime_cache[self::ACF_BULK_OPTION_KEY][$option];
+                return ($val === self::NOT_FOUND) ? $default : $val;
             }
         }
-        return false;
-    }
-    private static function add_polylang_option_filter(string $key, bool $found): void {
-        if (!$found) {
-            return; // Filtre bulunup kaldırılmamışsa, geri eklemeye gerek yok.
-        }
 
-        global $polylang;
+        return get_option($option, $default);
+    }
+
+    public static function wrap($key, $callback) {
+        if (!self::$cache || self::$is_processing) return $callback();
+        $full_key = self::PREFIX . $key;
+        if (isset(self::$runtime_cache[$full_key])) return self::$runtime_cache[$full_key];
+        $cached = get_transient($full_key);
+        if ($cached !== false) {
+            self::$runtime_cache[$full_key] = ($cached === self::NOT_FOUND) ? null : $cached;
+            self::$initial_hashes[$full_key] = md5(serialize($cached));
+            return self::$runtime_cache[$full_key];
+        }
+        self::$is_processing = true;
+        $data = $callback();
+        self::$is_processing = false;
+        self::$runtime_cache[$full_key] = $data;
+        return $data;
+    }
+
+    /**
+     * MENÜ CACHE GETİR (Dinamik Key)
+     */
+    public static function get_menu_cache($output, $args) {
+        if (!self::$cache || self::$is_processing) return $output;
+
+        $lang = (function_exists('pll_current_language')) ? pll_current_language() : (defined('ICL_LANGUAGE_CODE') ? ICL_LANGUAGE_CODE : 'default');
+        $menu_key = 'menu_' . md5(serialize($args)) . '_' . $lang;
         
-        // Polylang nesnesinin varlığını ve gerekli metodu kontrol et
-        if (isset($polylang) && is_object($polylang) && method_exists($polylang, 'filter_options')) {
-            // Filtreyi orijinal haline geri ekle.
-            add_filter('pre_option_' . $key, array($polylang, 'filter_options'));
+        $cached = self::wrap($menu_key, function() { return null; }); // Sadece kontrol amaçlı
+        
+        $full_key = self::PREFIX . $menu_key;
+        $data = get_transient($full_key);
+
+        if ($data !== false) {
+            return ($data === self::NOT_FOUND) ? '' : $data;
+        }
+
+        return $output;
+    }
+
+    /**
+     * MENÜ CACHE KAYDET
+     */
+    public static function set_menu_cache($output, $args) {
+        if (!self::$cache || self::$is_processing || empty($output)) return $output;
+
+        $lang = (function_exists('pll_current_language')) ? pll_current_language() : (defined('ICL_LANGUAGE_CODE') ? ICL_LANGUAGE_CODE : 'default');
+        $menu_key = 'menu_' . md5(serialize($args)) . '_' . $lang;
+        
+        self::$runtime_cache[self::PREFIX . $menu_key] = $output;
+        return $output;
+    }
+
+    /**
+     * MENÜ DEĞİŞİNCE TEMİZLE
+     */
+    public static function handle_menu_change() {
+        self::purge_cache('menu_');
+    }
+
+
+
+    public static function save_runtime_manifest() {
+        if (!self::$cache || empty(self::$runtime_cache) || self::$is_saving) return;
+        self::$is_saving = true;
+        foreach (self::$runtime_cache as $key => $data) {
+            $new_hash = md5(serialize($data));
+            if (isset(self::$initial_hashes[$key]) && self::$initial_hashes[$key] === $new_hash) continue;
+            $to_save = ($data === null || $data === false || $data === '') ? self::NOT_FOUND : $data;
+            if ($key === self::ACF_BULK_OPTION_KEY) {
+                update_option($key, $data, 'no');
+            } else {
+                set_transient($key, $to_save, self::$ttl);
+            }
         }
     }
-    
-    // --- GENEL TEMİZLİK ---
-    
-    /** 🧽 Tüm (Query ve Option) cache'i temizler */
-    public static function delete_cache() {
-        if (self::$disable_caching) return;
 
+    private static function resolve_acf_target($post_id) {
+        if (is_string($post_id) && (in_array($post_id, ['options', 'option']) || strpos($post_id, 'options_') === 0)) return ['type' => 'opt', 'id' => 'global'];
+        return ['type' => 'post', 'id' => $post_id ?: 'global'];
+    }
+
+    public static function rebuild_options_bulk($option = null) {
+        if (self::$is_saving) return;
+        if ($option === null || $option === self::ACF_BULK_OPTION_KEY || (is_string($option) && strpos($option, 'options_') === 0)) {
+            delete_option(self::ACF_BULK_OPTION_KEY);
+            self::clear_all_cache();
+        }
+    }
+
+    public static function handle_post_change() { self::rebuild_options_bulk(); }
+    public static function handle_term_change() { self::rebuild_options_bulk(); }
+
+    public static function purge_cache($search = '') {
         global $wpdb;
-
-        // Query Transient'ları toplu silme
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_custom_query_%'");
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_custom_query_%'");
-
-        // Manifest ve Option Cache silme
-        delete_option(self::MANIFEST_OPTION_KEY);
-        delete_option(self::ACF_BULK_OPTION_KEY);
-
-        // WP Object Cache'i temizle (Ram Cache)
-        if (function_exists('wp_cache_flush')) {
-            wp_cache_flush();
-        }
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM $wpdb->options WHERE option_name LIKE %s OR option_name LIKE %s",
+            "_transient_" . self::PREFIX . "{$search}%",
+            "_transient_timeout_" . self::PREFIX . "{$search}%"
+        ));
+    }
+    
+    public static function clear_all_cache() {
+        global $wpdb;
+        $wpdb->query("DELETE FROM $wpdb->options WHERE option_name LIKE '_transient_qcache_%' OR option_name LIKE '_transient_timeout_qcache_%'");
     }
 }
 
-// BU KODU functions.php'nizin veya eklenti dosyanızın en altına EKLEYİN
-QueryCache::initialize_hooks();
+/**
+ * 🎯 ÖRNEK VE TAM KAPSAMLI INIT
+ */
+QueryCache::init([
+    'cache'        => true,  // Master Şalter. False yapılırsa her şey durur ve tüm cache temizlenir.
+    //'ttl'          => 30 * DAY_IN_SECONDS,
+    //'enable_admin' => false, // Admin panelinde cache çalışmasın (Güvenli mod).
+   // 'lazy_pilot'   => true,  // Aynı anda gelen 100 isteği tek bir DB sorgusuna düşürür.
+    
+    'config' => [
+        'wrap'       => true,  // QueryCache::wrap() kullanımını açar/kapatır.
+        'get_field'  => true,  // true: Tüm get_field'ları yakalar. 'manual': Sadece QueryCache::get_field. false: Temizler.
+        'get_posts'   => true, // WP'nin orjinal Query'lerini yakalar. Dikkatli kullan, pagination bozabilir.
+        'get_post'   => true,
+        'get_terms'   => true,
+        'get_term'   => true,
+        'menu'       => true,  // Menüleri ve içindeki ACF alanlarını komple paketler.
+        'wp_options' => true   // Sadece QueryCache::get_option() fonksiyonu ile çağrılanları cacheler.
+    ]
+]);

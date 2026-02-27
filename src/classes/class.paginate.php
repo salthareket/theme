@@ -175,7 +175,7 @@ Class Paginate{
 			    "SELECT option_name FROM {$wpdb->options} WHERE option_id = %d",
 			    $this->query
 			));
-            $this->query = get_option($option_name);
+            $this->query = QueryCache::get_option($option_name);
     	}
     	if($this->query_type == "encrypted"){
     		$enc = new Encrypt();
@@ -245,9 +245,16 @@ Class Paginate{
     	    $total = 0;
     	    switch($type){
     	       case "post" :
-    	            $query  = QueryCache::get_cached_query($query);
                		$result = Timber::get_posts($query);//new Timber\PostQuery($query, $class);
-               		$total  = $result->found_posts;
+               		$total = 0;
+					if ($result instanceof \Timber\PostArrayObject) {
+					    // Eğer pagination varsa Timber bunu arka planda WP_Query'den çeker
+					    $total = $result->pagination()->total; 
+					} else {
+					    // Alternatif olarak WP_Query'den global çekim (en garantisi)
+					    global $wp_query;
+					    $total = $wp_query->found_posts;
+					}
                		$posts  = $result;//->to_array();//$result->get_posts();
                		if(isset($result->max_num_pages)){
                			$page_total = $result->max_num_pages;

@@ -58,14 +58,14 @@
     {% if is_fetch and page_settings.login_required %}
 
         {% include 'my-account/form-login.twig' %}
-        {{ post.get_blocks() }}
+        {{ post.get_blocks().html }}
 
     {% else %}
 
         {% if page_settings.login_required and (not user.logged or user.get_role not in page_settings.allowed_roles) %}
             {% include 'my-account/form-login.twig' %}
         {% else %}
-            {{ post.get_blocks() }}
+            {{ post.get_blocks().html }}
         {% endif %}
 
     {% endif %}

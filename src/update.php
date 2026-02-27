@@ -139,85 +139,85 @@ class Update {
 
     private static function get_package_github_url($package_name) {
         if (!file_exists(self::$composer_lock_path)) {
-            error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
+            //error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
             return 'Unknown';
         }
         $lock_data = file_get_contents(self::$composer_lock_path);
 
         if (!$lock_data) {
-            error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
+            //error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
             return 'Unknown';
         }
 
         $lock_data = json_decode($lock_data, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('JSON parse hatası: ' . json_last_error_msg());
+            //error_log('JSON parse hatası: ' . json_last_error_msg());
             return 'Unknown';
         }
 
         if (empty($lock_data['packages'])) {
-            error_log('composer.lock dosyasında paket bulunamadı.');
+            //error_log('composer.lock dosyasında paket bulunamadı.');
             return 'Unknown';
         }
 
         foreach ($lock_data['packages'] as $package) {
             if ($package['name'] === $package_name) {
-                error_log('Github URL bulundu: '.$package_name . ":" . $package['dist']["url"]);
+                //error_log('Github URL bulundu: '.$package_name . ":" . $package['dist']["url"]);
                 $url = $package['dist']["url"];
                 return preg_replace('#/[^/]+$#', '/', $url);
             }
         }
 
-        error_log('Paket bulunamadı: '.$package_name);
+        //error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
     }
     private static function get_package_version($package_name) {
 
         if (!file_exists(self::$composer_lock_path)) {
-            error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
+            //error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
             return 'Unknown';
         }
 
         $lock_data = file_get_contents(self::$composer_lock_path);
 
         if (!$lock_data) {
-            error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
+            //error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
             return 'Unknown';
         }
 
         $lock_data = json_decode($lock_data, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('JSON parse hatası: ' . json_last_error_msg());
+            //error_log('JSON parse hatası: ' . json_last_error_msg());
             return 'Unknown';
         }
 
         if (empty($lock_data['packages'])) {
-            error_log('composer.lock dosyasında paket bulunamadı.');
+            //error_log('composer.lock dosyasında paket bulunamadı.');
             return 'Unknown';
         }
 
         foreach ($lock_data['packages'] as $package) {
             if ($package['name'] === $package_name) {
-                error_log('Mevcut sürüm bulundu: '.$package_name . ":" . $package['version']);
+                //error_log('Mevcut sürüm bulundu: '.$package_name . ":" . $package['version']);
                 return $package['version'];
             }
         }
 
-        error_log('Paket bulunamadı: '.$package_name);
+        //error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
     }
     private static function get_current_version() {
         return self::get_package_version(self::$github_repo);
     }
-    private static function get_latest_version($package_name = "") {
+    /*private static function get_latest_version($package_name = "") {
         if(empty($package_name)){
             $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
         }else{
             $url = $this->get_package_github_url($package_name).'releases/latest';
         }
-        error_log("get_latest_version -> ".$url);
+        //error_log("get_latest_version -> ".$url);
         $response = wp_remote_get($url, [
             'headers' => [
                 'Accept' => 'application/vnd.github.v3+json',
@@ -227,7 +227,7 @@ class Update {
         ]);
 
         if (is_wp_error($response)) {
-            error_log('HTTP request error: ' . $response->get_error_message());
+            //error_log('HTTP request error: ' . $response->get_error_message());
             return 'Error';
         }
 
@@ -235,7 +235,7 @@ class Update {
         $data = json_decode($body, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('JSON decode error: ' . json_last_error_msg());
+            //error_log('JSON decode error: ' . json_last_error_msg());
             return 'Error';
         }
 
@@ -243,8 +243,55 @@ class Update {
             return $data['tag_name'];
         }
 
-        error_log('GitHub API response: ' . $body);
+        //error_log('GitHub API response: ' . $body);
         return 'Unknown';
+    }*/
+    private static function get_latest_version($package_name = "") {
+        // Cache anahtarını belirleyelim (her paket için ayrı cache)
+        $cache_key = 'salthareket_version_' . md5($package_name ?: self::$github_repo);
+        
+        // 1. Cache'de var mı diye bak?
+        $cached_version = get_transient($cache_key);
+        if ($cached_version !== false) {
+            return $cached_version; // Varsa direkt dön, GitHub'ı rahat bırak.
+        }
+
+        // 2. Cache'de yoksa GitHub'a git
+        if(empty($package_name)){
+            $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
+        } else {
+            $url = $this->get_package_github_url($package_name).'releases/latest';
+        }
+
+        $response = wp_remote_get($url, [
+            'timeout' => 5, // API yavaşsa admini 10 saniye bekletme
+            'headers' => [
+                'Accept' => 'application/vnd.github.v3+json',
+                'User-Agent' => 'WordPress/' . get_bloginfo('version'),
+                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN
+            ]
+        ]);
+
+        if (is_wp_error($response)) {
+            return 'Error';
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return 'Error';
+        }
+
+        $latest_version = 'Unknown';
+        if (isset($data['tag_name'])) {
+            $latest_version = $data['tag_name'];
+        }
+
+        // 3. Sonucu 12 saatliğine cache'e at
+        set_transient($cache_key, $latest_version, 12 * HOUR_IN_SECONDS);
+
+        return $latest_version;
     }
     private static function get_required_packages() {
         if (!file_exists(self::$composer_path)) {
@@ -723,7 +770,7 @@ class Update {
 
 
     public static function composer_manuel_install($package_name, $latest_version="", $silent = false) {
-        error_log("composer_manuel_install işlemi başlatıldı...");
+        //error_log("composer_manuel_install işlemi başlatıldı...");
         try {
         
             $package_folder = self::$theme_root . "/vendor/".$package_name;
@@ -735,27 +782,27 @@ class Update {
             $tmp_file = download_url($url);
 
             if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
-                error_log($url);
-                error_log(print_r($tmp_file, true));
-                error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
+                //error_log($url);
+                //error_log(print_r($tmp_file, true));
+                //error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
                 wp_send_json_error(['message' => 'ZIP dosyası indirilemedi veya bozuk.']);
             }
-            error_log("ZIP dosyası indirildi: " . $tmp_file);
+            //error_log("ZIP dosyası indirildi: " . $tmp_file);
 
             // Geçici dizin kontrolü
             $temp_dir = self::$vendor_directory . '/temp';
             if (!file_exists($temp_dir)) {
                 if (!mkdir($temp_dir, 0755, true) && !is_dir($temp_dir)) {
-                    error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
+                    //error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
                     wp_send_json_error(['message' => 'Geçici dizin oluşturulamadı.']);
                 }
-                error_log("Geçici dizin oluşturuldu: " . $temp_dir);
+                //error_log("Geçici dizin oluşturuldu: " . $temp_dir);
             }
 
             // ZIP dosyasını çıkarma
             $unzip_result = unzip_file($tmp_file, $temp_dir);
             if (is_wp_error($unzip_result)) {
-                error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
+                //error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
 
                 // Fallback: ZipArchive kullanarak dosyayı çıkar
                 $zip = new ZipArchive();
@@ -763,18 +810,18 @@ class Update {
                     $extract_result = $zip->extractTo($temp_dir);
                     $zip->close();
                     if (!$extract_result) {
-                        error_log("ZipArchive ile çıkarma başarısız oldu.");
+                        //error_log("ZipArchive ile çıkarma başarısız oldu.");
                         self::delete_directory($temp_dir);
                         wp_send_json_error(['message' => 'ZipArchive ile çıkarma başarısız oldu.']);
                     }
-                    error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
+                    //error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
                 } else {
-                    error_log("ZipArchive ile çıkarma başarısız oldu.");
+                    //error_log("ZipArchive ile çıkarma başarısız oldu.");
                     self::delete_directory($temp_dir);
                     wp_send_json_error(['message' => 'ZIP dosyası çıkarılamadı.']);
                 }
             } else {
-                error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
+                //error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
             }
 
             @unlink($tmp_file);
@@ -784,11 +831,11 @@ class Update {
             if ($extracted_dir && is_dir($extracted_dir)) {
                 //self::delete_directory(self::$repo_directory);
                 if (!self::moveFolderForce($extracted_dir, $package_folder)) {
-                    error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . $package_folder);
+                    //error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . $package_folder);
                     //self::delete_directory($temp_dir);
                     wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
                 }
-                error_log("Yeni sürüm başarıyla taşındı: " . $package_folder);
+                //error_log("Yeni sürüm başarıyla taşındı: " . $package_folder);
 
                 // Geçici dizini temizle
                 self::delete_directory($temp_dir);
@@ -797,24 +844,24 @@ class Update {
                     wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);                    
                 }
             } else {
-                error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
+                //error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
                 self::delete_directory($temp_dir);
                 wp_send_json_error(['message' => 'Çıkarılan klasör yapısı geçersiz.']);
             }
         } catch (Exception $e) {
-            error_log("Güncelleme sırasında hata: " . $e->getMessage());
+            //error_log("Güncelleme sırasında hata: " . $e->getMessage());
             wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
         }
     }
     public static function update_composer_lock($package_name, $latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
-            error_log("composer.lock not found.");
+            //error_log("composer.lock not found.");
             return;
         }
 
         $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
         if (!$lock_data) {
-            error_log("composer.lock dosyası okunamadı.");
+            //error_log("composer.lock dosyası okunamadı.");
             return;
         }
 
@@ -822,7 +869,7 @@ class Update {
         $url = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
         $response = wp_remote_get($url);
         if (is_wp_error($response)) {
-            error_log("Packagist API'den bilgi alınamadı: " . $response->get_error_message());
+            //error_log("Packagist API'den bilgi alınamadı: " . $response->get_error_message());
             return;
         }
 
@@ -839,7 +886,7 @@ class Update {
         }
 
         if (!$package_version_data) {
-            error_log("İstenilen sürüm bulunamadı: $package_name - $latest_version");
+            //error_log("İstenilen sürüm bulunamadı: $package_name - $latest_version");
             return;
         }
 
@@ -879,7 +926,7 @@ class Update {
                         'funding' => $package_version_data['funding'] ?? [],
                         'time' => $package_version_data['time'] ?? '',
                     ];
-                    error_log("Paket güncellendi: $package_name - $latest_version");
+                    //error_log("Paket güncellendi: $package_name - $latest_version");
                     break;
                 }
             }
@@ -894,7 +941,7 @@ class Update {
         // composer.lock dosyasını yaz
         $json_data = json_encode($lock_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if (file_put_contents(self::$composer_lock_path, $json_data) === false) {
-            error_log("composer.lock yazılamadı: " . self::$composer_lock_path);
+            //error_log("composer.lock yazılamadı: " . self::$composer_lock_path);
             return;
         }
 
@@ -915,21 +962,21 @@ class Update {
 
             self::update_installed_package($package_name, $package_version_data);
 
-            error_log("composer.lock ve content-hash başarıyla güncellendi.");
-            error_log($output->fetch());
+            //error_log("composer.lock ve content-hash başarıyla güncellendi.");
+            //error_log($output->fetch());
         } catch (Exception $e) {
-            error_log("Composer uygulaması çalıştırılamadı: " . $e->getMessage());
+            //error_log("Composer uygulaması çalıştırılamadı: " . $e->getMessage());
         }
 
-        error_log("composer.lock güncellemesi tamamlandı.");
+        //error_log("composer.lock güncellemesi tamamlandı.");
     }
     public static function update_installed_package($package_name, $package_data) {
         $vendor_composer_dir = self::$theme_root . '/vendor/composer';
 
-        error_log("update_installed_package();");
-        error_log("package name: ".$package_name);
-        error_log("package data: ");
-        error_log(json_encode($package_data));
+        //error_log("update_installed_package();");
+        //error_log("package name: ".$package_name);
+        //error_log("package data: ");
+        //error_log(json_encode($package_data));
 
         //$vendor_composer_dir_encoded = str_replace('\\', '\\\\', $vendor_composer_dir);
         $vendor_composer_dir_encoded = str_replace('/', '\\', $vendor_composer_dir);
@@ -937,7 +984,7 @@ class Update {
         // 1. installed.json dosyasını kontrol et
         $installed_json_path = $vendor_composer_dir . '/installed.json';
         if (!file_exists($installed_json_path)) {
-            error_log("installed.json dosyası bulunamadı.");
+            //error_log("installed.json dosyası bulunamadı.");
             return;
         }
 
@@ -960,13 +1007,13 @@ class Update {
         }
 
         if (!$updated) {
-            error_log("installed.json içinde paket bulunamadı: $package_name");
+            //error_log("installed.json içinde paket bulunamadı: $package_name");
             return;
         }
 
         // Güncellenmiş installed.json'u yaz
         file_put_contents($installed_json_path, json_encode($installed_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        error_log("installed.json başarıyla güncellendi.");
+        //error_log("installed.json başarıyla güncellendi.");
 
 
 
@@ -975,18 +1022,18 @@ class Update {
         $installed_php_path = $vendor_composer_dir . '/installed.php';
         $installed_php_save_path = $vendor_composer_dir . '/installed-test.php';
         if (!file_exists($installed_php_path)) {
-            error_log("installed.php dosyası bulunamadı.");
+            //error_log("installed.php dosyası bulunamadı.");
             return;
         }
 
         // installed.php'yi include ederek oku
         $installed_php_data = include $installed_php_path;
 
-        error_log("installed_php_data:");
-        error_log(print_r($installed_php_data, true));
+        //error_log("installed_php_data:");
+        //error_log(print_r($installed_php_data, true));
 
         if (!isset($installed_php_data['versions'][$package_name])) {
-            error_log("installed.php içinde paket bulunamadı: $package_name");
+            //error_log("installed.php içinde paket bulunamadı: $package_name");
             return;
         }
 
@@ -1005,7 +1052,7 @@ class Update {
         $reference = $package_data['source']['reference'] ?? '';
 
         if (empty($reference)) {
-            error_log("reference bilgisi eksik: $package_name");
+            //error_log("reference bilgisi eksik: $package_name");
         }
 
         // Sadece hedef paketi güncelle
@@ -1056,7 +1103,7 @@ class Update {
         $php_content = preg_replace('/array\(\s*\)/', 'array()', $php_content);
 
         file_put_contents($installed_php_path, $php_content);
-        error_log("installed.php başarıyla güncellendi."); 
+        //error_log("installed.php başarıyla güncellendi."); 
     }
 
 
@@ -1076,7 +1123,7 @@ class Update {
             if ($dir->isDir() && file_exists($dir->getPathname() . '/.git')) {
                 $gitPath = $dir->getPathname();
                 exec('git config --global --add safe.directory "' . $gitPath . '"');
-                error_log("✅ Güvenli git klasörü eklendi: " . $gitPath);
+                //error_log("✅ Güvenli git klasörü eklendi: " . $gitPath);
             }
         }
     }
@@ -1084,7 +1131,7 @@ class Update {
 
 
     public static function composer($package_name="", $remove = false) {
-        error_log("composer calıstıııııı -> ".$package_name);
+        //error_log("composer calıstıııııı -> ".$package_name);
 
         self::allow_git_safe_directories();
 
@@ -1130,7 +1177,7 @@ class Update {
                 }*/
             }
             
-            error_log(json_encode($args));
+            //error_log(json_encode($args));
 
             $app = new Application();
             $app->setAutoExit(false);
@@ -1141,7 +1188,7 @@ class Update {
             $raw_output = $output->fetch();
             $lines = explode("\n", $raw_output);
 
-            error_log(json_encode($lines));
+            //error_log(json_encode($lines));
 
             foreach ($lines as $line) {
                 if (strpos(trim($line), 'Could not find package') !== false) {
@@ -1253,18 +1300,18 @@ class Update {
         try {
             $app->run($input, $output);
             $rawOutput = $output->fetch();
-            //error_log($rawOutput);
+            ////error_log($rawOutput);
 
             $jsonStart = strpos($rawOutput, '{');
             if ($jsonStart === false) {
-                error_log('Error: No valid JSON output found.');
+                //error_log('Error: No valid JSON output found.');
                 return [];
             }
             $cleanedJson = substr($rawOutput, $jsonStart);
             $data = json_decode($cleanedJson, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                error_log('JSON decode error: ' . json_last_error_msg());
+                //error_log('JSON decode error: ' . json_last_error_msg());
                 return [];
             }
 
@@ -1279,18 +1326,18 @@ class Update {
                 ];
             }
 
-            error_log(" - UPDATES:");
-            error_log(json_encode($packages));
+            //error_log(" - UPDATES:");
+            //error_log(json_encode($packages));
             return $packages;
 
         } catch (Exception $e) {
-            error_log('Error: ' . $e->getMessage());
+            //error_log('Error: ' . $e->getMessage());
             return [];
         }
     }
     public static function is_composer_dependency($package_name, $latest_version) {
         if (!file_exists(self::$composer_lock_path)) {
-            error_log("composer.lock dosyası bulunamadı.");
+            //error_log("composer.lock dosyası bulunamadı.");
             return false;
         }
 
@@ -1299,7 +1346,7 @@ class Update {
             $composerLockContent = file_get_contents(self::$composer_lock_path);
 
             if ($composerLockContent === false) {
-                error_log("composer.lock dosyası okunamadı.");
+                //error_log("composer.lock dosyası okunamadı.");
                 return false;
             }
 
@@ -1307,7 +1354,7 @@ class Update {
             $composerLockData = json_decode($composerLockContent, true);
 
             if (!isset($composerLockData['packages']) && !isset($composerLockData['packages-dev'])) {
-                error_log("composer.lock dosyasında 'packages' veya 'packages-dev' bulunamadı.");
+                //error_log("composer.lock dosyasında 'packages' veya 'packages-dev' bulunamadı.");
                 return false;
             }
 
@@ -1327,7 +1374,7 @@ class Update {
 
             // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
             if (!in_array($package_name, $composerDependencies, true)) {
-                error_log("{$package_name} bağımlılık listesinde bulunamadı.");
+                //error_log("{$package_name} bağımlılık listesinde bulunamadı.");
                 return false;
             }
 
@@ -1337,7 +1384,7 @@ class Update {
 
                 // Sürüm uyumluluğunu kontrol et
                 if (!self::is_version_compatible($latest_version, $requiredVersion)) {
-                    error_log("{$package_name}: {$latest_version} mevcut gereksinimlere uygun değil ({$requiredVersion}).");
+                    //error_log("{$package_name}: {$latest_version} mevcut gereksinimlere uygun değil ({$requiredVersion}).");
                     return false;
                 }
             }
@@ -1345,14 +1392,14 @@ class Update {
             return true; // Paket composer/composer bağımlılığı ve sürümü uyumlu
         } catch (Exception $e) {
             // Hata durumunda false döner
-            error_log('Hata: ' . $e->getMessage());
+            //error_log('Hata: ' . $e->getMessage());
             return false;
         }
     }
     private static function is_version_compatible($version, $constraint) {
         // Composer'ın semver kütüphanesi ile uyumluluğu kontrol et
         if (!class_exists('Composer\Semver\Semver')) {
-            error_log('Composer Semver kütüphanesi yüklenmedi.');
+            //error_log('Composer Semver kütüphanesi yüklenmedi.');
             return false;
         }
 
@@ -1377,7 +1424,7 @@ class Update {
                         $target_file = get_template_directory()."/vendor/".$fix["package"]."/".$fix["file"];
                         if($fix["status"] && file_exists($file) && file_exists($target_file)){
                             self::fileCopy($file, $target_file);
-                            error_log($fix["package"].":".$fix["version"]." fixed...");
+                            //error_log($fix["package"].":".$fix["version"]." fixed...");
                         }                            
                     }
                 }
@@ -1387,7 +1434,7 @@ class Update {
     private static function copy_theme(){
         $srcDir = SH_PATH . 'content/theme';
         $target_dir = get_template_directory() . '/theme';
-        error_log("copy_theme() -> ".$srcDir." -> ".$target_dir);
+        //error_log("copy_theme() -> ".$srcDir." -> ".$target_dir);
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0755, true);
         } 
@@ -1404,7 +1451,7 @@ class Update {
             $style_content = preg_replace('/(Text Domain:\\s*).*$/m', "Text Domain: $text_domain", $style_content);
             file_put_contents($style_file, $style_content);
         } else {
-            error_log("style.css dosyası bulunamadı.");
+            //error_log("style.css dosyası bulunamadı.");
             return;
         }
 
@@ -1420,7 +1467,7 @@ class Update {
         $text_color_alloc = imagecolorallocate($image, $text_color[0], $text_color[1], $text_color[2]);
         $font_path = self::$repo_directory . '/src/content/fonts/Lexend_Deca/static/LexendDeca-Bold.ttf';
         if (!file_exists($font_path)) {
-            error_log("Font dosyası bulunamadı: $font_path");
+            //error_log("Font dosyası bulunamadı: $font_path");
             imagedestroy($image);
             return;
         }
@@ -1433,15 +1480,28 @@ class Update {
         imagepng($image, $screenshot_file);
         imagedestroy($image);
     }
-
-    private static function copy_fields(){
+    private static function copy_fields() {
         $srcDir = SH_PATH . 'content/acf-json';
         $target_dir = get_template_directory() . '/acf-json';
+
+        // 1. Hedef klasör yoksa oluştur ve izinleri en genişe (0777) çek
         if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0755, true); 
+            mkdir($target_dir, 0777, true);
+        } else {
+            // Klasör zaten varsa bile iznini tazele
+            chmod($target_dir, 0777);
         }
+
         if (is_dir($srcDir)) {
             self::recurseCopy($srcDir, $target_dir);
+            
+            // 2. Kopyalama bittikten sonra içindeki tüm dosyaları tek tek yazılabilir yap
+            $files = glob($target_dir . '/*.json');
+            foreach($files as $file){
+                if(is_file($file)){
+                    chmod($file, 0777); // Dosyayı ACF'in yazabileceği hale getir
+                }
+            }
         }
     }
     /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
@@ -1695,7 +1755,7 @@ class Update {
         $post_id = $wpdb->get_var($query);
 
         if (!$post_id) {
-            error_log("Kritik Hata: 'block-bootstrap-columns' Field Group ID'si bulunamadı. Key: " . $block_columns_key);
+            //error_log("Kritik Hata: 'block-bootstrap-columns' Field Group ID'si bulunamadı. Key: " . $block_columns_key);
             return false;
         }
 
@@ -1703,7 +1763,7 @@ class Update {
         if (function_exists('acf_save_post_block_columns_action')) {
             acf_save_post_block_columns_action($post_id); 
         } else {
-            error_log("Kritik Hata: acf_save_post_block_columns_action fonksiyonu tanımlı değil!");
+            //error_log("Kritik Hata: acf_save_post_block_columns_action fonksiyonu tanımlı değil!");
             return false;
         }
 
@@ -1729,7 +1789,7 @@ class Update {
             wp_send_json_error(['message' => 'npm path not found: '.$dir]);
         }
 
-        error_log(SH_PATH . "content/package.json -> ".$workingDir .'package.json');
+        //error_log(SH_PATH . "content/package.json -> ".$workingDir .'package.json');
         if (!file_exists($workingDir .'package.json')) {
             self::fileCopy(SH_PATH . "content/package.json", $workingDir .'package.json');
         }
@@ -1750,13 +1810,13 @@ class Update {
         $process->setTimeout(120);
         try {
             $process->mustRun();
-            error_log($process->getOutput()); // Çıktıyı kaydet
+            //error_log($process->getOutput()); // Çıktıyı kaydet
             return true;
             //wp_send_json_success(['message' => 'npm packages installed!']);
             //return $process->getOutput();
         } catch (ProcessFailedException $e) {
             // Hata durumunda istisna fırlat
-            error_log('Webpack execution failed: ' . $exception->getMessage());
+            //error_log('Webpack execution failed: ' . $exception->getMessage());
             return false;
             //wp_send_json_error(['message' => 'npm packeges not installed: ' . $e->getMessage()]);
             //throw new \Exception("npm install işlemi başarısız oldu: " . $e->getMessage());
@@ -1935,13 +1995,13 @@ class Update {
         $tasks_status[$task_id] = $status;
         self::$tasks_status = $tasks_status;
         update_option('sh_theme_tasks_status', $tasks_status);
-        error_log($task_id." yuklendi");
-        error_log(self::tasks_completed());
-        error_log(json_encode(get_option('sh_theme_tasks_status')));
+        //error_log($task_id." yuklendi");
+        //error_log(self::tasks_completed());
+        //error_log(json_encode(get_option('sh_theme_tasks_status')));
         if (self::tasks_completed()) {
             update_option('sh_theme_status', true);
             self::$status = true;
-            error_log("Tüm görevler tamamlandı. sh_theme_status true yapıldı.");
+            //error_log("Tüm görevler tamamlandı. sh_theme_status true yapıldı.");
         }
     }
     public static function is_task_completed($task=""){
@@ -1986,7 +2046,7 @@ class Update {
                 self::recurseCopy($srcPath, $destPath, $exclude);
             } else {
                 // Dosyayı kopyala
-                //error_log($srcPath." -> ".$destPath);
+                ////error_log($srcPath." -> ".$destPath);
                 copy($srcPath, $destPath);
             }
         }
@@ -2011,7 +2071,7 @@ class Update {
     }
     public static function moveFolderForce($src, $dst) {
         if (!is_dir($src)) {
-            error_log("Kaynak klasör bulunamadı: $src");
+            //error_log("Kaynak klasör bulunamadı: $src");
             return false;
         }
 
@@ -2024,7 +2084,7 @@ class Update {
 
             return true;
         } catch (Exception $e) {
-            error_log("Taşıma işlemi başarısız: " . $e->getMessage());
+            //error_log("Taşıma işlemi başarısız: " . $e->getMessage());
             return false;
         }
     }
@@ -2061,7 +2121,7 @@ class Update {
             // Mevcut logo kontrolü
             $current_logo_url = wp_get_attachment_url($current_logo_id);
             if ($current_logo_url) {
-                error_log("Logo already exists: " . $current_logo_url);
+                //error_log("Logo already exists: " . $current_logo_url);
                 return; // Logo zaten mevcutsa işlemi durdur
             }
         }
@@ -2075,9 +2135,9 @@ class Update {
             if(!get_option('options_logo_footer')){
                 update_field('logo_footer', $attachment_id, 'option');
             }
-            error_log("Logo successfully updated to ACF field.");
+            //error_log("Logo successfully updated to ACF field.");
         } else {
-            error_log("Failed to upload logo or update ACF field.");
+            //error_log("Failed to upload logo or update ACF field.");
         }
     }
     private static function upload_image($file_path) {
@@ -2095,7 +2155,7 @@ class Update {
 
         // Dosyayı kopyala
         if (!copy($file_path, $target_path)) {
-            error_log("Failed to copy logo file to upload directory.");
+            //error_log("Failed to copy logo file to upload directory.");
             return false;
         }
 
@@ -2173,7 +2233,7 @@ class Update {
                 update_field($field_key, $value, 'option');
             }
         }
-        error_log("Default header values have been set.");
+        //error_log("Default header values have been set.");
     }
     private static function create_home_page() {
         if(get_option("page_on_front")){
@@ -2209,9 +2269,9 @@ class Update {
             // Yeni oluşturulan sayfayı ana sayfa olarak ayarla
             update_option('page_on_front', $page_id);
             update_option('show_on_front', 'page');
-            error_log("Home page created and set as front page.");
+            //error_log("Home page created and set as front page.");
         } else {
-            error_log("Failed to create Home page.");
+            //error_log("Failed to create Home page.");
         }
     }
     private static function create_menu() {
@@ -2248,9 +2308,9 @@ class Update {
                 ]);
             }
 
-            error_log("Menu '$menu_name' created and 'Home' page added.");
+            //error_log("Menu '$menu_name' created and 'Home' page added.");
         } else {
-            error_log("Menu '$menu_name' already exists.");
+            //error_log("Menu '$menu_name' already exists.");
         }
     }
     private static function update_image_sizes() {
@@ -2277,9 +2337,9 @@ class Update {
             update_option('large_crop', 0);     // Kırpma yok
 
             // Log mesajı
-            error_log("Medium ve Large image sizes güncellendi.");
+            //error_log("Medium ve Large image sizes güncellendi.");
         } else {
-            error_log("Boyutlar uygun değil, güncelleme yapılmadı.");
+            //error_log("Boyutlar uygun değil, güncelleme yapılmadı.");
         }
     }
     private static function set_permalink_to_post_name(){
@@ -2303,16 +2363,16 @@ class Update {
                 if (function_exists('rocket_generate_config_file')) {
                     rocket_generate_config_file();
                 }
-                error_log('WP Rocket ayarları başarıyla yüklendi!');
+                //error_log('WP Rocket ayarları başarıyla yüklendi!');
             } else {
-                error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
+                //error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
             }
         } else {
-            error_log('WP Rocket Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
+            //error_log('WP Rocket Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
         }
         if (function_exists('rocket_regenerate_configuration')) {
             rocket_regenerate_configuration();
-            error_log('WP Rocket yapılandırma dosyaları yeniden oluşturuldu!');
+            //error_log('WP Rocket yapılandırma dosyaları yeniden oluşturuldu!');
         }
     }
     public static function wph_load_settings() {
@@ -2326,12 +2386,12 @@ class Update {
             if (is_array($settings_data)) {
                 $wph_settings["module_settings"] = $settings_data;
                 update_option("wph_settings", $wph_settings);
-                error_log('WPH ayarları başarıyla yüklendi!');
+                //error_log('WPH ayarları başarıyla yüklendi!');
             } else {
-                error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
+                //error_log('JSON dosyası çözülemedi. Lütfen dosyayı kontrol edin.');
             }
         } else {
-            error_log('WPH Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
+            //error_log('WPH Ayar dosyası bulunamadı. Lütfen yolu kontrol edin.');
         }
     }
 

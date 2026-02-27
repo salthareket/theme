@@ -577,11 +577,11 @@ function woo_product_badges( $product, $free_shipping_min_amount, $types ) {
     }
 
     $low_stock_forced = false;
-    if ( ! empty( $GLOBALS['query_vars'] ) ) {
-        if ( in_array( "tukenmek-uzere", array_values( $GLOBALS['query_vars'] ) ) ) {
+    if ( ! empty( Data::get("query_vars") ) ) {
+        if ( in_array( "tukenmek-uzere", array_values( Data::get("query_vars") ) ) ) {
             $low_stock_forced = true;
         } else {
-            foreach ( $GLOBALS['query_vars'] as $var ) {
+            foreach ( Data::get("query_vars") as $var ) {
                 if ( ! empty( $var->slug ) && $var->slug === "durum" ) {
                     if ( in_array( "tukenmek-uzere", (array) $var->terms ) ) {
                         $low_stock_forced = true;
@@ -992,11 +992,11 @@ function woo_get_product_variation_thumbnails($product_id, $attr, $attr_value, $
                 $image_ids = get_post_meta( $variation["variation_id"], '_wc_additional_variation_images', true );
                 if($image_ids){
                    $image_ids = array_filter( explode( ',', $image_ids ) );
-                   //error_log(print_r($image_ids, true));
+                   ////error_log(print_r($image_ids, true));
                    foreach($image_ids as $image_id){
                       $images[] = wp_get_attachment_image_src( $image_id, $size )[0];
                    }
-                   //error_log(print_r($images, true));
+                   ////error_log(print_r($images, true));
                 }
             }
         }
@@ -1872,7 +1872,7 @@ add_filter( 'woocommerce_quantity_input_args', 'bloomer_woocommerce_quantity_cha
 function bloomer_woocommerce_quantity_changes( $args, $product ) {
 	$user = wp_get_current_user();
 	$role = empty($user->roles)?"loggedout":$user->roles[0];
-	$role_based_quantity =  QueryCache::get_cached_option('role_based_quantity');//get_field('role_based_quantity', 'option');
+	$role_based_quantity =  get_option('role_based_quantity');//get_field('role_based_quantity', 'option');
 	$has_quantity_settings = false;
 	if($role_based_quantity){
 		foreach($role_based_quantity as $role_base){
@@ -1974,7 +1974,7 @@ function wc_get_products_by_variation_sku($sku) {
 function sku_where( $where ) {
 							global $wpdb, $wp;
 							$search_ids = array();
-						    $terms = explode(',', $GLOBALS["keyword"] );
+						    $terms = explode(',', Data::get("keyword") );
 						    foreach ($terms as $term) {
 						        //Include search by id if admin area.
 						        if (is_admin() && is_numeric($term)) {

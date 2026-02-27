@@ -344,12 +344,12 @@ class SaltMinifier{
                 $content = "";
                 //$is_min = false;
                 foreach ($item["url"] as $url_key => $url) {
-                    error_log($url);
+                    //error_log($url);
                     $url = str_replace(STATIC_URL, STATIC_PATH, $url);
                     if (!file_exists($url)) {
                         continue;
                     }
-                    error_log("added");
+                    //error_log("added");
                     if (strpos($url, '.min.js') !== false) {
                     //    $is_min = true;
                     }
@@ -585,12 +585,12 @@ class SaltMinifier{
 
     public function save_as_local($plugin="", $item=""){
         /*if(strpos($item, ".min.") === false){
-            error_log("save_as_local 1.");
+            //error_log("save_as_local 1.");
             $minify_individual = new Minify\JS($item);
             $minify_individual->minify($this->output["plugins"] . $plugin . '.js');
             $this->removeSourceMap($this->output["plugins"] . $plugin . '.js', "file");
         }else{*/
-             error_log("save_as_local 2.");
+             //error_log("save_as_local 2.");
             $content = file_get_contents($item);
             $content = $this->removeSourceMap($content, "source");
             file_put_contents($this->output["plugins"] . $plugin . '.js', $content);
@@ -663,9 +663,9 @@ class SaltMinifier{
         $existing_meta = get_option("assets_plugins_conditional"); // Var olan option'u kontrol et
         if ($existing_meta) {
             $updates_plugins = $this->check_plugin_updates($existing_meta, $js_list_conditional_version);
-            //error_log("updates_plugins:".json_encode($updates_plugins));
+            ////error_log("updates_plugins:".json_encode($updates_plugins));
             $updates_init = $this->check_plugin_init_updates($this->plugins_update);
-            //error_log("updates_init:".json_encode($updates_init));
+            ////error_log("updates_init:".json_encode($updates_init));
             $updates = array_merge($updates_plugins, $updates_init);
             $updates = array_unique($updates);
             update_option("assets_plugins_conditional", $js_list_conditional_version); // Güncelle
@@ -677,6 +677,33 @@ class SaltMinifier{
         $js_json = get_stylesheet_directory() . '/static/js/js_files_conditional.json';
         file_put_contents($js_json, $js_list_conditional);
 
+        $wp_includes_url = includes_url();
+        $wp_plugins_url  = plugins_url();
+        //append plugin files
+        $js_list_conditional_set["contact-form-7"] = array(
+            "js" => [
+                $wp_includes_url . "js/dist/hooks.min.js",
+                $wp_includes_url . "js/dist/i18n.min.js",
+                $wp_plugins_url  . "/contact-form-7/includes/swv/js/index.js",
+                array(
+                    "url" => $wp_includes_url . "js/dist/api-fetch.min.js",
+                    "callback_code" => "
+                        if(window.wp && wp.apiFetch){ 
+                            wp.apiFetch.use(wp.apiFetch.createNonceMiddleware('".wp_create_nonce('wp_rest')."')); 
+                            wp.apiFetch.use(wp.apiFetch.createRootURLMiddleware('".get_rest_url()."')); 
+                        }
+                        window.wpcf7 = {
+                            api: {
+                                root: '".get_rest_url()."',
+                                namespace: 'contact-form-7/v1'
+                            }
+                        };"
+                ),
+                $wp_plugins_url  . "/contact-form-7/includes/js/index.js",
+            ],
+            "css" => $wp_plugins_url."/contact-form-7/includes/css/styles.css",
+            "init" => "AppCF7.initForms"
+        );
 
         $js_list_conditional_set = json_encode($js_list_conditional_set);
         $js_json = get_stylesheet_directory() . '/static/js/js_files_conditional_set.json';
@@ -689,13 +716,13 @@ class SaltMinifier{
     }
 
     public function plugin_assets($css_file = "") {
-        //error_log("plugin_assets-----------------------------------");
+        ////error_log("plugin_assets-----------------------------------");
         //$enable_publish = get_option("options_enable_publish");
         //$publish_url = "";
         //if($enable_publish){
             //$publish_url = get_option("options_publish_url");
         //} 
-        //error_log($css_file);
+        ////error_log($css_file);
         $css = file_get_contents($css_file);
 
         $css_dir = dirname($css_file);
@@ -740,7 +767,8 @@ class SaltMinifier{
                         //if (!empty($publish_url)) {
                             //$final_url = str_replace(home_url(), $publish_url, $final_url);
                         //}
-                        $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
+                    //    $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
+                        $final_url = wp_make_link_relative($final_url);
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
                         if (file_exists($asset["url"]) && !is_dir($asset["url"])) {
@@ -751,7 +779,8 @@ class SaltMinifier{
                             //if(!empty($publish_url)){
                                 //$final_url = str_replace(home_url(), $publish_url, $final_url);
                             //}
-                            $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
+                    //        $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
+                            $final_url = wp_make_link_relative($final_url);
                             $css = str_replace($asset["url"], $final_url, $css);
                         }
                     }
@@ -888,7 +917,7 @@ class SaltMinifier{
         preg_match_all('/@font-face\s*\{(?U).+\}/i', $css_content, $matches);
         $font_faces = $matches[0] ?? [];
 
-        error_log(print_r($matches, true));
+        //error_log(print_r($matches, true));
 
         if (!empty($font_faces)) {
             $cleaned_faces = array_map(function ($face) {
@@ -972,13 +1001,13 @@ class SaltMinifier{
     }
     public function clearFontfaces($css_url) {
         if (!file_exists($css_url)) {
-            error_log("clearFontfaces: Dosya bulunamadı → $css_url");
+            //error_log("clearFontfaces: Dosya bulunamadı → $css_url");
             return false;
         }
 
         $content = file_get_contents($css_url);
         if (!$content) {
-            error_log("clearFontfaces: Dosya okunamadı → $css_url");
+            //error_log("clearFontfaces: Dosya okunamadı → $css_url");
             return false;
         }
 
@@ -988,20 +1017,20 @@ class SaltMinifier{
         // Artık başa tekrar ekleme yok — sadece kalan içerik
         file_put_contents($css_url, trim($cleaned_content));
 
-        error_log("✓ Font-face blokları tamamen kaldırıldı → $css_url");
+        //error_log("✓ Font-face blokları tamamen kaldırıldı → $css_url");
         return true;
     }
 
     function purge_page_assets_manifest() {
         $cache_manifest = rtrim(defined('STATIC_PATH') ? STATIC_PATH : __DIR__.'/', '/').'/cache-manifest/assets-manifest.json';
         if (file_exists($cache_manifest)) {
-            unlink($cache_manifest); // cache sil
+            unlink($cache_manifest);
         }
         if (class_exists('PageAssetsExtractor')) {
-            $extractor = new PageAssetsExtractor();
+            $extractor = PageAssetsExtractor::get_instance(); 
             $extractor->force_rebuild = true;
-            $extractor->remove_purge_css();
-            $extractor->remove_critical_css();
+            $extractor->remove_purge_css(); 
+            $extractor->remove_critical_css(); 
         }
     }
 

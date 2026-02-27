@@ -46,7 +46,7 @@
         $post_args['post_type'] = $args["post_type"]=="search"?"any":$args["post_type"];
         //$post_args['page'] = $vars['page'];
     }
-    $GLOBALS["pagination_page"] = $vars['page'];
+    Data::set("pagination_page", $vars['page']);
 
     unset($post_args["querystring"]);
     unset($post_args["page"]);
@@ -62,7 +62,7 @@
 
     $html = "";
 
-    $query = QueryCache::get_cached_query($post_args);
+    $query = new WP_Query($post_args);
 
     $folder = $post_args["post_type"];
     if($args["post_type"] == "any" || is_array($args["post_type"])){
@@ -72,8 +72,8 @@
         $folder = "search";
     }
 
-    error_log(print_r($args, true));
-    error_log(print_r($query, true));
+    //error_log(print_r($args, true));
+    //error_log(print_r($query, true));
 
     if($args["post_type"] == "product"){
         if ($query->have_posts()) :
@@ -81,7 +81,7 @@
                 ob_start(); // Çıktıyı tampona al
                 wc_get_template_part('content', 'product');
                 $html .= ob_get_clean(); // Tampondaki çıktıyı $am değişkenine ekle
-                $GLOBALS["pagination_page"] = "";
+                Data::set("pagination_page", "");
             endwhile;
         endif;        
     }else{
@@ -101,7 +101,7 @@
                 Timber::render([$folder."/tease.twig", "tease.twig"], $context);
                 $html .= ob_get_clean();
                 $context = null;
-                $GLOBALS["pagination_page"] = "";
+                Data::set("pagination_page", "");
             }
         }
     }

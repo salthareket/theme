@@ -1,7 +1,7 @@
 <?php
 $required_setting = ENABLE_FAVORITES;
 
-$salt = new Salt();
+$salt = \Salt::get_instance();//ew Salt();
 $response = $salt->favorites($vars);
 if($vars["action"] == "get"){
 	$context = Timber::context();

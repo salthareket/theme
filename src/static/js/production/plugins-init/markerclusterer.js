@@ -49,16 +49,14 @@ class GoogleMaps{
 	           	var locations = config.locations;
 	           	var buttons = config.buttons;
 
-	           	if(buttons){
-	            	if(buttons.hasOwnProperty("zoom_position")){
+	           	if (buttons && Object.prototype.hasOwnProperty.call(buttons, "zoom_position")) {
 	            		//classObj.options["zoomControl"] = false;
-						classObj.options.zoomControlOptions.position = google.maps.ControlPosition[classObj.position_rename(buttons.zoom_position)];//LEFT_CENTER
-	            	}
+					classObj.options.zoomControlOptions.position = google.maps.ControlPosition[classObj.position_rename(buttons.zoom_position)];//LEFT_CENTER
 	            }
 
 	            classObj.config = config;
 
-	            console.log(config)
+	            debugJS(config)
 
 	            var bounds = new google.maps.LatLngBounds();
 	           	
@@ -151,7 +149,7 @@ class GoogleMaps{
 		                // Template-based popup content
 		                twig({
 		                    href: ajax_request_vars.theme_url + config.popup.template,
-		                    async: false,
+		                    async: true,
 		                    allowInlineIncludes: false,
 		                    load: function (template) {
 		                        var html = template.render(locations[i]);
@@ -209,7 +207,7 @@ class GoogleMaps{
 		                    } else {
 		                        twig({
 		                            href: ajax_request_vars.theme_url + config.popup.template,
-		                            async: false,
+		                            async: true,
 		                            allowInlineIncludes: false,
 		                            load: function (template) {
 		                                var html = template.render(locations[i]);
@@ -338,16 +336,14 @@ class GoogleMaps{
 		return controlButton;
 	}
 	buttons(map, buttons){
-		if(buttons){
-			if(buttons.hasOwnProperty("items")){
+		if (buttons && Object.prototype.hasOwnProperty.call(buttons, "items")) {
 			    const controlContainer = document.createElement("div");
 			          controlContainer.classList.add("googlemaps-control-button");	  
 				for(var i=0;i<buttons.items.length;i++){
 					let button = this.createButton(map, buttons.items[i]);
 					controlContainer.appendChild(button);
 				}
-				map.controls[google.maps.ControlPosition[this.position_rename(buttons.position)]].push(controlContainer);            	
-			}
+				map.controls[google.maps.ControlPosition[this.position_rename(buttons.position)]].push(controlContainer);
 		}
 	}
     drawPath(map, coords){
@@ -441,41 +437,53 @@ class GoogleMaps{
 		return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 	}
 	get_location($obj) {
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-				function(position) {
-					var pos = {
-						lat: position.coords.latitude,
-						lon: position.coords.longitude
-					};
-					if ($obj.hasOwnProperty("callback")) {
-						var obj = {
-							pos: pos,
-							status : true
-						};
-						if ($obj.hasOwnProperty("map")) {
-							obj["map"] = $obj.map;
-						}
-						if ($obj.hasOwnProperty("end")) {
-							obj["end"] = $obj.end;
-						}
-						$obj.callback(obj);
+	    // Yardımcı kontrol: Obje prototipinden bağımsız kontrol
+	    var hasProp = function(o, p) {
+	        return o !== null && typeof o !== "undefined" && Object.prototype.hasOwnProperty.call(o, p);
+	    };
+
+	    if (navigator.geolocation) {
+	        navigator.geolocation.getCurrentPosition(
+	            function(position) {
+	                var pos = {
+	                    lat: position.coords.latitude,
+	                    lon: position.coords.longitude
+	                };
+	                
+	                if (hasProp($obj, "callback")) {
+	                    var obj = {
+	                        pos: pos,
+	                        status: true
+	                    };
+	                    
+	                    if (hasProp($obj, "map")) {
+	                        obj["map"] = $obj.map;
+	                    }
+	                    if (hasProp($obj, "end")) {
+	                        obj["end"] = $obj.end;
+	                    }
+	                    
+	                    $obj.callback(obj);
 	                } else {
-	                    return pos;
+	                    // DİKKAT: Buradaki return pos; aslında bir işe yaramaz 
+	                    // çünkü getCurrentPosition asenkrondur. 
+	                    return pos; 
 	                }
 	            },
 	            function() {
-                    if ($obj.hasOwnProperty("callback")) {
-                        $obj.callback({status: false});
-                    }
+	                // Hata durumu (Kullanıcı reddetti veya cihaz bulamadı)
+	                if (hasProp($obj, "callback")) {
+	                    $obj.callback({ status: false });
+	                }
 	                _alert("Lütfen browser ayarlarınızdan konum erişimine izin verin.");
 	            }
 	        );
 	    } else {
-            if ($obj.hasOwnProperty("callback")) {
-                $obj.callback(false);
-            }
-	        _alert("Your browser dowsn't support Geolocation");
+	        // Tarayıcı desteklemiyor
+	        if (hasProp($obj, "callback")) {
+	            $obj.callback(false);
+	        }
+	        _alert("Your browser doesn't support Geolocation");
 	    }
 	}
 	reset(obj) {

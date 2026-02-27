@@ -528,6 +528,7 @@ function post2Breadcrumb($post_id = 0, $link = 1){
 
 function generate_breadcrumb($nodes=array(), $link=1){
     $breadcrumb = "";
+    $language = Data::get("language");
     if($nodes){
         $breadcrumb = '<div class="breadcrumb-container">'.
             '<ul class="breadcrumb">';
@@ -537,7 +538,7 @@ function generate_breadcrumb($nodes=array(), $link=1){
                                 if($link){
                                     $breadcrumb .= '<a href="'.(isset($node["link"])?$node["link"]:get_permalink($node["ID"])).'">';
                                 }
-                                    $breadcrumb .= '<span itemprop="name">'.(ENABLE_MULTILANGUAGE?qtranxf_use($GLOBALS["language"], $node["post_title"], false):$node["post_title"]).'</span>' .
+                                $breadcrumb .= '<span itemprop="name">'.(ENABLE_MULTILANGUAGE?qtranxf_use($language, $node["post_title"], false):$node["post_title"]).'</span>' .
                                         '<meta itemprop="position" content="'.$index.'">';
                                 if($link){
                                     $breadcrumb .='</a>';
@@ -567,91 +568,64 @@ function menuItemHasActiveChild($children=array(), $post_id=0){
 
 
 function get_current_page_type() {
-    global $wp_query;
-    $loop = 'notfound';
+    static $current_type = null;
+    if ( null !== $current_type ) return $current_type;
 
-    if ( $wp_query->is_page ) {
-        $loop = is_front_page() ? 'front' : 'page';
-    } elseif ( $wp_query->is_home ) {
-        $loop = 'home';
-    } elseif ( $wp_query->is_single ) {
-        $loop = ( $wp_query->is_attachment ) ? 'attachment' : 'single';
-    } elseif ( $wp_query->is_category ) {
-        $loop = 'category';
-    } elseif ( $wp_query->is_tag ) {
-        $loop = 'tag';
-    } elseif ( $wp_query->is_tax ) {
-        $loop = 'tax';
-    } elseif ( $wp_query->is_archive ) {
-        if ( $wp_query->is_day ) {
-            $loop = 'day';
-        } elseif ( $wp_query->is_month ) {
-            $loop = 'month';
-        } elseif ( $wp_query->is_year ) {
-            $loop = 'year';
-        } elseif ( $wp_query->is_author ) {
-            $loop = 'author';
-        } else {
-            $loop = 'archive';
-        }
-    } elseif ( $wp_query->is_search ) {
-        $loop = 'search';
-    } elseif ( $wp_query->is_404 ) {
-        $loop = 'notfound';
+    global $wp_query;
+    
+    if ( $wp_query->is_front_page )             return $current_type = 'front';
+    if ( $wp_query->is_home )                   return $current_type = 'home'; // Blog sayfası
+    if ( $wp_query->is_page )                   return $current_type = 'page';
+    if ( $wp_query->is_single )                 return $current_type = ( $wp_query->is_attachment ) ? 'attachment' : 'single';
+    
+    // Arşiv alt kırılımları (is_archive'den önce kontrol edilmeli)
+    if ( $wp_query->is_category )               return $current_type = 'category';
+    if ( $wp_query->is_tag )                    return $current_type = 'tag';
+    if ( $wp_query->is_tax )                    return $current_type = 'tax';
+    if ( $wp_query->is_author )                 return $current_type = 'author';
+    if ( $wp_query->is_day )                    return $current_type = 'day';
+    if ( $wp_query->is_month )                  return $current_type = 'month';
+    if ( $wp_query->is_year )                   return $current_type = 'year';
+    if ( $wp_query->is_post_type_archive )      return $current_type = 'archive'; // CPT Arşivleri
+    
+    if ( $wp_query->is_search )                 return $current_type = 'search';
+    if ( $wp_query->is_404 )                    return $current_type = 'notfound';
+    
+    return $current_type = 'notfound';
+}
+function get_page_type() {
+    static $page_type_cache = null;
+    if ( null !== $page_type_cache ) return $page_type_cache;
+
+    // E-Ticaret Kontrolleri (Daha spesifik oldukları için en üste aldık)
+    if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE ) {
+        if ( is_shop() )                            return $page_type_cache = "shop";
+        if ( is_singular('product') )               return $page_type_cache = "product";
+        if ( is_product_category() )                return $page_type_cache = "product_cat";
+        if ( is_checkout() )                        return $page_type_cache = "checkout";
+        if ( is_tax("product_brand") )              return $page_type_cache = "product_brand";
+        if ( is_tax() )                             return $page_type_cache = "product_tax";
     }
 
-    return $loop;
+    // Özel Template Kontrolü
+    if ( is_page_template('favorites') )            return $page_type_cache = "favorites";
+
+    // Standart WP Kontrolleri
+    if ( is_front_page() )                          return $page_type_cache = "front";
+    if ( is_home() )                                return $page_type_cache = "home";
+    if ( is_single() )                              return $page_type_cache = "post";
+    if ( is_page() )                                return $page_type_cache = "page";
+    if ( is_category() )                            return $page_type_cache = "category";
+    if ( is_tag() )                                 return $page_type_cache = "tag";
+    if ( is_tax() )                                 return $page_type_cache = "tax";
+    if ( is_post_type_archive() )                   return $page_type_cache = "post_archive";
+    if ( is_archive() )                             return $page_type_cache = "tax_archive";
+    if ( is_search() )                              return $page_type_cache = "search";
+    if ( is_author() )                              return $page_type_cache = "author";
+    if ( is_404() )                                 return $page_type_cache = "404";
+
+    return $page_type_cache = "";
 }
-
-
-function get_page_type(){
-    $page_type = "";
-        if(is_single()){
-            $page_type = "post";
-        }else if(is_page()){
-            $page_type = "page";
-        }else if(is_tag()){
-            $page_type = "tag";
-        }else if(is_category()){
-            $page_type = "category";
-        }else if(is_tax()){
-            $page_type = "tax"; 
-        }else if(is_archive()){
-            $page_type = "tax_archive";
-        }else if(is_home()){
-            $page_type = "home";
-        }else if(is_front_page()){
-            $page_type = "front";
-        }else if(is_search()){
-            $page_type = "search";
-        }else if(is_404()){
-            $page_type = "404";
-        }else if(is_author()){
-            $page_type = "author";
-        }else if(is_post_type_archive()){
-            $page_type = "post_archive";
-        }else if(ENABLE_ECOMMERCE){
-            if(is_shop()){
-                $page_type = "shop";
-            }elseif(is_singular('product')){
-                $page_type = "product";
-            }elseif(is_product_category()){
-                $page_type = "product_cat";
-            }elseif(is_checkout()){
-                $page_type = "checkout";
-            }elseif(is_page_template('favorites')){
-                $page_type = "favorites";
-            }elseif(is_tax("product_brand")){
-                $page_type = "product_brand";
-            }elseif(is_tax()){
-                $page_type = "product_tax";
-            }
-        }
-    return $page_type;
-}
-
-
-
 
 function get_post_type_object_labels($post_type="post"){
     $post_type_object = get_post_type_object($post_type);
@@ -661,12 +635,9 @@ function get_post_type_object_labels($post_type="post"){
     return null;
 }
 
-
 function get_post_types_with_taxonomies() {
     $post_types = get_post_types(); // Tüm post tiplerini al
-
     $post_types_data = array();
-
     foreach ($post_types as $post_type) {
         $post_type_object = get_post_type_object($post_type); // Post type objesini al
         $taxonomies = get_object_taxonomies($post_type); // Post type ile ilişkili taxonomyleri al
@@ -703,7 +674,7 @@ function get_user_role($user_id=0) {
 
 
 function wp_count_posts_by_query($args) {
-    $query = QueryCache::get_cached_query($args);
+    $query = new WP_Query($args);
     if ($query->have_posts()) {
         return count($query->posts);
     } else {
@@ -727,7 +698,7 @@ function get_page_deeper_link($sayfaID) {
         'orderby'        => 'menu_order'
     );
 
-    $altSayfalar = get_posts($args);
+    $altSayfalar = get_posts($args);//get_posts($args);
 
     if ($altSayfalar) {
         // İlk child sayfasının ID'sini al
@@ -755,7 +726,7 @@ function get_menu_locations() {
         'header-menu' => 'Header Menu',
         'footer-menu' => 'Footer Menu',
     ];
-    $value = QueryCache::get_cached_option("menu_locations");//get_cached_field("menu_locations", "option");
+    $value = get_field("menu_locations", "options");//get_cached_field("menu_locations", "option");
     if (empty($value)) {
         return $locations;
     }
@@ -770,8 +741,8 @@ function get_menu_locations() {
 
 function get_menu_populate(){
     $arr = [];
-    $value = QueryCache::get_cached_option("menu_populate");//get_cached_field("menu_populate", "option");
-    if($value){
+    //$value = get_option("options_menu_populate");//get_cached_field("menu_populate", "option");
+    //if($value){
         foreach($value as $item){
             $menu = $item["menu"];
             $post_type = [];
@@ -809,7 +780,7 @@ function get_menu_populate(){
                 // Eğer yoksa, yeni bir array oluşturup ekleyelim.
                 $arr[$menu][] = $menu_item;
             }
-        }
+        //}
     }
     return $arr;
 }

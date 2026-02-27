@@ -4,7 +4,7 @@ $required_setting = ENABLE_FAVORITES;
 $id = $vars["id"];
 $favorites = new Favorites();
 $favorites->add($id);
-$GLOBALS["favorites"] = $favorites;
+Data::set("favorites", $favorites);
 $favorite_count = get_post_meta($id, "wpcf_favorites_count", true);
 $button_text = trans("Remove");
 $feedback_text = "";

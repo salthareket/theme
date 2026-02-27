@@ -1,106 +1,114 @@
 <?php
 
-function wp_block_category( $categories, $post ) {
-    $main_category = array(
-        array(
+if(is_admin()){
+
+    /**
+     * [ADMIN] Blok Kategorisi Ekleme
+     */
+    function wp_block_category_logic( $categories, $post ) {
+        if ( ! is_admin() ) return $categories;
+
+        $main_category = [
             'slug'  => 'saltblocks',
             'title' => 'Salt Blocks',
-            'icon'  => 'dashicons-admin-generic' // Dashicon simgesi
-        )
-    );
-    $new_categories = array_merge( $GLOBALS['block_categories'], $main_category);
-    $new_categories = array_reverse( $new_categories );
-    foreach ( $new_categories as $new_category ) {
-        array_unshift( $categories, $new_category );
-    }
-    return $categories;
-}
-add_filter( 'block_categories_all', 'wp_block_category', 10, 2 );
+            'icon'  => 'dashicons-admin-generic'
+        ];
 
-function wp_block_pattern_categories( $categories ) {
-    if ( function_exists( 'register_block_pattern_category' ) ) {
+        return array_merge( [ $main_category ], $categories );
+    }
+    add_filter( 'block_categories_all', 'wp_block_category_logic', 10, 2 );
+
+    /**
+     * [ADMIN] Pattern Kategorisi Kaydı
+     */
+    function wp_block_pattern_categories_init() {
+        if ( ! is_admin() || ! function_exists( 'register_block_pattern_category' ) ) {
+            return;
+        }
+
         $site_name = get_bloginfo( 'name' );
         $kategori_slug = sanitize_title( $site_name );
+
         register_block_pattern_category(
             $kategori_slug,
-            array( 
-                'label' => $site_name,
-                'description' => 'Patterns for '.$site_name.' web site.'
-            )
-        );
-        $block_pattern_category = wp_insert_term( 
-            $site_name, 
-            'wp_pattern_category', 
-            array( 'slug' => $kategori_slug ) // it is the optional part
+            [ 
+                'label' => $site_name, 
+                'description' => 'Patterns for ' . $site_name . ' web site.' 
+            ]
         );
 
-        if( ! is_wp_error( $block_pattern_category ) ) {
-            wp_set_object_terms( $block_pattern_category[ 'term_id' ], $kategori_slug, 'wp_pattern_category' );
+        if ( ! get_term_by( 'slug', $kategori_slug, 'wp_pattern_category' ) ) {
+            wp_insert_term( $site_name, 'wp_pattern_category', [ 'slug' => $kategori_slug ] );
         }
     }
-}
-add_action( 'init', 'wp_block_pattern_categories' );
+    add_action( 'init', 'wp_block_pattern_categories_init' );
 
-function wp_block_pattern_on_save( $post_id, $post, $update ) {
-    if ( $post->post_type !== 'wp_block' ) {
-        return;
+    /**
+     * [ADMIN] Pattern Kaydedilirken Otomatik Kategori Atama
+     */
+    function wp_block_pattern_on_save_logic( $post_id, $post, $update ) {
+        // Sadece admin panelinde ve 'wp_block' tipinde çalış
+        if ( ! is_admin() || $post->post_type !== 'wp_block' ) {
+            return;
+        }
+
+        $tax = 'wp_pattern_category';
+        $post_categories = wp_get_post_terms( $post_id, $tax, [ 'fields' => 'ids' ] );
+
+        if ( empty( $post_categories ) ) {
+            $site_name = get_bloginfo( 'name' );
+            $kategori_slug = sanitize_title( $site_name );
+            
+            if ( get_term_by( 'slug', $kategori_slug, $tax ) ) {
+                wp_set_object_terms( $post_id, $kategori_slug, $tax );
+            }
+        }
     }
-    $post_categories = wp_get_post_terms( $post->ID, 'wp_pattern_category', array( 'fields' => 'ids' ) );
-    if(!$post_categories){
-        $site_name = get_bloginfo( 'name' );
-        $kategori_slug = sanitize_title( $site_name );
-        $category = get_term_by('slug', $kategori_slug, 'wp_pattern_category');
-        if($category){
-            wp_set_object_terms($post_id, $kategori_slug, 'wp_pattern_category');
-        }        
+    add_action( 'save_post', 'wp_block_pattern_on_save_logic', 10, 3 );
+
+    function wp_block_editor_width() {
+        echo '<style>
+            /* Standart CSS formatına çekildi */
+            @media (min-width: 1200px) {
+                .wp-block, 
+                .wp-block .container-xxl, 
+                .wp-block .container { 
+                    max-width: 1140px !important; 
+                }
+            }
+            .wp-block[data-align="full"] { max-width: none !important; }
+        </style>';
     }
+    add_action('admin_head', 'wp_block_editor_width');
+    
 }
-add_action( 'save_post', 'wp_block_pattern_on_save', 10, 3 );
+
+
+
 
 
 function get_cached_blocks( $post_id ) {
-    static $cache = [];
+    static $blocks_cache = [];
 
-    if ( isset( $cache[ $post_id ] ) ) {
-        return $cache[ $post_id ];
-    }
-
-    if ( ! has_blocks( $post_id ) ) {
-        $cache[ $post_id ] = false;
-        return false;
+    if ( isset( $blocks_cache[ $post_id ] ) ) {
+        return $blocks_cache[ $post_id ];
     }
 
     $content = get_post_field( 'post_content', $post_id );
-    $blocks  = parse_blocks( $content );
+    if ( empty( $content ) || ! has_blocks( $content ) ) {
+        return $blocks_cache[ $post_id ] = [];
+    }
 
-    $cache[ $post_id ] = $blocks;
-    return $blocks;
+    return $blocks_cache[ $post_id ] = parse_blocks( $content );
 }
-
 
 function get_blocks($post_id){
     if ( ! has_blocks( $post_id ) ) {
         return false;
     }
     return parse_blocks(get_post_field('post_content', $post_id));
-    //return parse_blocks( get_the_content( '', false, $post_id ) );
 }
-/*function get_block( $post_id, $block_id, $render=false ) {
-    $post_blocks = get_blocks($post_id );
-    if(!$post_blocks){
-        return false;
-    }
-    foreach ( $post_blocks as $block ) {
-        if ( isset( $block['blockName']) && $block_id == $block['blockName'] ) {
-            if($render){
-                return render_block($block);
-            }else{
-                return $block;
-            }
-        }
-    }
-    return false;
-}*/
+
 function get_block( $post_id, $block_name, $render = false ) {
     $blocks = get_cached_blocks( $post_id );
     if ( ! $blocks ) return false;
@@ -114,23 +122,6 @@ function get_block( $post_id, $block_name, $render = false ) {
     return false;
 }
 
-/*function get_field_from_block( $selector, $post_id, $block_id ) {
-    $post_blocks = get_blocks($post_id );
-    if(!$post_blocks){
-        return false;
-    }
-    foreach ( $post_blocks as $block ) {
-        if ( isset( $block['attrs']['id'] ) && $block_id == $block['attrs']['id'] ) {
-            if ( isset( $block['attrs']['data'][$selector] ) ) {
-                return $block['attrs']['data'][$selector];
-            } else {
-                break;
-            }
-        }
-    }
-    return false;
-}
-*/
 function get_field_from_block( $selector, $post_id, $block_id ) {
     $blocks = get_cached_blocks( $post_id );
     if ( ! $blocks ) return false;
@@ -144,17 +135,15 @@ function get_field_from_block( $selector, $post_id, $block_id ) {
     return false;
 }
 
-
-
 function get_block_from_page($block_name, $source_page_id = null, $args = []) {
-    if (!$source_page_id) {
-        $source_page_id = get_option('page_on_front');
-    }
-    $content = get_post_field('post_content', $source_page_id);
-    $blocks = parse_blocks($content);
+    $source_page_id = $source_page_id ?: get_option('page_on_front');
+    $blocks = get_cached_blocks($source_page_id); // Artık cache'den geliyor
+
+    if ( empty($blocks) ) return '';
+
     foreach ($blocks as $block) {
-        if ($block['blockName'] === $block_name) {
-            if (!empty($args)) {
+        if ( isset($block['blockName']) && $block['blockName'] === $block_name ) {
+            if ( ! empty($args) ) {
                 $block['attrs']["data"] = array_merge($block['attrs']["data"] ?? [], $args);
             }
             return render_block($block);
@@ -165,130 +154,26 @@ function get_block_from_page($block_name, $source_page_id = null, $args = []) {
 
 //plyr video player
 function add_player_class_to_embed_block($block_content, $block) {
+    // Sadece video ve ses bloklarında işlem yap
+    if ( ! in_array($block['blockName'], ['core/embed', 'core/audio']) ) {
+        return $block_content;
+    }
 
-    switch ($block['blockName']) {
+    if ( $block['blockName'] === 'core/embed' && isset($block["attrs"]["type"]) && $block["attrs"]["type"] === "video" ) {
+        return sprintf(
+            '<div class="player plyr__video-embed init-me"><iframe class="video" src="%s" allowfullscreen allowtransparency allow="autoplay"></iframe></div>',
+            esc_url($block["attrs"]["url"])
+        );
+    }
 
-        case 'core/embed':
-            if($block["attrs"]["type"] == "video"){
-                $block_content = '<div class="player plyr__video-embed init-me"><iframe
-                    class="video"
-                    src="'.$block["attrs"]["url"].'"
-                    allowfullscreen
-                    allowtransparency
-                    allow="autoplay"
-                  ></iframe></div>';                
-            }else{
-                $block_content2 = '<iframe
-                    class="w-100"
-                    src="'.$block["attrs"]["url"].'"                    
-                    allowtransparency
-                  ></iframe>';
-            }
-        break;
-
-        case 'core/audio':
-             $block_content = str_replace('<audio', '<audio class="player init-me"', $block_content);
-        break;
-
+    if ( $block['blockName'] === 'core/audio' ) {
+        return str_replace('<audio', '<audio class="player init-me"', $block_content);
     }
 
     return $block_content;
 }
 //add_filter('render_block', 'add_player_class_to_embed_block', 10, 2);
 
-
-function wp_block_editor_width() {
-    ?>
-    <style>
-        .is-fullscreen-mode{
-            
-        }
-        @media (min-width: 576px) {
-            .wp-block {
-                max-width: 540px; /* Or your desired width for small screens */
-                .container-xxxl,
-                .container-xxl,
-                .container,
-                .container-xl,
-                .container-lg,
-                .container-md,
-                .container-sm,
-                .container-xs{
-                    max-width: 540px;
-                }
-            }
-        }
-
-        @media (min-width: 768px) {
-            .wp-block {
-                max-width: 720px; /* Or your desired width for medium screens */
-                .container-xxxl,
-                .container-xxl,
-                .container,
-                .container-xl,
-                .container-lg,
-                .container-md,
-                .container-sm,
-                .container-xs{
-                    max-width: 720px;
-                }
-            }
-        }
-
-        @media (min-width: 992px) {
-            .wp-block {
-                max-width: 960px; /* Or your desired width for large screens */
-                .container-xxxl,
-                .container-xxl,
-                .container,
-                .container-xl,
-                .container-lg,
-                .container-md,
-                .container-sm,
-                .container-xs{
-                    max-width: 960px;
-                }
-            }
-        }
-
-        @media (min-width: 1200px) {
-            .wp-block {
-                max-width: 1140px; /* Or your desired width for extra large screens */
-                .container-xxxl,
-                .container-xxl,
-                .container,
-                .container-xl,
-                .container-lg,
-                .container-md,
-                .container-sm,
-                .container-xs{
-                    max-width: 1140px;
-                }
-            }
-        }
-        /* Width of "wide" blocks */
-        .wp-block[data-align="wide"] {
-            max-width: 1080px;
-                .container-xxxl,
-                .container-xxl,
-                .container,
-                .container-xl,
-                .container-lg,
-                .container-md,
-                .container-sm,
-                .container-xs{
-                    max-width: 1080px;
-                }
-        }
- 
-        /* Width of "full-wide" blocks */
-        .wp-block[data-align="full"] {
-            max-width: none;
-        }
-    </style>
-    <?php
-}
-add_action('admin_head', 'wp_block_editor_width');
 
 
 /*

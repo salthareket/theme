@@ -6,234 +6,108 @@ use SaltHareket\Theme;
 use YoBro\App\Message;
 use YoBro\App\Attachment;
 
-/*
-header('Content-Type: text/html');
-send_nosniff_header();
+class TurboApi {
 
-//Disable caching
-header('Cache-Control: no-cache');
-header('Pragma: no-cache');
-*/
+    private $prefix = 'api';
 
-$unique = "ajax";
-
-add_action($unique . "_query", "query", 10, 1);
-add_action($unique . "_nopriv_query", "query", 10, 1);
-
-function no_data($data){
-    echo json_encode([]);
-}
-
-function ajax_disable_plugins($plugins){
-
-    /* load all plugins if not in ajax mode */
-    if ( !defined( 'DOING_AJAX' ) )  {
-        return $plugins;
+    function __construct() {
+        add_action('init', [$this, 'add_rewrite_rules']);
+        add_filter('query_vars', [$this, 'add_query_vars']);
+        add_action('template_redirect', [$this, 'handle_api_request'], 1);
+        
+        // Rewrite rule'ları aktif etmek için (Sadece bir kez gerekir)
+        register_activation_hook(__FILE__, [$this, 'refresh_rules']);
     }
 
-    /* load all plugins if fast_ajax is set to false */
-    if ( !isset($_REQUEST['fast_ajax']) || !$_REQUEST['fast_ajax'] )  {
-        return $plugins;
+    public function refresh_rules() {
+        $this->add_rewrite_rules();
+        flush_rewrite_rules();
     }
 
-    /* disable all plugins if none are told to load by the load_plugins array */
-    if ( !isset($_REQUEST['load_plugins']) || !$_REQUEST['load_plugins'] )  {
-        return array();
+    public function add_query_vars($vars) {
+        $vars[] = 'api_method';
+        return $vars;
     }
 
-    /* convert json */
-    if (!is_array($_REQUEST['load_plugins']) && $_REQUEST['load_plugins']) {
-        $_REQUEST['load_plugins'] = json_decode($_REQUEST['load_plugins'], true);
+    public function add_rewrite_rules() {
+        // site.com/api/search_stores/ yapısını yakalar
+        add_rewrite_rule(
+            '^' . $this->prefix . '/([^/]+)/?$',
+            'index.php?api_method=$matches[1]',
+            'top'
+        );
     }
 
-    /* unset plugins not included in the load_plugins array */
-    foreach ($plugins as $key => $plugin_path) {
-        if (!in_array($plugin_path, $_REQUEST['load_plugins'] )) {
-            unset($plugins[$key]);
+    public function handle_api_request() {
+        $method = get_query_var('api_method');
+        if (!$method) return;
+
+        // 1. IŞIK HIZI AYARLARI
+        if (!defined('DOING_AJAX')) define('DOING_AJAX', true);
+        
+        // Gereksiz headerları temizle ve JSON bildir
+        @ini_set('display_errors', 0);
+        header('Content-Type: application/json; charset=utf-8');
+        header('X-Content-Type-Options: nosniff');
+        header('Access-Control-Allow-Origin: ' . get_site_url());
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+
+        $this->process($method);
+        exit;
+    }
+
+    private function process($method) {
+        // 2. FETCH BODY OKUMA (Modern JSON Body)
+        $raw_data = file_get_contents('php://input');
+        $data = json_decode($raw_data, true) ?: $_REQUEST;
+
+        // Değişkenleri senin methods/index.php yapına hazırla
+        $id       = isset($data["id"]) ? absint($data["id"]) : 0;
+        $keyword  = isset($data["keyword"]) ? sanitize_text_field($data["keyword"]) : "";
+        $vars     = isset($data["vars"]) ? $data["vars"] : $data;
+        $template = isset($vars["template"]) ? sanitize_text_field($vars["template"]) : "";
+        $lang     = isset($data["lang"]) ? $data["lang"] : ml_get_current_language();
+
+        // 3. GÜVENLİK (NONCE)
+        // Fetch ile gönderdiğin X-WP-Nonce header'ını kontrol eder
+        $nonce = $_SERVER['HTTP_X_WP_NONCE'] ?? ($data['_wpnonce'] ?? '');
+        $public_methods = ['site_config', 'message_upload'];
+        
+        if (!in_array($method, $public_methods) && !wp_verify_nonce($nonce, 'ajax')) {
+            $this->respond_error('Security Check Failed');
         }
-    }
 
-    return $plugins;
-}
-//define('FAST_AJAX' , true );
-//    add_filter( 'option_active_plugins', 'ajax_disable_plugins' );
+        // 4. MİRAS MANTIK (methods/index.php)
+        $response = ["error" => false, "message" => "", "data" => "", "html" => ""];
 
-
-function ajax_security($data){
-    $response = [
-        "error" => false,
-        "message" => "",
-        "data" => "",
-        "resubmit" => false,
-        "redirect" => "",
-        "redirect_blank" => false,
-        "html" => "",
-    ];
-    if(!isset($data['_wpnonce'])){
-        $nonce = isset( $_SERVER['HTTP_X_CSRF_TOKEN'] ) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : '';
-        if(empty($nonce)){
-           $response["error"] = true;
-           $response["message"] = 'Security reason...';
-           echo(json_encode($response));
-           die;
-        }        
-    }else{
-        $nonce = $data['_wpnonce'];
-    }
-    $nonce = wp_verify_nonce( $nonce, 'ajax' );
-
-
-    // DEBUG: nonce değerini logla
-    error_log('[DEBUG] Received Nonce: ' . $nonce);
-
-    // DEBUG: test et hangi action ile geçerli
-    $actions = ['ajax', 'acf_nonce', 'wp_rest']; // buraya ihtimal olanları ekleyebilirsin
-    $valid_action = null;
-    foreach($actions as $act){
-        $check = wp_verify_nonce($nonce, $act);
-        if($check === 1 || $check === 2){
-            $valid_action = $act;
-            error_log("[DEBUG] Nonce matched with action={$act}, check={$check}");
-            break;
+        // include öncesi değişkenleri scope'a alıyoruz
+        if (defined('THEME_INCLUDES_PATH')) {
+            include_once THEME_INCLUDES_PATH . "methods/index.php";
         }
-    }
 
-    return;
-
-    switch ( $nonce ) {
-        case 1:
-            //echo 'Nonce is less than 12 hours old';
-            break;
-        case 2:
-            //echo 'Nonce is between 12 and 24 hours old';
-            break;
-        default:
-            $response["error"] = true;
-            $response["error_type"] = "nonce";
-            $response["message"] = 'Page is expired. Please refresh.';
-            echo(json_encode($response));
-            exit;
-    }
-}
-
-function minify_html($html) {
-    // HTML içindeki gereksiz boşlukları ve satır sonlarını temizler
-    $search = array(
-        '/\>[^\S ]+/s',  // < tag'inin sonrasındaki boşluklar
-        '/[^\S ]+\</s',  // > tag'inin öncesindeki boşluklar
-        '/(\s)+/s',      // Birden fazla boşlukları tek boşluk yap
-        '/<!--(.|\s)*?-->/' // HTML yorumlarını sil
-    );
-    $replace = array(
-        '>',
-        '<',
-        '\\1',
-        ''
-    );
-    return preg_replace($search, $replace, $html);
-}
-
-function query($data){
-
-    if (!is_iterable($data)) {
-        exit();
-    }
-
-    if($data["method"] != "message_upload" && $data["method"] != "site_config"){
-       ajax_security($data);        
-    }
-
-    $lang = strtolower( substr( get_locale(), 0, 2 ) );
-    if (function_exists("qtranxf_getSortedLanguages")) {
-        $lang = qtranxf_getLanguage();
-    }
-
-    $method = isset($data["method"]) ? $data["method"] : "";
-    $terms = isset($data["terms"]) ? $data["terms"] : "";
-    //$template = isset($data["template"]) ? $data["template"] : "ajax/archive";
-    $id = isset($data["id"]) ? $data["id"] : "";
-    $vars = isset($data["vars"]) ? $data["vars"] : $data;
-    $keyword = trim(isset($data["keyword"]) ? $data["keyword"] : "");
-    $template = isset($vars["template"]) ? $vars["template"] : "";
-    //$page = isset($data["page"]) ? $data["page"] : 0;
-    /*$count = isset($data["count"]) ? $data["count"] : 10;
-		 $term = isset($data["term"]) ? $data["term"] : "category";
-
-		 $pagination=isset($data["pagination"])? ($data["pagination"]=== 'true'? true: false) : false;*/
-
-    /*if(isset($_SERVER['HTTP_REFERER'])){
-			 $_SERVER['REQUEST_URI'] = str_replace('http://'.$_SERVER['HTTP_HOST'],'',$_SERVER['HTTP_REFERER']);
-			 $url_parts=explode('?method=',$_SERVER['REQUEST_URI']);
-			 $_SERVER['REQUEST_URI'] = $url_parts[0];
-			 if($method=='author-most-readed' || $method=='most-readed'){
-				 $_SERVER['REQUEST_URI'].='?method='.$method;
-			 }                   
-		}*/
-
-    ///add_action( 'wp_ajax_'.$method, 'wpdocs_action_function' );
-
-         //print_r(check_ajax_referer( $method."-security", 'method' ));
-
-    if (isset($data["upload"])) {
-        //$vars=$data;
-    }
-
-    
-
-    //print_r($vars);
-
-    if ($vars) {
-        foreach ($vars as $key => $var) {
-            if (!isset($var)) {
-                $vars[$key] = "";
+        // 5. TIMBER & MINIFY (Opsiyonel)
+        if (!empty($template) && isset($templates) && class_exists('Timber')) {
+            $context["ajax_call"] = true;
+            $context["ajax_method"] = $method;
+            $html = Timber::compile($templates, $context);
+            $response["html"] = $this->minify_output($html);
+            
+            // Pagination dataları varsa ekle
+            foreach (['page', 'page_count', 'post_count'] as $key) {
+                if (isset($$key)) $response[$key] = $$key;
             }
         }
+
+        echo json_encode($response);
     }
 
-
-    if (isset($vars["lang"])) {
-        $lang = $vars["lang"];
+    private function respond_error($msg) {
+        echo json_encode(["error" => true, "message" => $msg]);
+        exit;
     }
 
-    $error = false;
-    $message = "";
-    $redirect_url = "";
-    //$data = "";
-    $html = "";
-
-    $response = [
-        "error" => false,
-        "message" => "",
-        "data" => "",
-        "resubmit" => false,
-        "redirect" => "",
-        "html" => "",
-    ];
-
-    $output = [];
-
-    include_once THEME_INCLUDES_PATH . "methods/index.php";
-
-    if (isset($template)) {
-        $context["ajax_call"] = true;
-        $context["ajax_method"] = $method;
-        if (isset($templates)) {
-            $data["html"] = minify_html(Timber::compile($templates, $context));
-        }
-        if (isset($page)) {
-            $data["page"] = $page;
-        }
-        if (isset($page_count)) {
-            $data["page_count"] = $page_count;
-        }
-        if (isset($post_count)) {
-            $data["post_count"] = $post_count;
-        }
-        if (isset($query_vars)) {
-            $data["query_vars"] = $query_vars;
-        }
-        echo json_encode($data);
-        /*Timber::render( $templates, $context );*/
+    private function minify_output($html) {
+        return preg_replace(['/\s+/s', '//s'], [' ', ''], $html);
     }
-    wp_die();
 }
+new TurboApi();

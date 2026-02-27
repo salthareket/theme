@@ -1,5 +1,5 @@
 /*function lcp_data(metric, type) {
-    console.log("is cached:" + site_config.cached);
+    debugJS("is cached:" + site_config.cached);
     if (!metric || !metric.attribution || site_config.cached) return '';
     let element, url;
     if (typeof metric.attribution.lcpEntry !== "undefined") {
@@ -10,9 +10,9 @@
         url = metric.entries[0].url || "";
     }
 
-    console.log("----------------------------");
-    console.log(metric);
-    console.log(element);
+    debugJS("----------------------------");
+    debugJS(metric);
+    debugJS(element);
 
     let preloadTag = "";
     let preloadType = "";
@@ -118,13 +118,13 @@
         selectors: selectorList
     };
 
-    console.log(code);
+    debugJS(code);
 
     return code;
 }*/
 
 function lcp_data(metric, type) {
-    console.log("is cached:" + site_config.cached);
+    debugJS("is cached:" + site_config.cached);
     if (!metric || !metric.attribution || site_config.cached) return '';
     let element, url;
 
@@ -137,9 +137,9 @@ function lcp_data(metric, type) {
         url = metric.entries[0].url || "";
     }
 
-    console.log("----------------------------");
-    console.log(metric);
-    console.log(element);
+    debugJS("----------------------------");
+    debugJS(metric);
+    debugJS(element);
 
     let criticalCssRules = []; 
     let preloadType = "";
@@ -313,7 +313,7 @@ function lcp_data(metric, type) {
         selectors: criticalCssRules.map(r => r.selector)
     };
 
-    console.log(code);
+    debugJS(code);
 
     return code;
 }
@@ -322,9 +322,9 @@ function lcp_data_save(metric, type = "desktop") {
     // sayfa tam yüklenince stil al
    // window.addEventListener("load", () => {
         const lcpData = lcp_data(metric, type);
-        console.log("fetched")
+        debugJS("fetched")
         const pageUrl = window.location.href;
-        console.log(type + " LCP:", lcpData);
+        debugJS(type + " LCP:", lcpData);
         fetch(ajax_request_vars.url_admin, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -339,7 +339,7 @@ function lcp_data_save(metric, type = "desktop") {
         })
             .then(response => response.json())
             .then(data => {
-                console.log(type + " LCP Sonuçları kaydedildi:", data);
+                debugJS(type + " LCP Sonuçları kaydedildi:", data);
                 if (type === "mobile" && window.opener) {
                     self.close();
                 }

@@ -1,32 +1,50 @@
 <article class="tease-search card-module card-reset card m-0 h-100">
 	<div class="row">
+		{% if post.thumbnail %}
 		<div class="col-image col-auto d-none d-md-block">
 			<a href="{{post.link}}" title="{{post.title}}" class="btn-loading-page">
 			     <img data-src="{% if post.thumbnail %}{{post.thumbnail.src('thumbnail')}}{% endif %}" class="img-placeholder img-fluid lazy rounded-3 overflow-hidden {% if post.thumbnail and not is_preview %}loading{% else %}img-not-found{% endif %}" alt="{{post.title}}" width="150" height="150" />
 			</a>
 	    </div>
+	    {% endif %}
 	    <div class="col-content col">
 			<div class="card-body">
-				<ul class="list-label list-inline mb-3">
+				{#<ul class="list-label list-inline mb-3">
 					<li class="list-inline-item">
 						<a href="#" class="label">{{post.type.labels.name}}</a>
 					</li>
-					{# if post.post_type in post_types|keys %}
+					{% if post.post_type in post_types|keys %}
 						{% for taxonomy in post_types[post.post_type].taxonomies %}
 							{% for term in post.terms(taxonomy) %}
 		                    <li class="list-inline-item">
-		                    	<a href="#" class="label" class="btn-loading-page">{{term.title}}</a>
+		                    	<a href="#" class="label btn-loading-page">{{term.title}}</a>
 		                    </li>
 							{% endfor %}
 						{% endfor %}
-					{% endif #}
-				</ul>
+					{% endif %}
+				</ul>#}
 				<h5 class="card-title mb-2">
 					<a href="{{post.link}}" title="{{post.title}}" class="btn-loading-page">{{post.title}}</a>
 				</h5>
 				{% if post.content %}
 					<div class="card-text">
-						<a href="{{post.link}}" title="{{post.title}}" class="btn-loading-page">
+						{% set event_link = function('get_post_type_archive_link', 'etkinlikler') %}
+						{% set campaign_link = function('get_post_type_archive_link', 'kampanyalar') %}
+						{% set floor_link = function('get_post_type_archive_link', 'katlar') %}
+						{% if post.post_type == 'etkinlikler' %}
+			                {% set final_link = event_link %}
+			            {% elseif post.post_type == 'magazalar' %}
+			                {# Mağazalar için ID ile anchor link #}
+			                {% set final_link = function('get_post_type_archive_link', 'magazalar') ~ '#store-' ~ post.id %}
+			            {% elseif post.post_type == 'kampanyalar' %}
+			                {% set final_link = campaign_link %}
+			            {% elseif post.post_type == 'katlar' %}
+			                {% set final_link = floor_link %}
+			            {% else %}
+			                {# Varsayılan permalink #}
+			                {% set final_link = post.link %}
+			            {% endif %}
+						<a href="{{final_link}}" title="{{post.title}}" class="btn-loading-page">
 							{{post.excerpt.length(25).read_more('')}}
 						</a>
 					</div>

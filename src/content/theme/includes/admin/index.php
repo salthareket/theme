@@ -222,8 +222,8 @@ function my_mce_before_init_insert_formats( $init_array ) {
 $new_styles = [];
 // Buttons from costom colors
 $buttons = array();
-if(isset($GLOBALS["mce_text_colors"])){
-foreach ($GLOBALS["mce_text_colors"] as $value) {
+if(Data::has("mce_text_colors")){
+foreach (Data::get("mce_text_colors") as $value) {
 $slug = strtolower($value);
 $buttons[] = array(
 'title' => 'btn-'.$slug,
@@ -266,7 +266,8 @@ $new_styles[] = [
 "title" => "Styles",
 "items" => $style_formats
 ];
-if($GLOBALS["breakpoints"]){
+$breakpoints = Data::get("breakpoints");
+if($breakpoints){
 $typography = [];
 $theme_styles = acf_get_theme_styles();
 if($theme_styles){
@@ -274,7 +275,7 @@ if(isset($theme_styles["typography"])){
 $typography = $theme_styles["typography"];
 }
 }
-foreach($GLOBALS["breakpoints"] as $key => $breakpoint){
+foreach($breakpoints as $key => $breakpoint){
 $size = "";
 if(isset($typography["title"][$key]) && !empty($typography["title"][$key]["value"])){
 $size = " - ".$typography["title"][$key]["value"].$typography["title"][$key]["unit"];
@@ -343,19 +344,21 @@ $new_styles[] = [
 "title" => "Margin",
 "items" => $margins
 ];
-if(isset($GLOBALS["mce_styles"]) && is_array($GLOBALS["mce_styles"])){
-$style_formats = array_merge($GLOBALS["mce_styles"], $style_formats);
+$mce_styles = Data::get("mce_styles");
+if(isset($mce_styles) && is_array($mce_styles)){
+$style_formats = array_merge($mce_styles, $style_formats);
 $new_styles[] = [
 "title" => "Extras",
-"items" => $GLOBALS["mce_styles"]
+"items" => $mce_styles
 ];
 }
 // Insert the array, JSON ENCODED, into 'style_formats'
 //$init_array['style_formats'] = json_encode( $style_formats );
 //colors
-if(isset($GLOBALS["mce_text_colors"])){
+$mce_text_colors = Data::get("mce_text_colors");
+if(isset($mce_text_colors)){
 $mce_colors = '';
-foreach ($GLOBALS["mce_text_colors"] as $key => $value) {
+foreach ($mce_text_colors as $key => $value) {
 $mce_colors .= '"' . str_replace("#", "", $key) . '", "' . $value . '", ';
 }
 $mce_colors = rtrim($mce_colors, ', ');
@@ -615,13 +618,4 @@ return $field;
 }
 if(function_exists("qtranxf_getSortedLanguages")){
 add_filter('acf/load_field/name=language', 'acf_load_language_choices');
-}
-// Clear cache.
-// Also preload the cache if the Preload is enabled.
-if ( function_exists( 'rocket_clean_domain' ) ) {
-//rocket_clean_domain();
-}
-// Clear minified CSS and JavaScript files.
-if ( function_exists( 'rocket_clean_minify' ) ) {
-//rocket_clean_minify();
 }

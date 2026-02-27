@@ -14,7 +14,7 @@ add_filter("download_allowed_file_types", function($types=array()){
     return $types;
 });
 
-$GLOBALS["breakpoints"] = array(
+$breakpoints = array(
         'xs' => 575,
         'sm' => 576,
         'md' => 768,
@@ -23,18 +23,21 @@ $GLOBALS["breakpoints"] = array(
         'xxl' => 1400,
         'xxxl' => 1600
 );
+if($breakpoints){
+    Data::merge("breakpoints", $breakpoints);
+}
 
-if(isset($GLOBALS["plugins"])){
-        $required_plugins = array(
-            // set plugins in here
-        );
-        if($required_plugins){
-            $GLOBALS["plugins"] = array_merge($GLOBALS["plugins"], $required_plugins);
-        }
+if(Data::get("plugins")){
+    $required_plugins = array(
+        // set plugins in here
+    );
+    if($required_plugins){
+        Data::merge("plugins", $required_plugins);
+    }
 }
 
 // Upload için izin verilen dosya tipleri
-$GLOBALS["upload_mimes"] = array(
+$upload_mimes = array(
         'svg'  => 'image/svg+xml',
         'svgz' => 'image/svg+xml',
         'webp' => 'image/webp',
@@ -42,27 +45,43 @@ $GLOBALS["upload_mimes"] = array(
         'apk'  => 'application/vnd.android.package-archive',
         'avif' => 'image/avif'
 );
+Data::merge("upload_mimes", $upload_mimes);
 
 add_filter("init", function(){
 
     //redirects
-    $GLOBALS["woo_redirect_empty_cart"] = "";
-    $GLOBALS["woo_redirect_not_logged"] = get_account_endpoint_url('my-account');
+    $woo_redirect_empty_cart = "";
+    if($woo_redirect_empty_cart){
+        Data::aet("woo_redirect_empty_cart", $woo_redirect_empty_cart);
+    }
+    $woo_redirect_not_logged = get_account_endpoint_url('my-account');
+    if($woo_redirect_not_logged){
+        Data::set("woo_redirect_not_logged", $woo_redirect_not_logged);
+    }
 
     // Üyelik oluştururken kullanılabilecek rollerin tanımlanması
-    $GLOBALS["membership_roles"] = array();
+    $membership_roles = array();
+    if($membership_roles){
+        Data::merge("membership_roles", $membership_roles);
+    }
 
     // Notification ile ilişkili post_type listesi
-    $GLOBALS["notification_post_types"] = array();
+    $notification_post_types = array();
+    if($notification_post_types){
+        Data::extend("notification_post_types", $notification_post_types);
+    }
 
     // Yeni block kategorilerinin tanımlanması
-    $GLOBALS['block_categories'] = array(
+    $block_categories = array(
         array(
             'slug'  => TEXT_DOMAIN,
             'title' => esc_html( ucwords(str_replace('-', ' ', TEXT_DOMAIN)) ) . ' Blocks',
             'icon'  => 'dashicons-admin-site' // Dashicon simgesi
         )
     );
+    if($block_categories){
+        Data::extend("block_categories", $block_categories);
+    }
 
     // Classic editor içine UI elemanları tanımlanması
     /*$mce_styles = array(
@@ -72,7 +91,10 @@ add_filter("init", function(){
                 'classes' => 'list-unstyled ms-4'             
             ),
     );*/
-    $GLOBALS["mce_styles"] = array();
+    $mce_styles = array();
+    if($mce_styles){
+        Data::extend("mce_styles", $mce_styles);
+    }
 
     $colors_mce = [];
     $colors_mce_file = get_template_directory() . '/theme/static/data/colors_mce.json';
@@ -80,15 +102,17 @@ add_filter("init", function(){
         $colors_mce = file_get_contents($colors_mce_file);
         $colors_mce = json_decode($colors_mce, true);    
     }
-
-    $GLOBALS["mce_text_colors"] = $colors_mce;
+    $mce_text_colors = $colors_mce;
     /*array(
       //'#fff' => 'Color Name'
     );*/
+    if($mce_text_colors){
+        Data::extend("mce_text_colors", $mce_text_colors);
+    }
 
 
     // Bir post_type için yapılan görsel yüklemelerinin boyutlandırılması
-    $GLOBALS["upload_resize"] = array(
+    $upload_resize = array(
         /*'product'  => array(
             "width" => 780,
             "height" => 1200,
@@ -96,9 +120,12 @@ add_filter("init", function(){
             "compression" => 70
         )*/
     );
+    if($upload_resize){
+        Data::merge("upload_resize", $upload_resize);
+    }
 
     // Tanımlı olan görsel boyutlarının kaldırılması
-    $GLOBALS["upload_sizes_remove"] = array(
+    $upload_sizes_remove = array(
         /* Native sizes */
         '1536x1536',
         '2048x2048',
@@ -119,9 +146,12 @@ add_filter("init", function(){
         'xxl',
         'xxxl'*/
     );
+    if($upload_sizes_remove){
+        Data::merge("upload_sizes_remove", $upload_sizes_remove);
+    }
 
     // Yeni görsel boyutlarının tanımlanması
-    $GLOBALS["upload_sizes_add"] = array(
+    $upload_sizes_add = array(
         /*'sm' => 576,
         'md' => 768,
         'lg' => 992,
@@ -129,13 +159,23 @@ add_filter("init", function(){
         'xxl' => 1400,
         'xxxl' => 1600*/
     );
+    if($upload_sizes_add){
+        Data::merge("upload_sizes_add", $upload_sizes_add);
+    }
 
 
 
 
 
-    $GLOBALS["twig_filters"] = [];
-    $GLOBALS["twig_functions"] = [];
+    $twig_filters = [];
+    if($twig_filters){
+        Data::merge("twig_filters", $twig_filters);
+    }
+
+    $twig_functions = [];
+    if($twig_functions){
+        Data::merge("twig_functions", $twig_functions);
+    }
 
     $url_query_vars = [
         "action",
@@ -167,9 +207,11 @@ add_filter("init", function(){
         ];
         $url_query_vars = array_merge($url_query_vars, $url_query_filter_vars);
     }
-    $GLOBALS["url_query_vars"] = $url_query_vars;
+    if($url_query_vars){
+        Data::merge("url_query_vars", $url_query_vars);
+    }
 
-    $GLOBALS["templates"] = array(
+    $templates = array(
         "favorites" => array(
             "user" => array(
                 "archive" => "my-account/my-favorites.twig",
@@ -177,12 +219,19 @@ add_filter("init", function(){
             )
         )
     );
+    if($templates){
+        Data::merge("templates", $templates);
+    }
 
-    $GLOBALS["base_urls"] = [
+    $base_urls = [
         "profile" => get_account_endpoint_url("profile"),
         "account" => get_permalink(get_option("woocommerce_myaccount_page_id")),//get_permalink( get_page_by_path( "my-account" ) ),
         "logged_url" => home_url(),
     ];
+    if($base_urls){
+        Data::merge("base_urls", $base_urls);
+    }
+
 
     $my_account_links = array(
        "profile" => array(
@@ -192,11 +241,19 @@ add_filter("init", function(){
             "menu" => "Profile"
         ),
     );
-    $GLOBALS["my_account_links"] = $my_account_links;
+    if($my_account_links){
+        Data::merge("my_account_links", $my_account_links);
+    }
 
-    $GLOBALS["sitemap_exclude_post_ids"] = array();
+    $sitemap_exclude_post_ids = array();
+    if($sitemap_exclude_post_ids){
+        Data::merge("sitemap_exclude_post_ids", $sitemap_exclude_post_ids);
+    }
 
-    $GLOBALS["sitemap_exclude_term_ids"] = array();
+    $sitemap_exclude_term_ids = array();
+    if($sitemap_exclude_term_ids){
+        Data::merge("sitemap_exclude_term_ids", $sitemap_exclude_term_ids);
+    }
 
 });
 
@@ -220,7 +277,7 @@ function notification_url_map($action, $post_id, $user_id){
         break;
         case "new-review":
         case "review-approved":
-            return $GLOBALS["base_urls"]["reviews"];
+            return Data::get("base_urls.reviews");
         break;
     }
 }
@@ -250,7 +307,10 @@ function notification_update_map($notification){
 
 
 
-$GLOBALS["custom_shortcodes"] = [];
+$custom_shortcodes = [];
+if($custom_shortcodes){
+        Data::merge("custom_shortcodes", $custom_shortcodes);
+    }
 /*
 Example:
 [

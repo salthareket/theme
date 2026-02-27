@@ -5,7 +5,7 @@ function formAutoFill(){
             var $formMethod = $form.data("ajax-method");
             var $formData = Cookies.get($formMethod);
             if(!IsBlank($formData)){
-                $formData = $.parseJSON($formData);
+                $formData = JSON.parse($formData);
                 debugJS($formData);
                 populate($form[0], $formData);
                 for(var $el in $formData){
@@ -51,7 +51,7 @@ function formAutoFill(){
                        $obj.val($value);
                     }
                 }
-                if(root.logged()){
+                if(site_config.logged){
                    Cookies.remove($formMethod);
                 }
             }

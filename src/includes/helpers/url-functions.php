@@ -283,7 +283,7 @@ function bwp_url_to_postid($url){
 		}
 
 			// Do the query
-		    $query = QueryCache::get_cached_query($query);
+		    $query = new WP_Query($query);
 			if ( !empty($query["posts"]) && $query["is_singular"] )
 				return $query["posts"][0]->ID;
 			else
@@ -544,10 +544,10 @@ function is_prefetch_request() {
     return false;
 }
 
-
-function is_local($url="") {
-    $site_url = get_site_url(); // WordPress sitenin ana URL'si
-    return strpos($url, $site_url) === 0; // URL, site URL'si ile başlıyorsa yereldir
+function is_local($url = "") {
+    $site_url = parse_url(get_site_url(), PHP_URL_HOST); // Sadece domain: localhost
+    $img_url = parse_url($url, PHP_URL_HOST); // Gelen resmin domaini
+    return $site_url === $img_url;
 }
 
 function is_external($url=""){
@@ -598,3 +598,25 @@ function parse_external_url($url='', $internal_class='internal-link', $external_
     ];
 }
 
+
+
+function get_clean_root_path($full_url) {
+    if (empty($full_url)) return '';
+
+    // 1. URL'den domaini ve protokolü söküp at (Sadece path kalsın)
+    $path = parse_url($full_url, PHP_URL_PATH);
+
+    // 2. Varsa query stringleri temizle (?v=1.2 gibi)
+    $path = strtok($path, '?#');
+
+    // 3. Polylang gibi eklentilerin eklediği dil kodlarını (/en/, /tr/) en baştan temizle
+    // regex: başında / olan ve ardından 2 harfli dil kodu gelip tekrar / ile devam eden yapı
+    $clean_path = preg_replace('/^\/[a-z]{2}\//', '/', $path);
+
+    // 4. Eğer temizlemeden sonra başında / kalmadıysa ekle (Garantiye al)
+    if (strpos($clean_path, '/') !== 0) {
+        $clean_path = '/' . $clean_path;
+    }
+
+    return $clean_path;
+}

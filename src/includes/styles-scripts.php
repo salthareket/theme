@@ -1,70 +1,54 @@
 <?php
-function generateFontPreloadTags_v1($font_faces_path) {
-    if (!file_exists($font_faces_path)) {
-        return '';
-    }
-
-    $content = file_get_contents($font_faces_path);
-    preg_match_all('/src:\s*url\(([^)]+)\)\s*format\("([^"]+)"\)/i', $content, $matches, PREG_SET_ORDER);
-
-    $preloads = [];
-
-    foreach ($matches as $match) {
-        $url = trim($match[1], '\'"');
-        $url = str_replace("../", STATIC_URL, $url);
-        $url = to_relative_url($url);
-        $format = strtolower($match[2]);
-
-        $type = match ($format) {
-            'woff2' => 'font/woff2',
-            'woff'  => 'font/woff',
-            'truetype', 'ttf' => 'font/ttf',
-            default => 'font/woff2',
-        };
-
-        $preloads[] = sprintf(
-            '<link rel="preload" as="font" href="%s" type="%s" crossorigin>',
-            htmlspecialchars($url),
-            $type
-        );
-    }
-
-    return implode("\n", array_unique($preloads));
-}
-
 function generateFontPreloadTags($font_faces_path) {
-    if (!file_exists($font_faces_path)) {
+    // 1. GÜVENLİK VE YOL KONTROLÜ
+    // $font_faces_path mutlaka fiziksel yol olmalı (C:/... veya /var/www/...)
+    if (empty($font_faces_path) || !file_exists($font_faces_path)) {
         return '';
     }
 
+    // 2. PERFORMANS: CACHING (Transient API)
+    // Dosyanın son değişim zamanını alıyoruz, dosya güncellenirse cache otomatik düşer.
+    $last_modified = filemtime($font_faces_path);
+    $cache_key = 'font_preloads_' . md5($font_faces_path . $last_modified);
+    
+    $cached_output = get_transient($cache_key);
+    if ($cached_output !== false) {
+        return "\n" . $cached_output;
+    }
+
+    // 3. HIZ: DOSYAYI OKU
     $content = file_get_contents($font_faces_path);
-    // Regex'i biraz esnettim, tek tırnak/çift tırnak ve boşluk varyasyonları için
-    preg_match_all('/src:\s*url\(([^)]+)\)\s*format\("([^"]+)"\)/i', $content, $matches, PREG_SET_ORDER);
+    if (empty($content)) return '';
+
+    // Regex iyileştirildi: tırnaklı/tırnaksız url() ve format() yapılarını kapsar.
+    preg_match_all('/src:\s*url\([\'"]?([^)]+?)[\'"]?\)\s*format\([\'"]?([^"\')]+)[\'"]?\)/i', $content, $matches, PREG_SET_ORDER);
 
     $preloads = [];
-
-    // Mevcut sitenin path kısmını alalım (Örn: /yeni-klasor/ veya sadece /)
-    $current_home_path = parse_url(home_url(), PHP_URL_PATH) ?: '';
-    $current_home_path = rtrim($current_home_path, '/');
+    $raw_home_url = network_site_url(); 
+    $current_home_path = rtrim(parse_url($raw_home_url, PHP_URL_PATH) ?: '', '/');
 
     foreach ($matches as $match) {
-        $url = trim($match[1], '\'"');
+        $url = $match[1];
+        
+        // Varsa query stringleri temizle (font.woff2?v=1.2 -> font.woff2)
+        $url = strtok($url, '?#');
 
-        // 1. ADIM: URL içindeki "/wp-content/" öncesini tamamen uçuralım. 
-        // Böylece "/ekos-depolama/wp-content/..." olan yer "/wp-content/..." kalır.
-        if (strpos($url, '/wp-content/') !== false) {
-            $url = strstr($url, '/wp-content/');
+        // 4. MANTIK: URL TEMİZLİĞİ
+        // ../ gibi göreceli yolları temizle veya wp-content odaklı hale getir
+        if (strpos($url, 'wp-content') !== false) {
+            $url = strstr($url, '/wp-content');
         }
 
-        // 2. ADIM: Eğer site bir subfolder içindeyse (yeni klasör), başına onu ekleyelim.
-        // home_url() zaten yeni klasörü biliyor.
-        $final_url = $current_home_path . $url;
+        // Dil kodlarını (/en/, /tr/) regex ile temizle (Sadece başta varsa)
+        $url = preg_replace('/^\/[a-z]{2}\//', '/', $url);
 
+        $final_url = $current_home_path . $url;
         $format = strtolower($match[2]);
+
         $type = match ($format) {
             'woff2' => 'font/woff2',
             'woff'  => 'font/woff',
-            'truetype', 'ttf' => 'font/ttf',
+            'truetype', 'ttf', 'opentype' => 'font/ttf',
             default => 'font/woff2',
         };
 
@@ -75,7 +59,12 @@ function generateFontPreloadTags($font_faces_path) {
         );
     }
 
-    return implode("\n", array_unique($preloads));
+    $output = implode("\n", array_unique($preloads));
+
+    // Sonucu 12 saat önbelleğe al (veya dosya değişene kadar)
+    set_transient($cache_key, $output, 12 * HOUR_IN_SECONDS);
+
+    return "\n" . $output;
 }
 
 add_action('wp_head', function () {
@@ -92,7 +81,6 @@ add_action('wp_head', function () {
     	}
     }
     */
-
 }, 0); // 0 ile en başta bassın
 
 
@@ -116,76 +104,35 @@ function remove_jquery_migrate($scripts) {
 }
 add_action('wp_default_scripts', 'remove_jquery_migrate');
 
-function inline_css_v1($name = "", $url = "") { // Her iki parametre de isteğe bağlı
-    
-    // DİKKAT: BU KONTROL ARTIK ÇOK DAHA KRİTİK!
-    // $url parametresini de isteğe bağlı yaptığımız için, fonksiyonun boş bir URL ile
-    // çağrılma ihtimali var. Bu kontrol olmazsa, kodun `file_get_contents("")`
-    // komutunu çalıştırmaya çalışır ve bu yeni bir PHP uyarısına neden olur.
-    if (empty($url) || !is_string($url) || !file_exists($url)) {
-        // Fonksiyon yanlış çağrılırsa hata günlüğüne not düşer.
-        error_log($url);
-        error_log('[Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
-        return ''; // Sitenin çökmesini engellemek için güvenli çıkış.
-    }
 
-    // --- Fonksiyonun geri kalanı aynı ---
-    $css = file_get_contents($url);
-    if ($css === false) {
-        error_log('[Theme] CSS dosyası okunamadı: ' . $url);
-        return '';
-    }
-
-    if ($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)) {
-        $upload_dir = wp_upload_dir();
-        $upload_url = $upload_dir['baseurl'] . "/";
-        $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
-        $code = str_replace("{home_url}", home_url("/"), $code);
-        $css .= $code;
-    }
-
-    $css = str_replace("[STATIC_URL]", STATIC_URL, $css);
-
-    $theme_dir = wp_normalize_path(get_template_directory());
-    $base_path = wp_normalize_path(dirname($url));
-    $subfolder = rtrim(getSiteSubfolder(), '/');
-
-    return preg_replace_callback(
-        '/url\((["\']?)(?!https?:|data:|\/)([^)\'"]+)\1\)/i',
-        function ($m) use ($base_path, $theme_dir, $subfolder) {
-            $original_path = wp_normalize_path($m[2]);
-            $abs_path = wp_normalize_path(realpath($base_path . DIRECTORY_SEPARATOR . $original_path));
-
-            if (!$abs_path || !str_starts_with($abs_path, $theme_dir)) {
-                return $m[0];
-            }
-
-            $rel_path = str_replace($theme_dir, '', $abs_path);
-            $rel_path = ltrim(str_replace('\\', '/', $rel_path), '/');
-
-            return "url('{$subfolder}/wp-content/themes/" . basename($theme_dir) . "/{$rel_path}')";
-        },
-        $css
-    );
-}
 function inline_css($name = "", $url = "") {
     if (empty($url) || !is_string($url) || !file_exists($url)) {
-        error_log($url);
-        error_log('[Theme] inline_css fonksiyonuna URL gönderilmedi veya geçersiz URL gönderildi.');
         return '';
     }
 
-    $css = file_get_contents($url);
-    if ($css === false) {
-        error_log('[Theme] CSS dosyası okunamadı: ' . $url);
-        return '';
+    // --- PERFORMANS: CACHING ---
+    // Dosya yolu ve son değişim zamanına göre benzersiz bir cache anahtarı oluşturuyoruz.
+    $last_modified = filemtime($url);
+    $cache_key = 'inline_css_' . md5($name . $url . $last_modified);
+    
+    // Eğer cache varsa direkt döndür, aşağıdakilere hiç girme.
+    $cached_css = get_transient($cache_key);
+    if ($cached_css !== false) {
+        return "/* Cached $name */\n" . $cached_css;
     }
+
+    $css = file_get_contents($url);
+    if ($css === false) return '';
+
+    // --- DİL EKİNDEN ARINDIRILMIŞ ANA DİZİN ALMA ---
+    $raw_home_url = network_site_url(); 
+    $subfolder = rtrim(parse_url($raw_home_url, PHP_URL_PATH) ?: '', '/');
 
     if ($name == "css-critical" && !empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)) {
         $upload_dir = wp_upload_dir();
         $upload_url = $upload_dir['baseurl'] . "/";
         $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
-        $code = str_replace("{home_url}", home_url("/"), $code);
+        $code = str_replace("{home_url}", rtrim($raw_home_url, '/'), $code);
         $css .= $code;
     }
 
@@ -195,24 +142,17 @@ function inline_css($name = "", $url = "") {
     $theme_name = basename($theme_dir);
     $base_path = wp_normalize_path(dirname($url));
     
-    // Güncel subfolder'ı dinamik alalım (/ekos-depolama veya boş gelir)
-    $subfolder = parse_url(home_url(), PHP_URL_PATH) ?: '';
-    $subfolder = rtrim($subfolder, '/');
-
-    // REGEX DEĞİŞTİ: Artık başında / olan yolları da yakalıyor (\/ engeli kalktı)
-    return preg_replace_callback(
+    $processed_css = preg_replace_callback(
         '/url\((["\']?)(?!https?:|data:)([^)\'"]+)\1\)/i',
         function ($m) use ($base_path, $theme_dir, $subfolder, $theme_name) {
             $quote = $m[1];
             $url_path = $m[2];
 
-            // EĞER YOL ABSOLUTE İSE (Başı / ile başlıyorsa ve içinde /wp-content/ varsa)
             if (strpos($url_path, '/wp-content/') !== false) {
                 $clean_path = str_replace('\\', '/', strstr($url_path, '/wp-content/'));
                 return "url({$quote}{$subfolder}{$clean_path}{$quote})";
             }
 
-            // EĞER YOL RELATIVE İSE (Senin eski mantığın devam ediyor)
             $original_path = wp_normalize_path($url_path);
             $abs_path = wp_normalize_path(realpath($base_path . DIRECTORY_SEPARATOR . $original_path));
 
@@ -227,6 +167,14 @@ function inline_css($name = "", $url = "") {
         },
         $css
     );
+
+    // Gereksiz boşlukları temizleyerek CSS'i küçült (Minification - Opsiyonel)
+    $processed_css = preg_replace('/\s+/', ' ', $processed_css);
+
+    // Sonucu 12 saatliğine cache'e at
+    set_transient($cache_key, $processed_css, 12 * HOUR_IN_SECONDS);
+
+    return $processed_css;
 }
 function inline_css_add($name="", $url="", $rtl=false){
 	if(empty($name) || empty($url)){
@@ -267,7 +215,8 @@ function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {
 }
 
 function delay_css_loading($tag, $handle, $href, $media) {
-    $async_handles = ['root', 'main', 'css-conditional', 'css-page', 'locale', 'common-css', 'newsletter'];
+    //$async_handles = ['root', 'main', 'css-conditional', 'css-page', 'locale', 'common-css', 'newsletter'];
+    $async_handles = ['locale', 'newsletter', 'sbi_styles'];
 
     if (in_array($handle, $async_handles)) {
         return "<link id='{$handle}' rel='preload' href='{$href}' as='style' onload=\"this.onload=null;this.rel='stylesheet'\">\n" .
@@ -308,21 +257,24 @@ function frontend_header_styles(){
 	    }
     }
 
-    $remove_global_styles = QueryCache::get_cached_option("remove_global_styles");//get_field("remove_global_styles", "option");
+    $remove_global_styles = get_option("remove_global_styles");//get_field("remove_global_styles", "option");
     if(($remove_global_styles == "auto" || $remove_global_styles) && !$has_core_block){
     	wp_deregister_style('global-styles');
     	wp_deregister_style('global-styles-inline');
+        wp_dequeue_style('global-styles');
 		wp_dequeue_style( 'global-styles-inline' );
-       	wp_dequeue_style('global-styles');
+        remove_action( 'wp_enqueue_scripts', 'wp_enqueue_global_styles' );
+        remove_action( 'wp_footer', 'wp_enqueue_global_styles', 1 );
+        remove_action( 'wp_body_open', 'wp_global_styles_render_svg_filters' );
     }
     
-    $remove_block_styles = QueryCache::get_cached_option("remove_block_styles");//get_field("remove_block_styles", "option");
+    $remove_block_styles = get_option("remove_block_styles");//get_field("remove_block_styles", "option");
     if(($remove_block_styles == "auto" || $remove_block_styles) && !$has_core_block){
 		wp_dequeue_style( 'wp-block-library' );
 		wp_dequeue_style( 'wc-blocks-style' ); 
     }
      
-    $remove_classic_theme_styles = QueryCache::get_cached_option("remove_classic_theme_styles");//get_field("remove_classic_theme_styles", "option");
+    $remove_classic_theme_styles = get_option("remove_classic_theme_styles");//get_field("remove_classic_theme_styles", "option");
     if($remove_classic_theme_styles){
     	wp_deregister_style('classic-theme-styles-inline');
     	wp_deregister_style('classic-theme-styles');
@@ -331,7 +283,7 @@ function frontend_header_styles(){
     }
 
     if(ENABLE_ECOMMERCE){
-	    $remove_woocommerce_styles = QueryCache::get_cached_option("remove_woocommerce_styles");//get_field("remove_woocommerce_styles", "option");
+	    $remove_woocommerce_styles = get_option("remove_woocommerce_styles");//get_field("remove_woocommerce_styles", "option");
 		if($remove_woocommerce_styles){
 			wp_dequeue_style('woocommerce-smallscreen');
 		    wp_dequeue_style('woocommerce-inline');
@@ -377,7 +329,9 @@ function frontend_header_styles(){
 
 	$plugin_css = false;
 	$css_page = false;
+    $conditional_plugins = [];
     if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !isset($_GET['fetch'])){
+        $conditional_plugins = isset(SITE_ASSETS["plugins"])?SITE_ASSETS["plugins"]:[];
     	if(isset(SITE_ASSETS['plugin_css']) && !empty(SITE_ASSETS['plugin_css']) && file_exists(STATIC_PATH . SITE_ASSETS["plugin_css"])){
     		$plugin_css = true;
     	}
@@ -417,17 +371,21 @@ function frontend_header_styles(){
 		    	wp_register_style('main', STATIC_URL . 'css/main-combined.css', array(), $version, '');
 		    	wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
 		    }
-		    //wp_enqueue_style('locale');
+
 		    if($is_rtl){
 				if($plugin_css){
-					wp_enqueue_style('css-conditional-rtl');
+					//wp_enqueue_style('css-conditional-rtl');
 				}
-				wp_enqueue_style('main-rtl');
+				//wp_enqueue_style('main-rtl');
 		    }else{
 				if($plugin_css){
-			       wp_enqueue_style('css-conditional');
-			    }
-				wp_enqueue_style('main');
+			       //wp_enqueue_style('css-conditional');
+			    }else{
+                    foreach($conditional_plugins as $plugin){
+                        //wp_enqueue_style('css-conditional-'.$plugin);
+                    }
+                }
+				//wp_enqueue_style('main');
 		    }
 	    }else{
 	    	if($plugin_css){
@@ -438,20 +396,42 @@ function frontend_header_styles(){
 	        }else{
 	        	inline_css_add('main', STATIC_PATH . 'css/main-combined'.($is_rtl?"-rtl":"").'.css', $is_rtl);
 	        }
-	    }	
+	    }
+
+
+        $packer = new \SaltHareket\Theme\AssetPacker(["css-conditional".($is_rtl?"-rtl":""), "main".($is_rtl?"-rtl":"")], 'css', 'global-bundle');
+        $bundle_url = $packer->get_url();
+        wp_enqueue_style('main-bundle', $bundle_url, array(), null);
+
 	}else{
 		if(!$print_css){
-			wp_register_style('main', STATIC_URL . 'css/main-combined.css', array(), $version, '');
-		    wp_register_style('main-rtl', STATIC_URL . 'css/main-combined-rtl.css', array(), $version, '');
+            if(!empty($conditional_plugins) && is_array($conditional_plugins)){
+                if (!function_exists("compile_files_config")) {
+                    require SH_INCLUDES_PATH . "minify-rules.php";
+                }
+                $files = compile_files_config(true);
+                $plugins = $files["js"]["plugins"];
+                foreach($plugins as $plugin => $file){
+                    if(in_array($plugin, $conditional_plugins)){
+                        if($file["c"] && !$file["css_only_local"] && !empty($file["css"]) && is_array($file["css"]) && count($file["css"]) > 0 && file_exists(STATIC_PATH . 'js/plugins/'.$plugin.".css")){
+                            wp_register_style('css-conditional-'.$plugin.($is_rtl?'-rtl':''), STATIC_URL . 'js/plugins/'.$plugin.($is_rtl?'-rtl':'').".css", array(), $version, '');
+                            wp_enqueue_style('css-conditional-'.$plugin.($is_rtl?'-rtl':''));
+                        }                    
+                    }
+                }                
+            }
+			wp_register_style('main'.($is_rtl?'-rtl':''), STATIC_URL . 'css/main-combined'.($is_rtl?'-rtl':'').'.css', array(), $version, '');
 		    wp_enqueue_style('main'.($is_rtl?'-rtl':''));
 		}else{
 			inline_css_add('main', STATIC_PATH . 'css/main-combined'.($is_rtl?"-rtl":"").'.css', $is_rtl);
 		}
 	}
 
-	//wp_register_style('common-css', STATIC_URL . 'css/common'.($is_rtl?"-rtl":"").'.css', array(), $version, '');
+	//wp_register_style('common-css', STATIC_URL . 'css/common-all'.($is_rtl?"-rtl":"").'.css', array(), $version, '');
     //wp_enqueue_style('common-css');
+    inline_css_add('common-css', STATIC_PATH  . 'css/common-all'.($is_rtl?"-rtl":"").'.css', $is_rtl);
 }
+
 function frontend_header_scripts(){
 	wp_deregister_script('jquery');
 	wp_register_script ('jquery', STATIC_URL . 'js/jquery.min.js', array(), '1.0.0', false);
@@ -460,6 +440,7 @@ function frontend_header_scripts(){
 	// Script'i kaydet
 	wp_register_script('image-sizes', SH_STATIC_URL .'js/image-sizes.js' , array(), '1.0.0', false);
 	wp_enqueue_script('image-sizes');
+
 	add_filter('script_loader_tag', function ($tag, $handle) {
 	    if (strpos($handle, 'image-sizes') !== false) { // header- ile başlayan scriptlere uygula
 	        $tag = str_replace('src=', 'defer src=', $tag);
@@ -467,7 +448,7 @@ function frontend_header_scripts(){
 	    return $tag;
 	}, 10, 2);
     
-   if(ENABLE_PRODUCTION){
+   /*if(ENABLE_PRODUCTION){
 		$header_files = compile_files_config(true)["js"]["header"];
 		foreach($header_files as $key => $file){
 		   wp_register_script('header-'.$key, $file, array(), '1.0.0', false);
@@ -476,13 +457,8 @@ function frontend_header_scripts(){
 	}else{
 	    wp_register_script ('header', STATIC_URL . 'js/header.min.js', array(), '1.0.0',false);
 		wp_enqueue_script('header');	
-	}
+	}*/
 
-	/*$locale_script_path = get_stylesheet_directory() . '/theme/static/data/translates_' . $GLOBALS['language'] . '.js';
-	if (file_exists($locale_script_path) && is_readable($locale_script_path) && filesize($locale_script_path) > 0) {
-	    wp_register_script('translates', get_stylesheet_directory_uri() . '/theme/static/data/translates_' . $GLOBALS['language'] . '.js', array(), null, true);
-	    wp_enqueue_script('translates');
-	}*/	
 }
 function frontend_footer_scripts(){
 
@@ -586,8 +562,8 @@ function frontend_footer_scripts(){
 			$print_js = false;
 		}
 
-		wp_register_script('pre', STATIC_URL . 'js/pre-combined.min.js', array(), null, true);
-	    wp_enqueue_script('pre');
+  		wp_register_script('pre', STATIC_URL . 'js/pre-combined.min.js', array(), null, true);
+//	    wp_enqueue_script('pre');
 
         //wp_register_script('functions', STATIC_URL . 'js/functions.min.js', array(), null, true);
 		//wp_enqueue_script('functions');
@@ -604,13 +580,24 @@ function frontend_footer_scripts(){
 	    	if(!$print_js){
 		        wp_register_script('plugins-conditional', STATIC_URL . $plugin_js, array('jquery' ), null, true);
 		        wp_enqueue_script('plugins-conditional');
+                add_filter('script_loader_tag', function($tag, $handle, $src) {
+                    // Sadece bizim belirlediğimiz script handle'ı için işlem yap
+                    if ('plugins-conditional' !== $handle) {
+                        return $tag;
+                    }
+
+                    // Mevcut <script tagını modül tipine çeviriyoruz
+                    $tag = '<script type="module" src="' . esc_url($src) . '" id="' . esc_attr($handle) . '-js"></script>';
+                    
+                    return $tag;
+                }, 10, 3);
 	    	}else{
 	    		inline_js_add('plugins-conditional', STATIC_URL . $plugin_js); 
 	    	}
 	    }
 
 	    wp_register_script('main', STATIC_URL . 'js/main-combined.min.js', array(), null, true);
-	    wp_enqueue_script('main');
+	    //wp_enqueue_script('main');
 
         
         /*if(!$print_js){
@@ -656,7 +643,7 @@ function frontend_footer_scripts(){
 	    wp_enqueue_script('locale');
 	}
 
-	$map_style = QueryCache::get_cached_option('google_maps_style');//get_field('google_maps_style', 'option');
+	$map_style = get_option('google_maps_style');//get_field('google_maps_style', 'option');
 	if($map_style != ''){
 		$map_style = json_encode(json_decode(strip_tags($map_style)));
 		$add_map_style = "var map_style = ".$map_style.";";
@@ -712,3 +699,22 @@ add_action('wp_footer', function () {
     <?php
 }, 100);
 */
+
+
+
+/**
+ * JS dosyasını modül olarak sisteme dahil et
+ 
+function tema_scripts_ekle() {
+    // text.js dosyasını her zamanki gibi ekle
+    wp_enqueue_script('text-module', get_template_directory_uri() . '/static/js/test.js', array(), '1.0.0', true);
+}
+add_action('wp_enqueue_scripts', 'tema_scripts_ekle');
+function script_tagini_module_yap($tag, $handle, $src) {
+    // Eğer handle 'text-module' ise tag'i değiştir
+    if ('text-module' === $handle) {
+        $tag = '<script type="module" src="' . esc_url($src) . '" id="' . esc_attr($handle) . '-js"></script>';
+    }
+    return $tag;
+}
+add_filter('script_loader_tag', 'script_tagini_module_yap', 10, 3);*/

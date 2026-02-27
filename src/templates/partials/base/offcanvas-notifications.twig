@@ -4,8 +4,8 @@
    {% set background = offcanvas.background_settings %}
 
    {% set style = "" %}
-   {% if background.color %}
-       {% set style = style  ~ "background-color:"  ~  background.color ~ ";" %}
+   {% if background.background.color %}
+       {% set style = style  ~ "background-color:"  ~  background.background.color ~ ";" %}
    {% endif %}
    {% if background.image and not background.image_filter and not background.image_blend_mode %}
        {% set style = style  ~ "background-image:url("  ~  background.image ~ ");background-size:" ~ background.size ~ ";background-repeat:"  ~ background.repeat ~ ";" ~ "background-position:" ~ background.position_hr ~ " " ~ background.position_vr ~ ";" %}
@@ -24,7 +24,7 @@
       {% endif %}
    {% endif %}
 
-   <div class="offcanvas offcanvas-notifications offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen {% if header_options.affix or header_options.fixed == "bottom-start" %}pt-header{% endif %}{% endif %} offcanvas-{{offcanvas.visibility}}" tabindex="-1" id="offcanvasNotifications" aria-labelledby="offcanvasNotificationsLabel" style="{{style}}">
+   <div class="offcanvas-notifications offcanvas-{{offcanvas.position}} {% if offcanvas.fullscreen %}offcanvas-fullscreen {% if header_options.affix or header_options.fixed == "bottom-start" %}pt-header{% endif %}{% endif %} {{offcanvas.visibility}} {% if offcanvas.page_header %}offcanvas-show-header{% endif %}" tabindex="-1" id="offcanvasNotifications" aria-labelledby="offcanvasNotificationsLabel" style="{{style}}">
 
       {% if background.image and (background.image_filter or background.image_blend_mode) %}
          <div class="bg-cover position-absolute-fill" {% if background.repeat != "no-repeat" %}style="{{image_style}}"{% endif %}>

@@ -37,10 +37,10 @@ function getAverageLuminance(element) {
             const bg = getComputedStyle(element).backgroundImage;
             const bgColor = getComputedStyle(element).backgroundColor;
 
-            console.log(bg)
+            debugJS(bg)
 
             if (bg && bg.includes("gradient")) {
-                console.log("bg gradient içeriyor");
+                debugJS("bg gradient içeriyor");
                 return requestIdleCallback(() => {
                      getRenderedLuminance(element).then(resolve);
                 });
@@ -51,7 +51,7 @@ function getAverageLuminance(element) {
             }
 
             // hiçbiri yoksa son çare
-            console.log("son care");
+            debugJS("son care");
             return requestIdleCallback(() => { 
                 getRenderedLuminance(element).then(resolve);
             });
@@ -137,7 +137,6 @@ function getComputedLuminance(element) {
     const [r, g, b] = rgb;
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
-
 function getAverageColorFromGradient(gradient) {
     const matches = gradient.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/g);
     if (!matches) return [255, 255, 255];
@@ -243,7 +242,6 @@ async function updateSlideColors(slider) {
 
 let slideColorUpdateTimeout;
 function safeUpdateSlideColors(obj, params = []) {
-
     clearTimeout(slideColorUpdateTimeout);
     slideColorUpdateTimeout = setTimeout(() => {
         // Eğer birden fazla slide görünüyorsa
@@ -266,7 +264,7 @@ function init_swiper_video_slide(swiper, obj){
                 lazyLoadInstance.load(video_slide.find('.player'));
             }*/
                 video_slide.addClass("inited");
-                const player = plyr_init(video_slide.find('.player'));//new Plyr(video_slide.find('.player')[0]);
+                const player = init_plyr(video_slide.find('.player'));//new Plyr(video_slide.find('.player')[0]);
                 video_slide.data("plyr", player);
                 return player;
         }else{
@@ -322,9 +320,9 @@ function init_swiper_video(swiper){
                 if(slide.find(".swiper-video").length > 0){
 
                     slide.find('iframe[data-src]').each(function(){
-                        console.log(this)
+                        debugJS(this)
                         LazyLoad.load(this); // elle yükle
-                        plyr_init($(this).closest(".video"));
+                        init_plyr($(this).closest(".video"));
                     });
                     slide.removeClass("user-reacted");
                     
@@ -494,102 +492,49 @@ function init_swiper_obj($obj) {
         }
 
         if ($hasBreakPoints) {
-            if ($breakpoints.hasOwnProperty("xs")) {
-                breakpoints["0"] = {
-                    slidesPerView: $breakpoints.xs=="auto"?1:$breakpoints.xs,
-                    slidesPerGroup: $breakpoints.xs
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("xs")) {
-                        breakpoints["0"]["spaceBetween"] = $gaps.xs;
-                    }                   
-                }else if(!IsBlank($gap)){
-                    breakpoints["0"]["spaceBetween"] = $gap;
-                }
-            }
-            if ($breakpoints.hasOwnProperty("sm")) {
-                breakpoints["575"] = {
-                    slidesPerView: $breakpoints.sm=="auto"?1:$breakpoints.sm,
-                    slidesPerGroup: $breakpoints.sm
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("sm")) {
-                        breakpoints["575"]["spaceBetween"] = $gaps.sm;
+            // Breakpoint tanımları (Genişlik: Anahtar)
+            var bpMap = {
+                "0": "xs",
+                "575": "sm",
+                "768": "md",
+                "991": "lg",
+                "1199": "xl",
+                "1399": "xxl",
+                "1599": "xxxl"
+            };
+
+            var hasProp = Object.prototype.hasOwnProperty;
+
+            // Tüm breakpointleri tek döngüde dönüyoruz
+            for (var width in bpMap) {
+                var key = bpMap[width];
+
+                // $breakpoints içinde bu anahtar (xs, sm vb.) var mı?
+                if ($breakpoints && hasProp.call($breakpoints, key)) {
+                    var val = $breakpoints[key];
+                    
+                    breakpoints[width] = {
+                        slidesPerView: val === "auto" ? 1 : val,
+                        slidesPerGroup: val
+                    };
+
+                    // Gap (boşluk) ayarları
+                    if (!IsBlank($gaps)) {
+                        if (hasProp.call($gaps, key)) {
+                            breakpoints[width]["spaceBetween"] = $gaps[key];
+                        }
+                    } else if (!IsBlank($gap)) {
+                        breakpoints[width]["spaceBetween"] = $gap;
                     }
-                }else if(!IsBlank($gap)){
-                    breakpoints["575"]["spaceBetween"] = $gap;
                 }
             }
-            if ($breakpoints.hasOwnProperty("md")) {
-                breakpoints["768"] = {
-                    slidesPerView: $breakpoints.md=="auto"?1:$breakpoints.md,
-                    slidesPerGroup: $breakpoints.md
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("md")) {
-                        breakpoints["768"]["spaceBetween"] = $gaps.md;
-                    }
-                }else if(!IsBlank($gap)){
-                    breakpoints["768"]["spaceBetween"] = $gap;
-                }
-            }
-            if ($breakpoints.hasOwnProperty("lg")) {
-                breakpoints["991"] = {
-                    slidesPerView: $breakpoints.lg=="auto"?1:$breakpoints.lg,
-                    slidesPerGroup: $breakpoints.lg
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("lg")) {
-                        breakpoints["991"]["spaceBetween"] = $gaps.lg;
-                    }
-                }else if(!IsBlank($gap)){
-                    breakpoints["991"]["spaceBetween"] = $gap;
-                }
-            }
-            if ($breakpoints.hasOwnProperty("xl")) {
-                breakpoints["1199"] = {
-                    slidesPerView: $breakpoints.xl=="auto"?1:$breakpoints.xl,
-                    slidesPerGroup: $breakpoints.xl
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("xl")) {
-                        breakpoints["1199"]["spaceBetween"] = $gaps.xl;
-                    }
-                }else if(!IsBlank($gap)){
-                    breakpoints["1199"]["spaceBetween"] = $gap;
-                }
-            }
-            if ($breakpoints.hasOwnProperty("xxl")) {
-                breakpoints["1399"] = {
-                    slidesPerView: $breakpoints.xxl=="auto"?1:$breakpoints.xxl,
-                    slidesPerGroup: $breakpoints.xxl
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("xxl")) {
-                        breakpoints["1399"]["spaceBetween"] = $gaps.xxl;
-                    }
-                }else if(!IsBlank($gap)){
-                    breakpoints["1399"]["spaceBetween"] = $gap;
-                }
-            }
-            if ($breakpoints.hasOwnProperty("xxxl")) {
-                breakpoints["1599"] = {
-                    slidesPerView: $breakpoints.xxxl=="auto"?1:$breakpoints.xxxl,
-                    slidesPerGroup: $breakpoints.xxxl
-                }
-                if(!IsBlank($gaps)){
-                    if ($gaps.hasOwnProperty("xxxl")) {
-                        breakpoints["1599"]["spaceBetween"] = $gaps.xxxl;
-                    }
-                }else if(!IsBlank($gap)){
-                    breakpoints["1599"]["spaceBetween"] = $gap;
-                }
-            }
-        }else{
-            if($gaps){
-                var spaceBetween = $gaps;
-            }else if(!IsBlank($gap)){
-                var spaceBetween = $gap;
+        } else {
+            // Breakpoint yoksa standart gap ataması
+            var spaceBetween = "";
+            if ($gaps) {
+                spaceBetween = $gaps;
+            } else if (!IsBlank($gap)) {
+                spaceBetween = $gap;
             }
         }
 
@@ -636,7 +581,7 @@ function init_swiper_obj($obj) {
                     safeUpdateSlideColors(this.el, this.params);
 
                     //fade in
-                    console.log($el)
+                    debugJS($el)
                     if ($el.hasClass("fade")) {
                         $el.addClass("show");
                     }
@@ -663,12 +608,12 @@ function init_swiper_obj($obj) {
                 },
                 
                 slideChangeTransitionEnd: function (e) {
-                    console.log("slideChangeTransitionEnd");
+                    debugJS("slideChangeTransitionEnd");
                     //const activeSlide = $(e.slides[e.activeIndex]);
                     const swiper = this;
                     const $activeSlide = $(swiper.slides[swiper.activeIndex]);
                     $activeSlide.find('iframe[data-src-backup]').each(function(){
-                        console.log("active slide--------------------")
+                        debugJS("active slide--------------------")
                         $(this).closest(".lazy-container").removeClass("lazy-container");
                         $(this).parent().find(">.plyr__poster").remove();
                         $(this).parent().addClass("lazy-loaded");
@@ -690,7 +635,7 @@ function init_swiper_obj($obj) {
                     }else{
                         //this.params.freeMode = false;
                     }
-                    console.log("slidesGridLengthChange")
+                    debugJS("slidesGridLengthChange")
                     safeUpdateSlideColors(this.el, this.params);
                 }
             }
@@ -736,6 +681,9 @@ function init_swiper_obj($obj) {
                 if(card_slider){
                     prevEl = card_slider.find('.swiper-button-prev')[0];
                     nextEl = card_slider.find('.swiper-button-next')[0];
+                }else{
+                    prevEl = $obj.parent().find('.swiper-button-prev')[0];
+                    nextEl = $obj.parent().find('.swiper-button-next')[0];
                 }
                 if (!prevEl && !nextEl) {
                     $obj.append('<a href="#" class="swiper-button-prev"></a><a href="#" class="swiper-button-next"></a>');
@@ -743,17 +691,17 @@ function init_swiper_obj($obj) {
                     nextEl = $obj.find('.swiper-button-next')[0];
                 }
             }
-            if ($("body").hasClass("rtl")) {
+            /*if ($("body").hasClass("rtl")) {
                 options["navigation"] = {
                     nextEl: prevEl,
                     prevEl: nextEl
                 }
-            } else {
+            } else {*/
                 options["navigation"] = {
                     prevEl: prevEl,
                     nextEl: nextEl
                 }
-            }
+            //}
         }
         if(!IsBlank(pagination)) {
             var pagination_obj = $obj.find('.swiper-pagination')[0];
@@ -766,8 +714,11 @@ function init_swiper_obj($obj) {
                        pagination_obj = card_slider.find(".swiper-pagination")[0];
                     }
                 }else{
-                    $obj.append("<div class='swiper-pagination'></div>");
-                    pagination_obj = $obj.find('.swiper-pagination')[0];
+                    pagination_obj = $obj.parent().find('.swiper-pagination')[0];
+                    if(!pagination_obj){
+                        $obj.append("<div class='swiper-pagination'></div>");
+                        pagination_obj = $obj.find('.swiper-pagination')[0];
+                    }
                 }  
             }
             options["pagination"] = {

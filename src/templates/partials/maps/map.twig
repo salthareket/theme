@@ -6,7 +6,7 @@
             <div class="map-google map-google-embed ratio ratio-1x1" data-embed-url="{{contact.contact_map_url}}"></div>
         {% endif %}
     {% else %}
-        {% set map_marker = function('_get_option','map_marker') %}
+        {% set map_marker = function('_get_option','options_map_marker') %}
         {% set map = function('acf_map_data', contact.contact_map, "ratio  ratio-1x1", "map-" ~ post.id, map_marker) %}
         {{map.embed}}
     {% endif %}

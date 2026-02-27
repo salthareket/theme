@@ -92,7 +92,7 @@ class Term extends Timber\Term{
             $image = new \SaltHareket\Image($args);
             return $image->init();
         } catch (\Throwable $e) {
-            error_log('Term get_thumbnail failed: ' . $e->getMessage());
+            //error_log('Term get_thumbnail failed: ' . $e->getMessage());
             return '';
         }
     }
@@ -103,7 +103,7 @@ class Term extends Timber\Term{
             return;
         }
         if(empty($lang)){
-            $lang = $GLOBALS["language"];
+            $lang = Data::get("language");
         }
         $value = get_term_meta( $this->ID, $field, true);
         if(ENABLE_MULTILANGUAGE == "qtranslate"){
@@ -143,7 +143,7 @@ class Term extends Timber\Term{
                 array(
                     'taxonomy' => 'region',
                     'field' => 'term_id',
-                    'terms' => $GLOBALS["site_config"]["user_region"],
+                    'terms' => Data::get("site_config.user_region"),
                     'operator' => 'IN'
                 )
               )

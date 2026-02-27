@@ -1,7 +1,14 @@
 <div class="nav-item nav-image {{menu_class}}">
+    {% set menu_link = function("pll_acfe_advanced_link", menu_link) %}
+    {% if menu_link %}
+    <a href="{{menu_link.url}}" {% if menu_link.target %}target="_blank"{% endif %} title="{{ menu_link.title }}" style="display:block;height:100%;">
+    {% endif %}
     {% if function('get_extension', menu_image) == "svg" %}
         {{function('inline_svg', menu_image, {"class": "img-fluid img-fluid-vr"})}}
     {% else %}
         <img src="{{menu_image}}" class="img-fluid img-fluid-vr" alt="{{site.name}}" />
+    {% endif %}
+    {% if menu_link %}
+    </a>
     {% endif %}
 </div>

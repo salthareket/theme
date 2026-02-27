@@ -1,42 +1,242 @@
 <?php
+
 namespace SaltHareket;
 
 use ScssPhp\SCSSPhp\SCSSCompiler;
 use ScssPhp\ScssPhp\OutputStyle;
 
+class Data {
+    private static $storage = [];
+    private static $keyCache = []; // Noktalı yolların parçalanmış halini saklar
+
+    /**
+     * String anahtarı parçalar ve cache'e alır (Performans İçin)
+     */
+    private static function getSegments($key) {
+        return self::$keyCache[$key] ?? (self::$keyCache[$key] = explode('.', $key));
+    }
+
+    /**
+     * Veri Kaydet (Hibrit: Array ve Object uyumlu)
+     */
+    public static function set($key, $val) {
+        $storage = &self::$storage;
+        $keys = self::getSegments($key);
+
+        while (count($keys) > 1) {
+            $segment = array_shift($keys);
+
+            if (is_array($storage)) {
+                if (!isset($storage[$segment]) || (!is_array($storage[$segment]) && !is_object($storage[$segment]))) {
+                    $storage[$segment] = [];
+                }
+                $storage = &$storage[$segment];
+            } elseif (is_object($storage)) {
+                if (!isset($storage->{$segment}) || (!is_array($storage->{$segment}) && !is_object($storage->{$segment}))) {
+                    $storage->{$segment} = new \stdClass();
+                }
+                $storage = &$storage->{$segment};
+            }
+        }
+
+        $last = array_shift($keys);
+        if (is_array($storage)) {
+            $storage[$last] = $val;
+        } elseif (is_object($storage)) {
+            $storage->{$last} = $val;
+        }
+    }
+
+    /**
+     * Veri Getir (Hibrit: Array ve Object uyumlu)
+     */
+    public static function get($key, $default = null) {
+        $data = self::$storage;
+        foreach (self::getSegments($key) as $segment) {
+            if (is_array($data) && array_key_exists($segment, $data)) {
+                $data = $data[$segment];
+            } elseif (is_object($data) && isset($data->{$segment})) {
+                $data = $data->{$segment};
+            } else {
+                return $default;
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Varlık Kontrolü (Hibrit: Array ve Object uyumlu)
+     */
+    public static function has($key) {
+        $data = self::$storage;
+        foreach (self::getSegments($key) as $segment) {
+            if (is_array($data) && array_key_exists($segment, $data)) {
+                $data = $data[$segment];
+            } elseif (is_object($data) && isset($data->{$segment})) {
+                $data = $data->{$segment};
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Veriyi Al ve Sil (Flash Message mantığı)
+     */
+    public static function pull($key, $default = null) {
+        $val = self::get($key, $default);
+        self::purge($key);
+        return $val;
+    }
+
+    /**
+     * Tek Seferlik Hesapla ve Kaydet (Cache mantığı)
+     */
+    public static function once($key, $callback) {
+        $val = self::get($key, '___NOT_FOUND___');
+        if ($val === '___NOT_FOUND___') {
+            $val = $callback();
+            self::set($key, $val);
+        }
+        return $val;
+    }
+
+    /**
+     * Sayaç Artır
+     */
+    public static function increment($key, $amount = 1) {
+        $current = self::get($key, 0);
+        self::set($key, $current + $amount);
+    }
+
+    /**
+     * Diziye/Objeye Eleman Ekle
+     */
+    public static function push($key, $val) {
+        $current = self::get($key, []);
+        if (is_array($current)) {
+            $current[] = $val;
+            self::set($key, $current);
+        }
+    }
+
+    /**
+     * Yüzeysel Birleştirme (Hibrit)
+     */
+    public static function merge($key, $newVal) {
+        $current = self::get($key);
+        if ($current === null) {
+            self::set($key, $newVal);
+            return;
+        }
+
+        if (is_array($current) && is_array($newVal)) {
+            self::set($key, array_merge($current, $newVal));
+        } elseif (is_object($current)) {
+            $newObjData = (object) $newVal;
+            foreach ($newObjData as $k => $v) { $current->{$k} = $v; }
+            self::set($key, $current);
+        }
+    }
+
+    /**
+     * Derinlemesine Birleştirme (Recursive)
+     */
+    public static function extend($key, array $newValues) {
+        $current = self::get($key, []);
+        if (is_array($current)) {
+            self::set($key, array_replace_recursive($current, $newValues));
+        }
+    }
+
+    /**
+     * Veri Sil (Hibrit: Array ve Object uyumlu)
+     */
+    public static function purge($key = null) {
+        if ($key === null) {
+            self::$storage = [];
+            self::$keyCache = []; // Komple temizlikte yol cache'ini de sıfırla
+            return;
+        }
+
+        $storage = &self::$storage;
+        $keys = self::getSegments($key);
+
+        while (count($keys) > 1) {
+            $segment = array_shift($keys);
+            if (is_array($storage) && array_key_exists($segment, $storage)) {
+                $storage = &$storage[$segment];
+            } elseif (is_object($storage) && isset($storage->{$segment})) {
+                $storage = &$storage->{$segment};
+            } else {
+                return;
+            }
+        }
+
+        $last = array_shift($keys);
+        if (is_array($storage)) { unset($storage[$last]); } 
+        elseif (is_object($storage)) { unset($storage->{$last}); }
+    }
+
+    /**
+     * Tüm Depoyu Dök (Debug)
+     */
+    public static function all() {
+        return self::$storage;
+    }
+}
+class_alias('\SaltHareket\Data', 'Data');
+
+
 Class Theme{
 
-    /*
-    Bunu kullanırsak kullanım: \SaltBase::getInstance()->
-    private static $instance = null;
+    private static $instance = null; // Canlı örneği burada saklıyoruz
+
+    //public $is_rtl = false;
+    public $is_admin = false;
+    public $is_logged = false;
+    public $upload_url = "";
+
+    // getInstance: Dışarıdan objeyi çağırma kapısı
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
-    }*/
+    }
 
     function __construct(){
-        show_admin_bar(false); 
-        add_action("after_setup_theme", [$this, "after_setup_theme"]);
+        
+        add_action("init", function() {
+            //$this->is_rtl = is_rtl();
+            $this->is_admin = is_admin();
+            $this->is_logged = is_user_logged_in();
+        }, 1);
 
-        add_action("acf/init", [$this, "menu_actions"]);
-
-        //add_action("init", [$this, "after_setup_theme"]);
-
-        add_action("wp", [$this, "language_settings"]);
-
-        add_action("init", [$this, "global_variables"]);
-        add_action("init", [$this, "language_settings"], 1);  
-        add_action("init", [$this, "increase_memory_limit"]);
-        add_action("init", [$this, "register_post_types"]);
-        add_action("init", [$this, "register_taxonomies"]);
-
-        //add_action("wp", [$this, "site_assets"], 1);
-        add_action("template_redirect", [$this, "site_assets"], 1);
+        show_admin_bar(false);
 
         add_action("plugins_loaded", [$this, "plugins_loaded"]);
         
+        add_action("after_setup_theme", [$this, "after_setup_theme"]);
+
+        add_action("init", [$this, "register_post_types"]);
+        add_action("init", [$this, "register_taxonomies"]);
+
+        //add_action("wp", [$this, "language_settings"]);
+        //add_action("init", [$this, "language_settings"], 1); 
+
+        if (is_admin()) {
+            add_action("admin_init", [$this, "language_settings"]);
+        } else {
+            add_action("wp", [$this, "language_settings"]);
+        }
+
+        add_action("acf/init", [$this, "acf_init"]);
+
+        add_action("template_redirect", [$this, "site_assets"]);//add_action("template_redirect", [$this, "site_assets"], 1);
+        add_action("template_redirect", [$this, "global_variables"], 999);//template_redirect idi after_setup_theme yapıldı (get_field dattaları gelmiyodu)
+                
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
         add_filter('get_terms_args', [$this, "query_all_terms"], 10, 2);
 
@@ -51,6 +251,9 @@ Class Theme{
         remove_action('wp_head', 'adjacent_posts_rel_link_wp_head', 10, 0); // Önceki ve sonraki yazı linkleri
         remove_action('wp_head', 'wp_oembed_add_discovery_links'); // OEmbed discovery linkleri
         remove_action('admin_color_scheme_picker', 'admin_color_scheme_picker' );
+
+        remove_action('wp_head', 'print_emoji_detection_script', 7);
+        remove_action('wp_print_styles', 'print_emoji_styles');
 
         // WordPress 5.4 ve sonraki sürümler için gizleme
         remove_action('wp_head', 'rest_output_link_wp_head', 10);
@@ -68,9 +271,18 @@ Class Theme{
         }
         
         if(is_admin()){
-            add_action('admin_init', [$this, 'site_config_js'], 20 );   
+            add_action("init", [$this, "increase_memory_limit"]);
+            add_action("admin_menu", [$this, "menu_actions"]);
+            //add_action('admin_init', [$this, 'site_config_js'], 20 );
+            add_action('admin_head', function() {
+                $screen = get_current_screen();
+
+                if ($screen && $screen->base === 'post') {
+                    $this->site_config_js();
+                }
+            });
             if(SH_THEME_EXISTS){
-                add_action("admin_init", "load_admin_files");
+                //add_action("admin_init", "load_admin_files");
             }
             add_action("admin_init", [$this, "remove_comments"]);
             add_action('admin_menu', [$this, 'init_theme_settings_menu']);
@@ -79,9 +291,9 @@ Class Theme{
             });
         }else{
             if(SH_THEME_EXISTS){
-                add_action("wp_enqueue_scripts", "load_frontend_files", 20);
+                //add_action("wp_enqueue_scripts", "load_frontend_files", 20);
             }
-            add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
+            add_action('wp_head', [$this, 'site_config_js'], 1 );//add_action( 'wp_enqueue_scripts', [$this, 'site_config_js'], 20 );
             add_filter('body_class', [$this, 'body_class'] );
             add_action("wp", function(){
                 visibility_under_construction();
@@ -92,6 +304,9 @@ Class Theme{
             });    
         }
     }
+
+    // Clonlamayı engelle (güvenlik için)
+    private function __clone() {}
 
     public function increase_memory_limit() {
         // Bellek limitini artır
@@ -162,7 +377,6 @@ Class Theme{
             }
         }, 999); // Geç bir öncelik ile çalıştır
     }
-
     public function menu_actions(){
         register_nav_menus(get_menu_locations());
         if (function_exists("acf_add_options_page")) {
@@ -187,8 +401,10 @@ Class Theme{
                 if(class_exists("WPCF7")) {
                     $options_menu["children"][] = "Formlar";
                 }
-                create_options_menu($options_menu);
-
+                if(function_exists("create_options_menu")){
+                    create_options_menu($options_menu);
+                }
+            
                 if(ENABLE_NOTIFICATIONS && is_admin()){
                     $notifications_menu = [
                         "title" => "Notifications",
@@ -197,7 +413,9 @@ Class Theme{
                             "Notification Events",
                         ],
                     ];
-                    create_options_menu($notifications_menu);            
+                    if(function_exists("create_options_menu")){
+                        create_options_menu($notifications_menu);
+                    }          
                 }
                 if(is_admin()){
                     add_action('admin_init', function () use ($menu) {
@@ -271,41 +489,21 @@ Class Theme{
         ]);  
     }
 
-    public function after_setup_theme(){
+    public function after_setup_theme() {
 
-        //add theme foldere to use php templates
+        // Tüm hiyerarşileri tek bir fonksiyonla yönetelim
         $hierarchy_filters = [
-            'index_template_hierarchy',
-            '404_template_hierarchy',
-            'archive_template_hierarchy',
-            'attachment_template_hierarchy',
-            'author_template_hierarchy',
-            'category_template_hierarchy',
-            'date_template_hierarchy',
-            'embed_template_hierarchy',
-            'frontpage_template_hierarchy',
-            'home_template_hierarchy',
-            'page_template_hierarchy',
-            'paged_template_hierarchy',
-            'search_template_hierarchy',
-            'single_template_hierarchy',
-            'singular_template_hierarchy',
-            'tag_template_hierarchy',
-            'taxonomy_template_hierarchy',
+            'index_template_hierarchy', '404_template_hierarchy', 'archive_template_hierarchy',
+            'attachment_template_hierarchy', 'author_template_hierarchy', 'category_template_hierarchy',
+            'date_template_hierarchy', 'embed_template_hierarchy', 'frontpage_template_hierarchy',
+            'home_template_hierarchy', 'page_template_hierarchy', 'paged_template_hierarchy',
+            'search_template_hierarchy', 'single_template_hierarchy', 'singular_template_hierarchy',
+            'tag_template_hierarchy', 'taxonomy_template_hierarchy',
         ];
+
+        // Anonim fonksiyon yerine tek bir metot çağıralım (Hafıza dostu)
         foreach ($hierarchy_filters as $filter) {
-            add_filter($filter, function ($templates) {
-                $new_templates = [];
-
-                foreach ($templates as $template) {
-                    // Önce theme/ klasörü
-                    $new_templates[] = 'theme/' . $template;
-                    // Sonra orijinal path
-                    $new_templates[] = $template;
-                }
-
-                return $new_templates;
-            });
+            add_filter($filter, [$this, 'map_theme_folder_templates']);
         }
 
         $this->theme_supports();
@@ -314,437 +512,449 @@ Class Theme{
             add_theme_support("woocommerce");
         }
 
+        // Schema_Breadcrumbs kontrolü güzel, gereksiz yere yüklenmiyor.
         if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
             \Schema_Breadcrumbs::instance();
         }
     }
+    public function map_theme_folder_templates($templates) {
+        $new_templates = [];
+        foreach ($templates as $template) {
+            $new_templates[] = 'theme/' . $template;
+            $new_templates[] = $template;
+        }
+        return $new_templates;
+    }
+
     public function plugins_loaded(){
         load_theme_textdomain(
             TEXT_DOMAIN,
             get_template_directory() . "/languages"
         );
-        error_log("plugins_loaded --------------------------------");
+        //error_log("plugins_loaded --------------------------------");
     }
-    public function global_variables(){
 
-        if (( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
+    public function acf_init(){
+
+        $post_pagination = [];
+        if (!$this->is_admin) {
+            $post_pagination = \QueryCache::get_field("post_pagination", "options");
+            if (is_array($post_pagination) && !empty($post_pagination)) {
+                $post_pagination_tmp = [];
+                foreach ($post_pagination as $item) {
+                    if (!isset($item["post_type"])) continue;
+                    
+                    $pt = $item["post_type"];
+                    $posts_per_page = ($item["paged"]) ? intval($item["catalog_rows"]) * intval($item["catalog_columns"]) : -1;
+                    
+                    $item["posts_per_page"] = $posts_per_page;
+                    unset($item["post_type"]);
+                    $post_pagination_tmp[$pt] = $item;
+                }
+                $post_pagination = $post_pagination_tmp;
+            }
+            $search_pagination = \QueryCache::get_field("search_pagination", "options");//get_field_default("search_pagination", "options");
+            if ($search_pagination && isset($search_pagination["paged"]) && $search_pagination["paged"]) {
+                $search_pagination["posts_per_page"] = intval($search_pagination["catalog_rows"]) * intval($search_pagination["catalog_columns"]);
+                $post_pagination["search"] = $search_pagination;
+            }
+        }
+        Data::set("post_pagination", $post_pagination);
+
+        $sticky_types = \QueryCache::get_field("add_sticky_support", "options");
+        if ($sticky_types) {
+            foreach ((array)$sticky_types as $post_type) {
+                if ($post_type) add_post_type_support($post_type, 'sticky');
+            }
+        }
+
+    }
+
+    public function global_variables() {
+        // 1. Tema kontrolü
+        if (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) {
             return [];
         }
 
-        $salt = $GLOBALS["salt"];
+        $salt = Data::get("salt");
 
-        $user = \Timber::get_user();
-        /*if(!$user){
+        // 2. Kullanıcı Objesi Oluşturma
+        if ($this->is_admin) {
+            $current_user = wp_get_current_user();
             $user = new \stdClass();
-        }
-        $user->logged = 0;
-        $user->role = "";
-        if(isset($user->roles)){
-            $user->role = array_keys($user->roles)[0];
-        }*/
-
-        if (!$user || !is_object($user)) {
-            $user = new \stdClass();
-            $user->ID = 0;
-            $user->roles = [];
-        }
-        $user->logged = is_user_logged_in() ? 1 : 0;
-        $user->role = !empty($user->roles) ? array_keys($user->roles)[0] : '';
-        
-        error_log("theme.php site_config call");
-
-        if (!isset($GLOBALS["site_config"])) {
-            $site_config = self::get_site_config();
-            $GLOBALS["site_config"] = $site_config;
-        }else{
-            $site_config = $GLOBALS["site_config"];
-        }
-
-        if(ENABLE_IP2COUNTRY){
-            $user->user_country = $GLOBALS["site_config"]["user_country"];
-            $user->user_country_code = $GLOBALS["site_config"]["user_country_code"];
-            $user->user_city = $GLOBALS["site_config"]["user_city"];              
-        }
-
-        if (ENABLE_FAVORITES) {
-            $favorites = $GLOBALS["site_config"]["favorites"];
-            if (empty($favorites)) {
-                $favorites = [];
+            $user->ID = $current_user->ID;
+            $user->roles = (array) $current_user->roles;
+            $user->user_email = $current_user->user_email;
+        } else {
+            $timber_user = \Timber::get_user();
+            if ($timber_user) {
+                $user = $timber_user;
+                // Hata buradaydı: Overloaded property'yi direkt resetleyemezsin. 
+                // Önce normal bir array'e kopyalıyoruz.
+                $user_roles = (array) $user->roles; 
             } else {
-                if (!is_array($favorites)) {
-                    $favorites = json_decode($favorites);
-                }
+                $user = new \stdClass();
+                $user->ID = 0;
+                $user_roles = [];
+                $user->roles = [];
             }
-            $GLOBALS["favorites"] = $favorites;
+        }
+
+        $user->logged = $this->is_logged ? 1 : 0;
+
+        // Hatayı çözen mermi gibi satır:
+        $user->role = !empty($user_roles) ? reset($user_roles) : '';
+
+
+        // 3. Site Config Cache Kontrolü
+        //if (!isset($GLOBALS["site_config"])) {
+        if (!Data::has("site_config")) {
+            Data::set("site_config", self::get_site_config());//$GLOBALS["site_config"] = self::get_site_config();
+        }
+        $site_config = Data::get("site_config");//$GLOBALS["site_config"];
+
+
+        // 4. IP ve Ülke Bilgileri (Sadece Frontend)
+        if (!$this->is_admin && ENABLE_IP2COUNTRY) {
+            $user->user_country = $site_config["user_country"] ?? '';
+            $user->user_country_code = $site_config["user_country_code"] ?? '';
+            $user->user_city = $site_config["user_city"] ?? '';
+        }
+
+        // 5. Favoriler ve Arama Geçmişi (Global atamalar)
+        if (ENABLE_FAVORITES) {
+            $favs = $site_config["favorites"] ?? [];
+            //$GLOBALS["favorites"] = is_string($favs) ? json_decode($favs, true) : (is_array($favs) ? $favs : []);
+            $favorites = is_string($favs) ? json_decode($favs, true) : (is_array($favs) ? $favs : []);
+            Data::set("site_config", $favorites);
         }
 
         if (ENABLE_SEARCH_HISTORY) {
-            $GLOBALS["search_history"] = $GLOBALS["site_config"]["search_history"];
+            //$GLOBALS["search_history"] = $site_config["search_history"] ?? [];
+            Data::set("site_config", $site_config["search_history"] ?? []);
         }
 
-        if (ENABLE_MEMBERSHIP) {
-            $account_nav = [];
-
-            if (is_user_logged_in()) {
-                $user->logged = 1;
-                $user->role = $user->get_role();
-
-                if((empty($user->billing_country) || empty($user->billing_state)) && $salt->is_ip_changed() && ENABLE_IP2COUNTRY){//warning
-                    $login_location = $salt->localization->ip_info("visitor", "Location");
+        // 6. Üyelik ve Lokasyon Mantığı (Sadece Frontend ve Login durumunda)
+        if (!$this->is_admin && ENABLE_MEMBERSHIP && $this->is_logged) {
+            
+            // Eğer fatura bilgileri eksikse ve IP değişmişse DB/API sorgusu yap
+            if ((empty($user->billing_country) || empty($user->billing_state)) && $salt->is_ip_changed() && ENABLE_IP2COUNTRY) {
+                $login_location = $salt->localization->ip_info("visitor", "Location");
+                
+                if ($login_location) {
                     $user->login_location = $login_location;
-                    if($user->login_location && (empty($user->billing_country) || empty($user->billing_state))){
-                        $user->billing_country = $user->login_location["country_code"];
-                        $user->billing_state = $user->login_location["state"];
-                        $user->city = $user->login_location["state"];
-                        global $wpdb; 
-                        $query = "SELECT id FROM states WHERE name LIKE '".$user->login_location["state"]."'";
-                        $city_data = $wpdb->get_var($query);//$wpdb->get_var($query);
-                        $user->city = $city_data;
-                        $user->billing_state = $city_data;  
-                    }
-                    session_write_close();
+                    $user->billing_country = $login_location["country_code"];
+                    
+                    // SQL sorgusunu sadece buraya girince yap (Safe query)
+                    global $wpdb;
+                    $state_name = $login_location["state"];
+                    $city_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT id FROM states WHERE name LIKE %s LIMIT 1",
+                        $state_name
+                    ));
+                    
+                    $user->city = $city_id;
+                    $user->billing_state = $city_id;
                 }
-
-                //date_default_timezone_set($user->get_timezone());
-
-                if (class_exists("Newsletter")) {
-                    $user->newsletter = \SaltBase::newsletter(
-                        "status",
-                        $user->user_email
-                    );
-                }
-
-                $messages_count = 0;
-                $notification_count = 0;
-                if(ENABLE_MEMBERSHIP){
-                    if(ENABLE_CHAT){
-                       $messages_count = yobro_unseen_messages_count();
-                    }
-                    if(ENABLE_NOTIFICATIONS){
-                       $notification_count = $salt->notification_count();
-                    }
-                }
-                $user->messages_count = $messages_count;
-                $user->notification_count = $notification_count;
-                //$user->profile_completion = array();/
-
-                $user->menu = get_account_menu();
+                if (session_id()) session_write_close(); // Session kilidini bırak
             }
-        } else {
-            if (is_user_logged_in()) {
-                $user->logged = 1;
-                $user->role = array_keys($user->roles)[0];
+
+            // Newsletter ve Mesaj Sayıları
+            if (class_exists("Newsletter")) {
+                $user->newsletter = \SaltBase::newsletter("status", $user->user_email);
             }
-            session_write_close();
+
+            $user->messages_count = (ENABLE_CHAT && function_exists('yobro_unseen_messages_count')) ? yobro_unseen_messages_count() : 0;
+            $user->notification_count = (ENABLE_NOTIFICATIONS) ? $salt->notification_count() : 0;
+            $user->menu = function_exists('get_account_menu') ? get_account_menu() : [];
         }
 
-        // post pagination settings
-        //if(function_exists('get_field')){
-            $post_pagination = \QueryCache::get_cached_option("post_pagination");//get_field("post_pagination", "option");//
-        //}else{
-            //$post_pagination = get_option("options_post_pagination");
-        //}
-        if(is_array($post_pagination) && count($post_pagination) > 0){
-                $post_pagination_tmp = [];
-                foreach ($post_pagination as $item) {
-                    $post_type = $item["post_type"];
-                    $posts_per_page = -1;
-                    if($item["paged"]){
-                        $posts_per_page = intval($item["catalog_rows"]) * intval($item["catalog_columns"]);
-                    }else{
-                        $item["catalog_rows"] = $item["catalog_columns"] = 1;
-                    }
-                    $item["posts_per_page"] = $posts_per_page;
-                    unset($item["post_type"]);
-                    $post_pagination_tmp[$post_type] = $item;
-                }
-                $post_pagination = $post_pagination_tmp;
-                unset($post_pagination_tmp);       
-        }
-
-        // search pagination settings
-        //if(function_exists('get_field')){
-            $search_pagination = \QueryCache::get_cached_option("search_pagination");//get_field("search_pagination", "option");//
-        //}else{
-            //$search_pagination = get_option("options_search_pagination");
-        //}
-        if($search_pagination && $search_pagination["paged"]){
-                $posts_per_page = -1;
-                if($search_pagination["paged"]){
-                    $posts_per_page = intval($search_pagination["catalog_rows"]) * intval($search_pagination["catalog_columns"]);
-                }else{
-                    $search_pagination["catalog_rows"] = $search_pagination["catalog_columns"] = 1;
-                }
-                $search_pagination["posts_per_page"] = $posts_per_page;
-                $post_pagination["search"] = $search_pagination;
-        }
-        $GLOBALS["post_pagination"] = $post_pagination;
-        error_log("post_pagination oluitu");
-
-        //sticky support
-        $sticky_post_types = get_option("options_add_sticky_support");
-        if($sticky_post_types){
-            foreach($sticky_post_types as $post_type){
-                add_post_type_support($post_type, 'sticky');
-            }
-        }
-        
+        // 9. Final Global Atamaları
         $salt->user = $user;
-        $GLOBALS["user"] = $user;
-        $GLOBALS["salt"] = $salt;
+        //$GLOBALS["user"] = $user;
+        //$GLOBALS["salt"] = $salt;
+        Data::set("user", $user);
+        Data::set("salt", $salt);
     }
-    public function language_settings(){
-        if(ENABLE_MULTILANGUAGE){
+
+    public function is_rtl($lang) {
+        if (empty($lang)) return false;
+
+        if(is_rtl()){
+            return true;
+        }
+
+        $rtl_codes = [
+            'ar', 'ara', 'ary', 'arz', // Arapça varyantları
+            'fa', 'per', 'fas', 'jpr', // Farsça varyantları
+            'ur', 'urd',               // Urduca
+            'he', 'heb', 'iw',         // İbranice
+            'ps', 'pus',               // Peştuca
+            'sd', 'snd',               // Sindhi
+            'ku', 'kur', 'ckb',        // Kürtçe (Sorani)
+            'ug', 'uig',               // Uygurca
+            'dv', 'div',               // Dhivehi
+            'yi', 'yid'                // Yidiş
+        ];
+        $lang = strtolower($lang);
+        foreach ($rtl_codes as $code) {
+            if (strpos($lang, $code) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function language_settings_basic() {
+        //if (ENABLE_MULTILANGUAGE) {
+
+            $language =  ml_get_current_language();
+            $language_default = ml_get_default_language();
             $languages = [];
-            switch(ENABLE_MULTILANGUAGE){
+            $language_url_view = false;
+            $language_rtl   = $this->is_rtl($language);
 
-                case "qtranslate-xt" :
-                    if(class_exists("QTX_Module_Slugs")){
-                        add_action("request", function($query) use (&$languages){
-                            foreach (qtranxf_getSortedLanguages() as $language) {
-                                $url = qtrans_get_qtx_language_url($language);//qtranxf_slugs_get_url($language);
-                                array_push($languages, [
-                                    "name" => $language,
-                                    "name_long" => qtranxf_getLanguageName($language),
-                                    "locale" => $GLOBALS['q_config']['locale'][$language],
-                                    "url" => $url,
-                                    "active" => boolval($language == qtranxf_getLanguage())
-                                        ? true
-                                        : false,
-                                ]);
-                            }
-                            global $q_config;
-                            $GLOBALS["languages"] = $languages;
-                            $GLOBALS["language"] = qtranxf_getLanguage();
-                            $GLOBALS["language_default"] = $q_config['default_language'];
-                            $GLOBALS["language_url_view"] = $q_config['hide_default_language'] && qtranxf_getLanguage() == $q_config['default_language']?false:true;
-                            return $query;
-                        }, 9999);
-                    }else{
-                        foreach (qtranxf_getSortedLanguages() as $language) {
-                            $url = qtranxf_convertURL( "", $language, false, true );
-                            array_push($languages, [
-                                "name" => $language,
-                                "name_long" => qtranxf_getLanguageName($language),
-                                "locale" => $GLOBALS['q_config']['locale'][$language],
-                                "url" => $url,//."/",
-                                "active" => boolval($language == qtranxf_getLanguage())
-                                    ? true
-                                    : false,
-                            ]);
+            Data::set("language", $language);
+            Data::set("language_default", $language_default);
+            Data::set("languages", $languages);
+            Data::set("language_url_view", $language_url_view);
+            Data::set("language_rtl", $language_rtl);
+
+        //}
+    }
+    public function language_settings() {
+        if (ENABLE_MULTILANGUAGE) {
+            $language = ml_get_current_language();
+            $language_default = ml_get_default_language();
+            $languages = [];
+            $language_url_view = true;
+            $language_rtl   = false;
+
+            // 🚀 MERMİ GİBİ CACHE: Her sayfa ve her dil için ayrı cache anahtarı
+            $queried_obj_id = get_queried_object_id();
+            $cache_key = 'sh_lang_cache_' . $language . '_' . $queried_obj_id;
+            $cached_data = get_transient($cache_key);
+
+            if (false !== $cached_data) {
+                Data::set("language",  $cached_data['language']);
+                Data::set("languages", $cached_data['languages']);
+                Data::set("language_default", $cached_data['language_default']);
+                Data::set("language_url_view",  $cached_data['language_url_view']);
+                Data::set("language_rtl",  $cached_data['language_rtl']);
+                return; // Cache varsa fonksiyondan çık, veritabanına dokunma!
+            }
+
+            switch (ENABLE_MULTILANGUAGE) {
+
+                case "qtranslate-xt":
+                    global $q_config;
+                    if (class_exists("QTX_Module_Slugs")) {
+                        foreach (qtranxf_getSortedLanguages() as $lang) {
+                            $url = qtrans_get_qtx_language_url($lang);
+                            $languages[] = [
+                                "name" => $lang,
+                                "name_long" => qtranxf_getLanguageName($lang),
+                                "locale" => $q_config['locale'][$lang],
+                                "url" => $url,
+                                "active" => ($lang == $language)
+                            ];
                         }
+                    } else {
                         global $q_config;
-                        $GLOBALS["languages"] = $languages;
-                        $GLOBALS["language"] = qtranxf_getLanguage();
-                        $GLOBALS["language_default"] = $q_config['default_language'];
-                        $GLOBALS["language_url_view"] = $q_config['hide_default_language'] && qtranxf_getLanguage() == $q_config['default_language']?false:true;
-                    }
-                break;
-
-                case "wpml" :
-                    $languages = [];
-                    foreach (icl_get_languages("skip_missing=0&orderby=id&order=asc") as $language) {
-                        $lang_url = $language["url"];
-                        $has_brand = get_query_var("product_brand");
-                        if ($has_brand) {
-                            $lang_url = add_query_arg(
-                                "product_brand",
-                                $has_brand,
-                                $lang_url
-                            );
+                        foreach (qtranxf_getSortedLanguages() as $lang) {
+                            $url = qtranxf_convertURL("", $lang, false, true);
+                            $languages[] = [
+                                "name" => $lang,
+                                "name_long" => qtranxf_getLanguageName($lang),
+                                "locale" => $q_config['locale'][$lang],
+                                "url" => $url,
+                                "active" => ($lang == $language)
+                            ];
                         }
-                        array_push($languages, [
-                            "name" => $language["code"],
-                            "name_long" => $language["code"],
-                            "locale" => $language['default_locale'],
-                            "url" => $lang_url,
-                            "active" => boolval($language["active"]) ? "true" : "false",
-                        ]);
                     }
-                    global $sitepress;
+                    $language_url_view = $q_config['hide_default_language'] && $language == $language_default ? false : true;
+                    break;
+
+                case "wpml":
+                    foreach (icl_get_languages("skip_missing=0&orderby=id&order=asc") as $lang) {
+                        $lang_url = $lang["url"];
+                        if ($has_brand = get_query_var("product_brand")) {
+                            $lang_url = add_query_arg("product_brand", $has_brand, $lang_url);
+                        }
+                        $languages[] = [
+                            "name" => $lang["code"],
+                            "name_long" => $lang["code"],
+                            "locale" => $lang['default_locale'],
+                            "url" => $lang_url,
+                            "active" => (bool)$lang["active"]
+                        ];
+                    }
                     $settings = icl_get_settings();
-                    $GLOBALS["languages"] = $languages;
-                    $GLOBALS["language"] = ICL_LANGUAGE_CODE;
-                    $GLOBALS["language_default"] = apply_filters( 'wpml_default_language', NULL );
-                    $GLOBALS["language_url_view"] = $settings['current_language'] && ICL_LANGUAGE_CODE == $GLOBALS["language_default"] ? false : true;
+                    $language_url_view = $settings['current_language'] && $language == $language_default ? false : true;
+                    break;
 
-                break;
-
-                case "polylang" :
-
+                case "polylang":
                     $paged = get_query_var('paged');
-                    $lang_default = pll_default_language();
-                    $lang_current = pll_current_language();
                     $lang_hide_default = PLL()->options['hide_default'];
 
-                    foreach (pll_the_languages(['raw' => 1]) as $language) {
-
+                    foreach (pll_the_languages(['raw' => 1]) as $lang) {
+                        $url = '';
                         if (function_exists('is_shop') && is_shop()) {
-
                             $shop_page_id = wc_get_page_id('shop');
-                            $translated_shop_page_id = pll_get_post($shop_page_id, $language['slug']);
+                            $translated_shop_page_id = pll_get_post($shop_page_id, $lang['slug']);
                             $url = get_permalink($translated_shop_page_id);
-                            $lang_slug = $lang_default == $language['slug'] && $lang_hide_default ? "" : "/".$language['slug'];
-
-                        } elseif  (is_post_type_archive()) {
-
+                        } elseif (is_post_type_archive()) {
                             $post_type = get_query_var('post_type');
                             if ($post_type) {
-                                if ( pll_is_translated_post_type( $post_type )) {
-                                    $post_type_slug = pll_translate_string( $post_type, $language['slug'] );
-                                } else {
-                                    $post_type_slug = $post_type;
-                                }
-                                $post_type_slug = is_array($post_type_slug)?$post_type_slug[0]:$post_type_slug;
-                                $lang_slug = $lang_default == $language['slug'] && $lang_hide_default ? "" : "/".$language['slug'];
-                                $url = home_url($lang_slug."/".$post_type_slug."/");
+                                $post_type_slug = pll_is_translated_post_type($post_type) ? pll_translate_string($post_type, $lang['slug']) : $post_type;
+                                $post_type_slug = is_array($post_type_slug) ? $post_type_slug[0] : $post_type_slug;
+                                $lang_slug = ($language_default == $lang['slug'] && $lang_hide_default) ? "" : "/" . $lang['slug'];
+                                $url = home_url($lang_slug . "/" . $post_type_slug . "/");
                             } else {
-                                $url = pll_home_url($language['slug']);
+                                $url = pll_home_url($lang['slug']);
                             }
-
                         } elseif (is_tax()) {
                             $taxonomy = get_query_var('taxonomy');
                             $term = get_query_var('term');
-
                             if ($taxonomy && $term) {
                                 $term_data = get_term_by('slug', $term, $taxonomy);
                                 $term_id = $term_data ? $term_data->term_id : null;
-
-                                // WooCommerce özel taxonomy'si mi kontrol et
                                 if (in_array($taxonomy, ['product_cat', 'product_tag'])) {
-
-                                    // Term ID'yi çevir
-                                    $translated_term_id = pll_get_term($term_id, $language['slug']);
-
-                                    // Çevrilmiş term varsa URL oluştur
-                                    if ($translated_term_id) {
-                                        $url = get_term_link($translated_term_id, $taxonomy);
-                                    } else {
-                                        // fallback olarak aynı URL kullan
-                                        $url = get_term_link($term_id, $taxonomy);
-                                    }
-
+                                    $translated_term_id = pll_get_term($term_id, $lang['slug']);
+                                    $url = get_term_link($translated_term_id ?: $term_id, $taxonomy);
                                 } else {
-                                    // Diğer normal taxonomy'ler
                                     if (pll_is_translated_taxonomy($taxonomy)) {
-                                        $translated_term_id = pll_get_term($term_id, $language['slug']);
-                                        if ($translated_term_id) {
-                                            $term_slug = get_term_by('id', $translated_term_id, $taxonomy)->slug;
-                                        } else {
-                                            $term_slug = $term;
-                                        }
+                                        $translated_term_id = pll_get_term($term_id, $lang['slug']);
+                                        $term_slug = $translated_term_id ? get_term_by('id', $translated_term_id, $taxonomy)->slug : $term;
                                     } else {
                                         $term_slug = $term;
                                     }
-
-                                    // Eğer taxonomy prefix kaldırılmışsa
                                     $taxonomy_slug = $taxonomy . "/";
-                                    $taxonomy_prefix_remove = \QueryCache::get_cached_option("taxonomy_prefix_remove");
-                                    if ($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)) {
-                                        $taxonomy_slug = "";
-                                    }
-
-                                    $lang_slug = ($lang_default == $language['slug'] && $lang_hide_default) ? "" : "/" . $language['slug'];
+                                    $taxonomy_prefix_remove = \QueryCache::get_option("options_taxonomy_prefix_remove");
+                                    if ($taxonomy_prefix_remove && in_array($taxonomy, $taxonomy_prefix_remove)) $taxonomy_slug = "";
+                                    $lang_slug = ($language_default == $lang['slug'] && $lang_hide_default) ? "" : "/" . $lang['slug'];
                                     $url = home_url($lang_slug . "/" . $taxonomy_slug . $term_slug . "/");
                                 }
-
                             } else {
-                                $url = pll_home_url($language['slug']);
+                                $url = pll_home_url($lang['slug']);
                             }
-                            
                         } else {
-
-                            $post_language = pll_get_post(get_the_ID(), $language['slug']);
-                            if ($post_language) {
-                                $url = get_permalink($post_language);
-                            } else {
-                                //$url = pll_home_url($language['slug']);
-                                $url = pll_home_url($lang_default);
-                            }
+                            $post_language = pll_get_post(get_the_ID(), $lang['slug']);
+                            $url = $post_language ? get_permalink($post_language) : pll_home_url($language_default);
                         }
 
-                        if (isset($url) && $paged && $paged > 1) {
+                        if ($url && $paged && $paged > 1) {
                             $url = trailingslashit($url) . 'page/' . $paged . '/';
                         }
 
                         $languages[] = [
-                            "name" => $language['slug'],
-                            "name_long" => $language['name'],
-                            "locale" => $language['locale'],
+                            "name" => $lang['slug'],
+                            "name_long" => $lang['name'],
+                            "locale" => $lang['locale'],
                             "url" => $url,
-                            "active" => $language['current_lang'] ? true : false,
+                            "active" => $lang['current_lang'] ? true : false,
                         ];
                     }
-                    $GLOBALS["languages"] = $languages;
-                    $GLOBALS["language"] = $lang_current;
-                    $GLOBALS["language_default"] = $lang_default;
-                    $GLOBALS["language_url_view"] = $lang_hide_default && $lang_current == $lang_default?false:true;
-
-                break;
+                    $language_url_view = ($lang_hide_default && $language == $language_default) ? false : true;
+                    break;
             }
+
+            $language_rtl = $this->is_rtl($language);
+
+            Data::set("language",  $language);
+            Data::set("languages", $languages);
+            Data::set("language_default", $language_default);
+            Data::set("language_url_view",  $language_url_view);
+            Data::set("language_rtl",  $language_rtl);
+
+            // 💾 SONRAKİ SEFER İÇİN SAKLA (1 Saatlik cache)
+            $data_to_cache = [
+                "language" => $language,
+                "languages" => $languages,
+                "language_default" => $language_default,
+                "language_url_view" => $language_url_view,
+                "language_rtl" => $language_rtl
+            ];
+
+            set_transient($cache_key, $data_to_cache, HOUR_IN_SECONDS);
+            //error_log("full langıages ayarlandı......");
         }
     }
-    public function query_all_posts($query){
 
-        if (is_admin()) {
+    public function query_all_posts($query) {
+        // 1. ERKEN ÇIKIŞ (PERFORMANS): Admin sorguları veya filtreleri bastırılmış sorgulara dokunma
+        if (is_admin() || (isset($query->query_vars['suppress_filters']) && $query->query_vars['suppress_filters'])) {
             return $query;
         }
 
-        if (isset($query->query_vars['suppress_filters']) && $query->query_vars['suppress_filters']) {
-            return;
-        }
-       
-        $post_type = $query->get("post_type");
-        $post_type = empty($post_type)?$query->get("qpt"):$post_type;
-        $post_type = empty($post_type)?"post":$post_type;
-        if(is_search() && is_array($post_type) || $post_type == "any"){
-            $post_type = "search";
-        }
-        if( $query->get("post_type") == get_query_var("qpt") && 
+        // Değişkenleri Hazırla
+        $post_type = $query->get("post_type") ?: ($query->get("qpt") ?: "post");
+        $is_main = $query->is_main_query();
+
+        // 2. SEARCH MANTIĞI VE ESKİ TANIMLARI KORUMA
+        // (post_type search tanımını burada yapıyoruz ki aşağıda pagination doğru çalışsın)
+        $is_search_context = $query->is_search() || $post_type == "any" || (is_search() && is_array($post_type));
+        
+        // Eski kodundaki özel qpt_settings kontrolü
+        $is_custom_ajax_search = (
+            $query->get("post_type") == get_query_var("qpt") && 
             in_array(get_query_var("qpt_settings"), [2]) && 
             $query->get("s") && 
-            !$query->is_main_query()){
-                $post_type = "search";
+            !$is_main
+        );
+
+        if ($is_search_context || $is_custom_ajax_search) {
+            $post_type = "search";
         }
 
-        if($query->is_main_query()){
-
-            if($query->is_search()) {
-                if(isset($GLOBALS["post_pagination"]["search"])){
-                    $posts_per_page = $GLOBALS["post_pagination"]["search"]["posts_per_page"];
-                    $query->set("posts_per_page", $posts_per_page);
+        // 3. ANA SORGU (MAIN QUERY) İŞLEMLERİ
+        if ($is_main) {
+            
+            // ARAMA OPTİMİZASYONU
+            if ($query->is_search()) {
+                // Pagination
+                /*if (isset($GLOBALS["post_pagination"]["search"])) {
+                    $query->set("posts_per_page", $GLOBALS["post_pagination"]["search"]["posts_per_page"]);
+                }*/
+                if (Data::has("post_pagination.search")) {
+                    $query->set("posts_per_page", Data::has("post_pagination.search.posts_per_page"));
                 }
-                $exclude_from_search_result = [];
+
+                // Arama sonuçlarından sayfaları/dataları hariç tut (Newsletter vb.)
+                $exclude_ids = [];
                 if (class_exists("Newsletter")) {
-                    $exclude_from_search_result[] = get_option("newsletter_page");
+                    $nl_id = get_option("newsletter_page");
+                    if ($nl_id) $exclude_ids[] = (int)$nl_id;
                 }
-                $query->set("post__not_in", $exclude_from_search_result);
+                if (!empty($exclude_ids)) {
+                    $query->set("post__not_in", $exclude_ids);
+                }
 
-                if (EXCLUDE_FROM_SEARCH) {
-                    $post_types = get_post_types(['public' => true], 'names');
-                    foreach (EXCLUDE_FROM_SEARCH as $post_type) {
-                        if (in_array($post_type, $post_types)) {
-                            unset($post_types[$post_type]);
-                        }
+                // İstenmeyen Post Tiplerini Aramadan At (EXCLUDE_FROM_SEARCH sabiti kullanılıyor)
+                if (defined('EXCLUDE_FROM_SEARCH') && is_array(EXCLUDE_FROM_SEARCH)) {
+                    $public_types = get_post_types(['public' => true], 'names');
+                    foreach (EXCLUDE_FROM_SEARCH as $ex_type) {
+                        unset($public_types[$ex_type]);
                     }
-                    $query->set('post_type', $post_types);
+                    $query->set('post_type', array_values($public_types));
                 }
             }
 
+            // GENEL PAGINATION (Shop değilse)
             if (!is_shop() && !empty($post_type)) {
-                $pagination = get_post_type_pagination($post_type);
-                $posts_per_page = -1;
-                if($pagination){
-                    $posts_per_page = $pagination["posts_per_page"];
-                }
-                if($posts_per_page == -1 || $posts_per_page > 0){
-                    $query->set("posts_per_page", $posts_per_page);
-                    $query->set("numberposts", $posts_per_page);            
+                // get_post_type_pagination fonksiyonun varsa onu çağırıyoruz
+                $pagination = function_exists('get_post_type_pagination') ? get_post_type_pagination($post_type) : null;
+                $ppp = (isset($pagination["posts_per_page"])) ? $pagination["posts_per_page"] : -1;
+
+                if ($ppp == -1 || $ppp > 0) {
+                    $query->set("posts_per_page", $ppp);
                 }
             }
 
+            // Q PARAMETRESİ VE FOOTER ACTION (Eski yapın)
             if (!empty(get_query_var("q"))) {
-                if(is_numeric(get_query_var("qpt"))){
+                if (is_numeric(get_query_var("qpt"))) {
                     $qpt_settings = get_query_var("qpt");
                     set_query_var("qpt", "search");
                     set_query_var("qpt_settings", $qpt_settings);
@@ -752,618 +962,705 @@ Class Theme{
                 add_action('wp_footer', 'custom_search_add_term');
             }
 
-
-            $sticky_post_types = get_option("options_add_sticky_support");
-            if ($query->is_post_type_archive() || is_home() && (!empty($post_type) && is_array($sticky_post_types) && in_array($post_type, $sticky_post_types))) {
-                // Sticky meta'ya göre sıralama yap
-                $meta_query = [
+            // STICKY SUPPORT (Meta Query Optimizasyonu)
+            $sticky_types = \QueryCache::get_option("options_add_sticky_support");
+            if (($query->is_post_type_archive() || is_home()) && is_array($sticky_types) && in_array($post_type, $sticky_types)) {
+                $query->set('meta_query', [
                     'relation' => 'OR',
-                    [
-                        'key' => '_is_sticky',
-                        'value' => 1,
-                        'compare' => '=',
-                    ],
-                    [
-                        'key' => '_is_sticky',
-                        'value' => 0,
-                        'compare' => '=',
-                    ]
-                ];
-
-                $query->set('meta_query', $meta_query);
-                $query->set('orderby', ['meta_value_num' => 'DESC', 'date' => 'DESC']); // Sticky postları öne al, ardından tarihi sırala
+                    ['key' => '_is_sticky', 'value' => 1, 'compare' => '='],
+                    ['key' => '_is_sticky', 'value' => 0, 'compare' => '=']
+                ]);
+                $query->set('orderby', ['meta_value_num' => 'DESC', 'date' => 'DESC']);
             }
 
-        }else{
-
-           if( $query->get("post_type") == get_query_var("qpt") && !empty($query->get("s"))){
-
-            }
-            
-            if(DISABLE_DEFAULT_CAT){
-                $default_cat_id = get_option( 'default_category' );
-                if ( function_exists( 'pll_get_term' ) && $default_cat_id ) {
-                    $default_cat_id = pll_get_term( $default_cat_id );
+        } 
+        // 4. ALT SORGU (SUB QUERY) VEYA ÖZEL FİLTRELER
+        else {
+            // Varsayılan Kategoriyi (Uncategorized) Gizleme
+            if (defined('DISABLE_DEFAULT_CAT') && DISABLE_DEFAULT_CAT) {
+                $default_cat_id = get_option('default_category');
+                if (function_exists('pll_get_term') && $default_cat_id) {
+                    $default_cat_id = pll_get_term($default_cat_id);
                 }
-                if ($default_cat_id ) {
-                    $tax_query = (array) $query->get( 'tax_query' );
+                if ($default_cat_id) {
+                    $tax_query = (array) $query->get('tax_query');
                     $tax_query[] = [
                         'taxonomy' => 'category',
                         'field'    => 'term_id',
-                        'terms'    => $default_cat_id,
+                        'terms'    => (int)$default_cat_id,
                         'operator' => 'NOT IN',
                     ];
-                    $query->set( 'tax_query', $tax_query );
+                    $query->set('tax_query', $tax_query);
                 }
             }
-
         }
 
         return $query;
     }
-    public function query_all_terms($args, $taxonomies){
-
-        if ( is_admin() ) return $args;
-        
-        if(DISABLE_DEFAULT_CAT){
-            foreach ( (array) $taxonomies as $taxonomy ) {
-
-                if ( ! isset( $args['exclude'] ) || ! is_array( $args['exclude'] ) ) {
-                    $args['exclude'] = [];
-                }
-
-                // Varsayılan WordPress kategorisi
-                if ( $taxonomy === 'category' ) {
-                    $default_cat_id = get_option( 'default_category' );
-
-                    if ( function_exists( 'pll_get_term' ) && $default_cat_id ) {
-                        $default_cat_id = pll_get_term( $default_cat_id );
-                    }
-
-                    if ( $default_cat_id ) {
-                        $args['exclude'][] = $default_cat_id;
-                    }
-                }
-
-                // WooCommerce ürün kategorisi
-                if ( $taxonomy === 'product_cat' && class_exists( 'WooCommerce' ) ) {
-                    $default_product_cat = get_option( 'default_product_cat' );
-
-                    if ( function_exists( 'pll_get_term' ) && $default_product_cat ) {
-                        $default_product_cat = pll_get_term( $default_product_cat );
-                    }
-
-                    if ( $default_product_cat ) {
-                        $args['exclude'][] = $default_product_cat;
-                    }
-                }
-            }
-            if ( ! empty( $args['exclude'] ) ) {
-                $args['exclude'] = array_filter( array_unique( (array) $args['exclude'] ) );
-            }
+    public function query_all_terms($args, $taxonomies) {
+        // 1. ERKEN ÇIKIŞ: Admin panelindeysek veya özellik kapalıysa PHP'yi yorma, direkt dön.
+        if (is_admin() || !defined('DISABLE_DEFAULT_CAT') || !DISABLE_DEFAULT_CAT) {
+            return $args;
         }
+
+        /**
+         * 2. STATİK CACHE (BELLEK YÖNETİMİ)
+         * WordPress bir sayfada onlarca kez terim sorgusu atar. 
+         * Veritabanına her seferinde "varsayılan kategori neydi?" diye sormamak için 
+         * sonucu bir kez hesaplayıp statik değişkende saklıyoruz.
+         */
+        static $excluded_ids = null;
+
+        if ($excluded_ids === null) {
+            $excluded_ids = [];
+
+            // Standart WordPress Kategorisi (Uncategorized vb.)
+            $default_cat = get_option('default_category');
+            if ($default_cat) {
+                // Polylang desteği: Eğer çok dilliyse o dildeki karşılığını al, yoksa direkt ID'yi kullan.
+                $excluded_ids[] = function_exists('pll_get_term') ? (int)pll_get_term($default_cat) : (int)$default_cat;
+            }
+
+            // WooCommerce Ürün Kategorisi (Uncategorized product cat vb.)
+            if (class_exists('WooCommerce')) {
+                $default_prod_cat = get_option('default_product_cat');
+                if ($default_prod_cat) {
+                    $excluded_ids[] = function_exists('pll_get_term') ? (int)pll_get_term($default_prod_cat) : (int)$default_prod_cat;
+                }
+            }
+
+            // Boş değerleri, sıfırları temizle ve sadece benzersiz ID'leri tut
+            $excluded_ids = array_values(array_filter(array_unique($excluded_ids)));
+        }
+
+        // 3. TAKSONOMİ KONTROLÜ VE FİLTRELEME
+        // Sadece 'category' veya 'product_cat' sorgulanıyorsa işlem yapalım.
+        $target_taxonomies = ['category', 'product_cat'];
+        $current_taxonomies = (array)$taxonomies;
+
+        // Eğer sorgu bizim hedeflediğimiz taksonomilerden birini içeriyorsa ve hariç tutulacak ID varsa
+        if (!empty($excluded_ids) && array_intersect($target_taxonomies, $current_taxonomies)) {
+            
+            // Eğer daha önceden tanımlanmış bir exclude varsa onu bozma, bizimkileri üstüne ekle.
+            if (!isset($args['exclude']) || !is_array($args['exclude'])) {
+                $args['exclude'] = [];
+            }
+
+            // Mevcut exclude listesiyle bizim sistem listesini birleştir
+            $args['exclude'] = array_merge($args['exclude'], $excluded_ids);
+            
+            // Tekrar edenleri temizle ki SQL sorgusu şişmesin
+            $args['exclude'] = array_unique($args['exclude']);
+        }
+
         return $args;
     }
     public function body_class( $classes ) {
-        if (is_admin()) {
+        // 1. Admin tarafında body class ile işimiz olmaz
+        if ($this->is_admin) {
             return $classes;
         }
-        if ( is_page_template( 'template-layout.php' ) ) {
-            global $post;
-            $classes[] = 'page-'.$post->post_name;
-        }
-        if ( is_page() && ENABLE_MULTILANGUAGE == "polylang") {
-            global $post;
-            $default_lang_post_id = pll_get_post($post->ID, pll_default_language());
-            $default_lang_post = get_post($default_lang_post_id);
-            if ($default_lang_post) {
-                $classes[] = 'page-' . $default_lang_post->post_name;
+
+        global $post;
+
+        // 2. Sayfa Şablonu ve Polylang Slug Eşleşmesi
+        // Amacımız: Farklı dillerdeki aynı sayfaya, varsayılan dildeki slug'ı sınıf olarak basmak.
+        if ( is_page() ) {
+            
+            if ( is_page_template( 'template-layout.php' ) ) {
+                $classes[] = 'page-' . $post->post_name;
+            }
+
+            if ( ENABLE_MULTILANGUAGE === "polylang" && function_exists('pll_get_post') ) {
+                $default_lang = ml_get_default_language();
+                
+                // Eğer şu anki dil varsayılan dil değilse ana postun slug'ını bulalım
+                if ( ml_get_current_language() !== $default_lang ) {
+                    $default_lang_post_id = pll_get_post($post->ID, $default_lang);
+                    
+                    if ( $default_lang_post_id && $default_lang_post_id !== $post->ID ) {
+                        // get_post yerine veritabanından sadece slug'ı (post_name) çekmek daha hızlıdır
+                        $default_slug = get_post_field( 'post_name', $default_lang_post_id );
+                        if ( $default_slug ) {
+                            $classes[] = 'page-' . $default_slug;
+                        }
+                    }
+                } else {
+                    // Zaten varsayılan dildeysek direkt ekle (eğer yukarıda eklenmediyse)
+                    if ( !in_array('page-' . $post->post_name, $classes) ) {
+                        $classes[] = 'page-' . $post->post_name;
+                    }
+                }
             }
         }
-        $classes[] = is_user_logged_in()?"logged":"not-logged";
-        $classes[] = is_front_page()?"home":"";
-        return $classes;
+
+        // 3. Login Durumu (is_user_logged_in zaten $this->is_logged içinde var)
+        $classes[] = $this->is_logged ? "logged" : "not-logged";
+
+        // 4. Front Page Kontrolü (Boş string eklemeyelim, sadece varsa ekleyelim)
+        if ( is_front_page() ) {
+            $classes[] = "home";
+        }
+
+        // Boşlukları ve tekrarları temizleyip gönderelim
+        return array_filter( array_unique( $classes ) );
     }
 
-    public function site_assets(){
-        if (is_admin() || (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS)) {
-            return;
-        }
-        if (defined('DOING_AJAX') && DOING_AJAX) {
-            return;
-        }
-        if (defined('DOING_CRON') && DOING_CRON) {
-            return;
-        }
+    public function site_assets($jsLoad = 0, $meta = []){ // id ile olusturtucaz ajax için
+
+        // 1. Zaten tanımlıysa, hesaplanmış olanı döndür (PERFORMANS)
         if (defined('SITE_ASSETS')) {
+            return SITE_ASSETS;
+        }
+
+        // 1. Erken Çıkış
+        if ($this->is_admin || 
+            (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) || 
+            //defined('DOING_AJAX') || 
+            defined('DOING_CRON') || 
+            defined('SITE_ASSETS') ||
+            defined('REST_REQUEST') && REST_REQUEST
+        ) {
             return;
         }
-        error_log("1. site assets KONTROL");
 
-        if(!defined("SITE_ASSETS")){
-            error_log("2. site assets NOT DEFINED");
-            $site_assets = [];
+        $site_assets = null;
+        
+        // 3. Varsayılan Asset Şablonu
+        $assets_defaults = [
+            "js" => "", 
+            "css" => "", 
+            "css_critical" => "", 
+            "css_page" => "", 
+            "css_page_rtl" => "", 
+            "plugins" => "", 
+            "plugin_css" => "", 
+            "plugin_css_rtl" => "", 
+            "wp_js" => "", 
+            "meta" => [],
+            "lcp" => []
+        ];
 
-
-            error_log("admiiin:".is_admin()."  ");
-            error_log(print_r(self::get_meta(), true));
-           
-           
-            if (is_singular()) {
-                $post_id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
-                $site_assets = get_post_meta($post_id, 'assets', true);
-            } elseif (is_category() || is_tag() || is_tax()) {
-                $term = get_queried_object(); // Term objesini al
-                $site_assets = get_term_meta($term->term_id, 'assets', true);
-            } elseif (is_post_type_archive()) {
-                if( ENABLE_MULTILANGUAGE ){
-                    $site_assets = get_option(get_post_type().'_archive_'.ml_get_current_language().'_assets', true);
-                }else{
-                    $site_assets = get_option(get_post_type().'archive_assets', true);
-                }
-            } elseif(is_single() && comments_open()){
-                if (isset($_GET['comment_id'])) {
-                    $comment_id = intval($_GET['comment_id']);
-                    $comment = get_comment($comment_id);
-                    if ($comment) {
-                        $site_assets = get_comment_meta($comment_id, 'assets', true);
-                    }
-                }
-            } elseif(is_author()){
-                $user_id = get_queried_object_id();
-                $site_assets = get_user_meta($user_id, 'assets', true);
-            }
-            $assets_data = [
-                "js" => "", 
-                "css" => "", 
-                "css_critical" => "", 
-                "css_page" => "", 
-                "css_page_rtl" => "", 
-                "plugins" => "", 
-                "plugin_css" => "",
-                "plugin_css_rtl" => "",
-                "wp_js" => "", 
-                "meta" => [], 
-                "lcp" => []
-            ];
-
-            if(!$site_assets && !isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS) && class_exists("PageAssetsExtractor")){
-                //error_log(print_r($site_assets, true));
-                error_log("3. site assets META IN DB IS EMPTY -> REGENERATE");
-                $meta = self::get_meta();
-                if($meta["type"] == "post"){
-                    //$site_assets = $GLOBALS["salt"]->extractor->on_save_post($meta["id"], [], false);
-                    $site_assets = \PageAssetsExtractor::get_instance()->on_save_post($meta["id"], [], false);
-                }
-                if($meta["type"] == "term"){
-                    //$site_assets = $GLOBALS["salt"]->extractor->on_save_term($meta["id"], "", $meta["tax"]);
-                    $site_assets = \PageAssetsExtractor::get_instance()->on_save_term($meta["id"], "", $meta["tax"]);
-                }
-            }
-
-            $site_assets = !empty($site_assets) ? $site_assets : $assets_data;
-
-            error_log("4. site assets IS DEFINED....");
-            
-            define("SITE_ASSETS", $site_assets);
-            
-            if(!isset($_GET["fetch"])) {
-                new \Lcp();
-            }
-
-        }else{
-            error_log("site assets zaten var");
+        // Meta bilgilerini tutacak array (get_meta'nın görevini devralıyor)
+        if(!$meta){
+            $meta = [
+                "type" => "",
+                "id"   => "",
+                "tax"  => ""
+            ];            
         }
-    }
 
-    public static function get_meta(){
-            $type = "";
-            $id = "";
-            $tax = "";
+        // 2. Kimlik Tespiti (Eğer meta id boşsa WP'den bulmaya çalış)
+        if (empty($meta['id'])) {
+            $obj = get_queried_object();
+            
             if (is_singular()) {
-                $type = "post";
-                $id = get_queried_object_id(); // Geçerli sayfanın ID'sini al
-            } elseif (is_category() || is_tag() || is_tax()) {
-                $type = "term";
-                $term = get_queried_object(); // Term objesini al
-                $id = $term->term_id;
-                $tax = $term->taxonomy;
+                $meta['type'] = 'post';
+                $meta['id']   = $obj->ID;
+            } elseif ($obj instanceof \WP_Term) {
+                $meta['type'] = 'term';
+                $meta['id']   = $obj->term_id;
+                $meta['tax']  = $obj->taxonomy;
             } elseif (is_post_type_archive()) {
-                $type = "archive";
-                if( ENABLE_MULTILANGUAGE ){
-                    $id = get_post_type()."_archive_".ml_get_current_language();
-                }else{
-                    $id = get_post_type()."_archive";
-                }
-            } elseif(is_single() && comments_open()){
-                if (isset($_GET['comment_id'])) {
-                    $comment_id = intval($_GET['comment_id']);
-                    $comment = get_comment($comment_id);
-                    if ($comment) {
-                        $type = "comment";
-                        $id = $comment_id;
-                    }
-                }
-            } elseif(is_author()){
-                $type = "user";
-                $id = get_queried_object_id();
+                $meta['type'] = 'archive';
+                $pt           = get_post_type();
+                $lang         = (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
+                $meta['id']   = $lang ? "{$pt}_archive_{$lang}" : "{$pt}_archive";
+            } elseif (is_author()) {
+                $meta['type'] = 'user';
+                $meta['id']   = get_queried_object_id();
+            } elseif (is_search()) {
+                $meta['type'] = 'dynamic';
+                $pt           = "search";
+                $lang         = (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
+                $meta['id']   = $lang ? "{$pt}_{$lang}" : "{$pt}_archive";
+            } elseif (is_404()) {
+                $meta['type'] = 'dynamic';
+                $pt           = "404";
+                $lang         = (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
+                $meta['id']   = $lang ? "{$pt}_{$lang}" : "{$pt}_archive";
             }
-            return [
-                "type" => $type,
-                "id" => $id,
-                "tax" => $tax
-            ];
+        }
+
+        // 3. Asset Çekimi (Meta tipine göre tek noktadan)
+        if (!empty($meta['id'])) {
+            $site_assets = match($meta['type']) {
+                'post'    => get_post_meta($meta['id'], 'assets', true),
+                'term'    => get_term_meta($meta['id'], 'assets', true),
+                'user'    => get_user_meta($meta['id'], 'assets', true),
+                'archive' => get_option($meta['id'] . "_assets", true),
+                'dynamic' => get_option($meta['id'] . "_assets", true),
+                default   => null
+            };
+        }
+
+        // 4. Asset Yoksa Yeniden Üret (Extractor)
+        if (empty($site_assets) && !isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS) && class_exists("PageAssetsExtractor")) {
+            $extractor = \PageAssetsExtractor::get_instance();
+            error_log("assets bulunamadı theme.php de bastan uretiliyor PageAssetsExtractor ile...");
+            if ($meta["type"] === "post") {
+                $site_assets = $extractor->on_save_post($meta["id"], [], false);
+            } elseif ($meta["type"] === "term") {
+                $site_assets = $extractor->on_save_term($meta["id"], "", $meta["tax"]);
+            }
+        }
+
+        // Veri hala boşsa default'u bas, doluysa meta'yı güncelle
+        if (!empty($site_assets) && is_array($site_assets)) {
+            $site_assets["meta"] = $meta;
+        } else {
+            $assets_defaults["meta"] = $meta;
+            $site_assets = $assets_defaults;
+        }
+
+        // 5. Global Tanımlama ve LCP Başlatma
+        define("SITE_ASSETS", $site_assets);
+
+        if (!isset($_GET["fetch"]) && class_exists("Lcp")) {
+            \Lcp::getInstance();
+        }
     }
     public static function get_site_config($jsLoad = 0, $meta = []){
 
-        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
-            return [];
+        //$is_admin = self::getInstance()->is_admin;
+        if ($jsLoad !== 1) {
+            // 1. URL'DEN TEŞHİS (WP'nin uyanmasını beklemiyoruz)
+            $uri = $_SERVER['REQUEST_URI'] ?? '';
+            $is_rest_url  = (strpos($uri, '/wp-json/') !== false);
+            $is_admin_url = (strpos($uri, '/wp-admin/') !== false);
+
+            if (
+                $is_rest_url || 
+                $is_admin_url || 
+                is_admin() || 
+                (defined('REST_REQUEST') && REST_REQUEST) || 
+                //(defined('DOING_AJAX') && DOING_AJAX) || 
+                (defined('DOING_CRON') && DOING_CRON)
+            ) {
+                // Gereksiz yükleme, boş dönüyoruz.
+                return [];
+            }
         }
 
-        error_log("get_site_config");
-
-        if(!isset($GLOBALS["site_config"])){
-
-            error_log("site config preparing...");
-        
-            /*$is_cached = false;
-            //if(function_exists("wprocket_is_cached")){
-            if (defined("WP_ROCKET_VERSION") && function_exists("is_wp_rocket_crawling")) {
-                $is_cached = wprocket_is_cached();// is_wp_rocket_crawling();
-            }
-
-            error_log("site config is_cached => ".$is_cached);*/
-
-            $enable_favorites =  boolval(ENABLE_FAVORITES);
-            $enable_follow =  boolval(ENABLE_FOLLOW);
-            $enable_search_history =  boolval(ENABLE_SEARCH_HISTORY);
-
-            if ($enable_favorites) {
-                $favorites_obj = new \Favorites();
-                $favorites_obj->update();
-                $favorites = $favorites_obj->favorites;
-                $favorites = json_encode($favorites, JSON_NUMERIC_CHECK);
-                $GLOBALS["favorites"] = $favorites;
-            }
-
-            if ($enable_follow) {
-                $follow_types = FOLLOW_TYPES;
-            }
-
-            if($enable_search_history){
-                $search_history_obj = new \SearchHistory();
-                $search_history = $search_history_obj->get_user_terms();
-            }
-
-            $path = getSiteSubfolder();
+        /*if (isset($GLOBALS["site_config"])) {
+            // Eğer varsa ve yeni meta geldiyse güncelle
+            if ($meta) { $GLOBALS["site_config"]["meta"] = $meta; }
+            // Eğer JS yüklemesi geldiyse bayrağı dik
+            if ($jsLoad) { $GLOBALS["site_config"]["loaded"] = true; }
             
-            $config = array(
-                "enable_membership"     => boolval(ENABLE_MEMBERSHIP),
-                "enable_favorites"      => $enable_favorites,
+            //error_log("site config already exist, RAM'den çekildi.");
+            return $GLOBALS["site_config"];
+        }*/
+        if (Data::has("site_config")) {
+            if ($meta) { 
+                Data::set("site_config.meta", $meta);
+            }
+            if ($jsLoad) { 
+                Data::set("site_config.loaded", true);
+            }
+            return Data::get("site_config");
+        }
+
+        if (!defined('SITE_ASSETS')) {
+            self::getInstance()->site_assets($jsLoad, $meta);
+        }
+
+        //error_log("site config preparing...");
+        
+        /*$is_cached = false;
+        //if(function_exists("wprocket_is_cached")){
+        if (defined("WP_ROCKET_VERSION") && function_exists("is_wp_rocket_crawling")) {
+            $is_cached = wprocket_is_cached();// is_wp_rocket_crawling();
+        }
+        error_log("site config is_cached => ".$is_cached);*/
+
+        // --- A. TÜM ÖZELLİK BAYRAKLARI (FLAGS) ---
+        $enable_favs    = defined('ENABLE_FAVORITES') && ENABLE_FAVORITES;
+        $enable_follow  = defined('ENABLE_FOLLOW') && ENABLE_FOLLOW;
+        $enable_history = defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY;
+        $enable_ip      = defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY;
+        $enable_reg     = defined('ENABLE_REGIONAL_POSTS') && ENABLE_REGIONAL_POSTS;
+        $path           = function_exists('getSiteSubfolder') ? getSiteSubfolder() : '/';
+
+            // --- B. ANA KONFİGÜRASYON DİZİSİ ---
+            $config = [
+                "enable_membership"     => defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP,
+                "enable_favorites"      => $enable_favs,
                 "enable_follow"         => $enable_follow,
-                "enable_search_history" => $enable_search_history,
-                "enable_cart"           => boolval(ENABLE_CART),
-                "enable_filters"        => boolval(ENABLE_FILTERS),
-                "enable_chat"           => boolval(ENABLE_CHAT),
-                "enable_notifications"  => boolval(ENABLE_NOTIFICATIONS),
-                "enable_ecommerce"      => boolval(ENABLE_ECOMMERCE),
-                "enable_ip2country"     => boolval(ENABLE_IP2COUNTRY),
+                "enable_search_history" => $enable_history,
+                "enable_ip2country"     => $enable_ip,
+                "enable_cart"           => defined('ENABLE_CART') && ENABLE_CART,
+                "enable_filters"        => defined('ENABLE_FILTERS') && ENABLE_FILTERS,
+                "enable_chat"           => defined('ENABLE_CHAT') && ENABLE_CHAT,
+                "enable_notifications"  => defined('ENABLE_NOTIFICATIONS') && ENABLE_NOTIFICATIONS,
+                "enable_ecommerce"      => defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE,
                 "path"                  => $path,
-                "loaded"                => ($jsLoad==1?true:false),
-                "cached"                => "",
+                "loaded"                => (bool)$jsLoad,
                 "logged"                => is_user_logged_in(),
-                "debug"                 => boolval(ENABLE_CONSOLE_LOGS),
-                "language_default"      => $GLOBALS['language_default']
-            );
-            if(isset($GLOBALS['base_urls'])){
-                $config["base_urls"] = $GLOBALS['base_urls'];
+                "cached"                => false,
+                "debug"                 => defined('ENABLE_CONSOLE_LOGS') && ENABLE_CONSOLE_LOGS,
+                "language_default"      => Data::get("language_default"),//$GLOBALS['language_default'] ?? 'en',
+                "base_urls"             => Data::get("base_urls") ?? [],//$GLOBALS['base_urls'] ?? [],
+                "lcp" => [
+                    "d" => (defined('SITE_ASSETS') && !empty(SITE_ASSETS["lcp"]["desktop"])) ? 1 : 0,
+                    "m" => (defined('SITE_ASSETS') && !empty(SITE_ASSETS["lcp"]["mobile"])) ? 1 : 0
+                ]
+            ];
+
+            if (defined('DOING_ROCKET_CACHE') && DOING_ROCKET_CACHE) {
+                $config['cached'] = true;
             }
-            if ($enable_favorites) {
-               $config["favorites"] = json_decode($favorites, true);
-               $config["favorite_types"] = FAVORITE_TYPES;
+
+            // --- C. FAVORİLER VE TAKİP SİSTEMİ ---
+            if ($enable_favs && class_exists('Favorites')) {
+                $fav_obj = new \Favorites();
+                $fav_obj->update();
+                $config["favorites"] = $fav_obj->favorites;
+                $config["favorite_types"] = defined('FAVORITE_TYPES') ? FAVORITE_TYPES : [];
             }
+
             if ($enable_follow) {
-               $config["follow_types"] = FOLLOW_TYPES;
+                $config["follow_types"] = defined('FOLLOW_TYPES') ? FOLLOW_TYPES : [];
             }
-            if ($enable_search_history) {
-               $config["search_history"] = $search_history;//json_decode($search_history, true);
-            }
-            if(!$config["logged"]){
-                $config["nonce"] = wp_create_nonce( 'ajax' );
-            }
-            if(ENABLE_IP2COUNTRY){
-                $user_country = "";
-                $user_country_code = "";
-                $user_city = "";
-                $user_language = "";
-                if(isset($_COOKIE['user_country'])){
-                    $user_country = $_COOKIE["user_country"];
-                }
-                if(isset($_COOKIE['user_country_code'])){
-                    $user_country_code = $_COOKIE["user_country_code"];
-                }
-                if(isset($_COOKIE['user_city'])){
-                    $user_city = $_COOKIE["user_city"];
-                }
-                if(isset($_COOKIE['user_language'])){
-                    $user_language = $_COOKIE["user_language"];
-                }
-                if(isset($_COOKIE['user_region'])){
-                    $user_region = json_decode($_COOKIE["user_region"]);
-                }
-                if(empty($user_city) || empty($user_country) || empty($user_country_code)){
-                    
-                    $data = $this->localization->ip_info();
 
-                    if(empty($user_country)){
-                        if(!$data){
-                            $user_country = "Unknown";
-                        }else{
-                            if(isset($data->name)){
-                                $user_country = $data->name;
-                            }else{
-                                $user_country = $data["name"];
-                            }
+            // --- D. ARAMA GEÇMİŞİ ---
+            if ($enable_history && class_exists('SearchHistory')) {
+                $sh_obj = new \SearchHistory();
+                $config["search_history"] = $sh_obj->get_user_terms();
+            }
+
+            // --- E. GÜVENLİK (NONCE) ---
+            if (!$config["logged"]) {
+                $config["nonce"] = wp_create_nonce('ajax');
+            }
+
+            // --- F. IP TABANLI LOKALİZASYON VE ÇEREZLER ---
+            if ($enable_ip) {
+                $user_data = [
+                    'country' => $_COOKIE['user_country'] ?? '',
+                    'code'    => $_COOKIE['user_country_code'] ?? '',
+                    'city'    => $_COOKIE['user_city'] ?? '',
+                    'lang'    => $_COOKIE['user_language'] ?? '',
+                    'region'  => $_COOKIE['user_region'] ?? ''
+                ];
+
+                // Çerezler eksikse IP'den bul
+                if (empty($user_data['city']) || empty($user_data['code'])) {
+                    global $salt; 
+                    if(isset($salt)){
+                        $data = (isset($salt->localization)) ? $salt->localization->ip_info() : null;
+                        if ($data) {
+                            $user_data['country'] = $data->name ?? ($data['name'] ?? 'Unknown');
+                            $user_data['code']    = $data->iso2 ?? ($data['iso2'] ?? '');
+                            $user_data['city']    = $data->state ?? ($data['state'] ?? 'Unknown');
                         }
                     }
+                }
 
-                    if(empty($user_country_code)){
-                        if(!$data){
-                            $user_country_code = "";
-                        }else{
-                            if(isset($data->iso2)){
-                                $user_country_code = $data->iso2;
-                            }else{
-                                $user_country_code = $data["iso2"];
-                            }
+                // Dil tespiti (Senin universal fonksiyonun)
+                if (empty($user_data['lang'])) {
+                    $user_data['lang'] = ml_get_current_language();
+                }
+
+                // Bölgesel içerik aktifse
+                if ($enable_reg && empty($user_data['region']) && !empty($user_data['code'])) {
+                    $user_data['region'] = function_exists('get_region_by_country_code') ? get_region_by_country_code($user_data['code']) : '';
+                }
+
+                // Çerezleri sadece değişmişse yaz (Performans ve Header güvenliği için)
+                $cookie_time = time() + (86400 * 365);
+                foreach ($user_data as $key => $val) {
+                    $c_name = "user_" . ($key == 'lang' ? 'language' : $key);
+                    if (!isset($_COOKIE[$c_name]) || $_COOKIE[$c_name] !== (string)$val) {
+                        if (!headers_sent()) {
+                            setcookie($c_name, (string)$val, $cookie_time, $path);
                         }
                     }
-
-                    if(empty($user_city)){
-                        if(!$data){
-                            $user_city = "Unknown";
-                        }else{
-                            if(isset($data->state)){
-                                $user_city = $data->state;
-                            }else{
-                                $user_city = $data["state"];
-                            }
-                        }
-                    }
-
-                    if(empty($user_language)){
-                        $user_language = strtolower( substr( get_locale(), 0, 2 ) );
-                        if (function_exists("qtranxf_getSortedLanguages")) {
-                            $user_language = qtranxf_getLanguage();
-                        }else{
-                            $user_language = strtolower( substr( get_locale(), 0, 2 ) );
-                        }
-                    }
-
-                    if(empty($user_region) && ENABLE_REGIONAL_POSTS){
-                        $user_region = get_region_by_country_code($user_country_code);
-                    }
-                    
+                    $config[$c_name] = $val;
                 }
-                $config["user_country"] = $user_country;
-                $config["user_country_code"] = $user_country_code;
-                $config["user_city"] = $user_city;
-                $config["user_language"] = $user_language;
-                /*setcookie('user_country', $user_country, time() + (86400 * 365), $path); 
-                setcookie('user_country_code', $user_country_code, time() + (86400 * 365), $path);
-                setcookie('user_city', $user_city, time() + (86400 * 365), $path);
-                setcookie('user_language', $user_language, time() + (86400 * 365), $path);*/
-                if (!isset($_COOKIE['user_country']) || $_COOKIE['user_country'] !== $user_country) {
-                    setcookie('user_country', $user_country, time() + (86400 * 365), $path);
-                }
-                if (!isset($_COOKIE['user_country_code']) || $_COOKIE['user_country_code'] !== $user_country_code) {
-                    setcookie('user_country_code', $user_country_code, time() + (86400 * 365), $path);
-                }
-                if (!isset($_COOKIE['user_city']) || $_COOKIE['user_city'] !== $user_city) {
-                    setcookie('user_city', $user_city, time() + (86400 * 365), $path);
-                }
-                if (!isset($_COOKIE['user_language']) || $_COOKIE['user_language'] !== $user_language) {
-                    setcookie('user_language', $user_language, time() + (86400 * 365), $path);
-                }
-
-                if(ENABLE_REGIONAL_POSTS){
-                    //setcookie('user_region', json_encode($user_region), time() + (86400 * 365), $path);
-                    if (!isset($_COOKIE['user_region']) || $_COOKIE['user_region'] !== $user_region) {
-                        setcookie('user_region', $user_region, time() + (86400 * 365), $path);
-                    }
-                }
-            }else{
-                $user_language = $GLOBALS["language"];
-                $config["user_language"] = $user_language;
-                //setcookie('user_language', $user_language, time() + (86400 * 365), $path);
+            } else {
+                // IP localization kapalıysa sadece dili al
+                $config["user_language"] = Data::get("language");//$GLOBALS["language"];//ml_get_current_language();
             }
 
-            $required_js_file = get_stylesheet_directory() ."/static/js/js_files.json";
-            if(file_exists($required_js_file)){
-                $required_js = file_get_contents($required_js_file);
-            }else{
-                $required_js = [];
+            // --- G. STATİK DOSYALAR (JSON) ---
+            static $cached_js = null;
+            if ($cached_js === null) {
+                $js_json_path = get_stylesheet_directory() . "/static/js/js_files.json";
+                $cached_js = file_exists($js_json_path) ? json_decode(file_get_contents($js_json_path), true) : [];
             }
-            if(!is_array($required_js)){
-                $required_js = json_decode($required_js, true);
-            }
-            $config["required_js"] = $required_js;
+            $config["required_js"] = $cached_js;
 
-            if(defined("SH_INCLUDES_URL")){
-               $config["theme_includes_url"] = SH_INCLUDES_URL; 
-            }
+            // --- H. URL TANIMLARI ---
+            //$config["theme_includes_url"] = defined("SH_INCLUDES_URL") ? SH_INCLUDES_URL : '';
+            $config["theme_url"]          = defined("THEME_URL") ? THEME_URL : '';
 
-            if(defined("THEME_URL")){
-               $config["theme_url"] = THEME_URL; 
-            }
-
+            // --- I. ÇEVİRİ SÖZLÜĞÜ ---
             $config["dictionary"] = [];
-            if(!is_admin() && class_exists("TranslationDictionary")){
+            if (class_exists("TranslationDictionary")) {
                 $dictionary = new \TranslationDictionary();
                 $config["dictionary"] = $dictionary->getDictionary();
             }
 
-            if($meta){
+            // --- J. META VERİSİ ---
+            if (!empty($meta)) {
                 $config["meta"] = $meta;
             }
-            error_log("site config is completed");
 
-            $GLOBALS["site_config"] = $config;
-        }else{
-            error_log("site config already set");
-            if($meta){
-                $GLOBALS["site_config"]["meta"] = $meta;
+            if($jsLoad){
+                $config["loaded"] = true;
             }
-        }
-        if($jsLoad){
-            $GLOBALS["site_config"]["loaded"] = true;
-        }
 
-        return $GLOBALS["site_config"];  
+            $config = apply_filters('site_config', $config);
+
+
+            // Global'e yazalım
+            //$GLOBALS["site_config"] = $config;
+            Data::set("site_config", $config);
+
+        //error_log("site config is completed");
+
+        return Data::get("site_config");//$GLOBALS["site_config"];  
     }
-    public function site_config_js(){
-
-        if (is_admin() || ( defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ) {
-            return;
+    /*public function site_config_js() {
+        // 1. Admin veya tema yoksa çık
+        if (is_admin() || (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS)) {
+            return [];
         }
 
-        error_log("site_config_js();");
+        // 2. Config Verilerini Hazırla
+        // Eğer get_site_config() içinde zaten hesaplandıysa global'den çek, yoksa oluştur.
+        //$site_config = isset($GLOBALS["site_config"]) ? $GLOBALS["site_config"] : self::get_site_config();
+        $site_config = Data::has("site_config") ? Data::get("site_config") : self::get_site_config();
 
-            wp_register_script( 'site_config_vars', STATIC_URL . 'js/methods.min.js', array("jquery"), '1.0', false );
-            wp_enqueue_script('site_config_vars');
-
-            if(isset($GLOBALS["site_config"])){
-                $args = $GLOBALS["site_config"];
-            }else{
-                $args = self::get_site_config();
-            }
-
-            if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["meta"])){
-                $args["meta"] = SITE_ASSETS["meta"]; 
-            }  
-
-            //error_log(print_r($args, true));
-            
-            wp_localize_script( 'site_config_vars', 'site_config', $args);
-
-            /*$inline_js = "
-                document.addEventListener('visibilitychange', function () {
-                    if (document.visibilityState === 'hidden') {
-                        document.body.classList.remove('loading-process');
-                    }
-                });
-                window.addEventListener('popstate', function () {
-                    document.body.classList.remove('loading-process');
-                    document.body.style.position = '';
-                    document.body.style.overflow = '';
-                });
-                window.addEventListener('pageshow', function (event) {
-                    if (event.persisted) {
-                        // Geri dönüldüğünde body'deki sınıfları sıfırla
-                        document.body.classList.remove('loading-process');
-                        document.body.classList.add('init'); // init class'ını yeniden ekle
-                    }
-                });
-            ";
-            wp_add_inline_script('site_config_vars', $inline_js);*/
-
-            //required js files
-            //$required = json_decode(file_get_contents(get_stylesheet_directory() ."/static/js/js_files.json"), true);
-            wp_localize_script( 'site_config_vars', 'required_js', $args["required_js"]);
-
+        // 3. Assetleri Hazırla (Önce bu çalışmalı ki SITE_ASSETS define edilsin)
+        //$this->site_assets();
+        if (!defined('SITE_ASSETS')) {
             $this->site_assets();
+        }
 
-            $upload_dir = wp_upload_dir();
-            $upload_url = $upload_dir['baseurl']."/";
-            
-            if(defined("SITE_ASSETS") && is_array(SITE_ASSETS) && !is_admin()){
-                $conditional = SITE_ASSETS["plugins"];//apply_filters("salt_conditional_plugins", []);
-                $conditional = $conditional ? $conditional : [];
-                wp_localize_script( 'site_config_vars', 'conditional_js', array_values($conditional));
-                /*if(!empty(SITE_ASSETS["js"])){
-                    wp_register_script( 'page-scripts', '', array("jquery"), '1.0', true );
-                    wp_enqueue_script( 'page-scripts' );
-                    wp_add_inline_script( 'page-scripts', SITE_ASSETS["js"]);                    
-                }*/
+        // 4. Meta Verilerini Eşitle
+        if (defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["meta"])) {
+            $site_config["meta"] = SITE_ASSETS["meta"];
+        }
 
-                if(!empty(SITE_ASSETS["css"]) && (!isset($_GET['fetch']) && SEPERATE_CSS)){
-                    wp_register_style( 'page-styles', false );
-                    wp_enqueue_style( 'page-styles' );
-                    $code = str_replace("{upload_url}", $upload_url, SITE_ASSETS["css"]);
-                    $code = str_replace("{home_url}", home_url("/"), $code);
-                    //$code .= file_get_contents(STATIC_URL . SITE_ASSETS["css_page"]);
-                    wp_add_inline_style( 'page-styles', $code); 
+        // 5. JavaScript Değişkenlerini Oluştur (Inline Script)
+        // wp_localize_script yerine wp_add_inline_script kullanıyoruz çünkü daha performanslı ve kontrol bizde.
+        wp_register_script('site_config_vars', false);
+        wp_enqueue_script('site_config_vars');
+
+        $js_data = 'var site_config = ' . json_encode($site_config) . ';' . PHP_EOL;
+        $js_data .= 'var required_js = ' . json_encode($site_config["required_js"] ?? []) . ';' . PHP_EOL;
+
+        // 6. Conditional Plugins (Sadece sayfaya özel olanlar)
+        if (defined("SITE_ASSETS") && is_array(SITE_ASSETS)) {
+            $conditional = SITE_ASSETS["plugins"] ?? [];
+            $js_data .= 'var conditional_js = ' . json_encode(array_values((array)$conditional)) . ';' . PHP_EOL;
+        }
+
+        // 7. Ajax ve Path Ayarları
+        $upload_dir = wp_upload_dir();
+        $upload_url = trailingslashit($upload_dir['baseurl']);
+
+        $ajax_vars = [
+            'url'        => trailingslashit(home_url()),
+            'url_admin'  => admin_url('admin-ajax.php'),
+            'site_url'   => get_option('home'),
+            'theme_url'  => trailingslashit(get_stylesheet_directory_uri()),
+            'upload_url' => $upload_url,
+            'ajax_nonce' => wp_create_nonce('ajax'),
+            'title'      => get_the_title() // Boş kalmasın, o anki sayfa başlığını verelim
+        ];
+
+        // YoBro Chat entegrasyonu
+        if (class_exists("Redq_YoBro")) {
+            $user_id = get_current_user_id();
+            if ($user_id) {
+                $conversations = yobro_get_all_conversations($user_id);
+                if ($conversations) {
+                    $ajax_vars["conversations"] = $conversations;
                 }
             }
-            $args = array(
-                'url'         => home_url().'/',
-                'url_admin'   => admin_url('admin-ajax.php'),
-                'site_url'    => get_option('home'),
-                'theme_url'   => get_stylesheet_directory_uri()."/",
-                'upload_url'  => $upload_url."/",
-                'ajax_nonce'  => wp_create_nonce( 'ajax' ),
-                'title'       => ''
+        }
+
+        $js_data .= 'var ajax_request_vars = ' . json_encode($ajax_vars) . ';' . PHP_EOL;
+        
+        // JS verisini bas
+        wp_add_inline_script('site_config_vars', $js_data);
+
+        // 8. Sayfaya Özel Dinamik CSS (Separate CSS aktifse)
+        if (defined("SITE_ASSETS") && !empty(SITE_ASSETS["css"]) && !isset($_GET['fetch']) && defined('SEPERATE_CSS') && SEPERATE_CSS) {
+            wp_register_style('page-styles', false);
+            wp_enqueue_style('page-styles');
+
+            // URL yerleştirmelerini yapalım
+            $css_code = str_replace(
+                ["{upload_url}", "{home_url}"],
+                [$upload_url, home_url("/")],
+                SITE_ASSETS["css"]
             );
-            if(class_exists("Redq_YoBro")){
-                $user = wp_get_current_user();
-                $conversations = yobro_get_all_conversations($user->ID);
-                if($conversations){
-                    $args["conversations"] = $conversations;
-                }
-            }
-            wp_localize_script( 'site_config_vars', 'ajax_request_vars', $args);
-    }
-    public function remove_comments(){
-        if (!is_admin()) {
+
+            wp_add_inline_style('page-styles', $css_code);
+        }
+    }*/
+
+    public function site_config_js() {
+
+        if (is_admin() || (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS)) {
             return;
         }
-        $disable_comments_file = "/remove-comments-absolute.php";
-        $disable_comments_path = SH_INCLUDES_PATH . $disable_comments_file;
-        $disable_comments_plugin = WP_PLUGIN_DIR . $disable_comments_file;
+
+        $site_config = Data::has("site_config")
+            ? Data::get("site_config")
+            : self::get_site_config();
+
+        if (!defined('SITE_ASSETS')) {
+            $this->site_assets();
+        }
+
+        if (defined("SITE_ASSETS") && is_array(SITE_ASSETS)) {
+            $site_config["meta"] = SITE_ASSETS["meta"] ?? null;
+            $site_config["conditional_js"] = array_values((array)(SITE_ASSETS["plugins"] ?? []));
+        }
+
+        $site_config["required_js"] = $site_config["required_js"] ?? [];
+
+        $upload_dir = wp_upload_dir();
+        $upload_url = trailingslashit($upload_dir['baseurl']);
+
+        $site_config["ajax"] = [
+            'url'        => trailingslashit(home_url()),
+            'url_admin'  => admin_url('admin-ajax.php'),
+            'site_url'   => get_option('home'),
+            'theme_url'  => trailingslashit(get_stylesheet_directory_uri()),
+            'upload_url' => $upload_url,
+            'ajax_nonce' => wp_create_nonce('ajax'),
+            'title'      => get_the_title()
+        ];
+
+        $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+
+        if (ENABLE_PRODUCTION) {
+            $flags |= JSON_PRETTY_PRINT;
+        }
+
+        echo '<script type="application/json" id="site-config">';
+        echo wp_json_encode($site_config, $flags);
+        echo '</script>';
+        
+        ?>
+
+        <script>
+        (function(){
+            const el = document.getElementById('site-config');
+            if(!el) return;
+
+            const config = JSON.parse(el.textContent);
+
+            Object.defineProperty(window, 'site_config', {
+                value: config,
+                writable: false,
+                configurable: false
+            });
+
+            window.required_js = config.required_js || [];
+            window.conditional_js = config.conditional_js || [];
+            window.ajax_request_vars = config.ajax || {};
+        })();
+        </script>
+
+        <?php
+
+        if (defined("SITE_ASSETS") && !empty(SITE_ASSETS["css"]) && !isset($_GET['fetch']) && defined('SEPERATE_CSS') && SEPERATE_CSS) {
+            wp_register_style('page-styles', false);
+            wp_enqueue_style('page-styles');
+
+            // URL yerleştirmelerini yapalım
+            $css_code = str_replace(
+                ["{upload_url}", "{home_url}"],
+                [$upload_url, home_url("/")],
+                SITE_ASSETS["css"]
+            );
+
+            wp_add_inline_style('page-styles', $css_code);
+        }
+    }
+
+
+
+
+
+    public function remove_comments() {
+        // 1. Sadece admin panelinde ve gerekli sabit tanımlıysa çalış
+        if (!is_admin() || !defined('DISABLE_COMMENTS')) {
+            return;
+        }
+
+        // WordPress eklenti fonksiyonlarını garantiye alalım
+        if (!function_exists('activate_plugin') || !function_exists('deactivate_plugins')) {
+            require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+
+        $plugin_filename = "remove-comments-absolute.php";
+        $source_path     = SH_INCLUDES_PATH . "/" . $plugin_filename;
+        $destination_path = WP_PLUGIN_DIR . "/" . $plugin_filename;
+
         if (DISABLE_COMMENTS) {
+            // Eklenti sınıfı yoksa ve dosya kaynakta mevcutsa
             if (!class_exists("Remove_Comments_Absolute")) {
-                if (copy($disable_comments_path, $disable_comments_plugin)) {
-                    //echo "File copied! \n";
-                    activate_plugin("remove-comments-absolute.php");
-                } else {
-                    //echo "File has not been copied! \n";
+                
+                // Eğer dosya plugin klasöründe yoksa kopyala
+                if (!file_exists($destination_path)) {
+                    if (file_exists($source_path)) {
+                        copy($source_path, $destination_path);
+                    }
+                }
+
+                // Dosya artık oradaysa eklentiyi aktifleştir
+                if (file_exists($destination_path)) {
+                    activate_plugin($plugin_filename);
                 }
             }
         } else {
-            if (class_exists("Remove_Comments_Absolute")) {
-                function remove_comments_absolute_deactivate(){
-                    delete_plugins(["remove-comments-absolute.php"]);
+            // Devre dışı bırakılmak isteniyorsa
+            if (class_exists("Remove_Comments_Absolute") || is_plugin_active($plugin_filename)) {
+                
+                // Önce pasif yap
+                deactivate_plugins($plugin_filename);
+                
+                // Sonra dosyayı sil (Eklentiler listesinde kalabalık yapmasın)
+                if (file_exists($destination_path)) {
+                    unlink($destination_path);
                 }
-                register_deactivation_hook(
-                    "/remove-comments-absolute.php",
-                    "remove_comments_absolute_deactivate"
-                );
-                deactivate_plugins($disable_comments_file);
             }
         }
     }
-
 
     public function wc_custom_template_path($path) {
         return '/theme/woocommerce/'; // yani artık şu klasöre bakacak: your-theme/theme/woocommerce/
     }
-
-
     public function wc_multiple_template_paths($template, $template_name, $template_path) {
+        // 1. Bakılacak klasörleri tanımla
         $paths = [
             get_template_directory() . '/woocommerce/',
             get_template_directory() . '/theme/woocommerce/',
         ];
-        $template_name = str_replace("_", "-", $template_name);
+
+        // 2. Dosya ismindeki alt çizgileri tireye çevir (Standartlaştırma)
+        $clean_template_name = str_replace("_", "-", $template_name);
+
+        // 3. Hiyerarşik kontrol (Hangi klasörde varsa onu çek)
         foreach ($paths as $dir) {
-            $full_path = trailingslashit($dir) . $template_name;
+            $full_path = trailingslashit($dir) . $clean_template_name;
+            
             if (file_exists($full_path)) {
-                return $full_path;  // ilk bulduğunu döndür, Timber gibi
+                return $full_path; 
             }
         }
+
+        // 4. Hiçbirinde yoksa orijinal template yoluna dön
         return $template;
     }
-
 
     public function register_post_types(){
         //this is where you can register custom post types
@@ -1372,7 +1669,6 @@ Class Theme{
             include THEME_INCLUDES_PATH . "register/post-type.php";
         }
     }
-
     public function register_taxonomies(){
         include SH_INCLUDES_PATH . "register/user.php";
         include SH_INCLUDES_PATH . "register/taxonomy.php";
@@ -1403,6 +1699,6 @@ Class Theme{
                 new \AvifConverter();
             }
             new \starterSite();
-        }); 
+        }, 20); 
 	}
 }

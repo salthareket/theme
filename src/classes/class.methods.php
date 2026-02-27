@@ -94,15 +94,15 @@ class MethodClass {
 
         // Kaynak dosya kontrolü
         if (!file_exists($source_file)) {
-            error_log("Kaynak dosya bulunamadı: $source_file");
+            //error_log("Kaynak dosya bulunamadı: $source_file");
             return;
         }
 
         // Dosya kopyalama (mevcutsa üzerine yazılır)
         if (!copy($source_file, $target_file)) {
-            error_log("Dosya kopyalama başarısız: $source_file -> $target_file");
+            //error_log("Dosya kopyalama başarısız: $source_file -> $target_file");
         } else {
-            error_log("Dosya başarıyla kopyalandı (üzerine yazıldı): $target_file");
+            //error_log("Dosya başarıyla kopyalandı (üzerine yazıldı): $target_file");
         }
     }
 
@@ -161,7 +161,7 @@ class MethodClass {
             if (!empty($jsContent)) {
                 $compressedJsContent = $this->compressJsCode($jsContent);
                 if ($platform == "frontend") {
-                    $indexJsContent .= "ajax_hooks['{$subfolderName}'] = {$compressedJsContent};\n";
+                    $indexJsContent .= "window.ajax_hooks['{$subfolderName}'] = {$compressedJsContent};\n";
                 }
                 if ($platform == "admin") {
                     $indexJsContent .= "{$compressedJsContent}\n";
@@ -246,7 +246,7 @@ class MethodClass {
 
     private function getIndexJsHeader($platform) {
         if ($platform == "frontend") {
-            return "var ajax_hooks = {};\n";
+            return "window.ajax_hooks = {};\n";
         } elseif ($platform == "admin") {
             return "$ = jQuery.noConflict();\njQuery(document).ready(function($){\n";
         }
@@ -271,13 +271,13 @@ class MethodClass {
         $parallelLintPath = get_stylesheet_directory() . '/vendor/bin/parallel-lint';
 
         if (!file_exists($parallelLintPath)) {
-            error_log("Hata: parallel-lint dosyası bulunamadı: " . $parallelLintPath);
+            //error_log("Hata: parallel-lint dosyası bulunamadı: " . $parallelLintPath);
             return ["Hata: parallel-lint komutu bulunamadı."];
         }
 
         // Komut çalıştırma
         $command = escapeshellcmd("php {$parallelLintPath} --json {$fileList}");
-        error_log("Komut: " . $command); // Komutu logla
+        //error_log("Komut: " . $command); // Komutu logla
 
         $output = [];
         $returnCode = 0;
@@ -285,8 +285,8 @@ class MethodClass {
         exec($command, $output, $returnCode);
 
         // Log sonuçlarını
-        error_log("Çıktı: " . print_r($output, true));
-        error_log("Return Code: " . $returnCode);
+        //error_log("Çıktı: " . print_r($output, true));
+        //error_log("Return Code: " . $returnCode);
 
         // Hata varsa döndür
         if ($returnCode !== 0 || empty($output)) {
@@ -297,7 +297,7 @@ class MethodClass {
         //$jsonOutput = json_decode(implode('', $output), true);
 
         //if (json_last_error() !== JSON_ERROR_NONE) {
-         //   error_log("JSON Hatası: " . json_last_error_msg());
+         //   //error_log("JSON Hatası: " . json_last_error_msg());
             //return ["JSON çözümlemesinde hata oluştu."];
         //}
 
@@ -316,7 +316,7 @@ class MethodClass {
         }
 
         if (empty($jsonOutput)) {
-            error_log("Hata: JSON formatlı çıktı bulunamadı.");
+            //error_log("Hata: JSON formatlı çıktı bulunamadı.");
             return [];
         }
 
@@ -324,7 +324,7 @@ class MethodClass {
         $decoded = json_decode($jsonOutput, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("JSON Hatası: " . json_last_error_msg());
+            //error_log("JSON Hatası: " . json_last_error_msg());
             return [];
         }
 

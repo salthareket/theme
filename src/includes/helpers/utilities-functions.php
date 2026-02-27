@@ -36,7 +36,7 @@ function unicode_decode($str) {
       $g = hexdec(substr($hex,1,1).substr($hex,1,1));
       $b = hexdec(substr($hex,2,1).substr($hex,2,1));
    } else {
-    error_log($hex);
+    //error_log($hex);
       $r = hexdec(substr($hex,0,2));
       $g = hexdec(substr($hex,2,2));
       $b = hexdec(substr($hex,4,2));
@@ -66,7 +66,7 @@ function hex2rgb($hex) {
         $b = hexdec(substr($hex, 4, 2));
     }
     else {
-        error_log("hex2rgb() geçersiz renk: " . $hex);
+        //error_log("hex2rgb() geçersiz renk: " . $hex);
         return null;
     }
 
@@ -133,7 +133,7 @@ function get_image_average_color($image_path) {
                     $image = imagecreatefromstring($imagick->getImageBlob());
                     $imagick->destroy();
                 } catch (Exception $e) {
-                    error_log('AVIF renk alma hatası: ' . $e->getMessage());
+                    //error_log('AVIF renk alma hatası: ' . $e->getMessage());
                     return false;
                 }
             } elseif (function_exists('imageavif')) {
@@ -948,7 +948,7 @@ function search_suggestions($term = "", $count = 5) {
 }
 
 function check_and_load_translation($textdomain, $locale = null) {
-    error_log("check_and_load_translation");
+    //error_log("check_and_load_translation");
     if (!$locale) {
         $locale = determine_locale(); // WordPress 5.0+ için
     }
@@ -1012,7 +1012,7 @@ function copyFile($source, $destination) {
 }
 function moveFolder($src, $dst) {
     if (!is_dir($src)) {
-        error_log("Kaynak klasör bulunamadı: $src");
+        //error_log("Kaynak klasör bulunamadı: $src");
         return false;
     }
     try {
@@ -1020,7 +1020,7 @@ function moveFolder($src, $dst) {
         deleteFolder($src);
         return true;
     } catch (Exception $e) {
-        error_log("Taşıma işlemi başarısız: " . $e->getMessage());
+        //error_log("Taşıma işlemi başarısız: " . $e->getMessage());
         return false;
     }
 }

@@ -1,13 +1,42 @@
 <?php
 
-function get_star_vote($post_id=0, $user_id=0){
-	global $wpdb;
-	return $wpdb->get_var(  "SELECT vote FROM wp_yasr_log  where post_id = ".$post_id." ".($user_id?"and user_id=".$user_id:"")." order by id asc limit 1" );
+function get_star_vote($post_id = 0, $user_id = 0) {
+    global $wpdb;
+    
+    // Tablo ismini dinamik yapıyoruz
+    $table_name = $wpdb->prefix . "yasr_log";
+
+    // Sorguyu güvenli hale getiriyoruz
+    if ($user_id) {
+        $query = $wpdb->prepare(
+            "SELECT vote FROM {$table_name} WHERE post_id = %d AND user_id = %d ORDER BY id ASC LIMIT 1",
+            $post_id,
+            $user_id
+        );
+    } else {
+        $query = $wpdb->prepare(
+            "SELECT vote FROM {$table_name} WHERE post_id = %d ORDER BY id ASC LIMIT 1",
+            $post_id
+        );
+    }
+
+    return $wpdb->get_var($query);
 }
 
-function get_star_votes($post_id){
-	global $wpdb;
-	return $wpdb->get_results( 'SELECT count(*) as total,  CAST(AVG(vote) AS DECIMAL(10,1)) as point FROM wp_yasr_log WHERE post_id = '.$post_id, OBJECT );
+function get_star_votes($post_id) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . "yasr_log";
+
+    // post_id'yi %d (integer) olarak süzgeçten geçiriyoruz
+    $query = $wpdb->prepare(
+        "SELECT COUNT(*) as total, CAST(AVG(vote) AS DECIMAL(10,1)) as point 
+         FROM {$table_name} 
+         WHERE post_id = %d",
+        $post_id
+    );
+
+    return $wpdb->get_results($query, OBJECT);
 }
 
 function get_star_votes_profile($user_id=0, $approved=1){

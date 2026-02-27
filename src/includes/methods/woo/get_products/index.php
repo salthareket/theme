@@ -6,7 +6,7 @@ if (isset($vars["kategori"])) {
             }
             if (isset($vars["keyword"])) {
                 $page_type = "search";
-                $GLOBALS["keyword"] = $vars["keyword"];
+                Data::set("keyword", $vars["keyword"]);
                 add_filter("posts_where", "sku_where");
             }
 
@@ -19,7 +19,7 @@ if (isset($vars["kategori"])) {
             $query_response = category_queries_ajax($query, $vars);
             $query = $query_response["query"];
             //$GLOBALS["query_vars"] = woo_sidebar_filter_vars($vars); //$query_response["query_vars"];
-            $data["query_vars"] = $GLOBALS["query_vars"];
+            $data["query_vars"] = Data::get("query_vars");
 
             $closure = function ($sql) {
                 //$role = array_keys($GLOBALS["user"]->roles)[0];
@@ -44,14 +44,13 @@ if (isset($vars["kategori"])) {
 
             //$queried_object = get_queried_object();
             if (ENABLE_FAVORITES) {
-                $context["favorites"] = $GLOBALS["favorites"];
+                $context["favorites"] = Data::get("favorites");
             }
 
-            $context["pagination_type"] =
-                $GLOBALS["site_config"]["pagination_type"];
+            $context["pagination_type"] = Data::get("site_config.pagination_type");
 
-            if (isset($GLOBALS["query_vars"])) {
-                $query_vars = $GLOBALS["query_vars"];
+            if (Data::get("query_vars")) {
+                $query_vars = Data::get("query_vars");
             }
 
             global $wp_query;

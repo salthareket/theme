@@ -1,7 +1,7 @@
 {
-    required : "bootbox",
+    required : ["bootbox"],
     before: function(response, vars, form, objs) {
-        console.log(response)
+        debugJS(response)
         if(!form){
            form = objs.form;
         }
@@ -10,7 +10,7 @@
         }
     },
     after: function(response, vars, form, objs) {
-        console.log(response)
+        debugJS(response)
         if(!form){
            form = objs.form;
         }

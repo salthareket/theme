@@ -1,5 +1,5 @@
 {
-    required : "bootbox",
+    required : ["bootbox"],
     before: function(response, vars, form, objs) {
         /*if(!isLoadedJS("bootbox")){
             alert("Bootbox required");

@@ -47,7 +47,7 @@ function typeahead(){
 						}
 						search_request = $.post(host, { ajax: "query", method:method, keyword:query, vars:{count:$typeahead.options.items} }, function (data) {
 							$typeahead.$menu.removeClass("loading").removeClass("not-found");
-							data = $.parseJSON(data);
+							data = JSON.parse(data);
 							debugJS(data);
 							if(data.length>0){
 								return $typeahead.render(data).show();
@@ -85,14 +85,21 @@ function typeahead(){
 					return $item.name
 				},
 				afterSelect: function($item){
-					if($item.hasOwnProperty("url")){
-						$("body").addClass("loading");
-						window.location.href = $item.url;
-					}else{
-						//this.$element.closest("form").submit();
-						$("body").addClass("loading");
-						var url = this.$element.closest("form").attr("action");
-						window.location.href = url+$item.name;
+					// Güvenli kontrol: Objenin tepesinden çağırıyoruz
+					if ($item && Object.prototype.hasOwnProperty.call($item, "url")) {
+					    $("body").addClass("loading");
+					    window.location.href = $item.url;
+					} else {
+					    // Form bazlı yönlendirme mantığı
+					    $("body").addClass("loading");
+					    
+					    // Güvenlik: closest("form") her zaman bir sonuç dönmeyebilir, null check iyidir
+					    var $form = this.$element.closest("form");
+					    var baseUrl = $form.attr("action") || "";
+					    
+					    // $item.name'in varlığını da kontrol ederek window.location'ı set ediyoruz
+					    var itemName = ($item && $item.name) ? $item.name : "";
+					    window.location.href = baseUrl + itemName;
 					}
 				}
 			})

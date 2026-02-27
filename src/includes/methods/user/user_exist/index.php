@@ -1,7 +1,7 @@
 <?php
 $required_setting = ENABLE_MEMBERSHIP;
 
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
 $status = $salt->user_exist($vars);
 $error = false;
 $message = "";

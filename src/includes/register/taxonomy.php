@@ -64,12 +64,13 @@ $labels = array(
         'add_or_remove_items'       =>'Add or remove Contact Type',
         'choose_from_most_used'     =>'Choose from the most popular Contact Types',
 );
-$args = array(
+$contact_args = array(
         'public'        => true,
         'single_value' => false,
         'show_admin_column' => true,
         'labels'        => $labels,
         'hierarchical' => true,
+        'show_in_rest'  => true, // ACFE ve yeni editörde görünmesi için şart!
         'rewrite'       =>  array(
             'with_front'                => true,
             'slug'                      =>'contact/contact-type',
@@ -81,48 +82,51 @@ $args = array(
 	        'assign_terms'              =>'read',
         ),
 );
-register_taxonomy('contact-type', array('contact'), $args);
+register_taxonomy('contact-type', array('post', 'contact'), $contact_args);
 
-add_action("init", function(){
-        if (empty(term_exists('main', 'contact-type'))) {
-            $term = wp_insert_term('Ana Lokasyon', 'contact-type', array(
-               'description' => '',
-               'slug' => 'main',
-               'parent' => 0
-            ));
-            if(!is_wp_error($term) || empty(get_option( 'contact_type_main'))){
-                add_term_meta( $term["term_id"], 'delete-protect', true, true );
-                add_option( 'contact_type_main', $term["term_id"]);
+if(is_admin()){
+    add_action("init", function(){
+            if (empty(term_exists('main', 'contact-type'))) {
+                $term = wp_insert_term('Ana Lokasyon', 'contact-type', array(
+                   'description' => '',
+                   'slug' => 'main',
+                   'parent' => 0
+                ));
+                if(!is_wp_error($term) || empty(QueryCache::get_option( 'contact_type_main'))){
+                    add_term_meta( $term["term_id"], 'delete-protect', true, true );
+                    add_option( 'contact_type_main', $term["term_id"]);
+                }
+            }else{
+                $term = get_term_by("slug", "main", "contact-type");
+                if(empty(QueryCache::get_option( 'contact_type_main'))){
+                    add_term_meta( $term->term_id, 'delete-protect', true, true );
+                    add_option( 'contact_type_main', $term->term_id);
+                }
             }
-        }else{
-            $term = get_term_by("slug", "main", "contact-type");
-            if(empty(get_option( 'contact_type_main'))){
-                add_term_meta( $term->term_id, 'delete-protect', true, true );
-                add_option( 'contact_type_main', $term->term_id);
+            if (empty(term_exists('standard', 'contact-type'))) {
+                $term = wp_insert_term('Standart Lokasyon', 'contact-type', array(
+                   'description' => '',
+                   'slug' => 'standard',
+                   'parent' => 0
+                ));
+                if(!is_wp_error($term) || empty(get_option( 'contact_type_standard'))){
+                    add_term_meta( $term["term_id"], 'delete-protect', true, true );
+                    add_option( 'contact_type_standard', $term["term_id"]);
+                }
+            }else{
+                $term = get_term_by("slug", "standard", "contact-type");
+                if(empty(get_option( 'contact_type_standard'))){
+                    add_term_meta( $term->term_id, 'delete-protect', true, true );
+                    add_option( 'contact_type_standard', $term->term_id);
+                }
             }
-        }
-        if (empty(term_exists('standard', 'contact-type'))) {
-            $term = wp_insert_term('Standart Lokasyon', 'contact-type', array(
-               'description' => '',
-               'slug' => 'standard',
-               'parent' => 0
-            ));
-            if(!is_wp_error($term) || empty(get_option( 'contact_type_standard'))){
-                add_term_meta( $term["term_id"], 'delete-protect', true, true );
-                add_option( 'contact_type_standard', $term["term_id"]);
-            }
-        }else{
-            $term = get_term_by("slug", "standard", "contact-type");
-            if(empty(get_option( 'contact_type_standard'))){
-                add_term_meta( $term->term_id, 'delete-protect', true, true );
-                add_option( 'contact_type_standard', $term->term_id);
-            }
-        }
-        add_filter( 'create_term', 'on_save_contact_type', 10, 3 );
-        add_filter( 'edit_term', 'on_save_contact_type', 10, 3 );
-        add_filter( 'edited_term', 'on_save_contact_type', 10, 3 );
-        add_filter( 'saved_term', 'on_save_contact_type', 10, 3 );
-}, 999);
+            add_filter( 'create_term', 'on_save_contact_type', 10, 3 );
+            add_filter( 'edit_term', 'on_save_contact_type', 10, 3 );
+            add_filter( 'edited_term', 'on_save_contact_type', 10, 3 );
+            add_filter( 'saved_term', 'on_save_contact_type', 10, 3 );
+    }, 999);
+}
+
 
 function on_save_contact_type($term_id, $tt_id, $taxonomy) {
     if($taxonomy != "contact-type"){
@@ -134,13 +138,6 @@ function on_save_contact_type($term_id, $tt_id, $taxonomy) {
         add_option( 'contact_type_'.$term->slug, $term->term_id);
     }
 }
-
-
-
-
-
-
-
 
 
 // prevent delete protected terms

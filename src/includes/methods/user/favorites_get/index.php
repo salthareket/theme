@@ -10,6 +10,7 @@ if (!$template) {
 $templates = [$template . ".twig"];
 $context = Timber::context();
 $context["type"] = "favorites";
+$user = Data::get("user");
 
 $posts = [];
 if ($favorites) {
@@ -33,11 +34,11 @@ if ($favorites) {
 }
 if (
 	count($posts) != count($favorites) &&
-	isset($GLOBALS["user"]->ID)
+	isset($user->ID)
 ) {
 	$ids = wp_list_pluck($posts, "ID");
 	update_user_meta(
-		$GLOBALS["user"]->ID,
+		$user->ID,
 		"wpcf_favorites",
 		unicode_decode(json_encode($ids, JSON_NUMERIC_CHECK))
 	);

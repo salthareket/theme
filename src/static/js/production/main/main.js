@@ -1,19 +1,12 @@
-	root.init({
-		navigation : "",
-		footer : "",
-		affix : false
-	});
+	root.init();
 	var host = root.get_host();
 	var lang = root.lang;
 	var hash = root.hash;
 	var is_home = root.is_home;
 
-
+/*
 if(isLoadedJS("lenis")){
 	lenis = new Lenis()
-	/*lenis.on('scroll', (e) => {
-	  debugJS(e)
-	});*/
 	function raf(time) {
 	  lenis.raf(time)
 	  requestAnimationFrame(raf)
@@ -23,10 +16,6 @@ if(isLoadedJS("lenis")){
 
 window.addEventListener('load', fitToContainer);
 window.addEventListener('resize', fitToContainer);
-
-
-
-
 
 
 // Header Affix Init (ScrollPosStyler'ın özel kullanımı)
@@ -57,35 +46,142 @@ if (main && header && root && root.classes) {
     }
 }
 
+*/
+
+const handleHashScroll = () => {
+    const hash = window.location.hash;
+    if (hash && typeof root !== "undefined" && root.ui && root.ui.scroll_to) {
+        // Native scroll'u durdurmak için küçük bir hile
+        setTimeout(() => {
+            root.hash = ""; // Root içindeki eski hash'i temizle
+            root.ui.scroll_to(hash, true);
+        }, 100); 
+    }
+};
+
+if (isLoadedJS("lenis")) {
+    window.lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true
+    });
+    function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+}
+
+const initHeaderAffix = () => {
+    const headerEl = document.getElementById("header");
+    if (!headerEl) return;
+
+    // ScrollPosStyler Init
+    if (window["ScrollPosStyler"] && !headerEl.classList.contains("affix")) {
+        ScrollPosStyler.init({
+            spsClass: "affixed",
+            classAbove: "affix-top",
+            classBelow: "affix",
+            offsetTag: "data-affix-offset",
+            scrollOffsetY: 50
+        });
+    }
+
+    // Sayfa ilk yüklendiğinde mevcut scroll pozisyonuna göre header'ı düzelt
+    // Manuel kontrolü sadece ScrollPosStyler'ın yetişemediği ilk an için yapıyoruz
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    const headerHeight = (typeof root !== "undefined") ? root.get_css_var("header-height") : 0;
+
+    if (currentScroll > headerHeight && headerEl.classList.contains("fixed-top")) {
+        headerEl.classList.add("affix");
+        headerEl.classList.remove("affix-top");
+    }
+};
+
+const promotionTop = document.getElementById('promotion-top');
+if (promotionTop) {
+	promotionTop.addEventListener('closed.bs.alert', () => {
+		document.body.classList.remove("has-promotion-top");
+		// Layout değiştiği için Lenis ve Header Offset'i güncelle
+		if (typeof lenis !== "undefined") lenis.resize();
+	});
+}
+
+const pageNotification = document.querySelector(".page-notification-top");
+if (pageNotification) {
+    pageNotification.addEventListener('closed.bs.alert', () => {
+        document.body.classList.remove("has-page-notification-top");
+        if (window.lenis) {
+            window.lenis.resize();
+        }
+        if (window.ResponsiveManagerInstance) {
+            window.ResponsiveManagerInstance.updateHeaderOffset();
+        } else {
+            window.dispatchEvent(new Event('resize'));
+        }
+    });
+}
+
+// Event Listeners: Hepsini tek bir çatı altında topluyoruz
+window.addEventListener('load', () => {
+    fitToContainer();
+    initHeaderAffix();
+    handleHashScroll();
+});
+
+// Resize'ı throttle (frenleme) ile çalıştırıyoruz ki CPU patlamasın
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        fitToContainer();
+    }, 150);
+});
+
+window.withMethods = function(callback) {
+    // 1. Değişken var mı VE içi dolu mu (site_config gelmiş mi?)
+    const isReady = (typeof ajax_hooks !== 'undefined' && Object.keys(ajax_hooks).length > 0);
+
+    if (window.methods_js_loaded || isReady) {
+        window.methods_js_loaded = true;
+        debugJS(">>> Methods hazır, çalıştırılıyor.");
+        if (typeof callback === "function") callback();
+        return;
+    }
+
+    // 2. Yükleme devam ediyorsa bekle
+    if (window.methods_js_loading) {
+        setTimeout(() => window.withMethods(callback), 50);
+        return;
+    }
+
+    // 3. Yükleme başlat
+    debugJS(">>> Methods yükleniyor...");
+    window.methods_js_loading = true;
+    const targetUrl = (typeof ajax_hooks_url !== 'undefined') ? ajax_hooks_url : (ajax_request_vars.theme_url + "static/js/methods.min.js");
+
+    $.ajax({
+        url: targetUrl,
+        dataType: "script",
+        cache: true,
+        global: false,
+        success: () => {
+            window.methods_js_loaded = true;
+            window.methods_js_loading = false;
+            if (typeof callback === "function") callback();
+        },
+        error: () => {
+            window.methods_js_loading = false;
+            console.error(">>> Methods yüklenemedi!");
+        }
+    });
+};
 
 function init_functions(){
 	root.ui.scroll_dedect();
 	//function_secure("", "root.ui.scroll_dedect", []);
 
-	    /*
-	    $(".player.init-me").each(function(){
-	    	plyr_init($(this));
-	    })
 
-	    $('.wp-block-video video').each(function() {
-	        // Plyr ile videoyu değiştir
-	        $(this).addClass("player");
-	        plyr_init($(this));
-	    });*/
-
-	    /*// Ses bloklarını hedefle
-	    $('.wp-block-audio audio').each(function() {
-	        // Plyr ile sesi değiştir
-	        new Plyr(this);
-	    });
-
-	    // Embed videolarını hedefle
-	    $(".wp-block-embed").not(".is-type-rich").find('.wp-block-embed__wrapper').each(function() {
-	        // Plyr ile gömülü videoları değiştir
-	        $(this).addClass("player");
-	        plyr_init($(this));
-	    });*/
-        
         if($('.nav-equal').length > 0){
 	        const runSameSizeAndVisibility = () => {
 			    // 1. Önce Genişlikleri Eşitle ve Ölç (Reflow zorlamalı)
@@ -113,6 +209,8 @@ function init_functions(){
         if ($.fn.disableAutoFill) {
 			$('form').disableAutoFill();
 		}
+
+		$('.btn-submit').attr("disabled", false).removeClass("processing");
 
 		if (typeof window["init_plugins"] === 'function') {
 		 	init_plugins();
@@ -151,22 +249,22 @@ function init_functions(){
 
 $( document ).ready(function() {
 
-	    $.ajaxSetup({headers: {'X-CSRF-TOKEN': ajax_request_vars.ajax_nonce}});
-
-		if(!$("body").hasClass("logged")){/* && (site_config.enable_favorites || site_config.enable_search_history)){*/
-			ajax_hooks["site_config"].init(site_config.meta);
-		}
+		/* ACHTUNG: Blocked for some reason
+		if (!$("body").hasClass("logged")) {
+			withMethods(() => {
+			    if (window.ajax_hooks["site_config"]) {
+			        window.ajax_hooks["site_config"].init(site_config.meta);
+			    }
+			});
+		}*/
 		init_functions();
 
-		var page_notification = $(".page-notification-top");
+		/*var page_notification = $(".page-notification-top");
 		if(page_notification.length > 0){
 			page_notification.on('closed.bs.alert', function () {
 				alert("closed")
-	                              // do something, for instance, explicitly move focus to the most appropriate element,
-	                              // so it doesn't get lost/reset to the start of the page
-	                              // document.getElementById('...').focus()
 	        });			
-		}
+		}*/
 
 	    if($(".form-search").length > 0){
 		    $(".form-search").each(function(){
@@ -189,7 +287,6 @@ $( document ).ready(function() {
 	    }
 
         /*
-
 		$(".mega-menu .nav-mega-menu > li > a[data-bs-toggle='tab']").on("click", function(e){
 			var $image = $(this).data("image-url");
 			var $container = $(this).closest(".mega-menu").find(".mega-menu-image");
@@ -228,20 +325,6 @@ $( document ).ready(function() {
 			});        	
         }
 
-
-        if($(".select-url").length > 0){
-           $(".select-url").on("change", function(){
-           	   $("body").addClass("loading-process");
-               window.location.href = $(this).val();
-           });
-	    }
-
-	    if($(".select-hash").length > 0){
-           $(".select-hash").on("change", function(){
-               root.ui.scroll_to("#"+$(this).val().split("#")[1], true);
-           });
-	    }
-
         //form change or not
         if($('.form').length > 0){
 			$('.form').on('keyup change paste', 'input, select, textarea', function(e){
@@ -275,84 +358,115 @@ $( document ).ready(function() {
 		/*
 		/*******************************************/
 
-		$(document)
-		.on('shown.bs.dropdown', function (e) {
+		function bs_events_dropdown() {
+		    const _this = this;
+		    const body = document.body;
 
-			var obj = $(e.target);
+		    // 1️⃣ Global Listeners (Delegasyon ile tek merkezden yönetim)
+		    $(document)
+		    .on('shown.bs.dropdown', '.dropdown-notifications', function (e) {
+		        const $parent = $(this);
+		        const $container = $parent.find('.dropdown-container');
+		        const type = $parent.data('type');
 
-			if(obj.parent().hasClass("dropdown-notifications")){
-				var container = obj.parent().find(".dropdown-container");
-				obj.parent().parent().addClass("active");
-				$(document.body).addClass('notifications-open');
+		        // UI Durumları
+		        $parent.parent().addClass('active');
+		        body.classList.add('notifications-open');
 
-				if(obj.parent().data("type") == "favorites"){
-					var $favorites = site_config.favorites;
-                    if(!$.isArray($favorites)){
-                       var $favorites = $.parseJSON($favorites);
-                    }
-                    if($favorites.length > 0){
-                    	$favorites = $favorites.sort();
-						var ids = container.find(".notification-item")
-								  .map(function() { return $(this).data("id"); })
-								  .get().sort(); 
-						if(!isEqual($favorites, ids)){
-		                    container.addClass("loading-process");
-							favorites.get(obj.parent().find(".dropdown-container"));
-						}
-					}					
-				}
+		        // Search açıksa kapat (Native API kullanımı)
+		        const openSearch = document.querySelector('.collapse-search.show');
+		        if (openSearch) {
+		            bootstrap.Collapse.getOrCreateInstance(openSearch).hide();
+		        }
 
-				if(obj.parent().data("type") == "messages"){
-	                container.addClass("loading-process");
-					messages.get(obj.parent().find(".dropdown-container"));				
-				}
+		        // --- Veri Yükleme (Switch-Case ile daha temiz) ---
+		        if ($container.length) {
+		            switch(type) {
+		                case 'favorites':
+		                    handle_favorites_load($parent, $container);
+		                    break;
+		                case 'messages':
+		                    if (window.messages) {
+		                        $container.addClass('loading-process');
+		                        window.messages.get($container);
+		                    }
+		                    break;
+		                case 'cart':
+		                    if (window.cart) {
+		                        $container.addClass('loading-process');
+		                        window.cart.get($container);
+		                    }
+		                    break;
+		            }
+		        }
+		    })
+		    .on('hidden.bs.dropdown', '.dropdown-notifications', function () {
+		        $(this).parent().removeClass('active');
+		        body.classList.remove('notifications-open');
+		    })
+		    // 2️⃣ Updateable Dropdowns (Event Delegation ile)
+		    .on('click', '.dropdown-menu.updateable a', function (e) {
+		        const $link = $(this);
+		        const url = $link.attr('href');
 
-				if(obj.parent().data("type") == "cart"){
-	                container.addClass("loading-process");
-				    cart.get(obj.parent().find(".dropdown-container"));				
-				}
+		        // Sayfa yükleniyorsa loading çak
+		        if (url && url !== '#' && !url.startsWith('javascript:')) {
+		            body.classList.add('loading');
+		        }
 
-				$(".collapse-search.show").collapse("hide");
-			}
-		})
-		.on('hidden.bs.dropdown', function (e) {
-			var obj = $(e.target);
-			debugJS("hidden")
-			debugJS(e)
-            if(obj.parent().hasClass("dropdown-notifications")){
-            	var type = obj.parent().data("type");
-            	//if(IsBlank(type)){
-	            	obj.parent().parent().removeClass("active");
-					$(document.body).removeClass('notifications-open');
-				//}
-			}
-		})
-        
-        //Update dropdown button text with selected option's text
-		$(".dropdown-menu.updateable a").click(function(e){
-			var $url = $(this).attr("href");
-			if(IsUrl($url)){
-               $("body").addClass("loading");
-			}
-		    var selText = $(this).html();
-		    $(this).parents('.dropdown').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
-		});
+		        // Toggle metnini güncelle
+		        const $toggle = $link.closest('.dropdown').find('.dropdown-toggle');
+		        if ($toggle.length) {
+		            $toggle.html(`${$link.html()} <span class="caret"></span>`);
+		        }
+		    })
+		    // 3️⃣ Manuel Dismiss
+		    .on('click', '[data-bs-dismiss="dropdown"]', function (e) {
+		        const $dropdown = $(this).closest('.dropdown').find('[data-bs-toggle="dropdown"]');
+		        if ($dropdown.length) {
+		            bootstrap.Dropdown.getOrCreateInstance($dropdown[0]).hide();
+		        }
+		    });
 
-		$('.dropdown-hover').hover(function () {
-            $(this).addClass('show');
-            $(this).find('.dropdown-menu').addClass('show');
-        }, function () {
-            $(this).removeClass('show');
-            $(this).find('.dropdown-menu').removeClass('show');
-        });
+		    // 4️⃣ Dropdown Hover (Native CSS alternatifi ama JS lazımsa en hızlısı bu)
+		    // Hover'da class eklemek yerine Bootstrap API'sini tetiklemek daha sağlıklıdır
+		    $('.dropdown-hover').on('mouseenter', function() {
+		        const $toggle = $(this).find('[data-bs-toggle="dropdown"]');
+		        if ($toggle.length) {
+		            bootstrap.Dropdown.getOrCreateInstance($toggle[0]).show();
+		        }
+		    }).on('mouseleave', function() {
+		        const $toggle = $(this).find('[data-bs-toggle="dropdown"]');
+		        if ($toggle.length) {
+		            bootstrap.Dropdown.getOrCreateInstance($toggle[0]).hide();
+		        }
+		    });
+		};
+		bs_events_dropdown();
 
-        $("[data-bs-dismiss='dropdown']").on("click", function(e){
-        	$(this).closest(".dropdown").find("[data-bs-toggle='dropdown']").dropdown("hide");
-        });
+		// 5️⃣ Favorites Karşılaştırma (Daha hızlı ve temiz)
+		function handle_favorites_load($parent, $container) {
+		    let favs = window.site_config?.favorites || [];
+		    if (typeof favs === "string") favs = JSON.parse(favs);
+		    
+		    if (favs.length > 0) {
+		        // Mevcut ID'leri bir Set içinde topla (Arama hızı O(1) olur)
+		        const currentIds = new Set(
+		            Array.from($container[0].querySelectorAll('.notification-item'))
+		                 .map(el => el.dataset.id)
+		        );
 
+		        // Eğer favs içindeki herhangi bir ID mevcut Set'te yoksa veya sayılar tutmuyorsa yükle
+		        const isDifferent = favs.length !== currentIds.size || favs.some(id => !currentIds.has(id.toString()));
 
-
-
+		        if (isDifferent && window.favorites) {
+		            $container.addClass('loading-process');
+		            window.favorites.get($container);
+		        }
+		    } else {
+		        $container.html('<div class="empty-notify">Henüz favori yok.</div>');
+		    }
+		}
 
         /********************************************
 		/*
@@ -360,43 +474,71 @@ $( document ).ready(function() {
 		/*
 		/*******************************************/
 
-		// tab events
-		$(document)
-		.on('show.bs.tab', function (e) {
-			var input = $(e.target).find("input");
-			if(!input.is(":checked")){
-			    input.trigger("click").prop("checked", true);
-			}
-			$(e.target).closest(".nav").find(".active").removeClass("active");
-			$(e.target).parent().addClass("active");
-		})
-		.on('shown.bs.tab', function (e) {
-			var obj = $($(e.target).attr("href"));
-			obj
-			.find("[data-required]")
-		    .removeAttr("data-required")
-		    .attr("required", true);    
-		})
-		.on('hide.bs.tab', function (e) {
-		})
-		.on('hidden.bs.tab', function (e) {
-			$($(e.target).attr("href"))
-			.find("[required]")
-		    .removeAttr("required")
-		    .attr("data-required", true)
-		    .removeClass("is-invalid")
-		    .val("");
-		});
-		$("[role=tab]").each(function(){
-		    var input = $(this).find("input");
-            if(input.is(":checked")){
-           	   $(this).trigger("click");
-           	   $($(this).attr("href")).tab("show");
-            }
-		});
+		function bs_events_tab() {
+		    const _this = this;
 
+		    $(document)
+		    .on('show.bs.tab', '[data-bs-toggle="tab"], [role="tab"]', function (e) {
+		        const $this = $(this);
+		        const $container = $this.closest(".nav, .nav-container"); // Tab grubunu bul
+		        
+		        // 1️⃣ UI Temizliği: Önceki active'leri temizle, yeniyi işaretle
+		        $container.find(".active").removeClass("active");
+		        $this.parent().addClass("active");
 
+		        // 2️⃣ Input Yönetimi: Click tetiklemek yerine doğrudan state değiştir
+		        const $input = $this.find("input");
+		        if ($input.length && !$input.prop("checked")) {
+		            $input.prop("checked", true).change(); // Değişikliği haber ver ama click riski alma
+		        }
+		    })
+		    .on('shown.bs.tab', '[data-bs-toggle="tab"], [role="tab"]', function (e) {
+		        // Hedef paneli bul (href veya data-bs-target)
+		        const targetSelector = $(e.target).attr("href") || $(e.target).data("bs-target");
+		        const $pane = $(targetSelector);
 
+		        if ($pane.length) {
+		            // 3️⃣ Akıllı Validation: Panele girince data-required olanları gerçek required yap
+		            $pane.find("[data-required]").each(function() {
+		                const $input = $(this);
+		                $input.prop("required", true).removeAttr("data-required");
+		            });
+		            
+		            // Eğer içeride Swiper veya Slider varsa update et
+		            if (typeof root.ui.init_sliders === "function") {
+		                root.ui.init_sliders($pane);
+		            }
+		        }
+		    })
+		    .on('hidden.bs.tab', '[data-bs-toggle="tab"], [role="tab"]', function (e) {
+		        const targetSelector = $(e.target).attr("href") || $(e.target).data("bs-target");
+		        const $pane = $(targetSelector);
+
+		        if ($pane.length) {
+		            // 4️⃣ Hijyen: Gizlenen paneldeki zorunlu alanları pasifize et, hataları sil
+		            // Form gönderirken gizli panellerdeki boş alanlar yüzünden "form gitmiyor" derdi biter
+		            $pane.find("[required]").each(function() {
+		                $(this).prop("required", false)
+		                       .attr("data-required", "true")
+		                       .removeClass("is-invalid is-valid")
+		                       .next(".invalid-feedback").hide(); // Hata mesajlarını da gizle
+		            });
+		            
+		            // Opsiyonel: Gizlenen paneldeki inputları sıfırla (val("") yapıyordun, devam edelim)
+		            // Ama dikkat: type="radio" veya "checkbox" ise sıfırlama, sadece metinleri sil
+		            $pane.find("input:not([type='checkbox']):not([type='radio']), textarea").val("");
+		        }
+		    });
+
+		    // 5️⃣ Sayfa Açılışında Auto-Init (Each yerine daha hızlı yöntem)
+		    // Sadece checked olan tabları bul ve tetikle
+		    const $activeTab = $('[role="tab"] input:checked').closest('[role="tab"]');
+		    if ($activeTab.length) {
+		        const bootstrapTab = new bootstrap.Tab($activeTab[0]);
+		        bootstrapTab.show();
+		    }
+		}
+		bs_events_tab();
 
 
         /********************************************
@@ -405,80 +547,93 @@ $( document ).ready(function() {
 		/*
 		/*******************************************/
 
-        // collapse events
-		$(document)
-		.on("show.bs.collapse", ".collapse", function (e) {
-			var panel = $(this).closest(".accordion-item");
-				panel.addClass("active");
-				var panelCollapse = $(e.target);
-				var parent = $(this).data("parent");
-				var $open = $(parent).find('.collapse.show');
-				var input = $(e.target).prev().find("input");
-				if(!input.is(":checked")){
-			       input.prop("checked",true);
-				}
+        function bs_events_collapse() {
+		    const _this = this;
+		    const body = document.body;
 
-				$(parent).addClass("active");
+		    $(document)
+		    .on("show.bs.collapse", ".collapse", function (e) {
+		        const $el = $(e.target);
+		        const parentAttr = $el.data("parent"); // Manuel tanımlanan parent
+		        const $parent = parentAttr ? $(parentAttr) : null;
+		        const $item = $el.closest(".accordion-item, .card, .nav-tree");
 
-				if(panelCollapse.hasClass("collapse-search")){
-					$("body").addClass("search-open");
-					if(isLoadedJS("smartmenus")){
-						$("#navigation .navbar-nav").smartmenus('menuHideAll');
-					}
-				}
-		})
-		.on("shown.bs.collapse", ".collapse", function (e) {
-			var obj = $(e.target);
-			if(obj.data("scroll")){
-			   root.ui.scroll_to(obj.prev(), true, false, function(){
-			   	  $("body").addClass("header-hide");
-			   });
-			}
-		})
-		.on("hide.bs.collapse", ".collapse", function (e) {
-			var input = $(e.target).prev().find("input");
-			if(input.is(":checked")){
-		       input.prop("checked",false);
-			}
-			if($(e.target).hasClass("collapse-search")){
-			   $("body").removeClass("search-open");
-			}
-		})
-		.on("hidden.bs.collapse", ".collapse", function (e) {
-			    var obj = $(e.target);
-			    if(obj.hasAttr("data-scroll-hidden").length > 0){
-			        var scroll_type = obj.data("scroll-hidden");
-			        switch(scroll_type){
-			      	    case "parent":
-			      	    	 var parent = $(obj.attr("data-bs-parent"));
-						     if(parent.length > 0){
-						        if(parent.find("[aria-expanded='true']").length == 0){
-			                        root.ui.scroll_to(parent);
-					            }
-						    }
-			      		break;
-			      		case "top" :
-			      			var parent = $(obj.attr("data-bs-parent"));
-			      			if(parent.length > 0){
-			      				debugJS(parent)
-							   if(parent.find(".collapse.collapsing").length == 0 && parent.find(".collapse.show").length == 0 && parent.find("[aria-expanded='true']").length == 0){
-					      		    $("html, body").stop().animate({
-			                      	       scrollTop: 0
-			                   		}, 600);
-					      		}
-				      		}
-			      		break;
-			        }
-			    }
-			    
-				var panel = $(this).closest(".accordion-item");
-				panel.removeClass("active");
+		        // 1️⃣ Single Parent (Tree Menu) ve Accordion Mantığı
+		        // Eğer eleman bir nav-tree içindeyse veya single-parent datasına sahipse diğerlerini kapat
+		        if ($item.data("single-parent") || $item.hasClass("nav-tree")) {
+		            $item.find(".collapse.show").not($el).collapse('hide');
+		        }
 
-		});
+		        // 2️⃣ UI Durumları (Active class ve Checkbox yönetimi)
+		        $item.addClass("active");
+		        if ($parent) $parent.addClass("active");
 
+		        // Checkbox senkronizasyonu (Toggle input)
+		        const $input = $el.prev().find("input[type='checkbox'], input[type='radio']");
+		        if ($input.length && !$input.prop("checked")) {
+		            $input.prop("checked", true);
+		        }
 
+		        // 3️⃣ Özel Durum: Search Open
+		        if ($el.hasClass("collapse-search")) {
+		            body.classList.add("search-open");
+		            if (window.lenis) window.lenis.stop(); // Arama açıkken scrollu durdurmak istersen
+		            if (typeof $.SmartMenus !== 'undefined') {
+		                $('.navbar-nav').smartmenus('menuHideAll');
+		            }
+		        }
+		    })
+		    .on("shown.bs.collapse", ".collapse", function (e) {
+		        const $el = $(e.target);
+		        // 4️⃣ Akıllı Scroll (Lenis desteğiyle)
+		        if ($el.data("scroll")) {
+		            root.ui.scroll_to($el.prev(), true, false, () => {
+		                body.classList.add("header-hide");
+		            });
+		        }
+		    })
+		    .on("hide.bs.collapse", ".collapse", function (e) {
+		        const $el = $(e.target);
+		        const $item = $el.closest(".accordion-item, .card, .nav-tree");
 
+		        // UI Temizliği
+		        $item.removeClass("active");
+		        
+		        const $input = $el.prev().find("input");
+		        if ($input.is(":checked")) {
+		            $input.prop("checked", false);
+		        }
 
+		        if ($el.hasClass("collapse-search")) {
+		            body.classList.remove("search-open");
+		            if (window.lenis) window.lenis.start();
+		        }
+		    })
+		    .on("hidden.bs.collapse", ".collapse", function (e) {
+		        const $el = $(e.target);
+		        const scrollType = $el.data("scroll-hidden");
+
+		        // 5️⃣ Gizlendikten Sonra Scroll Yönetimi
+		        if (scrollType) {
+		            const $bsParent = $($el.attr("data-bs-parent"));
+		            
+		            if (scrollType === "parent" && $bsParent.length) {
+		                // Eğer grupta başka açık yoksa parent'a odaklan
+		                if (!$bsParent.find("[aria-expanded='true']").length) {
+		                    root.ui.scroll_to($bsParent);
+		                }
+		            } else if (scrollType === "top") {
+		                // Her şey kapandıysa en tepeye çık (Native Smooth Scroll)
+		                if (window.lenis) {
+		                    window.lenis.scrollTo(0);
+		                } else {
+		                    window.scrollTo({ top: 0, behavior: 'smooth' });
+		                }
+		            }
+		        }
+		    });
+		}
+		bs_events_collapse();
 
 
         /********************************************
@@ -487,171 +642,168 @@ $( document ).ready(function() {
 		/*
 		/*******************************************/
 
-		//modal events
-		$(document)
-		.on('show.bs.modal', '.modal', function (e) {
-            $(".offcanvas.show").offcanvas("hide");
-		})
-		.on('shown.bs.modal', '.modal', function (e) {
-            var zIndex = 1040 + (10 * $('.modal:visible').length);
-            $(this).css('z-index', zIndex);
-            setTimeout(function() {
-                $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
-            }, 0);
-            if ($(".modal-backdrop").length > 1) {
-                //$(".modal-backdrop").not(':first').remove();
-            }
-            $(".modal").scrollTop(0);
-            $("body").removeClass("loading").removeClass("loading-process");
-            if($(e.target).find(".map-google").length > 0){
-            	//root.map.init();
-            	//google_map.init();
-            	var map = $(e.target).find(".map-google");
-            	var btn = $(e.relatedTarget);
-            	var title = btn.data("title");
-            	$(e.target).find(".modal-title").html(title);
-            	if(!IsBlank(btn.data("lat")) && !IsBlank(btn.data("lng"))){
-            		debugJS(map.data("map"))
-            	    map.data("map").setCenter(new google.maps.LatLng(btn.data("lat"), btn.data("lng")));
-            	}
-            }
-            if(isLoadedJS("lenis")){
-				$("body").attr("data-lenis-prevent", "");
-    		}
-        })
-        //multiple modals scrollbar fix
-        .on('hidden.bs.modal', '.modal', function (e) {
-        	var modal = $(e.target);
-		    $('.modal:visible').length && $(document.body).addClass('modal-open');
-		    if(modal.hasClass("remove-on-hidden")){
-		    	modal.remove();
-		    }
-		    if(isLoadedJS("lenis")){
-				$("body").removeAttr("data-lenis-prevent");
-    		}
-		});
+		function bs_events_modal() {
+		    const body = document.body;
+		    const $doc = $(document);
 
-		$(document).click(function(e) {
-			if($(".collapse-search.show").length>0){
-				debugJS($(e.target))
-				if ($(e.target).is('body')) {
-			    	$(".collapse-search.show").collapse("hide");
-			    }				
-			}
-		});
+		    $doc
+		    .on('show.bs.modal', '.modal', function () {
+		        // Offcanvas açıksa kapat (Zaten hızlı çalışıyor)
+		        const openOffcanvas = document.querySelector('.offcanvas.show');
+		        if (openOffcanvas) {
+		            bootstrap.Offcanvas.getOrCreateInstance(openOffcanvas).hide();
+		        }
+		    })
+		    .on('shown.bs.modal', '.modal', function () {
+		        const $modal = $(this);
+		        const visibleModals = $('.modal:visible');
+		        const modalCount = visibleModals.length;
+		        
+		        if (modalCount > 1) {
+		            // Bootstrap varsayılan z-index 1050'dir. 
+		            // Her yeni modal için 10'ar 10'ar artırıyoruz.
+		            const zIndex = 1050 + (10 * modalCount);
+		            $modal.css('z-index', zIndex);
+		            
+		            // requestAnimationFrame, tarayıcının bir sonraki çizim anını bekler. 
+		            // setTimeout(0)'dan çok daha stabildir.
+		            requestAnimationFrame(() => {
+		                $('.modal-backdrop').last()
+		                    .css('z-index', zIndex - 1)
+		                    .addClass('modal-stack');
+		            });
+		        }
+		        
+		        $modal.scrollTop(0);
+		        body.classList.remove("loading", "loading-process");
+
+		        if (window.lenis) {
+		            window.lenis.stop();
+		            body.setAttribute("data-lenis-prevent", "true");
+		        }
+		    })
+		    .on('hidden.bs.modal', '.modal', function (e) {
+		        const $modal = $(e.target);
+		        const visibleModals = $('.modal:visible');
+
+		        if (visibleModals.length > 0) {
+		            // Hala modal varsa body'i kilitlemeye devam et
+		            body.classList.add('modal-open');
+		            
+		            // Backdrop Tamiri
+		            const lastModal = visibleModals.last();
+		            const lastZIndex = parseInt(lastModal.css('z-index'));
+		            if (!isNaN(lastZIndex)) {
+		                $('.modal-backdrop').last().css('z-index', lastZIndex - 1);
+		            }
+		        } else {
+		            // Tüm modallar kapandıysa Lenis'e dön
+		            if (window.lenis) {
+		                body.removeAttribute("data-lenis-prevent");
+		                // 100ms gecikme, Bootstrap'in kendi temizliğini bitirmesi için iyidir.
+		                setTimeout(() => {
+		                    // Sadece Lenis varsa overflow müdahalesi yapıyoruz
+		                    window.lenis.start();
+		                    // Scroll zıplamasını önlemek için mevcut konumu tazele
+		                    window.lenis.scrollTo(window.lenis.scroll, { immediate: true });
+		                    // Body temizliği
+		                    body.classList.remove("modal-open");
+		                }, 150);
+		            }
+		        }
+
+		        // DOM'u kirletmemek için dinamik modalları temizle
+		        if ($modal.hasClass("remove-on-hidden")) {
+		            $modal.remove();
+		        }
+		    });
+		}
+		bs_events_modal();
 
 
-        
-
-        /********************************************
+		/********************************************
 		/*
 		/*   O F F C A N V A S
 		/*
 		/*******************************************/
 
-		var scrollPosition = 0;
+		function bs_events_offcanvas() {
+		    const $body = $("body");
 
-		$(document)
-		.on('show.bs.offcanvas', '.offcanvas', function (e) {
-		    var $obj = $(e.target);
+		    $(document)
+		    .on('show.bs.offcanvas', '.offcanvas', function (e) {
+		        const $obj = $(e.target);
+		        const $container = $obj.find(".offcanvas-body");
 
-		    $("body").addClass("offcanvas-open");
+		        $body.addClass("offcanvas-open");
+		        
+		        if($obj.hasClass("offcanvas-search")) $body.addClass("search-open");
+		        if($obj.hasClass("offcanvas-menu")) $body.addClass("menu-open");
+		        if($obj.hasClass("offcanvas-show-header")) $body.addClass("menu-show-header");
 
-		    if($obj.hasClass("offcanvas-search")){
-		   	   $("body").addClass("search-open");
-		    }
-		    if($obj.hasClass("offcanvas-menu")){
-		   	   $("body").addClass("menu-open");
-		    }
+		        if($obj.hasClass("offcanvas-fullscreen")) {
+		            $body.addClass("offcanvas-fullscreen-open");
+		            const $playingVideo = $(".plyr--playing");
+		            if($playingVideo.length > 0 && $playingVideo[0].plyr) {
+		                $playingVideo[0].plyr.pause();
+		                $playingVideo.addClass("plyr--paused-manual");
+		            }
+		            $("header.fixed-bottom-start").not(".affix").addClass("affix");
+		        }
 
-		    if($obj.hasClass("offcanvas-show-header")){
-		   	   $("body").addClass("menu-show-header");
-		    }
+		        if($obj.hasClass("offcanvas-messages") && window.messages) {
+		            $container.addClass("loading-process");
+		            window.messages.get($container);
+		        }
+		    })
+		    .on('shown.bs.offcanvas', '.offcanvas', function (e) {
+		        const $obj = $(e.target);
+		        const targetId = "#" + $obj.attr("id");
 
-		    if($obj.hasClass("offcanvas-fullscreen")){
-		    	$("body").addClass("offcanvas-fullscreen-open");
-		    	if($(".plyr--playing").length > 0){
-		    		var player = $(".plyr--playing")[0].plyr;
-		    		if(player.playing){
-		    			$(".plyr--playing").addClass("plyr--paused-manual");
-		    			player.pause();
-		    		}
-		    	}
-		    	if($("header.fixed-bottom-start").not(".affix").length > 0){
-		    		$("header.fixed-bottom-start").addClass("affix");
-		    	}
+		        if($(`[href='${targetId}']`).length > 0) {
+		            history.pushState(targetId, document.title, window.location.pathname + targetId);
+		        }
 
-		    	scrollPosition = window.scrollY;
-                document.body.style.top = `-${scrollPosition}px`;
-		    	$("body").addClass("position-fixed overflow-hidden w-100");
+		        if(window.lenis) {
+		            $body.attr("data-lenis-prevent", "");
+		            window.lenis.stop();
+		        }
+		    })
+		    .on('hidden.bs.offcanvas', '.offcanvas', function (e) {
+		        const $obj = $(e.target);
+		        
+		        setTimeout(function() {
+		            const $activeOffcanvas = $(".offcanvas.show");
+		            
+		            if ($activeOffcanvas.length > 0) {
+		                if($obj.hasClass("offcanvas-search") && !$(".offcanvas-search.show").length) $body.removeClass("search-open");
+		                if($obj.hasClass("offcanvas-menu") && !$(".offcanvas-menu.show").length) $body.removeClass("menu-open");
+		                return; 
+		            }
 
-		    }
+		            // Temizlik
+		            $body.removeClass("offcanvas-open search-open menu-open menu-show-header offcanvas-fullscreen-open");
+		            
+		            if(history.state && String(history.state).startsWith("#offcanvas")) {
+		                history.pushState("", document.title, window.location.pathname + window.location.search);
+		            }
 
-		    var container = $obj.find(".offcanvas-body");
+		            // Video devam et
+		            const $pausedVideo = $(".plyr--paused-manual");
+		            if($pausedVideo.length > 0 && $pausedVideo[0].plyr) {
+		                $pausedVideo.removeClass("plyr--paused-manual");
+		                $pausedVideo[0].plyr.play();
+		            }
 
-		    if($obj.hasClass("offcanvas-messages")){
-		    	container.addClass("loading-process");
-				messages.get(container);
-		    }
-
-		    if($obj.hasClass("offcanvas-cart")){
-	            container.addClass("loading-process");
-			    cart.get(container, "offcanvas");			
-			}
-		})
-	    .on('shown.bs.offcanvas', '.offcanvas', function (e) {
-		  	var $obj = $(e.target);
-		    var target = "#"+$obj.attr("id");
-		    if($("[href='"+target+"']").length> 0){
-			 	history.pushState(target, document.title, window.location.pathname + target);
-	            root.hash = target;		    	
-		    }
-		    if(isLoadedJS("lenis")){
-				$("body").attr("data-lenis-prevent", "");
-    		}
-		})
-		.on('hidden.bs.offcanvas', '.offcanvas', function (e) {
-		  	var $obj = $(e.target);
-		    var target = "#"+$obj.attr("id");
-		    //$(target).css("position", "static");
-		    if($("[href='"+target+"']").length> 0){
-		  	   history.pushState("", document.title, window.location.pathname + window.location.search);
-		    }
-		  	if($obj.hasClass("offcanvas-search")){
-		   	   $("body").removeClass("search-open");
-		    }
-		    if($obj.hasClass("offcanvas-menu")){
-		   	   $("body").removeClass("menu-open");
-		    }
-		    $("body").removeClass("offcanvas-open");
-		    $("body").removeClass("offcanvas-fullscreen-open");
-		    $("body").removeClass("menu-show-header");
-
-		    if($(".plyr--paused-manual").length > 0){
-		        var player = $(".plyr--paused-manual")[0].plyr;
-		    	if(player.paused){
-		    		$(".plyr--manual-paused").removeClass("plyr--paused-manual");
-		    		player.play();
-		   		}
-		    }
-            
-            if($obj.hasClass("offcanvas-fullscreen")){
-			   $("body").removeClass("position-fixed overflow-hidden w-100");
-			   document.body.style.top = '';
-			   var scroll = parseFloat(document.body.style.top);
-               window.scrollTo(0, -scroll);
-		    }
-		    if(isLoadedJS("lenis")){
-				$("body").removeAttr("data-lenis-prevent");
-    		}
-		});
-		  
-		window.onhashchange = event => {
-		  	var $el = $(".offcanvas.show");
-		  	if($el.length > 0){
-		  	   bootstrap.Offcanvas.getInstance($el).hide()
-		  	}
-		};
+		            // Lenis Start
+		            if(window.lenis) {
+		                $body.removeAttr("data-lenis-prevent");
+		                window.lenis.start();
+		            }
+		        }, 50);
+		    });
+		}
+		bs_events_offcanvas();
 
 
         /********************************************
@@ -660,25 +812,13 @@ $( document ).ready(function() {
 		/*
 		/*******************************************/
 
-		/*var querystring = url2json(window.location.href);
-		if(querystring.hasOwnProperty("tour-plan-offer-id")){
-		   //ajaxData.data["tour-plan-offer-id"] = querystring["tour-plan-offer-id"];
-		}*/
-		
-		var ajaxData = {
-			data : {}
-		};
-		if(Object.keys(ajaxData.data).length){
-			debugJS(ajaxData);
-			$.ajaxSetup(ajaxData);
-		}
-	    $(document)
-	    .ajaxStart(function(e) {
-           debugJS("ajaxStart()")
-           debugJS(e);
-	    })
-	    .ajaxComplete(function(e) {
-	    	if(isLoadedJS("vanilla-lazyload")){
+		$(document)
+		.on('ajax_query:start', function(event, obj) {
+			console.log("🚀 İşlem Başladı: " + obj.method);
+		})
+		$(document).on('ajax_query:complete', function(event, obj) {
+		    console.log("✅ İşlem Bitti: " + obj.method);
+		    if(isLoadedJS("vanilla-lazyload")){
 		    	lazyLoadInstance.update();
 		    }
 	    	$.fn.matchHeight._update();
@@ -687,41 +827,43 @@ $( document ).ready(function() {
 		    }
 	    	btn_ajax_method();
 	    	btn_loading_page();
-	    	//init_functions();
-	    })
-	    .ajaxStop(function(e){
+		})
+		.on('ajax_query:stop', function(event, obj) {
+		    console.log("🛑 Tüm AJAX Trafiği Durdu.");
 		});
-	
-		var hash = window.location.hash;
-        if (!IsBlank(hash)) {
-            root.hash = "";
-            //history.pushState("", document.title, window.location.pathname);
-            root.ui.scroll_to(hash, true);
-        }
 
-        var promotion_top = $('#promotion-top');
-        if(promotion_top.length > 0){
-            promotion_top[0].addEventListener('closed.bs.alert', function(){
-                $("body").removeClass("has-promotion-top");
-            });         
-        }
 
         //woocommerce events
-        /*jQuery(document.body).on('removed_from_cart', function(e){
-            //debugJS(e)
-            //debugJS('init_checkout triggered');
-            cart.get($(".dropdown-notifications[data-type='cart']").find(".dropdown-container"));
-        });
+        /*$(document).on(
+		    "init_checkout payment_method_selected update_checkout updated_checkout checkout_error " +
+		    "applied_coupon_in_checkout removed_coupon_in_checkout adding_to_cart added_to_cart " +
+		    "removed_from_cart wc_cart_button_updated cart_page_refreshed cart_totals_refreshed " +
+		    "wc_fragments_loaded init_add_payment_method wc_cart_emptied updated_wc_div " +
+		    "updated_cart_totals country_to_state_changed updated_shipping_method applied_coupon removed_coupon",
+		    function (e) {
+		        
+		        // 1. inputSpinner Güncellemesi (Sadece ilgili eventlerde çalışsın)
+		        const spinnerEvents = ["updated_cart_totals", "updated_checkout", "updated_wc_div"];
+		        if (spinnerEvents.includes(e.type)) {
+		            const $inputs = $("input[type='number']");
+		            if ($inputs.length > 0 && typeof $.fn.inputSpinner !== "undefined") {
+		                $inputs.inputSpinner();
+		            }
+		        }
 
-        $(document).on(
-           "init_checkout payment_method_selected update_checkout updated_checkout checkout_error applied_coupon_in_checkout removed_coupon_in_checkout adding_to_cart added_to_cart removed_from_cart wc_cart_button_updated cart_page_refreshed cart_totals_refreshed wc_fragments_loaded init_add_payment_method wc_cart_emptied updated_wc_div updated_cart_totals country_to_state_changed updated_shipping_method applied_coupon removed_coupon",
-            function (e) {
-                //debugJS(e.type);
-                switch(e.type){
-              	    case "updated_cart_totals" :
-              	  		$("input[type='number']").inputSpinner();
-              	    break;
-                }
-            }
-        );*/
+		        // 2. Sepet Güncellemesi (Sadece kart içeriği değiştiğinde)
+		        const cartUpdateEvents = ["added_to_cart", "removed_from_cart", "wc_fragments_loaded"];
+		        if (cartUpdateEvents.includes(e.type)) {
+		            const $cartContainer = $(".dropdown-notifications[data-type='cart']").find(".dropdown-container");
+		            if ($cartContainer.length > 0 && typeof cart !== "undefined") {
+		                cart.get($cartContainer);
+		            }
+		        }
+
+		        // 3. Checkout Refresh (Ödeme metodu vb değiştiğinde)
+		        if (e.type === "updated_checkout") {
+		            // Checkout ekranına özel bir işlem gerekiyorsa buraya
+		        }
+		    }
+		);*/
 });

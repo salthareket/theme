@@ -329,14 +329,14 @@ function get_account_menu(){
             $nav_item["count"] = yobro_unseen_messages_count();
         }
         if ($endpoint == "notifications" && ENABLE_NOTIFICATIONS) {
-            $salt = new Salt();
+            $salt = Salt::get_instance();//new Salt();
             $nav_item["count"] = $salt->notification_count();
         }
         if ($endpoint == "favorites" && ENABLE_FAVORITES) {
-            $nav_item["count"] = count($GLOBALS["favorites"]);
+            $nav_item["count"] = count(Data::get("favorites"));
         }
         if ($endpoint == "reviews" && !DISABLE_COMMENTS) {
-            $salt = new Salt();
+            $salt = Salt::get_instance();//new Salt();
             $nav_item["count"] = $salt->user->get_reviews_count(0);
         }
         $account_nav[] = $nav_item;
@@ -421,7 +421,7 @@ if(ENABLE_MEMBERSHIP){
             "menu" => "",
         );
 
-        $links = array_merge($links, $GLOBALS["my_account_links"]);
+        $links = array_merge($links, Data::get("my_account_links"));
 
         $user = Timber::get_user();
         if(!empty($user)){
@@ -498,7 +498,7 @@ if(ENABLE_MEMBERSHIP){
 
     function my_account_content_security() {
         login_required();
-        $user = $GLOBALS["user"];
+        $user = Data::get("user");
         if($user->get_status()){
            $templates = array("my-account/security.twig");
         }else{
@@ -512,6 +512,7 @@ if(ENABLE_MEMBERSHIP){
     }
 
     function my_account_content_reviews() {
+        $user = Data::get("user");
         $templates = array("my-account/my-reviews.twig");
         $context = Timber::context();
         $context['type'] = "reviews"; 
@@ -521,12 +522,12 @@ if(ENABLE_MEMBERSHIP){
             array(
                "name" => "Approved",
                "slug" => "approved",
-               "count" => $GLOBALS["user"]->get_reviews_count(1)
+               "count" => $user->get_reviews_count(1)
             ),
             array(
                "name" => "Waiting Approval",
                "slug" => "waiting-approval",
-               "count" => $GLOBALS["user"]->get_reviews_count(0)
+               "count" => $user->get_reviews_count(0)
             )
         );
         $context['statuses'] = $statuses;
@@ -540,7 +541,7 @@ if(ENABLE_MEMBERSHIP){
 
     function my_account_content_messages(){
         if(ENABLE_CHAT){
-            $user_id = $GLOBALS["user"]->id;
+            $user = Data::get("user");
             $templates = array("my-account/my-messages.twig");
             $context = Timber::context();
             $context['type'] = "messages"; 
@@ -552,7 +553,7 @@ if(ENABLE_MEMBERSHIP){
 
     function my_account_content_notifications(){
         if(ENABLE_NOTIFICATIONS){
-            $user_id = $GLOBALS["user"]->id;
+            $user = Data::get("user");
             $templates = array("my-account/notifications.twig");
             $context = Timber::context();
             $context['type'] = "notifications"; 

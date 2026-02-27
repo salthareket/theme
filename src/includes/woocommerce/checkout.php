@@ -5,8 +5,9 @@
 
 //redirect checkout & cart page to login page if not logged
 function wpse_131562_redirect() {
-    if (! is_user_logged_in() && (is_cart() || is_checkout()) && !empty($GLOBALS["woo_redirect_not_logged"])) {
-        wp_redirect($GLOBALS["woo_redirect_not_logged"]);
+    $woo_redirect_not_logged = Data::get("woo_redirect_not_logged");
+    if (! is_user_logged_in() && (is_cart() || is_checkout()) && !empty($woo_redirect_not_logged)) {
+        wp_redirect($woo_redirect_not_logged);
         exit;
     }
 }
@@ -291,16 +292,16 @@ function bbloomer_alternative_override_postcode_validation( $fields ) {
 
 
 function mysite_pending($order_id) {
-    error_log("$order_id set to PENDING");
+    //error_log("$order_id set to PENDING");
 }
 function mysite_failed($order_id) {
-    error_log("$order_id set to FAILED");
+    //error_log("$order_id set to FAILED");
 }
 function mysite_hold($order_id) {
-    error_log("$order_id set to ON HOLD");
+    //error_log("$order_id set to ON HOLD");
 }
 function mysite_processing($order_id) {
-    error_log("$order_id set to PROCESSING");
+    //error_log("$order_id set to PROCESSING");
 }
 function mysite_completed($order_id) {
     $application = new Application(get_product_by_order_id($order_id));
@@ -311,7 +312,7 @@ function mysite_completed($order_id) {
     wp_set_object_terms( $application->ID, $paid_term->ID, 'session-status', false );
     wp_set_object_terms( $session->ID, $paid_term->ID, 'session-status', false );*/
 
-    $salt = new Salt();
+    $salt = Salt::get_instance();//new Salt();
     $salt->notification(
         "client/payment-completed",
         array(
@@ -359,10 +360,10 @@ function mysite_completed($order_id) {
     $order->save();
 }
 function mysite_refunded($order_id) {
-    error_log("$order_id set to REFUNDED");
+    //error_log("$order_id set to REFUNDED");
 }
 function mysite_cancelled($order_id) {
-    error_log("$order_id set to CANCELLED");
+    //error_log("$order_id set to CANCELLED");
 }
 
 add_action( 'woocommerce_order_status_pending', 'mysite_pending', 10, 1);

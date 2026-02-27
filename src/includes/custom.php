@@ -27,90 +27,97 @@ class SaltBase{
         return self::$instance;
     }
 
-    public function __construct($user=array()) {
+    protected function __construct($user=array()) { // public -> protected yaptık
+        if (self::$already_ran) return;
 
-        error_log("new Salt()");
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+        if (defined('DOING_CRON') && DOING_CRON) return;
+        // Kalp atışı (Heartbeat) isteklerini de durdurabilirsin
+        if (isset($_POST['action']) && $_POST['action'] == 'heartbeat') return;
 
-        add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
-        add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
-
-        if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin()){
-            add_action('wp', [ $this, 'update_online_users_status' ]);
-            //add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
-            add_action('wp_insert_comment', 'on_insert_comment', 10, 2);
-        }
+        /*error_log(sprintf(
+            "🚀 new Salt() - Request URL: %s | UA: %s | Method: %s",
+            $_SERVER['REQUEST_URI'] ?? 'CLI',
+            $_SERVER['HTTP_USER_AGENT'] ?? 'No UA',
+            $_SERVER['REQUEST_METHOD'] ?? 'N/A'
+        ));*/
+      
         
-        if(defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP && !is_admin() && strpos($_SERVER['REQUEST_URI'], 'wp-login.php') === false){
-           //add_action('init', [ $this, 'start_session'], 1); // start global session for saving the referer url
-           //add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
-           //Bypass logout confirmation on nonce verification failure
-           add_action('check_admin_referer', [ $this, 'logout_without_confirmation'], 1, 2);
-           add_action('login_redirect', [ $this, 'on_login_redirect' ], 10, 3);
-        }
-
-        //disable revisions
-        remove_action( 'post_updated', 'wp_save_post_revision' );
-
-        if(ENABLE_MEMBERSHIP && !is_admin()){
-            if(ENABLE_MEMBERSHIP_ACTIVATION){
-                add_action('template_redirect', [ $this,'user_not_activated' ]);                
+        // 1. ÜYELİK SİSTEMİ VE FRONTEND KONTROLLERİ
+        if (defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP) {
+            
+            // Sadece login olmuş kullanıcılar için ağır kancaları yükle
+            if (is_user_logged_in()) {
+                add_action('wp', [ $this, 'update_online_users_status' ]);
+                add_action('profile_update', [ $this, 'user_after_update_hook'], 10, 2 );
+                add_action('update_user_meta', [ $this, 'user_after_meta_update_hook'], 10, 4);
+                
+                // Profil tamamlama ve aktivasyon yönlendirmeleri
+                add_action('template_redirect', [ $this, 'user_profile_not_completed' ]);
+                add_action('template_redirect', [ $this, 'redirect_to_profile' ]);
+                
+                if (defined('ENABLE_MEMBERSHIP_ACTIVATION') && ENABLE_MEMBERSHIP_ACTIVATION) {
+                    add_action('template_redirect', [ $this, 'user_not_activated' ]);                
+                }
             }
-            add_action('template_redirect', [ $this,'user_profile_not_completed' ]);
-            add_action('template_redirect', [ $this,'redirect_to_profile' ]);
+
+            // Login/Logout olayları (Her zaman dinlenmeli)
+            add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
+            add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
+            add_action('check_admin_referer', [ $this, 'logout_without_confirmation'], 1, 2);
+            
+            if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE) {
+                add_action('user_register', [ $this, 'user_register_hook'], 10, 1 );
+            }
         }
 
-        //post types save event
-        if (has_action('save_post', [ $this, 'on_post_published' ])) {
-            remove_action('save_post', [ $this, 'on_post_published' ], 100);
-        }
-        add_action('save_post', [ $this, 'on_post_published'], 100, 3);
-        add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
-        add_action('publish_post', [ $this, 'on_post_published'], 100, 3);
-        add_action('wp_insert_post_data', [$this, 'on_post_pre_update'], 10, 2 );
+        // 2. SADECE ADMIN PANELİNDE ÇALIŞANLAR
+        
+            remove_action('post_updated', 'wp_save_post_revision');
+            
+            // Post kayıt olaylarını sadece admin panelinde dinle
+            add_action('save_post', [ $this, 'on_post_published'], 100, 3);
+            add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
+            add_action('wp_insert_post_data', [$this, 'on_post_pre_update'], 10, 2 );
+            add_action('created_term', [$this, 'on_term_published'], 10, 3);
+            add_action('edited_term', [$this, 'on_term_published'], 10, 3);
+            add_action('edit_user_profile_update', [ $this, 'user_before_update_hook'] );
+        if (is_admin()) {}
 
-        add_action('created_term', [$this, 'on_term_published'], 10, 3);
-        add_action('edited_term', [$this, 'on_term_published'], 10, 3);
-
-        // user
-        if(ENABLE_ECOMMERCE){
-            add_action( 'user_register', [ $this, 'user_register_hook'], 10, 1 );
-        }
-        add_action( 'edit_user_profile_update', [ $this,'user_before_update_hook'] );
-        add_action( 'profile_update', [ $this,'user_after_update_hook'], 10, 2 );
-        add_action( 'update_user_meta', [ $this, 'user_after_meta_update_hook'], 10, 4);
-
-        //delete
-        add_action( 'before_delete_post', [ $this,'on_post_delete'], 10, 1 );
-        add_action( 'delete_user', [ $this,'on_user_delete'], 10 );
-        add_action( 'shutdown', [ $this,'delete_session_data']);
-
+        // 3. KRİTİK VERİ NESNELERİ (SADECE GEREKTİĞİNDE)
         if (class_exists('Timber\Timber')) {
-            if($user){
-               $this->user = Timber\Timber::get_user($user);//wp_get_current_user();//new User($user);
-            }else{
-               $this->user = Timber\Timber::get_user(wp_get_current_user());//wp_get_current_user();//new User(wp_get_current_user());
+            // Ziyaretçi login değilse ve özel bir user ID gelmemişse Timber::get_user çalıştırma!
+            if ($user) {
+                $this->user = Timber\Timber::get_user($user);
+            } elseif (is_user_logged_in()) {
+                $this->user = Timber\Timber::get_user(wp_get_current_user());
             }
         }
 
-        if((ENABLE_IP2COUNTRY && ENABLE_IP2COUNTRY_DB) || ENABLE_LOCATION_DB){
-            $localization = new Localization();
-            $localization->woocommerce_support = true;
-            $this->localization = $localization;
-        }else{
-            $this->localization = [];
+        // Global olaylar
+        add_action('before_delete_post', [ $this, 'on_post_delete'], 10, 1 );
+        add_action('delete_user', [ $this, 'on_user_delete'], 10 );
+        add_action('shutdown', [ $this, 'delete_session_data']);
+
+        // Localization ve Search History
+        if ((defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOCATION_DB') && ENABLE_LOCATION_DB)) {
+            $this->localization = new Localization();
+        }
+
+        if (defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY) {
+            $this->search_history = new SearchHistory();
         }
         
-        if(defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY){
-            $search_history = new SearchHistory();
-            $this->search_history = $search_history;            
-        }
-
-        $timezone = $this->user->get_timezone();
-        if($timezone){
-            if(strpos($timezone, "/") > 0){
-                date_default_timezone_set($timezone);
+        if ($user) {
+            $timezone = $this->user->get_timezone();
+            if($timezone){
+                if(strpos($timezone, "/") > 0){
+                    date_default_timezone_set($timezone);
+                }
             }
         }
+
+        self::$already_ran = true;
     }
 
     public function response(){
@@ -137,19 +144,71 @@ class SaltBase{
     }
 
     public function on_post_published($post_id, $post, $update){
-        
-        if(defined("WP_ROCKET_VERSION") && function_exists("is_wp_rocket_crawling") && is_wp_rocket_crawling()) return;
 
-        if (defined('REST_REQUEST') && REST_REQUEST) {
-            error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
+        if (!$post_id || empty($post_id)) {
+            return;
+        }
+        if (wp_is_post_revision($post_id) || $post->post_status !== 'publish') {
             return;
         }
 
+        if ( get_post_status( $post_id ) !== 'publish' ) {
+            return;
+        }
+
+
+
+
+        if (get_transient('salt_purge_lock_' . $post_id)) {
+            //error_log("⛔ KİLİT AKTİF: $post_id için temizlik zaten yapılıyor, bu istek reddedildi.");
+            return;
+        }
+        // Kilidi 10 saniyeliğine takıyoruz
+        set_transient('salt_purge_lock_' . $post_id, true, 10);
+
+        if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket/Preload') !== false) {
+            return; // Bot geldiyse sakın bir şeyi silme, o zaten cache oluşturmaya geldi
+        }
+
+        // 2. WP ROCKET'İN KENDİ İÇ İSTEĞİ Mİ?
+        if (isset($_SERVER['HTTP_X_ROCKET_PRELOAD'])) {
+            return; 
+        }
+
+
+
+
+        if (function_exists('rocket_is_crawling') && rocket_is_crawling()) return;
+
+        // 2. WP Rocket Preload botu geldiyse ağır işleri yapma
+        if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket/Preload') !== false) {
+            return; 
+        }
+
+        // 3. Gutenberg'in o meşhur ikinci isteğini (Meta Box Loader) engelle
+        if (isset($_GET['meta-box-loader']) || isset($_GET['meta-box-loader-nonce'])) {
+            $this->log("Gereksiz Meta Box isteği engellendi.");
+            return;
+        }
+
+        if (isset($_GET['action']) && $_GET['action'] == 'as_async_request_queue_runner') return;
+
+
+        /*if (defined('REST_REQUEST') && REST_REQUEST) {
+            //error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
+            //return;
+        }*/
+
+        if (defined('REST_REQUEST') && REST_REQUEST && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            //error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
+            //return;
+        }
+
         $current_hook = current_filter();
-            if (!in_array($current_hook, ['save_post'])) {
-                error_log("❌ Hook $current_hook tarafından çağrıldı. İşlem yapılmadı.");
-                return;
-            }
+        if (!in_array($current_hook, ['save_post'])) {
+            //error_log("❌ Hook $current_hook tarafından çağrıldı. İşlem yapılmadı.");
+            return;
+        }
 
         if (
             defined('DOING_AJAX') && DOING_AJAX &&
@@ -165,12 +224,6 @@ class SaltBase{
             return;
         }
 
-        if ( wp_is_post_revision( $post_id ) ) {
-            return;
-        }
-        if ( get_post_status( $post_id ) !== 'publish' ) {
-            return;
-        }
 
         remove_action('save_post', [ $this, 'on_post_published'], 100);
         remove_action('save_post_product', [ $this, 'on_post_published'], 100);
@@ -179,20 +232,19 @@ class SaltBase{
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
 
-            //error_log("ZT-1");
-            //error_log(did_action('save_post')."  ".did_action('publish_post'));
 
             if (did_action('save_post') > 1 || did_action('publish_post') > 1) {
                 //return;
             }
 
-
             if (self::$already_ran) {
-                return; // Eğer zaten çalıştıysa, çık
+                //error_log("zaten claıstııı");
+             //   return; // Eğer zaten çalıştıysa, çık
             }
 
             self::$already_ran = true; // Flag'i ayarla
-            
+
+
             // check & save has map block
             $has_map = false;
             if(post_has_block($post_id, "acf/map")){
@@ -209,29 +261,45 @@ class SaltBase{
             
             acf_block_id_fields($post_id);
 
-            error_log("P O S T  S A V I N G  H O O K....".$post_id);
-            
-            /*$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
-            foreach ($backtrace as $trace) {
-                $file = isset($trace['file']) ? $trace['file'] : '[Dosya Yok]';
-                $line = isset($trace['line']) ? $trace['line'] : '[Satır Yok]';
-                $function = isset($trace['function']) ? $trace['function'] : '[Fonksiyon Yok]';
-                
-                error_log("🔹 $function çağırdı --> Dosya: $file - Satır: $line");
-            }*/
+            //error_log("P O S T  S A V I N G  H O O K....".$post_id);
 
-            $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
-            $extractor->on_save_post($post_id, $post, $update);
+            if (!class_exists('PageAssetsExtractor')) {
+                //error_log("PageAssetsExtractor yoook");
+                $extractor_file = SH_CLASSES_PATH . "class.page-assets-extractor.php";
+                if (file_exists($extractor_file)) {
+                    include_once $extractor_file;
+                    // Extractor'ın bağımlı olduğu diğer sınıfları da buraya ekle:
+                    include_once SH_CLASSES_PATH . "class.scss-compiler.php";
+                    include_once SH_CLASSES_PATH . "class.remove-unused-css.php";
+                    include_once SH_CLASSES_PATH . "class.assets-packer.php";
+                }
+            }
+
+            if (class_exists('PageAssetsExtractor')) {
+                //error_log("PageAssetsExtractor vaar");
+                $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
+                $extractor->on_save_post($post_id, $post, $update);
+            }
 
             // post'un featured image'ının alt text'i eklenmemişse post'un title'ını alt text olarak kaydet.
             $thumbnail_id = get_post_thumbnail_id($post_id);
-            if (!$thumbnail_id) {
+            if ($thumbnail_id) {
                 $alt_text = get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true);
                 if (empty($alt_text)) {
                     $post_title = get_the_title($post_id);
                     update_post_meta($thumbnail_id, '_wp_attachment_image_alt', $post_title);
                 }
             }
+            
+            if(function_exists("pll_copy_post_languages")){
+                pll_copy_post_languages($post_id);                
+            }
+
+            /*if ( !did_action('wp_rocket_manifest_run_purge') ) {
+                $cache = WP_Rocket_Manifest_Manager::getInstance();
+                $cache->schedule_purge($post_id);
+                do_action('wp_rocket_manifest_run_purge'); // Kendi aksiyonumuzu tetikleyelim ki mükerrer olmasın
+            }*/
             
             self::$already_ran = false; // İşlem tamamlandı, flag'i sıfırla
         }
@@ -244,7 +312,7 @@ class SaltBase{
     public function on_term_published($term_id, $tt_id, $taxonomy){
         $taxonomy_object = get_taxonomy($taxonomy);
         if ($taxonomy_object && $taxonomy_object->public) {
-            $extractor = PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
+            $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_term($term_id, $tt_id, $taxonomy);
         }
     }
@@ -252,8 +320,9 @@ class SaltBase{
     public function on_post_delete( $post_id ){
         $post = get_post($post_id);
         if ( !isset($post->post_type) ) return;
+        $notification_post_types = Data::get("notification_post_types");
         if(ENABLE_NOTIFICATIONS && $GLOBALS["notification_post_types"]){
-            if(in_array($post->post_type, $GLOBALS["notification_post_types"])){
+            if(in_array($post->post_type, $notification_post_types)){
                 Notifications::delete_post_notifications($post_id);
             }
         }
@@ -413,10 +482,10 @@ class SaltBase{
                 if(isset($vars['redirect_url'])){
                    $redirect = $vars['redirect_url'];
                 }else{
-                    if(isset($GLOBALS["base_urls"]["logged_url"])){
-                        $redirect = $GLOBALS["base_urls"]["logged_url"];
+                    if(Data::has("base_urls.logged_url")){
+                        $redirect = Data::get("base_urls.logged_url");
                     }else{
-                        $redirect = $GLOBALS["base_urls"]["profile"];
+                        $redirect = Data::get("base_urls.profile");
                     }
                 }
                 $response["redirect"] = $redirect;
@@ -464,7 +533,7 @@ class SaltBase{
                 }
             }
             file_put_contents(ABSPATH . 'robots.txt', $content);
-            error_log("Tolga'cım Debug - robots.txt dosyası oluşturuldu.");
+            //error_log("robots.txt dosyası oluşturuldu.");
         }
     }
     
@@ -586,7 +655,7 @@ class SaltBase{
         $data = array('type' => 'password', 'email' => $email);
         $encrypt = new Encrypt();
         $code = $encrypt->encrypt($data);
-        return add_query_arg( array( 'activation-password' => $code ), $GLOBALS["base_urls"]["account"]);
+        return add_query_arg( array( 'activation-password' => $code ), Data::get("base_urls.account"));
     }
     public function send_password_activation($email){
         $activation_link = $this->get_password_activation_link($email);
@@ -669,7 +738,7 @@ class SaltBase{
              array( 'user_activation_key' => $user_activation_key ),       
              array( 'ID' => $user_id )
         );
-        return add_query_arg( array( 'activation-code' => $code ), $GLOBALS["base_urls"]["profile"]);
+        return add_query_arg( array( 'activation-code' => $code ), Data::get("base_urls.profile"));
     }
     
 
@@ -1023,7 +1092,7 @@ class SaltBase{
         }
     }
 
-    public function notification($event="", $data=array()){
+    public static function notification($event="", $data=array()){
         if(ENABLE_NOTIFICATIONS){
             $user = $this->user;
             $notifications = new Notifications($user, false);
@@ -1093,9 +1162,6 @@ class SaltBase{
 
 
 
-
-
-
     /*
     RewriteCond %{REQUEST_METHOD} POST
     RewriteCond %{REQUEST_URI} ^/zitango/wp-admin/
@@ -1142,21 +1208,48 @@ class SaltBase{
 
 
 
-    public function is_following($id=0, $type="user"){
+    public function is_following($id = 0, $type = "user") {
         global $wpdb;
-        return boolval($wpdb->get_var("SELECT meta_value FROM wp_usermeta WHERE user_id=".$this->user->ID." and meta_key='following_".$type."' and meta_value=".$id));
+        // user_id, meta_key ve meta_value değerlerini prepare ile temizliyoruz
+        // wp_usermeta yerine {$wpdb->usermeta}
+        $query = $wpdb->prepare(
+            "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s AND meta_value = %s",
+            $this->user->ID,
+            'following_' . $type,
+            $id
+        );
+        return boolval($wpdb->get_var($query));
     }
-    public function is_follows($id=0, $type="user"){
+
+    public function is_follows($id = 0, $type = "user") {
         global $wpdb;
-        return boolval($wpdb->get_var("SELECT meta_value FROM wp_usermeta WHERE user_id=".$id." and meta_key='following_".$type."' and meta_value=".$this->user->ID));
+        $query = $wpdb->prepare(
+            "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s AND meta_value = %s",
+            $id,
+            'following_' . $type,
+            $this->user->ID
+        );
+        return boolval($wpdb->get_var($query));
     }
-    public function get_followers_count($id=0, $type="user"){
+
+    public function get_followers_count($id = 0, $type = "user") {
         global $wpdb;
-        return $wpdb->get_var("SELECT count(*) FROM wp_usermeta WHERE meta_key='following_".$type."' and meta_value=".$id);
+        $query = $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s",
+            'following_' . $type,
+            $id
+        );
+        return (int) $wpdb->get_var($query);
     }
-    public function get_followers($id=0, $type="user"){
+
+    public function get_followers($id = 0, $type = "user") {
         global $wpdb;
-        $users = $wpdb->get_results("SELECT user_id FROM wp_usermeta WHERE meta_key='following_".$type."' and meta_value=".$id);
+        $query = $wpdb->prepare(
+            "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s",
+            'following_' . $type,
+            $id
+        );
+        $users = $wpdb->get_results($query);
         return wp_list_pluck($users, "user_id");
     }
     public function follow($id=0, $type="user"){
@@ -1718,7 +1811,7 @@ class SaltBase{
     }
 
 
-    public function log($functionName="", $description=""){
+    public static function log($functionName="", $description=""){
         if(class_exists("Logger")){
             $log = new Logger();
             $log->logAction($functionName, $description);
@@ -1735,7 +1828,7 @@ class SaltBase{
     }
 
     public static function get_integration($slug=""){
-        $integrations = self::get_cached_option("integrations"); // Option page'den repeater'ı çek
+        $integrations = get_cached("integrations"); // Option page'den repeater'ı çek
         if ($integrations) {
             foreach ($integrations as $integration) {
                 if ($integration['name'] === $name) {
@@ -1815,6 +1908,11 @@ if(!function_exists("is_cart")){
     }
 }
 
+if(!function_exists("pll_acfe_advanced_link")){
+    function pll_acfe_advanced_link($data = []) {
+        return $data;
+    }
+}
 
 
 
@@ -1827,7 +1925,7 @@ add_action("admin_init", function(){
     if (defined('DOING_CRON') && DOING_CRON) {
         return;
     }
-   //error_log(print_r(get_untranslated_terms("tr"), true));
+   ////error_log(print_r(get_untranslated_terms("tr"), true));
    //translate_post_ai(4021, 'tr');
    //translate_post_ai(4161, 'tr');
 });

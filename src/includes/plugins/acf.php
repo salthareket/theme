@@ -6,54 +6,103 @@ use SaltHareket\Theme;
 
 
 /*acf Google Maps key*/
-if($GLOBALS["google_maps_api_key"]){
-	acf_update_setting('google_api_key', $GLOBALS['google_maps_api_key']);
+if(Data::get("google_maps_api_key")){
+	acf_update_setting('google_api_key', Data::get("google_maps_api_key"));
 }
-
-//acf json save & load folders
-add_filter('acf/settings/save_json', 'my_acf_json_save_point');
-function my_acf_json_save_point( $path ) {
-    $path = get_stylesheet_directory() . '/acf-json';
-    return $path;  
-}
-add_filter('acf/settings/load_json', 'my_acf_json_load_point');
-function my_acf_json_load_point( $paths ) {
-    unset($paths[0]);
-    $paths[] = get_stylesheet_directory() . '/acf-json';
-    return $paths;
-}
-
-
 
 if (ENABLE_MULTILANGUAGE){
 
 	add_filter('acf/settings/default_language', 'my_acf_settings_default_language');
 	function my_acf_settings_default_language( $language ) {
-		return ml_get_default_language();//$GLOBALS["language_default"];
+	    static $default_lang = null;
+	    if ($default_lang === null) {
+	        $default_lang = ml_get_default_language();
+	    }
+	    return $default_lang;
 	}
 
 	add_filter('acf/settings/current_language', 'my_acf_settings_current_language');
 	function my_acf_settings_current_language( $language ) {
-		return $GLOBALS["language"];
+	    static $current_lang = null;
+	    if ($current_lang === null) {
+	        $current_lang = ml_get_current_language();
+	    }
+	    return $current_lang;
 	}
+	
 }
 
-function acf_get_theme_styles(){
+/*function acf_get_theme_styles() {
+    // 1. STATİK CACHE: PHP belleğinde varsa (aynı istek içinde ikinci kez çağrılırsa) direkt dön.
+    static $cached_styles = null;
+    if ($cached_styles !== null) {
+        return $cached_styles;
+    }
+
     $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
     $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
-        
     $theme_styles = [];
-    if(file_exists($theme_styles_latest)){
-        $theme_styles = file_get_contents($theme_styles_latest);
-        $theme_styles = json_decode($theme_styles, true);
+
+    // 2. ÖNCELİK: Güncel JSON dosyası (I/O işlemini tek seferde bitirelim)
+    if (file_exists($theme_styles_latest)) {
+        $theme_styles = json_decode(file_get_contents($theme_styles_latest), true);
     }
-    if(!$theme_styles){
-        $theme_styles = QueryCache::get_cached_option("theme_styles");
+
+    // 3. FALLBACK: JSON yoksa DB'ye (QueryCache) git
+    if (empty($theme_styles)) {
+        $theme_styles = get_option("options_theme_styles");
     }
-    if(!$theme_styles && !isset($theme_styles["header"]["themes"]) && file_exists($theme_styles_defaults)){
-        $theme_styles = file_get_contents($theme_styles_defaults);
-        $theme_styles = json_decode($theme_styles, true);
+
+    // 4. SON ÇARE: Default JSON dosyası
+    if (empty($theme_styles) && file_exists($theme_styles_defaults)) {
+        $theme_styles = json_decode(file_get_contents($theme_styles_defaults), true);
     }
+
+    // 5. SONUÇ: Belleğe kaydet ve gönder
+    $cached_styles = $theme_styles;
+    return $theme_styles;
+}*/
+function acf_get_theme_styles() {
+    // 1. STATİK CACHE: Aynı request içinde 2. kez çağırmayı engeller.
+    static $cached_styles = null;
+    if ($cached_styles !== null) {
+        return $cached_styles;
+    }
+
+    // 2. TRANSIENT: Veritabanı Cache'i (Disk okumasından çok daha hızlıdır)
+    // JSON dosyası değişmediği sürece diske hiç bakmayacağız.
+    $cached_styles = get_transient('sh_theme_styles_cache');
+    if ($cached_styles !== false) {
+        return $cached_styles;
+    }
+
+    // --- Buradan aşağısı cache patladığında veya ilk kez çalışır ---
+
+    $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
+    $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
+    $theme_styles = [];
+
+    // Önce güncel JSON
+    if (file_exists($theme_styles_latest)) {
+        $theme_styles = json_decode(file_get_contents($theme_styles_latest), true);
+    }
+
+    // Fallback: DB (get_option zaten WP tarafından cache'lenir, iyidir)
+    if (empty($theme_styles)) {
+        $theme_styles = get_option("options_theme_styles");
+    }
+
+    // Son çare: Default JSON
+    if (empty($theme_styles) && file_exists($theme_styles_defaults)) {
+        $theme_styles = json_decode(file_get_contents($theme_styles_defaults), true);
+    }
+
+    // 3. CACHE YAZMA: Sonucu 24 saatliğine cache'le
+    if (!empty($theme_styles)) {
+        set_transient('sh_theme_styles_cache', $theme_styles, DAY_IN_SECONDS);
+    }
+
+    $cached_styles = $theme_styles;
     return $theme_styles;
 }
 
@@ -68,7 +117,7 @@ function acf_main_location($locations){
 	   }
 	}
 }
-function acf_get_contacts($type=""){
+/*function acf_get_contacts_v1($type=""){
 	$posts = array();
 	//if($type == "main" || $type == "standard"){
 		
@@ -88,16 +137,61 @@ function acf_get_contacts($type=""){
 				)
 			);
 		}
-		//$posts = QueryCache::get_cached_query($args);
+		$args = QueryCache::wp_query($args);
 		$posts = Timber::get_posts($args);
 		if ($posts->found_posts) { 
-			error_log("post var mı?");
+			//error_log("post var mı?");
 		    $posts = $posts->to_array()[0]; 
 		}
 	//}
 	return $posts;
+}*/
+function acf_get_contacts($type = "") {
+    $posts = array();
+    
+    // Varsayılan WP_Query argümanları
+    $args = array(
+        "post_type"      => "contact",
+        "posts_per_page" => -1, // Sınırsız çekmek için
+        'orderby'        => "menu_order",
+        'order'          => 'ASC',
+        'fields'         => 'ids'
+    );
+
+    // Kategori filtresi varsa ekle
+    if (!empty($type)) {
+        // Options sayfasından kategori ID'sini alıyoruz
+        $category_id = get_option("options_contact_type_" . $type); // ACF genelde başına 'options_' ekler
+        
+        if ($category_id) {
+            $args["tax_query"] = array(
+                array(
+                    "taxonomy" => "contact-type",
+                    "field"    => "term_id",
+                    "terms"    => [$category_id],
+                    "operator" => "IN"
+                )
+            );
+        }
+    }
+
+    // 1. HATA: Metot adı QueryCache::get_cached_query olmalı
+    // 2. DETAY: Timber ile kullanırken 'ids' modunda çekmek en hızlısıdır
+    $post_ids = get_posts($args);
+
+    if (!empty($post_ids)) {
+        // Timber'a ID listesini verip objeleri alıyoruz
+        $posts = Timber::get_posts($post_ids);
+        
+        // Eğer sadece tek bir post (ilk post) lazımsa:
+        if ($type == "main" && !empty($posts)) {
+            $posts = $posts[0];
+        }
+    }
+
+    return $posts;
 }
-function acf_get_contact_related($post_id=0, $post_type="post"){
+/*function acf_get_contact_related($post_id=0, $post_type="post"){
 	$args = array(
 			"post_type"   => $post_type,
 			'orderby'     => "menu_order",
@@ -110,23 +204,70 @@ function acf_get_contact_related($post_id=0, $post_type="post"){
 				)
 			)
 	);
-	$posts = QueryCache::get_cached_query($args);
+	$posts = QueryCache::wp_query($args);
 	$posts = Timber::get_posts($posts);
 	if ($posts->found_posts) { 
 	    $posts = $posts->to_array()[0]; 
 	}
     return $posts;
+}*/
+function acf_get_contact_related($post_id = 0, $post_type = "post") {
+    if (!$post_id) return false;
+
+    $args = array(
+        "post_type"      => $post_type,
+        "posts_per_page" => 1, // numberposts yerine posts_per_page kullanmak daha standarttır
+        "orderby"        => "menu_order",
+        "order"          => "ASC",
+        "fields"         => "ids",
+        "meta_query"     => array(
+            array(
+                "key"     => "contact",
+                "value"   => '"' . $post_id . '"', // ACF relationship formatı için ("123")
+                "compare" => "LIKE"
+            )
+        )
+    );
+
+    // 1. Senin yeni isimlendirmenle çağırıyoruz ve 'ids' modunda çekiyoruz
+    // Dönen veri düz bir ID array'idir: [12, 45, 67]
+    $post_ids = new WP_Query($args);
+
+    // 2. Timber kontrolü
+    if (!empty($post_ids)) {
+        $timber_posts = Timber::get_posts($post_ids);
+        
+        // found_posts objede olmaz çünkü get_query array döndürür.
+        // Dizi doluysa ilkini veriyoruz.
+        return (!empty($timber_posts)) ? $timber_posts[0] : false;
+    }
+
+    return false;
 }
-function acf_get_accounts($post=array()){
+/*function acf_get_accounts($post=array()){
 	$accounts = array();
 	if(isset($post->ID)){
 		$accounts = get_field("contact_accounts", $post->ID);
 	}
     return $accounts;
+}*/
+function acf_get_accounts($post = array()){
+    $accounts = array();
+    
+    // Eğer $post bir obje ise ID'sini al, değilse gelen değeri kullan
+    $post_id = isset($post->ID) ? $post->ID : $post;
+
+    if ($post_id) {
+        // 🔥 Sınıfın yeni metodunu çağırıyoruz. 
+        // Bu işlem veriyi cache'ler ve manifest'e "post_id" ile bağlar.
+        $accounts = get_field("contact_accounts", $post_id);
+    }
+    
+    return $accounts;
 }
-function get_contact_form($slug=""){
+/*function get_contact_form($slug=""){
 	$arr = array();
-	$forms = QueryCache::get_cached_option("forms");
+	$forms = get_option("forms");
 	if($forms){
 		foreach($forms as $form){
 			if($slug ==$form["slug"]){
@@ -145,7 +286,7 @@ function get_contact_forms($slug=""){
 		return get_contact_form($slug);
 	}
 	$arr = array();
-	$forms = QueryCache::get_cached_option("forms");
+	$forms = get_option("forms");
 	if($forms){
 		foreach($forms as $form){
 			$arr[$form["slug"]] = array(
@@ -156,6 +297,56 @@ function get_contact_forms($slug=""){
 		}
 	}
 	return $arr;
+}*/
+/**
+ * Tekil bir formu slug ile getirir
+ */
+function get_contact_form($slug = "") {
+    if (empty($slug)) return array();
+
+    $forms = QueryCache::get_field("forms", "options");
+    
+    if (is_array($forms)) {
+        foreach ($forms as $form) {
+            if ($slug === ($form["slug"] ?? '')) {
+                return array(
+                    "id"          => $form["form"] ?? "",
+                    "title"       => $form["title"] ?? "",
+                    "description" => $form["description"] ?? ""
+                );            
+            }
+        }        
+    }
+    
+    return array();
+}
+
+/**
+ * Tüm formları listeler veya tek bir formu slug ile döndürür
+ */
+function get_contact_forms($slug = "") {
+    // Eğer slug varsa direkt diğer fonksiyonu çalıştır (Kod tekrarını önleriz)
+    if (!empty($slug)) {
+        return get_contact_form($slug);
+    }
+
+    $arr = array();
+    $forms = QueryCache::get_field("forms", "options");
+
+    if (is_array($forms)) {
+        foreach ($forms as $form) {
+            $f_slug = $form["slug"] ?? "";
+            if ($f_slug) {
+                $arr[$f_slug] = array(
+                    "id"          => $form["form"] ?? "",
+                    "title"       => $form["title"] ?? "",
+                    "description" => $form["description"] ?? ""
+                );
+            }
+        }
+    }
+    
+    return $arr;
 }
 function acf_map_data($location, $className="", $id="", $icon=""){
 	$result = array();
@@ -169,45 +360,13 @@ function acf_map_data($location, $className="", $id="", $icon=""){
 				   'lat' => $location['lat'],
 				   'zoom' => $location['zoom'],
 				   'icon' => $icon,
-			       'src' => 'http://maps.googleapis.com/maps/api/staticmap?center=' . urlencode( $location['lat'] . ',' . $location['lng'] ). '&zoom='.$location['zoom'].'&size=800x800&maptype=roadmap&sensor=false&markers='.$staticMarker.'&key='.$GLOBALS['google_maps_api_key'],
+			       'src' => 'http://maps.googleapis.com/maps/api/staticmap?center=' . urlencode( $location['lat'] . ',' . $location['lng'] ). '&zoom='.$location['zoom'].'&size=800x800&maptype=roadmap&sensor=false&markers='.$staticMarker.'&key='.Data::get("google_maps_api_key"),
 				   'url' => 'http://www.google.com/maps/@'. $location['address'] ,
-				   'url_iframe' => 'https://www.google.com/maps/embed/v1/place?key='.$GLOBALS['google_maps_api_key'].'&q='.$location['lat'] . ',' . $location['lng'],
+				   'url_iframe' => 'https://www.google.com/maps/embed/v1/place?key='.Data::get("google_maps_api_key").'&q='.$location['lat'] . ',' . $location['lng'],
 				   'embed' => '<div id="'.$id.'" class="'.$className.' map-google" data-lat="'.$location['lat'].'" data-lng="'.$location['lng'].'" data-zoom="'.$location['zoom'].'" data-icon="'.$icon.'"></div>'
 			   );			
 	}
 	return $result;
-}
-
-function create_options_menu($options){
-		if(array_iterable($options)){
-			$menu_title = $options['title'];
-			$redirect = $options['redirect'];
-			acf_add_options_page(array(
-				'page_title' 	=> $menu_title,
-				'menu_title'	=> $menu_title,
-				'menu_slug' 	=> sanitize_title($menu_title),
-				'capability'	=> 'edit_posts',
-				'redirect'		=> $redirect
-			));
-			$menu_children = $options['children'];
-			if($menu_children){
-				create_options_menu_children($menu_title, $menu_children);
-			}
-		}
-};
-function create_options_menu_children($menu_title, $options){
-	for($i = 0; $i < count($options); $i++){
-		if(is_array($options[$i])){
-		    create_options_menu_children($options[$i]["title"], $options[$i]["children"]);
-		}else{
-			acf_add_options_sub_page(array(
-				'page_title' 	=> $options[$i],
-				'menu_title'	=> $options[$i],
-				'menu_slug' 	=> sanitize_title($options[$i]),
-				'parent_slug'	=> sanitize_title($menu_title),
-			));			
-		}
-	}
 }
 
 function acf_dynamic_container($class="", $page_settings = array(), $manually = false){
@@ -219,11 +378,11 @@ function acf_dynamic_container($class="", $page_settings = array(), $manually = 
 }
 
 function get_archive_field($field = "", $post_type = "post"){
-	return get_field($field, $post_type.'_options');
+	return QueryCache::get_field($field, $post_type.'_options');
 }
 
 add_filter('acf_osm_marker_icon', function( $icon ) {
-    $img = QueryCache::get_cached_option("logo_marker");
+    $img = QueryCache::get_field("logo_marker", "option");
     if(empty($img)){
         return $icon;
     }
@@ -241,60 +400,7 @@ add_filter('acf_osm_marker_icon', function( $icon ) {
     );
 });
 
-function dynamic_map_service_value($value, $post_id, $field) {
-    $google_api_key = acf_get_setting('google_api_key');
-    $map_view = get_field( 'map_view', 'option' );
-    if ( $value == "google" && empty( $google_api_key ) && $map_view == "js" ) {
-        return 'leaflet';
-    }
-    return $value;
-}
-add_filter('acf/load_value/name=map_service', 'dynamic_map_service_value', 10, 3);
 
-function dynamic_map_service_update_value( $value, $post_id, $field ) {
-
-	$previous_value = QueryCache::get_cached_option("map_service");
-	$map_view_value = $_POST["acf"]["field_6735b65411079"];
-	$map_view_previous_value = get_field( 'map_view', 'option' );
-
-    if($value != $previous_value || $map_view_value != $map_view_previous_value){
-	    update_option('options_map_service', $value);
-	    update_option('options_map_view', $map_view_value);
-
-    	$post_types = get_post_types( ['public' => true] );
-    	$args = array(
-		    'post_type' => $post_types,
-		    'meta_query' => array(
-		        'relation' => 'OR', // OR ile herhangi birini içeren postları çekiyoruz
-		        array(
-		            'key' => 'assets',
-		            'value' => 'leaflet',
-		            'compare' => 'LIKE'
-		        ),
-		        array(
-		            'key' => 'assets',
-		            'value' => 'markerclusterer',
-		            'compare' => 'LIKE'
-		        ),
-		        array(
-		            'key' => 'has_map',
-		            'value' => 1,
-		            'compare' => '='
-		        )
-		    )
-		);
-		$posts = get_posts($args);
-		error_log(count($posts));
-		if($posts){
-			foreach($posts as $post){
-		    	$extractor = new PageAssetsExtractor();
-		        $extractor->on_save_post($post->ID, $post, true);				
-			}
-		}
-    }
-    return $value;
-}
-add_filter( 'acf/update_value/name=map_service', 'dynamic_map_service_update_value', 10, 3 );
 
 // Page Settings -> Offcanvas
 function acf_offcanvas_classes($page_settings=array()){
@@ -365,8 +471,6 @@ function acf_offcanvas_content_classes($page_settings = []) {
     return $classes;
 }
 
-
-
 function unit_value($val=array()){
 	$value = "";
 	if(isset($val["value"])){
@@ -382,4 +486,10 @@ function acf_units_field_value($value){
         }
     }
     return $val;
+}
+
+if(!function_exists("get_field_default")){
+	function get_field_default($field_name, $id = 'options'){
+		return QueryCache::get_field($field_name, 'options');
+	}
 }

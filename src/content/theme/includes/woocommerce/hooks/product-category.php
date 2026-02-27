@@ -2,7 +2,7 @@
 
 function category_queries_vars($term, $vars){
 	if(isset($vars) && !empty($vars)){
-	  if($GLOBALS["ajax"]){
+	  if(Data::get("ajax")){
 	  	if(array_key_exists($term, $vars)){
 	  	   return $vars[$term];
 	    }
@@ -25,8 +25,8 @@ function category_queries_ajax($query=array(), $vars=array()){
 
                 // Create Query
 	            $query['post_type']      = array('product','product_variation');
-	            $query['posts_per_page'] = $GLOBALS["site_config"]["pagination_count"];
-			    $query['numberposts']    = $GLOBALS["site_config"]["pagination_count"];
+	            $query['posts_per_page'] = Data::get("site_config.pagination_count");
+			    $query['numberposts']    = Data::get("site_config.pagination_count");
 			    $query['order']          = "DESC";
 			    $query['orderby']        = "publish_date";
 

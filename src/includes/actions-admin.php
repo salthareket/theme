@@ -4,32 +4,11 @@ add_action('wp_update_nav_menu', function($menu_id, $menu_data = []) {
     delete_transient('timber_menus'); // Menü cache'ini temizle
 }, 10, 2);
 
-
-add_filter('wp_editor_set_quality', function ($quality, $mime_type) {
-    if ($mime_type === 'image/avif') {
-        return get_google_optimized_avif_quality();
-    }
-    return $quality;
-}, 10, 2);
-
 add_filter('wp_generate_attachment_metadata', function($metadata, $attachment_id){
     $file = get_attached_file($attachment_id);
     if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'svg') return $metadata;
     return $metadata; // diğer formatlar için normal conversion
 }, 20, 2);
-
-
-
-/*function set_default_image_alt_text($attachment_id) {
-    $alt_text = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
-    if (empty($alt_text)) {
-        $image_url = wp_get_attachment_url($attachment_id);
-        $path_parts = pathinfo($image_url);
-        $alt_text = ucwords(str_replace(['-', '_'], ' ', $path_parts['filename']));
-        update_post_meta($attachment_id, '_wp_attachment_image_alt', $alt_text);
-    }
-}
-add_action('add_attachment', 'set_default_image_alt_text');*/
 
 function set_default_image_alt_text($attachment_id) {
     // Mevcut alt text varsa bırak
@@ -55,10 +34,6 @@ function set_default_image_alt_text($attachment_id) {
     update_post_meta($attachment_id, '_wp_attachment_image_alt', $alt_text);
 }
 add_action('add_attachment', 'set_default_image_alt_text');
-
-
-
-
 
 
 // görsel kayudederken gorselin ortalama renk degerini ve bu rengin kontrastını kaydet
@@ -156,13 +131,6 @@ function scss_variables_array($array=array()){
     $temp = preg_replace('/\s+/', '', $temp);
     return $temp;
 }
-/*function scss_variables_font($font = ""){
-    if(!empty($font)){
-        $font = '"'.str_replace("|", "", $font).'"';
-    }
-    return $font;
-}*/
-
 function scss_variables_font($font = ""){
     if (empty($font)) return "";
 
@@ -191,8 +159,6 @@ function scss_variables_font($font = ""){
         return '"' . $font . '"';
     }
 }
-
-
 function wp_scss_set_variables(){
     $host_url = get_stylesheet_directory_uri();
     /*if(ENABLE_PUBLISH){
@@ -248,6 +214,55 @@ function wp_scss_set_variables(){
     return $variables;
 }
 add_filter("wp_scss_variables", "wp_scss_set_variables");
+
+
+add_filter('robots_txt', function($output, $public) {
+    // Sadece site halka açıksa (Arama motoru görünürlüğü açıkken) çalışsın
+    // İstersen bu kontrolü kaldırıp direkt yazdırabilirsin
+    
+    $output = "User-agent: *\n";
+    $output .= "Disallow: /wp-admin/\n"; // Admin panelini kapatalım standart olarak
+    $output .= "Allow: /wp-admin/admin-ajax.php\n\n";
+
+    // Yoast SEO Sitemap kontrolü
+    if ( function_exists('wpseo_sitemap_url') ) {
+        $output .= 'Sitemap: ' . wpseo_sitemap_url() . "\n";
+    } else {
+        $output .= 'Sitemap: ' . home_url('/sitemap_index.xml') . "\n";
+    }
+
+    // Ekstra sitemap dosyaların
+    $extra_sitemaps = ['llms.txt', 'ssms.txt'];
+    foreach ($extra_sitemaps as $file) {
+        if ( file_exists(ABSPATH . $file) ) {
+            $output .= 'Sitemap: ' . home_url('/' . $file) . "\n";
+        }
+    }
+
+    return $output;
+}, 20, 2);
+
+
+
+
+
+
+
+// 1. WP-CRON'u AJAX VE AKTİF ADMİN SIRASINDA DURDUR
+add_action('init', function() {
+    
+    // Ajax isteği mi?
+    $is_ajax = (defined('DOING_AJAX') && DOING_AJAX) || (strpos($_SERVER['REQUEST_URI'], '/api/') !== false);
+    
+    // Admin panelinde miyiz?
+    $is_admin = is_admin();
+
+    // Eğer Ajax yapılıyorsa veya Admin'de işlem varsa Cron'u bu sayfa yüklemesinde deaktif et
+    if ($is_ajax || $is_admin) {
+        remove_action('init', 'wp_cron'); // WP'nin default cron tetikleyicisini siliyoruz
+    }
+}, 1);
+
 
 
 
@@ -649,9 +664,9 @@ if(ENABLE_ECOMMERCE){
 
                     function handleVariableCheckboxVisibility($select) {
                         var views = $select.val();
-                        console.log(views)
+                        debugJS(views)
                         var index = $select.data('index');
-                        console.log(index)
+                        debugJS(index)
                         var variableDiv = $('.only-variable-checkbox[data-index="' + index + '"]');
 
                         if (Array.isArray(views) && views.includes('variable')) {
@@ -711,72 +726,3 @@ if(ENABLE_ECOMMERCE){
     add_action('woocommerce_settings_products', 'render_custom_product_fields');
     add_action('woocommerce_update_options_products', 'save_custom_product_fields');/**/
 }
-
-
-
-
-
-
-
-add_action('wp_login', function($user_login, $user) {
-    error_log(print_r("wp_login", true));
-    error_log(print_r($user, true));
-
-    if ( user_can($user, 'manage_options') ) {
-        $content = "User-agent: *\nDisallow:\n";
-
-        if ( function_exists('wpseo_sitemap_url') ) {
-            $content .= 'Sitemap: ' . wpseo_sitemap_url() . "\n";
-        } else {
-            $content .= 'Sitemap: ' . home_url('/sitemap.xml') . "\n";
-        }
-
-        $extra_sitemaps = ['llms.txt', 'ssms.txt'];
-        foreach ($extra_sitemaps as $file) {
-            if ( file_exists(ABSPATH . $file) ) {
-                $content .= 'Sitemap: ' . home_url('/' . $file) . "\n";
-            }
-        }
-
-        // Dosya yazılıyor
-        file_put_contents(ABSPATH . 'robots.txt', $content);
-        error_log("Debug - robots.txt dosyası oluşturuldu.");
-    }
-}, 11, 2);
-
-
-
-/*
-svg upload edildiinde içerdiği id'lere suffix ekler unique yapmak için id'leri
-ama aynı svg sayfa içinde tekrar kullanılınca problem oluştuğundan suffix eklemeyi on-fly yaptık. media-functions.php'de.
-add_filter('wp_handle_upload', function ($upload) {
-    // Sadece SVG dosyaları için çalışsın
-    if (isset($upload['file']) && preg_match('/\.svg$/i', $upload['file'])) {
-        $file = $upload['file'];
-        $content = file_get_contents($file);
-
-        // Benzersiz suffix
-        $suffix = '_' . uniqid();
-
-        // id="something" -> id="something_suffix"
-        $content = preg_replace_callback('/id="([^"]+)"/', function ($matches) use ($suffix) {
-            return 'id="' . $matches[1] . $suffix . '"';
-        }, $content);
-
-        // url(#something) -> url(#something_suffix)
-        $content = preg_replace_callback('/url\(#([^)]+)\)/', function ($matches) use ($suffix) {
-            return 'url(#' . $matches[1] . $suffix . ')';
-        }, $content);
-
-        // xlink:href="#something" -> xlink:href="#something_suffix"
-        $content = preg_replace_callback('/xlink:href="#([^"]+)"/', function ($matches) use ($suffix) {
-            return 'xlink:href="#' . $matches[1] . $suffix . '"';
-        }, $content);
-
-        // Dosyayı yeniden yaz
-        file_put_contents($file, $content);
-    }
-
-    return $upload;
-});
-*/

@@ -11,7 +11,7 @@ function init_vanilla_lazyload(){
                 if (slide.length > 0 && slide.index() > 0) {
                     obj.removeClass("loading");
                     obj.removeAttr("data-ll-status");
-                    console.log("Swiper aktif değil, iframe src yüklenmeyecek.");
+                    debugJS("Swiper aktif değil, iframe src yüklenmeyecek.");
                     return false;
                 }
             }
@@ -41,14 +41,14 @@ function init_vanilla_lazyload(){
                 if (slide.length > 0 && slide.index() > 0) {
                     obj.removeClass("loaded");
                     obj.removeAttr("data-ll-status");
-                    console.log("Swiper slide aktif değil, video yüklenmeyecek. calvack_loaded");
+                    debugJS("Swiper slide aktif değil, video yüklenmeyecek. calvack_loaded");
                     return false;
                 }
 
                 obj.closest(".lazy-container").removeClass("lazy-container");
                 obj.parent().find(">.plyr__poster").remove();
                 obj.parent().addClass("lazy-loaded");
-                plyr_init(obj.parent()); // plyr_init varsayılıyor
+                init_plyr(obj.parent()); // init_plyr varsayılıyor
             }
 
             $.fn.matchHeight._update();
@@ -84,7 +84,7 @@ function init_vanilla_lazyload(){
                     obj.removeAttr("data-ll-status");
                     obj.attr("data-src-backup", obj.attr("data-src"));
                     obj.removeAttr("data-src");
-                    console.log("Swiper aktif değil, iframe src yüklenmeyecek.");
+                    debugJS("Swiper aktif değil, iframe src yüklenmeyecek.");
                     return false;
                 }
             }

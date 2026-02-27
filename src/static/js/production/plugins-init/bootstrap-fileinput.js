@@ -54,7 +54,9 @@ var _extensions = {
 
 var _extensions_type = {};
 for (var key in _extensions) {
-    if (_extensions.hasOwnProperty(key)) {
+    // Güvenli kontrol: Obje prototipinden bağımsız çağrı
+    if (Object.prototype.hasOwnProperty.call(_extensions, key)) {
+        // Değeri alıp yeni objeye key olarak atıyoruz
         _extensions_type[_extensions[key]] = key;
     }
 }

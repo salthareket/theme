@@ -99,76 +99,90 @@ Class Localization{
 			$query = "SELECT subregion FROM countries where subregion != '' $where group by subregion";
 			return wp_list_pluck($wpdb->get_results($query), "subregion"); 
         }
-        public function countries($vars=array()){
-			global $wpdb;
-			$where = $this->where($vars);
-			//$query = "SELECT id, name, iso2, phonecode, region, subregion, latitude, longitude, timezones, (select count(id) from states where states.country_code = countries.iso2) as states FROM countries $where order by name";
-			$query = "SELECT
-					    c.id,
-					    c.name,
-					    c.iso2,
-					    c.phonecode,
-					    c.region,
-					    c.subregion,
-					    c.latitude,
-					    c.longitude,
-					    c.timezones,
-					    COUNT(s.id) AS states,
-					    IFNULL(o.option_value, 0) AS user_count,
-					    IFNULL(p.option_value, 0) AS post_count
-					FROM
-					    countries c
-					LEFT JOIN
-					    states s ON s.country_code = c.iso2 COLLATE utf8mb4_unicode_520_ci
-					LEFT JOIN
-					    wp_options o ON o.option_name = CONCAT('country_', c.iso2, '_user_count') COLLATE utf8mb4_unicode_520_ci
-					LEFT JOIN
-					    wp_options p ON p.option_name = CONCAT('country_', c.iso2, '_post_count') COLLATE utf8mb4_unicode_520_ci
-					    $where
-					GROUP BY
-					    c.id, c.name, c.iso2, c.phonecode, c.region, c.subregion, c.latitude, c.longitude, c.timezones
-					ORDER BY
-					    c.name";
-			$result =  $wpdb->get_results($query);
-			return json_decode(json_encode($result), true);
-        }
-        public function states($vars=array()){
-			global $wpdb;
-			$where = $this->where($vars);
-			if($vars){
-			    if($this->woocommerce_support){
-				    $where .= " and c.woo IS NOT NULL ";
-				}
-			}else{
-				if($this->woocommerce_support){
-					$where = " where c.woo IS NOT NULL ";
-				}
-			}
-			//$query = "SELECT id, name, country_code, iso2, fips_code, latitude, longitude FROM states $where order by name";
-			$query = "SELECT
-					    c.id,
-					    c.name,
-					    c.country_code,
-					    c.iso2,
-					    c.fips_code,
-					    c.latitude,
-					    c.longitude,
-					    IFNULL(o.option_value, 0) AS user_count,
-					    IFNULL(p.option_value, 0) AS post_count
-					FROM
-					    states c
-					LEFT JOIN
-					    wp_options o ON o.option_name = CONCAT('state_', c.id, '_user_count')
-					LEFT JOIN
-					    wp_options p ON p.option_name = CONCAT('state_', c.id, '_post_count')
-					    $where
-					GROUP BY
-					    c.id, c.name, c.country_code, c.iso2, c.fips_code, c.latitude, c.longitude
-					ORDER BY
-					    c.name";
-			$result =  $wpdb->get_results($query);
-			return json_decode(json_encode($result), true);
-        }
+        public function countries($vars = array()) {
+		    global $wpdb;
+		    
+		    // NOT: where() fonksiyonunun içeride prepare yapması veya 
+		    // dışarıdan gelen veriyi temizlemiş olması lazım.
+		    $where = $this->where($vars);
+		    
+		    // Tablo isimlerini prefix ile alıyoruz
+		    $countries_table = $wpdb->prefix . "countries";
+		    $states_table    = $wpdb->prefix . "states";
+		    $options_table   = $wpdb->options;
+
+		    // COLLATE kısmını dinamik yapmak en iyisidir ama en güvenlisi 
+		    // sistemin varsayılan collation'ını bozmamaktır.
+		    $query = "SELECT
+		                c.id,
+		                c.name,
+		                c.iso2,
+		                c.phonecode,
+		                c.region,
+		                c.subregion,
+		                c.latitude,
+		                c.longitude,
+		                c.timezones,
+		                COUNT(s.id) AS states,
+		                IFNULL(o.option_value, 0) AS user_count,
+		                IFNULL(p.option_value, 0) AS post_count
+		            FROM
+		                {$countries_table} c
+		            LEFT JOIN
+		                {$states_table} s ON s.country_code = c.iso2
+		            LEFT JOIN
+		                {$options_table} o ON o.option_name = CONCAT('country_', c.iso2, '_user_count')
+		            LEFT JOIN
+		                {$options_table} p ON p.option_name = CONCAT('country_', c.iso2, '_post_count')
+		            $where
+		            GROUP BY
+		                c.id, c.name, c.iso2, c.phonecode, c.region, c.subregion, c.latitude, c.longitude, c.timezones
+		            ORDER BY
+		                c.name";
+
+		    $result = $wpdb->get_results($query);
+		    // Nesneyi diziye çevirmek için daha hızlı yöntem
+		    return $result ? json_decode(json_encode($result), true) : array();
+		}
+
+		public function states($vars = array()) {
+		    global $wpdb;
+		    
+		    $where = $this->where($vars);
+		    $states_table  = $wpdb->prefix . "states";
+		    $options_table = $wpdb->options;
+
+		    // WooCommerce desteği kontrolü ve WHERE düzenlemesi
+		    $woo_check = "";
+		    if ($this->woocommerce_support) {
+		        $woo_check = (strpos(strtolower($where), 'where') !== false) ? " AND c.woo IS NOT NULL " : " WHERE c.woo IS NOT NULL ";
+		    }
+
+		    $query = "SELECT
+		                c.id,
+		                c.name,
+		                c.country_code,
+		                c.iso2,
+		                c.fips_code,
+		                c.latitude,
+		                c.longitude,
+		                IFNULL(o.option_value, 0) AS user_count,
+		                IFNULL(p.option_value, 0) AS post_count
+		            FROM
+		                {$states_table} c
+		            LEFT JOIN
+		                {$options_table} o ON o.option_name = CONCAT('state_', c.id, '_user_count')
+		            LEFT JOIN
+		                {$options_table} p ON p.option_name = CONCAT('state_', c.id, '_post_count')
+		            $where $woo_check
+		            GROUP BY
+		                c.id, c.name, c.country_code, c.iso2, c.fips_code, c.latitude, c.longitude
+		            ORDER BY
+		                c.name";
+
+		    $result = $wpdb->get_results($query);
+		    return $result ? json_decode(json_encode($result), true) : array();
+		}
         public function cities($vars=array()){
 			global $wpdb;
 			$where = $this->where($vars);
@@ -251,60 +265,103 @@ Class Localization{
         	return $results;
         }
 
-        function get_available_cities($post_type='post', $meta_key='city', $country = '', $selected=''){
-			if(empty($country)){
-			   $country = wc_get_base_country();
-			}
-			global $wpdb; 
-			$query = "SELECT m.meta_value as city  FROM wp_posts p, wp_postmeta m
-					    WHERE p.ID = m.post_id 
-					    AND m.meta_key = %s
-					    AND p.post_type = %s AND p.post_status = 'publish' group by city order by city ASC";
+        function get_available_cities($post_type = 'post', $meta_key = 'city', $country = '', $selected = '') {
+		    if (empty($country)) {
+		        $country = wc_get_base_country();
+		    }
+		    
+		    global $wpdb; 
 
-			$result = $wpdb->prepare($query, [$meta_key, $post_type]);
-			$result = $wpdb->get_results($result);
-			$output = array();
-			foreach($result as $city){
-				$output[$city->city] = get_state_name("id", $city->city);//get_state_by_code($country, $city->city);
-			}
-			return $output;
+		    // wp_posts yerine {$wpdb->posts}, wp_postmeta yerine {$wpdb->postmeta}
+		    // Performans için INNER JOIN kullanıyoruz.
+		    $query = $wpdb->prepare("
+		        SELECT m.meta_value as city 
+		        FROM {$wpdb->posts} p
+		        INNER JOIN {$wpdb->postmeta} m ON p.ID = m.post_id 
+		        WHERE m.meta_key = %s 
+		        AND p.post_type = %s 
+		        AND p.post_status = 'publish' 
+		        AND m.meta_value != ''
+		        GROUP BY m.meta_value 
+		        ORDER BY m.meta_value ASC
+		    ", $meta_key, $post_type);
+
+		    $result = $wpdb->get_results($query);
+		    
+		    $output = array();
+		    if ($result) {
+		        foreach ($result as $city) {
+		            // Boş değer gelme ihtimaline karşı kontrol
+		            if (empty($city->city)) continue;
+		            
+		            $output[$city->city] = get_state_name("id", $city->city);
+		        }
+		    }
+		    
+		    return $output;
 		}
 
-		function get_available_districts($post_type='post', $city = ''){
-			global $wpdb; 
-			$query = "SELECT m2.meta_value as district FROM wp_posts p, wp_postmeta m, wp_postmeta m2
-					    WHERE 
-					        m.post_id = p.ID
-					    AND m.meta_key = 'city'
-					    AND m.meta_value = %s
-					    AND m2.post_id  = p.ID
-					    AND m2.meta_key  = 'district'
-					    AND p.post_type = %s AND p.post_status = 'publish' group by district order by district ASC";
+		function get_available_districts($post_type = 'post', $city = '') {
+		    global $wpdb;
+		    
+		    // Eğer şehir boşsa boş dönelim, boşa sorgu çalışmasın
+		    if (empty($city)) {
+		        return array();
+		    }
 
-			$result = $wpdb->prepare($query, [$city, $post_type]);
-			$result = $wpdb->get_results($result);
-			$output = array();
-			foreach($result as $district){
-				$output[$district->district] = $district->district;
-			}
-			return $output;
+		    // wp_posts ve wp_postmeta tablolarını dinamik prefix ile alıyoruz
+		    // m1: Şehri kontrol eder, m2: İlçeyi çeker.
+		    $query = $wpdb->prepare("
+		        SELECT DISTINCT m2.meta_value as district 
+		        FROM {$wpdb->posts} p
+		        INNER JOIN {$wpdb->postmeta} m1 ON (p.ID = m1.post_id)
+		        INNER JOIN {$wpdb->postmeta} m2 ON (p.ID = m2.post_id)
+		        WHERE p.post_type = %s 
+		        AND p.post_status = 'publish'
+		        AND m1.meta_key = 'city'
+		        AND m1.meta_value = %s
+		        AND m2.meta_key = 'district'
+		        AND m2.meta_value != ''
+		        ORDER BY m2.meta_value ASC
+		    ", $post_type, $city);
+
+		    $result = $wpdb->get_results($query);
+		    
+		    $output = array();
+		    if ($result) {
+		        foreach ($result as $district) {
+		            // Hem key hem value olarak district adını atıyoruz
+		            $output[$district->district] = $district->district;
+		        }
+		    }
+		    
+		    return $output;
 		}
 
-		function get_posts_by_district($post_type='post', $city = '', $district=''){
-			global $wpdb; 
-			$query = "SELECT p.*  FROM wp_posts p, wp_postmeta m, wp_postmeta m2
-					    WHERE 
-					        m.post_id = p.ID
-					    AND m.meta_key = 'city'
-					    AND m.meta_value = %s
-					    AND m2.post_id  = p.ID
-					    AND m2.meta_key  = 'district'
-					    AND m2.meta_value = %s
-					    AND p.post_type = %s AND p.post_status = 'publish' order by p.post_title ASC";
-			$result = $wpdb->prepare($query, [$city, $district, $post_type]);
-			return Timber::get_posts($wpdb->get_results($result));
-		}
+		function get_posts_by_district($post_type = 'post', $city = '', $district = '') {
+		    global $wpdb; 
 
+		    // wp_posts ve wp_postmeta tablolarını dinamik prefix ile alıyoruz
+		    // m1: Şehri kontrol eder
+		    // m2: İlçeyi kontrol eder
+		    $query = $wpdb->prepare("
+		        SELECT p.* FROM {$wpdb->posts} p
+		        INNER JOIN {$wpdb->postmeta} m1 ON (p.ID = m1.post_id)
+		        INNER JOIN {$wpdb->postmeta} m2 ON (p.ID = m2.post_id)
+		        WHERE p.post_type = %s 
+		        AND p.post_status = 'publish'
+		        AND m1.meta_key = 'city'
+		        AND m1.meta_value = %s
+		        AND m2.meta_key = 'district'
+		        AND m2.meta_value = %s
+		        ORDER BY p.post_title ASC
+		    ", $post_type, $city, $district);
+
+		    $results = $wpdb->get_results($query);
+
+		    // Timber kullanıyorsan sonuçları Timber nesnesine çeviriyoruz
+		    return class_exists('Timber') ? Timber::get_posts($results) : $results;
+		}
 		function get_locations_order_by_city($post_type='post'){
 			$args = array(
 				   'post_type' => $post_type,
@@ -428,7 +485,7 @@ Class Localization{
 		function get_country_iso_list(){
 			$arr = array();
 			$countries = $this->get_country_iso2();
-			$languages = $GLOBALS["languages"];
+			$languages = Data::get("languages");//$GLOBALS["languages"];
 			foreach($countries as $country){
 	            $code = strtolower($country["code"]);
 	            $lang = $country["lang"];
@@ -581,7 +638,6 @@ Class Localization{
 		    }
 		    return ($negative?"-":"").str_pad($num, 2, 0, STR_PAD_LEFT);
 		}*/
-
 }
 
 

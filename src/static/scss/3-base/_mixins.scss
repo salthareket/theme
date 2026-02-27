@@ -146,22 +146,22 @@
 
 
 @mixin card-reset(){
-    --#{$prefix}card-spacer-y: 0px;
-    --#{$prefix}card-spacer-x: 0px;
-    --#{$prefix}card-title-spacer-y: #{$card-title-spacer-y};
-    --#{$prefix}card-border-width: 0;
-    --#{$prefix}card-border-color: transparent;
-    --#{$prefix}card-border-radius:0px;
-    --#{$prefix}card-box-shadow: none;
-    --#{$prefix}card-inner-border-radius: 0px;
-    --#{$prefix}card-cap-padding-y: 0px;
-    --#{$prefix}card-cap-padding-x: 0px;
-    --#{$prefix}card-cap-bg: transparent;
-    --#{$prefix}card-bg: transparent;
+    --#{$prefix}card-spacer-y: 0px!important;
+    --#{$prefix}card-spacer-x: 0px!important;
+    --#{$prefix}card-title-spacer-y: #{$card-title-spacer-y}!important;
+    --#{$prefix}card-border-width: 0!important;
+    --#{$prefix}card-border-color: transparent!important;
+    --#{$prefix}card-border-radius:0px!important;
+    --#{$prefix}card-box-shadow: none!important;
+    --#{$prefix}card-inner-border-radius: 0px!important;
+    --#{$prefix}card-cap-padding-y: 0px!important;
+    --#{$prefix}card-cap-padding-x: 0px!important;
+    --#{$prefix}card-cap-bg: transparent!important;
+    --#{$prefix}card-bg: transparent!important;
 }
 
 @mixin absolute-fill($value : 0){
-    position:absolute;
+    position:absolute!important;
     top:$value;
     bottom:$value;
     left:$value;

@@ -29,7 +29,7 @@ function form_validate(){
                                     vars :  {}
                             },
                             dataFilter: function(response) {
-                                var data = $.parseJSON(response);
+                                var data = JSON.parse(response);
                                 var obj = $( "[name="+name+"]" );
                                 var message = obj.attr("data-msg");
                                 if(data.error){
@@ -48,7 +48,7 @@ function form_validate(){
                     
                     if(!IsBlank(params)){
                         if(isJson(params)){
-                            params = $.parseJSON(params);
+                            params = JSON.parse(params);
                             for(var p in params){
                                 rules[name]["remote"]["data"]["vars"][p] = function() {
                                      return params[p];
@@ -59,7 +59,7 @@ function form_validate(){
 
                     if(!IsBlank(objs)){
                         if(isJson(objs)){
-                            remote_objs = $.parseJSON(objs);
+                            remote_objs = JSON.parse(objs);
                             var i = 0;
                             var fields = [];
                             for(var p in remote_objs){
@@ -175,14 +175,19 @@ function form_validate(){
                                 var paginate = $(".ajax-paginate[data-form='#"+form_id+"']")
 
                                 var objs = {};
-                                if($data.hasOwnProperty("objs")){
+                                // Güvenli hasProp yardımcı değişkenini kullanalım (veya direkt Object.prototype üzerinden)
+                                var hasProp = Object.prototype.hasOwnProperty;
+                                if ($data && hasProp.call($data, "objs")) {
                                     objs = $data["objs"];
-                                    delete $data["objs"]                
-                                }else{
-                                    if(ajax_objs.hasOwnProperty(method)){
-                                        objs = ajax_objs[method];
+                                    delete $data["objs"]; // Veriyi temizleyip devam ediyoruz
+                                } else {
+                                    // ajax_hooks objesinin varlığını da kontrol ederek ilerliyoruz
+                                    if (ajax_hooks && hasProp.call(ajax_hooks, method)) {
+                                        objs = ajax_hooks[method];
                                     }
                                 }
+
+
 
                                 function request_func(){
                                     var query = new ajax_query();
@@ -247,7 +252,7 @@ function form_validate(){
                                     }
                                     twig({
                                         href : host+"assets/templates/form-review.twig",
-                                        async : false,
+                                        async : true,
                                         allowInlineIncludes : true,
                                         load: function(template) {
                                             var html = template.render({data:data});

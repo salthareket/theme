@@ -27,7 +27,7 @@ class Silent_Upgrader_Skin extends WP_Upgrader_Skin {
 
     public function error($errors) {
         // Hataları log dosyasına yaz
-        error_log(print_r($errors, true));
+        //error_log(print_r($errors, true));
     }
 
     public function before() {
@@ -64,8 +64,8 @@ class PluginManager {
     }*/
 
     public static function render_option_page() {
-        $required_plugins = $GLOBALS['plugins'] ?? [];
-        $required_plugins_local = $GLOBALS['plugins_local'] ?? [];
+        $required_plugins = Data::get('plugins') ?? [];
+        $required_plugins_local = Data::get('plugins_local') ?? [];
         
         // Tüm pluginlerin verilerini işlemek için birleştirilmiş bir dizi oluşturuyoruz
         $plugins_data = [];
@@ -215,7 +215,7 @@ class PluginManager {
 
             // Tüm plugin bilgilerini JS'ye aktar
             $plugins = [];
-            foreach ($GLOBALS['plugins'] as $plugin) {
+            foreach (Data::get('plugins') as $plugin) {
                 $plugin_data = self::get_plugin_data($plugin["name"]);
                 $plugins[] = [
                     'slug' => $plugin["name"],
@@ -227,7 +227,7 @@ class PluginManager {
             }
 
             $plugins_local = [];
-            foreach ($GLOBALS['plugins_local'] as $plugin_info) {
+            foreach (Data::get('plugins_local') as $plugin_info) {
                 $plugin_data = self::get_plugin_data($plugin_info['name']);
                 $plugins_local[] = [
                     'slug' => $plugin_info['file'],
@@ -264,7 +264,7 @@ class PluginManager {
             // İşlem türüne göre ayrım
             if ($action_type === 'install' || $action_type === 'update') {
                 if($local == "true"){
-                    $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
+                    $required_plugins_local = Data::get("plugins_local") ?? [];
                     //$plugin_dir = __DIR__ . '/content/plugins';
                     $plugin_info = current(array_filter($required_plugins_local, fn($plugin) => $plugin['name'] === $plugin_slug));
                     self::remove_plugin($plugin_info['file']);
@@ -308,14 +308,14 @@ class PluginManager {
         $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_slug;
 
         if (!file_exists($plugin_path)) {
-            error_log("Plugin path not found: " . $plugin_path);
+            //error_log("Plugin path not found: " . $plugin_path);
             return ['Name' => null, 'Version' => null];
         }
 
         $plugin_data = get_plugin_data($plugin_path, false, false);
 
         // Debug için log yaz
-        error_log("Plugin data: " . print_r($plugin_data, true));
+        //error_log("Plugin data: " . print_r($plugin_data, true));
 
         return $plugin_data;
     }
@@ -331,7 +331,7 @@ class PluginManager {
 
     // Check and install required plugins from the $GLOBALS["plugins"] array
     public static function check_and_install_required_plugins($plugin_types) {
-        $required_plugins = $GLOBALS["plugins"] ?? [];
+        $required_plugins = Data::get("plugins") ?? [];
         foreach ($required_plugins as $plugin) {
             // Plugin zaten yüklü mü?
             if (!self::is_plugin_installed($plugin["name"])) {
@@ -348,7 +348,7 @@ class PluginManager {
 
     // Check and update local plugins from the $GLOBALS["plugins_local"] array
     public static function check_and_update_local_plugins($plugin_types) {
-        $required_plugins_local = $GLOBALS["plugins_local"] ?? [];
+        $required_plugins_local = Data::get("plugins_local") ?? [];
         //$plugin_dir = __DIR__ . '/content/plugins';
         foreach ($required_plugins_local as $plugin) {
             $plugin_path = WP_PLUGIN_DIR . '/' . $plugin['name'];
@@ -369,10 +369,10 @@ class PluginManager {
     public static function is_plugin_installed($plugin_name) {
         $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_name;
         if (file_exists($plugin_path)) {
-            error_log("Plugin zaten yüklü: " . $plugin_name);
+            //error_log("Plugin zaten yüklü: " . $plugin_name);
             return true;
         } else {
-            error_log("Plugin yüklü değil: " . $plugin_name);
+            //error_log("Plugin yüklü değil: " . $plugin_name);
             return false;
         }
     }
@@ -382,7 +382,7 @@ class PluginManager {
             if($plugin_info){
                 if(isset($plugin_info["depency"]) && !empty($plugin_info["depency"])){
                     $depency = $plugin_info["depency"];
-                    $depency = array_values(array_filter($GLOBALS["plugins"], function($item) use ($depency){
+                    $depency = array_values(array_filter(Data::get("plugins"), function($item) use ($depency){
                         return $item['name'] === $depency;
                     }));
                     $depency = $depency[0] ?? null;
@@ -392,13 +392,13 @@ class PluginManager {
                 }
             }
         }else{
-            $plugin_info = array_values(array_filter($GLOBALS["plugins"], function($item) use ($plugin_info){
+            $plugin_info = array_values(array_filter(Data::get("plugins"), function($item) use ($plugin_info){
                 return $item['name'] === $plugin_info;
             }));
             $plugin_info = $plugin_info[0] ?? null;
             if(isset($plugin_info["depency"]) && !empty($plugin_info["depency"])){
                 $depency = $plugin_info["depency"];
-                $depency = array_values(array_filter($GLOBALS["plugins_local"], function($item) use ($depency) {
+                $depency = array_values(array_filter(Data::get("plugins_local"), function($item) use ($depency) {
                     return $item['name'] === $depency;
                 }));
                 $depency = $depency[0] ?? null;
@@ -410,7 +410,7 @@ class PluginManager {
     }
 
     private static function install_local_plugin($plugin_info) {
-        error_log("install_local_plugin");
+        //error_log("install_local_plugin");
         $zip_file = self::$plugin_dir . '/' . $plugin_info['file'] . '.zip';
 
         if (file_exists($zip_file)) {
@@ -420,18 +420,18 @@ class PluginManager {
             $result = $upgrader->install($zip_file);
 
             if (is_wp_error($result)) {
-                error_log("Plugin yüklenemedi: " . $plugin_info['name'] . " - " . $result->get_error_message());
+                //error_log("Plugin yüklenemedi: " . $plugin_info['name'] . " - " . $result->get_error_message());
             } else {
-                error_log("Plugin başarıyla yüklendi: " . $plugin_info['name']);
+                //error_log("Plugin başarıyla yüklendi: " . $plugin_info['name']);
                 self::install_plugin_depencies($plugin_info, true);
             }
         } else {
-            error_log("Plugin zip file not found: " . $zip_file);
+            //error_log("Plugin zip file not found: " . $zip_file);
         }
     }
 
     private static function install_plugin_from_wp_repo($plugin_slug) {
-        error_log("install_plugin_from_wp_repo");
+        //error_log("install_plugin_from_wp_repo");
         include_once ABSPATH . 'wp-admin/includes/file.php';
         include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
@@ -444,19 +444,19 @@ class PluginManager {
         $clean_slug = $slug_parts[0]; // İlk kısmı al
 
         $plugin_url = 'https://downloads.wordpress.org/plugin/' . $clean_slug . '.zip';
-        error_log("Downloading plugin from: " . $plugin_url);
+        //error_log("Downloading plugin from: " . $plugin_url);
 
         $result = $upgrader->install($plugin_url);
 
         if (is_wp_error($result)) {
-            error_log("Plugin yüklenemedi: " . $clean_slug . " - " . $result->get_error_message());
+            //error_log("Plugin yüklenemedi: " . $clean_slug . " - " . $result->get_error_message());
         } else {
             // Plugin dizinini kontrol et
             $plugin_path = WP_PLUGIN_DIR . '/' . $clean_slug;
             if (!file_exists($plugin_path)) {
-                error_log("Plugin yüklendi ancak doğru yere taşınamadı: " . $plugin_path);
+                //error_log("Plugin yüklendi ancak doğru yere taşınamadı: " . $plugin_path);
             } else {
-                error_log("Plugin başarıyla yüklendi: " . $plugin_path);
+                //error_log("Plugin başarıyla yüklendi: " . $plugin_path);
             }
             self::install_plugin_depencies($plugin_slug);
         }
@@ -466,7 +466,7 @@ class PluginManager {
     private static function activate_plugin($plugin_name) {
         if (!is_plugin_active($plugin_name)) {
             activate_plugin($plugin_name);
-            error_log("Plugin aktifleştirildi: " . $plugin_name);
+            //error_log("Plugin aktifleştirildi: " . $plugin_name);
         }
     }
 
@@ -475,9 +475,9 @@ class PluginManager {
 
         // Deaktif işlem sonrası kontrol
         if (!is_plugin_active($plugin_slug)) {
-            error_log("Plugin başarıyla deaktif edildi: " . $plugin_slug);
+            //error_log("Plugin başarıyla deaktif edildi: " . $plugin_slug);
         } else {
-            error_log("Plugin deaktif edilemedi: " . $plugin_slug);
+            //error_log("Plugin deaktif edilemedi: " . $plugin_slug);
         }
     }
 
@@ -488,10 +488,10 @@ class PluginManager {
             return;
         }
         $plugin_path = WP_PLUGIN_DIR . '/' . ($plugin_name);
-        error_log($plugin_path);
+        //error_log($plugin_path);
         if (file_exists($plugin_path)) {
             self::delete_directory($plugin_path);
-            error_log("Plugin kaldırıldı: " . $plugin_name);
+            //error_log("Plugin kaldırıldı: " . $plugin_name);
         }
     }
 

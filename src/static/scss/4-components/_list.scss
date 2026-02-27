@@ -1,4 +1,4 @@
-.list-social{
+/*.list-social{
 	margin:0px;
 	font-size:24px;
 	>li{
@@ -30,4 +30,33 @@
 			}
 		}
 	}
+}*/
+
+.list-social {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 24px;
+    display: flex; // Inline-block yerine flex kullanmak hizalama için daha iyidir
+    align-items: center;
+
+    > li {
+        // li'ler arasında boşluk bırakmak için:
+        // Her elemanın başına (LTR'de sol, RTL'de sağ) boşluk ekle
+        // Ama en baştakine ekleme
+        &:not(:first-child) {
+            margin-inline-start: 15px; 
+        }
+
+        a {
+            display: inline-block;
+            color: inherit;
+            @include transition(all .2s ease-out);
+
+            &:hover {
+                color: inherit;
+                transform: translateY(-2px); // Sosyal medya ikonlarına yakışır
+            }
+        }
+    }
 }

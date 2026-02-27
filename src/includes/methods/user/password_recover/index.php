@@ -1,6 +1,6 @@
 <?php
 $required_setting = ENABLE_MEMBERSHIP;
 
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
 echo $salt->password_recover($vars);
 die();

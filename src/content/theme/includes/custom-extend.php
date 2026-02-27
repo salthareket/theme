@@ -1,12 +1,20 @@
 <?php
 
+
+
 class Salt extends SaltBase {
 
     private static $already_ran = false;
 
+    public static function get_instance() {
+        return parent::get_instance();
+    }
+
     public function update_profile($vars=array(), $callback=""){
         $response = $this->response();
         $user_id = $this->user->ID;
+
+        $membership_roles = Data::get("membership_roles");
 
         $action = isset($vars["action"])?$vars["action"]:"";
 
@@ -104,7 +112,7 @@ class Salt extends SaltBase {
                 }
                 if(!empty($country)){
 
-                    if(in_array($this->user->get_role(), $GLOBALS["membership_roles"])){
+                    if(in_array($this->user->get_role(), $membership_roles)){
                         //$country_old = get_user_meta($user_id, "billing_country", true);
                         if($country_old){
                             $count = intval(get_option("country_".$country_old."_user_count"));
@@ -154,7 +162,7 @@ class Salt extends SaltBase {
                 }
                 if(!empty($city)){
 
-                    if(in_array($this->user->get_role(), $GLOBALS["membership_roles"])){
+                    if(in_array($this->user->get_role(), $membership_roles)){
                         $city_old_id = get_user_meta($user_id, "city", true);
                         if($city_old_id){
                             $count = intval(get_option("state_".$city_old_id."_user_count"));
@@ -263,7 +271,7 @@ class Salt extends SaltBase {
                         if ( $user ) {
                              wp_set_password( $password, $user_id );
                              $response["message"] = "Your password updated!.";
-                             $response["redirect"] = $GLOBALS["base_urls"]["account"];
+                             $response["redirect"] = Data::get("base_urls.account");
                         } else {
                            $response["error"] = true;
                            $response["message"] = "The user you are trying to update the password for could not be found.";
@@ -390,7 +398,7 @@ class Salt extends SaltBase {
                 $role = $vars["role"];
 
                 if(is_user_logged_in() && isset($role)){
-                    if(in_array($this->user->get_role(), $GLOBALS["membership_roles"])){
+                    if(in_array($this->user->get_role(), $membership_roles)){
                         $user = get_userdata($user_id);
                         update_user_meta( $user_id, 'billing_first_name', $user->first_name );
                         update_user_meta( $user_id, 'billing_last_name', $user->last_name );
@@ -457,7 +465,52 @@ class Salt extends SaltBase {
     }
 
     public function on_post_published($post_id, $post, $update){
-        parent::on_post_published($post_id, $post, $update);
+        
+        /*remove_action('save_post', [ $this, 'on_post_published'], 100);
+        remove_action('save_post_product', [ $this, 'on_post_published'], 100);
+        remove_action('publish_post', [ $this, 'on_post_published'], 100);*/
+        /*if (is_callable([parent::class, 'on_post_published'])) {
+            remove_action('save_post', [ parent::class, 'on_post_published'], 100);
+            remove_action('save_post_product', [ parent::class, 'on_post_published'], 100);
+            remove_action('publish_post', [ parent::class, 'on_post_published'], 100);
+        }*/
+        
+        /*if (defined('DOING_AJAX') && DOING_AJAX) {
+            return;
+        }
+        if (defined('DOING_CRON') && DOING_CRON) {
+            return;
+        }
+        if ( wp_is_post_revision( $post_id ) ) {
+            return;
+        }
+        if ( get_post_status( $post_id ) !== 'publish' ) {
+            return;
+        }
+        $post_types = get_post_types(['public' => true], 'names');
+        if (in_array($post->post_type, $post_types)) {
+            if (self::$already_ran) {
+                return; // Eğer zaten çalıştıysa, çık
+            }
+
+            self::$already_ran = true; // Flag'i ayarla*/
+
+            $project = new Project();
+            $project->campaign_published($post_id, $post, $update );
+
+
+            parent::on_post_published($post_id, $post, $update);
+
+           /* self::$already_ran = false; // Flag'i ayarla
+        }*/
+        /*add_action('save_post', [ $this, 'on_post_published'], 100, 3);
+        add_action('save_post_product', [ $this, 'on_post_published'], 100, 3);
+        add_action('publish_post', [ $this, 'on_post_published'], 100, 3);
+        if (is_callable([parent::class, 'on_post_published'])) {
+            add_action('save_post', [ parent::class, 'on_post_published'], 100, 3);
+            add_action('save_post_product', [ parent::class, 'on_post_published'], 100, 3);
+            add_action('publish_post', [ parent::class, 'on_post_published'], 100, 3);
+        }*/
     }
 
     public function on_term_published($term_id, $tt_id, $taxonomy){

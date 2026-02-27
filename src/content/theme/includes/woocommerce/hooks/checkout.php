@@ -123,25 +123,25 @@ function bbloomer_alternative_override_postcode_validation( $fields ) {
 
 
 function order_status_is_pending($order_id) {
-    error_log("$order_id set to PENDING");
+    //error_log("$order_id set to PENDING");
 }
 function order_status_is_failed($order_id) {
-    error_log("$order_id set to FAILED");
+    //error_log("$order_id set to FAILED");
 }
 function order_status_is_hold($order_id) {
-    error_log("$order_id set to ON HOLD");
+    //error_log("$order_id set to ON HOLD");
 }
 function order_status_is_processing($order_id) {
-    error_log("$order_id set to PROCESSING");
+    //error_log("$order_id set to PROCESSING");
 }
 function order_status_is_completed($order_id) {
-    error_log("$order_id set to COMPLETED");
+    //error_log("$order_id set to COMPLETED");
 }
 function order_status_is_refunded($order_id) {
-    error_log("$order_id set to REFUNDED");
+    //error_log("$order_id set to REFUNDED");
 }
 function order_status_is_cancelled($order_id) {
-    error_log("$order_id set to CANCELLED");
+    //error_log("$order_id set to CANCELLED");
 }
 add_action( 'woocommerce_order_status_pending', 'order_status_is_pending', 10, 1);
 add_action( 'woocommerce_order_status_failed', 'order_status_is_failed', 10, 1);

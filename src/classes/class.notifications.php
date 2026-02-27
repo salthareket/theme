@@ -29,7 +29,7 @@ Class Notifications{
 		    $this->events = json_decode(file_get_contents($notifications_file), true);
 		} else {
 		    $this->events = []; // veya bir fallback
-		    error_log("Bildirim dosyası bulunamadı: $notifications_file");
+		    //error_log("Bildirim dosyası bulunamadı: $notifications_file");
 		}
         $this->debug = $debug;
         $this->debug_output = array();
@@ -193,12 +193,32 @@ Class Notifications{
        return $rules;
     }
 
-    Private function get_users($ids=array(0), $values=array('user_email')){
-    	global $wpdb;
-    	$values = implode(",",$values);
-    	$ids = array_map("intval", $ids);
-    	$ids = implode(",", $ids);
-        return $wpdb->get_results("SELECT $values FROM wp_users where ID in ($ids)");
+   private function get_users($ids = array(0), $values = array('user_email')) {
+	    global $wpdb;
+
+	    // 1. ID'leri temizle (Sadece rakam olduklarından emin oluyoruz)
+	    $ids = array_map("intval", $ids);
+	    $clean_ids = implode(",", $ids);
+
+	    // 2. Sütun isimlerini (values) temizle
+	    // Sadece harf, rakam ve alt çizgiye izin veriyoruz (SQL Injection önlemi)
+	    $clean_values_array = array_map(function($val) {
+	        return preg_replace('/[^a-zA-Z0-9_]/', '', $val);
+	    }, $values);
+	    $values_sql = implode(",", $clean_values_array);
+
+	    // Eğer ID listesi veya değer listesi boşsa boşa sorgu yapma
+	    if (empty($clean_ids) || empty($values_sql)) {
+	        return array();
+	    }
+
+	    // 3. Sorguyu çalıştır
+	    // wp_users yerine {$wpdb->users} kullanarak prefix'i dinamik yapıyoruz.
+	    // %s ve %d burada kullanılamaz (sütun isimleri prepare ile bağlanmaz), 
+	    // o yüzden yukarıda manuel temizlik yaptık.
+	    $query = "SELECT $values_sql FROM {$wpdb->users} WHERE ID IN ($clean_ids)";
+	    
+	    return $wpdb->get_results($query);
     }
     Private function get_users_full($ids=array(0)){
         $args = array(
@@ -615,7 +635,7 @@ function my_acf_save_options_page( $post_id, $menu_slug ) {
 // store all notification events in a json filr
 function notifications_save_events() {
     $field_group = 'notifications';
-    $data = QueryCache::get_cached_option($field_group);
+    $data = QueryCache::get_field($field_group, "options");
     if(!$data){
     	return;
     }

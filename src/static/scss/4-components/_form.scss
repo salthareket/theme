@@ -257,6 +257,16 @@ label.form-label{
             border-right:$form-input-border-right;
         }
     }
+    &.typeahead{
+        &.dropdown-menu {
+            /* Mobilde parmak hareketini (swipe) tanıması için */
+            touch-action: pan-y !important; 
+            /* iOS cihazlarda kaydırmanın "yağ gibi" akması için */
+            -webkit-overflow-scrolling: touch !important;
+            /* Menü içinde taşma olacağını kesinleştiriyoruz */
+            overflow-y: auto !important;
+        }
+    }
 }
 
 .form-control-plaintext{

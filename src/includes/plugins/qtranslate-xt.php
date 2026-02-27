@@ -58,7 +58,7 @@ function the_title_ml($title) {
 }
 
 function translateContent($text){
-    return qtranxf_use($GLOBALS['language'], $text);
+    return qtranxf_use(ml_get_current_language(), $text);
 }
 
 
@@ -80,11 +80,11 @@ function your_prefix_change_post_type_slug( $args, $post_type ) {
 //add Persian rtl support
 function custom_dir_attr($lang){
   if (is_admin()){
-    return $lang;
+     return $lang;
   }
   $dir_attr="";
-  if (!is_rtl() && $GLOBALS["language"] == "fa"){
-     $dir_attr='dir="rtl"';
+  if (Data::get("language_rtl")){
+      $dir_attr='dir="rtl"';
   }
   return $lang." ".$dir_attr;
 }
@@ -104,17 +104,40 @@ function get_language_from_url($url="") {
 }
 
 
-function get_language_slug($lang="", $type="", $slug=""){
-    if(class_exists("QTX_Module_Slugs")){
+function get_language_slug($lang = "", $type = "", $slug = "") {
+    // Gerekli sınıflar yoksa veya parametreler boşsa orijinal slug'ı dön
+    if (class_exists("QTX_Module_Slugs") && !empty($slug) && !empty($lang)) {
         global $wpdb;
-        $id = $wpdb->get_var("Select ID from wp_posts where post_excerpt='{$slug}' and post_type='acf-{$type}'");
-        if($id){
-            return $wpdb->get_var("Select meta_value from wp_postmeta where post_id={$id} and meta_key='qtranslate_slug_{$lang}'");
+
+        // 1. ADIM: Post ID'yi bul (Dinamik tablo ve prepare kullanımı)
+        // post_excerpt ve post_type alanlarını güvenli hale getiriyoruz
+        $post_id_query = $wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_excerpt = %s AND post_type = %s LIMIT 1",
+            $slug,
+            'acf-' . $type
+        );
+        $id = $wpdb->get_var($post_id_query);
+
+        if ($id) {
+            // 2. ADIM: Meta değerini bul (Dinamik tablo ve prepare kullanımı)
+            // meta_key içindeki dil kodu da prepare ile güvenli hale getiriliyor
+            $meta_key = 'qtranslate_slug_' . $lang;
+            $meta_query = $wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = %s LIMIT 1",
+                $id,
+                $meta_key
+            );
+            
+            $translated_slug = $wpdb->get_var($meta_query);
+
+            if ($translated_slug) {
+                return $translated_slug;
+            }
         }
     }
+    
     return $slug;
 }
-
 
 //add_filter( 'get_term', "qtrans_term_nane", 9999);
 function qtrans_term_nane($term="", $taxonomy=array()){
@@ -229,7 +252,7 @@ function qtrans_get_qtx_language_url($language=""){
 function qtranslate_block_content($content) {
     if(ENABLE_MULTILANGUAGE) {
         if(has_blocks($content)){
-            $content = qtranxf_use($GLOBALS['language'], $content, false, false);            
+            $content = qtranxf_use(ml_get_current_language(), $content, false, false);            
         }
     }
     return $content;
@@ -332,6 +355,42 @@ if (class_exists("acf")) {
         return $field;
     }
     add_filter('acf/load_field', 'acf_load_field_translate');
+
+    // ACF options sayfasındaki alanları kaydetmek için filtre
+    function load_acf_option_value($value, $post_id, $field) {
+        remove_filter('acf/load_value', 'load_acf_option_value', 10, 3);
+
+        $current_lang = qtranxf_getLanguage();
+        $default_lang = qtranxf_getSortedLanguages()[0];
+
+        if ($post_id == 'options_'.$current_lang) {
+
+            $option_name = $field['name'];
+            $default_option = "options_{$option_name}";
+            $default_alt_option = "options_{$default_lang}_{$option_name}";
+            $current_option = "options_{$current_lang}_{$option_name}";
+            $value = get_option($current_option);
+
+            if (empty($value)) {
+                
+               global $q_config;
+               $q_config['language'] = $default_lang;
+               //echo $option_name." > yok aabi<br>";
+               $value = QueryCache::get_field($option_name, "options");
+               //print_r($value);
+               $value = \get_option($default_option);
+               //print_r($value);
+               //echo "<br>";
+               $q_config['language'] = $current_lang;
+                /*if (empty($value)) {
+                    $value = get_option($default_alt_option);
+                }*/
+            }
+        }
+        add_filter('acf/load_value', 'load_acf_option_value', 10, 3);
+        return $value;
+    }
+    add_filter('acf/load_value', 'load_acf_option_value', 10, 3);
 }
 
 

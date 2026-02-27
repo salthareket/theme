@@ -6,16 +6,30 @@ function IsUrl(s) {
 function getUrlVars(url) {
     var hash;
     var myJson = {};
-    var hashes = url.slice(url.indexOf('?') + 1).split('&');
-    debugJS(hashes)
-    if(hashes.length>0 && url.indexOf('?')>-1){
-	    for (var i = 0; i < hashes.length; i++) {
-	        hash = hashes[i].split('=');
-	        if(typeof hash[1] !== "undefined"){
-	        	myJson[hash[0]] = hash[1];
-	        }
-	    }    	
+    
+    // 1. Güvenlik: URL yoksa veya boşsa boş obje dön
+    if (!url || url.indexOf('?') === -1) return myJson;
+
+    // 2. Anchor (#) kısmını temizle (URL'nin sonundaki # kısmını atar)
+    var pureUrl = url.split('#')[0];
+
+    // 3. Query string'i parçala
+    var hashes = pureUrl.slice(pureUrl.indexOf('?') + 1).split('&');
+
+    for (var i = 0; i < hashes.length; i++) {
+        hash = hashes[i].split('=');
+        
+        // Key varsa işle
+        if (hash[0]) {
+            // 4. decodeURIComponent: Karakterleri (%, &, türkçe karakter vb.) düzeltir
+            // Value undefined ise boş string ata
+            var val = (typeof hash[1] !== "undefined") ? decodeURIComponent(hash[1]) : "";
+            
+            // 5. Obje ataması (Burada hasOwnProperty gerekmez çünkü yeni obje oluşturuyoruz)
+            myJson[hash[0]] = val;
+        }
     }
+    
     return myJson;
 }
 
@@ -29,13 +43,16 @@ function url2json(str) {
 }
 
 function json2url(json) {
-  var arr= [];
-  for (var k in json) {
-    if (json.hasOwnProperty(k)) {
-      arr.push(k + '=' + json[k]);
+    var arr = [];
+    for (var k in json) {
+        // jQuery 4.0 güvenli kontrolü
+        if (Object.prototype.hasOwnProperty.call(json, k)) {
+            // encodeURIComponent ekleyerek karakter güvenliğini sağlıyoruz
+            // Örn: "kategori=elektronik & bilgisayar" hatasını engeller
+            arr.push(encodeURIComponent(k) + '=' + encodeURIComponent(json[k]));
+        }
     }
-  }
-  return arr.join('&');
+    return arr.join('&');
 }
 
 

@@ -96,7 +96,7 @@ function woo_get_cart_object(){
             //$image = wp_get_attachment_image_src( get_post_thumbnail_id( $id ), 'shop-thumbnail' );
             //$image = $_product->get_image("shop_thumbnail");
             $image =wp_get_attachment_image_url($_product->get_image_id(), "thumbnail");
-            $title = qtranxf_use($GLOBALS["language"], $_product->get_title(), false, false);
+            $title = qtranxf_use(Data::get("language"), $_product->get_title(), false, false);
             $url = get_permalink($id);
             $quantity = $values['quantity'];
             $variations = array();

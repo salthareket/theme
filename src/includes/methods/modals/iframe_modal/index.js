@@ -1,64 +1,84 @@
 {
-    required : "bootbox",
+    required: ["bootbox"],
     before: function(response, vars, form, objs) {
-        /*if(!isLoadedJS("bootbox")){
-            alert("Bootbox required");
-            return
-        }*/
-        response["vars"]["url"] = objs.btn.attr("href");
-        var className = "modal-page loading " + (vars.class?vars.class:'');
-        var scrollable = bool(vars.scrollable, false);
-        var close = bool(vars.close, true);
-        var dialog = bootbox.dialog({
+        // Buton href'ini URL olarak sakla
+        if (objs.btn && objs.btn.attr("href")) {
+            response["vars"]["url"] = objs.btn.attr("href");
+        }
+
+        const className = `modal-page loading ${vars.class || ''}`;
+        const scrollable = typeof bool === 'function' ? bool(vars.scrollable, false) : !!vars.scrollable;
+        const close = typeof bool === 'function' ? bool(vars.close, true) : vars.close !== false;
+        
+        const dialog = bootbox.dialog({
             className: className,
             title: "<div></div>",
             message: '<div></div>',
             closeButton: close,
-            size: !IsBlank(vars["size"]) ? vars["size"] : 'xl',
+            size: (typeof IsBlank === 'function' ? !IsBlank(vars.size) : vars.size) ? vars.size : 'xl',
             scrollable: scrollable,
             centerVertical: true,
             backdrop: true,
             buttons: {},
-            onHidden: function(e) {
-                response.abort();
+            onHidden: function() {
+                if (response && response.abort) response.abort();
             }
         });
-        if(vars.fullscreen){
+
+        // Fullscreen ve özel modal class atamaları
+        if (vars.fullscreen) {
             dialog.find(".modal-dialog").addClass("modal-fullscreen");
         }
-        if(vars.modal){
+
+        if (Array.isArray(vars.modal)) {
             vars.modal.forEach(item => {
-                for (const [key, value] of Object.entries(item)) {
-                    dialog.find("."+key).addClass(value);
-                }
+                Object.entries(item).forEach(([key, value]) => {
+                    dialog.find(`.${key}`).addClass(value);
+                });
             });
         }
+
         objs["modal"] = dialog;
-        var id = generateCode(5);
-        dialog.attr("id", id);
+
+        // ID üretme kısmını daha güvenli hale getirelim
+        const modalId = (typeof generateCode === 'function') ? generateCode(5) : `modal_${Math.random().toString(36).substr(2, 5)}`;
+        dialog.attr("id", modalId);
+
         response.objs = {
             "modal": dialog,
             "btn": objs.btn
-        }
+        };
+
         return response;
     },
+
     after: function(response, vars, form, objs) {
-        /*if(!isLoadedJS("bootbox")){
-            return
-        }*/
-        var modal = objs.modal;
+        const modal = objs.modal;
+
         if (response.error) {
             modal.addClass("remove-on-hidden").modal("hide");
-            if (response.message) {
-                //_alert("", response.message);
+            if (response.message && typeof response_view === 'function') {
                 response_view(response);
             }
             return false;
         }
-        if (vars.hasOwnProperty("title")) {
+
+        // Başlık setleme (Vars'tan geliyorsa)
+        if (vars && vars.title !== undefined) {
             modal.find(".modal-title").html(vars.title);
         }
-        modal.find(".modal-body").html(response.html);
+
+        // İçeriği basma ( response.html senin PHP'den gelen temizlenmiş HTML'in )
+        if (response.html) {
+            modal.find(".modal-body").html(response.html);
+        }
+
+        // --- KRİTİK EKLEME: Gelen sayfa içinde form varsa uyandır ---
+        // Eğer gelen HTML içinde bir CF7 formu varsa, bizim handler'ı çalıştıralım.
+        if (modal.find(".wpcf7-form").length > 0 && window.ContactFormHandler) {
+            window.ContactFormHandler.initForms(modal);
+        }
+
         modal.removeClass("loading");
     }
 };

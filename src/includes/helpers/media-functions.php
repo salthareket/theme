@@ -1,5 +1,6 @@
 <?php
 
+
 use SaltHareket\Image;
 
 function file_get_contents3($url=""){
@@ -147,7 +148,7 @@ function featured_image_from_url($image_url = "", $post_id = 0, $featured = fals
 
 		  $filename = basename($file); // Create image file name
 
-		  //error_log("file:".$file);
+		  ////error_log("file:".$file);
 
 		  // Create the image  file on the server
 		  file_put_contents( $file, $image_data );
@@ -376,19 +377,24 @@ add_filter( 'wp_get_attachment_image_attributes', 'add_orientation_class_filter'
 
 function get_attachment_id_by_url($image_url) {
     global $wpdb;
+
+    // 1. URL'den sadece dosya yolunu (uploads sonrası) ayıklayalım
+    // Örn: http://localhost/site/wp-content/uploads/2024/01/resim.jpg -> 2024/01/resim.jpg
+    $upload_dir = wp_get_upload_dir();
+    $base_url = str_replace(['http:', 'https:'], '', $upload_dir['baseurl']);
+    $clean_url = str_replace(['http:', 'https:'], '', $image_url);
+    $file_path = ltrim(str_replace($base_url, '', $clean_url), '/');
+
+    // 2. Meta tablosundan asıl dosya yoluna göre ID bulalım
     $attachment_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT ID FROM {$wpdb->posts} WHERE guid = %s AND post_type = 'attachment'",
-        $image_url
+        "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s",
+        $file_path
     ));
-    if ($attachment_id) {
-        return $attachment_id;
-    }
-    $filename = pathinfo($image_url, PATHINFO_FILENAME);
-    $attachment_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'attachment'",
-        $filename
-    ));
-    return $attachment_id ?: false; // Eğer bulunamazsa false döndür
+
+    if ($attachment_id) return (int) $attachment_id;
+
+    // 3. Hala bulunamadıysa (crop edilmiş resim olabilir), post_name yerine 'attachment_url_to_postid' dene
+    return (int) attachment_url_to_postid($image_url) ?: false;
 }
 
 
@@ -432,8 +438,8 @@ add_filter('file_is_displayable_image', 'webp_is_displayable', 10, 2);
 
 
 function enable_mime_types( $upload_mimes ) {
-	if(isset($GLOBALS["upload_mimes"])){
-		foreach($GLOBALS["upload_mimes"] as $key => $mime){
+	if(Data::get("upload_mimes")){
+		foreach(Data::get("upload_mimes") as $key => $mime){
 			$upload_mimes[$key] = $mime;
 		}
 	}
@@ -488,12 +494,12 @@ function upload_file($file, $post_id) {
 
 // Resize uploaded book cover size to 780x1200px
 function wp_handle_upload_resize($image_data){
-	  $post_types = array_keys($GLOBALS["upload_resize"]);
+	  $post_types = array_keys(Data::get("upload_resize"));
 	  $post_type = get_post_type($_REQUEST['post_id']); // post_id parametresini kullanarak gönderi türünü al
 	  if (!in_array($post_type, $post_types)) {
 	    return $image_data; // Dosya nesnesini geri döndür
 	  }
-	  $post_type_data = $GLOBALS["upload_resize"][$post_type];
+	  $post_type_data = Data::get("upload_resize.{$post_type}", []);
 
 	  $resizing_enabled = true;
 	  $force_jpeg_recompression = true;
@@ -628,8 +634,9 @@ function wp_handle_upload_is_gif($filename) {
   fclose($fh);
   return $count > 1;
 }
-if(isset($GLOBALS["upload_resize"])){
-	if(is_array($GLOBALS["upload_resize"]) && count($GLOBALS["upload_resize"]) > 0){
+$upload_resize = Data::get("upload_resize");
+if($upload_resize){
+	if(is_array($upload_resize) && count($upload_resize) > 0){
           add_filter('wp_handle_upload', 'wp_handle_upload_resize');	
 	}
 }
@@ -638,8 +645,9 @@ if(isset($GLOBALS["upload_resize"])){
 
 
 function remove_custom_image_sizes() {
-    if (!empty($GLOBALS["upload_sizes_remove"]) && is_array($GLOBALS["upload_sizes_remove"])) {
-        foreach ($GLOBALS["upload_sizes_remove"] as $size) {
+    $upload_sizes_remove = Data::get("upload_sizes_remove");
+    if (!empty($upload_sizes_remove) && is_array($upload_sizes_remove)) {
+        foreach ($upload_sizes_remove as $size) {
             remove_image_size($size);            
         }
     }
@@ -647,8 +655,9 @@ function remove_custom_image_sizes() {
 add_action('init', 'remove_custom_image_sizes');
 
 function upload_sizes_add() {
-    if (!empty($GLOBALS["upload_sizes_add"]) && is_array($GLOBALS["upload_sizes_add"])) {
-        foreach ($GLOBALS["upload_sizes_add"] as $key => $size) {
+    $upload_sizes_add = Data::get("upload_sizes_add");
+    if (!empty($upload_sizes_add) && is_array($upload_sizes_add)) {
+        foreach ($upload_sizes_add as $key => $size) {
             add_image_size($key, $size);            
         }
     }  
@@ -656,9 +665,10 @@ function upload_sizes_add() {
 add_action('after_setup_theme', 'upload_sizes_add');
 
 function upload_sizes_names($sizes) {
-    if (!empty($GLOBALS["upload_sizes_add"]) && is_array($GLOBALS["upload_sizes_add"])) {
+    $upload_sizes_add = Data::get("upload_sizes_add");
+    if (!empty($upload_sizes_add) && is_array($upload_sizes_add)) {
         $names = array();
-        foreach ($GLOBALS["upload_sizes_add"] as $key => $size) {
+        foreach ($upload_sizes_add as $key => $size) {
             $names[$key] = $key;
         }
         return array_merge($sizes, $names);
@@ -673,14 +683,15 @@ function get_image_set($args=array()){
 		$args["preview"] = true;
 	}
 	if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
-		if(isset(SITE_ASSETS["lcp"]["desktop"]) && SITE_ASSETS["lcp"]["desktop"] && isset(SITE_ASSETS["lcp"]["mobile"]) && SITE_ASSETS["lcp"]["mobile"]){
+		if(isset(SITE_ASSETS["lcp"]["desktop"]) && SITE_ASSETS["lcp"]["desktop"]){// && isset(SITE_ASSETS["lcp"]["mobile"]) && SITE_ASSETS["lcp"]["mobile"]){
 			
 		}else{
 			$args["preview"] = true;
 		}
 	}
-	$image = new SaltHareket\Image($args);
-	return $image->init();
+	//$image = new SaltHareket\Image($args);
+	//return $image->init();
+    return SaltHareket\Image::render($args);
     /*
 	$defaults = array(
 		'src' => '',
@@ -710,6 +721,7 @@ function get_video($video_args=array()){
 	$init  = $video_args["init"] ?? false;
 	$lazy  = $video_args["lazy"] ?? true;
 	$title = $args["video_title"] ?? "";
+    $language = Data::get("language");
 
 	$embed = '<div class="player plyr__video-embed {{class}}" {{config}} {{poster}} {{attrs}}><iframe
 	    class="video {{class_lazy}}"
@@ -787,7 +799,7 @@ function get_video($video_args=array()){
 		    }
 		break;
 
-		case "embed" :
+		/*case "embed" :
 		    if(!isset($args["video_url"]) || (isset($args["video_url"]) && empty($args["video_url"]))){
 		    	return;
 		    }
@@ -799,6 +811,9 @@ function get_video($video_args=array()){
 	        	$code = str_replace('src="{{src}}"', 'data-src="{{src}}"', $code);
 	        	if(image_is_lcp($poster)){
                     $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init" style="background-image: url(&quot;'.$poster.'&quot;);"></div>', $code);
+                    add_action('wp_head', function() use ($poster) {
+                        Salthareket\Image::add_preload_image($poster);
+                    });
 	        	}else{
 	        		$code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init lazy" data-bg="'.$poster.'"></div>', $code);
 	        	}
@@ -814,7 +829,56 @@ function get_video($video_args=array()){
 	        }
 	        $title = empty($title)?$data["title"]:$title;
 	        $code = str_replace("{{title}}", $title ?? '', $code);
-		break;
+		break;*/
+        case "embed" :
+            if(!isset($args["video_url"]) || empty($args["video_url"])){
+                return;
+            }
+            $embed = new OembedVideo($args["video_url"], "1600x900");
+            $data = $embed->get($settings);
+            
+            // Poster belirleme
+            $poster = (isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])) 
+                      ? $settings["video_image"] : ($data["src"] ?? '');
+
+            // 1. Durum: Lazy aktif MI ve Poster LCP MI?
+            $is_lcp = ($poster && image_is_lcp($poster));
+            
+            if($lazy && !$is_lcp){
+                // Standart Lazy Load: LCP değilse ve lazy açıkse
+                $code = str_replace('{{class_lazy}}', 'lazy', $code);
+                $code = str_replace('src="{{src}}"', 'data-src="{{src}}"', $code);
+                
+                if($poster){
+                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init lazy" data-bg="'.$poster.'"></div>', $code);
+                } else {
+                    $code = str_replace("{{poster_lazy}}", "", $code);
+                }
+            } else {
+                // LCP ise VEYA lazy kapalıysa: Lazy'yi iptal et
+                $code = str_replace('{{class_lazy}}', '', $code);
+                $code = str_replace('src="{{src}}"', 'src="{{src}}"', $code);
+                
+                if($poster){
+                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init" style="background-image: url(&quot;'.$poster.'&quot;);"></div>', $code);
+                    
+                    // LCP ise kafaya preload çak
+                    if($is_lcp){
+                        add_action('wp_head', function() use ($poster) {
+                            // Sizin sınıfa statik çağrı
+                            Salthareket\Image::add_preload_image($poster);
+                        }, 1);
+                    }
+                } else {
+                    $code = str_replace("{{poster_lazy}}", "", $code);
+                }
+            }
+
+            // Geri kalan replace işlemleri
+            $code = str_replace("{{src}}", $data["embed_url"], $code);
+            $code = str_replace("{{poster}}", ($poster ? "data-poster=".$poster : ""), $code);
+            $code = str_replace("{{title}}", $title ?: ($data["title"] ?? ''), $code);
+        break;
 
 		case "file" :
 		    if(isset($args["video_file"])){
@@ -864,13 +928,20 @@ function get_video($video_args=array()){
 
 			if(isset($settings["video_image"]) && !empty($settings["video_image"])){
 				$poster = $settings["video_image"];
-				$code = str_replace("{{poster}}", "poster=".$poster." data-poster=".$poster, $code);
-				if($lazy){
-					/*add_action('wp_head', function() use ($poster) {
-				        Salthareket\Image::add_preload_image($poster);
-				    });*/
-				    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster opacity-100 lazy" data-bg="'.$poster.'"></div>', $code);		
-				}
+                if($poster){
+                    $is_lcp = image_is_lcp($poster);
+                    if($lazy && !$is_lcp){
+                        $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster opacity-100 lazy" data-bg="'.$poster.'"></div>', $code);       
+                    }else{
+                        $code = str_replace("{{poster}}", "poster=".$poster." data-poster=".$poster, $code);
+                        add_action('wp_head', function() use ($poster) {
+                            Salthareket\Image::add_preload_image($poster);
+                        });
+                    }                    
+                }else{
+                    $code = str_replace("{{poster}}", "", $code);
+                    $code = str_replace("{{poster_lazy}}", "", $code);
+                }
 	        }else{
 	        	$code = str_replace("{{poster}}", "", $code);
 	        	$code = str_replace("{{poster_lazy}}", "", $code);
@@ -882,11 +953,17 @@ function get_video($video_args=array()){
 	        		foreach($files as $file){
 	        			if($file){
 	        				$lang = strtolower(substr($file["language_list"]["value"], 0, 2));
-	        				$vtt .= '<track kind="captions" label="'.$file["language_list"]["label"].'" src="'.$file["file"].'" srclang="'.$lang.'" '.($lang==$GLOBALS["language"]?"default":"").' />';
+	        				$vtt .= '<track kind="captions" label="'.$file["language_list"]["label"].'" src="'.$file["file"].'" srclang="'.$lang.'" '.($lang==$language?"default":"").' />';
 	        			}
 	        		}
 	        	}
 	        }
+            // --- GOOGLE (LIGHTHOUSE) İÇİN DÜZELTME ---
+            if(empty($vtt)){
+                // Eğer vtt yoksa, Google sussun diye boş bir track ekliyoruz.
+                // kind="captions" olması şart.
+                $vtt = '<track kind="captions" src="" srclang="tr" label="Yok" style="display:none;">';
+            }
 	        $code = str_replace("{{vtt}}", $vtt, $code);
 		break;
 
@@ -1119,10 +1196,8 @@ function get_embed_video_title($video_url) {
     return isset($data['title']) ? $data['title'] : false;
 }
 
-function image_is_lcp($image){
-	error_log("image_is_lcp");
-	error_log(print_r($image, true));
-	$lcp = new \Lcp();
-	return $lcp->is_lcp($image);
+function image_is_lcp($image) {
+    //error_log("image_is_lcp tetiklendi"); // Sadece çağrıldığını görelim
+    return \Lcp::getInstance()->is_lcp($image);
 }
 

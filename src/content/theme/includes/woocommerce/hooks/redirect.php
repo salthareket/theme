@@ -2,8 +2,9 @@
 
 //redirect checkout & cart page to login page if not logged
 function wpse_131562_redirect() {
-    if (! is_user_logged_in() && (is_cart() || is_checkout()) && !empty($GLOBALS["woo_redirect_not_logged"])) {
-        wp_redirect($GLOBALS["woo_redirect_not_logged"]);
+    $woo_redirect_not_logged = Data::get("woo_redirect_not_logged");
+    if (! is_user_logged_in() && (is_cart() || is_checkout()) && !empty($woo_redirect_not_logged)) {
+        wp_redirect($woo_redirect_not_logged);
         exit;
     }
 }

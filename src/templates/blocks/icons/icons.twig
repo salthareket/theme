@@ -37,32 +37,50 @@
 
                 {% set link_start = "" %}
                 {% if item.content.modal %}
+                    {% set modal_settings = item.content.modal_settings %}
 
-                    {% set attrs = " data-ajax-method='" ~ item.content.modal_settings.type ~ "' " ~ (item.content.modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ item.content.modal_settings.size ~ "' ") %}
-                    {% set attrs = attrs ~ " data-close='" ~ item.content.modal_settings.close ~ "' " %}
-                    {% set attrs = attrs ~ " data-scrollable='" ~ item.content.modal_settings.scrollable ~ "' " %}
-                    {% set attrs = attrs ~ " data-class='" ~ item.content.modal_settings.class ~ "' " %}
-                    {% set attrs = attrs ~ (item.content.modal_settings.title != "" ? " data-title='" ~ item.content.modal_settings.title ~ "' ":"") %}
+                    {{ modal_settings|print_r }}
 
-                    {% if item.content.modal_settings.type in ["page_modal", "form_modal"] %}
-                        {% set attrs = attrs ~ " data-id='" ~ item.content.modal_settings.id ~ "' " %}
+                    {% set attrs = " data-ajax-method='" ~ modal_settings.type ~ "' " ~ (modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ modal_settings.size ~ "' ") %}
+                    {% set attrs = attrs ~ " data-close='" ~ modal_settings.close ~ "' " %}
+                    {% set attrs = attrs ~ " data-scrollable='" ~ modal_settings.scrollable ~ "' " %}
+                    {% set attrs = attrs ~ " data-class='" ~ modal_settings.class ~ "' " %}
+                    {% set attrs = attrs ~ (modal_settings.title != "" ? " data-title='" ~ modal_settings.title ~ "' ":"") %}
+
+                    {% if modal_settings.type in ["page_modal", "form_modal"] %}
+                        {% set attrs = attrs ~ " data-id='" ~ modal_settings.id ~ "' " %}
                     {% endif %}
 
-                    {% if item.content.modal_settings.type in ["iframe_modal"] %}
-                        {% set attrs = attrs ~ " data-height='" ~ item.content.modal_settings.height ~ "' " %}
+                    {% if modal_settings.type in ["iframe_modal"] %}
+                        {% set attrs = attrs ~ " data-height='" ~ modal_settings.height ~ "' " %}
+                        {% if modal_settings.content_type == "url" %}
+                            {% set attrs = attrs ~ " data-url='" ~ modal_settings.url ~ "' " %}
+                        {% endif %}
+                        {% if modal_settings.content_type == "file" %}
+                            {% set attrs = attrs ~ " data-url='" ~ modal_settings.file ~ "' " %}
+                        {% endif %}
                     {% endif %}
 
-                    {% if item.content.modal_settings.type in ["map_modal"] %}
-                        {% set modal_args = [{"modal-body": "ratio ratio-" ~ item.content.modal_settings.ratio ~ " overflow-hidden"}]|json_attr %}
+                    {% if modal_settings.type in ["map_modal"] %}
+                        {% set modal_args = [{"modal-body": "ratio ratio-" ~ modal_settings.ratio ~ " overflow-hidden"}]|json_attr %}
                         {% set attrs = attrs ~ " data-modal='" ~ modal_args ~ "' " %}
-                        {% if item.content.modal_settings.location_type == "static" %}
-                            {% set attrs = attrs ~ " data-lat='" ~ item.content.modal_settings.lat ~ "' data-lng='" ~ item.content.modal_settings.lng ~ "' " %}
+                        {% if modal_settings.location_type == "static" %}
+                            {% set attrs = attrs ~ " data-lat='" ~ modal_settings.lat ~ "' data-lng='" ~ modal_settings.lng ~ "' " %}
                         {% endif %}
-                        {% if item.content.modal_settings.location_type == "dynamic" %}
-                            {% set attrs = attrs ~ " data-ids='" ~ item.content.modal_settings.posts|json_attr ~ "' " %}
+                        {% if modal_settings.location_type == "dynamic" %}
+                            {% set raw_posts = modal_settings.posts %}
+                            {% if raw_posts is empty %}
+                                {% set final_posts = [] %}
+                            {% elseif raw_posts is iterable %}
+                                {% set final_posts = raw_posts %}
+                            {% else %}
+                                {% set final_posts = [raw_posts] %}
+                            {% endif %}
+                            {% set posts_json = final_posts|json_encode|escape('html_attr') %}
+                            {% set attrs = attrs ~ " data-ids='" ~ posts_json ~ "' " %}
                         {% endif %}
-                        {% if item.content.modal_settings.marker_popup %}
-                            {% set popup_args = {"type": item.content.modal_settings.marker_popup_type, "title": item.content.modal_settings.marker_popup_title }|json_attr %}
+                        {% if modal_settings.marker_popup %}
+                            {% set popup_args = {"type": modal_settings.marker_popup_type, "title": modal_settings.marker_popup_title }|json_attr %}
                             {% set attrs = attrs ~ " data-popup='" ~ popup_args ~ "' " %}
                         {% endif %}
                     {% endif %}

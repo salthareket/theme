@@ -429,30 +429,30 @@
 @each $key, $space in $spacers {
   .p-#{$key} > .position-absolute-fill,
   .px-#{$key} > .position-absolute-fill {
-    left: $space;
-    right: $space;
+    left: $space!important;
+    right: $space!important;
   }
 
   .p-#{$key} > .position-absolute-fill,
   .py-#{$key} > .position-absolute-fill {
-    top: $space;
-    bottom: $space;
+    top: $space!important;
+    bottom: $space!important;
   }
 
   .pt-#{$key} > .position-absolute-fill {
-    top: $space;
+    top: $space!important;
   }
 
   .pb-#{$key} > .position-absolute-fill {
-    bottom: $space;
+    bottom: $space!important;
   }
 
   .pl-#{$key} > .position-absolute-fill {
-    left: $space;
+    left: $space!important;
   }
 
   .pr-#{$key} > .position-absolute-fill {
-    right: $space;
+    right: $space!important;
   }
 }
 @each $breakpoint, $min-width in $grid-breakpoints {
@@ -460,30 +460,30 @@
     @each $key, $space in $spacers {
       .p-#{$breakpoint}-#{$key} > .position-absolute-fill,
       .px-#{$breakpoint}-#{$key} > .position-absolute-fill {
-        left: $space;
-        right: $space;
+        left: $space!important;
+        right: $space!important;
       }
 
       .p-#{$breakpoint}-#{$key} > .position-absolute-fill,
       .py-#{$breakpoint}-#{$key} > .position-absolute-fill {
-        top: $space;
-        bottom: $space;
+        top: $space!important;
+        bottom: $space!important;
       }
 
       .pt-#{$breakpoint}-#{$key} > .position-absolute-fill {
-        top: $space;
+        top: $space!important;
       }
 
       .pb-#{$breakpoint}-#{$key} > .position-absolute-fill {
-        bottom: $space;
+        bottom: $space!important;
       }
 
       .pl-#{$breakpoint}-#{$key} > .position-absolute-fill {
-        left: $space;
+        left: $space!important;
       }
 
       .pr-#{$breakpoint}-#{$key} > .position-absolute-fill {
-        right: $space;
+        right: $space!important;
       }
     }
   }
@@ -1077,25 +1077,6 @@ lg 42
 
 
 
-
-.page-header {
-    background-color: #f9f9f9;
-    padding: 24px 48px;
-
-    h1 {
-        @include font-size(36px);
-        font-weight: 400;
-        margin: 0;
-        color: $base-color !important;
-    }
-
-    @include media-breakpoint-down(md) {
-        text-align: center !important;
-        padding: 24px 15px;
-    }
-}
-
-
 .marker-cluster-small {
     background-color: rgba($base-color, .6);
 
@@ -1442,11 +1423,9 @@ header#header-shop {
         background-color: rgba(#000, .05);
         background-position: center center;
         background-size: 30% auto;
-
-        @if($logo !="") {
-            background-image: url($logo);
-        }
-
+        //@if($logo !="") {
+            background-image: var(--logo-not-found);
+        //}
         background-repeat: no-repeat;
     }
 }

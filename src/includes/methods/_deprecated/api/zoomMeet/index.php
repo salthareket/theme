@@ -1,5 +1,5 @@
 <?php
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
             $data = array(
                "user_id" => $salt->user->ID,
                "redirect_url" => get_account_endpoint_url("profile")

@@ -3,7 +3,39 @@
 
 
 function get_menu($name){
-	return Timber::get_menu($name);
+	/*if (class_exists('Polylang')) {
+        global $polylang;
+        // Polylang'ın menü elemanlarını kurcalayan filtresini kaldırıyoruz
+        if (isset($polylang->nav_menu)) {
+            remove_filter('wp_get_nav_menu_items', array($polylang->nav_menu, 'wp_get_nav_menu_items'), 10);
+        }
+    }*/
+
+    // Menüyü Timber ile çekiyoruz
+
+    $lang = function_exists('ml_get_current_language') ? ml_get_current_language() : get_locale();
+    $key = 'menu_html_' . $name . '_' . $lang;
+
+    // Menüyü direkt HTML string olarak cache'le, Timber nesnesiyle uğraşma
+    return \QueryCache::wrap($key, function() use ($name) {
+        $menu = Timber::get_menu($name);
+        // Timber nesnesini değil, onun render edilmiş halini veya 
+        // içindeki itemları sadeleştirip döndürmen lazım.
+        // Ama en temizi Timber'ın twig tarafında render ettiği şeyi tutmaktır.
+        return $menu; 
+    }, ['opt' => 'global']);
+
+    //$menu = Timber::get_menu($name);
+
+    // İşlem bitince filtreyi geri takıyoruz (Sitenin geri kalanı için lazım)
+    /*if (class_exists('Polylang')) {
+        global $polylang;
+        if (isset($polylang->nav_menu)) {
+            add_filter('wp_get_nav_menu_items', array($polylang->nav_menu, 'wp_get_nav_menu_items'), 10, 3);
+        }
+    }*/
+
+    return $menu;
 }
 function timber_image($id){
 	return new Timber\Image($id);
@@ -27,10 +59,10 @@ function _post_query($args){
 	return new Timber\PostQuery($args);
 }
 function _get_field($field, $post_id){
-	return get_field($field, $post_id);
+	return \QueryCache::get_field($field, $post_id);
 }
 function _get_option($field){
-	return QueryCache::get_cached_option($field);//get_field($field, 'option');
+	return \QueryCache::get_option($field);//get_field($field, 'option');
 }
 function _get_option_cpt($field, $post_type){
 	return get_field($field, $post_type.'_options');

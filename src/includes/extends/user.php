@@ -20,7 +20,7 @@ class User extends Timber\User {
         //if($this->online){
             //return $this->online;
         //}else{
-            $this->online = $GLOBALS["salt"]->user_is_online($this->ID);
+            $this->online = Data::get("salt")->user_is_online($this->ID);
             return $this->online;
         //}
     }
@@ -95,8 +95,9 @@ class User extends Timber\User {
                     $last_login = human_time_diff($last_login);
                     break;
                 case "date":
-                    if($this->get_timezone() && $GLOBALS["user"]->get_timezone()){
-                        $last_login = $this->get_local_date(date('Y-m-d H:i:s', $last_login), $this->get_timezone(), $GLOBALS["user"]->get_timezone(), $format);
+                    $user = Data::get("user");
+                    if($this->get_timezone() && $user->get_timezone()){
+                        $last_login = $this->get_local_date(date('Y-m-d H:i:s', $last_login), $this->get_timezone(), $user->get_timezone(), $format);
                     }else{
                         $last_login = date($format, $last_login);
                     }
@@ -113,8 +114,9 @@ class User extends Timber\User {
                     $last_logout = human_time_diff($last_logout);
                     break;
                 case "date":
-                    if($this->get_timezone() && $GLOBALS["user"]->get_timezone()){
-                        $last_logout = $this->get_local_date(date('Y-m-d H:i:s', $last_logout), $this->get_timezone(), $GLOBALS["user"]->get_timezone(), $format) ;
+                    $user = Data::get("user");
+                    if($this->get_timezone() && $user->get_timezone()){
+                        $last_logout = $this->get_local_date(date('Y-m-d H:i:s', $last_logout), $this->get_timezone(), $user->get_timezone(), $format) ;
                     }else{
                         $last_login = date($format, $last_logout);
                     }
@@ -347,6 +349,7 @@ class User extends Timber\User {
         return $data;
     }
     public function get_map_popup(){
+        $user = Data::get("user");
         $map_data = $this->get_map_data();
         return  "<div class='row gx-3 gy-2'>" .
                     "<div class='col-auto'>" .
@@ -359,7 +362,7 @@ class User extends Timber\User {
                         "</ul>" .
                     "</div>" .
                     "<div class='col-12 text-primary' style='font-size:12px;'>" .
-                        $this->get_local_date("","",$GLOBALS["user"]->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
+                        $this->get_local_date("", "", $user->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
                     "</div>" .
                 "</div>";
     }
@@ -406,7 +409,7 @@ class User extends Timber\User {
         return $wpdb->get_var($args);
     }
     public function set_review_approve($id=0){
-        $salt = new Salt();
+        $salt = $salt = Salt::get_instance();//new Salt();
         return $salt->sessions(["action"=>"review_approve", "id" => $id]);
     }
     public function get_application_review($post_id=0){
@@ -431,22 +434,22 @@ class User extends Timber\User {
 
     //following
     public function is_following($id=0){
-        $salt = new Salt();
+        $salt = Salt::get_instance();//new Salt();
         $id = $id==0?$this->ID:$id;
         return $salt->is_following($id, "user");
     }
     public function is_follows($id=0){
-        $salt = new Salt();
+        $salt = Salt::get_instance();//new Salt();
         $id = $id==0?$this->ID:$id;
         return $salt->is_follows($id, "user");
     }
     public function get_followers($id=0){
-        $salt = new Salt();
+        $salt = Salt::get_instance();//new Salt();
         $id = $id==0?$this->ID:$id;
         return $salt->get_followers($id, "user");
     }
     public function get_followers_count($id=0){
-        $salt = new Salt();
+        $salt = Salt::get_instance();//new Salt();
         $id = $id==0?$this->ID:$id;
         return $salt->get_followers_count($id, "user");
     }

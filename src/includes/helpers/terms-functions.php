@@ -435,32 +435,39 @@ function get_category_total_post_count($taxonomy = "category", $term_id = 0){
 	    'nopaging' => true,
 	    'fields' => 'ids',
 	);
-	$query = QueryCache::get_cached_query($args);
+	$query = new WP_Query($args);
 	return $query->post_count;
 }
 
-function get_term_slugs_to_ids($slugs=array(), $taxonomy=""){
+function get_term_slugs_to_ids($slugs = array(), $taxonomy = "") {
     global $wpdb;
     $results = array();
-    if($slugs && !empty($taxonomy)){
-        if(!is_array($slugs)){
-           $slugs = [$slugs];
+
+    if (!empty($slugs) && !empty($taxonomy)) {
+        // Tekil slug gelirse diziye çevir
+        if (!is_array($slugs)) {
+            $slugs = array($slugs);
         }
-        $slug_where = " and (";
-        foreach($slugs as $key => $slug){
-            $slug_where .= "t.slug = '$slug'";
-            if($key < count($slugs)-1){
-               $slug_where .= " or ";
-            }
-        }
-        $slug_where .= ")";
-        $query = "SELECT DISTINCT t.term_id as id FROM wp_term_taxonomy tt
-                    INNER JOIN wp_terms AS t ON (t.term_id = tt.term_id)
-                    WHERE tt.taxonomy = '$taxonomy' $slug_where";
-        $results = $wpdb->get_results($query);
-        if($results){
-           $results = wp_list_pluck($results, "id");
+
+        // SQL Injection önlemi için slug'ları temizle ve tırnak içine al
+        // $wpdb->prefix otomatik olarak veritabanı ön ekini getirir (Örn: wp_terms)
+        $slugs_in = "'" . implode("','", array_map('esc_sql', $slugs)) . "'";
+
+        // Sorguyu prepare ile hazırlıyoruz ve dinamik tablo isimlerini kullanıyoruz
+        $query = $wpdb->prepare("
+            SELECT DISTINCT t.term_id as id 
+            FROM {$wpdb->term_taxonomy} tt
+            INNER JOIN {$wpdb->terms} AS t ON (t.term_id = tt.term_id)
+            WHERE tt.taxonomy = %s 
+            AND t.slug IN ($slugs_in)
+        ", $taxonomy);
+
+        $db_results = $wpdb->get_results($query);
+
+        if ($db_results) {
+            $results = wp_list_pluck($db_results, "id");
         }
     }
+
     return $results;
 }

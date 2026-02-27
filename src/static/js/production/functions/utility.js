@@ -1,5 +1,7 @@
 function debugJS(value){
-    if (site_config?.debug === true) {
+    const config = typeof site_config !== 'undefined' ? site_config : {};
+    
+    if (config.debug === true) {
         console.log(value);
     }
 }
@@ -504,11 +506,21 @@ function getCssValue(property){
 }
 
 function fitToContainer() {
-    const iframes = document.querySelectorAll('.h-container');
-    iframes.forEach(iframe => {
-        const container = iframe.parentElement;
-        iframe.style.height = container.offsetHeight + 'px';
+    const containers = document.querySelectorAll('.h-container');
+    if (containers.length === 0) return;
+
+    containers.forEach(el => {
+        const parentHeight = el.parentElement.offsetHeight;
+        // Gereksiz DOM tetiklemesini önlemek için sadece fark varsa güncelle
+        if (el.style.height !== parentHeight + 'px') {
+            el.style.height = parentHeight + 'px';
+        }
     });
+
+    // Sayfa yapısı değiştiği için Lenis'e "yüksekliği tekrar ölç" diyoruz
+    if (typeof lenis !== "undefined") {
+        lenis.resize();
+    }
 }
 
 function resizeDebounce(func, wait) {
@@ -557,6 +569,9 @@ function errorView($data) {
     return false;
 }
 function ajaxResponseFilter(input) {
+  if (typeof input === "object" && input !== null) return input;
+  
+  // Eğer string değilse (ve obje de değilse, örn: undefined) o zaman null dön
   if (typeof input !== "string") return null;
 
   // Trim + BOM + olası XSSI prefix temizliği
@@ -630,16 +645,29 @@ function ajaxResponseFilter(input) {
   }
 }
 function response_view(response) {
+    // response objesinin varlığını kontrol edelim
+    if (!response) return;
+
     var modal = $(".modal.show");
+    
+    // Güvenli hasOwnProperty kontrolü için kısa yol
+    var hasProp = function(obj, prop) {
+        return Object.prototype.hasOwnProperty.call(obj, prop);
+    };
+
     if (response.error) {
         $("body").removeClass("loading-process");
-        if (response.hasOwnProperty("error_type") && response.error_type == "nonce") {
+        
+        // jQuery 4.0 güvenli kontrol
+        if (hasProp(response, "error_type") && response.error_type == "nonce") {
             if (modal.length > 0) modal.modal("hide");
+            
             _alert(response.message, response.description, "", "", "Refresh Page", function() {
                 window.location.reload();
             });
         } else {
-            _alert(response.message, response.description, "", "", "", "", true);
+            // Hata mesajı var mı kontrolü
+            _alert(response.message || "Hata!", response.description || "", "", "", "", "", true);
         }
     } else {
         if (response.redirect) {
@@ -647,16 +675,22 @@ function response_view(response) {
                 if (modal.length > 0) modal.addClass("remove-on-hidden").modal("hide");
                 _alert(response.message, response.description);
             }
+            // Redirect işlemi
             redirect_polyfill(response.redirect, response.redirect_blank);
+            
         } else if (response.refresh) {
             $("body").addClass("loading");
             window.location.reload();
+            
         } else if (response.refresh_confirm) {
             _alert(response.message, response.description, "", "", "Tamam", function() {
                 window.location.reload();
             });
+            
         } else {
+            // Sadece mesaj gösterip modal kapatma durumu
             if (response.message) {
+                // Eğer halihazırda bir alert gösteriliyorsa modalı gizle
                 if (modal.length > 0) modal.addClass("remove-on-hidden").modal("hide");
                 _alert(response.message, response.description);
             }
@@ -674,7 +708,7 @@ function translate(str, count = 1, replacements = {}) {
     let entry = str;
     
     const searchKey = escapeToUnicode(str); 
-    //console.log(str + " = " +searchKey);
+    //debugJS(str + " = " +searchKey);
     const dictEntry = site_config.dictionary?.[searchKey] || site_config.dictionary?.[str]; 
     const defaultLang = site_config.language_default;
     const currentLang = site_config.user_language;
@@ -692,3 +726,23 @@ function translate(str, count = 1, replacements = {}) {
     }
     return entry;
 }
+
+
+// Bekleyen Init İşlemleri (Modüllerin yüklenmesini bekleyen)
+waiting_init = {
+    elements: [],
+    add: function(elements, callback) {
+        this.elements.push({
+            elements: elements,
+            callback: callback
+        });
+    },
+    initElement: function() {
+        this.elements.forEach(function(item) {
+            item.elements.forEach(function(element) {
+                item.callback(element);
+            });
+        });
+        this.elements = [];
+    }
+};

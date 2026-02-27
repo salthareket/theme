@@ -115,8 +115,8 @@
                var code = countries[key]["value"].toUpperCase();//.toLowerCase();
                if(code){
                   var country = document.querySelector(".world-map [id^='" + code + "_']");
-                  console.log(code)
-                  console.log(country)
+                  debugJS(code)
+                  debugJS(country)
                   if(country){
                       country.classList.add("active");
                       country.setAttribute("data-bs-toggle", "tooltip");
@@ -124,7 +124,7 @@
                       country.setAttribute("data-bs-custom-class", "tooltip-follow-cursor");
                       country.setAttribute("data-bs-title", countries[key]["label"]);       
                   }else{
-                     console.log(code)
+                     debugJS(code)
                   }
                }
             }

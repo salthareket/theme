@@ -1,8 +1,16 @@
 <?php
+
 use SaltHareket\Theme;
 
+
 class StarterSite extends Timber\Site{
+
+    private $is_admin = false;
+    private $is_user_logged_in = false;
+
     function __construct(){
+        $this->is_admin = is_admin();
+        $this->is_user_logged_in = is_user_logged_in();
         add_filter("timber/context", [$this, "add_to_context"]);
         add_filter("timber/twig", [$this, "add_to_twig"]);
         add_filter('timber/twig/filters', [$this, "timber_twig_filters"]);
@@ -19,8 +27,8 @@ class StarterSite extends Timber\Site{
 
         $context["ajax_process"] = $ajax_process;
 
-        $salt = $GLOBALS["salt"];
-        $user = $GLOBALS["user"];
+        $salt = Data::get("salt");
+        $user = Data::get("user");
 
         $context["is_fetch"] = IS_INTERNAL_FETCH;
 
@@ -66,15 +74,14 @@ class StarterSite extends Timber\Site{
         $context["text_domain"] = TEXT_DOMAIN;
         
         //menus
-        $menus = array();
+        /*$menus = array();
         foreach (array_keys(get_registered_nav_menus()) as $location) {
-            if (!has_nav_menu($location)) {
-                continue;
+            print_r($location);
+            if (has_nav_menu($location)) {
+                $menus[$location] = QueryCache::get_cached_menu($location);
             }
-            $menus[$location] = \Timber::get_menu($location);
         }
-        //print_r($menus);
-        $context["menu"] = $menus;
+        $context["menu"] = $menus;*/
 
         $upload_dir = wp_upload_dir();
         $this->upload_url = $upload_dir['baseurl']."/";
@@ -82,7 +89,7 @@ class StarterSite extends Timber\Site{
         // meta
         $context["site"] = $this;
         $context["is_home"] = boolval(is_front_page());
-        $context["home_title"] = get_the_title(get_option("page_on_front"));
+        //$context["home_title"] = get_the_title(get_option("page_on_front"));
         $context["current_page_type"] = get_current_page_type();
         $context["page_type"] = get_page_type();
 
@@ -94,55 +101,35 @@ class StarterSite extends Timber\Site{
         }
            
         // logo
-        $logo = QueryCache::get_cached_option("logo");//get_field("logo", "option");
-        $context["logo"] = $logo;
-
-        $logo_affix = QueryCache::get_cached_option("logo_affix");//get_field("logo_affix", "option");
-        $context["logo_affix"] = $logo_affix;
-
-        $logo_mobile = QueryCache::get_cached_option("logo_mobile");//get_field("logo_mobile", "option");
-        $context["logo_mobile"] = $logo_mobile;
-
-        $logo_mobile_breakpoint = QueryCache::get_cached_option("logo_mobile_breakpoint");//get_field("logo_mobile_breakpoint", "option");
-        $context["logo_mobile_breakpoint"] = $logo_mobile_breakpoint;
-
-        $logo_footer = QueryCache::get_cached_option("logo_footer");//get_field("logo_footer", "option");
-        $context["logo_footer"] = $logo_footer;
-
-        $logo_icon = QueryCache::get_cached_option("logo_icon");//get_field("logo_icon", "option");
-        $context["logo_icon"] = $logo_icon;
+        $logo_fields = ['logo', 'logo_affix', 'logo_mobile', 'logo_mobile_breakpoint', 'logo_footer', 'logo_icon', "logo_not_found"];
+        foreach ($logo_fields as $field) {
+            $context[$field] = QueryCache::get_field($field, 'options');
+        }
         
-        if(!is_admin() && class_exists("ACF") && !$ajax_process){
+        if(!$this->is_admin && class_exists("ACF") && !$ajax_process){
             $header_footer_options = header_footer_options();
             $context["header_options"] = $header_footer_options["header"];
             $context["footer_options"] = $header_footer_options["footer"];
-            $context["theme_styles"]   = acf_get_theme_styles();//get_field("theme_styles", "option");
+            $context["theme_styles"]   = acf_get_theme_styles();
         }
         
-        if(!isset($GLOBALS["site_config"])){
+        /*if(!isset($GLOBALS["site_config"])){
            $GLOBALS["site_config"] = SaltHareket\Theme::get_site_config();
         }
-        $context["site_config"] = $GLOBALS["site_config"];
+        $context["site_config"] = $GLOBALS["site_config"];*/
             
         if (ENABLE_FAVORITES) {
-            $context["favorites"] = $GLOBALS["favorites"];
+            $context["favorites"] = Data::get("favorites");
         }
 
         if (ENABLE_SEARCH_HISTORY) {
-            $context["search_history"] = $GLOBALS["search_history"];
+            $context["search_history"] = Data::get("search_history");
         }
 
-        if (class_exists("WPCF7")) {
-            $context["forms"] = get_cf7_forms();
-        }
-
-        $context["woocommerce"] = 0;
-        if (class_exists("WooCommerce")) {
-            $context["woocommerce"] = 1;
-        }
+        $context["woocommerce"] = boolval(ENABLE_ECOMMERCE);
 
         if (ENABLE_MEMBERSHIP) {
-            if (is_user_logged_in()) {
+            if ($this->is_user_logged_in) {
                 $context["avatar"] = $user->get_avatar(); //$avatar;
                 $context["avatar_url"] = str_replace(
                     "wp_user_avatar",
@@ -153,16 +140,18 @@ class StarterSite extends Timber\Site{
             }
         }
 
-        $context["language"] = $GLOBALS["language"];
-        //print_r($GLOBALS["language"]);
+        /*if (class_exists("WPCF7")) {
+            $context["forms"] = get_cf7_forms();
+        }*/
+
+        $context["language"] = Data::get("language");
         if(ENABLE_MULTILANGUAGE){
-            $context["languages"] = $GLOBALS["languages"];
-            $context["language_default"] = $GLOBALS["language_default"];
+            $context["languages"] = Data::get("languages", []);
+            $context["language_default"] = Data::get("language_default", "");
             if(ENABLE_MULTILANGUAGE == "polylang"){
-                $context["site"]->url = pll_home_url($GLOBALS["language"]);
+                $context["site"]->url = pll_home_url(Data::get("language"));
             }
         }
-
 
         if(!$ajax_process){
 
@@ -174,33 +163,33 @@ class StarterSite extends Timber\Site{
                         "{{breadcrumb_h1}}</div>",
                         1
                     );
-                    if(!isset($GLOBALS["breadcrumb_h1"])){
-                        $GLOBALS["breadcrumb_h1"] = "";
+                    if(!Data::get("breadcrumb_h1")){
+                        Data::set("breadcrumb_h1", "");
                     }
-                    if(!isset($GLOBALS["breadcrumb_count"] )){
-                        $GLOBALS["breadcrumb_count"] = 0;
+                    if(!Data::get("breadcrumb_count")){
+                        Data::set("breadcrumb_count", 0);
                     }
-                    $breadcrumb = str_replace("{{breadcrumb_count}}", $GLOBALS["breadcrumb_count"]>0?"has-items":"", $breadcrumb);
-                    $breadcrumb = str_replace("{{breadcrumb_h1}}", $GLOBALS["breadcrumb_h1"], $breadcrumb);
+                    $breadcrumb = str_replace("{{breadcrumb_count}}", Data::get("breadcrumb_count")>0?"has-items":"", $breadcrumb);
+                    $breadcrumb = str_replace("{{breadcrumb_h1}}", Data::get("breadcrumb_h1"), $breadcrumb);
                 }else{
-                    if(isset($GLOBALS["breadcrumb_h1"])){
-                       $breadcrumb = '<div class="breadcrumb-container">'.$GLOBALS["breadcrumb_h1"]."</div>";
+                    if(Data::get("breadcrumb_h1")){
+                       $breadcrumb = '<div class="breadcrumb-container">'.Data::get("breadcrumb_h1")."</div>";
                     }
                 }
                 $context["breadcrumb"] = $breadcrumb;
             }
 
-            if (isset($GLOBALS["url_query_vars"])) {
+            if (Data::get("url_query_vars")) {
                 $context["url_query_vars"] = [];
-                foreach ($GLOBALS["url_query_vars"] as $var) {
+                foreach (Data::get("url_query_vars") as $var) {
                     $context["url_query_vars"][$var] = get_query_var($var);
                 }
             }
             $context["querystring"] = json_decode(queryStringJSON(), true);
             $context["endpoint"] = getUrlEndpoint();
             $context["url_parts"] = getUrlParts();
-            $context["base_urls"] = isset($GLOBALS["base_urls"])?$GLOBALS["base_urls"]:[];
-            $context["breakpoints"] = isset($GLOBALS["breakpoints"])?array_keys($GLOBALS["breakpoints"]):[];
+            $context["base_urls"] = Data::get("base_urls", []);
+            $context["breakpoints"] = Data::get("breakpoints", []);
 
             if (ENABLE_POSTCODE_VALIDATION) {
                 $postcodes = json_decode(file_get_contents(SH_STATIC_PATH ."data/postcodes.json"), true);
@@ -216,7 +205,7 @@ class StarterSite extends Timber\Site{
             }
 
             $post_under_construction = false;
-            if(ACTIVATE_UNDER_CONSTRUCTION && !is_user_logged_in() && $user->role != "administrator"){
+            if(ACTIVATE_UNDER_CONSTRUCTION && !$this->is_user_logged_in && $user->role != "administrator"){
                 if(isset($post->ID) && in_array($post->ID, WHITE_PAGES_UNDER_CONSTRUCTION)){
                     $post = Timber::get_post($post);//new Timber\Post($post);     
                 }else{
@@ -279,9 +268,9 @@ class StarterSite extends Timber\Site{
                 global $wp_query;
                 $post_type = $wp_query->query_vars['post_type'] ?? null;
                 if ($post_type) {
-                    $custom_settings = get_field('custom_settings', $post_type.'_options');
+                    $custom_settings = QueryCache::get_field('custom_settings', $post_type.'_options');
                     if($custom_settings){
-                        $page_settings = get_field('page_settings', $post->post_type.'_options');
+                        $page_settings = QueryCache::get_field('page_settings', $post->post_type.'_options');
                         $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
                         $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
                         $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
@@ -327,9 +316,9 @@ class StarterSite extends Timber\Site{
                         if(ENABLE_MULTILANGUAGE == "polylang"){
                             $post_id .= '_'.pll_default_language( 'locale' );
                         }
-                        $custom_settings = get_field('custom_settings', $post_id);
+                        $custom_settings = QueryCache::get_field('custom_settings', $post_id);
                         if($custom_settings){
-                            $page_settings = get_field('page_settings', $post_id);
+                            $page_settings = QueryCache::get_field('page_settings', $post_id);
                             $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
                             $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
                             $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
@@ -342,6 +331,7 @@ class StarterSite extends Timber\Site{
                 }
             }
 
+
             $current_url = current_url();
             global $wp;
             $query_string = add_query_arg( array(), $wp->request );
@@ -353,6 +343,7 @@ class StarterSite extends Timber\Site{
                 }            
             }
             $context["current_url"] = $current_url;
+
 
 
             global $wp_query;
@@ -383,7 +374,7 @@ class StarterSite extends Timber\Site{
                     $hero_title = "";
                     $block_hero = "";
                     $block_id = "";
-                    $GLOBALS["block_index"] = -1;
+                    Data::set("block_index", -1);
 
                     // Use posts page if posts page is defined
                     $post_blocks = array();
@@ -412,7 +403,7 @@ class StarterSite extends Timber\Site{
                                     }
                                     $block['attrs']["id"] = "block_hero";
                                     $block_hero = $block;
-                                    $GLOBALS["block_index"] = $key;
+                                    Data::set("block_index", $key);
                                     break;
                                 }
                             }
@@ -465,17 +456,15 @@ class StarterSite extends Timber\Site{
                         'paged' => $paged,
                         "posts_per_page" => $block_search_results_posts_per_page,
                     );
-                    $posts = QueryCache::get_cached_query($args);
                     $posts = Timber::get_posts($args);
                     $context['posts'] = $posts;
                     $found_posts = $posts->found_posts;
                 }
                 $context['found_posts'] = $found_posts;
             }
-
         }
 
-        $context["post_pagination"] = $GLOBALS["post_pagination"];
+        $context["post_pagination"] = Data::get("post_pagination", []);
 
         if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
             error_log("add_to_context on startsite.php site_assets var");
@@ -485,24 +474,31 @@ class StarterSite extends Timber\Site{
                 $code = str_replace("{home_url}", home_url("/"), $code);
                 $context["site_assets_js"] = $code;
             }
-
             
             $lcp_data = SITE_ASSETS["lcp"];
             $lcp_images = [];
             if(isset($lcp_data["desktop"]["type"]) && $lcp_data["desktop"]["type"] == "preload" && !empty($lcp_data["desktop"]["id"])){
-                //preg_match('/href="([^"]+)"/', SITE_ASSETS["desktop"]["code"], $matches);
-                //if (isset($matches[1])) {
-                    $lcp_images[] = $lcp_data["desktop"]["id"];//$matches[1];
-                //}
+                $lcp_images[] = $lcp_data["desktop"]["id"];//$matches[1];
             }
             if(isset($lcp_data["mobile"]["type"]) && $lcp_data["mobile"]["type"] == "preload" && !empty($lcp_data["mobile"]["id"])){
-                //preg_match('/href="([^"]+)"/', SITE_ASSETS["mobile"]["code"], $matches);
-                //if (isset($matches[1])) {
-                    $lcp_images[] = $lcp_data["mobile"]["id"];//$matches[1];
-                //}
+                $lcp_images[] = $lcp_data["mobile"]["id"];//$matches[1];
             }
             $context["lcp_images"] = $lcp_images;
         }
+
+        $forms = []; 
+        if (class_exists("WPCF7")) {
+            $has_form = false;
+            if (defined('SITE_ASSETS') && isset(SITE_ASSETS["wp_js"])) {
+                if ( is_array(SITE_ASSETS["wp_js"]) && (in_array('contact-form-7', SITE_ASSETS["wp_js"]) || in_array('contact_form', SITE_ASSETS["wp_js"]))) {
+                    $has_form = true;
+                }
+            }
+            if ($has_form) {
+                $forms = get_cf7_forms(); 
+            }
+        }
+        $context["forms"] = $forms;
 
         $plugins_file = get_stylesheet_directory() ."/static/js/js_files_all.json";
         if(file_exists($plugins_file)){
@@ -515,7 +511,7 @@ class StarterSite extends Timber\Site{
 
         $context["fetch"] = isset($_GET["fetch"]) || (!SEPERATE_CSS && !SEPERATE_JS)?true:false;
 
-        //$context["salt"] = $salt;
+        $context["salt"] = $salt;
         $context["user"] = $user;
 
         return $context;
@@ -539,11 +535,10 @@ class StarterSite extends Timber\Site{
                         $post_types = array_keys($post_types);
                         if(in_array($folder, $post_types)){
                             $page = "";
-                            if(isset($GLOBALS["pagination_page"]) && !empty($GLOBALS["pagination_page"])){
-                                $page = "data-page='".$GLOBALS["pagination_page"]."'";
+                            if(Data::get("pagination_page")){
+                                $page = "data-page='".Data::get("pagination_page")."'";
                             }
                             $output = "<div class='col' ".$page.">".$output."</div>";
-                            //$parser = \WyriHaximus\HtmlCompress\Factory::construct();
                             $parser = \WyriHaximus\HtmlCompress\Factory::constructFastest();
                             $output = $parser->compress($output);
                         }
@@ -604,8 +599,8 @@ class StarterSite extends Timber\Site{
                 'callable' => $filter,
             ];
         }
-        if(isset($GLOBALS["twig_filters"])){
-            $twig_filters = $GLOBALS["twig_filters"];
+        if(Data::get("twig_filters")){
+            $twig_filters = Data::get("twig_filters");
             foreach ($twig_filters as $filter) {
                 $filters[$filter] = [
                     'callable' => $filter,
@@ -656,8 +651,8 @@ class StarterSite extends Timber\Site{
             'callable' => 'localization',
         ];
         
-        if(isset($GLOBALS["twig_functions"])){
-            $twig_functions = $GLOBALS["twig_functions"];
+        if(Data::get("twig_functions")){
+            $twig_functions = Data::get("twig_functions");
             foreach ($twig_functions as $key => $function) {
                 $functions[$key] = [
                     'callable' => $function,
@@ -668,8 +663,8 @@ class StarterSite extends Timber\Site{
     }
 
     function timber_post_image_extensions($extensions) {
-        if(isset($GLOBALS["upload_mimes"])){
-            foreach($GLOBALS["upload_mimes"] as $key => $mime){
+        if(Data::get("upload_mimes")){
+            foreach(Data::get("upload_mimes") as $key => $mime){
                 $extensions[] = $key;
             }
         }

@@ -129,7 +129,12 @@ class Favorites{
 
             global $wpdb;
             //$count = $wpdb->get_var("select count(*) from wp_usermeta where user_id=".$this->user_id." and meta_key='_favorites'");
-            $favorites = $wpdb->get_results("select meta_value from wp_usermeta where user_id=".$this->user_id." and meta_key='_favorites'");
+            $favorites = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_favorites'",
+                    $this->user_id
+                )
+            );
             if($favorites){
                 $favorites = wp_list_pluck($favorites, "meta_value");
             }

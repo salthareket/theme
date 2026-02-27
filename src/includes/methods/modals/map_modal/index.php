@@ -1,6 +1,6 @@
 <?php
 $html = "";
-$map_service = QueryCache::get_cached_option("map_service");//get_cached_field("map_service", "option");
+$map_service = QueryCache::get_field("map_service", "options");//get_option("options_map_service");//get_cached_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -48,14 +48,26 @@ if($id){
     $html = get_map_config($skeleton);//get_map_config($post->get_map_data());
 }else if($ids){
     $map_data = [];
-    
+
+    /*global $polylang;
+    if (isset($polylang)) {
+        // Polylang'in sorgu üzerindeki etkisini durdur
+        remove_filter('posts_where', array($polylang->filters, 'posts_where'), 10, 2);
+    }*/
+        
     $args = array(
+        'post_type'      => 'any',
         'post__in' => $ids,
         'posts_per_page' => -1,
         'orderby' => 'post__in',
+        'suppress_filters' => true,
+        'lang'           => '',
     );
-    $posts = QueryCache::get_cached_query($args);
-    $posts = Timber::get_posts($posts);
+    $posts = Timber::get_posts($args);
+
+    /*if (isset($polylang)) {
+        add_filter('posts_where', array($polylang->filters, 'posts_where'), 10, 2);
+    }*/
 
     //$posts = Timber::get_posts($ids);
     if($posts){

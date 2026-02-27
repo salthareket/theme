@@ -9,7 +9,7 @@ function compile_files_config($enable_production=false){
 	//setting languages
 	$languages = array();
 	if(ENABLE_MULTILANGUAGE){
-		foreach($GLOBALS["languages"] as $language) {
+		foreach(Data::get("languages") as $language) {
 			array_push($languages, $language["name"]);
 		}
 	}
@@ -69,6 +69,20 @@ function compile_files_config($enable_production=false){
 	$header_has_navigation = header_has_navigation();
 
 	$plugins = array();
+	$plugins['enquire'] = [
+		"c"   => false,
+		"admin" => false,
+		"url" => [
+			$node_path . 'enquire.js/dist/enquire.min.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"  => "",
+		"whitelist" => [],
+		"required" => []
+	];
 	$plugins['bootstrap'] = [
 		"c"   => false,
 		"admin" => false,
@@ -159,7 +173,7 @@ function compile_files_config($enable_production=false){
 		"css_only_local" => false,
 		"class" => ["player"],
 		"attrs" => [],
-		"init"     => "plyr_init",
+		"init"     => "init_plyr",
 		"whitelist" => [
 			".plyr",
 			".plyr-*"
@@ -533,6 +547,21 @@ function compile_files_config($enable_production=false){
 		"required" => []
 	];
 
+	$plugins['web-vitals'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'web-vitals/dist/web-vitals.attribution.iife.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [],
+		"required" => []
+	];
+
 	$plugins['bs-tab-collapse'] = [
    		"c"	=> true,
    		"admin" => false,
@@ -571,7 +600,7 @@ function compile_files_config($enable_production=false){
 	}
     
     if(function_exists("compile_files_plugins")){
-    	//error_log(" ----------------  compile_files_plugins");
+    	////error_log(" ----------------  compile_files_plugins");
 		$theme_plugins = compile_files_plugins($enable_production);
 
 		if($theme_plugins){
@@ -579,7 +608,7 @@ function compile_files_config($enable_production=false){
 		}    	
     }
 
-    //error_log(print_r($plugins, true));
+    ////error_log(print_r($plugins, true));
 
 
    $header_css = array();
@@ -610,7 +639,10 @@ function compile_files_config($enable_production=false){
 
 
 	$header_js = array();
-	$header_js['enquire'] = $node_path . 'enquire.js/dist/enquire.min.js';
+	//$header_js['enquire'] = $node_path . 'enquire.js/dist/enquire.min.js';
+
+
+
 	//$header_js['defaults'] = $prod_path .'defaults.js';
 	
 	//$header_js['intl'] = $node_path . 'intl/dist/Intl.min.js';
@@ -726,7 +758,7 @@ function compile_files_config($enable_production=false){
 		"js"     => $js
 	);
 
-	//error_log(json_encode($minify));
+	////error_log(json_encode($minify));
 
 	return $minify;
 }
@@ -761,10 +793,10 @@ function combine_and_cache_files($type, $files) {
                 // İçeriği ekle ve sonuna yeni satır ekle
                 $combined_content .= $content . PHP_EOL; // Sonuna yeni satır ekleniyor
             } else {
-                error_log("Error reading file: $file_system_path");
+                //error_log("Error reading file: $file_system_path");
             }
         } else {
-            error_log("File does not exist: $file_system_path");
+            //error_log("File does not exist: $file_system_path");
         }
     }
 

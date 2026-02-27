@@ -12,44 +12,41 @@ function salthub_fix_htaccess_policy() {
     $marker_start  = '# BEGIN PSI Cache Policy Fix';
     $marker_end    = '# END PSI Cache Policy Fix';
 
-    $fix_block = <<<HTACCESS
-$marker_start
-<IfModule mod_headers.c>
-
-  <FilesMatch "\\.(js|css|woff|woff2|ttf|otf|eot|svg|jpg|jpeg|png|gif|webp|avif|ico)$">
-    Header set Cache-Control "public, max-age=31536000"
+    // Yeni kural bloğu (Uzantılar ve video formatları eklendi)
+    $fix_block = $marker_start . "\n" .
+"<IfModule mod_headers.c>
+  <FilesMatch \"\.(js|css|woff|woff2|ttf|otf|eot|svg|jpg|jpeg|png|gif|webp|avif|ico|mp4|webm|ogv)$\">
+    Header set Cache-Control \"public, max-age=31536000\"
   </FilesMatch>
-
-  <FilesMatch "\\.(html|htm)$">
-    Header set Cache-Control "no-store, no-cache, must-revalidate"
-    Header set Pragma "no-cache"
-    Header set Expires "0"
+  <FilesMatch \"\.(html|htm)$\">
+    Header set Cache-Control \"no-store, no-cache, must-revalidate\"
+    Header set Pragma \"no-cache\"
+    Header set Expires \"0\"
   </FilesMatch>
+</IfModule>\n" . 
+    $marker_end;
 
-</IfModule>
-$marker_end
-HTACCESS;
+    if (!file_exists($htaccess_path)) return;
 
-    if ( ! file_exists( $htaccess_path ) ) {
-        error_log('[WPR FIX] .htaccess bulunamadı!');
-        return;
-    }
-
-    // Yedek al
+    // Yedekleme özelliği korunuyor
     @copy($htaccess_path, $htaccess_path . '.bak');
 
     $contents = file_get_contents($htaccess_path);
 
-    // Mevcut blok varsa sil
-    $contents = preg_replace("/$marker_start(.|\s)*?$marker_end/", '', $contents);
+    // 1. TEMİZLİK: Markerlar arasındaki HER ŞEYİ sil (İçeriğe bakma, sadece markerlara bak)
+    // /s modifier satır sonlarını yakalar. /m çoklu satır için.
+    $regex = "/" . preg_quote($marker_start, '/') . ".*?" . preg_quote($marker_end, '/') . "/s";
+    $contents = preg_replace($regex, '', $contents);
 
-    // WP Rocket bloğundan hemen sonra ekle
+    // 2. YERLEŞTİRME: WP Rocket bloğundan sonra ekle
     if (strpos($contents, '# END WP Rocket') !== false) {
         $contents = str_replace('# END WP Rocket', "# END WP Rocket\n\n" . $fix_block, $contents);
     } else {
-        $contents .= "\n\n" . $fix_block;
+        $contents = trim($contents) . "\n\n" . $fix_block;
     }
 
-    file_put_contents($htaccess_path, $contents);
-    error_log('[WPR FIX] PSI Cache Policy Fix başarıyla uygulandı.');
+    // 3. BOŞLUK SÜPÜRGESİ: 3 ve daha fazla boş satırı 2'ye düşürür, birikmeyi engeller.
+    $contents = preg_replace("/\n{3,}/", "\n\n", $contents);
+
+    file_put_contents($htaccess_path, trim($contents) . "\n");
 }

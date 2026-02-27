@@ -3,36 +3,36 @@
 {% extends "base.twig" %}
 
 {% set page_settings_default = {
-            full : true,
-            classes : {
-                body : "page-search",
-                main : "py-5",
-                container : "",
-                gap : "",
-            },
-            add_offcanvas : 0,
-            offcanvas : {
-                individual : false,
-                size : "md",
-                width : 3,
-                position : "start",
-                template : "",
-                title : "",
-            },
-            alert : {
-                type : "danger",
-                title : "",
-                message : "",
-                position : "bottom",
-                fixed : false,
-                class : "",
-                html : ""
-            },
-            paging : {
-                posts_per_page : 10,
-                page : 1
-            }
-        }
+    full : true,
+    classes : {
+        body : "page-search",
+        main : "py-5",
+        container : "",
+        gap : ""
+    },
+    add_offcanvas : 0,
+    offcanvas : {
+        individual : false,
+        size : "md",
+        width : 3,
+        position : "start",
+        template : "",
+        title : ""
+    },
+    alert : {
+        type : "danger",
+        title : "",
+        message : "",
+        position : "top",
+        fixed : false,
+        class : "",
+        html : ""
+    },
+    paging : {
+        posts_per_page : 10,
+        page : 1
+    }
+}
 %}
 {% if page_settings %}
    {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
@@ -41,27 +41,21 @@
 {% endif %}
 
 {% block sidebar_toggler %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
 
 {% block sidebar %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
         {{ block("sidebar", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
 
-{% block before_container %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
-        {{ block("before_container", page_settings.offcanvas.template) }}
-    {% endif %}
+{% block hero %}
 {% endblock %}
 
 {% block shop_header %}
-{% endblock %}
-
-{% block hero %}
 {% endblock %}
 
 {% block hero_header %}
@@ -69,7 +63,7 @@
 
 {% block content %}
 
-    <div class="card-search-results card-reset card container-lg">
+    <div class="card-search-results card-reset card container-lg" data-template="search/tease" data-html-whitelist=".posts-pagination, .pagination, .pagination-*, .btn-pagination-*, .page-item, .page-link">
         <div class="card-header d-flex pb-5 text-center">
             <h1 class="card-title">
                 {{title}}
@@ -95,7 +89,7 @@
                     <div class="col py-5">
                         <div class="d-flex flex-column text-center">
                             <i class="fa-light fa-face-sad-sweat opacity-25 fa-5x mb-3"></i>
-                            <h4>{{ translate("İçerik bulunamadı") }}</h4>
+                            <h4>{{ description }}</h4>
                         </div>
                     </div>
                 {% endif %}
@@ -103,16 +97,6 @@
         </div>
 
         {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : "search", direction : "next"} %}
-
-        {# if pagination_terms or posts.pagination.current < posts.pagination.total %}
-        <div class="products-pagination next card-footer pt-5">
-            {% if pagination_terms %}
-                {% include 'pagination-terms.twig' with { prefs : pagination_terms, ajax : post_pagination.search.ajax, container : ".posts", direction : "next" } %}
-            {% else %}  
-                {% include 'pagination.twig' with { ajax : post_pagination.search.ajax, container : ".posts", direction : "next", total : posts.found_posts, initial: paged } %}
-            {% endif %}
-        </div>
-        {% endif #}
 
     </div>
 

@@ -113,7 +113,7 @@ if(ACTIVATE_UNDER_CONSTRUCTION){
 if(ENABLE_MEMBERSHIP){
     //$required_plugins[] = 'one-user-avatar/one-user-avatar.php';
 }
-$GLOBALS["plugins"] = $required_plugins;
+Data::set("plugins", $required_plugins);
 
 
 $required_plugins_local = array();
@@ -125,13 +125,13 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.1",
     "name" => "acf-bs-breakpoints/index.php",
     "file" => "acf-bs-breakpoints"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.1",
     "name" => "acf-query-field/acf-query-field.php",
     "file" => "acf-query-field"
 );
@@ -149,7 +149,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.20.1.2",
+    "v" => "3.20.3",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
@@ -161,7 +161,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["multilanguage"],
-    "v" => "3.7.5",
+    "v" => "3.7.6",
     "name" => "polylang-pro/polylang.php",
     "file" => "polylang-pro"
 );
@@ -238,5 +238,4 @@ $required_plugins_local[] = array(
     "name" => "salt-table-for-acf/salt-table-for-acf.php",
     "file" => "salt-table-for-acf"
 );
-
-$GLOBALS["plugins_local"] = $required_plugins_local;
+Data::set("plugins_local", $required_plugins_local);

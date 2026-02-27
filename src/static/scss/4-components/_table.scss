@@ -464,3 +464,42 @@
         }
     }
 }
+
+
+/* Stack Tasarımı (Ortak) */
+[class*="table-responsive-stack-auto"].is-stacked,
+.table-responsive-stack-sm, .table-responsive-stack-md, 
+.table-responsive-stack-lg, .table-responsive-stack-xl {
+    /* Masaüstünde normal tablo gibi davranır */
+}
+
+/* --- Breakpoint Tetikleyicileri --- */
+@media (max-width: 575.98px) { .table-responsive-stack-sm { --stack-active: 1; } }
+@media (max-width: 767.98px) { .table-responsive-stack-md { --stack-active: 1; } }
+@media (max-width: 991.98px) { .table-responsive-stack-lg { --stack-active: 1; } }
+@media (max-width: 1199.98px) { .table-responsive-stack-xl { --stack-active: 1; } }
+
+/* --- ASIL SİHİR BURADA: Stack Görünümü --- */
+/* Eğer auto modunda 'is-stacked' gelmişse VEYA manuel breakpoint'in CSS değişkeni aktifse */
+[class*="table-responsive-stack"].is-stacked,
+[style*="--stack-active: 1"],
+[class*="table-responsive-stack-"][style*="--stack-active: 1"] {
+    /* Buraya yukarıda konuştuğumuz block, data-label ve kart görünümlerini koyuyoruz */
+}
+
+/* Örnek Uygulama (LG için) */
+@media (max-width: 991.98px) {
+    .table-responsive-stack-lg, .table-responsive-stack-auto.is-stacked {
+        display: block;
+    }
+    .table-responsive-stack-lg thead, .table-responsive-stack-auto.is-stacked thead { display: none; }
+    .table-responsive-stack-lg tr, .table-responsive-stack-auto.is-stacked tr { 
+        display: block; border: 1px solid #eee; margin-bottom: 15px; 
+    }
+    .table-responsive-stack-lg td, .table-responsive-stack-auto.is-stacked td {
+        display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f4f4f4;
+    }
+    .table-responsive-stack-lg td::before, .table-responsive-stack-auto.is-stacked td::before {
+        content: attr(data-label); font-weight: bold;
+    }
+}

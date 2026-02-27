@@ -1,4 +1,4 @@
-const leaflet_images = ajax_request_vars.theme_url+'/static/js/assets/';
+/*const leaflet_images = ajax_request_vars.theme_url+'/static/js/assets/';
 
 // Mevcut URL'leri alıp prefix ekleyerek güncelleriz
 L.Icon.Default.mergeOptions({
@@ -25,7 +25,40 @@ L.TileLayer.LazyLoad = L.TileLayer.extend({
         tile.src = this.getTileUrl(coords);
         return tile;
     }
-});
+});*/
+
+// Dosyanın en başına bu kontrolü koy abi
+(function() {
+    // Eğer L objesi henüz yoksa, init işlemlerini bir fonksiyon içine hapset
+    window.setupLeafletExtensions = function() {
+        if (typeof L === 'undefined') return;
+
+        const leaflet_images = ajax_request_vars.theme_url + '/static/js/assets/';
+        
+        L.Icon.Default.mergeOptions({
+            iconUrl: leaflet_images + 'marker-icon.png',
+            shadowUrl: leaflet_images + 'marker-shadow.png'
+        });
+
+        if (!L.TileLayer.LazyLoad) {
+            L.TileLayer.LazyLoad = L.TileLayer.extend({
+                createTile: function (coords, done) {
+                    const tile = document.createElement('img');
+                    tile.setAttribute("loading", "lazy");
+                    tile.style.width = this.options.tileSize + "px";
+                    tile.style.height = this.options.tileSize + "px";
+                    tile.src = this.getTileUrl(coords);
+                    tile.onload = () => done(null, tile);
+                    tile.onerror = () => done("Tile error", tile);
+                    return tile;
+                }
+            });
+            L.tileLayer.lazyLoad = function (url, options) {
+                return new L.TileLayer.LazyLoad(url, options);
+            };
+        }
+    };
+})();
 
 function init_leaflet(){
 	var token_init = "leaflet-init";
@@ -49,7 +82,7 @@ function init_leaflet(){
            		config = window[config];
            	}
 
-           	console.log(config)
+           	debugJS(config)
 
            	var locations = config.locations;
            	var buttons = config.buttons;
@@ -71,10 +104,8 @@ function init_leaflet(){
     			scrollWheelZoom: false,
     			dragging: !L.Browser.mobile
     		};
-			if(buttons){
-            	if(buttons.hasOwnProperty("zoom_position")){
-            		map_config["zoomControl"] = false;
-            	}
+			if (buttons && Object.prototype.hasOwnProperty.call(buttons, "zoom_position")) {
+            	map_config["zoomControl"] = false;
             }
     		var map = L.map(id, map_config).setView([51.505, -0.09], 13);
 
@@ -161,7 +192,7 @@ function init_leaflet(){
 
 		    					twig({
 			                        href : ajax_request_vars.theme_url+config.popup.template,
-									async : false,
+									async : true,
 									allowInlineIncludes : false,
 									load: function(template) {
 										var html = template.render(locations[i]);
@@ -282,7 +313,7 @@ function init_leaflet(){
 
 									twig({
 				                        href : ajax_request_vars.theme_url+config.popup.template,
-										async : false,
+										async : true,
 										allowInlineIncludes : false,
 										load: function(template) {
 											var html = template.render(locations[i]);
@@ -366,7 +397,7 @@ function init_leaflet(){
             
             if(buttons){
 
-            	if(buttons.hasOwnProperty("zoom_position")){
+            	if (buttons && Object.prototype.hasOwnProperty.call(buttons, "zoom_position")) {
 					L.control.zoom({
 					    position: buttons.zoom_position
 					}).addTo(map);            		
@@ -422,13 +453,16 @@ function init_leaflet(){
 					    newButton.href = '#';
 					    newButton.innerHTML = button.text;
 					    newButton.title = button.title;
-					    if(button.data){
-					    	for (var key in button.data) {
-							    if (button.data.hasOwnProperty(key)) {
-							        newButton.setAttribute(key, button.data[key]);
-							    }
-							}	
-					    }
+					    if (button.data) {
+						    for (var key in button.data) {
+						        // jQuery 4.0 / Modern JS güvenli kontrolü
+						        if (Object.prototype.hasOwnProperty.call(button.data, key)) {
+						            // Attribute isminde "data-" yoksa eklemek gerekebilir, 
+						            // ama senin yapına göre direkt key'i basıyoruz:
+						            newButton.setAttribute(key, button.data[key]);
+						        }
+						    }
+						}
 
 					    onClick = function(event) {
 					      button.onClick(event, newButton);
@@ -438,7 +472,7 @@ function init_leaflet(){
 					    return newButton;// from https://gist.github.com/emtiu/6098482
 					}
 	            });
-	            if(buttons.hasOwnProperty("items")){
+	            if (buttons && Object.prototype.hasOwnProperty.call(buttons, "items")) {
 		            for(var i=0;i<buttons.items.length;i++){
 			            let button_config = {
 					        title: buttons.items[i].title,

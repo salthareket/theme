@@ -11,20 +11,20 @@
                             {% if function('get_extension', logo) == "svg" %}
                                 {{function('inline_svg', logo, {"class": "logo-svg w-auto h-inherit--"})}}
                             {% else %}
-                                <img src="{{logo}}" class="logo h-inherit--" alt="{{site.name}}" />
+                                <img src="{{logo}}" class="logo h-inherit--" alt="{{site.name}}" fetchpriority="high" decoding="sync" />
                             {% endif %}
                             {% if logo_affix != "" %}
                                 {% if function('get_extension', logo_affix) == "svg" %}
                                     {{function('inline_svg', logo_affix, {"class": "logo-svg logo-affix w-auto h-inherit--"})}}
                                 {% else %}
-                                    <img src="{{logo_affix}}" class="logo logo-affix h-inherit--" alt="{{site.name}}" />
+                                    <img src="{{logo_affix}}" class="logo logo-affix h-inherit--" alt="{{site.name}}"/>
                                 {% endif %}
                             {% endif %}
                             {% if logo_mobile != "" %}
                                 {% if function('get_extension', logo_mobile) == "svg" %}
                                     {{function('inline_svg', logo_mobile, {"class": "logo-svg logo-mobile w-auto"})}}
                                 {% else %}
-                                    <img src="{{logo_mobile}}" class="logo logo-mobile" alt="{{site.name}}" />
+                                    <img src="{{logo_mobile}}" class="logo logo-mobile" alt="{{site.name}}" fetchpriority="high" decoding="sync" />
                                 {% endif %}
                             {% endif %}
                         </a>
@@ -56,7 +56,7 @@
                             {% if function('get_extension', logo) == "svg" %}
                                 {{function('inline_svg', logo, {"class": "logo-svg w-auto h-inherit-- "})}}
                             {% else %}
-                                <img src="{{logo}}" class="logo h-inherit--" alt="{{site.name}}" />
+                                <img src="{{logo}}" class="logo h-inherit--" alt="{{site.name}}" fetchpriority="high" decoding="sync" />
                             {% endif %}
                             {% if logo_affix != "" %}
                                 {% if function('get_extension', logo_affix) == "svg" %}
@@ -69,7 +69,7 @@
                                 {% if function('get_extension', logo_mobile) == "svg" %}
                                     {{function('inline_svg', logo_mobile, {"class": "logo-svg logo-mobile w-auto"})}}
                                 {% else %}
-                                    <img src="{{logo_mobile}}" class="logo logo-mobile" alt="{{site.name}}" />
+                                    <img src="{{logo_mobile}}" class="logo logo-mobile" alt="{{site.name}}" fetchpriority="high" decoding="sync" />
                                 {% endif %}
                             {% endif %}
                         </a>
@@ -100,7 +100,7 @@
                             {% if function('get_extension', logo) == "svg" %}
                                 {{function('inline_svg', logo, {"class": "logo-svg w-auto h-inherit "})}}
                             {% else %}
-                                <img src="{{logo}}" class="logo h-inherit" alt="{{site.name}}" />
+                                <img src="{{logo}}" class="logo h-inherit" alt="{{site.name}}" fetchpriority="high" decoding="sync" />
                             {% endif %}
                             {% if logo_affix != "" %}
                                 {% if function('get_extension', logo_affix) == "svg" %}
@@ -113,7 +113,7 @@
                                 {% if function('get_extension', logo_mobile) == "svg" %}
                                     {{function('inline_svg', logo_mobile, {"class": "logo-svg logo-mobile w-auto"})}}
                                 {% else %}
-                                    <img src="{{logo_mobile}}" class="logo logo-mobile" alt="{{site.name}}" />
+                                    <img src="{{logo_mobile}}" class="logo logo-mobile" alt="{{site.name}}" fetchpriority="high" decoding="sync" />
                                 {% endif %}
                             {% endif %}
                         </a>

@@ -38,7 +38,7 @@ $endpoint must be snake_case format.
 function my_account_custom_content_profile() {
         login_required();
         
-        $user = $GLOBALS["user"];
+        $user = Data::get("user");
 
         $templates = array("my-account/profile.twig");
 

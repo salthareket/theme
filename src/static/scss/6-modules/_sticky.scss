@@ -1,4 +1,4 @@
-@include media-breakpoint-up(xs) {
+/*@include media-breakpoint-up(xs) {
   .sticky-xs {
      position: sticky;
      align-self: flex-start;
@@ -39,7 +39,52 @@
      position: sticky;
      align-self: flex-start;
   }
+}*/
+
+%sticky-responsive-base {
+    position: -webkit-sticky;
+    position: sticky;
+    align-self: flex-start;
+    z-index: 1020; // Varsayılan z-index
+    transition: top 0.3s ease; // Header geçişleri için
+
+    &:not(.sticked){
+        z-index: 1;
+    }
+    &.sticked{
+        z-index: 1020!important;
+        
+        // Eğer body'de loading varsa senin özel kuralın çalışsın
+        body.loading & {
+            z-index: 99 !important;
+        }
+    }
+
+    // --- DİNAMİK TOP MESAFELERİ ---
+    body:not(.header-hide) & {
+        top: var(--header-height);
+        
+        body.affix & {
+            top: var(--header-height-affix);
+        }
+    }
+
+    body.header-hide & {
+        top: 0px;
+    }
 }
+
+// Breakpoint döngüsü aynı kalıyor
+@each $breakpoint, $width in $grid-breakpoints {
+  @include media-breakpoint-down($breakpoint) {
+    .sticky-#{$breakpoint} {
+      @extend %sticky-responsive-base;
+    }
+  }
+}
+
+
+
 
 [class^="sticky-"]:not(#header), [class*=" sticky-"]:not(#header) {
     //z-index: auto!important;
@@ -59,6 +104,19 @@ body{
     &.header-hide{
         [class^="sticky-top"], [class*=" sticky-top"] {
             top:0px;
+        }
+    }
+}
+
+body{
+    .modal{
+        [class^="sticky-top"], [class*=" sticky-top"] {
+            top:0;
+        }
+        &.affix{
+            [class^="sticky-top"], [class*=" sticky-top"] {
+                top:0;
+            }
         }
     }
 }
@@ -109,10 +167,26 @@ body{
     display:flex;
     flex-direction:column;
     &:not(.sticked){
-        z-index: auto;
+        z-index: 1;
     }
     &.sticked{
         z-index: 1020!important;
     }
 }
+.loading{
+    .sticky-top,
+    .sticky-bottom{
+        &.sticked{
+            z-index: 99!important;
+        }
+    }
+}
+
+.table thead tr > th.sticky-top {
+    display:table-cell!important;
+    &.sticked {
+        z-index: auto!important;
+    }    
+}
+
 /*! purgecss end ignore */

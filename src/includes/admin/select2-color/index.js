@@ -4,12 +4,12 @@
         args.minimumResultsForSearch = -1;  // Arama özelliğini devre dışı bırakır
         args.ajax = false;                  // AJAX isteğini tamamen kapatır
         args['templateResult'] = function(state) {
-            console.log(state)
+            debugJS(state)
             if (!state.id) {
                 return state.text;
             } else {
                 var colorCode = state.element.value;
-                console.log("color:"+colorCode+" name:"+state.text);
+                debugJS("color:"+colorCode+" name:"+state.text);
                 var $state = $(
                     '<span style="display: flex; align-items: center;">' +
                     '<span style="width: 15px; height: 15px; display: inline-block; margin-right: 8px; background-color: var(--bs-' + colorCode + ');"></span>' +

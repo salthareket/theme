@@ -26,12 +26,12 @@ echo json_encode($response);
 die();
 break;
 case 'comment_product':
-$salt = new Salt();
+$salt = \Salt::get_instance();//Salt();
 echo $salt->comment_product($vars);
 die();
 break;
 case 'comment_product_detail':
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
 echo $salt->comment_product_detail($vars);
 die();
 break;
@@ -276,7 +276,7 @@ $post_data = Timber::get_post($vars["id"]);
 $error = false;
 $message = "";
 if ($post_data) {
-$post_content = $post_data->get_blocks();
+$post_content = $post_data->get_blocks()["html"];
 if(ENABLE_MULTILANGUAGE){
 switch(ENABLE_MULTILANGUAGE){
 case "qtranslate-xt" :
@@ -354,7 +354,7 @@ $post_args['paged'] = $vars['page'];
 $post_args['post_type'] = $args["post_type"]=="search"?"any":$args["post_type"];
 //$post_args['page'] = $vars['page'];
 }
-$GLOBALS["pagination_page"] = $vars['page'];
+Data::set("pagination_page", $vars['page']);
 unset($post_args["querystring"]);
 unset($post_args["page"]);
 if(isset($post_args["s"])){
@@ -364,7 +364,7 @@ unset($post_args["s"]);
 }
 //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
 $html = "";
-$query = QueryCache::get_cached_query($post_args);
+$query = new WP_Query($post_args);
 $folder = $post_args["post_type"];
 if($args["post_type"] == "any" || is_array($args["post_type"])){
 $folder = "search";
@@ -372,15 +372,15 @@ $folder = "search";
 if($post_args["post_type"] == "any" || is_array($post_args["post_type"])){
 $folder = "search";
 }
-error_log(print_r($args, true));
-error_log(print_r($query, true));
+//error_log(print_r($args, true));
+//error_log(print_r($query, true));
 if($args["post_type"] == "product"){
 if ($query->have_posts()) :
 while ($query->have_posts()) : $query->the_post();
 ob_start(); // Çıktıyı tampona al
 wc_get_template_part('content', 'product');
 $html .= ob_get_clean(); // Tampondaki çıktıyı $am değişkenine ekle
-$GLOBALS["pagination_page"] = "";
+Data::set("pagination_page", "");
 endwhile;
 endif;
 }else{
@@ -397,7 +397,7 @@ $context['post'] = $post;//Timber::get_post($post);
 Timber::render([$folder."/tease.twig", "tease.twig"], $context);
 $html .= ob_get_clean();
 $context = null;
-$GLOBALS["pagination_page"] = "";
+Data::set("pagination_page", "");
 }
 }
 }
@@ -581,7 +581,7 @@ die();
 break;
 case 'map_modal':
 $html = "";
-$map_service = QueryCache::get_cached_option("map_service");//get_cached_field("map_service", "option");
+$map_service = QueryCache::get_field("map_service", "options");//get_option("options_map_service");//get_cached_field("map_service", "option");
 $id = isset($vars["id"])?$vars["id"]:0;
 $ids = isset($vars["ids"])?$vars["ids"]:[];
 $lat = isset($vars["lat"])?$vars["lat"]:"";
@@ -625,13 +625,23 @@ $skeleton["map_settings"]["map"]["markers"][] = $post_data;
 $html = get_map_config($skeleton);//get_map_config($post->get_map_data());
 }else if($ids){
 $map_data = [];
+/*global $polylang;
+if (isset($polylang)) {
+// Polylang'in sorgu üzerindeki etkisini durdur
+remove_filter('posts_where', array($polylang->filters, 'posts_where'), 10, 2);
+}*/
 $args = array(
+'post_type'      => 'any',
 'post__in' => $ids,
 'posts_per_page' => -1,
 'orderby' => 'post__in',
+'suppress_filters' => true,
+'lang'           => '',
 );
-$posts = QueryCache::get_cached_query($args);
-$posts = Timber::get_posts($posts);
+$posts = Timber::get_posts($args);
+/*if (isset($polylang)) {
+add_filter('posts_where', array($polylang->filters, 'posts_where'), 10, 2);
+}*/
 //$posts = Timber::get_posts($ids);
 if($posts){
 $skeleton["map_type"] = "dynamic";
@@ -706,12 +716,48 @@ $error = false;
 $message = "";
 $post_data = array();
 $post_content = "";
-//if(has_blocks($post->post_content)){
+if (!isset($vars["selector"])) {
 $post = Timber::get_post($post);
-$post_content = $post->get_blocks();
-//}else{
-//$post_content = $post->post_content;
-//}
+$blocks = $post->get_blocks();
+$post_content = $blocks["html"];
+}else{
+$post_url = get_permalink($post->ID);
+$response = wp_remote_get($post_url);
+$full_html = wp_remote_retrieve_body($response);
+if (is_wp_error($response) || empty($full_html)) {
+$post = Timber::get_post($post);
+$blocks = $post->get_blocks();
+$post_content = $blocks["html"];
+$message = "Sayfa içeriği çekilemedi.";
+} else {
+$selector = $vars["selector"]; // Örn: ".floor-plan-wrap" veya "#main-content"
+$dom = new DOMDocument();
+@$dom->loadHTML('<?xml encoding="UTF-8">' . $full_html);
+$xpath = new DOMXPath($dom);
+if (strpos($selector, '.') === 0) {
+$class_name = substr($selector, 1);
+$nodes = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' $class_name ')]");
+} elseif (strpos($selector, '#') === 0) {
+$id_name = substr($selector, 1);
+$nodes = $xpath->query("//*[@id='$id_name']");
+} else {
+$nodes = $xpath->query("//$selector");
+}
+if ($nodes->length > 0) {
+$filtered_html = "";
+foreach ($nodes as $node) {
+$filtered_html .= $dom->saveHTML($node);
+}
+$post_content = $filtered_html; // İçeriği sadece selector'dan gelenle ez
+} else {
+$post = Timber::get_post($post);
+$blocks = $post->get_blocks();
+$post_content = $blocks["html"];
+$message = "Selector ($selector) not found in content";
+}
+}
+}
+$post_data["required_js"] = $blocks["required_js"] ?? [];
 if(ENABLE_MULTILANGUAGE){
 switch(ENABLE_MULTILANGUAGE){
 case "qtranslate-xt" :
@@ -719,11 +765,11 @@ $post_data["title"] = qtranxf_use($lang, $post->post_title, false, false);
 $post_data["content"] = qtranxf_use($lang, $post_content, false, false);//nl2br(qtranxf_use($lang, $post->post_content, false, false));
 break;
 case "polylang" :
-$post_data["title"] = $post->title;
+$post_data["title"] = $post->post_title;
 $post_data["content"] = $post_content;
 break;
 case "wpml" :
-$post_data["title"] = $post->title;
+$post_data["title"] = $post->post_title;
 $post_data["content"] = $post_content;
 break;
 }
@@ -777,8 +823,292 @@ echo json_encode($output);
 die();
 break;
 case 'login':
-$salt = new Salt();
+$salt = \Salt::get_instance();//new Salt();
 echo json_encode($salt->login($vars));
+die();
+break;
+case 'get_floors':
+$search_filters = array();
+$vars_new = array();
+$vars_new["ignore_empty_floor"] = true;
+if(isset($vars["magaza_tipi"])){
+if($vars["magaza_tipi"]){
+if(!isset($vars_new["taxonomy"])){
+$vars_new["taxonomy"] = array();
+}
+$vars_new["taxonomy"]["magaza-tipi"] = $vars["magaza_tipi"];
+}
+}
+if(isset($vars["katlar"]) && !empty($vars["katlar"])){
+if($vars["katlar"]){
+$vars_new["id"] = $vars["katlar"];
+$search_filters["katlar"] = trans(get_the_title( $vars["katlar"] ));
+}
+}
+if(isset($vars["hizmetler"])){
+if($vars["hizmetler"]){
+if(!isset($vars_new["taxonomy"])){
+$vars_new["taxonomy"] = array();
+}
+$vars_new["taxonomy"]["hizmetler"] = $vars["hizmetler"];//get_term($vars["hizmetler"])->slug;
+$term_id = pll_get_term($vars["hizmetler"], pll_current_language());
+$search_filters["hizmetler"] = get_term($term_id)->name;//get_term_by("slug", $vars["hizmetler"], "hizmetler")->name;
+}
+}
+if(isset($vars["kampanya"])){
+$vars_new["campaign"] = boolval($vars["kampanya"]);
+$search_filters["kampanya"] = $vars_new["campaign"];
+}
+$outlet = new Project();
+//$output = $outlet->katlar($vars_new);
+$output = $outlet->get_floors($vars_new);
+if(!$template){
+$template = "partials/floors";
+}
+$templates = array( $template.'.twig' );
+$context = Timber::context();
+$context['floors'] = $output["data"];
+$context['store_count'] = $output["count"];
+/*if($search_filters){
+$search_filters_text = "";
+foreach($search_filters as $key => $filter){
+switch($key){
+case "katlar" :
+$search_filters_text .= $filter." içinde ";
+break;
+case "hizmetler" :
+$search_filters_text .= $filter." kategorisinde ";
+break;
+case "kampanya" :
+if($filter){
+$search_filters_text .= "kampanyalı ";
+}
+$search_filters_text .= "<b>".$output["count"]."</b> mağaza bulundu.";
+break;
+}
+}
+}*/
+$search_filters_text = "";
+if($search_filters){
+$search_filters_text = "";
+$trans_arr = array();
+//error_log(print_r($search_filters, true));
+foreach($search_filters as $key => $filter){
+if(empty($filter)){
+continue;
+}
+switch($key){
+case "katlar" :
+$trans_arr["%floor"] = "<b>".$filter."</b>";
+$search_filters_text .= "%floor içinde ";
+break;
+case "hizmetler" :
+$trans_arr["%category"] = "<b>".$filter."</b>";
+$search_filters_text .= "%category kategorisinde ";
+break;
+case "kampanya" :
+if($filter){
+$trans_arr["%campaign"] = "<b>".trans("kampanyalı")."</b> ";
+$search_filters_text .= "%campaign ";
+}
+break;
+}
+}
+/*
+%floor içinde toplam %count adet mağaza bulundu.
+%category kategorisinde toplam %count adet mağaza bulundu.
+%campaign toplam %count adet mağaza bulundu.
+%floor içinde %campaign toplam %count adet mağaza bulundu.
+%category kategorisinde %campaign toplam %count adet mağaza bulundu.
+%floor içinde %category kategorisinde toplam %count adet mağaza bulundu.
+%floor içinde %category kategorisinde %campaign toplam %count adet mağaza bulundu.
+*/
+translate("%campaign toplam %count adet mağaza bulundu.");
+translate("%category kategorisinde %campaign toplam %count adet mağaza bulundu.");
+translate("%category kategorisinde toplam %count adet mağaza bulundu.");
+translate("%floor içinde %campaign toplam %count adet mağaza bulundu.");
+translate("%floor içinde %category kategorisinde %campaign toplam %count adet mağaza bulundu.");
+translate("%floor içinde %category kategorisinde toplam %count adet mağaza bulundu.");
+translate("%floor içinde toplam %count adet mağaza bulundu.");
+//error_log(print_r($trans_arr, true));
+//error_log($search_filters_text);
+if($search_filters_text){
+$trans_arr["%count"] = "<b>".$output["count"]."</b>";
+$singular = trans($search_filters_text."toplam %count adet mağaza bulundu.");
+$plural = "";//$search_filters_text."toplam %counts adet mağaza bulundu.";
+//error_log($singular);
+//replacement
+$search_filters_text = trans_plural($singular, $plural, $output["count"]);//trans( $search_filters_text, "", $output["count"] );
+$find       = array_keys($trans_arr);
+$replace    = array_values($trans_arr);
+$search_filters_text = str_ireplace($find, $replace, $search_filters_text);
+//$context['search_filters_text'] = $search_filters_text;
+}
+}
+$response["html"] = Timber::compile($templates, $context);
+$response["data"] = $search_filters_text;
+echo json_encode($response);
+wp_die();
+break;
+case 'get_store_modal':
+//$outlet = new Project();
+//$output = $outlet->store($vars);
+//if(!$template){
+//$template = "magazalar/single-modal";
+//}
+//$templates = array( $template.'.twig' );
+//$context = Timber::context();
+//$context['post'] = $output;
+break;
+case 'get_stories':
+$outlet = new Project();
+$stories = $outlet->kampanyalar($vars)["data"];
+$language = array(
+"unmute" => trans('Sesi açmak için dokun'),
+"keyboardTip" => trans('Geçmek için "Boşluk" tuşuna tıklayın'),
+"visitLink" => trans("Linke git"),
+"time" => array(
+"ago" => trans('önce'),
+"hour" => trans('saat'),
+"hours" => trans('saat'),
+"minute" => trans('dakika'),
+"minutes" => trans('dakika'),
+"fromnow" => trans('şu andan beri'),
+"seconds" => trans('saniye'),
+"yesterday" => trans('dün'),
+"tomorrow" => trans('yarın'),
+"days" => trans('gün'),
+)
+);
+$output = array(
+"stories" => $stories,
+"language" => $language
+);
+echo json_encode($output);
+die;
+//print_r($output);
+/*if(!$template){
+$template = "partials/stories";
+}
+$templates = array( $template.'.twig' );
+$context = Timber::get_context();
+$context['posts'] = $output["data"];*/
+break;
+case 'search_store':
+$output = [];
+if (isset($vars["keyword"])) {
+$args = [
+"post_type" => "magazalar",
+"order" => "ASC",
+"orderby" => "title",
+"posts_per_page" => 10,
+//'numberposts' => 10,
+//'nopaging' => true,
+"s" => $vars["keyword"],
+//"lang" => $GLOBALS["language_default"]
+];
+/*$default_magaza_tipi = pll_get_term($vars["taxonomy"]["magaza-tipi"][0], $GLOBALS["language_default"]);
+$vars["taxonomy"]["magaza-tipi"][0] = $default_magaza_tipi;
+$args = wp_query_addition($args, $vars);*/
+// 1. Değişkenin varlığını ve içinin dolu olduğunu kontrol et
+if (!empty($vars["taxonomy"]["magaza-tipi"]) && is_array($vars["taxonomy"]["magaza-tipi"])) {
+// 2. İlk terimi al ve varsayılan dildeki karşılığını bul
+$first_term_id = $vars["taxonomy"]["magaza-tipi"][0];
+$default_magaza_tipi = pll_get_term($first_term_id, Data::get("language_default"));
+// 3. Eğer karşılık bulunduysa değeri güncelle ve args'a ekle
+if ($default_magaza_tipi) {
+$vars["taxonomy"]["magaza-tipi"][0] = $default_magaza_tipi;
+$args = wp_query_addition($args, $vars);
+}
+}
+$posts = get_posts($args);
+if (!$posts) {
+unset($args["s"]);
+$term_ids = get_terms([
+"taxonomy"   => "hizmetler",
+"search" => $vars["keyword"],
+"fields" => "ids",
+"hide_empty" => false,
+//"lang"       => pll_current_language()
+]);
+$default_lang_code = Data::get("language_default");
+$default_lang_term_ids = [];
+if (!empty($term_ids) && is_array($term_ids)) {
+foreach ($term_ids as $current_lang_id) {
+$default_id = pll_get_term($current_lang_id, $default_lang_code);
+if ($default_id) {
+$default_lang_term_ids[] = $default_id;
+}
+}
+$default_lang_term_ids = array_unique($default_lang_term_ids);
+}
+if (!isset($args["tax_query"])) {
+$args["tax_query"] = [];
+}
+$args["tax_query"][] = [
+"taxonomy" => "hizmetler",
+"field" => "term_id",
+"terms" => $default_lang_term_ids,
+];
+//$args["lang"] = $GLOBALS["language_default"];
+$posts = get_posts($args);
+} else {
+/*global $wpdb;
+$keys = [];
+foreach ($posts as $key => $post) {
+$results = $wpdb->get_results(
+$wpdb->prepare(
+"SELECT count(*) as count, post_id as floor FROM {$wpdb->prefix}postmeta WHERE meta_key like 'stores_%_store' and meta_value = %s",
+$post->ID
+)
+);
+if (
+$results[0]->count == 0 ||
+get_post_status($results[0]->floor) != "publish"
+) {
+$keys[] = $key;
+}
+}
+if (count($keys) > 0) {
+foreach ($keys as $key) {
+unset($posts[$key]);
+}
+}*/
+/* global $wpdb;
+$ids = wp_list_pluck($posts, 'ID');
+print_r($ids);
+if ($ids) {
+$ph = implode(',', array_fill(0, count($ids), '%d'));
+$sql = $wpdb->prepare(
+"SELECT DISTINCT pm.meta_value AS store_id
+FROM {$wpdb->postmeta} pm
+JOIN {$wpdb->posts} p
+ON p.ID = pm.post_id
+AND p.post_status = 'publish'
+WHERE pm.meta_key LIKE 'stores_%_store'
+AND pm.meta_value IN ($ph)",
+$ids
+);
+$found_ids = array_map('intval', (array) $wpdb->get_col($sql));
+print_r($found_ids);
+// sadece bulunanları bırak
+$posts = array_values(array_filter($posts, function($p) use ($found_ids) {
+return in_array((int)$p->ID, $found_ids, true);
+}));
+}*/
+}
+foreach ($posts as $post) {
+$image = get_field("logo", $post->ID);
+$post_item = [
+"id" => $post->ID,
+"name" => $post->post_title,
+"url" => "#store-".$post->ID,//get_permalink($post->ID),
+"image" => $image,
+];
+$output[] = $post_item;
+}
+}
+echo json_encode($output);
 die();
 break;
 }

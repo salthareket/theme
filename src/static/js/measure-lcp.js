@@ -1,5 +1,5 @@
 function lcp_data(metric, type) {
-    console.log("is cached:" + site_config.cached);
+    debugJS("is cached:" + site_config.cached);
     if (!metric || !metric.attribution || site_config.cached) return '';
     let element, url;
     if (typeof metric.attribution.lcpEntry !== "undefined") {
@@ -10,9 +10,9 @@ function lcp_data(metric, type) {
         url = metric.entries[0].url || "";
     }
 
-    console.log("----------------------------");
-    console.log(metric);
-    console.log(element);
+    debugJS("----------------------------");
+    debugJS(metric);
+    debugJS(element);
 
     let preloadTag = "";
     let preloadType = "";
@@ -118,18 +118,18 @@ function lcp_data(metric, type) {
         selectors: selectorList
     };
 
-    console.log(code);
+    debugJS(code);
 
     return code;
 }
 
-function lcp_data_save(metric, type = "desktop") {
+/*function lcp_data_save(metric, type = "desktop") {
     // sayfa tam yüklenince stil al
    // window.addEventListener("load", () => {
         const lcpData = lcp_data(metric, type);
-        console.log("fetched")
+        debugJS("fetched")
         const pageUrl = window.location.href;
-        console.log(type + " LCP:", lcpData);
+        debugJS(type + " LCP:", lcpData);
         fetch(ajax_request_vars.url_admin, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -142,14 +142,57 @@ function lcp_data_save(metric, type = "desktop") {
                 url: pageUrl,
             }),
         })
-            .then(response => response.json())
-            .then(data => {
-                console.log(type + " LCP Sonuçları kaydedildi:", data);
-                if (type === "mobile" && window.opener) {
-                    self.close();
-                }
-            });
+        .then(response => response.json())
+        .then(data => {
+            debugJS(type + " LCP Sonuçları kaydedildi:", data);
+            if (type === "mobile" && window.opener) {
+                self.close();
+            }
+         });
     //});
+}*/
+
+function lcp_data_save(metric, type = "desktop") {
+    // Hemen bayrağı çekiyoruz ki bu fonksiyon bitmeden ikinci bir tetikleme gelmesin
+    if (window.lcp_measurement_sent) return;
+    window.lcp_measurement_sent = true;
+
+    // LCP verisini hazırla (Senin helper fonksiyonun)
+    const lcpData = typeof lcp_data === 'function' ? lcp_data(metric, type) : metric;
+    const pageUrl = window.location.href;
+
+    console.log("LCP Kayıt Başladı -> " + type, lcpData);
+
+    // ensureMethodsLoaded kuyruğuna girmemek için ham fetch kullanıyoruz
+    fetch(ajax_request_vars.url_admin, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+            action: "save_lcp_results",
+            type: site_config.meta.type,
+            id: site_config.meta.id,
+            lang: site_config.user_language,
+            lcp_data: JSON.stringify({ [type]: lcpData }),
+            url: pageUrl
+        }),
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        console.log(type + " LCP Sonuçları kaydedildi:", data);
+        
+        // Eğer mobil test penceresiyse ve iş bittiyse kapat
+        if (type === "mobile" && window.opener) {
+            setTimeout(() => { self.close(); }, 1000); // Biraz nefes alsın sonra kapansın
+        }
+    })
+    .catch(error => {
+        // Hata olursa bayrağı sıfırla ki tekrar denesin (opsiyonel)
+        window.lcp_measurement_sent = false; 
+        console.log("LCP Kayıt Hatası:", error);
+    });
 }
 
 function lcp_for_mobile(url) {

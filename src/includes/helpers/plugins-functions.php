@@ -1,6 +1,8 @@
 <?php
 
-$GLOBALS["lazy_breakpoints"] = array(
+
+
+$lazy_breakpoints = array(
     'xs'    => '(max-width: 575px)',
     'sm'    => '(min-width: 576px) and (max-width: 767px)',
     'sm_ls' => '(min-width: 576px) and (max-width: 767px) and (orientation: landscape)',
@@ -10,205 +12,7 @@ $GLOBALS["lazy_breakpoints"] = array(
     'xxl'   => '(min-width: 1400px) and (max-width: 1599px)',
     'xxxl'  => '(min-width: 1600px)'
 );
-
-
-function lazySizes($sizes){
-	$code='data-bgset="';
-	$sizes_count=count($sizes);
-	$counter=0;
-	foreach($sizes as $key=>$size){	
-	    if ($counter%3 == 0){
-		    $code.=$sizes[$key].' '.$sizes[$key.'-width'].'w '.($counter<$sizes_count-3?', ':'');
-	    }
-	    $counter++;
-	};
-	$code.='" data-sizes="auto"';
-	return $code;
-}
-
-function lazySizesResponsive($sizes){
-    $code='data-bgset="';
-    $imgs = array();
-    foreach($sizes as $key=>$size){	
-    	if($key != 'lg'){
-		    $imgs[]=$sizes[$key].'  [--'.$key.']';
-	    }
-	};
-    $imgs[]=$sizes['lg'];
-	return 'data-bgset="'.join(' | ', $imgs).'"';
-}
-
-function lazySizesResponsiveBgSet($sizes){
-    $code='data-bg-set="';
-    $imgs = array();
-    foreach($sizes as $key=>$size){	
-    	if($key != 'lg'){
-		    $imgs[]="url(".$sizes[$key].') '.$GLOBALS["lazy_breakpoints"][$key];
-	    }
-	};
-	$imgs[]=$sizes['lg'];
-	return 'data-bg-set="'.join(', ', $imgs).'"';
-}
-
-function lazySizesImageResponsive_old($sizes){
-	$upload_dir = wp_upload_dir()["url"]."/";
-    $code='data-srcset="';
-    $imgs = array();
-    $sizes_new = array(
-        'xs' => '0w',
-        'sm' => '576w',
-        'sm_ls' => '768w',
-        'md' => '768w',
-        'lg' => '992w',
-        'xl' => '1200w',
-        'xxl' => '1400w',
-        'xxxl' => '1600w'
-    );
-    foreach($sizes as $key=>$size){	
-    	    if($key != 'lg'){
-    	       if(is_array( $sizes[$key])){
-    	          if(array_key_exists("file", $sizes[$key])){
-                     $imgs[] = $upload_dir.$sizes[$key]["file"].' '.$sizes_new[$key];//.' [--'.$key.']'; 
-    	          }	
-    	       }else{
-    	       	  $sizes[$key] = str_replace($upload_dir, "", $sizes[$key]);
-    	       	  $sizes[$key] = $upload_dir . $sizes[$key];
-   		          $imgs[]=$sizes[$key].' '.$sizes_new[$key];//.' [--'.$key.']';    	       	
-    	       }
-	        }
-	};
-	if(array_key_exists("file", $sizes["lg"])){
-      $imgs[]=$upload_dir.$sizes['lg']["file"];		
-	}else{
-   	  $imgs[]=$sizes['lg'];		
-	}
-
-	return 'data-srcset="'.join(',', $imgs).'"';
-}
-
-function lazySizesImageResponsive($sizes){
-	$upload_dir = wp_upload_dir()["url"]."/";
-    $code='data-srcset="';
-    $imgs = array();
-    $sizes_new = array(
-        'xs' => '0w',
-        'sm' => '576w',
-        'sm_ls' => '768w',
-        'md' => '768w',
-        'lg' => '992w',
-        'xl' => '1200w',
-        'xxl' => '1400w',
-        'xxxl' => '1600w'
-    );
-    foreach($sizes as $key=>$size){	
-    	    if($key != 'lg'){
-    	       if(is_array( $sizes[$key])){
-    	          //if(array_key_exists("file", $sizes[$key])){
-                     $imgs[] = $upload_dir.$sizes[$key].' '.$sizes_new[$key];//.' [--'.$key.']'; 
-    	          //}	
-    	       }else{
-    	       	  $sizes[$key] = str_replace($upload_dir, "", $sizes[$key]);
-    	       	  $sizes[$key] = $upload_dir . $sizes[$key];
-   		          $imgs[]=$sizes[$key].' '.$sizes_new[$key];//.' [--'.$key.']';    	       	
-    	       }
-	        }
-	};
-	return 'data-srcset="'.join(',', $imgs).'"';
-}
-
-function lazySizesPictureResponsive($sizes=array(), $class=""){
-	$upload_dir = wp_upload_dir()["url"]."/";
-    $code = "<picture class='bg-cover ".$class."'>";
-	foreach($sizes as $key=>$size){
-	    if(is_array($sizes[$key])){
-	        if(array_key_exists("file", $sizes[$key])){
-	            $img=$upload_dir.$sizes[$key]["file"];	
-            }else{
-                $img=$sizes[$key];	
-            }
-		}else{
-			if(strpos($sizes[$key], $upload_dir)>-1){
-			   $img = $sizes[$key];
-			}else{
-			   $img=$upload_dir.$sizes[$key];
-			}
-		}
-		//$query = explode("_", $key);
-	    //$code .= "<source data-srcset='".$img."' media='(".$query[0]."-width: ".$query[1]."px)' />";
-	    $code .= "<source data-srcset='".$img."' media='--".$key."' />";
-	}
-    $code .= '<img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="'.$img.'" class="img-fluid lazyload" alt="" />';
-    $code .= '</picture>';
-    return  $code;
-}
-
-function posts_to_slider($posts){
-    $slides = array();
-	if($posts){
-	   $slider_settings = array(
-		   	'navigation' => 1,
-		   	'navigation_thumbs' => 1,
-		   	'autoplay'   => 1,
-		   	'delay'      => 4,
-		   	'effect'     => 'slide'
-	   );
-	   foreach($posts as $post){
-	      $slides[] = array(
-	           "media" => array(
-	               "slide_type" => "image",
-	               "image"      => array(
-	                   "desktop" => get_field("desktop", $post->ID),
-	                   "mobile"  => get_field("mobile", $post->ID),
-	               ),
-	                "add_filter" => 0,
-                    "filter_color" => "#be1e2d",
-                    "add_opacity" => 1,
-                    "opacity_value" => 50,
-                    "opacity_color" => "#be1e2d",
-                    "color"         => ""
-	           ),
-	           "content" => array(
-                    "title" => "<ul class='list-label list-label-md  list-label-extended list-inline'><li class='list-inline-item'><div class='label'>".$post->category."</div></li></ul>".$post->post_title,
-                    "title_color" => "#ffffff",
-                    "title_bg_color" => "",
-                    "description" => Timber\Twig::time_ago($post->post_date_gmt),//Salt::timeago($post->post_date_gmt),
-                    "description_color" => "rgba(255,255,255,.8)",
-                    "description_bg_color" => "",
-                    "bg_color" => "",
-                    "bg_color_opacity" => 100,
-                    "align_hr" => "center",
-                    "align_vr" => "center",
-                    "text_align" => "center",
-                    "class_name" => ""
-	           ),
-	           "url" => array(
-                    "url_type" => "multiple",
-                    "url_out" => "", 
-                    "url_in" => "",
-                    "add_button" => 0,
-                    "text" => "",
-                    "button_bg_color" => "",
-                    "button_text_color" => "",
-                    "buttons" => array(
-                    	array(
-                    		"url" => get_permalink($post->ID),
-                    		"text" => trans("Devamı"),
-                    		"style" => array(
-                    			"size" => "btn-lg",
-                    			"class" => "light",
-                    			"outline" => 1
-                    		)
-                    	)
-                    )
-                )
-	       );
-	   }
-	}
-	return  array(
-			     "slider" => $slides,
-			     "settings" => $slider_settings
-		    );
-}
+Data::set("user", $lazy_breakpoints);
 
 function dateEstToPst($date){
 	$time = new DateTime($date, new DateTimeZone('America/New_York'));
@@ -269,26 +73,6 @@ function dateIsPast($date){
     if(intval($date) < intval(time())) {
       $result = true;
     }
-
-
-	/*print_r($date);
-
-	$result = false;
-	
-	$date = strtotime($date);  
-    //converts seconds into a specific format  
-    //$date = date ("Y/d/m H:i", $sec);  
-	//$date = new DateTime($date);
-	print_r($date);
-
-	//print_r(now());
-    $now = new DateTime();
-    echo "-----";
-    print_r($now);
-    echo "-----";
-	if($date < $now) {
-	    $result = true;
-	}*/
 	return $result;
 }
 function datesHasWeekend($start, $end) {
@@ -331,7 +115,7 @@ function datesWeekendDays($start, $end){
 
 
 function class_salt($vars=array()){
-	$salt = new Salt();
+	$salt = Salt::get_instance();//new Salt();
 	$output = "";
 	if(isset($vars["function"])){
 		$function = $vars["function"];
@@ -458,7 +242,8 @@ function wrap_slabtext_in_content($content) {
 add_filter('the_content', 'wrap_slabtext_in_content');
 
 
-function get_map_embed_url($type="leaflet", $location=[]) {
+function get_map_embed_url_v1($type="leaflet", $location=[]) {
+	$language = Data::get("language");
 	$lat = 0;
 	$lng = 0;
 	$zoom = 14;
@@ -487,11 +272,13 @@ function get_map_embed_url($type="leaflet", $location=[]) {
     		if ( empty( $google_api_key ) ) {
 				$url = 'https://www.google.com/maps/embed/v1/place?key='.$GLOBALS['google_maps_api_key'].'&q='.$lat . ',' . $lng;
 			}else{*/
-				if (isset($location["url"]) && !empty($location["url"])) {
-			        $url = str_replace("!1sen", "!1s" . $GLOBALS["language"], $location["url"]) . "&hl=".$GLOBALS["language"];
+		
+				if (!empty($location["map_url"])) {
+			        $url = str_replace("!1sen", "!1s" . $language, $location["url"]) . "&hl=".$language;
 			    }else{
-			    	$url = 'https://maps.google.com/maps?q='. $lat . ',' . $lng .'&hl='.$GLOBALS['language'].'&z='.$zoom.'&output=embed';
-			    }
+			    	$url = "https://maps.google.com/maps?q=" . $lat . "," . $lng . "&hl=" . $language . "&z=" . $zoom . "&output=embed";
+			   }				
+		
 			/*}*/
 		break;
 	}
@@ -501,10 +288,63 @@ function get_map_embed_url($type="leaflet", $location=[]) {
 https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1s'.$lat.','.$lng.'!6i'.$zoom.'!3m1!1s'.$GLOBALS['language'].'!5m1!1'.$GLOBALS['language']
 */
 
-function get_map_config($fields = array(), $block_meta = array()){
+function get_map_embed_url($type = "leaflet", $locations = []) {
+    if (isset($locations['lat'])) {
+        $locations = [$locations];
+    }
+    if (empty($locations)) return '';
+
+    $first = $locations[0];
+    $lat   = $first['lat']  ?? 0;
+    $lng   = $first['lng']  ?? 0;
+    $zoom  = $first['zoom'] ?? 14;
+    $lang  = Data::get('language') ?? 'tr';
+    $is_multi = count($locations) > 1;
+
+    switch ($type) {
+        case "leaflet":
+            // Leaflet embed çoklu marker desteklemiyor amk. 
+            // O yüzden tekse basıyoruz, çoksa JS tarafı halletsin diye data veriyoruz.
+            //if (!$is_multi) {
+                $bbox_margin = 0.005;
+                $url = "https://www.openstreetmap.org/export/embed.html?bbox=" . 
+                       ($lng - $bbox_margin) . "%2C" . ($lat - $bbox_margin) . "%2C" . 
+                       ($lng + $bbox_margin) . "%2C" . ($lat + $bbox_margin) . 
+                       "&layer=mapnik&marker={$lat}%2C{$lng}";
+            //} else {
+            //    $url = "multi_leaflet_trigger"; // Bunu JS'de yakalayacağız
+            //}
+            break;
+
+        case "google":
+            $api_key = function_exists('acf_get_setting') ? acf_get_setting('google_api_key') : '';
+
+            // 1. Öncelik: Eğer hazır map_url varsa direkt onu yapıştır (Dilden bağımsızsa dili düzelt)
+            if (!empty($first["map_url"])) {
+                $url = str_replace("!1sen", "!1s" . $lang, $first["map_url"]) . "&hl=" . $lang;
+            } 
+            // 2. Öncelik: API Key VARSA ve birden fazla lokasyon varsa (Static Map/Embed API)
+            elseif (!empty($api_key) && $is_multi) {
+                // Google Embed API "place" modunda tek yer gösterir, 
+                // "view" modunda ise marker listesi için özel kütüphane ister.
+                // En temizi API ile koordinatları "points" olarak göndermektir:
+                $points = [];
+                foreach($locations as $loc) { $points[] = $loc['lat'].','.$loc['lng']; }
+                $url = "https://www.google.com/maps/embed/v1/view?key={$api_key}&center={$lat},{$lng}&zoom={$zoom}&points=".implode('|', $points);
+            }
+            // 3. Öncelik: API Key yoksa veya tek lokasyonsa klasik yöntem
+            else {
+                $url = "https://www.google.com/maps?q={$lat},{$lng}&hl={$lang}&z={$zoom}&output=embed";
+            }
+            break;
+    }
+    return $url;
+}
+
+function get_map_config_v1($fields = array(), $block_meta = array()){
 	$html = "";
-	$map_service = get_option("options_map_service");
-	$map_view = get_option("options_map_view");
+	$map_service = QueryCache::get_field("map_service", "options");//get_option("options_map_service");
+	$map_view = QueryCache::get_field("map_view", "options");//get_option("options_map_view");
 
 	$map_type = isset($fields["map_type"])?$fields["map_type"]:"static";
 	$settings = isset($fields['map_settings'])?$fields['map_settings']:[];
@@ -536,9 +376,9 @@ function get_map_config($fields = array(), $block_meta = array()){
 		    	if(isset($settings['marker']) && $settings['marker']){
 		    		$marker = $settings['marker'];
 		    	}else{
-		    		$marker = QueryCache::get_cached_option("map_marker");//get_field("map_marker", "option");
+		    		$marker = QueryCache::get_field("map_marker", "options");
 		    		if(!$marker){
-		    			$marker = QueryCache::get_cached_option("logo_marker");//get_field("logo_marker", "option");
+		    			$marker = QueryCache::get_field("logo_marker", "options");
 		    		}
 		    	}
 		    	if($marker){
@@ -565,11 +405,12 @@ function get_map_config($fields = array(), $block_meta = array()){
 		}
 
 	}
+
     $config['locations'] = $location_data;
 
     if($map_view == "embed" && $location_data){
-    	$embed_url = get_map_embed_url($map_service, $location_data[0]);
-	    return "<iframe src='" . $embed_url . "' frameborder='0' class='map-embed w-100 h-container' style='border:0;' allowfullscreen='' loading='lazy' referrerpolicy='no-referrer-when-downgrade'></iframe>";
+	     $embed_url = get_map_embed_url($map_service, $location_data[0]);
+		 return "<iframe src='" . $embed_url . "' frameborder='0' class='map-embed w-100 h-container' style='border:0;' allowfullscreen='' loading='lazy' referrerpolicy='no-referrer-when-downgrade'></iframe>";
     }
 
 	$buttons = [];
@@ -639,6 +480,139 @@ function get_map_config($fields = array(), $block_meta = array()){
     }
 
 	return $html;
+}
+
+function get_map_config($fields = array(), $block_meta = array()) {
+    $html = "";
+    
+    // Ayarları çek
+    $map_service = get_option("options_map_service", "leaflet");
+    $map_view    = get_option("options_map_view", "dynamic"); // Default JS view
+    $map_type    = $fields["map_type"] ?? "static";
+    $settings    = $fields['map_settings'] ?? [];
+
+    // Eğer settings boşsa tekli marker varsay (Senin mantığın)
+    if (empty($settings)) {
+        $settings['map'] = ["markers" => [$fields]];
+    }
+
+    // Blok ID güvenliği
+    if (empty($block_meta["id"])) {
+        $block_meta["id"] = "map_" . bin2hex(random_bytes(4));
+    }
+    
+    // JS Değişken isimlerini garantile (Başa harf ekleyerek)
+    $safe_id      = str_replace(['#', '-'], ['', '_'], $block_meta['id']);
+    $map_config   = "config_" . $safe_id; 
+    $map_callback = "callback_" . $safe_id;
+
+    $location_data = [];
+
+    // 1. Lokasyon Verisini Hazırla
+    if ($map_type == "static" && isset($settings['map']["markers"])) {
+        foreach ($settings['map']["markers"] as $item) {
+            $data = [
+                "id"    => $item["uuid"]  ?? ($item["id"] ?? uniqid()),
+                "title" => $item["label"] ?? ($item["title"] ?? ""),
+                "lat"   => $item["lat"],
+                "lng"   => $item["lng"],
+            ];
+
+            // Marker İkon Mantığı
+            $marker = $settings['marker'] ?? get_field("map_marker") ?? get_field("logo_marker");
+            
+            if ($marker) {
+                $data["marker"] = [
+                    "icon"   => $marker["url"]    ?? "",
+                    "width"  => $marker["width"]  ?? 32,
+                    "height" => $marker["height"] ?? 32,
+                ];
+            }
+            $location_data[] = $data;
+        }
+    } elseif ($map_type == "dynamic" && !empty($settings['posts'])) {
+        foreach ($settings['posts']->to_array() as $item) {
+            $map_data = $item->get_map_data();
+            if (!empty($map_data)) $location_data[] = $map_data;
+        }
+    }
+
+    // 2. EMBED KONTROLÜ (Kritik: En hızlı çıkış)
+    if ($map_view == "embed" && !empty($location_data)) {
+        $embed_url = get_map_embed_url($map_service, $location_data);
+        return sprintf(
+            '<iframe src="%s" frameborder="0" class="map-embed w-100 h-container" style="border:0; min-height:400px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>',
+            $embed_url
+        );
+    }
+
+    // 3. JS Config Hazırla
+    $config = [
+        'locations' => $location_data,
+        'buttons'   => [],
+        'popup'     => [
+            'active'   => false,
+            'type'     => 'hover',
+            'ajax'     => false,
+            'template' => '',
+            'width'    => 160
+        ],
+        'callback'  => ''
+    ];
+
+    // Buton Ayarları
+    if (isset($settings['zoom_position']) && $settings['zoom_position'] !== 'topleft') {
+        $config['buttons']['zoom_position'] = $settings['zoom_position'];
+    }
+
+    if (!empty($settings['buttons'])) {
+        $config['buttons']['position'] = $settings['buttons_position'] ?? 'topright';
+        foreach ($settings['buttons'] as $btn) {
+            $config['buttons']['items'][] = [
+                'title'      => $btn['title'],
+                'class'      => $btn['class'],
+                'attributes' => $btn['attributes'] ?? null,
+                'onclick'    => isset($btn['onclick']) ? str_replace('"', "'", $btn['onclick']) : null
+            ];
+        }
+    }
+
+    // Popup Ayarları
+    if (!empty($settings['popup_active'])) {
+        $config['popup'] = [
+            'active'   => true,
+            'type'     => $settings['popup_type'] ?? 'hover',
+            'ajax'     => $settings['popup_ajax'] ?? false,
+            'template' => ($settings['popup_template'] ?? 'default') . ($settings['popup_template'] !== 'default' ? '.twig' : ''),
+            'width'    => $settings['popup_width'] ?? 160
+        ];
+    }
+
+    if (!empty($settings['callback']) && empty($settings['popup_active'])) {
+        $config['callback'] = $map_callback;
+    }
+
+    // 4. HTML Render
+    $wrapper_class = ($map_service === "leaflet") ? "leaflet-custom" : "googlemaps-custom";
+    if ($config['popup']['active'] && !$config['popup']['ajax']) {
+        $wrapper_class .= " {$wrapper_class}-popup";
+    }
+
+    $html .= sprintf(
+        '<div id="%s" class="%s ratio-- z-0 viewport" data-height="400" data-map="%s" data-config="%s"></div>',
+        $block_meta['id'], $wrapper_class, $map_service, $map_config
+    );
+
+    // 5. Veriyi JS Olarak Bas
+    $json_config = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $html .= "<script id='data_{$safe_id}' data-inline='true'>";
+    $html .= "var {$map_config} = {$json_config};";
+    if (!empty($config['callback'])) {
+        $html .= "var {$map_callback} = " . json_encode($settings['callback']) . ";";
+    }
+    $html .= "</script>";
+
+    return $html;
 }
 
 

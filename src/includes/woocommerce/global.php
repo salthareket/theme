@@ -64,7 +64,7 @@ add_filter( 'woocommerce_quantity_input_args', 'bloomer_woocommerce_quantity_cha
 function bloomer_woocommerce_quantity_changes( $args, $product ) {
 	$user = wp_get_current_user();
 	$role = empty($user->roles)?"loggedout":$user->roles[0];
-	$role_based_quantity =  QueryCache::get_cached_option('role_based_quantity');//get_field('role_based_quantity', 'option');
+	$role_based_quantity =  get_option('options_role_based_quantity');//get_field('role_based_quantity', 'option');
 	$has_quantity_settings = false;
 	if($role_based_quantity){
 		foreach($role_based_quantity as $role_base){
@@ -166,7 +166,7 @@ function wc_get_products_by_variation_sku($sku) {
 function sku_where( $where ) {
 							global $wpdb, $wp;
 							$search_ids = array();
-						    $terms = explode(',', $GLOBALS["keyword"] );
+						    $terms = explode(',', Data::get("keyword") );
 						    foreach ($terms as $term) {
 						        //Include search by id if admin area.
 						        if (is_admin() && is_numeric($term)) {
@@ -186,7 +186,7 @@ function sku_where( $where ) {
 }
 
 function variation_archive_hide_parent($where){
-	if(get_option('gmwsvs_hide_parent_product')=='yes' && empty($GLOBALS["keyword"])){
+	if(get_option('gmwsvs_hide_parent_product')=='yes' && empty(Data::get("keyword")) ){
 		global $wpdb;
 		$where .= " AND  0 = (select count(*) as totalpart from {$wpdb->posts} as oc_posttb where oc_posttb.post_parent = {$wpdb->posts}.ID and oc_posttb.post_type= 'product_variation') ";
 	}

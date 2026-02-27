@@ -14,7 +14,7 @@
     // Varsayılan ayarlar
     const DEFAULTS = {
         // Varsayılan breakpoint. Eğer özel sınıf (tab-collapse-lg gibi) bulunmazsa kullanılır.
-        breakpoint: 'lg', 
+        breakpoint: 'md', 
         
         // Bu sınıflar INIT sırasında dinamik olarak ayarlanacaktır.
         tabsClass: '', 
@@ -61,6 +61,7 @@
 
             this._initAccordion();
             this._bindEvents();
+            this._bindAccordionEvents();
 
             // Asenkron kontrol (DOM yükleme/işleme sonrası doğru durumu yakalar)
             setTimeout(() => this.checkState(), 0);
@@ -105,7 +106,6 @@
             // Alternatif ve daha güvenilir yol:
             // const isAccordionVisible = this.$accordion.is(':visible');
 
-
             if (!isAccordionVisible && this._accordionVisible) {
                 // Akordeon gizli, sekmeler görünür olmalı
                 this.showTabs();
@@ -123,13 +123,11 @@
         showTabs() {
             this.$tabs.trigger($.Event('show-tabs.bs.tabcollapse'));
 
-            // 1. Akordeon Başlıklarını Geri Taşı
             this.$accordion.find('.js-tabcollapse-card-header').each((i, header) => {
                 const $header = $(header);
                 const $parentLi = $header.data('bs.tabcollapse.parentLi');
                 const $toggle = $parentLi.find('[data-bs-toggle="tab"], [data-bs-toggle="pill"]');
                 
-                // Başlık ögelerini asıl yerlerine koy (Akordeon niteliklerini kaldır)
                 $toggle.attr({
                     'data-bs-toggle': 'tab',
                     'data-bs-target': $header.attr('data-bs-target'),
@@ -137,24 +135,19 @@
                     'aria-controls': $header.attr('aria-controls'),
                 }).removeClass('collapsed');
                 
-                // Aktif sınıfı güncelle
                 $parentLi.removeClass('active');
                 if ($header.data('bs.tabcollapse.isActive')) {
                     $parentLi.addClass('active');
                 }
             });
             
-            // 2. Tab İçeriklerini Geri Taşı
             this.$accordion.find('.js-tabcollapse-card-body').each((i, body) => {
                 const $cardBody = $(body);
                 const $tabPane = $cardBody.data('bs.tabcollapse.tabpane');
-                // İçeriği (contents) ana tab pane'e taşı
                 $tabPane.append($cardBody.contents().detach());
             });
             
-            // 3. Akordeon kapsayıcısını temizle
             this.$accordion.html('');
-
             this.$tabs.trigger($.Event('shown-tabs.bs.tabcollapse'));
         }
 
@@ -163,8 +156,10 @@
          */
         showAccordion() {
             this.$tabs.trigger($.Event('show-accordion.bs.tabcollapse'));
+            
+            // UI Refresh: Diğer pluginleri uyandır
+            $(window).trigger("resize");
 
-            // Tab başlıklarını al (sadece data-bs-toggle'ı olanları)
             const $headers = this.$tabs.find('li:not(.dropdown) [data-bs-toggle="tab"], li:not(.dropdown) [data-bs-toggle="pill"]');
             
             $headers.each((i, element) => {
@@ -172,20 +167,51 @@
                 const $parentLi = $header.closest('li');
                 const isActive = $parentLi.hasClass('active');
 
-                // Orijinal verileri sakla
                 $header.data('bs.tabcollapse.parentLi', $parentLi);
                 $header.data('bs.tabcollapse.isActive', isActive);
                 
-                const headerHtml = $header.html();
-                
-                // Akordeon Grubu Oluştur
-                const $card = this._createAccordionGroup(this.$accordion.attr('id'), $header, headerHtml, isActive);
-                
-                // Akordeona ekle
+                const $card = this._createAccordionGroup(this.$accordion.attr('id'), $header, $header.html(), isActive);
                 this.$accordion.append($card);
+
+                // PRO EKLEME: Eğer aktifse, kartın kendisine de active class ver
+                if(isActive) $card.addClass('active');
             });
 
             this.$tabs.trigger($.Event('shown-accordion.bs.tabcollapse'));
+        }
+
+        _bindAccordionEvents() {
+            const _this = this;
+
+            // Accordion içindeki kartlar açıldığında/kapandığında çalışır
+            this.$accordion.on('shown.bs.collapse', '.collapse', function(e) {
+                const $el = $(e.target);
+                const $card = $el.closest('.card');
+                
+                // 1. Görsel aktiflik
+                $card.addClass('active');
+
+                // 2. Akıllı Scroll (Lenis veya Native)
+                if (root.ui && root.ui.scroll_to) {
+                    root.ui.scroll_to($card);
+                }
+
+                // 3. Tab Senkronizasyonu
+                const tabId = $el.attr('id').replace('-collapse', '');
+                const $tabPane = $('#' + tabId);
+                const tabIndex = $card.index();
+
+                // Üstteki tab navigasyonunu güncelle
+                _this.$tabs.find('li').removeClass('active').eq(tabIndex).addClass('active');
+                
+                // Tab Pane'leri güncelle
+                _this.getTabContentElement().find('.tab-pane').removeClass('active show in');
+                $tabPane.addClass('active show');
+            });
+
+            this.$accordion.on('hidden.bs.collapse', '.collapse', function(e) {
+                $(e.target).closest('.card').removeClass('active');
+            });
         }
         
         // Yardımcı metot: Akordeon Grubu Oluşturma
@@ -283,7 +309,7 @@
     // data-toggle="tabcollapse", .tab-collapse veya .tab-collapse-{breakpoint} sınıfı olan her şeyi otomatik başlatır.
 
     $(window).on('load', function () {
-        $('[data-toggle="tabcollapse"], .tab-collapse, [class*="tab-collapse-"]').each(function () {
+        $('[data-toggle="tabcollapse"], [data-bs-toggle="tabcollapse"],.tab-collapse, [class*="tab-collapse-"]').each(function () {
             const $tabNav = $(this);
             // Sadece bir kez başlatıldığından emin ol
             if (!$tabNav.data(`bs.${NAME}`)) {

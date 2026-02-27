@@ -1,43 +1,78 @@
-// Global Hata Ayıklama Değişkenleri
+// Global Değişkenler
 var debug = false;
+var _hasUserLeft = false;
+let ajax_hooks = {};
+window.methods_js_loading = false;
+window.methods_js_loaded = false;
 
-// Hata İşleyicileri
-window.onerror = function(message, url, line) {
-    // Üretim ortamında konsola loglama veya sunucuya hata raporlama için kullanılabilir.
-    // debugJS(message + ', ' + url + ', ' + line); // debug modu aktifse kullanılabilir
-};
-
-// beforeunload ve sayfa geçişleri için optimizasyon
-window.addEventListener('beforeunload', (event) => {
-    // Scroll pozisyonunu elle yönetmek için
+// Sayfa yenilendiğinde en üstten başlasın (isteğe bağlı)
+if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
-    event.returnValue = ''; // Bu satır, bazı tarayıcılarda uyarı kutusunu tetikler
-});
+}
 
-// Sayfa arka planda/görünmez olduğunda loading sınıfını kaldır
-document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden') {
-        document.body.classList.remove('loading-process');
-    }
-});
-
-// Sayfa yeniden gösterildiğinde (Back/Forward Cache'den geliyorsa)
-window.addEventListener('pageshow', (event) => {
-    document.body.classList.remove("loading", "loading-process");
-    if (event.persisted) {
-        // Hız/güvenlik için zorla yeniden yükleme
-        //window.location.reload();
-    }
-});
+// 1. Hata İşleyicileri
+window.onerror = function(message, url, line) {
+    // Üretim ortamında loglama gerekirse burası kullanılabilir.
+};
 
 // DOM tamamen yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
+
     // Yükleme sınıflarını kaldır
     document.body.classList.remove("loading", "loading-process");
     
     // Tarayıcı boyutu ve CSS değişkenlerini ayarla
-    size = root.browser.size();
-    root.get_css_vars();
+    if (typeof root !== 'undefined') {
+        size = root.browser.size();
+        root.get_css_vars();
+    }
+
+    const formMain = document.querySelector(".form-main");
+    if (formMain) {
+        const doSomethingWhenUserStays = function() {
+            // Kullanıcı sayfada kalmayı seçerse loading ekranını kapat
+            if (!_hasUserLeft) {
+                document.body.classList.remove("loading", "loading-process");
+            }
+        };
+
+        window.addEventListener("beforeunload", function(e) {
+            // Formda değişiklik yoksa uyarı verme
+            if (!document.querySelector(".form-main.form-changed")) {
+                return undefined;
+            }
+
+            // Kullanıcı "Kal" derse loading animasyonunu temizlemek için
+            setTimeout(doSomethingWhenUserStays, 500);
+
+            // Modern tarayıcı standart uyarı protokolü
+            e.preventDefault(); 
+            e.returnValue = ''; 
+            return '';
+        });
+    }
+
+    window.addEventListener('pagehide', function() {
+        _hasUserLeft = true;
+    });
+
+    // 4. Sayfa yeniden gösterildiğinde (Geri/İleri tuşu veya bfcache)
+    window.addEventListener('pageshow', (event) => {
+        _hasUserLeft = false; // Sayfaya dönüldüğü için durumu sıfırla
+        document.body.classList.remove("loading", "loading-process");
+        
+        // Eğer sayfa tarayıcı önbelleğinden (bfcache) geliyorsa ve tazelenmesi gerekiyorsa:
+        if (event.persisted) {
+             window.location.reload();
+        }
+    });
+
+    // 5. Görünürlük Değişimi
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            document.body.classList.remove('loading-process', 'loading');
+        }
+    });
 
     // Kullanıcı Yerelleştirme Bilgisi
     const userLoc = document.querySelector(".user-localization");
@@ -74,25 +109,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-    // 2) Select URL değişince redirect
+    // 2 & 3: Select URL Redirect ve Hash Scroll (Birleştirilmiş)
     document.addEventListener("change", function(e) {
         const el = e.target;
-        if (!el.classList.contains("select-url")) return;
 
-        document.body.classList.add("loading-process");
-        window.location.href = el.value;
-    });
+        // 1. Durum: URL Redirect (select-url)
+        if (el.classList.contains("select-url")) {
+            document.body.classList.add("loading-process");
+            window.location.href = el.value;
+            return; // İşlem tamam, aşağıya bakmasına gerek yok
+        }
 
-
-    // 3) Select Hash scrollto
-    document.addEventListener("change", function(e) {
-        const el = e.target;
-        if (!el.classList.contains("select-hash")) return;
-
-        const parts = el.value.split("#");
-        const id = parts[1] ? "#" + parts[1] : null;
-        if (id) root.ui.scroll_to(id, true);
+        // 2. Durum: Hash Scroll (select-hash)
+        if (el.classList.contains("select-hash")) {
+            const parts = el.value.split("#");
+            const id = parts[1] ? "#" + parts[1] : null;
+            if (id) {
+                root.ui.scroll_to(id, true);
+            }
+        }
     });
 
     // Utility: matches polyfill (safety)
@@ -136,31 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener("input", formObserver, true);
         document.addEventListener("change", formObserver, true);
         document.addEventListener("paste", formObserver, true);
-    }, 500); // 500 milisaniye gecikme
-    
-    // Form Main (Değişiklik yapılmışsa uyarı)
-    if ($(".form-main").length > 0) {
-        var _hasUserLeft = false;
-        const doSomethingWhenUserStays = function doSomethingWhenUserStays() {
-            if (!_hasUserLeft) {
-                $("body").removeClass("loading loading-process");
-            }
-        }
-        window.addEventListener("beforeunload", function(e) {
-            if ($(".form-main.form-changed").length == 0) return undefined;
-
-            setTimeout(doSomethingWhenUserStays, 500);
-            var confirmationMessage = 'It looks like you have been editing something. If you leave before saving, your changes will be lost.';
-            (e || window.event).returnValue = confirmationMessage;
-            return confirmationMessage;
-        });
-        window.addEventListener('unload', function onUnload() {
-            _hasUserLeft = true;
-        });
-    }
+    }, 500);  
 });
 
-// Bekleyen Init İşlemleri (Modüllerin yüklenmesini bekleyen)
+/*// Bekleyen Init İşlemleri (Modüllerin yüklenmesini bekleyen)
 window.waiting_init = {
     elements: [],
     add: function(elements, callback) {
@@ -177,7 +191,7 @@ window.waiting_init = {
         });
         this.elements = [];
     }
-};
+};*/
 
 // lazy-load main-combined.css only once, when a matching modal is triggered
 (function() {
@@ -199,7 +213,7 @@ window.waiting_init = {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = FULL_CSS_URL;
-      link.onload = () => console.log('%c[main-combined.css yüklendi 💅]', 'color: #3cfa8c');
+      link.onload = () => debugJS('%c[main-combined.css yüklendi 💅]', 'color: #3cfa8c');
       document.head.appendChild(link);
     }
   });
@@ -212,200 +226,301 @@ window.waiting_init = {
   document.head.appendChild(preload);*/
 })();
 
-// LazyLoad için Özel Fonksiyonlar
-window.lazyFunctions = {
-    masonry: function(element) {
-        // debugJS($(element));
-    }
-}
 
 
-$.ajaxQueue = [];
-var ajax_query_queue = $.ajaxQueue;
-var ajax_query_process = false;
-
+/**
+ * TurboQuery 2026 - Full Edition
+ * High-Performance Fetch, Auto-Log & Smart Cache System
+ */
+let ajax_query_queue = [];
+let ajax_query_process = false;
+const ajax_hooks_url = `${ajax_request_vars.theme_url}static/js/methods.min.js`;
 class ajax_query {
-    constructor(method, vars, form, objs) {
+    constructor(method = null, vars = {}, form = {}, objs = {}) {
         this.method = method;
         this.vars = vars || {};
-        this.form = form || {};
+        this.form = form instanceof jQuery ? form : $(form);
         this.objs = objs || {};
         this.upload = false;
         this.skipBefore = false;
+        this.ajax = null;
+        
+        // --- CACHE CONFIGURATION ---
+        this.cacheEnabled = (this.vars.cache === true);
 
-        if (Object.keys(this.form).length > 0) {
+        if (!this.vars) this.vars = {};
+        this.vars["lang"] = typeof root !== 'undefined' ? root.lang : 'tr';
+        
+        if (this.form.length > 0) {
             this.form[0].ajax_query = this;
         }
-        this.vars["lang"] = root.lang;
     }
 
-    data() {
-        if (Object.keys(this.form).length > 0 && this.form.find('[type="file"]').length > 0) {
-            this.upload = true;
-            var form = this.form[0];
-            var data = new FormData(form);
-            deleteFormData(data, this.vars);
-            data.append("ajax", "query");
-            data.append("method", this.method);
-            data.append("_wpnonce", ajax_request_vars.ajax_nonce);
-            createFormData(data, "vars", this.vars);
-            return data;
+    // Cache Key Oluşturucu
+    getCacheKey() {
+        return `turbo_${this.method}_${JSON.stringify(this.vars)}`;
+    }
+
+    // Response İşleyici (Hooks & Logic)
+    async handleHooksAndCheck(result, obj, hooks) {
+        const isArray = Array.isArray(result);
+        const isError = result && !isArray && result.error;
+
+        if (isError) {
+            if (typeof response_view === "function") response_view(result);
         } else {
-            this.upload = false;
-            return {
-                ajax: "query",
-                method: this.method,
-                vars: this.vars,
-                _wpnonce: ajax_request_vars.ajax_nonce
-            };
+            // Hook'ları sırasıyla çalıştır
+            if (hooks.after) await hooks.after(result, obj.vars, obj.form, obj.objs);
+            if (hooks.done) await hooks.done(result, obj.vars, obj.form, obj.objs);
+            if (obj.done) await obj.done(result, obj.vars, obj.form, obj.objs);
+
+            if (!isArray && result !== null) {
+                if (!hooks.after && !hooks.done && !obj.done) {
+                    this.check(result);
+                }
+            } else {
+                this.check(null);
+            }
+            if (typeof obj.after === "function") obj.after(result, obj.vars, obj.form, obj.objs);
         }
     }
 
-    abort() {
-        if (this.ajax && this.ajax.abort) {
-            this.ajax.abort();
+    async ensureMethodsLoaded() {
+        if (window.methods_js_loaded) return true;
+        if (window.methods_js_loading) {
+            return new Promise(resolve => {
+                const check = setInterval(() => {
+                    if (window.methods_js_loaded) { clearInterval(check); resolve(true); }
+                }, 50);
+            });
         }
+        window.methods_js_loading = true;
+        try {
+            await this.loadScript(ajax_hooks_url);
+            window.methods_js_loaded = true;
+            window.methods_js_loading = false;
+            return true;
+        } catch (e) {
+            window.methods_js_loading = false;
+            return false;
+        }
+    }
+
+    loadScript(url) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = url; script.async = true;
+            script.onload = resolve; script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async checkDependencies(obj) {
+        const hooks = window.ajax_hooks?.[obj.method] || {};
+        let requiredList = [...(hooks.required || []), ...(obj.vars?.required || [])];
+        requiredList = [...new Set(requiredList)];
+        if (requiredList.length === 0) return true;
+        return new Promise((resolve) => {
+            isLoadedJS(requiredList, true, () => {
+                if (obj.vars.required) delete obj.vars.required;
+                resolve(true);
+            });
+        });
+    }
+
+    getPayload() {
+        this.vars["lang"] = typeof root !== 'undefined' ? root.lang : 'tr';
+        const hasFiles = this.form.length > 0 && this.form.find('[type="file"]').length > 0;
+        if (hasFiles) {
+            const formData = new FormData(this.form[0]);
+            Object.keys(this.vars).forEach(key => {
+                formData.append(`vars[${key}]`, typeof this.vars[key] === 'object' ? JSON.stringify(this.vars[key]) : this.vars[key]);
+            });
+            return formData;
+        }
+        return JSON.stringify({ vars: this.vars });
     }
 
     queue() {
         ajax_query_process = false;
-        if (this.form.length > 0) {
-            this.form.removeClass("ajax-processing");
-        }
+        if (this.form.length > 0) this.form.removeClass("ajax-processing");
         if (ajax_query_queue.length > 0) {
-            this.request(ajax_query_queue.shift());
+            const next = ajax_query_queue.shift();
+            next.request();
         }
     }
 
-    request(obj) {
-        const $obj = obj || this;
-        let objs = Object.keys($obj.objs).length > 0 ? $obj.objs : (this.vars.hasOwnProperty("objs") ? (delete this.vars.objs, this.vars.objs) : (ajax_objs.hasOwnProperty($obj.method) ? ajax_objs[$obj.method] : {}));
-        $obj.objs = objs;
-
-        if (!ajax_hooks.hasOwnProperty($obj.method)) {
-            if (isLoadedJS("bootbox")) {
-                _alert("Ajax JS Error", $obj.method + " is not defined.");
-            } else {
-                console.error("Ajax JS Error", $obj.method + " is not defined.");
+    /*async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
+        try {
+            const response = await fetch(url, options);
+            
+            // Eğer 508 (Limit) veya 503 (Servis Yok) dönerse
+            if (response.status === 508 || response.status === 503) {
+                if (retries > 0) {
+                    console.warn(`Limit aşıldı, ${backoff}ms sonra tekrar deneniyor...`);
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    return fetchWithRetry(url, options, retries - 1, backoff * 2); // Her seferinde bekleme süresini artır
+                }
             }
-            return false;
-        }
-
-        const hooks = ajax_hooks[$obj.method];
-
-        if (hooks.hasOwnProperty("required")) {
-            if (!isLoadedJS(hooks.required, true, () => this.request($obj))) {
-                return false;
+            return response;
+        } catch (error) {
+            if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, backoff));
+                return fetchWithRetry(url, options, retries - 1, backoff * 2);
             }
+            throw error;
+        }
+    }*/
+
+    async request(obj = this) {
+        if (!obj.method) return;
+
+        if (window.wp && wp.heartbeat && wp.heartbeat.interval()) {
+            wp.heartbeat.stop();
+            debugJS("Heartbeat durduruldu (AJAX başladı).");
         }
 
-        if (hooks.hasOwnProperty("before") && !$obj.skipBefore) {
-            let $obj_update = true;
-            if ($obj.form.length > 0) {
-                $obj.form.addClass("ajax-processing");
-                if ($obj.form.hasClass("form-review") && !$obj.form.hasClass("form-reviewed")) {
-                    return hooks.before($obj, $obj.vars, $obj.form, $obj.objs);
+        // 1. GLOBAL START: İstek başlar başlamaz tetikle
+        $(document).trigger('ajax_query:start', [obj]);
+
+        if (!await this.ensureMethodsLoaded()) return;
+        
+        obj.cacheEnabled = (obj.vars && obj.vars.cache === true);
+        const cacheKey = obj.getCacheKey();
+
+        // --- CACHE KONTROLÜ ---
+        if (obj.cacheEnabled === true) {
+            const cachedData = sessionStorage.getItem(cacheKey);
+            if (cachedData) {
+                const result = JSON.parse(cachedData);
+                const hooks = window.ajax_hooks?.[obj.method] || {};
+                
+                await this.handleHooksAndCheck(result, obj, hooks);
+
+                // CACHE OLSA BİLE EVENTLERİ ÇALIŞTIR (Senin istediğin kritik nokta)
+                $(document).trigger('ajax_query:complete', [obj]);
+                
+                // Kuyrukta bekleyen başka iş yoksa stop tetikle
+                if (ajax_query_queue.length === 0) {
+                    $(document).trigger('ajax_query:stop', [obj]);
+                    if (window.wp && wp.heartbeat && !wp.heartbeat.interval()) {
+                        wp.heartbeat.start();
+                        debugJS("Heartbeat yeniden başlatıldı (Tüm AJAX bitti).");
+                    }
                 }
-                $obj_update = hooks.before($obj, $obj.vars, $obj.form, $obj.objs);
-            } else {
-                $obj_update = hooks.before($obj, $obj.vars, $obj.form, $obj.objs);
+                return; 
+            }
+        } else {
+            sessionStorage.removeItem(cacheKey);
+        }
+
+        // --- REQUEST HAZIRLIK ---
+        if (window.active_requests && window.active_requests[obj.method]) {
+            window.active_requests[obj.method].abort();
+        }
+
+        const controller = new AbortController();
+        if (!window.active_requests) window.active_requests = {};
+        window.active_requests[obj.method] = controller;
+        this.ajax = controller;
+        
+        try {
+            const hooks = window.ajax_hooks?.[obj.method] || {};
+            const hasDeps = (hooks.required?.length > 0) || (obj.vars?.required?.length > 0);
+            if (hasDeps) await this.checkDependencies(obj);
+
+            if (hooks.before && !obj.skipBefore) {
+                if (obj.form.length > 0) obj.form.addClass("ajax-processing");
+                const proceed = await hooks.before(null, obj.vars, obj.form, obj.objs);
+                if (proceed === false) {
+                    delete window.active_requests[obj.method];
+                    this.queue(); return;
+                }
             }
 
-            if ($obj_update === false || $obj_update === "false" || $obj_update === 0) {
-                $obj.form.removeClass("ajax-processing");
-                return false;
+            // Kuyruk Yönetimi
+            if (ajax_query_process && obj.method !== "search_store") { 
+                ajax_query_queue.push(obj); return;
             }
-            // $obj = $obj_update; // Obje güncelleniyorsa, ancak burada varsayılan olarak $obj kullanmaya devam ediyoruz.
-        }
+            ajax_query_process = true;
 
-        if (typeof $obj.before === "function") {
-            $obj.before($obj, $obj.vars, $obj.form, $obj.objs);
-        }
-
-        // Kuyruk kontrolü
-        if (ajax_query_process || (!site_config.logged && !site_config.loaded && $obj.method !== "site_config")) {
-            ajax_query_queue.push($obj);
-            return false;
-        }
-        ajax_query_process = true;
-
-        const data = $obj.data();
-
-        this.ajax = $.ajax({
-                queue: true,
-                url: ajax_request_vars.url,
-                type: 'post',
-                data: data,
-                enctype: $obj.upload ? 'multipart/form-data' : undefined,
-                contentType: $obj.upload ? false : 'application/x-www-form-urlencoded; charset=UTF-8',
-                processData: !$obj.upload
-            })
-            .fail(function() {
-                $obj.queue();
-                //_alert("", "error");
-                $("body").removeClass("loading");
-            })
-            .done(function(response) {
-                response = ajaxResponseFilter(response);
-                if (isJson(response)) {
-                    response = $.parseJSON(response);
-                }
-
-                if (response && response.hasOwnProperty("error") && response.error) {
-                    response_view(response);
-                    $obj.queue();
-                    return false;
-                }
-
-                $obj.objs = objs;
-
-                if (hooks.hasOwnProperty("after") || hooks.hasOwnProperty("done") || $obj.hasOwnProperty("done")) {
-                    if (hooks.hasOwnProperty("after")) hooks.after(response, $obj.vars, $obj.form, $obj.objs);
-                    if (hooks.hasOwnProperty("done")) hooks.done(response, $obj.vars, $obj.form, $obj.objs);
-                    if ($obj.hasOwnProperty("done")) $obj.done(response, $obj.vars, $obj.form, $obj.objs);
-                } else {
-                    $obj.check(response);
-                }
-
-                if (typeof $obj.after === "function") {
-                    $obj.after(response, $obj.vars, $obj.form, $obj.objs);
-                }
-
-                $obj.queue();
+            let baseUrl = ajax_request_vars.site_url;
+            if (!baseUrl.endsWith('/')) baseUrl += '/';
+            const apiUrl = `${baseUrl}api/${obj.method}/`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: (this.form.find('[type="file"]').length > 0) ? 
+                    { 'X-WP-Nonce': ajax_request_vars.ajax_nonce } : 
+                    { 'Content-Type': 'application/json', 'X-WP-Nonce': ajax_request_vars.ajax_nonce },
+                body: this.getPayload()
             });
+
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+            let result = await response.json();
+            if (typeof ajaxResponseFilter === "function") result = ajaxResponseFilter(result);
+
+            // Başarılı sonucu cache'e yaz
+            if (obj.cacheEnabled === true && result && !result.error) {
+                sessionStorage.setItem(cacheKey, JSON.stringify(result));
+            }
+
+            await this.handleHooksAndCheck(result, obj, hooks);
+
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                this.check(null);
+            }
+        } finally {
+            delete window.active_requests[obj.method];
+            ajax_query_process = false;
+
+            // 2. GLOBAL COMPLETE: İstek bitti (Başarılı/Hatalı fark etmez)
+            $(document).trigger('ajax_query:complete', [obj]);
+
+            // 3. GLOBAL STOP: Kuyrukta bekleyen başka istek kalmadıysa
+            if (ajax_query_queue.length === 0) {
+                $(document).trigger('ajax_query:stop', [obj]);
+                if (window.wp && wp.heartbeat && !wp.heartbeat.interval()) {
+                    wp.heartbeat.start();
+                    debugJS("Heartbeat yeniden başlatıldı (Tüm AJAX bitti).");
+                }
+            }
+
+            this.queue();
+        }
+    }
+    
+    check(data) {
+        if (!data || Array.isArray(data)) {
+            $("body").removeClass("loading");
+            if (this.form.length > 0) this.form.removeClass("ajax-processing");
+            return;
+        }
+        
+        if (data.resubmit !== true) {
+            $("body").removeClass("loading");
+            if (this.form.length > 0) this.form.removeClass("ajax-processing");
+        }
+        
+        if (data.message && typeof response_view === "function") response_view(data);
+        if (data.redirect) { window.location.href = data.redirect; }
     }
 
-    check(data) {
-        if (!data.resubmit) $("body").removeClass("loading");
-
-        if (!IsBlank(data.message)) {
-            if ($(".modal.show").length > 0 && this.form.find("#message").length > 0) {
-                this.form.find(".message").html("<div class='alert alert-" + (data.error ? "danger" : "success") + " text-center' role='alert'>" + data.message + "</div>");
-            } else {
-                response_view(data);
-            }
-            if (data.error) return false;
-        }
-
-        if (!IsBlank(data.redirect) && IsUrl(data.redirect)) {
-            if ($("body").hasClass("loading-steps")) {
-                var loading = $(this.form).data("loading");
-                loading.steps("completed").close();
-            }
-            window.location.href = data.redirect;
-            return false;
-        }
-
-        if (!IsBlank(data.html)) return "html";
-        if (data.resubmit) return "resubmit";
-        return "";
+    abort() {
+        if (this.ajax) this.ajax.abort();
     }
 }
 
 class ResponsiveManager {
     constructor() {
-        this.body = document.documentElement;
-        this.header = document.querySelector("header#header.fixed-bottom-start");
+        // documentElement (<html>) kullanımı class yönetimi için daha performanslıdır
+        this.body = document.documentElement; 
+        this.header = document.querySelector("header#header");
+        this.resizeTimer = null;
+
         this.breakpoints = [
             { name: "size-xs", max: 575 },
             { name: "size-sm", min: 576, max: 767 },
@@ -415,109 +530,149 @@ class ResponsiveManager {
             { name: "size-xxl", min: 1400, max: 1599 },
             { name: "size-xxxl", min: 1600 }
         ];
+
         this.init();
     }
 
     init() {
         if (typeof enquire === "undefined") return;
 
-        // KRİTİK OLANLAR (Orientation handlers) - Senkron kalabilir
-        // Tarayıcı yönlendirme olaylarını hemen kaydetmek mantıklıdır.
-        enquire.register("screen and (orientation: landscape)", {
-            match: () => this.body.classList.add("orientation-ls"),
-            unmatch: () => this.body.classList.remove("orientation-ls")
-        });
-        enquire.register("screen and (orientation: portrait)", {
-            match: () => this.body.classList.add("orientation-pr"),
-            unmatch: () => this.body.classList.remove("orientation-pr")
-        });
-
-        // AĞIR VE KRİTİK OLMAYAN İŞLEMLERİ ERTELEME (requestIdleCallback)
-        const scheduleHeavyTasks = () => {
-            
-            // Breakpoint handlers
-            this.breakpoints.forEach(bp => {
-                let query;
-                if (bp.min && bp.max) query = `(min-width: ${bp.min}px) and (max-width: ${bp.max}px)`;
-                else if (bp.max) query = `(max-width: ${bp.max}px)`;
-                else if (bp.min) query = `(min-width: ${bp.min}px)`;
-
-                enquire.register(query, {
-                    match: () => this.updateBreakpoint(bp.name),
-                    unmatch: () => this.body.classList.remove(bp.name)
-                });
-            });
-
-            // Custom Breakpoint Handlers (hcSticky gibi ağır JQuery işlemleri içeriyor)
-            enquire
-                .register("(min-width: 1200px)", {
-                    match: function() { /* match */ }
-                })
-                .register("(max-width: 1199px)", {
-                    match: function() { /* match */ }
-                })
-                .register("(min-width: 992px)", {
-                    match: function() {
-                        // root.map.init(); / google_map.init();
-                    }
-                })
-                .register("(min-width: 780px)", {
-                    match: function() { /* match */ }
-                })
-                .register("(min-width: 0px) and (max-width: 991px)", {
-                    match: function() {
-                        if ($(".stick-top").length > 0) {
-                            $(".stick-top").each(function() {
-                                var obj = $(this);
-                                $(this).hcSticky('update', {
-                                    top: stickyOptions.assign(obj).top
-                                });
-                            });
-                        }
-                        // root.map.init(); / google_map.init();
-                    }
-                })
-                .register("(min-width: 0px)", {
-                    match: function() { /* match */ }
-                });
-
-            // Resize listener'ı da buraya taşıyarak ilk yükte CPU'yu rahatlat
-            window.addEventListener("resize", () => {
-                this.updateHeaderOffset();
-                // navbar_visibility fonksiyonunu direkt çağırmak yerine bir throttle/debounce mekanizması önerilir.
-                navbar_visibility();
-            });
-            this.updateHeaderOffset(); // init call
+        // --- 1. ORIENTATION (Yönelim) KONTROLÜ ---
+        const setOrientation = (orientation) => {
+            const remove = orientation === 'ls' ? 'orientation-pr' : 'orientation-ls';
+            this.body.classList.remove(remove);
+            this.body.classList.add(`orientation-${orientation}`);
         };
 
-        // requestIdleCallback destekleniyorsa kullan (ideal çözüm)
+        enquire.register("screen and (orientation: landscape)", { match: () => setOrientation('ls') });
+        enquire.register("screen and (orientation: portrait)", { match: () => setOrientation('pr') });
+
+        // --- 2. BREAKPOINT YÖNETİMİ ---
+        this.breakpoints.forEach(bp => {
+            let query = bp.min ? `(min-width: ${bp.min}px)` : "";
+            if (bp.max) query += (query ? (query ? " and " : "") : "") + `(max-width: ${bp.max}px)`;
+            // Safari/Eski tarayıcı düzeltmesi: query başta boşsa min-width yok demektir
+            if (!bp.min) query = `(max-width: ${bp.max}px)`;
+
+            enquire.register(query, {
+                match: () => this.updateBreakpoint(bp.name)
+                // unmatch eklemiyoruz, updateBreakpoint zaten temizliği yapıyor.
+            });
+        });
+
+        // --- 3. AĞIR İŞLEMLER (Deferred / Idle) ---
+        const scheduleTasks = () => {
+            // Sticky elementleri sadece mobil/tablet geçişinde bir kez tetikle
+            enquire.register("(max-width: 991px)", { match: () => this.refreshStickyElements() });
+
+            window.addEventListener("resize", () => {
+                clearTimeout(this.resizeTimer);
+                this.resizeTimer = setTimeout(() => {
+                    this.updateHeaderOffset();
+                    if (typeof navbar_visibility === "function") navbar_visibility();
+                }, 150);
+            }, { passive: true });
+
+            this.updateHeaderOffset();
+        };
+
+        //this.handleOffcanvasTogglerVisibility();
+
         if (window.requestIdleCallback) {
-            window.requestIdleCallback(scheduleHeavyTasks);
+            window.requestIdleCallback(scheduleTasks);
         } else {
-            // Desteklenmiyorsa, 100ms gecikmeli çalıştır (fallback)
-            setTimeout(scheduleHeavyTasks, 100);
+            setTimeout(scheduleTasks, 200);
         }
     }
 
     updateBreakpoint(className) {
-        this.breakpoints.forEach(bp => this.body.classList.remove(bp.name));
+        // Sadece 'size-' ile başlayan sınıfları temizle (diğerlerini koru)
+        const toRemove = Array.from(this.body.classList).filter(c => c.startsWith('size-'));
+        if (toRemove.length > 0) this.body.classList.remove(...toRemove);
+        
         this.body.classList.add(className);
+
+        // Yan fonksiyonlar
+        this.closeOffcanvasOnBreakpointChange(className);
         this.updateHeaderOffset();
+    }
+
+    refreshStickyElements() {
+        const $sticky = $(".stick-top");
+        if ($sticky.length && $.fn.hcSticky) {
+            $sticky.hcSticky('update', {
+                top: typeof stickyOptions !== "undefined" ? 0 : 0 // Burayı kendi mantığına göre bağlarsın abi
+            });
+        }
+    }
+
+    /*handleOffcanvasTogglerVisibility() {
+        // 1. Senin projedeki geçerli Bootstrap/Custom breakpoint'lerin
+        const validBreakpoints = ['sm', 'md', 'lg', 'xl', 'xxl', 'xxxl'];
+
+        // 2. İçinde "offcanvas-" geçen tüm elementleri bul
+        const offcanvases = document.querySelectorAll('[class*="offcanvas-"]');
+
+        offcanvases.forEach(off => {
+            const classes = Array.from(off.classList);
+            let foundBreakpoint = null;
+
+            // 3. Sadece bizim listemizde olan gerçek bir breakpoint class'ı var mı kontrol et
+            // Örn: 'offcanvas-xxxl' -> 'xxxl' (valid mi? Evet)
+            classes.forEach(cls => {
+                const part = cls.replace('offcanvas-', '');
+                if (validBreakpoints.includes(part)) {
+                    foundBreakpoint = part;
+                }
+            });
+
+            // 4. Eğer gerçek bir breakpoint (responsive yapısı) bulduysak toggler'ları işle
+            if (foundBreakpoint) {
+                const offId = off.id;
+                const togglers = document.querySelectorAll(`[data-bs-toggle="offcanvas"][data-bs-target="#${offId}"], [data-bs-toggle="offcanvas"][href="#${offId}"]`);
+
+                togglers.forEach(btn => {
+                    // Sadece bulduğumuz breakpoint için gizleme class'ını ekle
+                    // Örn: d-xxxl-none
+                    btn.classList.add(`d-${foundBreakpoint}-none`);
+                });
+            }
+        });
+    }*/
+
+    closeOffcanvasOnBreakpointChange(currentBreakpoint) {
+        const openOffcanvas = document.querySelector('.offcanvas.show');
+        if (!openOffcanvas) return;
+
+        const bpSuffix = currentBreakpoint.replace('size-', '');
+        if (openOffcanvas.classList.contains(`offcanvas-${bpSuffix}`)) {
+            const instance = typeof bootstrap !== "undefined" ? bootstrap.Offcanvas.getInstance(openOffcanvas) : null;
+            if (instance) instance.hide();
+            else {
+                openOffcanvas.classList.remove('show');
+                document.querySelector('.offcanvas-backdrop')?.remove();
+                this.body.style.overflow = '';
+            }
+        }
     }
 
     updateHeaderOffset() {
         if (!this.header) return;
-        this.header.setAttribute(
-            "data-affix-offset",
-            window.innerHeight - parseFloat(getComputedStyle(this.header).getPropertyValue("--header-height"))
-        );
+        requestAnimationFrame(() => {
+            const h = this.header.offsetHeight || 0;
+            const offset = window.innerHeight - h;
+            this.header.setAttribute("data-affix-offset", Math.round(offset));
+            this.body.style.setProperty('--header-height', h + 'px');
+        });
     }
 }
-new ResponsiveManager();
+
+// Başlat
+window.ResponsiveManagerInstance = new ResponsiveManager();
 
 var root = {
 
-    options: {},
+    //options: {},
 
     lang: document.getElementsByTagName("html")[0].getAttribute("lang"),
 
@@ -532,13 +687,13 @@ var root = {
 
     Date : Date.now,
 
-    is_home: function() {
+    /*is_home: function() {
         return this.classes.hasClass(document.body, "home")
     },
 
     logged: function() {
         return this.classes.hasClass(document.body, "logged")
-    },
+    },*/
 
     on_resize: {},
 
@@ -590,13 +745,16 @@ var root = {
 
             arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
 
-            arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
+            /*arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
             arr['hero-height-xxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxl').trim());
             arr['hero-height-xl'] = parseFloat(obj.getPropertyValue('--hero-height-xl').trim());
             arr['hero-height-lg'] = parseFloat(obj.getPropertyValue('--hero-height-lg').trim());
             arr['hero-height-md'] = parseFloat(obj.getPropertyValue('--hero-height-md').trim());
             arr['hero-height-sm'] = parseFloat(obj.getPropertyValue('--hero-height-sm').trim());
-            arr['hero-height-xs'] = parseFloat(obj.getPropertyValue('--hero-height-xs').trim());
+            arr['hero-height-xs'] = parseFloat(obj.getPropertyValue('--hero-height-xs').trim());*/
+
+            arr['hero-height'] = parseFloat(obj.getPropertyValue('--hero-height').trim());
+
             root.css_vars = arr;
         }, 50);
     },
@@ -627,18 +785,18 @@ var root = {
             root.classes.addClass(document.getElementsByTagName("html")[0], isMobile.any());
         },
 
-        disable_contextmenu: function() {
+        /*disable_contextmenu: function() {
             document.addEventListener("contextmenu", function(e) {
                 e.preventDefault();
             }, false);
-        },
+        },*/
 
         size_compare : function(a,b){
             var sizes = ["xs", "sm", "md", "lg", "xl", "xxl", "xxxl"];
             return (sizes.indexOf(a) > sizes.indexOf(b));
         },
 
-        size: function() {
+        /*size: function() {
             var bodyObj, bodyClass;
             bodyObj = window.document.documentElement; //document.body;
             bodyClass = "xxxl";
@@ -650,9 +808,14 @@ var root = {
             bodyClass = root.classes.hasClass(bodyObj, "size-sm") ? "sm" : bodyClass;
             bodyClass = root.classes.hasClass(bodyObj, "size-xs") ? "xs" : bodyClass;
             return bodyClass;
+        },*/
+        size: function() {
+            const bodyObj = window.document.documentElement;
+            const match = bodyObj.className.match(/size-([a-z0-9]+)/);
+            return match ? match[1] : "xxxl"; // match[1] 'xxxl', 'lg' vb. döner
         },
 
-        closeOffcanvas: function($breakpoint){
+        /*closeOffcanvas: function($breakpoint){
             let breakpoints = ["xs", "sm", "md", "lg", "xl", "xxl", "xxxl"];
             let offcanvas = $(".offcanvas.show");
             if (!$offcanvas.length) return;
@@ -667,13 +830,12 @@ var root = {
                     }
                 }
             });
-        },
-
+        },*/
     },
 
     ui: {
 
-        reloadImage: function(img) {
+        /*reloadImage: function(img) {
             if (IsBlank(img.attr("data-src"))) {
                 img.attr("data-src", img.attr("src")).addClass("fade");
             }
@@ -682,7 +844,7 @@ var root = {
             img.removeClass("in").attr("src", "").attr("src", new_src).on("load", function() {
                 $(this).addClass("in");
             });
-        },
+        },*/
 
         viewport: function() {
             const checkViewportStatus = function() {
@@ -710,147 +872,147 @@ var root = {
             setTimeout(checkViewportStatus, 150);
         },
 
-        navigation: function() {
-            switch (root.options.navigation) {
-                case "full":
-                    var obj = $('#navbar_container');
-                    break;
-                case "":
-                default:
-                    var obj = $('#navigation');
-                    break;
-            }
-            if (obj.find(".link-onepage-home").length > 0) {
-                obj.find(".link-onepage-home a").attr("href", "#home");
-            }
-            obj
-                .on('show.bs.collapse', function(e) {
-                    if ($("header#header").hasClass("navbar-fixed-top")) {
-                        $('.navbar-collapse')[0].body_position = $("html,body").scrollTop();
-                        var active_links = [];
-                        obj.find("li.active a").each(function(index) {
-                            active_links[index] = $(this).attr("href");
-                        })
-                        $('.navbar-collapse')[0].active_links = active_links;
-                    }
-                    $("body").addClass("mobile-menu-open");
-                })
-                .on('shown.bs.collapse', function(e) {})
-                .on('hide.bs.collapse', function(e) {
-                    $("body").addClass("mobile-menu-closing");
-                    if ($("header#header").hasClass("navbar-fixed-top")) {
-                        $("html, body").scrollTop($('.navbar-collapse')[0].body_position);
-                    }
-                })
-                .on('hidden.bs.collapse', function(e) {
-                    $("body").removeClass("mobile-menu-open").removeClass("mobile-menu-closing");
-                });
+        /*navigation: function() {
 
-            $(".dropdown-toggle").on("click", function() {
-                if ($(this).parent().hasClass("open")) {
-                    var obj = $(this);
+            var menu = $('#navigation');
+            if (menu.find(".link-onepage-home").length > 0) {
+                menu.find(".link-onepage-home a").attr("href", "#home");
+            }
+
+            menu.on("click", ".dropdown-toggle", function(e) {
+                e.preventDefault();
+                
+                var $this = $(this);
+                var $parent = $this.parent(".dropdown"); // Parent'ın .dropdown olduğundan emin olalım
+                
+                // Menü içindeki diğer açık olanları bul ama tıkladığımızı hariç tut
+                var $openOthers = menu.find(".dropdown.open").not($parent);
+
+                // 1. Diğerlerini temizle
+                if ($openOthers.length > 0) {
+                    $openOthers.removeClass("open");
+                    $openOthers.find("a").removeClass("has-submenu highlighted");
+                    $openOthers.find("ul.dropdown-menu").attr("aria-hidden", true).attr("aria-expanded", false).hide();
+                }
+
+                // 2. Tıklananı Toggle et
+                if ($parent.hasClass("open")) {
+                    $parent.removeClass("open");
+                    $this.removeClass("has-submenu highlighted");
+                    $parent.find("ul.dropdown-menu").attr("aria-hidden", true).attr("aria-expanded", false).hide();
                 } else {
-                    var obj = $(this).closest(".nav").find(".dropdown.open");
-                }
-                if (obj.length > 0) {
-                    obj.removeClass("open");
-                    obj.find("a").removeClass("has-submenu highlighted");
-                    obj.find("ul.dropdown-menu").attr("aria-hidden", true).attr("aria-expanded", false).css("display", "none");
+                    $parent.addClass("open");
+                    $this.addClass("has-submenu highlighted");
+                    $parent.find("ul.dropdown-menu").attr("aria-hidden", false).attr("aria-expanded", true).show();
                 }
             });
 
-            /*$('body.home').scrollspy({
-                target: '#navigation',
-                offset: 110
-            });
-            $('body.home').on('activate.bs.scrollspy', function(e) {
-                if (!$("body").hasClass("mobile-menu-open")) {
-                    root.hash = $(e.target).find("a").attr("href");
-                    history.pushState(root.hash, document.title, window.location.pathname + root.hash);
-                }
-            });
-
-            $(window).on("click.Bst", function(e) {
-                if ($('header#header').has(e.target).length == 0 && !$('header#header').is(e.target)) {
-                    if ($(".navbar-collapse").hasClass("in")) {
-                        $(".navbar-collapse").collapse("hide");
-                    }
-                }
-            });*/
-        },
-
-        offset_top: function() {
-            var size = root.browser.size();
-            var headerHeight = root.get_css_var("header-height");
-            var headerHeightAffix = root.get_css_var("header-height-affix");
-            if ($("header#header").hasClass("affix") || $("header#header").hasClass("fixed-top")) {
-                return headerHeight;
-            } else {
-                return headerHeightAffix;
-            }
-        },
+        },*/
 
         scroll_dedect: function(up, down) {
-            var scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-            var header_hide = $("body").hasClass("header-hide-on-scroll");
-            $("body").addClass("scroll-dedect");
+            const self = this;
+            const body = document.body;
+            const header = document.querySelector("header#header");
+            const header_hide_enabled = body.classList.contains("header-hide-on-scroll");
+            
+            let lastScrollPos = window.pageYOffset || document.documentElement.scrollTop;
+            let ticking = false;
 
-            var sticky_tops = document.querySelectorAll('.sticky-top');
-            var sticky_bottoms = document.querySelectorAll('.sticky-bottom'); // <--- sticky bottom
+            body.classList.add("scroll-dedect");
+
+            const handleSticky = () => {
+                // Sadece sticky-top, sticky-bottom ve responsive olanları seç
+                const stickies = document.querySelectorAll('.sticky-top, .sticky-bottom, [class*="sticky-"]');
+                const currentSize = root.browser.size(); // Mevcut breakpoint (örn: "md")
+
+                // Breakpoint hiyerarşisi (Büyükten küçüğe)
+                const bpOrder = ['xxxl', 'xxl', 'xl', 'lg', 'md', 'sm', 'xs'];
+
+                stickies.forEach(el => {
+                    // --- 1. RESPONSIVE KONTROLÜ ---
+                    // Sınıf listesinde "sticky-lg" gibi bir sınıf var mı bakıyoruz
+                    const responsiveClass = Array.from(el.classList).find(cls => cls.startsWith('sticky-') && cls !== 'sticky-top' && cls !== 'sticky-bottom');
+                    
+                    if (responsiveClass) {
+                        const targetBp = responsiveClass.split('-')[1]; // Sınıftan gelen (örn: "lg")
+                        
+                        // Mevcut ekran boyutu, hedef breakpoint'in altında mı (veya eşit mi)?
+                        // örn: targetBp "lg" ise, currentSize "lg", "md", "sm" veya "xs" olmalı.
+                        const isApplicable = bpOrder.indexOf(currentSize) >= bpOrder.indexOf(targetBp);
+
+                        if (!isApplicable) {
+                            el.classList.remove("sticked");
+                            return; // Bu ekran boyutunda sticky değil, hesaplamaya gerek yok.
+                        }
+                    }
+
+                    // --- 2. HESAPLAMA MANTIĞI (Aynı Kalıyor) ---
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+
+                    // Sticky-Top Kontrolü
+                    if (style.top !== 'auto') {
+                        const topLimit = parseInt(style.top);
+                        const parent = el.closest('.sticky-top-parent');
+                        let isSticked = false;
+
+                        if (parent) {
+                            const parentRect = parent.getBoundingClientRect();
+                            isSticked = Math.round(rect.top) === topLimit && rect.top > parentRect.top;
+                        } else {
+                            isSticked = Math.round(rect.top) === topLimit;
+                        }
+                        el.classList.toggle("sticked", isSticked);
+                    }
+
+                    // Sticky-Bottom Kontrolü
+                    if (style.bottom !== 'auto') {
+                        const bottomLimit = parseInt(style.bottom);
+                        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                        const parent = el.closest('.sticky-bottom-parent');
+                        let isSticked = false;
+
+                        if (parent) {
+                            const parentRect = parent.getBoundingClientRect();
+                            isSticked = Math.round(rect.bottom) === (viewportHeight - bottomLimit) && rect.bottom < parentRect.bottom;
+                        } else {
+                            isSticked = Math.round(rect.bottom) === (viewportHeight - bottomLimit);
+                        }
+                        el.classList.toggle("sticked", isSticked);
+                    }
+                });
+            };
 
             window.addEventListener('scroll', function() {
-                var currentPos = window.pageYOffset || document.documentElement.scrollTop;
+                if (!ticking) {
+                    window.requestAnimationFrame(function() {
+                        const currentPos = window.pageYOffset || document.documentElement.scrollTop;
 
-                // sticky top işlemleri
-                sticky_tops.forEach(function(sticky_top) {
-                    var sticky_top_style = window.getComputedStyle(sticky_top);
-                    var top = parseInt(sticky_top_style.top);
+                        handleSticky();
 
-                    if (sticky_top.getBoundingClientRect().top === top) {
-                        sticky_top.classList.add('sticked');
-                    } else {
-                        sticky_top.classList.remove('sticked');
-                    }
-                });
-
-                // sticky bottom işlemleri
-                sticky_bottoms.forEach(function(sticky_bottom) {
-                    var sticky_bottom_style = window.getComputedStyle(sticky_bottom);
-                    var bottom = parseInt(sticky_bottom_style.bottom);
-
-                    if (sticky_bottom.getBoundingClientRect().bottom === window.innerHeight - bottom) {
-                        sticky_bottom.classList.add('sticked');
-                    } else {
-                        sticky_bottom.classList.remove('sticked');
-                    }
-                });
-
-                if (currentPos <= scrollPos) {
-                    $("body").removeClass("header-hide").removeClass("scroll-down").addClass("scroll-up");
-                    if (!IsBlank(up)) {
-                        if (typeof up === "function") {
-                            up(scrollPos);
+                        // Yukarı/Aşağı scroll mantığı
+                        if (currentPos < lastScrollPos) {
+                            body.classList.remove("header-hide", "scroll-down");
+                            body.classList.add("scroll-up");
+                            if (typeof up === "function") up(currentPos);
+                            if (currentPos <= 0) body.classList.remove("scroll-up");
+                        } else if (currentPos > lastScrollPos && currentPos > 0) {
+                            body.classList.remove("scroll-up");
+                            body.classList.add("scroll-down");
+                            if (currentPos > (header ? header.offsetHeight : 0) && header_hide_enabled) {
+                                body.classList.add("header-hide");
+                            }
+                            if (typeof down === "function") down(currentPos);
                         }
-                    }
-                    if (currentPos <= 0) {
-                        $("body").removeClass("scroll-down").removeClass("scroll-up");
-                    }
-                } else {
-                    $("body").removeClass("scroll-up").addClass("scroll-down");
-                    if (currentPos > $("header#header").height()) {
-                        if (header_hide) {
-                            $("body").addClass("header-hide");
-                        }
-                        $(window).trigger("resize");
-                    }
-                    if (!IsBlank(down)) {
-                        if (typeof down === "function") {
-                            down(scrollPos);
-                        }
-                    }
+
+                        lastScrollPos = currentPos;
+                        ticking = false;
+                    });
+                    ticking = true;
                 }
-                scrollPos = currentPos;
-            });
+            }, { passive: true });
+
+            handleSticky();
         },
 
         scroll_top: function() {
@@ -885,165 +1047,178 @@ var root = {
             }
         },
 
-        scroll_to: function($hash, $animate, $outside, $callback) {
-
+        /*scroll_to: function($hash, $animate = true, $outside = false, $callback = null) {
+            //const self = this;
+            
+            // 1. Girdi Kontrolü ve ID Üretimi
             if (typeof $hash === "object") {
                 if (IsBlank($hash.attr("id"))) {
-                    $hash_id = generateCode(5);
-                    $hash.attr("id", $hash_id);
+                    $hash.attr("id", "sc-" + Math.random().toString(36).substr(2, 5));
                 }
-                $hash = "#" + $hash.attr("id")
+                $hash = "#" + $hash.attr("id");
             }
 
-            if (!IsBlank($hash) && typeof $hash !== "undefined") {
-                var _history = true;
+            if (IsBlank($hash)) return false;
 
-                //if hash is bs toggle
-                if ($($hash).hasClass("tab-pane")) {
-                    _history = false;
-                }
+            const $target = $($hash);
+            if ($target.length === 0) return false;
 
-                $outside = IsBlank($outside) ? false : true;
-                var target = $hash;
-                if ($(target).length > 0) {
-                    root.hash = $hash;
+            // 2. Durum Belirleme
+            let _history = !$target.hasClass("tab-pane");
+            const header = $("header#header");
+            const isNavbarOpen = $(".navbar-collapse").hasClass("show");
+            const isOffcanvasOpen = $(".offcanvas.show").length > 0;
 
-                    if ($(target).hasClass("card-merged") | $(target).hasClass("collapse")) {
-                        root.hash = "";
-                    }
-
-                    if ($(target).not(".show").hasClass("collapse")) {
-                        $(target).collapse("show");
-                    }
-
-                    if ($(target).not(".active").hasClass("tab-pane")) {
-                        $("a[href='" + target + "']").trigger("click");
-                    }
-
-                    var posY = $(target).offset().top;
-
-                    var size = root.browser.size();
-                    var headerHeight = root.get_css_var("header-height");
-                    var headerHeightAffix = root.get_css_var("header-height-affix");
-
-                    if($(".offcanvas.show").length > 0){
-                         $(".offcanvas.show").offcanvas("hide");
-                    }
-                    if ($(".navbar-collapse").hasClass("show")) {
-                        $(".navbar-collapse")
-                            .collapse("hide")
-                            .on('hidden.bs.collapse', function() {
-                                var posY = $(target_section).offset().top;
-                                if ($("header#header").hasClass("affix") || $("header#header").hasClass("navbar-fixed-top")) {
-                                    posY -= $("header#header").height()
-                                }
-                                if ($("stick-top.sticky").length > 0) {
-                                    $("stick-top.sticky").each(function() {
-                                        posY -= $(this).height()
-                                    });
-                                }
-                                $("html, body").stop().animate({
-                                    scrollTop: posY
-                                }, 600, function() {
-                                    if (_history) {
-                                        root.hash = target;
-                                    }
-                                });
-                            });
-                        return false;
-                    }
-
-                    if($(target).hasClass("offcanvas")){
-                       $(target).offcanvas("show");
-                       if($("[href='"+root.hash+"']").length > 0){
-                           posY = $("[href='"+root.hash+"']").offset().top;
-                       }
-                    }
-
-                    if (($("header#header").hasClass("affix") || $("header#header").hasClass("fixed-top")) ) {
-                        if (posY >= headerHeight) {
-                            posY -= headerHeight;
-                        } else {
-                            posY -= headerHeightAffix;
-                        }
-                    }
-                    if(root.browser.size_compare(size,"md")){
-                        if($('html').offset().top > posY){//hedef buyukse yukarı, kucukse asağı
-                            //yukari
-                            if($("header#header").hasClass("fixed-top")){
-                                 posY -= headerHeightAffix;
-                            }
-                        }else{
-                            //asagi
-                        }
-                    }else{
-                        posY -= headerHeightAffix;
-                    }
-
-                    if ($(".stick-top.sticky").length > 0) {
-                        posY -= $(".stick-top.sticky").outerHeight(true);
-                    }
-
-                    if ($animate) {
-                        $("html, body").stop().animate({
-                            scrollTop: posY
-                        }, 600, function() {
-                            if (!$outside && !IsBlank(root.hash)) {
-                                if (_history) {
-                                //    history.pushState(root.hash, document.title, window.location.pathname + root.hash);
-                                }
-                            }
-                            if(!IsBlank($callback)){
-                                $callback();
-                            }
-                        });
-                    } else {
-
-                        $("html, body").stop().animate({
-                            scrollTop: posY
-                        }, 0, function() {
-
-                            if (!$outside && !IsBlank(root.hash)) {
-                                if (_history) {
-                                //    history.pushState(root.hash, document.title, window.location.pathname + root.hash);
-                                }
-                            }
-                            if(!IsBlank($callback)){
-                                $callback();
-                            }
-                        });
-                    }
-                    return false;
-                }
+            // 3. Bootstrap Bileşenlerini Tetikle (Show/Hide işlemleri)
+            // Offcanvas açıksa kapat
+            if (isOffcanvasOpen) {
+                $(".offcanvas.show").offcanvas("hide");
             }
-        },
 
-        scroll_to_actions: function() {
-            $(document).on("click", "a:not([data-bs-toggle]):not([data-ajax-method]):not(.scroll-to-init)", function(e){
-                var btn = $(this);
-                btn.addClass("scroll-to-init");
-                var target = this.hash;
-                if(btn.attr("href").indexOf("#") > -1){
-                    var outside = false;
-                    if(window.location.href != btn.attr("href").split("#")[0]){
-                       outside = true;
-                       return;
-                    }
-                    if($(target).length == 0){
-                        var events = $.data(btn.get(0), 'events');
-                        if (events == null || typeof events === "undefined") {
-                            e.preventDefault();
-                        }
-                    }else{
-                        e.preventDefault();
-                        var offcanvas = $(this).closest(".offcanvas");
-                        if(offcanvas){
-                           offcanvas.offcanvas("hide");
-                        }
-                        root.ui.scroll_to(target, true);
-                    }                    
+            // Collapse ise aç
+            if ($target.hasClass("collapse") && !$target.hasClass("show")) {
+                $target.collapse("show");
+            }
+
+            // Tab ise aktifleştir
+            if ($target.hasClass("tab-pane") && !$target.hasClass("active")) {
+                $("a[href='" + $hash + "']").trigger("click");
+            }
+
+            // 4. Pozisyon Hesaplama (Calculation Engine)
+            const calculatePosition = () => {
+                let posY = $target.offset().top;
+                const headerHeight = root.get_css_var("header-height") || 0;
+                const headerHeightAffix = root.get_css_var("header-height-affix") || 0;
+                const currentSize = root.browser.size();
+
+                // Header yükseklik düşümü
+                if (header.hasClass("affix") || header.hasClass("fixed-top")) {
+                    posY -= (posY >= headerHeight) ? headerHeight : headerHeightAffix;
+                } else if (!root.browser.size_compare(currentSize, "md")) {
+                    posY -= headerHeightAffix;
                 }
-           });
+
+                // Sticky elemanları hesapla (Loop yerine tek seferde)
+                $(".stick-top.sticky, .sticky-top").each(function() {
+                    if ($(this).is(":visible")) {
+                        posY -= $(this).outerHeight(true);
+                    }
+                });
+
+                return posY;
+            };
+
+            // 5. Kaydırma Fonksiyonu (Execution)
+            const runScroll = (finalY) => {
+                const duration = $animate ? 600 : 0;
+                
+                $("html, body").stop().animate({
+                    scrollTop: Math.max(0, finalY) // Negatif değerleri engelle
+                }, duration, function() {
+                    // Callback ve History yönetimi
+                    if (!_outside && _history && !IsBlank($hash)) {
+                        // history.pushState(null, null, $hash); // İsteğe bağlı açılabilir
+                    }
+                    if (typeof $callback === "function") $callback();
+                });
+            };
+
+            // 6. Navbar Kapalıysa Direkt Kaydır, Açıksa Kapanmasını Bekle
+            if (isNavbarOpen) {
+                $(".navbar-collapse").collapse("hide").one('hidden.bs.collapse', function() {
+                    runScroll(calculatePosition());
+                });
+            } else {
+                // Render gecikmelerine karşı küçük bir timeout (özellikle collapse açılıyorsa)
+                setTimeout(() => runScroll(calculatePosition()), $target.hasClass("collapse") ? 350 : 0);
+            }
+
+            return false;
+        },*/
+
+        scroll_to: function($hash, $animate = true, $outside = false, $callback = null) {
+            // 1. Girdi Kontrolü ve Hedef Saptama
+            if (typeof $hash === "object") {
+                if (!$hash.attr("id")) {
+                    $hash.attr("id", "sc-" + Math.random().toString(36).substr(2, 5));
+                }
+                $hash = "#" + $hash.attr("id");
+            }
+            if (!$hash || $hash === "#") return false;
+
+            const targetEl = document.querySelector($hash);
+            if (!targetEl) return false;
+
+            // 2. Bootstrap Bileşenlerini Yönet (Hızlı Kapatma)
+            // bootstrap.Offcanvas.getInstance gibi native metodlar daha hızlıdır
+            $('.offcanvas.show').each(function() {
+                const instance = bootstrap.Offcanvas.getInstance(this);
+                if (instance) instance.hide();
+            });
+
+            if (targetEl.classList.contains("collapse") && !targetEl.classList.contains("show")) {
+                $(targetEl).collapse("show");
+            }
+
+            if (targetEl.classList.contains("tab-pane") && !targetEl.classList.contains("active")) {
+                document.querySelector(`a[href='${$hash}']`)?.click();
+            }
+
+            // 3. Ofset Hesaplama Motoru (Optimize edilmiş)
+            const getOffset = () => {
+                let offset = 0;
+                const header = document.querySelector("header#header");
+                const hHeight = root.get_css_var("header-height") || 0;
+                const hAffix = root.get_css_var("header-height-affix") || 0;
+
+                if (header?.classList.contains("affix") || header?.classList.contains("fixed-top")) {
+                    offset = hHeight > 0 ? hHeight : hAffix;
+                }
+
+                // Sticky elemanları tek seferde topla
+                document.querySelectorAll(".stick-top.sticky, .sticky-top").forEach(el => {
+                    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+                        offset += el.offsetHeight;
+                    }
+                });
+                return offset;
+            };
+
+            // 4. İcraat (Lenis varsa Lenis, yoksa Native Scroll)
+            const performScroll = () => {
+                const finalOffset = getOffset();
+                
+                if (window.lenis && $animate) {
+                    // LENIS KULLANIMI (En performanslı ve akıcı yol)
+                    window.lenis.scrollTo(targetEl, {
+                        offset: -finalOffset,
+                        duration: 1.2,
+                        onComplete: () => {
+                            if (typeof $callback === "function") $callback();
+                        }
+                    });
+                } else {
+                    // NATIVE MODERN SCROLL (jQuery'den daha hızlı)
+                    const top = targetEl.getBoundingClientRect().top + window.pageYOffset - finalOffset;
+                    window.scrollTo({
+                        top: top,
+                        behavior: $animate ? 'smooth' : 'auto'
+                    });
+                    if (typeof $callback === "function") $callback();
+                }
+            };
+
+            // 5. Navbar Kapanmasını Bekle ve Tetikle
+            const navbar = document.querySelector(".navbar-collapse.show");
+            if (navbar) {
+                $(navbar).collapse("hide").one('hidden.bs.collapse', performScroll);
+            } else {
+                // Collapse açılıyorsa DOM'un hesaplanması için minik bir bekleme
+                setTimeout(performScroll, targetEl.classList.contains("collapse") ? 300 : 10);
+            }
+
+            return false;
         },
 
         prev_next: function() {
@@ -1088,7 +1263,7 @@ var root = {
             });
         },
 
-        resizing : function(){
+        /*resizing : function(){
             let timer;
             function start() { $("body").addClass("resizing"); }
             function stop() { $("body").removeClass("resizing"); }
@@ -1097,10 +1272,35 @@ var root = {
                 clearTimeout(timer);
                 timer = setTimeout(stop, 250);
             });
+        },*/
+        resizing: function() {
+            let timer;
+            let lastWidth = window.innerWidth;
+            const body = document.body;
+
+            // Pasif dinleyici ile en yüksek performans
+            window.addEventListener("resize", () => {
+                const currentWidth = window.innerWidth;
+
+                // Sadece yatayda bir değişim varsa (Ekran dönmesi veya browser daraltma)
+                if (currentWidth !== lastWidth) {
+                    // Flag mantığı: Zaten class varsa tekrar ekleme yapmaz, CPU yemez
+                    if (!body.classList.contains("resizing")) {
+                        body.classList.add("resizing");
+                    }
+                    
+                    lastWidth = currentWidth;
+
+                    // Debounce: Kullanıcı boyutlandırmayı durdurduktan 250ms sonra class'ı kaldır
+                    clearTimeout(timer);
+                    timer = setTimeout(() => {
+                        body.classList.remove("resizing");
+                    }, 250);
+                }
+            }, { passive: true });
         },
 
-
-        tree_menu : function(){
+        /*tree_menu : function(){
             var obj = $(".nav-tree");
             obj.each(function(){
                 var menu = $(this);
@@ -1113,33 +1313,61 @@ var root = {
                     });
                 }
             });
+        },*/
+
+        scrollspy: function() {
+            // 1. Menüyü ve içindeki linkleri bul
+            const spyMenu = document.querySelector('.nav-scrollspy');
+            if (!spyMenu) return; // Menü yoksa yorma kendini
+
+            const navLinks = spyMenu.querySelectorAll('.nav-link');
+            const sections = [];
+
+            // 2. Linklerin hedeflediği bölümleri (ID'leri) tespit et
+            navLinks.forEach(link => {
+                const targetId = link.getAttribute('href');
+                if (targetId && targetId.startsWith('#')) {
+                    const section = document.querySelector(targetId);
+                    if (section) sections.push(section);
+                }
+            });
+
+            // 3. Observer Ayarları (Hassasiyet)
+            const observerOptions = {
+                root: null,
+                // Ekranın üstünden %20, altından %70 pay bırakıyoruz ki 
+                // eleman tam ortaya/tepeye gelince "aktif" olsun.
+                rootMargin: '-20% 0px -70% 0px',
+                threshold: 0
+            };
+
+            const spyObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    // Eğer bölüm görüş alanına girdiyse
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        
+                        // Menüdeki tüm aktifleri temizle, ilgili olanı yak
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            // 4. Tüm bölümleri izlemeye başla
+            sections.forEach(section => spyObserver.observe(section));
         }
 
     },
 
-    form: {
+    /*form: {
         init: function() {
-            /*button text on form submit*/
             $('.btn-submit').attr("disabled", false).removeClass("processing");
         }
-    },
-
-    card: function() {
-        //add active class to each opened panel item in panel-group
-        $(document).on("show.bs.collapse", ".card-collapse", function(e) {
-            var card = $(e.target).closest(".card")
-            card.addClass("active");
-            var cardCollapse = $(e.target);
-            var parent = card.find("[href='#" + cardCollapse.attr("id") + "']").attr("data-parent");
-            if (!IsBlank(parent)) {
-                if (card.parent().attr("id") != parent) {
-                    $(parent).find(".card-collapse").not(cardCollapse).collapse("hide");
-                }
-            }
-        }).on("hide.bs.collapse", ".card-collapse", function(e) {
-            var card = $(e.target).closest(".card")
-            card.removeClass("active");
-        });
     },
 
     responsive: {
@@ -1180,10 +1408,7 @@ var root = {
 
                     })
                     .on('shown.bs.tab', function(e) {
-                        /*////debugJS(root["map-google"]);
-                        if(!IsBlank(root["map-google"])){
-                        	eval(root["map-google"])();
-                        }*/
+
                     })
 
 
@@ -1220,7 +1445,7 @@ var root = {
                     });
             }
         }
-    },
+    },*/
 
     get_location: function($obj) {
             if (navigator.geolocation) {
@@ -1230,19 +1455,32 @@ var root = {
                             lat: position.coords.latitude,
                             lon: position.coords.longitude
                         };
-                        if ($obj.hasOwnProperty("callback")) {
+                        // Güvenli kontrol için yardımcı değişken
+                        var hasProp = Object.prototype.hasOwnProperty;
+
+                        if ($obj && hasProp.call($obj, "callback")) {
                             var obj = {
                                 pos: pos,
-                                status : true
+                                status: true
                             };
-                            if ($obj.hasOwnProperty("map")) {
+
+                            // Harita objesi var mı?
+                            if (hasProp.call($obj, "map")) {
                                 obj["map"] = $obj.map;
                             }
-                            if ($obj.hasOwnProperty("end")) {
+
+                            // Bitiş noktası var mı?
+                            if (hasProp.call($obj, "end")) {
                                 obj["end"] = $obj.end;
                             }
-                            $obj.callback(obj);
+
+                            // Callback fonksiyonunu güvenli bir şekilde tetikle
+                            if (typeof $obj.callback === "function") {
+                                $obj.callback(obj);
+                            }
                         } else {
+                            // Not: Eğer bu kod bir async (getCurrentPosition vb.) içindeyse
+                            // bu return değeri ana çağıran yere ulaşmayacaktır.
                             return pos;
                         }
                         //infoWindow.setPosition(pos);
@@ -1253,8 +1491,14 @@ var root = {
                         //if ($obj.hasOwnProperty("map")) {
                         //    handleLocationError(true, infoWindow, $obj.map.getCenter());
                         //} else {
-                        if ($obj.hasOwnProperty("callback")) {
-                            $obj.callback({status: false});
+                        // jQuery 4.0 ve Modern JS güvenli kontrolü
+                        if ($obj && Object.prototype.hasOwnProperty.call($obj, "callback")) {
+                            
+                            // Güvenlik: callback'in gerçekten bir fonksiyon olduğundan emin olalım
+                            if (typeof $obj.callback === "function") {
+                                $obj.callback({ status: false });
+                            }
+                            
                         }
                         _alert("Lütfen browser ayarlarınızdan konum erişimine izin verin.");
                         //}
@@ -1265,8 +1509,10 @@ var root = {
                 //if ($obj.hasOwnProperty("map")) {
                 //    handleLocationError(false, infoWindow, map.getCenter());
                 //} else {
-                if ($obj.hasOwnProperty("callback")) {
-                    $obj.callback(false);
+                if ($obj && Object.prototype.hasOwnProperty.call($obj, "callback")) {
+                    if (typeof $obj.callback === "function") {
+                        $obj.callback(false);
+                    }
                 }
                 _alert("Your browser dowsn't support Geolocation");
                 //}
@@ -1295,36 +1541,55 @@ var root = {
             }
     },
 
-    init: function(options) {
-        root.options = options;
-        //root.browser.enquire();
+    init: function() {
+        //root.options = options;
         root.browser.device();
         $(document).ready(function() {
-            root.ui.navigation();
+            //root.ui.navigation();
             root.get_css_vars();
             root.ui.scroll_top();
-            ///root.ui.scroll_to_actions();
             root.ui.prev_next();
             root.ui.viewport();
             root.ui.resizing();
-            root.form.init();
-            root.ui.tree_menu();
+            //root.form.init();
+            //root.ui.tree_menu();
+            root.ui.scrollspy();
 
             //root.responsive.table();
             //root.responsive.tab();
 
             function onResize() {
-                for (var func in root.on_resize) {
-                    if (root.on_resize.hasOwnProperty(func)) {
-                        root.on_resize[func]();
+                // Objenin varlığını ve içinin dolu olduğunu kontrol edelim
+                if (root && root.on_resize) {
+                    for (var func in root.on_resize) {
+                        // jQuery 4.0 ve Modern JS güvenli kontrolü
+                        if (Object.prototype.hasOwnProperty.call(root.on_resize, func)) {
+                            // Güvenlik: Çağırılacak olanın gerçekten bir fonksiyon olduğunu teyit edelim
+                            if (typeof root.on_resize[func] === "function") {
+                                root.on_resize[func]();
+                            }
+                        }
                     }
                 }
-            };
+            }
 
         });
     }
 }
 
+if (typeof $.isFunction !== "function") {
+    $.isFunction = function(obj) {
+        return typeof obj === "function";
+    };
+}
+
+if (typeof $.parseJSON !== 'function') {
+    $.parseJSON = function(data) {
+        return JSON.parse(data);
+    };
+}
+
+/*
 var favorites = {
     class_tease: ".card-profile-tease",
     add: function(obj) {
@@ -1366,7 +1631,7 @@ var favorites = {
                 obj.removeClass("disabled");
             })
             .done(function(response) {
-                response = $.parseJSON(response);
+                response = JSON.parse(response);
                 if (errorView(response)) {
                     obj.removeClass("disabled");
                     return false;
@@ -1439,7 +1704,7 @@ var cart = {
                 obj.removeClass("disabled");
             })
             .done(function(response) {
-                response = $.parseJSON(response);
+                response = JSON.parse(response);
                 if (errorView(response)) {
                     obj.removeClass("disabled");
                     return false;
@@ -1508,7 +1773,7 @@ var messages = {
                 obj.removeClass("disabled");
             })
             .done(function(response) {
-                response = $.parseJSON(response);
+                response = JSON.parse(response);
                 if (errorView(response)) {
                     obj.removeClass("disabled");
                     return false;
@@ -1543,3 +1808,5 @@ var messages = {
             });
     }
 }
+*/
+
