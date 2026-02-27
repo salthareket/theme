@@ -726,6 +726,9 @@ function get_menu_locations() {
         'header-menu' => 'Header Menu',
         'footer-menu' => 'Footer Menu',
     ];
+    if(!function_exists("get_field")){
+        return $locations;
+    }
     $value = get_field("menu_locations", "options");//get_cached_field("menu_locations", "option");
     if (empty($value)) {
         return $locations;
