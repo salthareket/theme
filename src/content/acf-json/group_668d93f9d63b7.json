@@ -41,9 +41,6 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
-                        "##Custom Fonts": "##Custom Fonts",
-                        "'DIN'": "DIN Condensed Pro",
-                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -155,7 +152,7 @@
                     "search_placeholder": "",
                     "create_options": 0,
                     "save_options": 0,
-                    "pll_default_value": "400"
+                    "pll_default_value": 400
                 },
                 {
                     "key": "field_6636a4f61090a",
@@ -355,5 +352,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1767582794
+    "modified": 1772218152
 }

@@ -244,7 +244,9 @@ function compile_files_config($enable_production=false){
 		"class" => ["justified-gallery"],
 		"attrs" => ["data-gallery-type"],
 		"init"     => "",
-		"whitelist" => [],
+		"whitelist" => [
+			".justified-gallery"
+		],
 		"required" => []
 	];
 	$plugins['lightgallery'] = [
@@ -388,8 +390,13 @@ function compile_files_config($enable_production=false){
 		"css_only_local" => false,
 		"class" => ["text-rotator"],
 		"attrs" => [],
-		"init"     => "",
-		"whitelist" => [],
+		"init"     => "init_text_rotator",
+		"whitelist" => [
+			".rotating",
+		    ".rotating*",
+		    ".front",
+		    ".back"
+		],
 		"required" => []
 	];
 	$plugins['masonry-layout'] = [

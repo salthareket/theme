@@ -84,28 +84,25 @@
                     "conditional_logic": 0,
                     "wrapper": {
                         "width": "",
-                        "class": "acf-menu-locations",
+                        "class": "acf-menu-names",
                         "id": ""
                     },
                     "choices": {
-                        "header-menu": "Header Menu",
-                        "footer-menu": "Footer Menu",
-                        "sidebar-corporate": "Sidebar Corporate"
+                        "header": "header"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
-                    "placeholder": "",
-                    "translations": "sync",
                     "allow_null": 0,
+                    "allow_in_bindings": 1,
                     "ui": 0,
                     "ajax": 0,
-                    "allow_custom": 0,
-                    "search_placeholder": "",
-                    "parent_repeater": "field_66b94a30a4d93",
+                    "placeholder": "",
                     "create_options": 0,
                     "save_options": 0,
-                    "pll_default_value": ""
+                    "allow_custom": 0,
+                    "search_placeholder": "",
+                    "parent_repeater": "field_66b94a30a4d93"
                 },
                 {
                     "key": "field_66b94a65a4d94",
@@ -544,7 +541,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582894,
+    "modified": 1772313353,
     "acfe_categories": {
         "general": "General"
     }

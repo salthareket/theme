@@ -27,8 +27,13 @@
                  background-color:$success;
                  color:#fff;
             }
-        }      
-      }
+        }
+        &.validating{
+            .wpcf7-response-output {
+                 display:none;
+            }
+        }     
+    }
 }
 
 

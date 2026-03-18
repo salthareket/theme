@@ -762,9 +762,6 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
-                                "##Custom Fonts": "##Custom Fonts",
-                                "'DIN'": "DIN Condensed Pro",
-                                "'pantheon'": "pantheon",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -836,7 +833,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_6610003c718a8",
@@ -874,7 +871,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_66100059718a9",
@@ -1496,9 +1493,6 @@
                                         "##Defaults": "##Defaults",
                                         "initial": "initial",
                                         "inherit": "inherit",
-                                        "##Custom Fonts": "##Custom Fonts",
-                                        "'DIN'": "DIN Condensed Pro",
-                                        "'pantheon'": "pantheon",
                                         "##Icon Fonts": "##Icon Fonts",
                                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -1668,7 +1662,7 @@
                                     "save_options": 0,
                                     "allow_custom": 0,
                                     "search_placeholder": "",
-                                    "pll_default_value": "400"
+                                    "pll_default_value": 400
                                 },
                                 {
                                     "key": "field_66380cddda588",
@@ -1708,7 +1702,7 @@
                                     "save_options": 0,
                                     "allow_custom": 0,
                                     "search_placeholder": "",
-                                    "pll_default_value": "400"
+                                    "pll_default_value": 400
                                 },
                                 {
                                     "key": "field_66380cf9da589",
@@ -2419,7 +2413,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582786,
+    "modified": 1772218151,
     "acfe_categories": {
         "general": "General"
     }

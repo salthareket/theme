@@ -97,6 +97,63 @@ class Term extends Timber\Term{
         }
     }
 
+    public function get_thumbnail_urls($size = "thumbnail") {
+        $media = $this->meta('media');
+        $urls = [];
+
+        if ($media && is_array($media)) {
+            $type = $media["media_type"] ?? null;
+
+            // 1) Tekil Görsel
+            if ($type == 'image' && !empty($media["image"])) {
+                $img = $media["image"];
+                // Eğer array geliyorsa (ACF Image Array), istenen size'ı çek, yoksa ana url'i çek
+                if (is_array($img)) {
+                    $urls[] = $img['sizes'][$size] ?? $img['url'];
+                } else {
+                    $urls[] = $img;
+                }
+            }
+
+            // 2) Galeri
+            if ($type == 'gallery' && !empty($media["gallery"]) && is_array($media["gallery"])) {
+                foreach ($media["gallery"] as $img) {
+                    if (is_array($img)) {
+                        $urls[] = $img['sizes'][$size] ?? $img['url'];
+                    } else {
+                        $urls[] = $img;
+                    }
+                }
+            }
+            
+            // Video varsa (videoda size olmaz, direkt url/file gelir)
+            if ($type == 'gallery' && !empty($media["video_gallery"]) && is_array($media["video_gallery"])) {
+                foreach ($media["video_gallery"] as $video) {
+                    if ($video["type"] == "file" && !empty($video["file"])) {
+                        $urls[] = $video["file"];
+                    } elseif (!empty($video["url"])) {
+                        $urls[] = $video["url"];
+                    }
+                }
+            }
+        }
+
+        // 3) Fallback
+        if (empty($urls)) {
+            $thumb_id = $this->meta('_thumbnail_id') ?: $this->meta('thumbnail_id');
+            if ($thumb_id) {
+                $img_data = wp_get_attachment_image_src($thumb_id, $size);
+                if ($img_data) $urls[] = $img_data[0];
+            }
+        }
+
+        return array_values(array_filter(array_unique($urls)));
+    }
+    public function get_thumbnail_url($size = "thumbnail") {
+        $urls = $this->get_thumbnail_urls($size);
+        return (!empty($urls)) ? reset($urls) : '';
+    }
+
 
     public function get_field_lang($field="", $lang=""){
         if(empty($field)){

@@ -70,7 +70,7 @@
             "tabs": "all",
             "toolbar": "full",
             "media_upload": 1,
-            "delay": 0,
+            "delay": 1,
             "pll_default_value": ""
         },
         {
@@ -101,7 +101,7 @@
             "tabs": "all",
             "toolbar": "full",
             "media_upload": 1,
-            "delay": 0,
+            "delay": 1,
             "pll_default_value": ""
         },
         {
@@ -223,7 +223,7 @@
                         "dark": "dark",
                         "custom": "Custom"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -280,7 +280,7 @@
                         "sm": "sm",
                         "lg": "lg"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -638,10 +638,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582574,
+    "modified": 1773219975,
     "acfe_categories": {
         "block": "Block"
     }

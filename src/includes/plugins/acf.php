@@ -147,22 +147,28 @@ function acf_main_location($locations){
 	return $posts;
 }*/
 function acf_get_contacts($type = "") {
+    // 1. STATİK DEPO: Fonksiyonun hafızasını oluşturuyoruz
+    static $contacts_cache = [];
+
+
+    // 2. KONTROL: Eğer bu 'type' daha önce çekildiyse, DB'ye gitme, hafızadan ver
+    if (isset($contacts_cache[$type])) {
+        return $contacts_cache[$type];
+    }
+
     $posts = array();
     
     // Varsayılan WP_Query argümanları
     $args = array(
         "post_type"      => "contact",
-        "posts_per_page" => -1, // Sınırsız çekmek için
+        "posts_per_page" => -1,
         'orderby'        => "menu_order",
         'order'          => 'ASC',
         'fields'         => 'ids'
     );
 
-    // Kategori filtresi varsa ekle
     if (!empty($type)) {
-        // Options sayfasından kategori ID'sini alıyoruz
-        $category_id = QueryCache::get_option("options_contact_type_" . $type); // ACF genelde başına 'options_' ekler
-        
+        $category_id = QueryCache::get_option("options_contact_type_" . $type);
         if ($category_id) {
             $args["tax_query"] = array(
                 array(
@@ -175,19 +181,26 @@ function acf_get_contacts($type = "") {
         }
     }
 
-    // 1. HATA: Metot adı QueryCache::get_cached_query olmalı
-    // 2. DETAY: Timber ile kullanırken 'ids' modunda çekmek en hızlısıdır
+
     $post_ids = QueryCache::get_posts($args);
 
     if (!empty($post_ids)) {
-        // Timber'a ID listesini verip objeleri alıyoruz
-        $posts = Timber::get_posts($post_ids);
+        // BURAYI DEĞİŞTİR: Timber'ı wrap içine alıyoruz
+        $posts = QueryCache::wrap('timber_contacts_' . md5(serialize($post_ids)), function() use ($post_ids) {
+            return Timber::get_posts($post_ids);
+        });
         
-        // Eğer sadece tek bir post (ilk post) lazımsa:
         if ($type == "main" && !empty($posts)) {
-            $posts = $posts[0];
+            // Timber v2 uyumlu ilk eleman alma
+            if ($posts instanceof \Timber\PostArrayObject || is_array($posts)) {
+                $posts = $posts[0]; 
+            }
         }
     }
+
+
+    // 3. KAYIT: Çekilen veriyi hafızaya (cache) yaz
+    $contacts_cache[$type] = $posts;
 
     return $posts;
 }

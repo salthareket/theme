@@ -265,7 +265,7 @@ class AssetManager {
         $map_key = Data::get("language_rtl");
         if ($map_key) {
             wp_enqueue_script('googlemaps', "https://maps.googleapis.com/maps/api/js?key={$map_key}&language=" . Data::get("language"), [], null, true);
-            if ($map_style = get_option('options_google_maps_style')) {
+            if ($map_style = QueryCache::get_option('options_google_maps_style')) {
                 $style = json_encode(json_decode(strip_tags($map_style)));
                 wp_add_inline_script('googlemaps', "var map_style = {$style};", 'after');
             }
@@ -496,7 +496,17 @@ class AssetManager {
         wp_enqueue_style('acf-layouts', STATIC_URL . 'css/header-admin.css');
         wp_enqueue_style('main-admin', STATIC_URL . 'css/main-admin.css'); 
         wp_enqueue_style('blocks-admin', STATIC_URL . 'css/blocks-admin.css'); 
-        wp_enqueue_style('admin-addon', STATIC_URL . 'css/admin-addon.css'); 
+        wp_enqueue_style('admin-addon', STATIC_URL . 'css/admin-addon.css');
+
+         // IFRAME İÇİNE CSS PASLAMA (BURASI KRİTİK ABİ)
+        // add_editor_style temanın root klasöründen yol bekler, STATIC_PATH/URL yapına göre ayarla
+        /*add_editor_style(STATIC_URL . 'css/bootstrap-admin.css');
+        add_editor_style(STATIC_URL . 'css/root.css');
+        add_editor_style(STATIC_URL . 'css/header-admin.css');
+        add_editor_style(STATIC_URL . 'css/main-admin.css');
+        add_editor_style(STATIC_URL . 'css/blocks-admin.css');
+        add_editor_style(STATIC_URL . 'css/admin-addon.css');*/
+        
 
         wp_enqueue_script('admin', STATIC_URL . 'js/admin.min.js', ['jquery'], '1.0.0', true);
         wp_enqueue_script('functions', STATIC_URL . 'js/functions.min.js', ['jquery'], '1.0.0', true);

@@ -55,3 +55,7 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 @import "#{$node_modules_path}bootstrap/scss/utilities/api";
 
 @import "bs-container-responsive";
+
+$min-contrast-ratio: 3; // 4.5'ten 3'e çekersen beyazı daha rahat seçer
+$color-contrast-light: #ffffff; // Burası gri falan olmasın, tam beyaz çak
+$color-contrast-dark: #000000;  // Burası da tam siyah olsun

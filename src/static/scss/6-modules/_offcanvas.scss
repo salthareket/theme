@@ -161,7 +161,13 @@
                                     position: relative;
                                 }
                             }
+                            
+                            + ul > li > a{
+                                font-size: var(--offcanvas-dropdown-item-font-size);
+                            }
                         }
+
+
                     }
                 }
             }

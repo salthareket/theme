@@ -1201,3 +1201,38 @@ function image_is_lcp($image) {
     return \Lcp::getInstance()->is_lcp($image);
 }
 
+function update_term_featured_image($term_id, $tt_id, $taxonomy) {
+    // Sadece senin kullandığın taksonomide çalışsın istersen burayı kısıtla
+    // if ($taxonomy !== 'dosya-tipi') return;
+
+    // ACF meta alanından 'media' verisini çekiyoruz
+    $media = get_field('media', $taxonomy . '_' . $term_id);
+    $attachment_id = null;
+
+    if ($media && is_array($media)) {
+        $type = $media["media_type"] ?? null;
+
+        // 1) Eğer tekil görselse
+        if ($type == 'image' && !empty($media["image"])) {
+            $img = $media["image"];
+            // Eğer ACF görseli 'Array' döndürüyorsa ID'yi al, yoksa URL'den bul
+            $attachment_id = is_array($img) ? ($img['ID'] ?? null) : attachment_url_to_postid($img);
+        }
+
+        // 2) Eğer galeriyse ilk görselin ID'sini al
+        if ($type == 'gallery' && !empty($media["gallery"]) && is_array($media["gallery"])) {
+            $first_img = reset($media["gallery"]);
+            $attachment_id = is_array($first_img) ? ($first_img['ID'] ?? null) : attachment_url_to_postid($first_img);
+        }
+    }
+
+    // Eğer bir ID bulduysak hem thumbnail_id hem de WordPress'in gizli _thumbnail_id alanına yaz
+    if ($attachment_id) {
+        update_term_meta($term_id, 'thumbnail_id', $attachment_id);
+        update_term_meta($term_id, '_thumbnail_id', $attachment_id); // WP standartı budur
+    } else {
+        // Eğer media alanı boşaltılmışsa, thumbnail'ı da silebilirsin (opsiyonel)
+        // delete_term_meta($term_id, 'thumbnail_id');
+        // delete_term_meta($term_id, '_thumbnail_id');
+    }
+}

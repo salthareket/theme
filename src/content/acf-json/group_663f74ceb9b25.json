@@ -592,7 +592,7 @@
                         "download": "download",
                         "fullscreen": "fullscreen"
                     },
-                    "default_value": "",
+                    "default_value": [],
                     "return_format": "value",
                     "multiple": 1,
                     "allow_custom": 0,
@@ -640,7 +640,7 @@
                         "speed": "speed",
                         "loop": "loop"
                     },
-                    "default_value": "",
+                    "default_value": [],
                     "return_format": "value",
                     "multiple": 1,
                     "allow_custom": 0,
@@ -750,7 +750,7 @@
                         "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                         "1528x500": "Slider Desktop"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "allow_null": 0,
@@ -1120,7 +1120,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582695,
+    "modified": 1772218146,
     "acfe_categories": {
         "common": "Common"
     }

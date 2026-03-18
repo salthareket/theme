@@ -180,8 +180,7 @@
                     },
                     "choices": {
                         "default": "Default",
-                        "post\/tease": "Post Tease (Predefined)",
-                        "theme\/templates\/_custom\/slider-post": "slider-post"
+                        "post\/tease": "Post Tease (Predefined)"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -215,9 +214,6 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
-                        "##Custom Fonts": "##Custom Fonts",
-                        "'DIN'": "DIN Condensed Pro",
-                        "'pantheon'": "pantheon",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -284,7 +280,7 @@
                         "text-xxl": "text-xxl - 36px",
                         "text-xxxl": "text-xxxl - 42px"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "placeholder": "",
@@ -404,7 +400,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582924,
+    "modified": 1772218158,
     "acfe_categories": {
         "block": "Block"
     }

@@ -15,6 +15,7 @@
   SupportsCustomClassName: true
   SupportsReusable: true
   SupportsFullHeight: true
+  ApiVersion: 2
   SupportsCustomClassName: true
 #}
 {% set block_main_field = "" %}
@@ -27,7 +28,7 @@
     {% if fields.show_breadcrumb or fields.page_title or fields.description %}
 
         {% if not block_meta.settings.column.active %}
-        <div class="content z-2">
+        <div class="{{function("block_container_class", block_meta.settings.background.slider_settings.container)}} content z-2">
         {% endif %}
 
             {% if fields.show_breadcrumb %}

@@ -580,6 +580,7 @@ class StarterSite extends Timber\Site{
                 "pluralize",
                 "html_entity_decode",
                 "boolval",
+                "boolstr",
                 "inline_svg",
                 "is_current_url",
                 "boolstr",

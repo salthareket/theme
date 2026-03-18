@@ -187,10 +187,8 @@
                 "class": "acf-contact-accounts",
                 "id": ""
             },
-            "choices": {
-                "3263": "212 Outlet"
-            },
-            "default_value": "",
+            "choices": [],
+            "default_value": false,
             "return_format": "value",
             "multiple": 0,
             "placeholder": "",
@@ -199,7 +197,7 @@
             "ui": 0,
             "ajax": 0,
             "allow_custom": 0,
-            "search_placeholder": "",
+            "search_placeholder": "Not Found",
             "create_options": 0,
             "save_options": 0,
             "pll_default_value": ""
@@ -255,7 +253,7 @@
                         "text-xxl": "text-xxl - 36px",
                         "text-xxxl": "text-xxxl - 42px"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -346,7 +344,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582723,
+    "modified": 1772218148,
     "acfe_categories": {
         "block": "Block"
     }

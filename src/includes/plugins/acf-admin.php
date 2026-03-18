@@ -26,7 +26,43 @@ function my_acf_json_load_point( $paths ) {
     return $paths;
 }
 
+/**
+ * CSS Shorthand değerlerini (Padding/Margin) parse eder.
+ * @param string $value Örn: "20px", "20px 10px", "20px 10px 5px 2px"
+ * @param string $direction "top", "right", "bottom", "left"
+ * @return string
+ */
+function css_parse_spacing_value($value, $direction = 'top') {
+    $value = trim($value);
+    if (empty($value)) {
+        return '0px';
+    }
+    $parts = array_values(array_filter(explode(' ', $value), function($val) {
+        return $val !== '';
+    }));
 
+    $count = count($parts);
+    switch ($count) {
+        case 1:
+            return $parts[0];
+
+        case 2:
+            if ($direction === 'top' || $direction === 'bottom') return $parts[0];
+            return $parts[1]; // right veya left
+
+        case 3:
+            if ($direction === 'top') return $parts[0];
+            if ($direction === 'right' || $direction === 'left') return $parts[1];
+            return $parts[2]; // bottom
+
+        case 4:
+            $map = ['top' => 0, 'right' => 1, 'bottom' => 2, 'left' => 3];
+            return $parts[$map[$direction]];
+
+        default:
+            return $parts[0];
+    }
+}
 
 function get_theme_styles($variables = array(), $root = false){
 
@@ -439,6 +475,9 @@ function get_theme_styles($variables = array(), $root = false){
         foreach($header_logo["padding"] as $key => $breakpoint){
             if($root){
                 $variables_media_query["header-navbar-logo-padding"][$key] = $breakpoint;
+                foreach(["top","bottom","left","right"] as $pos){
+                    $variables_media_query["header-navbar-logo-padding-".$pos][$key] = css_parse_spacing_value($breakpoint, $pos);
+                }
             }else{
                 $variables["header-navbar-logo-padding-".$key] = $breakpoint;
             }
@@ -454,6 +493,9 @@ function get_theme_styles($variables = array(), $root = false){
         foreach($header_logo["padding_affix"] as $key => $breakpoint){
             if($root){
                 $variables_media_query["header-navbar-logo-padding-affix"][$key] = $breakpoint;
+                foreach(["top","bottom","left","right"] as $pos){
+                    $variables_media_query["header-navbar-logo-padding-affix-".$pos][$key] = css_parse_spacing_value($breakpoint, $pos);
+                }
             }else{
                 $variables["header-navbar-logo-padding-".$key."-affix"] = $breakpoint;
             }
@@ -799,7 +841,8 @@ function save_theme_styles_header_themes($header){
                     $logo_affix = empty($affix["logo"])?"revert-layer":$affix["logo"];
                     $btn_reverse = scss_variables_boolean($affix["btn_reverse"]);
 
-                    $code .= $selector.":not(.menu-open):not(.menu-show-header){\n";
+                    //$code .= $selector.":not(.menu-open):not(.menu-show-header){\n";
+                     $code .= $selector."{\n";
                         $code .= "@include headerTheme(";
                             $code .= $color.",";
                             $code .= $color_active.",";
@@ -813,7 +856,7 @@ function save_theme_styles_header_themes($header){
                             $code .= $btn_reverse;
                         $code .= ");\n";
                     $code .= "}\n";
-                }
+                }error_log($code);
                 $wpscss_compiler = new SCSSCompiler();
                 $code = $wpscss_compiler->compile_string($code);
                 ////error_log($code);
@@ -889,7 +932,7 @@ function acf_theme_styles_save_hook($value, $post_id, $field) {
                 if($create_root_css && $custom_colors_list){
                     get_theme_styles(["custom-colors-list" => $custom_colors_list], true);
                 }
-                delete_transient('sh_theme_styles_cache');              
+                delete_transient('sh_theme_styles_cache');          
            
         }
     //}
@@ -1406,6 +1449,64 @@ function google_api_key_found_conditional_field( $field ) {
 }
 // Buradaki key, o 'mesaj' veya 'uyarı' alanının key'i olmalı
 add_filter('acf/prepare_field/key=field_673386f1d3129', 'google_api_key_found_conditional_field');
+
+add_action('acf/save_post', 'sync_contact_map_coordinates', 25);
+function sync_contact_map_coordinates($post_id) {
+    
+    // Sadece 'contact' post type için çalışsın
+    if (get_post_type($post_id) !== 'contact') {
+        return;
+    }
+
+    // 1. Global Ayarları Çek (QueryCache kullandığın için aynen yazdım)
+    $map_service = QueryCache::get_field("map_service", "options"); // 'leaflet' veya 'google'
+    $map_view    = QueryCache::get_field("map_view", "options");    // 'js' veya 'embed'
+
+    // Hedef Hidden Field Key'lerin (Bunları kendi keylerinle değiştir abi)
+    $lat_hidden_key = 'contact_lat'; 
+    $lng_hidden_key = 'contact_lng';
+
+    $final_lat = '';
+    $final_lng = '';
+
+    // 2. Senaryo: LEAFLET
+    if ($map_service === 'leaflet') {
+        $leaflet_data = get_field('contact_map_leaflet', $post_id); // Bu field genelde array döner
+        if (!empty($leaflet_data)) {
+            $final_lat = $leaflet_data['lat'] ?? '';
+            $final_lng = $leaflet_data['lng'] ?? '';
+        }
+    } 
+    // 3. Senaryo: GOOGLE
+    elseif ($map_service === 'google') {
+        
+        // Google JS API (ACF Google Maps Field)
+        if ($map_view === 'js') {
+            $google_map = get_field('contact_map_google', $post_id); // Array döner
+            if (!empty($google_map)) {
+                $final_lat = $google_map['lat'] ?? '';
+                $final_lng = $google_map['lng'] ?? '';
+            }
+        } 
+        // Google Embed (URL'den ayıklama)
+        elseif ($map_view === 'embed') {
+            $map_url = get_field('map_url', $post_id); // Prepare filter'dan geçmiş temiz URL
+            if (!empty($map_url)) {
+                // URL içinden !3d ve !2d'yi söküyoruz
+                preg_match('/!3d([-0-9.]+)/', $map_url, $lat_match);
+                preg_match('/!2d([-0-9.]+)/', $map_url, $lng_match);
+                
+                $final_lat = $lat_match[1] ?? '';
+                $final_lng = $lng_match[1] ?? '';
+            }
+        }
+    }
+
+    // 4. Kayıt veya Temizlik
+    // Değerler varsa kaydet, yoksa (veya alanlar boşaltıldıysa) hidden field'ları da sil
+    update_field($lat_hidden_key, $final_lat, $post_id);
+    update_field($lng_hidden_key, $final_lng, $post_id);
+}
 
 
 
@@ -3031,6 +3132,7 @@ function acf_add_field_options($field) {
     static $s_modal_files = null;
     static $s_wp_themes = null;
     static $s_menu_locs = null;
+    static $s_menu_names = null;
     static $s_color_json = null;
     static $s_contact_phones = null;
     static $s_contact_emails = null;
@@ -3443,6 +3545,21 @@ function acf_add_field_options($field) {
         $field["type"] = "select";
         if ($s_menu_locs === null) $s_menu_locs = get_menu_locations();
         $field['choices'] = $s_menu_locs;
+    }
+
+    if (in_array("acf-menu-names", $class)) {
+        $field["type"] = "select";
+        if ($s_menu_names === null) {
+            $menus = wp_get_nav_menus();
+            $s_menu_names = [];
+            if (!empty($menus)) {
+                foreach ($menus as $menu) {
+                    // Key: slug/id, Value: Menü Adı
+                    $s_menu_names[$menu->slug] = $menu->name;
+                }
+            }
+        }
+        $field['choices'] = $s_menu_names;
     }
 
     // Color Classes (JSON CACHE)
@@ -4697,7 +4814,7 @@ function common_css_separated() {
 
     $parts = [
         'header_bs' => [
-            'css'   => STATIC_PATH . "js/plugins/bootstrap.css",
+            'css'   => STATIC_PATH . "css/bootstrap-customized.css",//STATIC_PATH . "js/plugins/bootstrap.css",
             'selector' => 'header',
             'filename' => 'common-header-bs.css',
             'scope'    => 'header#header',
@@ -4717,7 +4834,7 @@ function common_css_separated() {
             "black_list" => []
         ],*/
         'footer_bs' => [
-            'css'   => STATIC_PATH . "js/plugins/bootstrap.css",
+            'css'   => STATIC_PATH . "css/bootstrap-customized.css",//STATIC_PATH . "js/plugins/bootstrap.css",
             'selector' => 'footer',
             'filename' => 'common-footer-bs.css',
             'scope'    => 'footer#footer',
@@ -6092,3 +6209,38 @@ if(ENABLE_ECOMMERCE){
     }
     add_filter('acf/location/rule_values/post_type', 'acf_location_rule_values_Post');  
 }
+
+
+
+add_filter('acf/fields/wysiwyg/toolbars', function($toolbars) {
+    // Bu sadece toolbarları değil, init ayarlarını tetiklemek için bir kancadır
+    return $toolbars;
+});
+
+// Tüm ACF Wysiwyg alanlarını varsayılan olarak Lazy Load yap
+add_filter('acf/load_field/type=wysiwyg', function($field) {
+    $field['delay'] = 1; // Bu değer 1 (True) olduğunda Lazy Load aktif olur
+    return $field;
+});
+/*
+add_action('admin_footer', function() {
+    ?>
+    <script type="text/javascript">
+    (function($) {
+        // ACF Wysiwyg alanları tıklandığında hata oluşmasını engellemek için 
+        // TinyMCE ayarlarını o an stabilize ediyoruz
+        if (typeof acf !== 'undefined') {
+            acf.add_filter('wysiwyg_tinymce_settings', function(mceInit, id, field) {
+                // Seçim hatalarını önlemek için 'n is null' koruması
+                mceInit.setup = function(ed) {
+                    ed.on('BeforeSetContent', function(e) {
+                        if (!ed.selection) return;
+                    });
+                };
+                return mceInit;
+            });
+        }
+    })(jQuery);
+    </script>
+    <?php
+}, 99);*/

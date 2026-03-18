@@ -13,7 +13,8 @@ function init_slinky(){
 			});
 			slinky.menu.find("a").not(".back").not(".next").on("click", function(){
 				$(this).closest(".offcanvas").offcanvas("hide");
-			});  
+			});
+			$(this).data("slinky", slinky);
 		});
 	}         
 }

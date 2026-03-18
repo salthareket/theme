@@ -1323,7 +1323,7 @@
                 "contrast": "Contrast",
                 "opacity": "Opacity"
             },
-            "default_value": "",
+            "default_value": false,
             "return_format": "value",
             "multiple": 0,
             "translations": "copy_once",
@@ -2261,7 +2261,7 @@
                 "color": "Color",
                 "luminosity": "Luminosity"
             },
-            "default_value": "",
+            "default_value": false,
             "return_format": "value",
             "multiple": 0,
             "translations": "copy_once",
@@ -3064,7 +3064,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582719,
+    "modified": 1772218147,
     "acfe_categories": {
         "common": "Common"
     }

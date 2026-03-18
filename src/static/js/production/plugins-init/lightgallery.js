@@ -49,8 +49,9 @@ function init_lightGallery() {
                     captions: $el.data("item-captions"),
                     lastRow: $el.data("item-last-row"),
                     rowHeight: $el.data("item-height"),
+                    maxRowHeight: $el.data("item-height"),
                     margins: $el.data("item-margin"),
-                    selector: '.col', // PHP'den gelen grid yapısına göre
+                    selector: '.gallery-item', // PHP'den gelen grid yapısına göre
                     imgSelector: 'img'
                 })
                 .on("jg.complete", function () {

@@ -189,18 +189,24 @@
 }
 */
 @function contrastText($n, $text:"") {
-  $color-brightness: round((red($n)*299)+(green($n)*587)+(blue($n)*114)/1000);
-  $light-color: round((red(#ffffff)*299)+(green(#ffffff)*587)+(blue(#ffffff)*114)/1000);
-  @if abs($color-brightness) < ($light-color/2){
-    $result:  white;
+  // Parantezlere dikkat et, tüm toplamı 1000'e bölüyoruz
+  $color-brightness: ( (red($n) * 299) + (green($n) * 587) + (blue($n) * 114) ) / 1000;
+  
+  // 128 eşik değeridir (255'in yarısı)
+  @if ($color-brightness < 128) {
+    $result: white;
   } @else {
-    $result:  black;
+    $result: black;
   }
+
   @if ($text != "") {
-      $result: $text;
+    $result: $text;
   }
+
   @return $result;
 }
+
+// Test: #8c734b için sonuç 'white' dönecektir.
 
 @function strip-unit($value) {
   @return str-slice($value, 1, str-length($value) - 3);

@@ -108,8 +108,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "212outlet": "212outlet [28.12.2025 22:37]",
-                        "latest": "latest [28.12.2025 22:37]"
+                        "grand-galata-hotel": "grand-galata-hotel [01.03.2026 19:14]",
+                        "latest": "latest [01.03.2026 19:14]"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -690,10 +690,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582684,
+    "modified": 1772393226,
     "acfe_categories": {
         "general": "General"
     }

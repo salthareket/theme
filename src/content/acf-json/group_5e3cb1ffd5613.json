@@ -640,20 +640,13 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
-                "acik-pozisyonlar": "Açık Pozisyonlar",
-                "duyuru": "Duyurular",
-                "etkinlikler": "Etkinlikler",
-                "kampanya": "Kampanyalar",
-                "katlar": "Katlar",
-                "magazalar": "Mağazalar",
-                "ulasim": "Ulaşım",
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
                 "contact": "Contacts",
                 "template": "Templates"
             },
-            "default_value": "",
+            "default_value": false,
             "return_format": "value",
             "multiple": false,
             "placeholder": "",
@@ -697,5 +690,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1767582521
+    "modified": 1772218127
 }

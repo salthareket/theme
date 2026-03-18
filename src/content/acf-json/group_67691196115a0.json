@@ -1913,7 +1913,7 @@
                                         "contrast": "Contrast",
                                         "opacity": "Opacity"
                                     },
-                                    "default_value": "",
+                                    "default_value": false,
                                     "return_format": "value",
                                     "multiple": 0,
                                     "translations": "copy_once",
@@ -2073,7 +2073,7 @@
                                         "color": "Color",
                                         "luminosity": "Luminosity"
                                     },
-                                    "default_value": "",
+                                    "default_value": false,
                                     "return_format": "value",
                                     "multiple": 0,
                                     "translations": "copy_once",
@@ -2151,8 +2151,7 @@
                                 "id": ""
                             },
                             "choices": {
-                                "post\/tease": "Post Tease (Predefined)",
-                                "theme\/templates\/_custom\/slider-post": "slider-post"
+                                "post\/tease": "Post Tease (Predefined)"
                             },
                             "default_value": false,
                             "return_format": "value",
@@ -2191,8 +2190,7 @@
                             "ui_off_text": "",
                             "ui": 1,
                             "choices": {
-                                "post\/tease": "Post Tease (Predefined)",
-                                "theme\/templates\/_custom\/slider-post": "slider-post"
+                                "post\/tease": "Post Tease (Predefined)"
                             },
                             "pll_default_value": 0
                         },
@@ -2446,7 +2444,7 @@
                                         "contrast": "Contrast",
                                         "opacity": "Opacity"
                                     },
-                                    "default_value": "",
+                                    "default_value": false,
                                     "return_format": "value",
                                     "multiple": 0,
                                     "translations": "copy_once",
@@ -2600,7 +2598,7 @@
                                         "color": "Color",
                                         "luminosity": "Luminosity"
                                     },
-                                    "default_value": "",
+                                    "default_value": false,
                                     "return_format": "value",
                                     "multiple": 0,
                                     "translations": "copy_once",
@@ -2673,7 +2671,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1768179730,
+    "modified": 1772218161,
     "acfe_categories": {
         "block": "Block"
     }

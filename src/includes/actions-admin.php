@@ -726,3 +726,4 @@ if(ENABLE_ECOMMERCE){
     add_action('woocommerce_settings_products', 'render_custom_product_fields');
     add_action('woocommerce_update_options_products', 'save_custom_product_fields');/**/
 }
+

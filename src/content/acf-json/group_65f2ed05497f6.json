@@ -230,7 +230,7 @@
                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                 "1200x500": "Slider Desktop"
             },
-            "default_value": "",
+            "default_value": false,
             "return_format": "value",
             "multiple": 0,
             "translations": "ignore",
@@ -274,6 +274,10 @@
             "acfe_seamless_style": 1,
             "acfe_settings": "",
             "acfe_permissions": "",
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large",
             "sub_fields": [
                 {
                     "key": "field_66f7d2bbe16b4",
@@ -373,7 +377,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -488,7 +492,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -603,7 +607,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -718,7 +722,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -833,7 +837,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -948,7 +952,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -1064,7 +1068,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1200x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "ignore",
@@ -1083,11 +1087,7 @@
                         }
                     ]
                 }
-            ],
-            "acfe_group_modal": 0,
-            "acfe_group_modal_close": 0,
-            "acfe_group_modal_button": "",
-            "acfe_group_modal_size": "large"
+            ]
         },
         {
             "key": "field_6739db4899ee0",
@@ -3274,7 +3274,7 @@
     "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1770450066,
+    "modified": 1772218140,
     "acfe_categories": {
         "common": "Common"
     }

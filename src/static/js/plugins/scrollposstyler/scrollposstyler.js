@@ -37,10 +37,13 @@ var ScrollPosStyler = (function(document, window) {
         scrollPos = window.pageYOffset;
 
         for (var t = 0; spsElements[t]; ++t) {
-            var element = spsElements[t],
+
+            var element = spsElements[t];
                 // offset değeri okunur
-                offsetY = element.getAttribute(currentOffsetTag) || currentScrollOffsetY,
-                hasClassAbove = element.classList.contains(currentClassAbove);
+                //offsetY = element.getAttribute(currentOffsetTag) || currentScrollOffsetY,
+            var attrValue = element.getAttribute(currentOffsetTag);
+            var offsetY = (attrValue !== null && attrValue !== "") ? parseInt(attrValue, 10) : currentScrollOffsetY;
+            var hasClassAbove = element.classList.contains(currentClassAbove);
 
             if ((force || hasClassAbove) && offsetY < scrollPos) {
                 changes.push({

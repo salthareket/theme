@@ -182,9 +182,10 @@ function sort_posts_by_terms($posts, $term_key = 'terms') {
 }
 
 
+
 function get_post_type_pagination($post_type="post"){
     $post_pagination = Data::get("post_pagination");
-    if($post_pagination){
+    if(is_array($post_pagination) && !empty($post_pagination)){
         if(in_array($post_type, array_keys($post_pagination))){
            return Data::get("post_pagination.{$post_type}");
         }        

@@ -1,7 +1,7 @@
 <?php 
 
 function custom_rewrite_rules() {
-    flush_rewrite_rules();
+    //flush_rewrite_rules();
 
     //$home_id = get_option('page_on_front');
 

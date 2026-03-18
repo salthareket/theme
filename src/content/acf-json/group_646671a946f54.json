@@ -1332,7 +1332,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "212outlet": "212outlet",
+                        "grand-galata-hotel": "Grand Galata Hotel",
                         "twentytwentyfive": "Twenty Twenty-Five"
                     },
                     "default_value": "",
@@ -1501,10 +1501,8 @@
                 "class": "acf-post-type-archive-multiple",
                 "id": ""
             },
-            "choices": {
-                "duyuru": "Duyurular"
-            },
-            "default_value": [],
+            "choices": [],
+            "default_value": false,
             "return_format": "value",
             "multiple": false,
             "allow_custom": 0,
@@ -1534,16 +1532,11 @@
                 "id": ""
             },
             "choices": {
-                "post": "Yazılar",
-                "page": "Sayfalar",
-                "attachment": "Ortam",
-                "acik-pozisyonlar": "Açık Pozisyonlar",
-                "duyuru": "Duyurular",
-                "etkinlikler": "Etkinlikler",
-                "kampanya": "Kampanyalar",
-                "katlar": "Katlar",
-                "magazalar": "Mağazalar",
-                "ulasim": "Ulaşım"
+                "post": "Posts",
+                "page": "Pages",
+                "attachment": "Media",
+                "contact": "Contacts",
+                "template": "Templates"
             },
             "default_value": [],
             "return_format": "value",
@@ -1578,12 +1571,8 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
-                "departman": "departman",
-                "duyuru-tipi": "duyuru-tipi",
-                "etkinlik-tipi": "etkinlik-tipi",
-                "hizmetler": "hizmetler",
-                "magaza-tipi": "magaza-tipi",
-                "ulasim-tipi": "ulasim-tipi"
+                "template-types": "template-types",
+                "contact-type": "contact-type"
             },
             "default_value": [],
             "return_format": "value",
@@ -2484,7 +2473,8 @@
             "choices": {
                 "template-types": "template-types",
                 "contact-type": "contact-type",
-                "departman": "departman"
+                "departman": "departman",
+                "": "Polylang eklentisi aktif değil."
             },
             "default_value": [],
             "return_format": "value",
@@ -2521,7 +2511,8 @@
                 "acik-pozisyonlar": "acik-pozisyonlar",
                 "kampanya": "kampanya",
                 "katlar": "katlar",
-                "magazalar": "magazalar"
+                "magazalar": "magazalar",
+                "": "Polylang eklentisi aktif değil."
             },
             "default_value": [],
             "return_format": "value",
@@ -2605,7 +2596,8 @@
                 "etkinlik-tipi": "etkinlik-tipi",
                 "hizmetler": "hizmetler",
                 "magaza-tipi": "magaza-tipi",
-                "ulasim-tipi": "ulasim-tipi"
+                "ulasim-tipi": "ulasim-tipi",
+                "": "Polylang eklentisi aktif değil."
             },
             "default_value": [],
             "return_format": "value",
@@ -3931,7 +3923,7 @@
     "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772194625,
+    "modified": 1772218133,
     "acfe_categories": {
         "general": "General"
     }

@@ -22,7 +22,7 @@ function get_menu_item_visibility($menu_item) {
 
     if ($has_condition) {
         // Kompleks yapı olduğu için conditions kısmında get_field kabul edilebilir.
-        $conditions = get_field('conditions', $menu_item);
+        $conditions = QueryCache::get_field('conditions', $menu_item);
         if (!$conditions) return $visibility_results[$menu_item->ID] = true;
 
         foreach ($conditions as $condition) {
@@ -91,6 +91,54 @@ add_filter('wp_nav_menu_objects', function($items, $args) {
 /**
  * Dinamik Menü Doldurma Sistemi (Optimized & Cached)
  */
+
+
+function get_menu_populate(){
+    $arr = [];
+    $value = QueryCache::get_field("menu_populate", "options");//get_cached_field("menu_populate", "option");
+    if($value){
+        foreach($value as $item){
+            $menu = $item["menu"];
+            $post_type = [];
+            $taxonomy = [];
+            
+            if(!empty($item["menu_item_post_type"])){
+                $post_type["post_type"] = $item["menu_item_post_type"];
+                $post_type["posts_per_page"] = $item["all_post_type"] ? -1 : $item["post_per_page"];
+                $post_type["orderby"] = $item["orderby_post_type"];
+                $post_type["order"] = $item["order_post_type"];
+                $post_type["replace"] = $item["replace"];
+            }
+
+            if(!empty($item["menu_item_taxonomy"])){
+                $taxonomy["taxonomy"] = $item["menu_item_taxonomy"];
+                $taxonomy["number"] = $item["all_taxonomy"] ? 0 : $item["number"];
+                $taxonomy["orderby"] = $item["orderby_taxonomy"];
+                $taxonomy["order"] = $item["order_taxonomy"];
+            }
+
+            $menu_item = [];
+            if(isset($post_type["posts_per_page"]) && $post_type["posts_per_page"] != 0){
+                $menu_item["post_type"] = $post_type;
+            }else{
+                $menu_item["post_type"] = ["post_type" => $post_type["post_type"], "replace" => $post_type["replace"]];
+            }
+            if(isset($taxonomy["taxonomy"])){
+                $menu_item["taxonomy"] = $taxonomy;
+            }
+
+            // Eğer aynı menu isminde daha önce bir item eklenmişse, array'e ekleyelim.
+            if(isset($arr[$menu])){
+                $arr[$menu][] = $menu_item;
+            } else {
+                // Eğer yoksa, yeni bir array oluşturup ekleyelim.
+                $arr[$menu][] = $menu_item;
+            }
+        }
+    }
+    return $arr;
+}
+
 if (QueryCache::get_option("options_menu_populate") > 0) {
     
     add_filter('wp_get_nav_menu_items', 'bric_create_custom_menu', 10, 3);
@@ -101,6 +149,7 @@ if (QueryCache::get_option("options_menu_populate") > 0) {
         
         $dynamic_menus = get_menu_populate();
         $menu_obj = is_object($menu) ? $menu : wp_get_nav_menu_object($menu);
+
         if (!$menu_obj || !isset($dynamic_menus[$menu_obj->slug])) {
             add_filter('wp_get_nav_menu_items', 'bric_create_custom_menu', 10, 3);
             return $items;
@@ -110,6 +159,7 @@ if (QueryCache::get_option("options_menu_populate") > 0) {
         $dynamic_config = $dynamic_menus[$menu_obj->slug];
 
         foreach ($items as $key => $item) {
+
             foreach ($dynamic_config as $config) {
                 // Eşleşme Kontrolü
                 if ($item->object == $config["post_type"]["post_type"] || $item->object_type == $config["post_type"]["post_type"]) {
@@ -124,10 +174,11 @@ if (QueryCache::get_option("options_menu_populate") > 0) {
                             'hide_empty' => !($config["taxonomy"]["all_taxonomy"] ?? false),
                             'parent' => 0 
                         ]);
+
                         $terms = Timber::get_terms($term_args);
                         foreach ($terms as $term) {
                             $menu_order++;
-                            custom_menu_items::add_object($menu_obj->name, $term->term_id, 'term', $menu_order, (int)$item->db_id, '', '', '', $term->name);
+                            custom_menu_items::add_object($menu_obj->name, $term->term_id, 'term', $menu_order, (int)$item->db_id, $term->term_id, '', '', $term->name);
                             $term->db_id = 1000000 + $menu_order;
                             $menu_order = bric_custom_menu_loop($menu_obj, $item, $term, $menu_order, $config);
                         }
@@ -138,7 +189,7 @@ if (QueryCache::get_option("options_menu_populate") > 0) {
                         if ($posts) {
                             foreach ($posts as $post) {
                                 $menu_order++;
-                                custom_menu_items::add_object($menu_obj->name, $post->ID, 'post', $menu_order, (int)$item->db_id, '', '', '', $post->title);
+                                custom_menu_items::add_object($menu_obj->name, $post->ID, 'post', $menu_order, (int)$item->db_id, $post->ID, '', '', $post->title);
                             }
                         }
                     }
@@ -158,12 +209,13 @@ if (QueryCache::get_option("options_menu_populate") > 0) {
             'hide_empty' => false,
             'parent' => $parent->term_id
         ]);
+
         $children = Timber::get_terms($term_args);
 
         if ($children) {
             foreach ($children as $child) {
                 $menu_order++;
-                custom_menu_items::add_object($menu->name, $child->term_id, 'term', $menu_order, (int)$parent->db_id, '', '', '', $child->name);
+                custom_menu_items::add_object($menu->name, $child->term_id, 'term', $menu_order, (int)$parent->db_id, $child->term_id, '', '', $child->name);
                 $child->db_id = 1000000 + $menu_order;
                 $menu_order = bric_custom_menu_loop($menu, $item, $child, $menu_order, $config);
             }
@@ -175,10 +227,11 @@ if (QueryCache::get_option("options_menu_populate") > 0) {
                 'field' => 'term_id',
                 'terms' => [$parent->term_id],
             ]];
+
             $posts = Timber::get_posts($post_args);
             foreach ($posts as $post) {
                 $menu_order++;
-                custom_menu_items::add_object($menu->name, $post->ID, 'post', $menu_order, (int)$parent->db_id, '', '', '', $post->title);
+                custom_menu_items::add_object($menu->name, $post->ID, 'post', $menu_order, (int)$parent->db_id, $post->ID, '', '', $post->title);
             }
         }
         return $menu_order;

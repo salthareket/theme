@@ -41,7 +41,7 @@
                 [
                     {
                         "field": "field_672e1d776ca84",
-                        "operator": "!=",
+                        "operator": "==",
                         "value": "columns"
                     }
                 ]
@@ -271,7 +271,7 @@
                                 "dark": "dark",
                                 "custom": "Custom"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -313,7 +313,7 @@
                                 "sm": "sm",
                                 "lg": "lg"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -574,8 +574,8 @@
                     ]
                 },
                 {
-                    "key": "field_66f22d25224ae",
-                    "label": "Item Max. Height",
+                    "key": "field_69aa91e362c21",
+                    "label": "Item Height",
                     "name": "item_height",
                     "aria-label": "",
                     "type": "text",
@@ -591,18 +591,45 @@
                         ]
                     ],
                     "wrapper": {
-                        "width": "20",
+                        "width": "15",
                         "class": "",
                         "id": ""
                     },
                     "default_value": 160,
-                    "translations": "translate",
                     "maxlength": "",
                     "allow_in_bindings": 0,
                     "placeholder": "",
                     "prepend": "",
-                    "append": "",
-                    "pll_default_value": 160
+                    "append": ""
+                },
+                {
+                    "key": "field_66f22d25224ae",
+                    "label": "Item Max. Height",
+                    "name": "item_max_height",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_672e1d776ca84",
+                                "operator": "==",
+                                "value": "justified"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "15",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": 160,
+                    "maxlength": "",
+                    "allow_in_bindings": 0,
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
                 },
                 {
                     "key": "field_66f22d6c224af",
@@ -622,18 +649,16 @@
                         ]
                     ],
                     "wrapper": {
-                        "width": "20",
+                        "width": "15",
                         "class": "",
                         "id": ""
                     },
                     "default_value": 0,
-                    "translations": "translate",
                     "maxlength": "",
                     "allow_in_bindings": 0,
                     "placeholder": "",
                     "prepend": "",
-                    "append": "",
-                    "pll_default_value": 0
+                    "append": ""
                 },
                 {
                     "key": "field_6804ca800268c",
@@ -848,7 +873,7 @@
                         "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                         "1528x500": "Slider Desktop"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -881,18 +906,45 @@
                         ]
                     ],
                     "wrapper": {
-                        "width": "20",
+                        "width": "10",
                         "class": "",
                         "id": ""
                     },
                     "message": "",
                     "default_value": 0,
-                    "translations": "sync",
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1,
-                    "pll_default_value": 0
+                    "ui": 1
+                },
+                {
+                    "key": "field_69aa91aa62c20",
+                    "label": "Captions",
+                    "name": "captions",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_672e1d776ca84",
+                                "operator": "!=",
+                                "value": "dynamic"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "10",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1
                 },
                 {
                     "key": "field_676d969354bdb",
@@ -1036,7 +1088,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1528x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
                             "translations": "sync",
@@ -1192,7 +1244,7 @@
                                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                                 "1528x500": "Slider Desktop"
                             },
-                            "default_value": "",
+                            "default_value": [],
                             "return_format": "value",
                             "multiple": 1,
                             "allow_custom": 0,
@@ -1509,7 +1561,7 @@
                     "tabs": "all",
                     "toolbar": "full",
                     "media_upload": 1,
-                    "delay": 0,
+                    "delay": 1,
                     "pll_default_value": ""
                 }
             ]
@@ -1826,10 +1878,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582656,
+    "modified": 1772786325,
     "acfe_categories": {
         "block": "Block"
     }

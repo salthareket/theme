@@ -26,6 +26,34 @@ L.TileLayer.LazyLoad = L.TileLayer.extend({
         return tile;
     }
 });*/
+/*
+ * L.TileLayer.LazyLoad eklentisi
+ */
+L.TileLayer.LazyLoad = L.TileLayer.extend({
+    createTile: function (coords, done) {
+        var tile = document.createElement('img');
+
+        L.DomEvent.on(tile, 'load', L.bind(this._tileOnLoad, this, done, tile));
+        L.DomEvent.on(tile, 'error', L.bind(this._tileOnError, this, done, tile));
+
+        if (this.options.crossOrigin || this.options.crossOrigin === "") {
+            tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+        }
+
+        tile.alt = '';
+        tile.setAttribute('role', 'presentation');
+
+        // Burası sihirli kısım: Hemen yüklemek yerine 'loading' attribute kullanıyor
+        tile.loading = 'lazy'; 
+        tile.src = this.getTileUrl(coords);
+
+        return tile;
+    }
+});
+
+L.tileLayer.lazyLoad = function (url, options) {
+    return new L.TileLayer.LazyLoad(url, options);
+};
 
 // Dosyanın en başına bu kontrolü koy abi
 (function() {

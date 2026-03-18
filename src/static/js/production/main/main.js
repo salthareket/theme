@@ -1,52 +1,20 @@
-	root.init();
-	var host = root.get_host();
-	var lang = root.lang;
-	var hash = root.hash;
-	var is_home = root.is_home;
+root.init();
+var host = root.get_host();
+var lang = root.lang;
+var hash = root.hash;
+var is_home = root.is_home;
 
-/*
-if(isLoadedJS("lenis")){
-	lenis = new Lenis()
-	function raf(time) {
-	  lenis.raf(time)
-	  requestAnimationFrame(raf)
-	}
-	requestAnimationFrame(raf);
-}
-
-window.addEventListener('load', fitToContainer);
-window.addEventListener('resize', fitToContainer);
-
-
-// Header Affix Init (ScrollPosStyler'ın özel kullanımı)
-if (window["ScrollPosStyler"] && document.getElementById("header")) {
-    var header = document.getElementById("header");
-    if (!header.classList.contains("affix")) {
-        ScrollPosStyler.init({
-            spsClass: "affixed",
-            classAbove: "affix-top",
-            classBelow: "affix",
-            offsetTag: "data-affix-offset",
-            scrollOffsetY: 50
-        });
+// Açık olan modal ve offcanvasların ID'lerini burada tutacağız
+window.bsStateStack = window.bsStateStack || [];
+window.addEventListener('popstate', function (event) {
+    if (window.bsStateStack.length > 0) {
+        const el = window.bsStateStack.pop();
+        const modal = bootstrap.Modal.getInstance(el);
+        const offcanvas = bootstrap.Offcanvas.getInstance(el);
+        if (modal) modal.hide();
+        if (offcanvas) offcanvas.hide();
     }
-}
-// Ana içerik scroll (Eski yöntem - ScrollPosStyler ile çakışabilir, ancak mevcut mantık korundu.)
-var main = document.querySelector("#main");
-var header = document.querySelector("#header");
-
-if (main && header && root && root.classes) {
-    var scrollTop = main.scrollTop || document.documentElement.scrollTop;
-    var headerHeight = root.get_css_var("header-height");
-    if (scrollTop > headerHeight) {
-        if (header.classList.contains("fixed-top")) {
-            root.classes.addClass(header, "affix");
-            root.classes.removeClass(header, "affix-top");
-        }
-    }
-}
-
-*/
+});
 
 const handleHashScroll = () => {
     const hash = window.location.hash;
@@ -83,7 +51,7 @@ const initHeaderAffix = () => {
             classAbove: "affix-top",
             classBelow: "affix",
             offsetTag: "data-affix-offset",
-            scrollOffsetY: 50
+            scrollOffsetY: 0
         });
     }
 
@@ -654,10 +622,16 @@ $( document ).ready(function() {
 		            bootstrap.Offcanvas.getOrCreateInstance(openOffcanvas).hide();
 		        }
 		    })
-		    .on('shown.bs.modal', '.modal', function () {
-		        const $modal = $(this);
+		    .on('shown.bs.modal', '.modal', function (e) {
+		        const $modal = $(e.target);//$(this);
 		        const visibleModals = $('.modal:visible');
 		        const modalCount = visibleModals.length;
+
+		        const el = e.currentTarget;
+			    if (window.bsStateStack.indexOf(el) === -1) {
+			        window.bsStateStack.push(el);
+			        history.pushState({ bsOpen: true, type: 'modal' }, "");
+			    }
 		        
 		        if (modalCount > 1) {
 		            // Bootstrap varsayılan z-index 1050'dir. 
@@ -685,6 +659,15 @@ $( document ).ready(function() {
 		    .on('hidden.bs.modal', '.modal', function (e) {
 		        const $modal = $(e.target);
 		        const visibleModals = $('.modal:visible');
+
+		        const el = e.currentTarget;
+			    const index = window.bsStateStack.indexOf(el);
+			    if (index > -1) {
+			        window.bsStateStack.splice(index, 1);
+			        if (history.state && history.state.bsOpen) {
+			            history.back();
+			        }
+			    }
 
 		        if (visibleModals.length > 0) {
 		            // Hala modal varsa body'i kilitlemeye devam et
@@ -757,12 +740,20 @@ $( document ).ready(function() {
 		        }
 		    })
 		    .on('shown.bs.offcanvas', '.offcanvas', function (e) {
-		        const $obj = $(e.target);
-		        const targetId = "#" + $obj.attr("id");
+		        //const $obj = $(e.target);
+		        //const targetId = "#" + $obj.attr("id");
 
-		        if($(`[href='${targetId}']`).length > 0) {
-		            history.pushState(targetId, document.title, window.location.pathname + targetId);
-		        }
+		        const el = e.currentTarget;
+			    const $obj = $(el);
+			    const targetId = "#" + $obj.attr("id");
+			    if (window.bsStateStack.indexOf(el) === -1) {
+			        window.bsStateStack.push(el);
+			        history.pushState({ bsOpen: true, type: 'offcanvas', id: targetId }, document.title, window.location.pathname + targetId);
+			    }
+
+		        //if($(`[href='${targetId}']`).length > 0) {
+		        //    history.pushState(targetId, document.title, window.location.pathname + targetId);
+		        //}
 
 		        if(window.lenis) {
 		            $body.attr("data-lenis-prevent", "");
@@ -771,7 +762,16 @@ $( document ).ready(function() {
 		    })
 		    .on('hidden.bs.offcanvas', '.offcanvas', function (e) {
 		        const $obj = $(e.target);
-		        
+
+		        const el = e.currentTarget;
+			    const index = window.bsStateStack.indexOf(el);
+			    if (index > -1) {
+			        window.bsStateStack.splice(index, 1);
+			        if (history.state && history.state.bsOpen) {
+			            history.back();
+			        }
+			    }
+					        
 		        setTimeout(function() {
 		            const $activeOffcanvas = $(".offcanvas.show");
 		            
@@ -800,6 +800,12 @@ $( document ).ready(function() {
 		                $body.removeAttr("data-lenis-prevent");
 		                window.lenis.start();
 		            }
+                    
+                    if($obj.find(".slinky-menu").length > 0){
+			            const slinky = $obj.find('.slinky-menu').data('slinky'); // Eğer datada tutuyorsan
+	    				slinky.home(false);                    	
+                    }
+
 		        }, 50);
 		    });
 		}

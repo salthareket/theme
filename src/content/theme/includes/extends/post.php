@@ -281,37 +281,6 @@ class ThemePost extends Post{
 
 	    return null;
 	}
-
-	public function bus_line() {
-    	$text = '';
-        $title = trim($this->title);
-        if (strpos($title, ':') !== false) {
-            $arr = explode(':', $title, 2);
-            if (!empty($arr[1])) {
-                $text = "<span class='label-bus-line'>" . trim($arr[0]) . "</span> " . trim($arr[1]);
-            } else {
-                $text = $title;
-            }
-        } else {
-            $text = $title;
-        }
-    	return $text;
-    }
-
-   /*public function stores($term_id){
-    	$store_list = [];
-    	if($this->post_type == "katlar"){
-    		$stores = $this->meta("stores");
-    		if($stores){
-    			foreach($stores as $store){
-    				$store_id = $store["store"];
-    				$store_list[] = get_post($store_id);
-    			}
-    		}
-    	}
-    	return $store_list;
-    }*/
-
 }
 
 class ThemeProduct extends Timber\Post{

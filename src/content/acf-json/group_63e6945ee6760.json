@@ -1101,6 +1101,40 @@
                     "height": "",
                     "translations": "ignore",
                     "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_69a83ec94c61d",
+                    "label": "Latitude",
+                    "name": "lat",
+                    "aria-label": "",
+                    "type": "acfe_hidden",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "allow_in_bindings": 0
+                },
+                {
+                    "key": "field_69a83ed74c61e",
+                    "label": "Longitude",
+                    "name": "lng",
+                    "aria-label": "",
+                    "type": "acfe_hidden",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "allow_in_bindings": 0
                 }
             ]
         }
@@ -1128,10 +1162,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772149632,
+    "modified": 1772633827,
     "acfe_categories": {
         "general": "General"
     }

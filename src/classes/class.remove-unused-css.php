@@ -1311,6 +1311,16 @@ class RemoveUnusedCss {
     private function selectorExists($dom, $selector) {
         if (empty($selector) || $selector === '*') return true;
 
+        foreach ($this->white_list as $whitelist_item) {
+            if (strpos($whitelist_item, '*') !== false) {
+                $pattern = str_replace('\*', '.*', preg_quote($whitelist_item, '/'));
+                // Selector bütün olarak (.rotating.flip .front) bu desene uyuyor mu?
+                if (preg_match('/' . $pattern . '/i', $selector)) {
+                    return true; // Uyuyorsa hiç parçalama, direkt tut!
+                }
+            }
+        }
+
         // 1. Seçiciyi atomik parçalara ayır (.toast.showing -> ['.toast', '.showing'])
         preg_match_all('/([.#][a-zA-Z0-9\-_*]+|\[[^\]]+\])/', $selector, $matches);
         $parts = !empty($matches[0]) ? $matches[0] : [$selector];

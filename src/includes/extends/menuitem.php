@@ -189,7 +189,7 @@ class MenuItem extends Timber\MenuItem{
 		        		}
 		        	}
 		        }else{
-		            $properties["link"]["href"] = $this->children?$this->children[0]->url:$this->url;//$this->url;
+		            $properties["link"]["href"] = $this->url;//$this->children?$this->children[0]->url:$this->url;
 		            $properties["link"]["target"] = $this->_menu_item_target;//!empty($this->_menu_item_target) && (!str_contains($this->get_link(), "#") ? $this->_menu_item_target : $properties["link"]["target"]);
 		        }
 			break;

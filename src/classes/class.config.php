@@ -98,7 +98,7 @@ class SaltConfig {
         }
 
         // Eğer target_keys içinde yoksa mecbur DB'ye git (Güvenlik önlemi)
-        return QueryCache::get_option($key, $default);
+        return get_option($key, $default);
     }
 
     /**

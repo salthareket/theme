@@ -28,7 +28,8 @@ class Image {
         'placeholder_class' => '',
         'preview' => false,
         'attrs' => [],
-        'wrapper' => false
+        'wrapper' => false,
+        'inline' => true
     );
 
     private $args = array();
@@ -180,6 +181,15 @@ class Image {
             $this->args['class'] = trim($class);
         }
 
+        $is_svg = (pathinfo($this->args['post']->src(), PATHINFO_EXTENSION) === 'svg');
+        
+        if ($is_svg && $this->args['inline']) {
+            $svg_content = $this->get_inline_svg($this->args['post']->src());
+            if (!empty($svg_content)) {
+                return $svg_content; // Direkt SVG kodunu dön ve çık
+            }
+        }
+
         $html = "";
         $base_class = "img-fluid" . ($this->args["lazy"] ? " lazy" : "") . (!empty($this->args["class"]) ? " " . $this->args["class"] : "");
 
@@ -273,6 +283,57 @@ class Image {
             if(empty($args["alt"])) $args["alt"] = !empty($args["post"]->alt()) ? $args["post"]->alt() : (get_post($args["id"])->post_title ?? "");
         }
         return $args;
+    }
+
+    // --- SVG INLINE LOGIC ---
+    private function get_inline_svg($url) {
+        $svg = $this->file_get_contents_curl($url);
+        if (!$svg) return '';
+
+        $svg = preg_replace('//', '', $svg); // yorumları sil
+        $svg = preg_replace('/<\?xml.*\?>/i', '', $svg); // xml deklarasyonunu sil
+
+        $suffix = '_' . uniqid();
+        
+        // ID ve Referansları benzersiz yap (Çakışma önleyici)
+        $svg = preg_replace_callback('/id="([^"]+)"/', fn($m) => 'id="'.$m[1].$suffix.'"', $svg);
+        $svg = preg_replace_callback('/url\(#([^)]+)\)/', fn($m) => 'url(#'.$m[1].$suffix.')', $svg);
+        $svg = preg_replace_callback('/xlink:href="#([^"]+)"/', fn($m) => 'xlink:href="#'.$m[1].$suffix.'"', $svg);
+
+        // Class ve Attr yönetimi
+        $extra_attrs = "";
+        if(!empty($this->args["class"])) $svg = str_replace("<svg ", "<svg class='".$this->args["class"]."' ", $svg);
+        if(!empty($this->args["width"])) $extra_attrs .= ' width="'.$this->args["width"].'"';
+        if(!empty($this->args["height"])) $extra_attrs .= ' height="'.$this->args["height"].'"';
+
+        if(!empty($extra_attrs)){
+            $svg = preg_replace('/\s(width|height)="[^"]*"/i', '', $svg);
+            $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$extra_attrs.'>', $svg, 1);
+        }
+
+        // viewBox kontrolü
+        if(stripos($svg, "viewBox") === false){
+            if(preg_match('/<svg[^>]*\bwidth=["\']?(\d+)[^"\']*["\']?/i', $svg, $wMatch) &&
+               preg_match('/<svg[^>]*\bheight=["\']?(\d+)[^"\']*["\']?/i', $svg, $hMatch)){
+                $vb = ' viewBox="0 0 '.$wMatch[1].' '.$hMatch[1].'"';
+                $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$vb.'>', $svg, 1);
+            }
+        }
+        return $svg;
+    }
+
+    private function file_get_contents_curl($url) {
+        if (function_exists('curl_version')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Localhost güvenliği için
+            $data = curl_exec($ch);
+            curl_close($ch);
+            return $data;
+        }
+        return @file_get_contents($url);
     }
 
     // --- DİĞER YARDIMCI METODLAR (Sıralama, MediaQuery vs.) ---

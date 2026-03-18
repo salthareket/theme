@@ -15,6 +15,7 @@
     SupportsCustomClassName: true
     SupportsReusable: true
     SupportsFullHeight: true
+  ApiVersion: 2
     RequiredJS: justifiedGallery, lightgallery
     CacheHTML: true
 #}
@@ -60,7 +61,7 @@
         {% set gallery_class = "" %}
     {% endif %}
 
-    <div id="{{gallery_id}}" class="{% if lightbox %}lightgallery init-me{% endif %} position-relative p-0 w---100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="left" data-item-captions="false" data-lightbox="{{ lightbox}}">
+    <div id="{{gallery_id}}" class="lightgallery init-me{% if lightbox %}{% endif %} position-relative p-0 w-100 {{gallery_class}}" {{gallery_attrs}} data-item-height="{{fields.settings.item_height|default(160)}}" data-item-max-height="{{fields.settings.item_max_height|default(160)}}" data-item-margin="{{fields.settings.item_margin|default(0)}}" data-item-last-row="justify" data-item-captions="{{fields.settings.captions|default("false")|boolstr}}" data-lightbox="{{lightbox|boolstr}}">
 
         {% set source = lightGallerySource(fields) %}
         
@@ -242,10 +243,10 @@
         {% endif %}
 
     </div>
-    {% if lightbox %}
+    
     <script type="text/javascript" data-inline="true">
         {{gallery_id|replace({"-": "_"})}} = {{source|json_encode}};
     </script>
-    {% endif %}
+    {% if lightbox %}{% endif %}
 
 {% endblock %}

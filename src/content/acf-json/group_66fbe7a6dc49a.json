@@ -200,7 +200,7 @@
                         "airplay": "airplay",
                         "download": "download"
                     },
-                    "default_value": "",
+                    "default_value": [],
                     "return_format": "value",
                     "multiple": 1,
                     "allow_custom": 0,
@@ -247,7 +247,7 @@
                         "speed": "speed",
                         "loop": "loop"
                     },
-                    "default_value": "",
+                    "default_value": [],
                     "return_format": "value",
                     "multiple": 1,
                     "allow_custom": 0,
@@ -363,7 +363,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582910,
+    "modified": 1772218157,
     "acfe_categories": {
         "common": "Common"
     }

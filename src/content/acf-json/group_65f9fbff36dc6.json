@@ -193,8 +193,7 @@
             },
             "choices": {
                 "default": "Default",
-                "post\/tease": "Post Tease (Predefined)",
-                "theme\/templates\/_custom\/slider-post": "slider-post"
+                "post\/tease": "Post Tease (Predefined)"
             },
             "default_value": "default",
             "return_format": "value",
@@ -606,7 +605,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1769172528,
+    "modified": 1772218141,
     "acfe_categories": {
         "block": "Block"
     }

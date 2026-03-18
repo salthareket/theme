@@ -312,6 +312,7 @@ class SaltBase{
     public function on_term_published($term_id, $tt_id, $taxonomy){
         $taxonomy_object = get_taxonomy($taxonomy);
         if ($taxonomy_object && $taxonomy_object->public) {
+            update_term_featured_image($term_id, $tt_id, $taxonomy);
             $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_term($term_id, $tt_id, $taxonomy);
         }

@@ -14,7 +14,12 @@ if(is_admin()){
             'icon'  => 'dashicons-admin-generic'
         ];
 
-        return array_merge( [ $main_category ], $categories );
+        // Önce kendi kategorilerini birleştir
+        // $main_category'i [ ] içine alıyoruz ki tek bir eleman olarak eklensin
+        $my_custom_categories = array_merge( [ $main_category ], Data::get('block_categories') ?? [] );
+
+        // Bunları mevcut kategorilerin en başına ekle
+        return array_merge( $my_custom_categories, $categories );
     }
     add_filter( 'block_categories_all', 'wp_block_category_logic', 10, 2 );
 
@@ -195,3 +200,33 @@ add_filter('register_block_type_args', function ($args, $name) {
     return $args;
 
 }, 10, 2);*/
+
+
+// functions.php'nin en altına ekle
+add_filter( 'block_editor_settings_all', function( $editor_settings ) {
+    // 1. Iframe motorunu tamamen kapat (v2 moduna zorla)
+    $editor_settings['enableV2VisualEditor'] = true;
+    $editor_settings['is_iframe'] = false;
+    
+    // 2. Sidebar'a zorlamayı kapat, bloklar yerinde (inline/modal) kalsın
+    $editor_settings['blockInspector'] = false; 
+
+    return $editor_settings;
+}, 10 );
+
+/*
+// Blok kayıtlarını havada yakalayıp hepsini v3 yapıyoruz
+add_filter( 'block_type_metadata_settings', function( $settings, $metadata ) {
+    // Eğer blok bir ACF bloğuysa (ismini kontrol et)
+    if ( isset( $metadata['name'] ) && strpos( $metadata['name'], 'acf/' ) === 0 ) {
+        $settings['api_version'] = 3;
+    }
+    return $settings;
+}, 99, 2 );
+
+// Alternatif olarak ACF'in kendi filtresini de zorlayalım
+add_filter( 'acf/register_block_type_args', function( $args ) {
+    $args['apiVersion'] = 3;
+    return $args;
+}, 99 );
+*/

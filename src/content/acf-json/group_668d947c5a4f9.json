@@ -58,9 +58,6 @@
                     "layout": "block",
                     "acfe_seamless_style": 0,
                     "acfe_group_modal": 0,
-                    "acfe_group_modal_close": 0,
-                    "acfe_group_modal_button": "",
-                    "acfe_group_modal_size": "large",
                     "sub_fields": [
                         {
                             "key": "field_68decf6df46ef",
@@ -228,7 +225,10 @@
                             "append": "",
                             "pll_default_value": "0.5"
                         }
-                    ]
+                    ],
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large"
                 },
                 {
                     "key": "field_6638164b184b4",
@@ -288,8 +288,7 @@
                                 "initial": "initial",
                                 "inherit": "inherit",
                                 "##Custom Fonts": "##Custom Fonts",
-                                "'DIN'": "DIN Condensed Pro",
-                                "'pantheon'": "pantheon",
+                                "'Futura'": "Futura",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -395,7 +394,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_66377efe328ca",
@@ -556,8 +555,7 @@
                                 "initial": "initial",
                                 "inherit": "inherit",
                                 "##Custom Fonts": "##Custom Fonts",
-                                "'DIN'": "DIN Condensed Pro",
-                                "'pantheon'": "pantheon",
+                                "'Futura'": "Futura",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -663,7 +661,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_66381795184ba",
@@ -1007,7 +1005,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_66381944184c8",
@@ -1045,7 +1043,7 @@
                             "search_placeholder": "",
                             "create_options": 0,
                             "save_options": 0,
-                            "pll_default_value": "400"
+                            "pll_default_value": 400
                         },
                         {
                             "key": "field_66381958184ca",
@@ -1205,10 +1203,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582831,
+    "modified": 1772400009,
     "acfe_categories": {
         "general": "General"
     }

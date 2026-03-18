@@ -228,6 +228,41 @@ window.waiting_init = {
 
 
 
+
+
+
+document.addEventListener('click', function (e) {
+    const link = e.target.closest('a');
+
+    // Temel kontroller: Link yoksa, href yoksa veya yeni sekmede açılıyorsa siktir et
+    if (!link || !link.href || e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+    // 1. Standart İstisnalar (Harici link, mail, tel vb.)
+    const url = new URL(link.href);
+    const isExternal = url.hostname !== window.location.hostname;
+    const isTargetBlank = link.target === '_blank';
+    const isAction = link.href.startsWith('mailto:') || link.href.startsWith('tel:') || link.hasAttribute('download');
+
+    if (isExternal || isTargetBlank || isAction) return;
+
+    if (link.getAttribute('href').startsWith('#') || link.href.split('#')[0] === window.location.href.split('#')[0]) {
+        return;
+    }
+
+    setTimeout(() => {
+        if (e.defaultPrevented) {
+            console.log('Başka bir script bu linki yakaladı, loading iptal.');
+            return;
+        }
+        document.body.classList.add('loading');
+    }, 0); 
+}, false);
+
+
+
+
+
+
 /**
  * TurboQuery 2026 - Full Edition
  * High-Performance Fetch, Auto-Log & Smart Cache System
@@ -606,40 +641,6 @@ class ResponsiveManager {
         }
     }
 
-    /*handleOffcanvasTogglerVisibility() {
-        // 1. Senin projedeki geçerli Bootstrap/Custom breakpoint'lerin
-        const validBreakpoints = ['sm', 'md', 'lg', 'xl', 'xxl', 'xxxl'];
-
-        // 2. İçinde "offcanvas-" geçen tüm elementleri bul
-        const offcanvases = document.querySelectorAll('[class*="offcanvas-"]');
-
-        offcanvases.forEach(off => {
-            const classes = Array.from(off.classList);
-            let foundBreakpoint = null;
-
-            // 3. Sadece bizim listemizde olan gerçek bir breakpoint class'ı var mı kontrol et
-            // Örn: 'offcanvas-xxxl' -> 'xxxl' (valid mi? Evet)
-            classes.forEach(cls => {
-                const part = cls.replace('offcanvas-', '');
-                if (validBreakpoints.includes(part)) {
-                    foundBreakpoint = part;
-                }
-            });
-
-            // 4. Eğer gerçek bir breakpoint (responsive yapısı) bulduysak toggler'ları işle
-            if (foundBreakpoint) {
-                const offId = off.id;
-                const togglers = document.querySelectorAll(`[data-bs-toggle="offcanvas"][data-bs-target="#${offId}"], [data-bs-toggle="offcanvas"][href="#${offId}"]`);
-
-                togglers.forEach(btn => {
-                    // Sadece bulduğumuz breakpoint için gizleme class'ını ekle
-                    // Örn: d-xxxl-none
-                    btn.classList.add(`d-${foundBreakpoint}-none`);
-                });
-            }
-        });
-    }*/
-
     closeOffcanvasOnBreakpointChange(currentBreakpoint) {
         const openOffcanvas = document.querySelector('.offcanvas.show');
         if (!openOffcanvas) return;
@@ -661,7 +662,7 @@ class ResponsiveManager {
         requestAnimationFrame(() => {
             const h = this.header.offsetHeight || 0;
             const offset = window.innerHeight - h;
-            this.header.setAttribute("data-affix-offset", Math.round(offset));
+            this.header.setAttribute("data-affix-offset", Math.round(h));
             this.body.style.setProperty('--header-height', h + 'px');
         });
     }

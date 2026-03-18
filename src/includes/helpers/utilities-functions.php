@@ -7,7 +7,7 @@ if (!function_exists('boolval')) {
 }
 
 function boolstr($val = false){
-    return boolval($val)?"true":"false";
+    return filter_var($val, FILTER_VALIDATE_BOOLEAN)?"true":"false";
 }
 
 function is_true($val, $return_null=false){

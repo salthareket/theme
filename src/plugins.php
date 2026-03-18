@@ -119,7 +119,7 @@ Data::set("plugins", $required_plugins);
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.7.0",
+    "v" => "6.7.1",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );

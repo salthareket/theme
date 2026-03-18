@@ -1,7 +1,5 @@
 <?php
 
-
-
 if (!function_exists('wp_doing_rest')) {
     function wp_doing_rest() {
         return defined('REST_REQUEST') && REST_REQUEST;

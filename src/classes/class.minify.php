@@ -860,18 +860,18 @@ class SaltMinifier{
         }
     }
     public function removeSourceMap($input, $type) {
-    $pattern = '/\/\/[#@]\s*sourceMappingURL=.*?(\r?\n|$|(?=[;!]))/i';
+        $pattern = '/\/\/[#@]\s*sourceMappingURL=.*?(\r?\n|$|(?=[;!]))/i';
 
-    if ($type === "file") {
-        $source = file_get_contents($input);
-        $source = preg_replace($pattern, '', $source);
-        file_put_contents($input, $source);
-    } else if ($type === "source") {
-        return preg_replace($pattern, '', $input);
-    } else {
-        return $input;
+        if ($type === "file") {
+            $source = file_get_contents($input);
+            $source = preg_replace($pattern, '', $source);
+            file_put_contents($input, $source);
+        } else if ($type === "source") {
+            return preg_replace($pattern, '', $input);
+        } else {
+            return $input;
+        }
     }
-}
 
 
 

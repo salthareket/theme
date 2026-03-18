@@ -637,7 +637,7 @@ class WP_Rocket_Manifest_Manager {
 
         if (function_exists('rocket_clean_files')) {
             rocket_clean_files($temp_urls);
-            error_log(print_r($temp_urls, true));
+            //error_log(print_r($temp_urls, true));
         }
 
         foreach ($final_items as $item) {

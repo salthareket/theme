@@ -486,8 +486,8 @@ function get_map_config($fields = array(), $block_meta = array()) {
     $html = "";
     
     // Ayarları çek
-    $map_service = get_option("options_map_service", "leaflet");
-    $map_view    = get_option("options_map_view", "dynamic"); // Default JS view
+    $map_service = QueryCache::get_option("options_map_service", "leaflet");
+    $map_view    = QueryCache::get_option("options_map_view", "dynamic"); // Default JS view
     $map_type    = $fields["map_type"] ?? "static";
     $settings    = $fields['map_settings'] ?? [];
 

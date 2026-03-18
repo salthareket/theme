@@ -13,8 +13,12 @@ function query_var_isset($var_name) {
 function get_sh_taxonomy_removals() {
     static $removals = null;
     if ($removals === null) {
-        error_log("options_taxonomy_prefix_remove bırda cekliyo");
         $removals = QueryCache::get_option("options_taxonomy_prefix_remove", []);
+        if (empty($data)) {
+            $removals = [];
+        } else {
+            $removals = is_array($data) ? $data : (array)$data;
+        }
     }
     return $removals;
 }

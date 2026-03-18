@@ -1,4 +1,5 @@
 <?php
+
 if(is_admin()){
     add_action("admin_init", function(){
         $terms_default = array(

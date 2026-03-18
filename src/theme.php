@@ -516,6 +516,8 @@ Class Theme{
         if (function_exists("yoast_breadcrumb") && class_exists("Schema_Breadcrumbs")) {
             \Schema_Breadcrumbs::instance();
         }
+
+        add_editor_style('style.css');
     }
     public function map_theme_folder_templates($templates) {
         $new_templates = [];
@@ -1164,7 +1166,7 @@ Class Theme{
             } elseif (is_post_type_archive()) {
                 $meta['type'] = 'archive';
                 $pt           = get_post_type();
-                $lang         = (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
+                $lang         = Data::get("language");//ml_get_current_language();//(defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
                 $meta['id']   = $lang ? "{$pt}_archive_{$lang}" : "{$pt}_archive";
             } elseif (is_author()) {
                 $meta['type'] = 'user';
@@ -1172,12 +1174,12 @@ Class Theme{
             } elseif (is_search()) {
                 $meta['type'] = 'dynamic';
                 $pt           = "search";
-                $lang         = (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
+                $lang         = Data::get("language");//ml_get_current_language();//(defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
                 $meta['id']   = $lang ? "{$pt}_{$lang}" : "{$pt}_archive";
             } elseif (is_404()) {
                 $meta['type'] = 'dynamic';
                 $pt           = "404";
-                $lang         = (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
+                $lang         = Data::get("language");//ml_get_current_language();//(defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE) ? ml_get_current_language() : "";
                 $meta['id']   = $lang ? "{$pt}_{$lang}" : "{$pt}_archive";
             }
         }

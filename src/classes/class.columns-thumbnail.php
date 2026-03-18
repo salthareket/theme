@@ -86,13 +86,20 @@ class AdminThumbnailColumns {
             // ACF gibi eklentilerle eklenen 'thumbnail_id' meta alanını kontrol et
             $thumbnail_id = get_term_meta($term_id, 'thumbnail_id', true);
             if ($thumbnail_id) {
+                $mime_type = get_post_mime_type($thumbnail_id);
                 // Görsel varsa 'thumbnail' boyutunda al ve göster
-                $image = wp_get_attachment_image($thumbnail_id, 'thumbnail', false, [
+                $attr = [
                     'class' => '',
                     'style' => '',
                     'alt'   => 'image',
                     'loading' => 'lazy',
-                ]);
+                ];
+                // Eğer SVG ise width/height niteliklerini zorla boşaltalım ki 1x1 basmasın
+                if ($mime_type === 'image/svg+xml') {
+                    $attr['width']  = '50';
+                    $attr['height'] = '50';
+                }
+                $image = wp_get_attachment_image($thumbnail_id, 'thumbnail', false, $attr);
                 return $image;
             } else {
                 // Görsel yoksa bir tire işareti göster

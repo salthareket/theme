@@ -110,7 +110,8 @@ header#header {
             .logo-svg,
             .logo,
             .logo-affix {
-                max-height: var(--header-height-affix);
+                //max-height: var(--header-height-affix);
+                max-height: calc(var(--header-height-affix) - (var(--header-navbar-logo-padding-affix-top) + var(--header-navbar-logo-padding-affix-bottom)));
             }
 
         }
@@ -195,7 +196,9 @@ header#header {
         .logo-svg,
         .logo,
         .logo-affix {
-            max-height: var(--header-height);
+            //max-height: var(--header-height);
+            max-height: calc(var(--header-height) - (var(--header-navbar-logo-padding-top) + var(--header-navbar-logo-padding-bottom)));
+            @include transition(max-height 0.3s ease-out, opacity 0.3s ease-out);
         }
     }
 
@@ -1515,7 +1518,7 @@ body {
         }
     }
     &.menu-show-header {
-            @include headerTheme(#fff, #fff, transparent, #fff, #fff, #fff, transparent, #fff, 1046);
+            @include headerTheme(#fff, #fff, transparent, null, #fff, #fff, transparent, null, 1046);
 
             &.loading:not(.loaded) {
                 &:before {

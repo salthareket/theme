@@ -116,6 +116,7 @@ function processImage(img, resolve) {
         resolve(1); // Beyaz olarak varsayılan parlaklık
     }
 }
+/**/
 function getImageLuminance(imageUrl) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -128,6 +129,41 @@ function getImageLuminance(imageUrl) {
             console.error("getImageLuminance: Resim yüklenemedi:", imageUrl);
             resolve(1); // Varsayılan parlaklık beyaz
         };
+    });
+}
+/**
+ * 3. Ortalama Parlaklığı Tespit Eden Karar Mekanizması
+ */
+function getAverageLuminance(element) {
+    return new Promise((resolve) => {
+        if (!element) return resolve(1);
+
+        // Video slide kontrolü (Plyr poster)
+        if (element.classList.contains("swiper-slide-video")) {
+            const poster = element.querySelector(".plyr__poster");
+            if (poster) {
+                const style = getComputedStyle(poster);
+                const imageUrlMatch = style.backgroundImage.match(/url\((["']?)(.*?)\1\)/);
+                if (imageUrlMatch && imageUrlMatch[2]) {
+                    return getImageLuminance(imageUrlMatch[2]).then(resolve);
+                }
+                const bgColor = style.backgroundColor;
+                if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+                    return resolve(getComputedLuminance(poster));
+                }
+            }
+        }
+
+        const img = element.querySelector("img");
+        const hasVisibleImage = img && img.naturalWidth > 0 && getComputedStyle(img).display !== 'none';
+
+        if (!hasVisibleImage) {
+            // Görsel yoksa veya gizliyse render bazlı analize git
+            getRenderedLuminance(element).then(resolve);
+        } else {
+            // Görsel varsa direkt görselden analiz yap
+            getImageLuminance(img.src).then(resolve);
+        }
     });
 }
 function getComputedLuminance(element) {
@@ -154,6 +190,93 @@ function getComputedLuminanceFromGradient(gradient) {
     const [r, g, b] = getAverageColorFromGradient(gradient);
     return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
+/**
+ * 4. Render Edilen İçeriği Analiz Eden Fonksiyon (Hata Korumalı)
+ */
+function getRenderedLuminance(element) {
+    return new Promise((resolve) => {
+        try {
+            const style = getComputedStyle(element);
+            const bgColor = style.backgroundColor;
+
+            // --- HATAYI ENGELLEYEN YENİ KISIM ---
+            // Slide içinde yazı veya ikon yoksa html-to-image'ı hiç çağırma (trim hatası biter)
+            const hasContent = (element.innerText && element.innerText.trim().length > 0) || 
+                               element.querySelector('i, svg, canvas, .icon');
+            
+            if (!hasContent && bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+                return resolve(getComputedLuminance(element));
+            }
+            // ------------------------------------
+
+            if (typeof htmlToImage === 'undefined') return resolve(getComputedLuminance(element));
+
+            htmlToImage.toCanvas(element, {
+                pixelRatio: 0.1,
+                skipFonts: true, // Font hatasını engellemek için kritik
+                backgroundColor: bgColor
+            }).then(canvas => {
+                const ctx = canvas.getContext("2d");
+                const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                let total = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    total += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+                }
+                resolve(total / (data.length / 4));
+            }).catch(() => resolve(getComputedLuminance(element)));
+        } catch (e) {
+            resolve(1);
+        }
+    });
+}
+/**
+ * 2. Parlaklık Değerine Göre Body'e Class Basan Yardımcı
+ */
+function applyLuminanceClass(luminance) {
+    const threshold = 0.5; // 0.5 altı koyu (dark), üstü açık (light)
+    if (luminance < threshold) {
+        document.body.classList.add("slide-dark");
+        document.body.classList.remove("slide-light");
+    } else {
+        document.body.classList.add("slide-light");
+        document.body.classList.remove("slide-dark");
+    }
+}
+/**
+ * 1. Slide Renklerini Güncelleyen Ana Fonksiyon (Optimize Edilmiş)
+ */
+async function updateSlideColors(slider) {
+    // 1. Senin orijinal slide bulma mantığın
+    let activeSlide = slider.querySelector('.swiper-slide-active');
+    if (!activeSlide) {
+        activeSlide = slider.querySelector('.swiper-slide');
+    }
+    if (!activeSlide) return;
+
+    // 2. ÖNCE CACHE'E BAK (Performans için yeni ekledik)
+    // Eğer bu slide'ı daha önce hesapladıysak direkt hafızadan oku
+    const cachedLuminance = activeSlide.getAttribute('data-luminance');
+    let luminance;
+
+    if (cachedLuminance !== null) {
+        luminance = parseFloat(cachedLuminance);
+    } else {
+        // Hesapla ve bir sonraki sefer için slide'ın üzerine kaydet
+        luminance = await getAverageLuminance(activeSlide);
+        activeSlide.setAttribute('data-luminance', luminance);
+    }
+
+    // 3. Senin orijinal renk uygulama mantığın
+    slider.classList.remove("slide-light", "slide-dark");
+    activeSlide.classList.remove("slide-light", "slide-dark");
+
+    const isDark = luminance === 0 ? false : luminance < 0.6; // Senin 0.6 eşiğin
+    const className = isDark ? 'slide-dark' : 'slide-light';
+
+    activeSlide.classList.add(className);
+    slider.classList.add(className);
+}
+/*
 function getRenderedLuminance(element) {
     return new Promise((resolve) => {
         try {
@@ -238,7 +361,7 @@ async function updateSlideColors(slider) {
     const isDark = luminance === 0 ? false : luminance < 0.6;
     activeSlide.classList.add(isDark ? 'slide-dark' : 'slide-light');
     slider.classList.add(isDark ? 'slide-dark' : 'slide-light');
-}
+}*/
 
 let slideColorUpdateTimeout;
 function safeUpdateSlideColors(obj, params = []) {
@@ -593,6 +716,7 @@ function init_swiper_obj($obj) {
                         $el.closest(".loading").removeClass("loading");
                     }
                 },
+                
                 loopFix : function(){
                    lazyLoadInstance.update();
                 },

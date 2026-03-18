@@ -93,6 +93,7 @@ if ( ! class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
 							'parent'                     => 'Parent',
 							'default_data'               => 'DefaultData',
 							'supports'                   => 'Supports',
+							'api_version'                => 'ApiVersion', // BURAYA EKLEDİM
 						)
 					);
 
@@ -116,6 +117,7 @@ if ( ! class_exists( 'Timber_Acf_Wp_Blocks' ) ) {
 						'render_callback' => array( __CLASS__, 'timber_blocks_callback' ),
 						'enqueue_assets'  => $file_headers['enqueue_assets'],
 						'default_data'    => $file_headers['default_data'],
+						'apiVersion'      => 3,//( ! empty( $file_headers['api_version'] ) ) ? (int) $file_headers['api_version'] : 3, // VARSAYILAN 3 YAPILDI
 						"supports" => [
 							"color"=> [
 								"gradients"=> true,

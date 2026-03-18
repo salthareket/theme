@@ -271,10 +271,8 @@
                         "class": "acf-contact-email",
                         "id": ""
                     },
-                    "choices": {
-                        "info@212istanbul.com": "212 Outlet(default): info@212istanbul.com"
-                    },
-                    "default_value": "",
+                    "choices": [],
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "placeholder": "",
@@ -285,7 +283,7 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": "",
+                    "search_placeholder": "Not Found",
                     "parent_repeater": "field_673e873ce1eac",
                     "pll_default_value": ""
                 },
@@ -311,10 +309,8 @@
                         "class": "acf-contact-phone",
                         "id": ""
                     },
-                    "choices": {
-                        "444 4 212": "212 Outlet(default): 444 4 212"
-                    },
-                    "default_value": "",
+                    "choices": [],
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "placeholder": "",
@@ -325,7 +321,7 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": "",
+                    "search_placeholder": "Not Found",
                     "parent_repeater": "field_673e873ce1eac",
                     "pll_default_value": ""
                 },
@@ -432,7 +428,7 @@
                         "dark": "dark",
                         "custom": "Custom"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -475,7 +471,7 @@
                         "sm": "sm",
                         "lg": "lg"
                     },
-                    "default_value": "",
+                    "default_value": false,
                     "return_format": "value",
                     "multiple": 0,
                     "translations": "sync",
@@ -758,7 +754,7 @@
     "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1769172210,
+    "modified": 1772218159,
     "acfe_categories": {
         "general": "General"
     }

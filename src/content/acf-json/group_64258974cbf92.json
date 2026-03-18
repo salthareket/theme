@@ -383,7 +383,8 @@
                                 "bg-warning": "bg-warning",
                                 "bg-danger": "bg-danger",
                                 "bg-light": "bg-light",
-                                "bg-dark": "bg-dark"
+                                "bg-dark": "bg-dark",
+                                "16": "##Body Classes"
                             },
                             "default_value": [],
                             "return_format": "value",
@@ -985,12 +986,7 @@
                                 "class": "",
                                 "id": ""
                             },
-                            "choices": {
-                                "": "Menü konumu seçiniz",
-                                "header-menu": "header-menu",
-                                "footer-menu": "footer-menu",
-                                "sidebar-corporate": "sidebar-corporate"
-                            },
+                            "choices": [],
                             "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
@@ -1190,7 +1186,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1767582536,
+    "modified": 1772218129,
     "acfe_categories": {
         "general": "General"
     }

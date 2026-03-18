@@ -729,7 +729,7 @@ function get_menu_locations() {
     if(!function_exists("get_field")){
         return $locations;
     }
-    $value = get_field("menu_locations", "options");//get_cached_field("menu_locations", "option");
+    $value = QueryCache::get_field("menu_locations", "options");//get_cached_field("menu_locations", "option");
     if (empty($value)) {
         return $locations;
     }
@@ -741,16 +741,16 @@ function get_menu_locations() {
     }
     return $formatted_locations;
 }
-
+/*
 function get_menu_populate(){
     $arr = [];
-    //$value = get_option("options_menu_populate");//get_cached_field("menu_populate", "option");
-    //if($value){
+    $value = QueryCache::get_field("menu_populate", "options");//get_cached_field("menu_populate", "option");
+    if($value){
         foreach($value as $item){
             $menu = $item["menu"];
             $post_type = [];
             $taxonomy = [];
-
+            
             if(!empty($item["menu_item_post_type"])){
                 $post_type["post_type"] = $item["menu_item_post_type"];
                 $post_type["posts_per_page"] = $item["all_post_type"] ? -1 : $item["post_per_page"];
@@ -783,11 +783,11 @@ function get_menu_populate(){
                 // Eğer yoksa, yeni bir array oluşturup ekleyelim.
                 $arr[$menu][] = $menu_item;
             }
-        //}
+        }
     }
     return $arr;
 }
-
+*/
 
 function wp_query_to_sql($type = "post", $query = [], $helper = []) {
     global $wpdb;

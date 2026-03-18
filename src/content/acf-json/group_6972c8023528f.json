@@ -60,9 +60,7 @@
                 "class": "acf-template-custom-modal",
                 "id": ""
             },
-            "choices": {
-                "23958": "Test Modal 001"
-            },
+            "choices": [],
             "default_value": false,
             "return_format": "value",
             "multiple": 0,
@@ -359,7 +357,7 @@
             "name": "posts",
             "aria-label": "",
             "type": "select",
-            "instructions": "'Map view' is set to 'embed' on settings page, so you can select only one post",
+            "instructions": "",
             "required": 0,
             "conditional_logic": [
                 [
@@ -380,10 +378,8 @@
                 "class": "acf-location-posts",
                 "id": ""
             },
-            "choices": {
-                "3263": "212 Outlet (contact)"
-            },
-            "default_value": "",
+            "choices": [],
+            "default_value": false,
             "return_format": "value",
             "multiple": 0,
             "translations": "sync",
@@ -434,7 +430,7 @@
                 "32x9": "32:9 Super Ultra Widescreen TV, Monitor",
                 "1200x500": "Slider Desktop"
             },
-            "default_value": "",
+            "default_value": false,
             "return_format": "value",
             "multiple": 0,
             "translations": "sync",
@@ -824,7 +820,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1769389979,
+    "modified": 1772218166,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

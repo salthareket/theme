@@ -250,6 +250,18 @@
         }
     }
 
+    &.menu-show-header.offcanvas-fullscreen-open{
+        header#header {
+            .navbar-brand {
+                .logo-svg {
+                    @if $logoAffix != null {
+                        @include svgColor($logoAffix);
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 @mixin svgColor($color: white) {

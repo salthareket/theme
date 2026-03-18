@@ -467,7 +467,7 @@ function get_posts_type_taxonomies(){
 function acf_general_settings_rewrite( $value, $post_id, $field, $original ) {
     $old = get_field($field["name"], "option");
     if( $value != $old) {
-        flush_rewrite_rules();
+        //flush_rewrite_rules();
     }
     return $value;
 }

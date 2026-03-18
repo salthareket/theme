@@ -1,5 +1,6 @@
 <?php
 function timber_get_menu($name) {
+
     global $wpdb;
     
     // 1. RUNTIME CACHE (RAM): Sayfa içinde mükerrer sorguyu engeller
@@ -15,7 +16,7 @@ function timber_get_menu($name) {
     }
 
     // 2. Şalter Kontrolü
-    if (\QueryCache::$cache === false || (\QueryCache::$config['menu'] ?? true) === false) {
+    if (!\QueryCache::$cache || (\QueryCache::$config['menu'] ?? true) === false) {
         return Timber::get_menu($name);
     }
 

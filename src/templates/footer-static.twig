@@ -3,7 +3,7 @@
     <div class="col-12">
         <div class="container-xl mb-5">
             <ul class="nav nav-footer nav-collapsed justify-content-center-text-center" data-sm-skip="true">
-                {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.legal).get_items, parent_link : false, max_level : 2, collapsed: true } %}
+                {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.legal).get_items, parent_link : true, max_level : 1, collapsed: true } %}
             </ul>
         </div>
     </div>
