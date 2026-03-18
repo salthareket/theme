@@ -323,7 +323,7 @@ Class Theme{
         }
     }
 
-    public static function init_theme_settings_menu() {
+    /*public static function init_theme_settings_menu() {
         // Ana menü oluştur
         add_menu_page(
             'Theme Settings',
@@ -357,7 +357,6 @@ Class Theme{
             2
         );
 
-
         add_submenu_page(
             'theme-settings', // Ana menü slug'ı
             'Video Process',
@@ -376,6 +375,59 @@ Class Theme{
                 unset($submenu['theme-settings'][0]);
             }
         }, 999); // Geç bir öncelik ile çalıştır
+    }*/
+    public static function init_theme_settings_menu() {
+        // 1. Ana menü oluştur
+        add_menu_page(
+            'Theme Settings',
+            'Theme Settings',
+            'manage_options',
+            'theme-settings',
+            '', // Burası boşsa alt menüden ilkini tıklar
+            'dashicons-admin-generic',
+            90
+        );
+
+        // 2. Theme Update
+        add_submenu_page(
+            'theme-settings',
+            'Theme Update',
+            'Theme Update',
+            'manage_options',
+            'update-theme',
+            ['Update', 'render_page'], // Callback düzeltildi
+            1
+        );
+
+        // 3. Plugin Manager
+        add_submenu_page(
+            'theme-settings',
+            'Plugin Manager',
+            'Plugin Manager',
+            'manage_options',
+            'plugin-manager',
+            ["PluginManager", 'render_option_page'], // Callback düzeltildi
+            2
+        );
+
+        // 4. Video Process
+        add_submenu_page(
+            'theme-settings',
+            'Video Process',
+            'Video Process',
+            'manage_options',
+            'video-process',
+            ['Update', 'render_video_process_page'], // Callback düzeltildi
+            3
+        );
+
+        // Gereksiz alt menüyü kaldırma aksiyonu (Zaten içindesin, tekrar action eklemene gerek yok ama kalsın dersen önceliği doğru ayarla)
+        add_action('admin_menu', function () {
+            global $submenu;
+            if (isset($submenu['theme-settings'])) {
+                unset($submenu['theme-settings'][0]);
+            }
+        }, 999);
     }
     public function menu_actions(){
         register_nav_menus(get_menu_locations());

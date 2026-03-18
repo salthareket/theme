@@ -34,9 +34,32 @@
 
   
 if(is_admin()){
-    function add_contact_sub_menu(){
+    /*function add_contact_sub_menu(){
         add_submenu_page( 'anasayfa', 'İletişim Bilgileri', 'İletişim Bilgileri', 'edit_theme_options', 'edit.php?post_type=contact', 'options-contact', 10 );
         add_submenu_page( 'anasayfa', 'İletişim Kategorileri', 'İletişim Kategorileri', 'edit_theme_options', 'edit-tags.php?taxonomy=contact-type&post_type=contact', 'options-contact', 11 );     
+    }*/
+    function add_contact_sub_menu(){
+        // İletişim Bilgileri - edit.php linki
+        add_submenu_page( 
+            'anasayfa', 
+            'İletişim Bilgileri', 
+            'İletişim Bilgileri', 
+            'edit_theme_options', 
+            'edit.php?post_type=contact', 
+            '', // 6. Parametre: Callback boş olmalı çünkü linke gidiyoruz
+            10  // 7. Parametre: Position
+        );
+
+        // İletişim Kategorileri - taxonomy linki
+        add_submenu_page( 
+            'anasayfa', 
+            'İletişim Kategorileri', 
+            'İletişim Kategorileri', 
+            'edit_theme_options', 
+            'edit-tags.php?taxonomy=contact-type&post_type=contact', 
+            '', // 6. Parametre: Callback boş
+            11  // 7. Parametre: Position
+        );      
     }
     add_action('admin_menu', 'add_contact_sub_menu');
 }
@@ -162,7 +185,7 @@ if (is_admin()) {
         }
     });
 
-    add_action('admin_menu', function() {
+    /*add_action('admin_menu', function() {
 
         remove_menu_page('edit.php?post_type=template');
         remove_meta_box('template-typesdiv', 'template', 'side');
@@ -205,6 +228,50 @@ if (is_admin()) {
                 ucfirst($term_obj->name),
                 'edit_posts',
                 'edit.php?post_type=template&template-types=' . $term_obj->slug
+            );
+        }
+    });*/
+    add_action('admin_menu', function() {
+
+        remove_menu_page('edit.php?post_type=template');
+        remove_meta_box('template-typesdiv', 'template', 'side');
+
+        $parent_slug = 'edit.php?post_type=template&template-types=custom';
+
+        // Ana Menü
+        add_menu_page(
+            'Templates', 
+            'Templates', 
+            'edit_posts', 
+            $parent_slug, 
+            '', // Callback boş
+            'dashicons-layout', 
+            25
+        );
+
+        $terms = get_terms(array(
+            'taxonomy'   => 'template-types',
+            'hide_empty' => false,
+        ));
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return;
+        }
+
+        foreach ($terms as $term) {
+            $term_obj = (object) $term;
+
+            if ($term_obj->slug === 'custom') continue;
+
+            // Alt Menü - DÜZELTİLDİ
+            add_submenu_page(
+                $parent_slug,                                            // 1. Parent Slug
+                $term_obj->name . ' Templates',                          // 2. Page Title
+                ucfirst($term_obj->name),                                // 3. Menu Title
+                'edit_posts',                                            // 4. Capability
+                'edit.php?post_type=template&template-types=' . $term_obj->slug, // 5. Menu Slug (Link)
+                '',                                                       // 6. Callback (BOŞ BIRAKILMALI!)
+                1
             );
         }
     });
