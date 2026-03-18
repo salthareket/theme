@@ -229,7 +229,7 @@ function _get_all_image_sizes() {
 	}
     return $svg;
 }*/
-function inline_svg__($url = "", $class = "", $width = "auto", $height="auto"){
+function inline_svg_v1($url = "", $class = "", $width = "auto", $height="auto"){
     $svg = "";
     if(!empty($url)){
         $svg = file_get_contents1($url);
@@ -289,7 +289,7 @@ function inline_svg__($url = "", $class = "", $width = "auto", $height="auto"){
     }
     return $svg;
 }
-function inline_svg($url="", $args = []){
+function inline_svg_v2($url="", $args = []){
     $svg = "";
     if(!empty($url)){
         $svg = file_get_contents1($url);
@@ -346,7 +346,91 @@ function inline_svg($url="", $args = []){
     }
     return $svg;
 }
+function inline_svg($url = "", $args = []){
+    $svg = "";
+    if(!empty($url)){
+        $path = $url;
+        
+        // Eğer tam bir URL değilse (yerel yol ise)
+        if (stripos($url, 'http') === false) {
+            // 1. URL'yi temizle (Baştaki ve sondaki slashları at)
+            $clean_url = ltrim($url, '/');
+            
+            // 2. Senin fonksiyondan subfolder'ı al
+            $subdir = function_exists('getSiteSubfolder') ? ltrim(getSiteSubfolder(), '/') : '';
+            
+            // 3. Eğer URL subfolder ile başlıyorsa, o kısmı buda
+            if (!empty($subdir) && stripos($clean_url, $subdir) === 0) {
+                $clean_url = ltrim(substr($clean_url, strlen($subdir)), '/');
+            }
+            
+            // 4. WordPress ana diziniyle temizlenmiş yolu birleştir
+            $path = ABSPATH . $clean_url;
+        }
 
+        // Dosya kontrolü ve okuma
+        if (file_exists($path) && is_file($path)) {
+            $svg = file_get_contents($path);
+        } else {
+            // Fallback: Dosya fiziksel olarak yoksa URL olarak uzaktan dene
+            $svg = @file_get_contents($url);
+        }
+
+        if(empty($svg)) return "";
+
+        // Gereksiz temizlikler
+        $svg = remove_html_comments($svg);
+        $svg = remove_xml_declaration($svg);
+
+        // ID çakışmalarını önlemek için benzersiz suffix
+        $suffix = '_' . uniqid();
+
+        // id'leri değiştir
+        $svg = preg_replace_callback('/id="([^"]+)"/', function($m) use ($suffix){
+            return 'id="'.$m[1].$suffix.'"';
+        }, $svg);
+
+        // url(#xxx) referanslarını değiştir
+        $svg = preg_replace_callback('/url\(#([^)]+)\)/', function($m) use ($suffix){
+            return 'url(#'.$m[1].$suffix.')';
+        }, $svg);
+
+        // xlink:href="#xxx" referanslarını değiştir
+        $svg = preg_replace_callback('/xlink:href="#([^"]+)"/', function($m) use ($suffix){
+            return 'xlink:href="#'.$m[1].$suffix.'"';
+        }, $svg);
+
+        // Class ekle
+        if(isset($args["class"])){
+            $svg = str_replace("<svg ", "<svg class='".$args["class"]."' ", $svg);
+        }
+
+        // Width / Height yönetimi
+        $extra_attrs = "";
+        if(isset($args["width"]) && $args["width"] !== "auto" && intval($args["width"]) > 0){
+            $extra_attrs .= ' width="'.$args["width"].'"';
+        }
+        if(isset($args["height"]) && $args["height"] !== "auto" && intval($args["height"]) > 0){
+            $extra_attrs .= ' height="'.$args["height"].'"';
+        }
+
+        if(!empty($extra_attrs)){
+            // Mevcutları silip yenilerini ekle
+            $svg = preg_replace('/\s(width|height)="[^"]*"/i', '', $svg);
+            $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$extra_attrs.'>', $svg, 1);
+        }
+
+        // ViewBox yoksa ekle (Responsive olması için şart)
+        if(stripos($svg, "viewBox") === false){
+            if(preg_match('/<svg[^>]*\bwidth=["\']?(\d+)[^"\']*["\']?/i', $svg, $wMatch) &&
+               preg_match('/<svg[^>]*\bheight=["\']?(\d+)[^"\']*["\']?/i', $svg, $hMatch)){
+                $vb = ' viewBox="0 0 '.$wMatch[1].' '.$hMatch[1].'"';
+                $svg = preg_replace('/<svg\b(.*?)>/i', '<svg$1'.$vb.'>', $svg, 1);
+            }
+        }
+    }
+    return $svg;
+}
 
 function get_orientation($w=0, $h=0){
 	if ( $w == $h ) {

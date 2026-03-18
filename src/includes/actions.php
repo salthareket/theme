@@ -254,6 +254,8 @@ function header_footer_options($save = false) {
         return json_decode($content, true);
     }
 
+
+
     // 2. ADIM: JSON yoksa veya $save=true ise DB'den verileri topla
     // get_option zaten arka planda ACF Bulk Option sistemini kullanır.
     
@@ -326,9 +328,9 @@ function header_footer_options($save = false) {
         "fixed"                      => $header_fixed,
         "header_hide_on_scroll_down" => $header_hide_on_scroll_down,
         "container"                  => $header_container,
-        "start"                      => $header_data["start"],
-        "center"                     => $header_data["center"],
-        "end"                        => $header_data["end"]
+        "start"                      => array_urls_to_relative($header_data["start"]),
+        "center"                     => array_urls_to_relative($header_data["center"]),
+        "end"                        => array_urls_to_relative($header_data["end"])
     ];
     $header_options["has_dropdown"] = header_has_dropdown(["header" => $header_options]);
     $header_options["has_navigation"] = header_has_navigation(["header" => $header_options]);
@@ -347,7 +349,7 @@ function header_footer_options($save = false) {
     $footer_options = [
         "container" => block_container(QueryCache::get_field("footer_container", "options")),//block_container(get_option("footer_container")),
         "text"      => QueryCache::get_field("footer_text", "options"),//get_option("options_footer_text"),
-        "logo"      => QueryCache::get_field("logo_footer", "options"),
+        "logo"      => to_relative_url(QueryCache::get_field("logo_footer", "options")),
         "menu"      => $footer_menu_processed,
         "template"  => QueryCache::get_field("footer_template", "options")//get_option("options_footer_template")
     ];

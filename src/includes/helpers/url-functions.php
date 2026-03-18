@@ -512,7 +512,7 @@ function abs2rel(string $base, string $path) {
     return ".".DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $d);
 }
 
-function to_relative_url($input) {
+/*function to_relative_url($input) {
     if (strpos($input, 'http') === 0) {
         $url = getSiteSubfolder() . str_replace(home_url(), '', $input);
         return str_replace("//", "/", $url);
@@ -521,6 +521,69 @@ function to_relative_url($input) {
         return str_replace("//", "/", $url);
     }
     return $input;
+}*/
+function to_relative_url($input) {
+    if (empty($input)) return $input;
+
+    // 1. home_url() zaten alt klasörü içerir (Örn: http://localhost/grand-galata-hotel)
+    // Bunu input içinden komple silelim.
+    $site_url = rtrim(home_url(), '/');
+    
+    // 2. Senin getSiteSubfolder() fonksiyonundan gelen klasör adını alalım
+    // (Örn: /grand-galata-hotel)
+    $subfolder = function_exists('getSiteSubfolder') ? '/' . trim(getSiteSubfolder(), '/') : '';
+
+    if (stripos($input, 'http') === 0) {
+        // Domain ve subfolder kısmını sil (Sadece /wp-content/... kalır)
+        $path_only = str_ireplace($site_url, '', $input);
+        
+        // Şimdi başına subfolder'ı tekrar ekle
+        $url = $subfolder . '/' . ltrim($path_only, '/');
+    } 
+    elseif (stripos($input, ABSPATH) === 0) {
+        // Eğer fiziksel yolsa (C:\... veya /var/www/...)
+        $relative_to_abspath = str_replace(ABSPATH, '', $input);
+        $url = $subfolder . '/' . ltrim(str_replace('\\', '/', $relative_to_abspath), '/');
+    } 
+    else {
+        // Zaten relative bir yolsa başına subfolder ekle (eğer yoksa)
+        if (!empty($subfolder) && stripos($input, $subfolder) !== 0) {
+            $url = $subfolder . '/' . ltrim($input, '/');
+        } else {
+            $url = '/' . ltrim($input, '/');
+        }
+    }
+
+    // Çift slashları (//) tek slash'a indirge
+    return str_replace("//", "/", $url);
+}
+/**
+ * Çok katmanlı array içindeki tüm URL'leri bulur ve relative hale getirir.
+ */
+function array_urls_to_relative($input) {
+    // Eğer gelen veri array değilse (direkt string ise) direkt temizle dön
+    if (!is_array($input)) {
+        if (is_string($input) && stripos($input, 'http') === 0) {
+            return to_relative_url($input);
+        }
+        return $input;
+    }
+
+    $clean_array = [];
+    foreach ($input as $key => $value) {
+        if (is_array($value)) {
+            // Derine inmeye devam et (Multi-level recursion)
+            $clean_array[$key] = array_urls_to_relative($value);
+        } else if (is_string($value) && stripos($value, 'http') === 0) {
+            // URL bulduk, patlat fonksiyonu
+            $clean_array[$key] = to_relative_url($value);
+        } else {
+            // Diğer veri tiplerini (int, bool vs.) olduğu gibi koru
+            $clean_array[$key] = $value;
+        }
+    }
+
+    return $clean_array;
 }
 
 
