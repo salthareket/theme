@@ -45,7 +45,10 @@ class Update {
         ["id" => "install_local_plugins", "name" => "Updating local plugins"],
         ["id" => "copy_fields", "name" => "Copying ACF Fields"],
         ["id" => "register_fields", "name" => "Registering ACF Fields"],
-        ["id" => "update_fields", "name" => "Updating ACF Fields"]
+        ["id" => "update_fields", "name" => "Updating ACF Fields"],
+        ["id" => "npm_install", "name" => "npm packages installing"],
+        ["id" => "compile_methods", "name" => "Compile Frontend & Admin Methods"],
+        ["id" => "compile_js_css", "name" => "Compile JS/CSS"],
     ];
 
     // Admin notifi ekler
