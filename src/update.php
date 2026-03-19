@@ -1809,9 +1809,9 @@ class Update {
         }
 
         //error_log(SH_PATH . "content/package.json -> ".$workingDir .'package.json');
-        if (!file_exists($workingDir .'package.json')) {
+        //if (!file_exists($workingDir .'package.json')) {
             self::fileCopy(SH_PATH . "content/package.json", $workingDir .'package.json');
-        }
+        //}
         
         if(!isLocalhost()){
            return true;
