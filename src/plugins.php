@@ -38,10 +38,6 @@ $required_plugins = array(
         "name" => 'acf-openstreetmap-field/index.php',
     ),
     array(
-        "type" => ["main"],
-        "name" => "clear-cache-for-timber/clear-cache-for-timber.php"
-    ),
-    array(
         "type" => ["main", "ai"],
         "name" => "website-llms-txt/website-llms-txt.php"
     ),
@@ -154,12 +150,6 @@ $required_plugins_local[] = array(
     "file" => 'wp-rocket'
 );
 $required_plugins_local[] = array(
-    "type" => ["main"],
-    "v" => "1.2",
-    "name" => "ajaxflow/ajaxflow.php",
-    "file" => 'ajaxflow'
-);
-$required_plugins_local[] = array(
     "type" => ["multilanguage"],
     "v" => "3.7.6",
     "name" => "polylang-pro/polylang.php",
@@ -234,7 +224,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.0",
+    "v" => "1.3.30",
     "name" => "salt-table-for-acf/salt-table-for-acf.php",
     "file" => "salt-table-for-acf"
 );
