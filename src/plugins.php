@@ -111,37 +111,12 @@ if(ENABLE_MEMBERSHIP){
 }
 Data::set("plugins", $required_plugins);
 
-
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
     "v" => "6.7.1",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
-);
-$required_plugins_local[] = array(
-    "type" => ["main"],
-    "v" => "1.1",
-    "name" => "acf-bs-breakpoints/index.php",
-    "file" => "acf-bs-breakpoints"
-);
-$required_plugins_local[] = array(
-    "type" => ["main"],
-    "v" => "1.1",
-    "name" => "acf-query-field/acf-query-field.php",
-    "file" => "acf-query-field"
-);
-$required_plugins_local[] = array(
-    "type" => ["main"],
-    "v" => "1.0",
-    "name" => "acf-unit-field/index.php",
-    "file" => "acf-unit-field"
-);
-$required_plugins_local[] = array(
-    "type" => ["main"],
-    "v" => "1.0",
-    "name" => "tinymce-shortcut-plugin/index.php",
-    "file" => "tinymce-shortcut-plugin"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
@@ -216,6 +191,31 @@ $required_plugins_local[] = array(
     "name" => "yith-woocommerce-ajax-product-filter-premium/init.php",
     "file" => "yith-woocommerce-ajax-product-filter-premium"
 );
+
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "1.1",
+    "name" => "acf-bs-breakpoints/index.php",
+    "file" => "acf-bs-breakpoints"
+);
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "1.1",
+    "name" => "acf-query-field/acf-query-field.php",
+    "file" => "acf-query-field"
+);
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "1.0",
+    "name" => "acf-unit-field/index.php",
+    "file" => "acf-unit-field"
+);
+$required_plugins_local[] = array(
+    "type" => ["main"],
+    "v" => "1.0",
+    "name" => "tinymce-shortcut-plugin/index.php",
+    "file" => "tinymce-shortcut-plugin"
+);
 $required_plugins_local[] = array(
     "type" => ["main"],
     "v" => "1.0.0",
@@ -227,5 +227,11 @@ $required_plugins_local[] = array(
     "v" => "1.3.30",
     "name" => "salt-table-for-acf/salt-table-for-acf.php",
     "file" => "salt-table-for-acf"
+);
+$required_plugins_local[] = array(
+    "type" => ["multilanguage", "ai"],
+    "v" => "1.0.4",
+    "name" => "salt-ai-translator/salt-ai-translator.php",
+    "file" => "salt-ai-translator"
 );
 Data::set("plugins_local", $required_plugins_local);
