@@ -81,6 +81,11 @@ class Update {
             }
         });
 
+        add_action('wp_login', function($user_login, $user) {
+            // Admin login olduğunda "bir sonraki get_latest_version çağrısında cache'i sil" diyoruz
+            set_transient('force_refresh_github_cache_' . $user->ID, true, 300); // 5 dakikalık geçerlilik yeter
+        }, 10, 2);
+
         self::check_installation();
     }
 
@@ -246,29 +251,40 @@ class Update {
         //error_log('GitHub API response: ' . $body);
         return 'Unknown';
     }*/
-    private static function get_latest_version($package_name = "") {
-        // Cache anahtarını belirleyelim (her paket için ayrı cache)
+    private static function get_latest_version($package_name = "", $cached = true) {
+        // 1. Cache anahtarını belirle (her paket için ayrı cache)
         $cache_key = 'salthareket_version_' . md5($package_name ?: self::$github_repo);
-        
-        // 1. Cache'de var mı diye bak?
-        $cached_version = get_transient($cache_key);
-        if ($cached_version !== false) {
-            return $cached_version; // Varsa direkt dön, GitHub'ı rahat bırak.
+
+        // 2. Admin login olduğunda konulan "temizlik" bayrağı var mı kontrol et?
+        // User ID'ye göre kontrol ediyoruz ki sadece login olan admin için taze veri gelsin
+        $force_refresh_key = 'force_refresh_github_cache_' . get_current_user_id();
+        if (get_transient($force_refresh_key)) {
+            delete_transient($cache_key);
+            delete_transient($force_refresh_key); // Bayrağı kaldır ki bir sonraki sayfa cache'ten gelsin
         }
 
-        // 2. Cache'de yoksa GitHub'a git
-        if(empty($package_name)){
+        if ($cached) {
+            // Cache'de var mı diye bak?
+            $cached_version = get_transient($cache_key);
+            if ($cached_version !== false) {
+                return $cached_version; 
+            }            
+        }
+
+        // 3. Cache yoksa veya silindiyse GitHub'a git
+        if (empty($package_name)) {
             $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
         } else {
-            $url = $this->get_package_github_url($package_name).'releases/latest';
+            // HATA DÜZELTİLDİ: Statik fonksiyonda $this kullanılmaz, self:: kullanıldı
+            $url = self::get_package_github_url($package_name) . 'releases/latest';
         }
 
         $response = wp_remote_get($url, [
-            'timeout' => 5, // API yavaşsa admini 10 saniye bekletme
+            'timeout' => 10,
             'headers' => [
                 'Accept' => 'application/vnd.github.v3+json',
                 'User-Agent' => 'WordPress/' . get_bloginfo('version'),
-                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN
+                'Authorization' => 'Bearer ' . (defined('SALTHAREKET_TOKEN') ? SALTHAREKET_TOKEN : '')
             ]
         ]);
 
@@ -288,7 +304,7 @@ class Update {
             $latest_version = $data['tag_name'];
         }
 
-        // 3. Sonucu 12 saatliğine cache'e at
+        // 4. Sonucu 12 saatliğine cache'e at
         set_transient($cache_key, $latest_version, 12 * HOUR_IN_SECONDS);
 
         return $latest_version;
@@ -393,7 +409,7 @@ class Update {
     }
     public static function render_update_page() {
         $current_version = self::get_current_version();
-        $latest_version = self::get_latest_version();
+        $latest_version = self::get_latest_version("", false);
         $required_packages = self::get_required_packages();
         
         $init_class = "";
