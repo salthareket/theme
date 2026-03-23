@@ -1171,20 +1171,138 @@ function acf_map_lat_lng( $value, $post_id, $field ) {
     }
     return $value;
 }
-function acf_get_coordinates_from_embed_url($url){
-    $coordinates = array();
-    // Koordinatları çıkarmak için regex deseni
-    $pattern = '/!3d([0-9.]+)!2d([0-9.]+)/';
+/**
+ * Google Maps URL / Embed URL / iframe'den koordinat çıkarır.
+ * Desteklenen tüm formatlar:
+ *  1. Embed pb=  → !2d(lng)!3d(lat)       maps/embed?pb=...
+ *  2. Embed pb=  → !1d(lat)!2d(lng)        Street View embed
+ *  3. @lat,lng   → /maps/place/...@lat,lng  Standart maps linki
+ *  4. ?q=lat,lng → /maps/search/?q=...
+ *  5. ?ll=lat,lng
+ *  6. ?center=lat,lng
+ *  7. ?sll=lat,lng
+ *  8. /maps/@lat,lng
+ *  9. /maps?q=lat,lng
+ * 10. cbll=lat,lng  (Street View)
+ * 11. iframe src içinden otomatik çıkarım
+ */
+function acf_get_coordinates_from_embed_url( $input ) {
 
-    // Embed kodundan enlem ve boylam koordinatlarını çıkarın
-    preg_match($pattern, $url, $matches);
+    if ( empty( $input ) ) {
+        return false;
+    }
 
-    if (count($matches) >= 3) {
-        $coordinates["lat"] = $matches[1];
-        $coordinates["lng"] = $matches[2];
-        return $coordinates;
-    } 
-    return false;
+    // iframe içinden src'yi çıkar
+    if ( stripos( $input, '<iframe' ) !== false ) {
+        if ( preg_match( '/src=["\']([^"\']+)["\']/', $input, $m ) ) {
+            $input = html_entity_decode( $m[1] );
+        }
+    }
+
+    // URL decode et (bazı embed URL'leri %21 gibi encode gelir)
+    $url = urldecode( $input );
+
+    $lat = null;
+    $lng = null;
+
+    // ----------------------------------------------------------------
+    // FORMAT 1: Google Embed pb parametresi  →  !2d(LNG)!3d(LAT)
+    // Örnek: maps/embed?pb=...!2d28.9718248!3d41.0257297...
+    // ----------------------------------------------------------------
+    if ( preg_match( '/!2d(-?[0-9]{1,3}\.[0-9]+)[^!]*!3d(-?[0-9]{1,2}\.[0-9]+)/', $url, $m ) ) {
+        $lng = (float) $m[1];
+        $lat = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 2: Bazen !3d önce gelir (eski embed formatı)  →  !3d(LAT)!...!2d(LNG)
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/!3d(-?[0-9]{1,2}\.[0-9]+)[^!]*!2d(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 3: Street View embed  →  !1d(LAT)!2d(LNG)
+    // Örnek: ?pb=!4v...!1s...!1d35.676!2d139.746!3f...
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/!1d(-?[0-9]{1,2}\.[0-9]+)!2d(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 4: Standart maps URL  →  @lat,lng,zoom
+    // Örnek: /maps/place/Galata/@41.025,28.971,17z
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/@(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 5: ?q=lat,lng  veya  &q=lat,lng
+    // Örnek: /maps/search/?q=41.025,28.971
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/[?&]q=(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 6: ?ll=lat,lng
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/[?&]ll=(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 7: ?sll=lat,lng  (eski Google Maps Street View)
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/[?&]sll=(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 8: ?center=lat,lng  (Maps Embed API)
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/[?&]center=(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 9: cbll=lat,lng  (Street View panorama URL)
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/[?&]cbll=(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // ----------------------------------------------------------------
+    // FORMAT 10: /maps/lat,lng  (kısa path formatı)
+    // ----------------------------------------------------------------
+    elseif ( preg_match( '/maps\/(-?[0-9]{1,2}\.[0-9]+),(-?[0-9]{1,3}\.[0-9]+)/', $url, $m ) ) {
+        $lat = (float) $m[1];
+        $lng = (float) $m[2];
+    }
+
+    // Koordinat bulunamadı
+    if ( $lat === null || $lng === null ) {
+        return false;
+    }
+
+    // Geçerlilik kontrolü (-90/90 lat, -180/180 lng)
+    if ( $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180 ) {
+        return false;
+    }
+
+    return [
+        'lat' => $lat,
+        'lng' => $lng,
+    ];
 }
 
 
@@ -1472,6 +1590,7 @@ function sync_contact_map_coordinates($post_id) {
     // 2. Senaryo: LEAFLET
     if ($map_service === 'leaflet') {
         $leaflet_data = get_field('contact_map_leaflet', $post_id); // Bu field genelde array döner
+        error_log(print_r($leaflet_data, true));
         if (!empty($leaflet_data)) {
             $final_lat = $leaflet_data['lat'] ?? '';
             $final_lng = $leaflet_data['lng'] ?? '';
@@ -1490,17 +1609,15 @@ function sync_contact_map_coordinates($post_id) {
         } 
         // Google Embed (URL'den ayıklama)
         elseif ($map_view === 'embed') {
-            $map_url = get_field('map_url', $post_id); // Prepare filter'dan geçmiş temiz URL
+            $map_url = get_field('contact_map_url', $post_id); // Prepare filter'dan geçmiş temiz URL
             if (!empty($map_url)) {
-                // URL içinden !3d ve !2d'yi söküyoruz
-                preg_match('/!3d([-0-9.]+)/', $map_url, $lat_match);
-                preg_match('/!2d([-0-9.]+)/', $map_url, $lng_match);
-                
-                $final_lat = $lat_match[1] ?? '';
-                $final_lng = $lng_match[1] ?? '';
+                $coordinates = acf_get_coordinates_from_embed_url($map_url);
+                $final_lat = $coordinates["lat"] ?? "";//$lat_match[1] ?? '';
+                $final_lng = $coordinates["lng"] ?? "";//$lng_match[1] ?? '';
             }
         }
     }
+    
 
     // 4. Kayıt veya Temizlik
     // Değerler varsa kaydet, yoksa (veya alanlar boşaltıldıysa) hidden field'ları da sil

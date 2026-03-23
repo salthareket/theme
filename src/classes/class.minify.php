@@ -179,17 +179,21 @@ class SaltMinifier{
     }
 
     public function js(){
-        if ($this->rules["js"]["jquery"]){
+        if ($this->rules["js"]["jquery"] && $this->is_development){
             $this->minify_js($this->rules["js"]["jquery"], $this->output["jquery.min.js"]);
         }
         if ($this->rules["js"]["header"]){
             $this->minify_js($this->rules["js"]["header"], $this->output["header.min.js"]);
         }
-        $this->locale_js();
+        if ($this->is_development){
+            $this->locale_js();
+        }
         $this->functions_js();
         $this->pre_js();
         $this->main_js();
-        $this->plugins();
+        if ($this->is_development){
+            $this->plugins();
+        }
         $this->mergeJs([
                 $this->output["functions.min.js"],
                 $this->output["pre.min.js"],
@@ -205,6 +209,7 @@ class SaltMinifier{
         );
         return $this->plugin_settings();
     }
+    
     public function locale_js(){
         if ($this->rules["js"]["locale"]){
             if ($this->rules["config"]["languages"]){
