@@ -453,13 +453,17 @@ class Update {
             echo '<hr class="my-5" />';
 
             echo '<h2>Remove Package</h2>';
-            echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="remove"></div>';
-            echo '<select id="remove-package-name" name="remove-package-name" style="width: 300px; margin-right: 10px;">';
-            foreach ($required_packages as $package) {
-                echo '<option value="' . esc_attr($package) . '">' . esc_html($package) . '</option>';
+            if($required_packages){
+                echo '<div class="alert alert-dismissible rounded-3 w-25 fade d-none" data-action="remove"></div>';
+                echo '<select id="remove-package-name" name="remove-package-name" style="width: 300px; margin-right: 10px;">';
+                foreach ($required_packages as $package) {
+                    echo '<option value="' . esc_attr($package) . '">' . esc_html($package) . '</option>';
+                }
+                echo '</select>';
+                echo '<button id="remove-package-button" class="button button-secondary">Remove Package</button>';
+            }else{
+                echo '<div class="alert alert-info rounded-3 w-25" data-action="remove">No removable packages found.</div>';
             }
-            echo '</select>';
-            echo '<button id="remove-package-button" class="button button-secondary">Remove Package</button>';
 
         echo '</div>';
     }
