@@ -320,7 +320,14 @@ class Update {
         if (json_last_error() !== JSON_ERROR_NONE) {
             return [];
         }
-        $required_packages = array_keys($json_data['require'] ?? []);
+
+        $protected = ['composer/composer', 'salthareket/theme'];
+
+        $required_packages = array_values(array_filter(
+            array_keys($json_data['require'] ?? []),
+            fn($package) => !in_array($package, $protected, true)
+        ));
+
         return $required_packages;
     }
     private static function get_installed_packages() {
