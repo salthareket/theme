@@ -395,9 +395,12 @@ if (SH_THEME_EXISTS && $is_admin) {
     if (!function_exists("acf_general_settings_rewrite")) {
         include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
     }
-    add_action('admin_init', function() {
-        new AdminThumbnailColumns();
-    });
+    if(!ENABLE_ECOMMERCE){
+        add_action('admin_init', function() {
+            new AdminThumbnailColumns();
+        });        
+    }
+
 }
 
 include_once SH_INCLUDES_PATH . "shortcodes.php";
