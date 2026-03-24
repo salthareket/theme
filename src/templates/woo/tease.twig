@@ -1,4 +1,3 @@
-{{ function('timber_set_product', post) }}
 {% set will_release = url_query_vars.action == "siradakiler" or date(post.meta("book_release_date")) > date('now') %}
 
 {% set paint_index_max = 5 %}

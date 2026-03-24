@@ -39,13 +39,13 @@
 {% endif %}
 
 {% block sidebar_toggler %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and (page_settings.offcanvas.layout == "default" or page_settings.offcanvas.layout == "") %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
 
 {% block sidebar %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and (page_settings.offcanvas.layout == "default" or page_settings.offcanvas.layout == "") %}
         {{ block("sidebar", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}

@@ -15,18 +15,12 @@
  * @version 9.4.0
  */
 
-defined( 'ABSPATH' ) || exit;
+defined('ABSPATH') || exit;
 
 global $product, $wp_query, $woocommerce_loop;
 
-// Check if the product is a valid WooCommerce product and ensure its visibility before proceeding.
-if ( ! is_a( $product, WC_Product::class ) || ! $product->is_visible() ) {
-	return;
-}
-
-if ( empty( $product ) || ! $product->is_visible() ) {
-	echo "hatalı urun";
-	return;
+if (!is_a($product, WC_Product::class) || !$product->is_visible()) {
+    return;
 }
 
 if (empty($woocommerce_loop['loop'])) {
@@ -34,55 +28,50 @@ if (empty($woocommerce_loop['loop'])) {
 }
 $woocommerce_loop['loop']++;
 
+// Sayfa numarasını belirle
+$page_no = 1;
+if (isset($GLOBALS["pagination_page"]) && !empty($GLOBALS["pagination_page"])) {
+    $page_no = $GLOBALS["pagination_page"];
+} elseif ($wp_query->max_num_pages > 1) {
+    $page_no = max(1, get_query_var('paged'));
+}
 
+// Querystring session'dan
+$querystring = "";
+if (isset($_SESSION['query_pagination_vars'][$product->post_type]["querystring"])) {
+    $querystring = $_SESSION['query_pagination_vars'][$product->post_type]["querystring"];
+}
 
-$page = "";
-$page_no = "";
-if(isset($GLOBALS["pagination_page"]) && !empty($GLOBALS["pagination_page"])){
-	$page = "data-page='".$GLOBALS["pagination_page"]."'";
-	$page_no = $GLOBALS["pagination_page"];
-}else{
-	if ($wp_query->max_num_pages > 1) {
-    	$page = max(1, get_query_var('paged'));
-    	$page_no = $page;
-    	$page = "data-page='".$page."'";
-	}
+$product_id = $product->get_id();
+
+// Variable product: URL'deki filter_ parametrelerine göre doğru variation'ı bul
+if ($product->get_type() === 'variable') {
+    $filter_attributes = [];
+
+    foreach ($_GET as $key => $value) {
+        if (strpos($key, 'filter_') === 0) {
+            // filter_color → attribute_pa_color formatına çevir
+            $attribute_name = 'attribute_pa_' . substr($key, 7);
+            $filter_attributes[$attribute_name] = sanitize_text_field($value);
+        }
+    }
+
+    if (!empty($filter_attributes)) {
+        $variation_id = $product->get_matching_variation($filter_attributes);
+        if ($variation_id) {
+            $product_id = $variation_id;
+        }
+    }
 }
 ?>
-<div class="col content=product.php" <?php echo $page;?>>
-	<?php
-	$product_id = $product->get_id();
-	/*$has_attribute = false;
-	$attributes = woo_get_all_product_attributes();
-	foreach ($attributes as $attribute) {
-		if(isset($_GET["filter_".$attribute])){
-	   	    if($product->get_type() == "variable"){
-	   	  	    $product_id = get_variation_id_by_attribute($product_id , $attribute, $_GET["filter_".$attribute]);
-	   	  	    if($product_id ){
-	   	  	 	   //$post = get_post($post_id);
-	   	  	 	   //$product = wc_get_product($product_id );
-	   	  	    }
-	   	  	}
-	    }
-	}
-	if(!$has_attribute){
-		//$product = wc_get_product( $product->get_id() );
-		//$post = Timber::get_post($post->ID);
-	}*/
-	   
-	$context = Timber::context();
-    $context["post"] = Timber::get_post($product_id);
-	$context["product"] = $product;
-	$context["page"] = $page_no;
-	$context["index"] = $woocommerce_loop['loop'];
-	$querystring = "";
-	if(!isset($_SESSION['query_pagination_vars'])){
-		$_SESSION['query_pagination_vars'] = array();
-	}else{
-		if(isset($_SESSION['query_pagination_vars'][$product->post_type]["querystring"]))
-		  $querystring = $_SESSION['query_pagination_vars'][$product->post_type]["querystring"];
-	}
-	$context["querystring"] = $querystring;
-	Timber::render("product/tease.twig", $context);
+<div class="col" data-page="<?php echo esc_attr($page_no); ?>">
+<?php
+    Timber::render("woo/tease.twig", [
+        "post"        => Timber::get_post($product_id),
+        "product"     => $product,
+        "page"        => $page_no,
+        "index"       => $woocommerce_loop['loop'],
+        "querystring" => $querystring,
+    ]);
 ?>
 </div>

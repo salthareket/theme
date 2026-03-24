@@ -202,7 +202,7 @@
                                     <div class="tease-product-serie mb-2 p-3 rounded-4">
                                         <div class="row align-items-center">
                                             <div class="col-auto" style="min-width:150px;">
-                                                {% include "woo/tease-product.twig" with { post: book, size : "xxs" } %}
+                                                {% include "woo/tease.twig" with { post: book, size : "xxs" } %}
                                             </div>
                                             <div class="col book-info p-3">
                                                 <h4 class="title mb-0"><a href="{{book.link}}" class="btn-loading-page" title="{{book.title}}">#{{ loop.index}} {{ book.title }}</a></h4>
@@ -235,7 +235,7 @@
                                         {% for book in books %}
                                             <div class="col">
                                                 {% set book = get_post(book) %}
-                                                {% include "woo/tease-product.twig" with { post: book, size : "xs" } %}
+                                                {% include "woo/tease.twig" with { post: book, size : "xs" } %}
                                             </div>
                                         {% endfor %}
                                         </div>
@@ -360,7 +360,7 @@
                                 <div class="row row-cols-xxl-6 row-cols-lg-5 row-cols-md-4 row-cols-2 g-xl-5 gy-4 justify-content-lg-start justify-content-center">
                                 {% for book in books %}
                                     <div class="col">
-                                        {% include "woo/tease-product.twig" with { post: book, size : "xs" } %}
+                                        {% include "woo/tease.twig" with { post: book, size : "xs" } %}
                                     </div>
                                 {% endfor %}
                                 </div>
@@ -396,7 +396,7 @@
 
     </div>
 
-    {% include ["woo/tease-product.twig"] with { products: related_products } %}
+    {% include ["woo/tease.twig"] with { products: related_products } %}
 
     {% do action('woocommerce_after_single_product') %}
     </div>#}

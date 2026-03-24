@@ -16,14 +16,15 @@
  * @version 4.7.0
  */
 
-if (!defined('ABSPATH')) {
-  exit;
-}
+if (!defined('ABSPATH')) { exit; }
+
+global $product_cat;
+$product_cat = $category;
 ?>
 <div class="col-product col">
 <?php
-  $context = Timber::context();
-  $context["category"] = Timber::get_term($category);
-  Timber::render("product/tease-category.twig", $context);
+    Timber::render("woo/tease-category.twig", [
+        "category" => Timber::get_term($category)
+    ]);
 ?>
 </div>

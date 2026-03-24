@@ -403,14 +403,6 @@ if (SH_THEME_EXISTS && $is_admin) {
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 include_once SH_INCLUDES_PATH . "actions.php";
 
-/*if (ENABLE_ECOMMERCE) {
-    if (ENABLE_MEMBERSHIP) {
-        include_once SH_INCLUDES_PATH . "woocommerce/redirect.php";
-        include_once SH_INCLUDES_PATH . "woocommerce/my-account.php";
-    }
-    include_once SH_INCLUDES_PATH . "woocommerce/functions.php";
-    include_once SH_INCLUDES_PATH . "woocommerce.php";
-}*/
 
 /*
 $GLOBALS["base_urls"] = array();

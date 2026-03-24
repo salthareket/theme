@@ -146,3 +146,7 @@ if(form.length){form.addClass("loading-process")}},after:function(response,vars,
 if(!form){form=objs.form}
 if(form.length){form.removeClass("loading-process")}
 response_view(response)}};
+window.ajax_hooks['custom_track_product_view'] = {init:function($vars){var query=new ajax_query();query.method="custom_track_product_view";query.vars=$vars;query.request()}};
+window.ajax_hooks['pay_now'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){response_view(response)}};
+window.ajax_hooks['salt_recently_viewed_products'] = {init:function($vars){var query=new ajax_query();query.method="salt_recently_viewed_products";query.vars=$vars;query.request()},after:function(response,vars,form,objs){$("#"+vars.id).html(response.html).removeClass("loading")
+if(response.html){init_swiper()}}};

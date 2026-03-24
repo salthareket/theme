@@ -10,9 +10,9 @@
  * happen. When this occurs the version of the template file will be bumped and
  * the readme will list any important changes.
  *
- * @see     https://docs.woocommerce.com/document/template-structure/
- * @package WooCommerce/Templates
- * @version 2.6.0
+ * @see     https://woocommerce.com/document/template-structure/
+ * @package WooCommerce\Templates
+ * @version 9.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,10 +28,10 @@ do_action( 'woocommerce_before_account_navigation' );
     </a>
 	<div class="product-filters card-collapse card-merged" id="product-filters">
 		<?php foreach ( wc_get_account_menu_items() as $endpoint => $label ) : ?>
-	    <div class="product-filter-item card">
+	    <div class="product-filter-item card <?php echo wc_get_account_menu_item_classes( $endpoint ); ?>">
             <div class="card-header show-arrow no-border">
                 <h5 class="title">
-				    <a href="<?php echo esc_url( wc_get_account_endpoint_url( $endpoint ) ); ?>"><?php echo esc_html( $label ); ?></a>
+				    <a href="<?php echo esc_url( wc_get_account_endpoint_url( $endpoint ) ); ?>" <?php echo wc_is_current_account_menu_item( $endpoint ) ? 'aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
 				</h5>
 			</div>
 		</div>

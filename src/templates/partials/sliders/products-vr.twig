@@ -30,7 +30,7 @@
 					<div class="swiper-wrapper">
                         {% for post in posts %}
 						<div class="swiper-slide">
-							 {% include 'product/tease-product.twig' with { post : post, class : class~"-item" } %}
+							 {% include 'woo/tease.twig' with { post : post, class : class~"-item" } %}
 						</div>
 						{% endfor %}
 				    </div>
