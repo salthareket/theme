@@ -1687,89 +1687,127 @@ class Update {
             )
         );
 
-        if ( ! $post_id ) {
-            return;
-        }
+        if ( ! $post_id ) return;
 
-        // Sorun: acf_import_field_group flexible content field'ının layouts'ını
-        // child post'lardan okuyor. Update sonrası child post'lar henüz yok → layouts boş.
-        // Çözüm: JSON'daki layouts verisini direkt acf_block_columns field'ının
-        // post_content'ine serialize ederek yazıyoruz — admin save'de tam olarak bu oluyor.
+        // acf_import_field_group, acf_block_columns field'ını JSON'daki boş layouts ile
+        // üzerine yazıyor. Mevcut child post'lar (layout'lar) DB'de duruyor ama
+        // field'ın post_content'indeki layouts array'i sıfırlanıyor.
+        //
+        // Çözüm: acf_block_columns field'ının post_content'ini mevcut child post'lardan
+        // yeniden oluştur — admin save'de ACF tam olarak bunu yapıyor.
 
-        $json_file = get_template_directory() . '/acf-json/' . $block_columns_key . '.json';
-        if ( ! file_exists($json_file) ) {
-            // Repo'daki JSON'u dene
-            $json_file = SH_PATH . 'content/acf-json/' . $block_columns_key . '.json';
-        }
+        // 1. acf_block_columns field post'unu bul
+        $field_post = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT ID, post_content FROM {$wpdb->posts}
+                 WHERE post_type = 'acf-field'
+                 AND post_excerpt = 'acf_block_columns'
+                 AND post_parent = %d
+                 LIMIT 1",
+                $post_id
+            ),
+            ARRAY_A
+        );
 
-        if ( ! file_exists($json_file) ) {
-            return;
-        }
+        if ( ! $field_post ) return;
 
-        $field_group_data = json_decode( file_get_contents($json_file), true );
-        if ( ! $field_group_data ) return;
+        $field_id      = (int) $field_post['ID'];
+        $post_content  = maybe_unserialize( $field_post['post_content'] );
+        if ( ! is_array($post_content) ) $post_content = [];
 
-        // JSON'daki fields içinden flexible_content field'ını bul (acf_block_columns)
-        $layouts_from_json = null;
-        foreach ( $field_group_data['fields'] ?? [] as $field ) {
-            if ( isset($field['type']) && $field['type'] === 'flexible_content'
-                && isset($field['name']) && $field['name'] === 'acf_block_columns' ) {
-                $layouts_from_json = $field['layouts'] ?? null;
-                break;
-            }
-        }
+        // 2. Bu field'ın mevcut child layout post'larını çek
+        // Her layout: post_type=acf-field, post_parent=field_id, post_excerpt=layout_name
+        $layout_posts = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT ID, post_title, post_name, post_excerpt, post_content
+                 FROM {$wpdb->posts}
+                 WHERE post_type = 'acf-field'
+                 AND post_parent = %d
+                 AND post_status = 'publish'
+                 ORDER BY menu_order ASC",
+                $field_id
+            ),
+            ARRAY_A
+        );
 
-        if ( empty($layouts_from_json) ) {
-            // JSON'da layouts boşsa UpdateFlexibleFieldLayouts ile oluştur
+        if ( empty($layout_posts) ) {
+            // Child post yok — UpdateFlexibleFieldLayouts ile oluştur
             $block = get_post($post_id);
             if ( $block && class_exists('UpdateFlexibleFieldLayouts') ) {
                 remove_action('save_post', 'acf_save_post_block_columns', 20);
-                $layouts_check    = new UpdateFlexibleFieldLayouts();
-                $blocks           = $layouts_check->get_block_fields();
+                $checker = new UpdateFlexibleFieldLayouts();
+                $blocks  = $checker->get_block_fields();
                 if ( $blocks ) {
-                    $group_field_data = $layouts_check->get_block_field_data($block);
+                    $group_field_data = $checker->get_block_field_data($block);
                     foreach ( $blocks as $item ) {
-                        $layouts = new UpdateFlexibleFieldLayouts(
+                        $layout = new UpdateFlexibleFieldLayouts(
                             $post_id, "acf_block_columns",
                             $item->post_name, $item->post_excerpt, $group_field_data
                         );
-                        $layouts->update();
+                        $layout->update();
                     }
                 }
                 add_action('save_post', 'acf_save_post_block_columns', 20);
             }
         } else {
-            // JSON'da layouts dolu — direkt acf_block_columns field'ının post_content'ine yaz
-            $field_post = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT ID, post_content FROM {$wpdb->posts}
-                     WHERE post_type = 'acf-field'
-                     AND post_excerpt = 'acf_block_columns'
-                     AND post_parent = %d
-                     LIMIT 1",
-                    $post_id
-                ),
-                ARRAY_A
-            );
+            // 3. Child post'lardan layouts array'ini yeniden oluştur
+            $layouts = [];
+            foreach ( $layout_posts as $lp ) {
+                $lp_content = maybe_unserialize( $lp['post_content'] );
+                if ( ! is_array($lp_content) ) continue;
 
-            if ( $field_post ) {
-                $post_content = maybe_unserialize( $field_post['post_content'] );
-                if ( ! is_array($post_content) ) $post_content = [];
+                // Layout key = post_name (layout_xxxxx formatında)
+                $layout_key = $lp['post_name'];
 
-                // JSON'daki layouts'ı yaz
-                $post_content['layouts'] = $layouts_from_json;
-
-                $wpdb->update(
-                    $wpdb->posts,
-                    ['post_content' => serialize($post_content)],
-                    ['ID' => (int) $field_post['ID']],
-                    ['%s'],
-                    ['%d']
+                // sub_fields: bu layout'un child'larını çek
+                $sub_field_posts = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT ID, post_title, post_name, post_excerpt, post_content
+                         FROM {$wpdb->posts}
+                         WHERE post_type = 'acf-field'
+                         AND post_parent = %d
+                         AND post_status = 'publish'
+                         ORDER BY menu_order ASC",
+                        (int) $lp['ID']
+                    ),
+                    ARRAY_A
                 );
 
-                // WP object cache'ini temizle
-                clean_post_cache( (int) $field_post['ID'] );
+                $sub_fields = [];
+                foreach ( $sub_field_posts as $sf ) {
+                    $sf_content = maybe_unserialize( $sf['post_content'] );
+                    if ( is_array($sf_content) ) {
+                        $sf_content['key']    = $sf['post_name'];
+                        $sf_content['name']   = $sf['post_excerpt'];
+                        $sf_content['parent'] = (int) $lp['ID'];
+                        $sub_fields[]         = $sf_content;
+                    }
+                }
+
+                $layouts[$layout_key] = array_merge(
+                    is_array($lp_content) ? $lp_content : [],
+                    [
+                        'key'        => $layout_key,
+                        'name'       => $lp['post_excerpt'],
+                        'label'      => $lp['post_title'],
+                        'display'    => 'block',
+                        'sub_fields' => $sub_fields,
+                        'min'        => '',
+                        'max'        => '',
+                    ]
+                );
             }
+
+            // 4. layouts'ı field post_content'ine yaz
+            $post_content['layouts'] = $layouts;
+            $wpdb->update(
+                $wpdb->posts,
+                ['post_content' => serialize($post_content)],
+                ['ID' => $field_id],
+                ['%s'],
+                ['%d']
+            );
+            clean_post_cache($field_id);
         }
 
         self::_flush_acf_cache();
