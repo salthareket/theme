@@ -1676,49 +1676,56 @@ class Update {
      * RE-DESIGN: Dinamik Flexible Content Alanlarının Güncellenmesi
      * Yeni/Güncel blokları 'block-bootstrap-columns' alanına layout olarak ekler.
      */
-    private static function update_fields() {
+    private static function update_fields(): void {
         global $wpdb;
 
-        // 1. Block Bootstrap Columns — dinamik layout güncelleme
         $block_columns_key = "group_66e309dc049c4";
-        $post_id = $wpdb->get_var(
+        $post_id = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'",
                 $block_columns_key
             )
         );
 
-        if ( $post_id && function_exists('acf_save_post_block_columns_action') ) {
-            acf_save_post_block_columns_action($post_id);
+        if ( ! $post_id ) {
+            return;
         }
 
-        // 2. Tüm field group'ları sync et — her birini wp_update_post ile kaydet.
-        //    Bu save_post hook'unu tetikler, ACF JSON sync'i tamamlanır.
-        //    Manuel admin save'e gerek kalmaz.
-        $field_groups = $wpdb->get_results(
-            "SELECT ID FROM {$wpdb->posts}
-             WHERE post_type = 'acf-field-group'
-             AND post_status = 'publish'",
-            ARRAY_A
-        );
+        $block = get_post($post_id);
+        if ( ! $block ) return;
 
-        if ( ! empty($field_groups) ) {
-            remove_action('save_post', 'acf_save_post_block_columns', 20);
+        // Admin'de save edildiğinde tam olarak şu olur:
+        // acf_save_post_block_columns_action → block-bootstrap-columns branch →
+        // tüm block'ları alır → her biri için UpdateFlexibleFieldLayouts->update()
+        //
+        // Biz bunu direkt yapıyoruz:
+        // - DOING_AJAX kontrolünü bypass ediyoruz (update task AJAX ile çalışıyor)
+        // - static $has_run bayrağını bypass ediyoruz (wrapper fonksiyonu değil, direkt logic)
+        remove_action('save_post', 'acf_save_post_block_columns', 20);
 
-            foreach ( $field_groups as $group ) {
-                wp_update_post([
-                    'ID'          => (int) $group['ID'],
-                    'post_status' => 'publish',
-                ]);
+        if ( class_exists('UpdateFlexibleFieldLayouts') ) {
+            $layouts_check    = new UpdateFlexibleFieldLayouts();
+            $blocks           = $layouts_check->get_block_fields();
+
+            if ( $blocks ) {
+                $group_field_data = $layouts_check->get_block_field_data($block);
+                foreach ( $blocks as $item ) {
+                    $layouts = new UpdateFlexibleFieldLayouts(
+                        $post_id,
+                        "acf_block_columns",
+                        $item->post_name,
+                        $item->post_excerpt,
+                        $group_field_data
+                    );
+                    $layouts->update();
+                }
             }
-
-            add_action('save_post', 'acf_save_post_block_columns', 20);
         }
 
-        // 3. Cache temizle
+        add_action('save_post', 'acf_save_post_block_columns', 20);
+
         self::_flush_acf_cache();
 
-        // 4. Tema stilleri güncelle
         if ( function_exists('get_theme_styles') ) {
             get_theme_styles([], true);
         }
