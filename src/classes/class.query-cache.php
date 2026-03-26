@@ -739,8 +739,14 @@ class QueryCache {
             self::purge_type( 'get_posts' );
         }
 
-        // Timber listelerini de temizle
-        self::purge_type( 'timber' );
+        // Timber: manifest üzerinden seçici silme, koşulsuz toptan purge yok
+        $timber_flush = [ 'post_id:' . $post_id ];
+        if ( $post_type ) $timber_flush[] = 'post_type:' . $post_type;
+        self::_flush_by_manifest( $timber_flush );
+
+        if ( $post_type && ! self::_manifest_has( 'post_type:' . $post_type ) ) {
+            self::purge_type( 'timber' );
+        }
     }
 
     /**
@@ -1039,10 +1045,13 @@ class QueryCache {
             return;
         }
 
-        // DB'de yok → tek SQL ile çek
+        // DB'de yok → tek SQL ile çek (prepare ile güvenli)
         global $wpdb;
         $rows = $wpdb->get_results(
-            "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'options\_%'",
+            $wpdb->prepare(
+                "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+                'options\_%'
+            ),
             ARRAY_A
         );
         $fresh = [];

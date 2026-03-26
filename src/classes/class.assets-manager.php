@@ -30,14 +30,12 @@ class AssetManager {
     }
 
     private function init_hooks() {
-        // Purge & Utility
         add_action('init', [$this, 'handle_manual_purge']);
 
-        // Preload & Header Styles
-        // Fontları priority 5'te kuyruğa alıyoruz
-        add_action('wp_head', [$this, 'prepare_font_queue'], 5); 
-        // Preload'ları priority 0'da basıyoruz (render_preloads içinde queue_font kontrolü var)
-        add_action('wp_head', [$this, 'render_preloads'], 0);
+        // Fontları priority 0'da kuyruğa al — render_preloads'dan önce hazır olsun
+        add_action('wp_head', [$this, 'prepare_font_queue'], 0);
+        // Preload'ları priority 1'de bas — fontlar zaten kuyruğa girdi
+        add_action('wp_head', [$this, 'render_preloads'], 1);
         
         add_action('wp_enqueue_scripts', [$this, 'load_frontend_assets'], 10);
         add_action('wp_default_scripts', [$this, 'wp_default_scripts']);
@@ -49,7 +47,6 @@ class AssetManager {
             add_filter('wp', [$this, 'set_data'], 9999);
         }
 
-        // Filters
         add_filter('style_loader_tag', [$this, 'delay_css_loading'], 10, 4);
         add_filter('script_loader_tag', [$this, 'add_script_attributes'], 10, 3);
     }
@@ -62,13 +59,7 @@ class AssetManager {
     // --- CORE LOGIC: PRELOADS ---
 
     public function render_preloads() {
-        // Fontlar henüz kuyruğa girmediyse zorla sok (Priority 0 durumu için garanti)
-        if (empty(self::$preload_queue)) {
-            $this->prepare_font_queue();
-        }
-
         if (empty(self::$preload_queue)) return;
-
         echo "\n\n";
         echo implode("\n", array_unique(self::$preload_queue));
         echo "\n\n\n";
@@ -203,20 +194,32 @@ class AssetManager {
     // --- INLINE ENGINE (CACHE KORUMALI) ---
 
     public function inline_css($name, $url) {
-        $key = md5($name . $url . $this->version);
-        $cache_file = rtrim(STATIC_PATH, '/') . '/css/cache/' . $key . '-inline.css';
+        $key        = md5($name . $url . $this->version);
+        $cache_dir  = rtrim(STATIC_PATH, '/') . '/css/cache/';
+        $cache_file = $cache_dir . $key . '-inline.css';
 
         if (isset(self::$runtime_cache[$key])) return self::$runtime_cache[$key];
-        if (file_exists($cache_file)) return self::$runtime_cache[$key] = file_get_contents($cache_file);
+
+        // Cache dosyası var ve kaynak dosyadan daha yeni ise kullan
+        if (file_exists($cache_file) && file_exists($url) && filemtime($cache_file) >= filemtime($url)) {
+            return self::$runtime_cache[$key] = file_get_contents($cache_file);
+        }
 
         if (!file_exists($url)) return '';
         $css = file_get_contents($url);
-        $css = $this->fix_css_paths($css, $url); 
-        $css = preg_replace('/\s+/', ' ', $css); 
+        $css = $this->fix_css_paths($css, $url);
+        $css = preg_replace('/\s+/', ' ', $css);
 
-        if (!file_exists(dirname($cache_file))) wp_mkdir_p(dirname($cache_file));
+        if (!file_exists($cache_dir)) wp_mkdir_p($cache_dir);
+
+        // 7 günden eski cache dosyalarını temizle (disk şişmesini önle)
+        foreach (glob($cache_dir . '*-inline.css') ?: [] as $old_file) {
+            if (filemtime($old_file) < (time() - 7 * DAY_IN_SECONDS)) {
+                @unlink($old_file);
+            }
+        }
+
         file_put_contents($cache_file, $css);
-        
         return self::$runtime_cache[$key] = $css;
     }
 
@@ -262,7 +265,7 @@ class AssetManager {
         }
 
         //$map_key = $GLOBALS['google_maps_api_key'] ?? '';
-        $map_key = Data::get("language_rtl");
+        $map_key = Data::get("google_maps_api_key");
         if ($map_key) {
             wp_enqueue_script('googlemaps', "https://maps.googleapis.com/maps/api/js?key={$map_key}&language=" . Data::get("language"), [], null, true);
             if ($map_style = QueryCache::get_option('options_google_maps_style')) {

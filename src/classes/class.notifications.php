@@ -18,7 +18,6 @@ Class Notifications{
     public $administrator;
 
     function __construct($user=array(), $debug=0) {
-    	global $wpdb;
     	if(isset($user) && !empty($user)){
     		$this->user = $user;
     	}else{
@@ -28,29 +27,41 @@ Class Notifications{
 		if (file_exists($notifications_file)) {
 		    $this->events = json_decode(file_get_contents($notifications_file), true);
 		} else {
-		    $this->events = []; // veya bir fallback
-		    //error_log("Bildirim dosyası bulunamadı: $notifications_file");
+		    $this->events = [];
 		}
-        $this->debug = $debug;
+        $this->debug        = $debug;
         $this->debug_output = array();
-        $this->html_path = get_stylesheet_directory() . "/theme/templates/notifications/events/";
-        $this->html_url = get_stylesheet_directory_uri() . "/theme/templates/notifications/events/";
-        $this->css_path = get_stylesheet_directory() . "/static/css/email.css";
-        $this->css_url = get_stylesheet_directory_uri() . "/static/css/email.css";
-        $table = "notifications";
-        if (!$wpdb->get_var("SHOW TABLES LIKE 'wp_".$table."'")) {
-		    echo "Table does not exist";
-		    $this->create_db($table);
-		}
-		//get admin
-	    $args = array(
-           'role'    => 'administrator',
-           'number'  => 1
+        $this->html_path    = get_stylesheet_directory() . "/theme/templates/notifications/events/";
+        $this->html_url     = get_stylesheet_directory_uri() . "/theme/templates/notifications/events/";
+        $this->css_path     = get_stylesheet_directory() . "/static/css/email.css";
+        $this->css_url      = get_stylesheet_directory_uri() . "/static/css/email.css";
+
+        // Tablo varlığını transient ile cache'le — her instantiation'da SHOW TABLES çalışmasın
+        $this->maybe_create_table();
+
+        // Admin kullanıcısını transient ile cache'le
+        $this->administrator = $this->get_cached_administrator();
+    }
+
+    private function maybe_create_table(): void {
+        $cache_key = 'sh_notifications_table_exists';
+        if ( get_transient( $cache_key ) ) return;
+        global $wpdb;
+        $exists = (bool) $wpdb->get_var(
+            $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'notifications' )
         );
-        $administrator = get_users( $args )[0];
-	    //$admin_title = get_option('blogname');
-	    $this->administrator = $administrator;
-	    //add_action('wp_mail_failed', $this->log_mailer_errors(), 10, 1);
+        if ( ! $exists ) $this->create_db( 'notifications' );
+        set_transient( $cache_key, true, 7 * DAY_IN_SECONDS );
+    }
+
+    private function get_cached_administrator(): ?WP_User {
+        $cache_key = 'sh_notifications_administrator';
+        $cached    = get_transient( $cache_key );
+        if ( $cached !== false ) return $cached;
+        $users = get_users( [ 'role' => 'administrator', 'number' => 1 ] );
+        $admin = $users[0] ?? null;
+        if ( $admin ) set_transient( $cache_key, $admin, DAY_IN_SECONDS );
+        return $admin;
     }
 
     function create_db($table) {
@@ -233,54 +244,34 @@ Class Notifications{
     Private function send_alert($event, $data){
     	global $wpdb;
     	$status = 0;
-    	$rules = $event;//$this->events[$event];
+    	$rules = $event;
     	$data = $this->data_rename($rules, $data, "alert", $rules["event"]);
     	$transmit = $data["transmit"];
     	$sender_id = $transmit["sender"];
     	$receivers = $transmit["recipient"];
-    	if(!is_array($receivers)){
-           $receivers = [$receivers]; 
-    	}
+    	if(!is_array($receivers)) $receivers = [$receivers];
     	$message = $data["carriers"]["alert"]["body"];
-    	$type = "default";
-    	if(isset($data["type"])){
-    	   	$type = $data["type"];    	   	
-    	}
-    	$post_id = 0;
-    	if(isset($data["post"])){
-    	   if(isset($data["post"]->ID)){
-    	   		$post_id = $data["post"]->ID;    	   	
-    	   }
-    	}
-    	$user_id = 0;
-    	if(isset($data["user"])){
-    		if(isset($data["user"]->ID)){
-    	       $user_id = $data["user"]->ID;
-    	   }
-    	}
+    	$type = $data["type"] ?? "default";
+    	$post_id = isset($data["post"]->ID) ? intval($data["post"]->ID) : 0;
+    	$user_id = isset($data["user"]->ID) ? intval($data["user"]->ID) : 0;
+    	$table_name = $wpdb->prefix . 'notifications';
     	foreach($receivers as $receiver){
             $created_at = new DateTime();
             $created_at->setTimezone(new DateTimeZone('GMT'));
             $created_at = $created_at->format("Y-m-d H:i");
-	    	$row = array(
-	    		'created_at' => $created_at,//date('Y-m-d H:i:s', strtotime('now')),
-	            'sender_id' => $sender_id,
-	            'receiver_id' => $receiver,
-	            'message' => $message,
-	            'action' => $rules["event"],
-	            'seen' => 0,
-	            'alert' => 0
-	        );
-	        if($type){
-	        	$row["type"] = $type;
-	        }
-	        if($post_id){
-	        	$row["post_id"] = $post_id;
-	        }
-	        if($user_id){
-	        	$row["user_id"] = $user_id;
-	        }
-	        $status = $wpdb->insert("wp_notifications", $row);
+	    	$row = [
+	    		'created_at'  => $created_at,
+	            'sender_id'   => intval($sender_id),
+	            'receiver_id' => intval($receiver),
+	            'message'     => $message,
+	            'action'      => $rules["event"],
+	            'seen'        => 0,
+	            'alert'       => 0,
+	        ];
+	        if($type)    $row["type"]    = $type;
+	        if($post_id) $row["post_id"] = $post_id;
+	        if($user_id) $row["user_id"] = $user_id;
+	        $status = $wpdb->insert( $table_name, $row );
     	}
     	return $status;
     }
@@ -381,93 +372,47 @@ Class Notifications{
 
     function get_notifications($data=array()){
 
-    	$results = array();
-    	$where = array(); 
-    	if(isset($data['user'])){
-           $where[] = "receiver_id = ".$data["user"];
-    	}else{
-    	   $where[] = "receiver_id = ".$this->user->ID;
-    	}
-    	if(isset($data['post'])){
-           $where[] = "post_id = ".$data["post"];
-    	}
-    	if(isset($data['seen'])){
-           $where[] = "seen = ".$data["seen"];
-    	}
-    	if(isset($data['alert'])){
-           $where[] = "alert = ".$data["alert"];
-    	}
-    	if(count($where)>0){
-    		$where = implode(" AND ", $where);
-    	}
-    	$query_values = "*";
-    	if(isset($data['get_count'])){
-           $query_values = "count(*) as count";
-    	}
-    	$query = "SELECT ".$query_values." FROM wp_notifications where ".$where;
+    	global $wpdb;
+    	$results      = array();
+    	$where_clauses = [];
+    	$where_values  = [];
+    	$table_name    = $wpdb->prefix . 'notifications';
+
+    	$where_clauses[] = 'receiver_id = %d';
+    	$where_values[]  = isset($data['user']) ? intval($data['user']) : intval($this->user->ID);
+
+    	if(isset($data['post']))  { $where_clauses[] = 'post_id = %d'; $where_values[] = intval($data['post']); }
+    	if(isset($data['seen']))  { $where_clauses[] = 'seen = %d';    $where_values[] = intval($data['seen']); }
+    	if(isset($data['alert'])) { $where_clauses[] = 'alert = %d';   $where_values[] = intval($data['alert']); }
+
+    	$where_sql    = 'WHERE ' . implode(' AND ', $where_clauses);
+    	$query_values = isset($data['get_count']) ? 'count(*) as count' : '*';
+    	$query        = $wpdb->prepare( "SELECT {$query_values} FROM {$table_name} {$where_sql}", $where_values ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
     	if(isset($data['get_count'])){
     		$paginate = new Paginate($query);
 		    $results["data"] = $paginate->get_totals();
     	}else{
-
-    		$orderby = "created_at";
-		    if(isset($data['orderby'])){
-		  		$orderby = $data['orderby'];
-		    }
-		    $data['orderby'] = $orderby;
-
-		    $order = "desc";
-		   	if(isset($data['order'])){
-		   		$order = $data['order'];
-		    }
-		    $data['order'] = $order;
+    		$data['orderby'] = $data['orderby'] ?? 'created_at';
+    		$data['order']   = $data['order']   ?? 'desc';
 
     		if(isset($data['posts_per_page']) || isset($data['page'])){
-		    	if(isset($data['page'])){
-		    		$page = $data['page'];
-		    	}else{
-		    		$page = 1;
-		    	}
-		    	$data['page'] = $page;
-		    	if(isset($data['posts_per_page'])){
-		    		$posts_per_page = $data['posts_per_page'];
-		    	}else{
-		    		$posts_per_page = 10;
-		    	}
-		    	$data['posts_per_page'] = $posts_per_page;
+		    	$data['page']           = $data['page'] ?? 1;
+		    	$data['posts_per_page'] = $data['posts_per_page'] ?? 10;
 		    }
 
 		    $paginate = new Paginate($query, $data);
-		   	//$paginate->query = $query;
-		   	//$paginate->orderby = $orderby;
-		   	//$paginate->order = $order;
-		   	if(isset($page)){
-               $paginate->page = $page;
-		   	}
-		   	//if(isset($posts_per_page)){
-	        //    $paginate->posts_per_page = $posts_per_page;
-	        //}
-	    	//$results["data"] = $paginate->get_totals();
-	    	//$results["posts"] = $paginate->get_results();
+		   	if(isset($data['page'])) $paginate->page = $data['page'];
 	    	$results = $paginate->get_results();
 
-	    	if(isset($data["set_seen"])){
-               //$ids = wp_list_pluck($results["posts"],"id");
-               if($results["posts"]){
-               	  global $wpdb;
-               	  foreach($results["posts"] as $post){
-               	      $wpdb->update('wp_notifications', array('seen'=> '1'), array('id'=>$post->id));
-               	  }
+	    	if(isset($data["set_seen"]) && $results["posts"]){
+               foreach($results["posts"] as $post){
+               	   $wpdb->update( $table_name, ['seen' => '1'], ['id' => intval($post->id)] );
                }
 	    	}
-	    	if(isset($data["set_alert_seen"])){
-               //$ids = wp_list_pluck($results["posts"],"id");
-               if($results["posts"]){
-               	  global $wpdb;
-               	  foreach($results["posts"] as $post){
-               	      $wpdb->update('wp_notifications', array('alert'=> '1'), array('id'=>$post->id));
-               	  }
+	    	if(isset($data["set_alert_seen"]) && $results["posts"]){
+               foreach($results["posts"] as $post){
+               	   $wpdb->update( $table_name, ['alert' => '1'], ['id' => intval($post->id)] );
                }
 	    	}
 	    }
@@ -519,22 +464,21 @@ Class Notifications{
     public function delete_user_event_notification($event="", $user_id=0){
     	global $wpdb;
     	if(!empty($event) && $user_id > 0){
-    	   	$wpdb->delete( "wp_notifications", array( 'receiver_id' => $user_id, 'action' => $event, 'user_id' => $this->user->ID ));//, array( '%d', '%s', '%d' ) ); 	  	
+    	   	$wpdb->delete( $wpdb->prefix . 'notifications', [ 'receiver_id' => $user_id, 'action' => $event, 'user_id' => $this->user->ID ] );
     	}
     }
- 
 
     static function delete_post_notifications($post_id=0){
     	global $wpdb;
-    	//if($post_id > 0){
-    	   	$wpdb->delete( "wp_notifications", array( 'post_id' => $post_id ) ); 	   	  	
-    	//}
+    	$wpdb->delete( $wpdb->prefix . 'notifications', [ 'post_id' => intval($post_id) ] );
     }
+
     static function delete_user_notifications($user_id){
     	global $wpdb;
     	if($user_id > 0){
-    	   	$wpdb->delete( "wp_notifications", array( 'sender_id' => $user_id ) );
-    	   	$wpdb->delete( "wp_notifications", array( 'receiver_id' => $user_id ) );   	  	
+    		$table = $wpdb->prefix . 'notifications';
+    	   	$wpdb->delete( $table, [ 'sender_id'   => intval($user_id) ] );
+    	   	$wpdb->delete( $table, [ 'receiver_id' => intval($user_id) ] );
     	}
     }
 }
