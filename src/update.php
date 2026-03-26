@@ -1691,38 +1691,86 @@ class Update {
             return;
         }
 
-        $block = get_post($post_id);
-        if ( ! $block ) return;
+        // Sorun: acf_import_field_group flexible content field'ının layouts'ını
+        // child post'lardan okuyor. Update sonrası child post'lar henüz yok → layouts boş.
+        // Çözüm: JSON'daki layouts verisini direkt acf_block_columns field'ının
+        // post_content'ine serialize ederek yazıyoruz — admin save'de tam olarak bu oluyor.
 
-        // Admin'de save edildiğinde tam olarak şu olur:
-        // acf_save_post_block_columns_action → block-bootstrap-columns branch →
-        // tüm block'ları alır → her biri için UpdateFlexibleFieldLayouts->update()
-        //
-        // Biz bunu direkt yapıyoruz:
-        // - DOING_AJAX kontrolünü bypass ediyoruz (update task AJAX ile çalışıyor)
-        // - static $has_run bayrağını bypass ediyoruz (wrapper fonksiyonu değil, direkt logic)
-        remove_action('save_post', 'acf_save_post_block_columns', 20);
+        $json_file = get_template_directory() . '/acf-json/' . $block_columns_key . '.json';
+        if ( ! file_exists($json_file) ) {
+            // Repo'daki JSON'u dene
+            $json_file = SH_PATH . 'content/acf-json/' . $block_columns_key . '.json';
+        }
 
-        if ( class_exists('UpdateFlexibleFieldLayouts') ) {
-            $layouts_check    = new UpdateFlexibleFieldLayouts();
-            $blocks           = $layouts_check->get_block_fields();
+        if ( ! file_exists($json_file) ) {
+            return;
+        }
 
-            if ( $blocks ) {
-                $group_field_data = $layouts_check->get_block_field_data($block);
-                foreach ( $blocks as $item ) {
-                    $layouts = new UpdateFlexibleFieldLayouts(
-                        $post_id,
-                        "acf_block_columns",
-                        $item->post_name,
-                        $item->post_excerpt,
-                        $group_field_data
-                    );
-                    $layouts->update();
-                }
+        $field_group_data = json_decode( file_get_contents($json_file), true );
+        if ( ! $field_group_data ) return;
+
+        // JSON'daki fields içinden flexible_content field'ını bul (acf_block_columns)
+        $layouts_from_json = null;
+        foreach ( $field_group_data['fields'] ?? [] as $field ) {
+            if ( isset($field['type']) && $field['type'] === 'flexible_content'
+                && isset($field['name']) && $field['name'] === 'acf_block_columns' ) {
+                $layouts_from_json = $field['layouts'] ?? null;
+                break;
             }
         }
 
-        add_action('save_post', 'acf_save_post_block_columns', 20);
+        if ( empty($layouts_from_json) ) {
+            // JSON'da layouts boşsa UpdateFlexibleFieldLayouts ile oluştur
+            $block = get_post($post_id);
+            if ( $block && class_exists('UpdateFlexibleFieldLayouts') ) {
+                remove_action('save_post', 'acf_save_post_block_columns', 20);
+                $layouts_check    = new UpdateFlexibleFieldLayouts();
+                $blocks           = $layouts_check->get_block_fields();
+                if ( $blocks ) {
+                    $group_field_data = $layouts_check->get_block_field_data($block);
+                    foreach ( $blocks as $item ) {
+                        $layouts = new UpdateFlexibleFieldLayouts(
+                            $post_id, "acf_block_columns",
+                            $item->post_name, $item->post_excerpt, $group_field_data
+                        );
+                        $layouts->update();
+                    }
+                }
+                add_action('save_post', 'acf_save_post_block_columns', 20);
+            }
+        } else {
+            // JSON'da layouts dolu — direkt acf_block_columns field'ının post_content'ine yaz
+            $field_post = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT ID, post_content FROM {$wpdb->posts}
+                     WHERE post_type = 'acf-field'
+                     AND post_excerpt = 'acf_block_columns'
+                     AND post_parent = %d
+                     LIMIT 1",
+                    $post_id
+                ),
+                ARRAY_A
+            );
+
+            if ( $field_post ) {
+                $post_content = maybe_unserialize( $field_post['post_content'] );
+                if ( ! is_array($post_content) ) $post_content = [];
+
+                // JSON'daki layouts'ı yaz
+                $post_content['layouts'] = $layouts_from_json;
+
+                $wpdb->update(
+                    $wpdb->posts,
+                    ['post_content' => serialize($post_content)],
+                    ['ID' => (int) $field_post['ID']],
+                    ['%s'],
+                    ['%d']
+                );
+
+                // WP object cache'ini temizle
+                clean_post_cache( (int) $field_post['ID'] );
+            }
+        }
 
         self::_flush_acf_cache();
 
