@@ -1756,13 +1756,31 @@ class Update {
     private static function update_fields(): void {
         global $wpdb;
 
-        $block_columns_key = "group_66e309dc049c4";
+        // Statik key kullanmıyoruz — 'block-bootstrap-columns' post_excerpt'i ile dinamik bul
         $post_id = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'",
-                $block_columns_key
-            )
+            "SELECT fg.ID
+             FROM {$wpdb->posts} fg
+             INNER JOIN {$wpdb->term_relationships} tr ON fg.ID = tr.object_id
+             INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+             INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+             WHERE fg.post_type = 'acf-field-group'
+             AND fg.post_status = 'publish'
+             AND fg.post_excerpt = 'block-bootstrap-columns'
+             AND t.slug = 'block'
+             AND tt.taxonomy = 'acf-field-group-category'
+             LIMIT 1"
         );
+
+        // Fallback: post_excerpt ile bulamazsa acf_block_columns field'ından bul
+        if ( ! $post_id ) {
+            $post_id = (int) $wpdb->get_var(
+                "SELECT post_parent FROM {$wpdb->posts}
+                 WHERE post_type = 'acf-field'
+                 AND post_excerpt = 'acf_block_columns'
+                 AND post_status = 'publish'
+                 LIMIT 1"
+            );
+        }
 
         if ( ! $post_id ) return;
 
@@ -1821,8 +1839,8 @@ class Update {
         foreach ( $layouts as $layout_key => &$layout ) {
             if ( ! empty($layout['sub_fields']) ) continue; // Zaten doluysa dokunma
 
-            // Bu layout'a ait child field post'larını bul
-            // post_parent = field_id, post_excerpt = layout_key ile eşleşen post'lar
+            // Child field post'ları post_parent = post_id (field group ID) ile saklanıyor
+            // ve post_content içindeki parent_layout key'i ile layout'a bağlanıyor
             $child_fields = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT ID, post_name, post_title, post_excerpt, post_content
@@ -1831,7 +1849,7 @@ class Update {
                      AND post_parent = %d
                      AND post_status = 'publish'
                      ORDER BY menu_order ASC",
-                    $field_id
+                    $post_id
                 ),
                 ARRAY_A
             );
@@ -1864,11 +1882,28 @@ class Update {
         );
         clean_post_cache($field_id);
 
-        // acf_import_field_group ile field group'u yeniden kaydet
-        // Bu acfe_autosync'i tetikler → JSON güncellenir
-        $field_group = acf_get_field_group($block_columns_key);
-        if ( $field_group ) {
-            acf_import_field_group($field_group);
+        // JSON dosyasını manuel güncelle — sadece layouts key'ini yaz, fields'a dokunma
+        // post_name'i dinamik olarak DB'den al
+        $post_name = $wpdb->get_var(
+            $wpdb->prepare("SELECT post_name FROM {$wpdb->posts} WHERE ID = %d", $post_id)
+        );
+        $json_path = get_template_directory() . '/acf-json/' . $post_name . '.json';
+        if ( file_exists($json_path) ) {
+            $json_data = json_decode( file_get_contents($json_path), true );
+            if ( $json_data ) {
+                foreach ( $json_data['fields'] as &$jf ) {
+                    if ( isset($jf['name']) && $jf['name'] === 'acf_block_columns' ) {
+                        $jf['layouts'] = $layouts;
+                        break;
+                    }
+                }
+                unset($jf);
+                $json_data['modified'] = time();
+                file_put_contents(
+                    $json_path,
+                    json_encode($json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+            }
         }
 
         self::_flush_acf_cache();
