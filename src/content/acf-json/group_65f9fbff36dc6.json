@@ -489,7 +489,7 @@
                             "tabs": "all",
                             "toolbar": "full",
                             "media_upload": 0,
-                            "delay": 0,
+                            "delay": 1,
                             "pll_default_value": ""
                         },
                         {
@@ -605,7 +605,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772218141,
+    "modified": 1774302522,
     "acfe_categories": {
         "block": "Block"
     }

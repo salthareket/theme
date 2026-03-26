@@ -41,6 +41,9 @@
                         "##Defaults": "##Defaults",
                         "initial": "initial",
                         "inherit": "inherit",
+                        "##Custom Fonts": "##Custom Fonts",
+                        "'courier-std'": "courier-std",
+                        "'anton'": "Anton",
                         "##Icon Fonts": "##Icon Fonts",
                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -352,5 +355,5 @@
     "acfe_categories": {
         "general": "General"
     },
-    "modified": 1772218152
+    "modified": 1774302544
 }

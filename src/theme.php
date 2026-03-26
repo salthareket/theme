@@ -422,12 +422,12 @@ Class Theme{
         );
 
         // Gereksiz alt menüyü kaldırma aksiyonu (Zaten içindesin, tekrar action eklemene gerek yok ama kalsın dersen önceliği doğru ayarla)
-        add_action('admin_menu', function () {
+       // add_action('admin_menu', function () {
             global $submenu;
             if (isset($submenu['theme-settings'])) {
                 unset($submenu['theme-settings'][0]);
             }
-        }, 999);
+        //}, 999);
     }
     public function menu_actions(){
         register_nav_menus(get_menu_locations());
@@ -680,7 +680,7 @@ Class Theme{
             $favs = $site_config["favorites"] ?? [];
             //$GLOBALS["favorites"] = is_string($favs) ? json_decode($favs, true) : (is_array($favs) ? $favs : []);
             $favorites = is_string($favs) ? json_decode($favs, true) : (is_array($favs) ? $favs : []);
-            Data::set("site_config", $favorites);
+            Data::set("favorites", $favorites);
         }
 
         if (ENABLE_SEARCH_HISTORY) {
@@ -787,7 +787,8 @@ Class Theme{
 
             // 🚀 MERMİ GİBİ CACHE: Her sayfa ve her dil için ayrı cache anahtarı
             $queried_obj_id = get_queried_object_id();
-            $cache_key = 'sh_lang_cache_' . $language . '_' . $queried_obj_id;
+            $uri_hash = md5($_SERVER['REQUEST_URI'] ?? '');
+            $cache_key = 'sh_lang_cache_' . $language . '_' . ($queried_obj_id ?: $uri_hash);
             $cached_data = get_transient($cache_key);
 
             if (false !== $cached_data) {
@@ -972,7 +973,7 @@ Class Theme{
                     $query->set("posts_per_page", $GLOBALS["post_pagination"]["search"]["posts_per_page"]);
                 }*/
                 if (Data::has("post_pagination.search")) {
-                    $query->set("posts_per_page", Data::has("post_pagination.search.posts_per_page"));
+                    $query->set("posts_per_page", Data::get("post_pagination.search.posts_per_page"));
                 }
 
                 // Arama sonuçlarından sayfaları/dataları hariç tut (Newsletter vb.)
@@ -1467,96 +1468,12 @@ Class Theme{
 
             $config = apply_filters('site_config', $config);
 
-
-            // Global'e yazalım
-            //$GLOBALS["site_config"] = $config;
             Data::set("site_config", $config);
 
         //error_log("site config is completed");
 
         return Data::get("site_config");//$GLOBALS["site_config"];  
     }
-    /*public function site_config_js() {
-        // 1. Admin veya tema yoksa çık
-        if (is_admin() || (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS)) {
-            return [];
-        }
-
-        // 2. Config Verilerini Hazırla
-        // Eğer get_site_config() içinde zaten hesaplandıysa global'den çek, yoksa oluştur.
-        //$site_config = isset($GLOBALS["site_config"]) ? $GLOBALS["site_config"] : self::get_site_config();
-        $site_config = Data::has("site_config") ? Data::get("site_config") : self::get_site_config();
-
-        // 3. Assetleri Hazırla (Önce bu çalışmalı ki SITE_ASSETS define edilsin)
-        //$this->site_assets();
-        if (!defined('SITE_ASSETS')) {
-            $this->site_assets();
-        }
-
-        // 4. Meta Verilerini Eşitle
-        if (defined("SITE_ASSETS") && is_array(SITE_ASSETS) && isset(SITE_ASSETS["meta"])) {
-            $site_config["meta"] = SITE_ASSETS["meta"];
-        }
-
-        // 5. JavaScript Değişkenlerini Oluştur (Inline Script)
-        // wp_localize_script yerine wp_add_inline_script kullanıyoruz çünkü daha performanslı ve kontrol bizde.
-        wp_register_script('site_config_vars', false);
-        wp_enqueue_script('site_config_vars');
-
-        $js_data = 'var site_config = ' . json_encode($site_config) . ';' . PHP_EOL;
-        $js_data .= 'var required_js = ' . json_encode($site_config["required_js"] ?? []) . ';' . PHP_EOL;
-
-        // 6. Conditional Plugins (Sadece sayfaya özel olanlar)
-        if (defined("SITE_ASSETS") && is_array(SITE_ASSETS)) {
-            $conditional = SITE_ASSETS["plugins"] ?? [];
-            $js_data .= 'var conditional_js = ' . json_encode(array_values((array)$conditional)) . ';' . PHP_EOL;
-        }
-
-        // 7. Ajax ve Path Ayarları
-        $upload_dir = wp_upload_dir();
-        $upload_url = trailingslashit($upload_dir['baseurl']);
-
-        $ajax_vars = [
-            'url'        => trailingslashit(home_url()),
-            'url_admin'  => admin_url('admin-ajax.php'),
-            'site_url'   => get_option('home'),
-            'theme_url'  => trailingslashit(get_stylesheet_directory_uri()),
-            'upload_url' => $upload_url,
-            'ajax_nonce' => wp_create_nonce('ajax'),
-            'title'      => get_the_title() // Boş kalmasın, o anki sayfa başlığını verelim
-        ];
-
-        // YoBro Chat entegrasyonu
-        if (class_exists("Redq_YoBro")) {
-            $user_id = get_current_user_id();
-            if ($user_id) {
-                $conversations = yobro_get_all_conversations($user_id);
-                if ($conversations) {
-                    $ajax_vars["conversations"] = $conversations;
-                }
-            }
-        }
-
-        $js_data .= 'var ajax_request_vars = ' . json_encode($ajax_vars) . ';' . PHP_EOL;
-        
-        // JS verisini bas
-        wp_add_inline_script('site_config_vars', $js_data);
-
-        // 8. Sayfaya Özel Dinamik CSS (Separate CSS aktifse)
-        if (defined("SITE_ASSETS") && !empty(SITE_ASSETS["css"]) && !isset($_GET['fetch']) && defined('SEPERATE_CSS') && SEPERATE_CSS) {
-            wp_register_style('page-styles', false);
-            wp_enqueue_style('page-styles');
-
-            // URL yerleştirmelerini yapalım
-            $css_code = str_replace(
-                ["{upload_url}", "{home_url}"],
-                [$upload_url, home_url("/")],
-                SITE_ASSETS["css"]
-            );
-
-            wp_add_inline_style('page-styles', $css_code);
-        }
-    }*/
 
     public function site_config_js() {
 
@@ -1656,7 +1573,7 @@ Class Theme{
         }
 
         $plugin_filename = "remove-comments-absolute.php";
-        $source_path     = SH_INCLUDES_PATH . "/" . $plugin_filename;
+        $source_path     = SH_INCLUDES_PATH . $plugin_filename;
         $destination_path = WP_PLUGIN_DIR . "/" . $plugin_filename;
 
         if (DISABLE_COMMENTS) {
@@ -1752,7 +1669,7 @@ Class Theme{
                 \Update::init();
                 new \AvifConverter();
             }
-            new \starterSite();
+            new \StarterSite();
         }, 20); 
 	}
 }

@@ -1,34 +1,20 @@
-/*const leaflet_images = ajax_request_vars.theme_url+'/static/js/assets/';
-
-// Mevcut URL'leri alıp prefix ekleyerek güncelleriz
-L.Icon.Default.mergeOptions({
-    iconUrl: leaflet_images + L.Icon.Default.prototype.options.iconUrl.split('/').pop(),
-    shadowUrl: leaflet_images + L.Icon.Default.prototype.options.shadowUrl.split('/').pop()
-});
-
-L.TileLayer.LazyLoad = L.TileLayer.extend({
-    createTile: function (coords, done) {
-        const tile = document.createElement('img');
-
-        tile.setAttribute("loading", "lazy"); // Native Lazy Load
-        tile.style.width = this.options.tileSize + "px";
-        tile.style.height = this.options.tileSize + "px";
-        tile.alt = "Leaflet map tile";
-
-        tile.onload = () => done(null, tile);
-        tile.onerror = () => {
-            console.error("Tile yüklenemedi: ", this.getTileUrl(coords));
-            done("Tile yüklenemedi", tile);
-        };
-
-        // Gerçek tile URL'sini belirle
-        tile.src = this.getTileUrl(coords);
-        return tile;
-    }
-});*/
-/*
- * L.TileLayer.LazyLoad eklentisi
+/**
+ * Leaflet Custom Init
+ * - LazyLoad TileLayer
+ * - MarkerCluster
+ * - Popup (static, click, mouseover, ajax)
+ * - Custom Buttons
+ * - Modal & resize desteği
  */
+
+// ─── 1. TileLayer – standart Leaflet, lazy yok ───────────────────────────────
+// tile.loading = 'lazy' Leaflet ile uyumsuz: viewport dışı tile'ları engeller,
+// zoom yapınca tile'lar kaybolur. Standart L.tileLayer kullanıyoruz.
+/*L.tileLayer.lazyLoad = function (url, options) {
+    return L.tileLayer(url, options);
+};*/
+
+
 L.TileLayer.LazyLoad = L.TileLayer.extend({
     createTile: function (coords, done) {
         var tile = document.createElement('img');
@@ -55,499 +41,400 @@ L.tileLayer.lazyLoad = function (url, options) {
     return new L.TileLayer.LazyLoad(url, options);
 };
 
-// Dosyanın en başına bu kontrolü koy abi
-(function() {
-    // Eğer L objesi henüz yoksa, init işlemlerini bir fonksiyon içine hapset
-    window.setupLeafletExtensions = function() {
-        if (typeof L === 'undefined') return;
-
-        const leaflet_images = ajax_request_vars.theme_url + '/static/js/assets/';
-        
-        L.Icon.Default.mergeOptions({
-            iconUrl: leaflet_images + 'marker-icon.png',
-            shadowUrl: leaflet_images + 'marker-shadow.png'
-        });
-
-        if (!L.TileLayer.LazyLoad) {
-            L.TileLayer.LazyLoad = L.TileLayer.extend({
-                createTile: function (coords, done) {
-                    const tile = document.createElement('img');
-                    tile.setAttribute("loading", "lazy");
-                    tile.style.width = this.options.tileSize + "px";
-                    tile.style.height = this.options.tileSize + "px";
-                    tile.src = this.getTileUrl(coords);
-                    tile.onload = () => done(null, tile);
-                    tile.onerror = () => done("Tile error", tile);
-                    return tile;
-                }
-            });
-            L.tileLayer.lazyLoad = function (url, options) {
-                return new L.TileLayer.LazyLoad(url, options);
-            };
-        }
-    };
+// ─── 2. Icon default path düzeltmesi ─────────────────────────────────────────
+(function setupIcons() {
+    if (typeof ajax_request_vars === 'undefined') return;
+    var base = ajax_request_vars.theme_url + '/static/js/assets/';
+    L.Icon.Default.mergeOptions({
+        iconUrl:       base + 'marker-icon.png',
+        iconRetinaUrl: base + 'marker-icon-2x.png',
+        shadowUrl:     base + 'marker-shadow.png'
+    });
 })();
 
-function init_leaflet(){
-	var token_init = "leaflet-init";
-    if($(".leaflet-custom").not("."+token_init).length>0){
-        $(".leaflet-custom").not("."+token_init).each(function(){
-        	var obj = $(this);
-           	obj.addClass(token_init);
-           	var id = obj.attr("id");
-           	if(IsBlank(id)){
-           	   id = generateCode(5);
-           	}
-    		obj.attr("id", id);
+// ─── 3. Popup extend – sadece bir kez ────────────────────────────────────────
+// closeOnClick davranışını override et (preclick'i devre dışı bırak)
+L.Popup.include({
+    getEvents: function () {
+        var events = L.DivOverlay.prototype.getEvents.call(this);
+        if (this.options.keepInView) {
+            events.moveend = this._adjustPan;
+        }
+        return events;
+    }
+});
 
-           	var config = obj.data("config");
-           	if(typeof window[config] === "undefined"){
-           		config = obj.data("config");
-           		if(IsBlank(config)){
-           			config = false;
-           		}
-           	}else{
-           		config = window[config];
-           	}
+// ─── 4. Ana init fonksiyonu ───────────────────────────────────────────────────
+window.leafletResizeHandlers = window.leafletResizeHandlers || {};
 
-           	debugJS(config)
+function init_leaflet(context) {
+    var token_init = 'leaflet-init';
+    var $scope = context ? $(context) : $(document);
+    var $maps = $scope.find('.leaflet-custom').addBack('.leaflet-custom').not('.' + token_init);
 
-           	var locations = config.locations;
-           	var buttons = config.buttons;
+    if ($maps.length === 0) return;
 
-			L.Popup = L.Popup.extend({
-			    getEvents: function () {
-			        var events = L.DivOverlay.prototype.getEvents.call(this);
-			        if ('closeOnClick' in this.options ? this.options.closeOnClick : this._map.options.closePopupOnClick) {
-			            //events.preclick = this._close;
-			        }
-			        if (this.options.keepInView) {
-			            events.moveend = this._adjustPan;
-			        }
-			        return events;
-			    },
-			});
+    $maps.each(function () {
+        var obj = $(this);
+        obj.addClass(token_init);
 
-			var map_config = {
-    			scrollWheelZoom: false,
-    			dragging: !L.Browser.mobile
-    		};
-			if (buttons && Object.prototype.hasOwnProperty.call(buttons, "zoom_position")) {
-            	map_config["zoomControl"] = false;
+        // ID garantisi
+        var id = obj.attr('id');
+        if (!id || id === '') {
+            id = 'lmap_' + generateCode(5);
+            obj.attr('id', id);
+        }
+
+        // Config oku
+        var configKey = obj.data('config');
+        var config = (configKey && typeof window[configKey] !== 'undefined') ? window[configKey] : null;
+        if (!config) { console.warn('Leaflet: config bulunamadı', configKey); return; }
+
+        debugJS(config);
+
+        // .block-map ve parent'larındaki overflow:hidden tile'ların kesilmesine neden olur
+        obj.closest('.block-map').removeClass('overflow-hidden').css('overflow', 'visible');
+        obj.closest('.block-map').find('.container').css('overflow', 'visible');
+        // block-map'in tüm ancestor'larında da overflow:hidden varsa kaldır (body'ye kadar)
+        obj.closest('.block-map').parentsUntil('body').each(function() {
+            if ($(this).css('overflow') === 'hidden') {
+                $(this).css('overflow', 'visible');
             }
-    		var map = L.map(id, map_config).setView([51.505, -0.09], 13);
+        });
 
-    		L.tileLayer.lazyLoad = function (url, options) {
-			    return new L.TileLayer.LazyLoad(url, options);
-			};
+        var locations = config.locations || [];
+        var buttons   = Array.isArray(config.buttons) ? null : config.buttons; // array ise boş kabul et
+        var popup_cfg = config.popup || { active: false };
 
-			// Lazy yükleme yapan Tile Layer ekle
-			L.tileLayer.lazyLoad('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			    tileSize: 256,
-			    maxZoom: 19,
-			    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-			}).addTo(map);
+        // ── Harita oluştur ──────────────────────────────────────────────────
+        var map_config = {
+            scrollWheelZoom: false,
+            dragging: !L.Browser.mobile
+        };
+        if (buttons && buttons.zoom_position) {
+            map_config.zoomControl = false;
+        }
 
-    		/*L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			    maxZoom: 19,
-			    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-			})
-			.on('tileloadstart', function(event) {
-		        event.tile.setAttribute('loading', 'lazy');
-		    })
-			.addTo(map);*/
+        var map = L.map(id, map_config).setView([39.9, 32.8], 6);
 
+        // DEBUG: container boyutunu logla – tile sorununun kaynağını görmek için
+        var _cont = document.getElementById(id);
+        console.log('[Leaflet] container boyutu init anında:', id, _cont ? _cont.offsetWidth + 'x' + _cont.offsetHeight : 'BULUNAMADI');
 
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            tileSize: 256,
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+        }).addTo(map);
 
-	    	var markers = L.markerClusterGroup({
-				spiderfyOnMaxZoom: true,
-				showCoverageOnHover: true,
-				zoomToBoundsOnClick: true,
-				/*iconCreateFunction: function(cluster) {
-					return L.divIcon({ html: '<b>' + cluster.getChildCount() + '</b>' });
-				}*/
-				//spiderLegPolylineOptions: { weight: 1.5, color: '#222', opacity: 0.5 }
-			});    			
+        // ── Marker cluster ──────────────────────────────────────────────────
+        var clusterGroup = L.markerClusterGroup({
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: true,
+            zoomToBoundsOnClick: true
+        });
 
-    		var marker = [];
-    		for (let i = 0; i < locations.length; i++) { 
+        var markerList = [];
 
-	    			var latlng = L.latLng(locations[i].lat, locations[i].lng);
-                    
-                    if(config.popup.type != "static"){
-		    			if(isset(locations[i].marker)){
-							var myIcon = L.icon({
-								iconUrl: locations[i].marker.icon,
-								iconSize: [locations[i].marker.width, locations[i].marker.height],
-								iconAnchor: [locations[i].marker.width/2, locations[i].marker.height],
-								popupAnchor: [0, 0-locations[i].marker.height]
-							});						
-						}else{
-							var myIcon = L.icon({
-					            iconUrl: L.Icon.Default.prototype.options.iconUrl,
-					            iconSize: [25, 41], // Varsayılan ikon boyutu
-					            iconAnchor: [12, 41], // İkonun taban noktası
-					            popupAnchor: [1, -34], // Popup için ayarlama
-					            shadowUrl: L.Icon.Default.prototype.options.shadowUrl, // Gölge URL'si
-					            shadowSize: [41, 41] // Gölge boyutu
-					        });
-						}
+        // ── Marker & popup döngüsü ──────────────────────────────────────────
+        for (var i = 0; i < locations.length; i++) {
+            (function (loc) {
+                var latlng = L.latLng(loc.lat, loc.lng);
 
-		    			var marker_item = L.marker([locations[i].lat, locations[i].lng], {icon: myIcon})//.addTo(map);
-		    			    marker_item.post_id = locations[i].id;
-	    			}
+                // Static popup
+                if (popup_cfg.active && popup_cfg.type === 'static') {
+                    _addStaticPopup(map, latlng, loc, popup_cfg, markerList);
+                    return;
+                }
 
-	    			if(config.popup.active){
+                // Marker ikonu
+                var myIcon;
+                if (loc.marker && loc.marker.icon) {
+                    myIcon = L.icon({
+                        iconUrl:     loc.marker.icon,
+                        iconSize:    [loc.marker.width, loc.marker.height],
+                        iconAnchor:  [loc.marker.width / 2, loc.marker.height],
+                        popupAnchor: [0, -loc.marker.height]
+                    });
+                } else {
+                    myIcon = new L.Icon.Default();
+                }
 
-	    				if(config.popup.type == "static"){
-	    					if(config.popup.template == "default"){
+                var marker_item = L.marker(latlng, { icon: myIcon });
+                marker_item.post_id = loc.id;
 
-	    						var popup = L.popup(latlng, {
-									    content: locations[i].title, 
-									   	minWidth : 120,
-									   	maxWidth : config.popup.width,
-									   	closeButton : false,
-									   	closeOnClick : true,
-								    	autoClose : true,
-								    	className : "leaflet-popup-custom"
-								    	//keepInView : true
-								}).openOn(map).openPopup();
-							    map.addLayer(popup)
-							    popup.openPopup();
-								marker[i] = popup;
+                // Popup bağla
+                if (popup_cfg.active && ['click', 'mouseover'].indexOf(popup_cfg.type) > -1) {
+                    _bindPopup(marker_item, map, latlng, loc, popup_cfg);
+                }
 
-	    					}else{
+                // Callback
+                if (config.callback && typeof window[config.callback] === 'function') {
+                    marker_item.on('click', function (e) {
+                        window[config.callback](map, this);
+                    });
+                } else if (config.callback && typeof config.callback === 'string' && config.callback !== '') {
+                    try {
+                        var cbFn = new Function('map', 'marker', config.callback);
+                        marker_item.on('click', function (e) { cbFn(map, this); });
+                    } catch(ex) { console.warn('Leaflet callback hatası', ex); }
+                }
 
-		    					twig({
-			                        href : ajax_request_vars.theme_url+config.popup.template,
-									async : true,
-									allowInlineIncludes : false,
-									load: function(template) {
-										var html = template.render(locations[i]);
-										var popup = L.popup(latlng, {
-									    	content: html, 
-									    	minWidth : 120,
-									    	maxWidth : config.popup.width,
-									    	closeButton : false,
-									    	closeOnClick : false,
-									    	autoClose : false,
-									    	className : "leaflet-popup-custom"
-									    	//keepInView : true
-									    }).openOn(map).openPopup();
-									    map.addLayer(popup)
-									    popup.openPopup();
-									    marker[i] = popup;
-			                        }
-			                    });
+                markerList.push(marker_item);
 
-		    				}
-	    				}
+            })(locations[i]);
+        }
 
-	    				if(["mouseover", "click"].indexOf(config.popup.type) > -1){
+        // Cluster'a ekle (tek seferde)
+        if (markerList.length > 0) {
+            markerList.forEach(function (m) { clusterGroup.addLayer(m); });
+            map.addLayer(clusterGroup);
+        }
 
-	    					if(config.popup.ajax && config.popup.template != "default"){
+        // ── invalidateSize – container görünür olduktan sonra ────────────────
+        // fitBounds/setView resize event'inden asla çağrılmaz (sonsuz döngü riski)
+        var _fitDone = false;
+        function _doFit() {
+            if (_fitDone) return;
+            _fitDone = true;
+            _fitMap(map, locations, markerList);
+        }
 
-	    						var popup = L.popup(latlng, {
-								    content: "", 
-								   	minWidth : 120,
-								   	maxWidth : config.popup.width,
-								   	closeButton : false,
-								   	closeOnClick : true,
-							    	autoClose : true,
-							    	className : "leaflet-popup-custom"
-							    	//keepInView : true
-								});
-	    						marker_item
-	    						.on(config.popup.type, function (e) {
-								    var currentMarker = this;
-								    if (currentMarker.isPopupOpen()) {
-                                        popup.closePopup();
-                                        return;
-                                    }
-								    if(currentMarker.loaded){
-								    	if(config.popup.type == "mouseover"){
-								    		currentMarker.openPopup();
-								    	}else{
-								    		popup.openPopup();
-								    	}
-								    }else{
-									    currentMarker.bindPopup('Loading...').openPopup();
-									    var vars =  {
-									        id : currentMarker.post_id,
-									        template : config.popup.template,
-									    };
-								        var query = new ajax_query();
-									    	query.method = "get_post";
-									    	query.vars = vars;
-									    	query.after = function(response, vars, form, objs){
-									    		currentMarker.setPopupContent(response.html);
-									    		currentMarker.loaded = true;
-									    	}
-											query.request();
-										currentMarker.query = query;							    	
-								    }
-								})
-								if(config.popup.type == "mouseover"){
-									marker_item
-									.on('mouseout', function (e) {
-										if(this.query){
-											this.query.abort();
-										}
-								        this.closePopup();
-								    });									
-								}
+        // İlk yükleme: rAF + 400ms – CSS ve transition bitmesini bekle
+        requestAnimationFrame(function () {
+            map.invalidateSize({ pan: false });
+            setTimeout(function () {
+                console.log('[Leaflet] invalidateSize + _doFit çağrılıyor, map size:', map.getSize());
+                map.invalidateSize({ pan: false });
+                // Tile pane'i sıfırla – top/left boşsa tile grid yeniden hesaplansın
+                map.eachLayer(function(layer) {
+                    if (layer._resetView) { layer._resetView(); }
+                    else if (layer.redraw) { layer.redraw(); }
+                });
+                _doFit();
+            }, 400);
+        });
 
-	    					}else{
+        // Resize handler – sadece invalidateSize, kesinlikle fitBounds yok
+        if (window.leafletResizeHandlers[id]) {
+            $(window).off('resize.leaflet_' + id);
+        }
+        var _resizeTimer;
+        window.leafletResizeHandlers[id] = function () {
+            clearTimeout(_resizeTimer);
+            _resizeTimer = setTimeout(function () {
+                if (!$.contains(document, obj[0])) {
+                    $(window).off('resize.leaflet_' + id);
+                    delete window.leafletResizeHandlers[id];
+                    return;
+                }
+                map.invalidateSize({ pan: false });
+            }, 200);
+        };
+        $(window).on('resize.leaflet_' + id, window.leafletResizeHandlers[id]);
 
-	    						if(config.popup.template == "default"){
+        // ── Butonlar ────────────────────────────────────────────────────────
+        if (buttons) {
+            _addButtons(map, buttons, config);
+        }
 
-	    							var popup = L.popup(latlng, {
-									    content: locations[i].title, 
-									   	minWidth : 120,
-									   	maxWidth : config.popup.width,
-									   	closeButton : false,
-									   	closeOnClick : true,
-								    	autoClose : true,
-								    	className : "leaflet-popup-custom"
-								    	//keepInView : true
-									});
-									marker_item.bindPopup(popup.getContent());//.openPopup();
-									marker_item
-									.on(config.popup.type, function (e) {
-										var currentMarker = this;
-									    if (currentMarker.isPopupOpen()) {
-	                                        popup.closePopup();
-	                                        return;
-	                                    }
-	                                    if(config.popup.type == "click"){
-											popup.openPopup();
-									    }else{
-									    	currentMarker.openPopup();
-									    }
-									});
-									if(config.popup.type == "mouseover"){
-										marker_item
-										.on('mouseout', function (e) {
-											var currentMarker = this;
-											if(config.popup.type == "click"){
-												popup.closePopup();
-										    }else{
-										    	currentMarker.closePopup();
-										    }
-										});
-									}
+        // Map referansını sakla (modal invalidateSize için)
+        obj.data('map', map);
+        obj[0]._leafletMap = map;
 
-	    						}else{
+        // Tooltip
+        obj[0].querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            new bootstrap.Tooltip(el);
+        });
 
-									twig({
-				                        href : ajax_request_vars.theme_url+config.popup.template,
-										async : true,
-										allowInlineIncludes : false,
-										load: function(template) {
-											var html = template.render(locations[i]);
-											var popup = L.popup(latlng, {
-										    	content: html, 
-										    	minWidth : 120,
-										    	maxWidth : config.popup.width,
-										    	closeButton : false,
-										    	closeOnClick : true,
-										    	autoClose : true,
-										    	className : "leaflet-popup-custom"
-										    	//keepInView : true
-										    });
-										    marker_item.bindPopup(popup.getContent());//.openPopup();
-									        marker_item
-									        .on(config.popup.type, function (e) {
-									            this.openPopup();
-									        });
-									        if(config.popup.type == "mouseover"){
-										        marker_item
-										        .on('mouseout', function (e) {
-										            this.closePopup();
-										        });
-										    }
-									    }
-								    });
+        return obj;
+    });
+}
 
-	    						}
-
-	    					}
-	    				}
-
-	    			}
-
-	    			if(config.callback){
-				    	let func = window[config.callback];
-						let onclick_func = new Function("map", "marker", func);
-						marker_item.on('click', function (e) {
-							e.preventDefault;
-						    onclick_func(map, this);
-						});
-					}
-
-					/*if(typeof window[config.callback] === "function"){
-						marker_item.on('click', function (e) {
-	                        e.preventDefault;
-	                        let postId = this.post_id;
-					        window[config.callback](postId);
-					    });					
-					}*/
-
-					if(config.popup.type != "static"){
-						marker[i] = marker_item;
-					}
-		    }
-            
-            if(marker){
-				marker.forEach(function(marker) {
-					markers.addLayer(marker);
-					map.addLayer(markers);
-				});            	
+// ─── 5. Yardımcı: Static popup ───────────────────────────────────────────────
+function _addStaticPopup(map, latlng, loc, popup_cfg, markerList) {
+    if (popup_cfg.template === 'default') {
+        var popup = L.popup({ autoPan: false })
+            .setLatLng(latlng)
+            .setContent(loc.title);
+        popup.addTo(map).openPopup();
+        markerList.push(popup);
+    } else {
+        twig({
+            href: ajax_request_vars.theme_url + popup_cfg.template,
+            async: true,
+            allowInlineIncludes: false,
+            load: function (template) {
+                var html  = template.render(loc);
+                var popup = L.popup({ autoPan: false, closeButton: false, autoClose: false, closeOnClick: false, className: 'leaflet-popup-custom' })
+                    .setLatLng(latlng)
+                    .setContent(html);
+                popup.addTo(map).openPopup();
+                markerList.push(popup);
             }
-
-			//var group = new L.featureGroup(marker);
-            //map.fitBounds(group.getBounds());
-
-            function fitMapToWindow() {
-			    var group = new L.featureGroup(marker);
-                map.fitBounds(group.getBounds());
-			}
-			if(locations.length > 1){
-				fitMapToWindow();
-				window.addEventListener('resize', fitMapToWindow);
-			}else if(locations.length == 1){
-				let zoom = map.getZoom()
-				if(!IsBlank(locations[0].zoom)){
-					zoom = locations[0].zoom;
-				}
-				map.setView([locations[0].lat, locations[0].lng], zoom); 
-			}
-            
-            if(buttons){
-
-            	if (buttons && Object.prototype.hasOwnProperty.call(buttons, "zoom_position")) {
-					L.control.zoom({
-					    position: buttons.zoom_position
-					}).addTo(map);            		
-            	}
-
-				L.Control.Button = L.Control.extend({
-					  options: {
-					    position: config.buttons.position
-					  },
-					  initialize: function (options) {
-					    this._button = {};
-					    this.setButton(options);
-					  },
-
-					  onAdd: function (map) {
-					    this._map = map;
-
-					    this._container = L.DomUtil.create('div', 'leaflet-control-button leaflet-bar');
-
-					    this._update();
-					    return this._container;
-					  },
-
-					  onRemove: function (map) {
-					    this._button = {};
-					    this._update();
-					  },
-
-					  setButton: function (options) {
-					    var button = {
-					      'class': options.class || "",
-					      'text': options.text || "",
-					      'onClick': options.onClick || function() {},
-					      'title': options.title || "",
-					      'data' :options.data || {}
-					    };
-
-					    this._button = button;
-					    this._update();
-					  },
-
-					  _update: function () {
-					    if (!this._map) {
-					      return;
-					    }
-
-					    this._container.innerHTML = '';
-					    this._makeButton(this._button);
-					  },
-
-					  _makeButton: function (button) {
-					    var newButton = L.DomUtil.create('a', 'leaflet-buttons-control-button '+button.class, this._container);
-					    newButton.href = '#';
-					    newButton.innerHTML = button.text;
-					    newButton.title = button.title;
-					    if (button.data) {
-						    for (var key in button.data) {
-						        // jQuery 4.0 / Modern JS güvenli kontrolü
-						        if (Object.prototype.hasOwnProperty.call(button.data, key)) {
-						            // Attribute isminde "data-" yoksa eklemek gerekebilir, 
-						            // ama senin yapına göre direkt key'i basıyoruz:
-						            newButton.setAttribute(key, button.data[key]);
-						        }
-						    }
-						}
-
-					    onClick = function(event) {
-					      button.onClick(event, newButton);
-					    };
-					
-					    L.DomEvent.addListener(newButton, 'click', onClick, this);
-					    return newButton;// from https://gist.github.com/emtiu/6098482
-					}
-	            });
-	            if (buttons && Object.prototype.hasOwnProperty.call(buttons, "items")) {
-		            for(var i=0;i<buttons.items.length;i++){
-			            let button_config = {
-					        title: buttons.items[i].title,
-							class : buttons.items[i].class,
-					    };
-					    if(buttons.items[i].attributes){
-					    	let data = {};
-					    	for(var z=0;z<buttons.items[i].attributes.length;z++){
-					    		let name = buttons.items[i].attributes[z].name;
-					    		let value = buttons.items[i].attributes[z].value;
-					    		data[name] = value;
-					    	}
-					    	button_config["data"] = data;
-					    }
-
-					    if(buttons.items[i].onclick){
-							let onclick_func = new Function("map", buttons.items[i].onclick);
-							button_config["onClick"] = function(e){
-							    e.preventDefault();
-							    onclick_func(map);
-							};
-						}
-
-                        /*
-					    let onclick_func = new Function();
-					    if(buttons.items[i].onclick){
-					    	let onclick = buttons.items[i].onclick;
-							onclick_func = new Function(onclick);
-					    }
-					    button_config["onClick"] = function(e){
-							e.preventDefault();
-	                        onclick_func();
-						}*/
-					    new L.Control.Button(button_config).addTo(map); 	            	
-		            }	            	
-	            }
-            }    
-      
-            obj.data("map", map);
-
-            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-
-            return obj;
-
-	    });
+        });
     }
 }
 
+// ─── 6. Yardımcı: Click/mouseover popup ──────────────────────────────────────
+function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
+    var popupOpts = {
+        minWidth:    120,
+        maxWidth:    popup_cfg.width || 300,
+        closeButton: false,
+        closeOnClick: popup_cfg.type === 'click',
+        autoClose:   popup_cfg.type === 'click',
+        className:   'leaflet-popup-custom'
+    };
 
+    if (popup_cfg.ajax && popup_cfg.template !== 'default') {
+        // AJAX popup
+        marker_item.bindPopup('', popupOpts);
+
+        marker_item.on(popup_cfg.type, function () {
+            var self = this;
+            if (self.isPopupOpen()) {
+                self.closePopup();
+                return;
+            }
+            if (self._popupLoaded) {
+                self.openPopup();
+                return;
+            }
+            self.setPopupContent('<span class="leaflet-loading">...</span>');
+            self.openPopup();
+
+            var query = new ajax_query();
+            query.method = 'get_post';
+            query.vars   = { id: self.post_id, template: popup_cfg.template };
+            query.after  = function (response) {
+                self.setPopupContent(response.html);
+                self._popupLoaded = true;
+            };
+            query.request();
+            self._activeQuery = query;
+        });
+
+        if (popup_cfg.type === 'mouseover') {
+            marker_item.on('mouseout', function () {
+                if (this._activeQuery) { this._activeQuery.abort(); }
+                this.closePopup();
+            });
+        }
+
+    } else {
+        // Inline / twig popup
+        if (popup_cfg.template === 'default') {
+            marker_item.bindPopup(loc.title || '', popupOpts);
+            marker_item.on(popup_cfg.type, function () {
+                if (this.isPopupOpen()) { this.closePopup(); return; }
+                this.openPopup();
+            });
+            if (popup_cfg.type === 'mouseover') {
+                marker_item.on('mouseout', function () { this.closePopup(); });
+            }
+        } else {
+            twig({
+                href: ajax_request_vars.theme_url + popup_cfg.template,
+                async: true,
+                allowInlineIncludes: false,
+                load: function (template) {
+                    var html = template.render(loc);
+                    marker_item.bindPopup(html, popupOpts);
+                    marker_item.on(popup_cfg.type, function () {
+                        if (this.isPopupOpen()) { this.closePopup(); return; }
+                        this.openPopup();
+                    });
+                    if (popup_cfg.type === 'mouseover') {
+                        marker_item.on('mouseout', function () { this.closePopup(); });
+                    }
+                }
+            });
+        }
+    }
+}
+
+// ─── 7. Yardımcı: Fit map ────────────────────────────────────────────────────
+function _fitMap(map, locations, markerList) {
+    console.log('[_fitMap] locations:', locations.length, 'markerList:', markerList.length);
+    if (locations.length > 1 && markerList.length > 0) {
+        var realMarkers = markerList.filter(function (m) { return m instanceof L.Marker; });
+        console.log('[_fitMap] realMarkers:', realMarkers.length);
+        if (realMarkers.length > 0) {
+            var group = L.featureGroup(realMarkers);
+            map.fitBounds(group.getBounds(), { padding: [30, 30] });
+        }
+    } else if (locations.length === 1) {
+        var zoom = locations[0].zoom || 15;
+        console.log('[_fitMap] setView', locations[0].lat, locations[0].lng, zoom);
+        map.setView([locations[0].lat, locations[0].lng], zoom);
+    }
+}
+
+// ─── 8. Yardımcı: Butonlar ───────────────────────────────────────────────────
+function _addButtons(map, buttons, config) {
+    if (buttons.zoom_position) {
+        L.control.zoom({ position: buttons.zoom_position }).addTo(map);
+    }
+
+    if (!buttons.items || !buttons.items.length) return;
+
+    // L.Control.Button – her harita için ayrı tanımlamaya gerek yok, global yeterli
+    if (!L.Control.Button) {
+        L.Control.Button = L.Control.extend({
+            options: { position: 'topright' },
+            initialize: function (opts) {
+                L.setOptions(this, opts);
+                this._btnConfig = opts;
+            },
+            onAdd: function () {
+                var container = L.DomUtil.create('div', 'leaflet-control-button leaflet-bar');
+                var btn = L.DomUtil.create('a', 'leaflet-buttons-control-button ' + (this._btnConfig.class || ''), container);
+                btn.href  = '#';
+                btn.title = this._btnConfig.title || '';
+                btn.innerHTML = this._btnConfig.text || '';
+
+                if (this._btnConfig.data) {
+                    Object.keys(this._btnConfig.data).forEach(function (k) {
+                        btn.setAttribute(k, this._btnConfig.data[k]);
+                    }, this);
+                }
+
+                var self = this;
+                L.DomEvent.on(btn, 'click', function (e) {
+                    L.DomEvent.preventDefault(e);
+                    if (typeof self._btnConfig.onClick === 'function') {
+                        self._btnConfig.onClick(e, btn);
+                    }
+                });
+                return container;
+            }
+        });
+    }
+
+    var position = (buttons.position) || 'topright';
+
+    buttons.items.forEach(function (item) {
+        var btn_cfg = {
+            position: position,
+            title:    item.title  || '',
+            class:    item.class  || '',
+            text:     item.text   || ''
+        };
+
+        if (item.attributes) {
+            var data = {};
+            item.attributes.forEach(function (a) { data[a.name] = a.value; });
+            btn_cfg.data = data;
+        }
+
+        if (item.onclick) {
+            try {
+                var fn = new Function('map', item.onclick);
+                btn_cfg.onClick = function (e) { fn(map); };
+            } catch (ex) { console.warn('Button onclick hatası', ex); }
+        }
+
+        new L.Control.Button(btn_cfg).addTo(map);
+    });
+}

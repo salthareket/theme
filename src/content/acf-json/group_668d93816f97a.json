@@ -762,6 +762,9 @@
                                 "##Defaults": "##Defaults",
                                 "initial": "initial",
                                 "inherit": "inherit",
+                                "##Custom Fonts": "##Custom Fonts",
+                                "'courier-std'": "courier-std",
+                                "'anton'": "Anton",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -1493,6 +1496,9 @@
                                         "##Defaults": "##Defaults",
                                         "initial": "initial",
                                         "inherit": "inherit",
+                                        "##Custom Fonts": "##Custom Fonts",
+                                        "'courier-std'": "courier-std",
+                                        "'anton'": "Anton",
                                         "##Icon Fonts": "##Icon Fonts",
                                         "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                         "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -2413,7 +2419,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772218151,
+    "modified": 1774302543,
     "acfe_categories": {
         "general": "General"
     }

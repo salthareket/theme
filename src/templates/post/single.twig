@@ -56,14 +56,8 @@
     {% endif %}
 {% endblock %}
 
-{% block shop_header %}
-    {% include "product/header.twig" %}
-{% endblock %}
-
-
 {% block hero %}
 {% endblock %}
-
 
 {% set categories = function('get_blog_categories') %}
 {% set tags = function('get_blog_tags') %}

@@ -1,11 +1,25 @@
 let lazyLoadInstance;
 
+window.addEventListener('unhandledrejection', function(event) {
+    // "The fetching process for the media resource was aborted" hatasını yakala
+    if (event.reason && event.reason.name === 'AbortError' || (event.reason.message && event.reason.message.includes('aborted'))) {
+        event.preventDefault(); // Konsola basılmasını engelle
+        debugJS("Video yüklemesi kasıtlı olarak durduruldu, hata susturuldu.");
+    }
+});
+
 function init_vanilla_lazyload(){
     lazyLoadInstance = new LazyLoad({
         elements_selector: ".lazy",
         // Swiper içindeki video/iframe'lerin sadece aktif slide'da yüklenmesi için optimizasyon
         callback_loading: function(e) {
             var obj = $(e);
+
+            let slide = $(e).closest(".swiper-slide");
+            if (slide.length > 0 && !slide.hasClass("swiper-slide-active")) {
+                return false; // Native lazyload/loading sürecini iptal eder
+            }
+
             if (obj[0].nodeName == 'IFRAME' && obj.hasClass('video')) {
                 let slide = obj.closest(".swiper-slide");
                 if (slide.length > 0 && slide.index() > 0) {
@@ -55,6 +69,9 @@ function init_vanilla_lazyload(){
         },
         callback_error: function(e) {
             var obj = $(e);
+            if (obj[0].nodeName === 'VIDEO') {
+                return; 
+            }
             if (obj[0].nodeName == 'IMG' && obj.attr("data-placeholder")) {
                 // Placeholder görseli yükle
                 obj.attr("data-src", ajax_request_vars.theme_url + "/static/img/placeholder/img-" + obj.attr("data-placeholder") + ".jpg");
@@ -67,6 +84,13 @@ function init_vanilla_lazyload(){
         },
         callback_enter: function(e) {
             var obj = $(e);
+
+            let slide = obj.closest(".swiper-slide");
+            if (slide.length > 0 && !slide.hasClass("swiper-slide-active")) {
+                // Bu elemanı şimdilik atla, yüklemeye çalışma
+                return false; 
+            }
+
             // Placeholder kontrolü
             if (obj[0].nodeName == 'IMG' && obj.attr("data-placeholder")) {
                 if (IsBlank(obj.attr("data-src")) && IsBlank(obj.attr("src"))) {

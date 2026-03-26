@@ -57,11 +57,11 @@
 {% endblock %}
 
 {% block shop_header %}
-    {% include "product/header.twig" %}
+    {% include "woo/header.twig" %}
 {% endblock %}
 
 {% block content %}
-    <div class="card card-reset container ççç">
+    <div class="card card-reset container">
 
         {% include "partials/pagination/pagination-advanced.twig" with { container : ".posts", post_type : post_type, direction : "prev"} %}
 

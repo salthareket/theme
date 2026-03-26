@@ -83,6 +83,25 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
+	$plugins['plyr'] = [
+		"c"	=> true,
+		"admin" => false,
+		"url" => [
+			$node_path . 'plyr/dist/plyr.min.js'
+		],
+		"css" => [
+			$node_path . 'plyr/dist/plyr.css'
+		],
+		"css_only_local" => false,
+		"class" => ["player"],
+		"attrs" => [],
+		"init"     => "init_plyr",
+		"whitelist" => [
+			".plyr",
+			".plyr-*"
+		],
+		"required" => []
+	];
 	$plugins['vanilla-lazyload'] = [
 		"c"   => false,
 		"admin" => true,
@@ -148,7 +167,8 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="form_modal"', 
 			'data-ajax-method="page_modal"', 
 			'data-ajax-method="iframe_modal"', 
-			'data-ajax-method="map_modal"'
+			'data-ajax-method="map_modal"',
+			'data-ajax-method="custom_modal"'
 		],
 		"init" => "init_bootbox",
 		"whitelist" => [
@@ -174,25 +194,6 @@ function compile_files_config($enable_production=false){
 		"init" => "init_aos",
 		"whitelist" => [
 			".aos-animate"
-		],
-		"required" => []
-	];
-	$plugins['plyr'] = [
-		"c"	=> true,
-		"admin" => false,
-		"url" => [
-			$node_path . 'plyr/dist/plyr.min.js'
-		],
-		"css" => [
-			$node_path . 'plyr/dist/plyr.css'
-		],
-		"css_only_local" => false,
-		"class" => ["player"],
-		"attrs" => [],
-		"init"     => "init_plyr",
-		"whitelist" => [
-			".plyr",
-			".plyr-*"
 		],
 		"required" => []
 	];

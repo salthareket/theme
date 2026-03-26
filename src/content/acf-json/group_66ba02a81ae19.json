@@ -88,7 +88,10 @@
                         "id": ""
                     },
                     "choices": {
-                        "header": "header"
+                        "footer_en": "footer_en",
+                        "header": "header",
+                        "header_tr": "header_tr",
+                        "header-menu-tr": "header-menu-tr"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -541,7 +544,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772313353,
+    "modified": 1774302555,
     "acfe_categories": {
         "general": "General"
     }

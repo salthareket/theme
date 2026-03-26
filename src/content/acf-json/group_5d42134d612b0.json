@@ -12,14 +12,12 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "14.2",
+                "width": "16.6",
                 "class": "",
                 "id": ""
             },
             "uploader": "",
             "return_format": "url",
-            "library": "all",
-            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -28,8 +26,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "allow_in_bindings": 1,
-            "preview_size": "thumbnail"
+            "preview_size": "thumbnail",
+            "library": "all"
         },
         {
             "key": "field_65ef9c36d761c",
@@ -41,14 +39,12 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "14.2",
+                "width": "16.6",
                 "class": "",
                 "id": ""
             },
             "uploader": "",
             "return_format": "url",
-            "library": "all",
-            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -57,8 +53,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "allow_in_bindings": 1,
-            "preview_size": "thumbnail"
+            "preview_size": "thumbnail",
+            "library": "all"
         },
         {
             "key": "field_64ee7ecab3cd3",
@@ -70,14 +66,12 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "14.2",
+                "width": "16.6",
                 "class": "",
                 "id": ""
             },
             "uploader": "",
             "return_format": "url",
-            "library": "all",
-            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -86,8 +80,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "allow_in_bindings": 1,
-            "preview_size": "thumbnail"
+            "preview_size": "thumbnail",
+            "library": "all"
         },
         {
             "key": "field_660386c48ecdd",
@@ -99,14 +93,12 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "14.2",
+                "width": "16.6",
                 "class": "",
                 "id": ""
             },
             "uploader": "",
             "return_format": "url",
-            "library": "all",
-            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -115,8 +107,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "allow_in_bindings": 1,
-            "preview_size": "thumbnail"
+            "preview_size": "thumbnail",
+            "library": "all"
         },
         {
             "key": "field_5d42138a45ea7",
@@ -128,14 +120,12 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "14.2",
+                "width": "16.6",
                 "class": "",
                 "id": ""
             },
             "uploader": "",
             "return_format": "url",
-            "library": "all",
-            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -144,8 +134,8 @@
             "max_height": "",
             "max_size": "",
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "allow_in_bindings": 1,
-            "preview_size": "thumbnail"
+            "preview_size": "thumbnail",
+            "library": "all"
         },
         {
             "key": "field_64f3537d2a309",
@@ -157,14 +147,13 @@
             "required": 0,
             "conditional_logic": 0,
             "wrapper": {
-                "width": "14.2",
+                "width": "16.6",
                 "class": "",
                 "id": ""
             },
             "uploader": "",
             "return_format": "array",
             "library": "all",
-            "translations": "ignore",
             "acfe_thumbnail": 0,
             "min_width": "",
             "min_height": "",
@@ -175,80 +164,6 @@
             "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
             "allow_in_bindings": 1,
             "preview_size": "thumbnail"
-        },
-        {
-            "key": "field_697be7df997f4",
-            "label": "Image Not Found",
-            "name": "logo_not_found",
-            "aria-label": "",
-            "type": "image",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "14.2",
-                "class": "",
-                "id": ""
-            },
-            "uploader": "",
-            "return_format": "url",
-            "library": "all",
-            "translations": "ignore",
-            "acfe_thumbnail": 0,
-            "min_width": "",
-            "min_height": "",
-            "min_size": "",
-            "max_width": "",
-            "max_height": "",
-            "max_size": "",
-            "mime_types": "jpg,jpeg,png,gif,svg,webp,avif",
-            "allow_in_bindings": 1,
-            "preview_size": "thumbnail"
-        },
-        {
-            "key": "field_69386f5144ce8",
-            "label": "Logo Mobile Breakpoint",
-            "name": "logo_mobile_breakpoint",
-            "aria-label": "",
-            "type": "select",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_660386c48ecdd",
-                        "operator": "!=empty"
-                    }
-                ]
-            ],
-            "wrapper": {
-                "width": "20",
-                "class": "acf-breakpoints",
-                "id": ""
-            },
-            "choices": {
-                "xs": "xs",
-                "sm": "sm",
-                "md": "md",
-                "lg": "lg",
-                "xl": "xl",
-                "xxl": "xxl",
-                "xxxl": "xxxl"
-            },
-            "default_value": "xl",
-            "return_format": "value",
-            "multiple": 0,
-            "translations": "ignore",
-            "allow_null": 0,
-            "allow_in_bindings": 0,
-            "ui": 0,
-            "ajax": 0,
-            "placeholder": "",
-            "create_options": 0,
-            "save_options": 0,
-            "allow_custom": 0,
-            "search_placeholder": "",
-            "pll_default_value": "xl"
         }
     ],
     "location": [
@@ -274,10 +189,9 @@
         "json"
     ],
     "acfe_form": 0,
-    "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772218126,
+    "modified": 1774310443,
     "acfe_categories": {
         "general": "General"
     }

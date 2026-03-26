@@ -554,77 +554,6 @@ class Post extends Timber\Post{
         return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
-    /*public function get_thumbnail($args=array()){
-        $media = $this->meta("media");
-        if(isset($media) && $media["media_type"] == "image"){
-            if($media["use_responsive_image"]){
-                $args["src"] = $media["image_responsive"];
-                $image = new SaltHareket\Image($args);
-                return $image->init();
-            }else{
-                $args["src"] = $this->thumbnail();
-                $image = new SaltHareket\Image($args);
-                return $image->init();
-            }
-        }else{
-            $args["src"] = $this->thumbnail();
-            $image = new SaltHareket\Image($args);
-            return $image->init();
-        }
-    }*/
-
-    /*public function get_thumbnail(array $args = []){
-        $media = $this->meta('media');
-        $src   = $this->thumbnail(); // en sağlam fallback
-
-        // 1) JSON/serialize yakala (ACF bazen ham meta döndürebilir)
-        if (is_string($media)) {
-            // JSON?
-            $decoded = json_decode($media, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $media = $decoded;
-            } elseif (ctype_digit($media)) {
-                // attachment ID string
-                $maybe = wp_get_attachment_url((int)$media);
-                if ($maybe) { $src = $maybe; }
-            }
-        }
-
-        // 2) Dizi ise güvenli erişim
-        if (is_array($media)) {
-            $type = $media['media_type'] ?? null;
-
-            if ($type === 'image') {
-                // responsive varsa onu kullan
-                if (!empty($media['use_responsive_image']) && !empty($media['image_responsive'])) {
-                    $src = $media['image_responsive'];
-                } elseif (!empty($media['image'])) {
-                    // bazı alanlarda doğrudan image olabilir
-                    $src = $media['image'];
-                }
-            } elseif (isset($media['id']) && is_numeric($media['id'])) {
-                // generic attachment id alanı
-                $maybe = wp_get_attachment_url((int)$media['id']);
-                if ($maybe) { $src = $maybe; }
-            }
-        } elseif (is_int($media)) {
-            // ham attachment id
-            $maybe = wp_get_attachment_url($media);
-            if ($maybe) { $src = $maybe; }
-        }
-
-        // 3) SaltHareket\Image çağrısı
-        $args['src'] = $src;
-
-        try {
-            $image = new \SaltHareket\Image($args);
-            return $image->init();
-        } catch (\Throwable $e) {
-            //error_log('get_thumbnail failed: '.$e->getMessage());
-            return '';
-        }
-    }*/
-
     public function get_thumbnail(array $args = []){
         $media = $this->meta('media');
         $src   = '';
@@ -687,9 +616,6 @@ class Post extends Timber\Post{
         }
     }
 
-
-
-
     /**
      * $post->slug_default erişimini mümkün kıl
      */
@@ -699,7 +625,6 @@ class Post extends Timber\Post{
         }
         return parent::__get($key);
     }
-
 
     public function pll_get_post($lang){
         $fallback = $this->ID;
@@ -956,5 +881,51 @@ class Post extends Timber\Post{
         }
 
         return null;
+    }
+
+    public function get_custom_template_data($type = "modal") {
+        if (!in_array($type, ['offcanvas', 'modal'])) {
+            return false;
+        }
+
+        $attrs = $this->meta($type);
+        $template = $this->meta("template");
+
+        if (empty($attrs)) return false;
+
+        $data_strings = [];
+
+        $data_strings[] = sprintf('data-id="%s"', esc_attr($this->ID));
+        $data_strings[] = sprintf('data-class="%s"', esc_attr($this->slug));
+        
+        // Template varsa data-template olarak ekle
+        if ($template) {
+            $data_strings[] = sprintf('data-template="%s"', esc_attr("_custom/".$template));
+        }
+
+        foreach ($attrs as $key => $value) {
+            if (empty($key)) continue;
+
+            // --- FULLSCREEN MANTIĞI ---
+            if ($key === 'fullscreen') {
+                // "none" ise veya boşsa HTML'e hiç eklemiyoruz
+                if ($value === 'none' || empty($value)) {
+                    continue;
+                }
+                // "none" değilse (örn: modal-fullscreen-md-down), değeri olduğu gibi basıyoruz
+                $data_strings[] = sprintf('data-fullscreen="%s"', esc_attr($value));
+                continue;
+            }
+
+            // --- DİĞER DEĞERLER ---
+            $val = $value;
+            // Boolean dönüşümleri (JS tarafında dataset.centered === 'true' kontrolü için)
+            if ($val === "1" || $val === 1) $val = "true";
+            if ($val === "0" || $val === 0) $val = "false";
+
+            $data_strings[] = sprintf('data-%s="%s"', esc_attr($key), esc_attr($val));
+        }
+
+        return implode(' ', $data_strings);
     }
 }

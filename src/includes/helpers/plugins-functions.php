@@ -463,10 +463,10 @@ function get_map_config_v1($fields = array(), $block_meta = array()){
 
 	switch($map_service){
 		case "leaflet":
-			$html .= '<div class="leaflet-custom '.(($config['popup']['active'] && !$config['popup']['ajax']) ? 'leaflet-custom-popup' : '').' ratio-- z-0 viewport" data-height="400" data-map="leaflet" data-config="'.$map_config.'"></div>';
+			$html .= '<div class="leaflet-custom '.(($config['popup']['active'] && !$config['popup']['ajax']) ? 'leaflet-custom-popup' : '').' ratio-- z-0- viewport" data-height="400" data-map="leaflet" data-config="'.$map_config.'"></div>';
 		break;
 		case "google":
-			$html .= '<div class="googlemaps-custom '.(($config['popup']['active'] && !$config['popup']['ajax']) ? 'googlemaps-custom-popup' : '').' ratio-- z-0 viewport" data-height="400" data-map="google" data-config="'.$map_config.'"></div>';
+			$html .= '<div class="googlemaps-custom '.(($config['popup']['active'] && !$config['popup']['ajax']) ? 'googlemaps-custom-popup' : '').' ratio-- z-0- viewport" data-height="400" data-map="google" data-config="'.$map_config.'"></div>';
 		break;
 	}
 
@@ -593,13 +593,13 @@ function get_map_config($fields = array(), $block_meta = array()) {
     }
 
     // 4. HTML Render
-    $wrapper_class = ($map_service === "leaflet") ? "leaflet-custom" : "googlemaps-custom";
+    $wrapper_class = ($map_service === "leaflet") ? "leaflet leaflet-custom" : "googlemaps-custom";
     if ($config['popup']['active'] && !$config['popup']['ajax']) {
         $wrapper_class .= " {$wrapper_class}-popup";
     }
 
     $html .= sprintf(
-        '<div id="%s" class="%s ratio-- z-0 viewport" data-height="400" data-map="%s" data-config="%s"></div>',
+        '<div id="map_%s" class="%s viewport" data-height="400" data-map="%s" data-config="%s"></div>',
         $block_meta['id'], $wrapper_class, $map_service, $map_config
     );
 

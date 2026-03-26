@@ -157,7 +157,7 @@
             "acfe_flexible_layouts_previews": false,
             "acfe_flexible_layouts_state": false,
             "acfe_flexible_modal_settings": {
-                "acfe_flexible_modal_settings_enabled": 0,
+                "acfe_flexible_modal_settings_enabled": false,
                 "acfe_flexible_modal_settings_size": "large",
                 "acfe_flexible_modal_settings_close": true,
                 "acfe_flexible_modal_settings_close_label": ""
@@ -191,7 +191,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1773195404,
+    "modified": 1774314170,
     "acfe_categories": {
         "block": "Block"
     }

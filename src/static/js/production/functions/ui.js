@@ -255,7 +255,9 @@ function btn_ajax_method(){ /// ***new*** updated function
 
 	function init_ajax($obj, $button){
 	    // 1. Önce butondaki TÜM datayı temizce alalım
-	    var $data = JSON.parse(JSON.stringify($obj.data())); 
+	    var $data = JSON.parse(JSON.stringify($obj.data()));
+	    
+	    console.log($data);
 	    
 	    // 2. Metodun pagination_ajax olduğundan emin olalım
 	    var currentMethod = $obj.attr("data-ajax-method"); 

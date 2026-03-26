@@ -108,8 +108,7 @@
                         "id": ""
                     },
                     "choices": {
-                        "grand-galata-hotel": "grand-galata-hotel [01.03.2026 19:14]",
-                        "latest": "latest [01.03.2026 19:14]"
+                        "latest": "latest [18.03.2026 23:50]"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -692,7 +691,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772393226,
+    "modified": 1774362989,
     "acfe_categories": {
         "general": "General"
     }

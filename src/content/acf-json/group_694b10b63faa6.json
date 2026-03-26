@@ -48,7 +48,7 @@
                     "aria-label": "",
                     "type": "text",
                     "instructions": "",
-                    "required": 1,
+                    "required": 0,
                     "conditional_logic": 0,
                     "wrapper": {
                         "width": "33.333",
@@ -56,13 +56,11 @@
                         "id": ""
                     },
                     "default_value": "",
-                    "translations": "ignore",
                     "maxlength": "",
                     "allow_in_bindings": 0,
                     "placeholder": "",
                     "prepend": "",
-                    "append": "",
-                    "pll_default_value": ""
+                    "append": ""
                 },
                 {
                     "key": "field_69729350e16fc",
@@ -117,17 +115,16 @@
                     "choices": {
                         "none": "No",
                         "modal-fullscreen": "Always",
-                        "sm-down": "Under sm",
-                        "md-down": "Under md",
-                        "lg-down": "Under lg",
-                        "xl-down": "Under xl",
-                        "xxl-down": "Under xxl",
-                        "xxxl-down": "Under xxxl"
+                        "modal-fullscreen-sm-down": "Under sm",
+                        "modal-fullscreen-md-down": "Under md",
+                        "modal-fullscreen-lg-down": "Under lg",
+                        "modal-fullscreen-xl-down": "Under xl",
+                        "modal-fullscreen-xxl-down": "Under xxl",
+                        "modal-fullscreen-xxxl-down": "Under xxxl"
                     },
                     "default_value": "none",
                     "return_format": "value",
                     "multiple": 0,
-                    "translations": "ignore",
                     "allow_null": 0,
                     "allow_in_bindings": 0,
                     "ui": 0,
@@ -136,8 +133,7 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": "",
-                    "pll_default_value": "none"
+                    "search_placeholder": ""
                 },
                 {
                     "key": "field_6972942de16fe",
@@ -210,8 +206,8 @@
                 },
                 {
                     "key": "field_69729451e1701",
-                    "label": "No Animation",
-                    "name": "no_animation",
+                    "label": "Animation",
+                    "name": "animate",
                     "aria-label": "",
                     "type": "true_false",
                     "instructions": "",
@@ -223,13 +219,11 @@
                         "id": ""
                     },
                     "message": "",
-                    "default_value": 0,
-                    "translations": "ignore",
+                    "default_value": 1,
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1,
-                    "pll_default_value": 0
+                    "ui": 1
                 },
                 {
                     "key": "field_69729eba0a814",
@@ -275,7 +269,7 @@
                 {
                     "key": "field_6972a81f0a817",
                     "label": "Close Button",
-                    "name": "close_button",
+                    "name": "close",
                     "aria-label": "",
                     "type": "true_false",
                     "instructions": "",
@@ -288,12 +282,10 @@
                     },
                     "message": "",
                     "default_value": 0,
-                    "translations": "ignore",
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1,
-                    "pll_default_value": 0
+                    "ui": 1
                 },
                 {
                     "key": "field_6972a8140a816",
@@ -559,7 +551,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772494852,
+    "modified": 1774376951,
     "acfe_categories": {
         "general": "General"
     }

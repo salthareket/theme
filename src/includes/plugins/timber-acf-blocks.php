@@ -505,12 +505,18 @@ function block_classes($block, $fields, $block_column){
     }*/
     if(isset($fields["block_settings"])){
         $classes[] = block_spacing($fields["block_settings"]);
-        $classes[] = "d-flex";
-        if(empty(block_container($fields["block_settings"]["container"]))){
-            $classes[] = "flex-column-justify-content-center";
-        }
+        
+        //$position_class = "d-flex";
+        /*if($block["name"] == "acf/tease-list"){
+            $position_class = "d-block";
+        }*/
 
+        //$classes[] = $position_class;
         $classes[] = block_align($fields["block_settings"]["align"], $block_column);
+
+        /*if(empty(block_container($fields["block_settings"]["container"]))){
+            $classes[] = "flex-column-justify-content-center";
+        }*/
 
         /*if(isset($fields["block_settings"]["horizontal_align"]) && $fields["block_settings"]["horizontal_align"]){
             $classes = array_merge($classes, block_responsive_classes($fields["block_settings"]["horizontal_align"], "justify-content-", $block_column));
@@ -590,53 +596,6 @@ function block_attrs($block, $fields, $block_column){
     $attrs = array2Attrs($attrs);
     return $attrs;
 }
-
-
-function block_visibility_v1($block, $fields, $block_column = null) {
-
-    $visibility_field = $fields["block_settings"]["visibility"];
-
-    if (empty($visibility_field) || !is_array($visibility_field)) return '';
-
-    $display = $visibility_field['display'] ?? 'block';
-    if ($display === 'none' && !is_admin()) return 'd-none';
-
-    $display = $fields["block_settings"]["hero"] ? 'flex' : $display;
-
-    $values = $visibility_field['visibility'] ?? [];
-    if (empty($values)) return "d-{$display}";
-    if(!is_array($values)) return "";
-
-    $added_auto_or_none = false;
-
-    // Mobile-first sıralama
-    $breakpoints = array_reverse(Data::get("breakpoints"));
-
-    $classes = [];
-
-    foreach ($breakpoints as $breakpoint) {
-        if (isset($values[$breakpoint])) {
-            $value = $values[$breakpoint]?$display:"none";
-            if ($value === 'none') {
-                if (!$added_auto_or_none || $breakpoint === 'xs' || $breakpoint === 'sm') {
-                    // 'xs' ve 'sm' gibi küçük breakpointler için auto/none değerlerini yine ekleyelim
-                    $classes[] = "d-{$breakpoint}-{$value}";
-                    $added_auto_or_none = true;
-                }
-            } else {
-                // İlk dolu breakpoint için prefix kaldır
-                if ($breakpoint === 'xs') {
-                    $classes[] = "d-{$value}";
-                } else {
-                    $classes[] = "d-{$breakpoint}-{$value}";
-                }
-            }
-        }
-    }
-
-    return implode(' ', $classes);
-}
-
 
 function block_visibility($block, $fields, $block_column = null) {
 
@@ -803,71 +762,6 @@ function generate_spacing_classes($spacing, $prefix) {
 
     return $classes;
 }
-
-/*
-function generate_breakpoint_css($classname, $breakpoints, $styles="") {
-    $breakpoint_sizes = [
-        "xs" => "0px", 
-        "sm" => "576px", 
-        "md" => "768px", 
-        "lg" => "992px", 
-        "xl" => "1200px", 
-        "xxl" => "1400px", 
-        "xxxl" => "1600px"
-    ];
-
-    if (empty($breakpoints)) return "";
-
-    // --- KRİTİK EKLEME: Gelen değerleri ana listenin sırasına göre diz ---
-    $all_keys = array_keys($breakpoint_sizes);
-    // Sadece geçerli olanları al ve ana listedeki index numarasına göre sırala
-    $selected = (array)$breakpoints;
-    usort($selected, function($a, $b) use ($all_keys) {
-        return array_search($a, $all_keys) - array_search($b, $all_keys);
-    });
-
-    if (empty($selected)) return "";
-
-    $css = [];
-    $start = $selected[0]; 
-    $end = $start; 
-    
-    for ($i = 1; $i < count($selected); $i++) {
-        $current = $selected[$i];
-        $prev = $selected[$i - 1];
-
-        // Ardışık olup olmadığını kontrol et
-        if (array_search($current, array_keys($breakpoint_sizes)) === array_search($prev, array_keys($breakpoint_sizes)) + 1) {
-            $end = $current; // Eğer ardışık ise bitiş noktasını güncelle
-        } else {
-            // Yeni bir grup başlat
-            $css[] = generate_media_query($classname, $start, $end, $breakpoint_sizes, $styles);
-            $start = $current;
-            $end = $current;
-        }
-    }
-
-    // Son grubu da ekle
-    $css[] = generate_media_query($classname, $start, $end, $breakpoint_sizes, $styles);
-
-    return implode("\n", array_filter($css));
-}
-function generate_media_query($classname, $start, $end, $breakpoint_sizes, $styles = "") {
-    $min = $breakpoint_sizes[$start];
-
-    // Eğer `end` son breakpoint değilse, max-width hesapla
-    $breakpoint_keys = array_keys($breakpoint_sizes);
-    $next_index = array_search($end, $breakpoint_keys) + 1;
-    $max = isset($breakpoint_keys[$next_index]) 
-        ? " and (max-width: calc(" . $breakpoint_sizes[$breakpoint_keys[$next_index]] . " - 1px))" 
-        : "";
-
-    if(empty($styles)){
-      $styles = "display: none !important;";
-    }
-    return "@media (min-width: $min)$max { $classname { $styles } }";
-}
-*/
 
 function generate_breakpoint_css($classname, $breakpoints, $styles="") {
     $breakpoint_sizes = [
@@ -2117,7 +2011,6 @@ function block_css($block, $fields, $block_column){
             $code_inner .= $gradient;
             $code_bg_parallax .= $gradient;
         }   
-
     }
 
     $color = isset($fields["block_settings"]["text_color"])?$fields["block_settings"]["text_color"]:"";
@@ -2554,6 +2447,11 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
 }
 
 
+
+
+
+
+
 function post_has_block($slug="", $block_name=""){
     $found = false;
      if (filter_var($slug, FILTER_VALIDATE_URL)) {
@@ -2578,7 +2476,6 @@ function post_has_block($slug="", $block_name=""){
     }
     return $found;
 }
-
 function post_has_core_block($slug="") {
     $found = false;
     if (filter_var($slug, FILTER_VALIDATE_URL)) {
@@ -2606,8 +2503,6 @@ function post_has_core_block($slug="") {
     }
     return $found;
 }
-
-
 function generate_unique_column_id( $value, $post_id, $field ) {
     if ( empty( $value ) ) {
         $value = unique_code(5);
@@ -2616,12 +2511,6 @@ function generate_unique_column_id( $value, $post_id, $field ) {
 }
 add_filter( 'acf/load_value/name=column_id', 'generate_unique_column_id', 10, 3 );
 add_filter( 'acf/update_value/name=column_id', 'generate_unique_column_id', 10, 3 );
-
-
-
-
-
-
 
 function acf_get_block_data_item($array = [], $end = "") {
     $filtered = [];

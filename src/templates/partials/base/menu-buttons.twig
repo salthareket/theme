@@ -3,17 +3,25 @@
     <ul class="list-inline m-0">
         {% for item in menu_buttons.buttons %}
 
-            {% if item.modal %}
+            {% if item.link_type == "modal" %}
 
                 {% set modal_settings = item.modal_settings %}
 
-                {{ modal_settings|print_r }}
+                {% set attrs = " data-ajax-method='" ~ modal_settings.type ~ "' " %}
 
-                {% set attrs = " data-ajax-method='" ~ modal_settings.type ~ "' " ~ (modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ modal_settings.size ~ "' ") %}
-                {% set attrs = attrs ~ " data-close='" ~ modal_settings.close ~ "' " %}
-                {% set attrs = attrs ~ " data-scrollable='" ~ modal_settings.scrollable ~ "' " %}
-                {% set attrs = attrs ~ " data-class='" ~ modal_settings.class ~ "' " %}
-                {% set attrs = attrs ~ (modal_settings.title != "" ? " data-title='" ~ modal_settings.title ~ "' ":"") %}
+                {% if modal_settings.type in ["custom_modal"] %}
+                    {% set template = get_post(modal_settings.template) %}
+                    {% set template_attrs = template.get_custom_template_data("modal") %}
+                    {% if template_attrs %}
+                        {% set attrs = attrs ~ template_attrs %}
+                    {% endif %}
+                {% else %}
+                    {% set attrs = attrs ~ " data-close='" ~ modal_settings.close ~ "' " %}
+                    {% set attrs = attrs ~ " data-scrollable='" ~ modal_settings.scrollable ~ "' " %}
+                    {% set attrs = attrs ~ " data-class='" ~ modal_settings.class ~ "' " %}
+                    {% set attrs = attrs ~ (modal_settings.title != "" ? " data-title='" ~ modal_settings.title ~ "' ":"") %}
+                    {% set attrs = attrs ~ (modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ modal_settings.size ~ "' ") %}
+                {% endif %}
 
                 {% if modal_settings.type in ["page_modal", "form_modal"] %}
                     {% set attrs = attrs ~ " data-id='" ~ modal_settings.id ~ "' " %}
@@ -27,8 +35,8 @@
                     {% if modal_settings.content_type == "file" %}
                         {% set attrs = attrs ~ " data-url='" ~ modal_settings.file ~ "' " %}
                     {% endif %}
-
                 {% endif %}
+
                 {% if modal_settings.type in ["map_modal"] %}
                     {% set modal_args = [{"modal-body": "ratio ratio-" ~ modal_settings.ratio ~ " overflow-hidden"}]|json_attr %}
                     {% set attrs = attrs ~ " data-modal='" ~ modal_args ~ "' " %}

@@ -161,9 +161,15 @@ function visibility_under_construction() {
     
     // Global post objesi varsa url_to_postid'ye gerek kalmaz, direkt ID'yi alırız
     global $post;
-    $page_id = (isset($post->ID)) ? $post->ID : url_to_postid(current_url()); 
+    if (isset($post->ID) && $post->ID > 0) {
+        $page_id = $post->ID;
+    } elseif (function_exists('url_to_postid') && function_exists('current_url')) {
+        $page_id = url_to_postid(current_url());
+    } else {
+        $page_id = 0;
+    }
 
-    if (in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)) {
+    if ($page_id > 0 && in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)) {
         $visible = true;
     }
 
@@ -295,7 +301,7 @@ if (!ENABLE_ECOMMERCE) {
 if (ENABLE_FAVORITES) include_once SH_CLASSES_PATH . "class.favorites.php";
 if (ENABLE_SEARCH_HISTORY) include_once SH_CLASSES_PATH . "class.search-history.php";
 if (ENABLE_NOTIFICATIONS) include_once SH_CLASSES_PATH . "class.notifications.php";
-if ($GLOBALS["pagenow"] === "wp-login.php") include_once SH_INCLUDES_PATH . "admin/custom-login.php";
+if (!empty($GLOBALS["pagenow"]) && $GLOBALS["pagenow"] === "wp-login.php") include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 
 // ACF ve Plugin Entegrasyonları
 if (class_exists("ACF")) {

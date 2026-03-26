@@ -3501,13 +3501,13 @@ function acf_add_field_options($field) {
 
     // Alignment & Position (HR / VR)
     if(in_array("acf-bs-align-hr", $class) || in_array("acf-align-hr", $class) || in_array("acf-align-hr-responsive", $class)){
-        $field["type"] = "select";
+        //$field["type"] = "select";
         $field['choices'] = ["start" => "Left", "center" => "Center", "end" => "Right"];
         if(in_array("acf-align-hr-responsive", $class)) $field['choices']["responsive"] = "Responsive";
     }
 
     if(in_array("acf-bs-align-vr", $class) || in_array("acf-align-vr", $class) || in_array("acf-align-vr-none", $class) || in_array("acf-align-vr-responsive", $class)){
-        $field["type"] = "select";
+        //$field["type"] = "select";
         $field['choices'] = ["start" => "Top", "center" => "Center", "end" => "Bottom"];
         if(in_array("acf-align-vr-responsive", $class)) $field['choices']["responsive"] = "Responsive";
         if(in_array("acf-align-vr-none", $class)) $field['choices']["none"] = "None";

@@ -532,7 +532,7 @@ class StarterSite extends Timber\Site{
             if($folder){
                 $folder = $folder[0];
                 // woocommerce aktif ve urun tease template ise col ekelem, cunku default olarak var.
-                if(!(ENABLE_ECOMMERCE && $folder == "product")){ 
+                if(!(ENABLE_ECOMMERCE && $folder == "woo")){ 
                     $post_types = $data["post_pagination"];
                     if($post_types){
                         $post_types = array_keys($post_types);

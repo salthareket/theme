@@ -58,6 +58,9 @@
                     "layout": "block",
                     "acfe_seamless_style": 0,
                     "acfe_group_modal": 0,
+                    "acfe_group_modal_close": 0,
+                    "acfe_group_modal_button": "",
+                    "acfe_group_modal_size": "large",
                     "sub_fields": [
                         {
                             "key": "field_68decf6df46ef",
@@ -225,10 +228,7 @@
                             "append": "",
                             "pll_default_value": "0.5"
                         }
-                    ],
-                    "acfe_group_modal_close": 0,
-                    "acfe_group_modal_button": "",
-                    "acfe_group_modal_size": "large"
+                    ]
                 },
                 {
                     "key": "field_6638164b184b4",
@@ -288,7 +288,8 @@
                                 "initial": "initial",
                                 "inherit": "inherit",
                                 "##Custom Fonts": "##Custom Fonts",
-                                "'Futura'": "Futura",
+                                "'courier-std'": "courier-std",
+                                "'anton'": "Anton",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -555,7 +556,8 @@
                                 "initial": "initial",
                                 "inherit": "inherit",
                                 "##Custom Fonts": "##Custom Fonts",
-                                "'Futura'": "Futura",
+                                "'courier-std'": "courier-std",
+                                "'anton'": "Anton",
                                 "##Icon Fonts": "##Icon Fonts",
                                 "Font Awesome 6 Pro": "Font Awesome 6 Pro",
                                 "Font Awesome 6 Brands": "Font Awesome 6 Brands",
@@ -1205,7 +1207,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772400009,
+    "modified": 1774302549,
     "acfe_categories": {
         "general": "General"
     }

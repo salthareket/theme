@@ -69,10 +69,12 @@ class PageAssetsExtractor{
     /* ======= Manifest ======= */
     protected $manifest_path;
     protected $manifest = [
-        'version'   => 1,
-        'global'    => [],
-        'templates' => [],  // key = structure_fp
-        'plugins'   => []   // key = sha1(json_encode(plugins))
+        'version'        => 2,
+        'global'         => [],
+        'templates'      => [],       // key = structure_fp
+        'plugins'        => [],       // key = plugins_key (sha1 of sorted plugin list + source mtimes)
+        'content_usage'  => [],       // key = "type:id" => ['plugins_key'=>..., 'structure_fp'=>...]
+        'last_css_mtime' => 0,
     ];
 
     private string $twig_attr = 'data-template';
@@ -754,6 +756,9 @@ class PageAssetsExtractor{
         if (!isset($this->manifest['css_usage']) || !is_array($this->manifest['css_usage'])) {
             $this->manifest['css_usage'] = []; // Format: Hash => [content_ids]
         }
+        if (!isset($this->manifest['content_usage']) || !is_array($this->manifest['content_usage'])) {
+            $this->manifest['content_usage'] = []; // Format: "type:id" => ['plugins_key'=>..., 'structure_fp'=>...]
+        }
         // <<< GÜNCELLEME SONU >>>
     }
     /*private function manifest_write() {
@@ -916,18 +921,44 @@ class PageAssetsExtractor{
         $extra_html = $this->collectTwigLoadedHtml($html_content);
         if ($extra_html) {
 
-            // Eklenen fragmenti logla
             $this->error_log('[PAE] collected extra html length=' . strlen($extra_html));
 
-            // NOT: innertext string kabul eder; doğrudan $extra_html kullanıyoruz
-            $bodyNode = $html_content->find('main', 0);
-            if ($bodyNode) {
-                $bodyNode->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
-                $this->error_log('[PAE] extra html appended into <body>');
-            } else {
-                $html_content->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
-                $this->error_log('[PAE] extra html appended into root (no body)');
+            // Devasa HTML'yi DOM'a ekleme — sadece class ve attr'leri çıkar, skeleton div yap
+            $all_classes = [];
+            $all_attrs   = [];
+
+            if (preg_match_all('/class=["\']([^"\']+)["\']/i', $extra_html, $class_matches)) {
+                foreach ($class_matches[1] as $match) {
+                    $split = preg_split('/\s+/', trim($match), -1, PREG_SPLIT_NO_EMPTY);
+                    $all_classes = array_merge($all_classes, $split);
+                }
             }
+
+            if (preg_match_all('/\s(data-[a-z0-9_-]+|playsinline|autoplay|loop|preload)\b/i', $extra_html, $attr_matches)) {
+                $all_attrs = array_unique($attr_matches[1]);
+            }
+
+            $clean_classes = implode(' ', array_unique($all_classes));
+            $clean_attrs   = '';
+            foreach ($all_attrs as $attr) {
+                $clean_attrs .= ' ' . $attr . '="1"';
+            }
+
+            $extra_html_wrapped = '<div id="__twig_extra__" class="' . $clean_classes . '"' . $clean_attrs . '></div>';
+
+            try {
+                $bodyNode = $html_content->find('main', 0);
+                if ($bodyNode) {
+                    $bodyNode->innertext .= $extra_html_wrapped;
+                    $this->error_log('[PAE] Skeleton HTML appended into <main>');
+                } else {
+                    $html_content->innertext .= $extra_html_wrapped;
+                    $this->error_log('[PAE] Skeleton HTML appended into root');
+                }
+            } catch (\Exception $e) {
+                $this->error_log('[PAE] Skeleton eklerken hata: ' . $e->getMessage());
+            }
+
         } else {
             $this->error_log('[PAE] no extra twig html collected');
         }
@@ -1212,13 +1243,62 @@ class PageAssetsExtractor{
         // Eski dosya/meta temizliği
         $this->delete_existing_assets($id);
 
-        /* --------- PLUGIN BUNDLE (manifest + FS-check) --------- */
+        // Content usage key
+        $content_usage_key = $this->type . ':' . $id;
+
+        /* --------- EARLY RETURN: içerik değişmediyse rebuild etme --------- */
+        if (!$this->force_rebuild) {
+            $prev_usage = $this->manifest['content_usage'][$content_usage_key] ?? null;
+            if ($prev_usage
+                && ($prev_usage['structure_fp'] ?? '') === $this->structure_fp
+                && ($prev_usage['plugins_key']  ?? '') !== ''
+            ) {
+                $pk  = $prev_usage['plugins_key'];
+                $pm  = $this->manifest['plugins'][$pk] ?? null;
+                $tm  = $this->manifest['templates'][$this->structure_fp] ?? null;
+                $all_files_ok = $pm && $tm
+                    && $this->file_exists_rel($pm['css']  ?? '')
+                    && $this->file_exists_rel($pm['js']   ?? '')
+                    && $this->file_exists_rel($tm['css']  ?? '')
+                    && $this->file_exists_rel($tm['css_rtl'] ?? '');
+                if ($all_files_ok) {
+                    $this->error_log("[PAE] EARLY RETURN – içerik değişmedi, dosyalar mevcut. id={$id}");
+                    // Meta'yı mevcut değerlerle yeniden kaydet (LCP vs. korunur)
+                    $existing_meta = $this->meta_get($this->type, $id) ?: [];
+                    return $this->save_meta(array_merge($existing_meta, [
+                        'plugins'       => $plugins,
+                        'plugin_js'     => $pm['js'],
+                        'plugin_css'    => $pm['css'],
+                        'plugin_css_rtl'=> $pm['css_rtl'] ?? '',
+                        'css_page'      => $tm['css'],
+                        'css_page_rtl'  => $tm['css_rtl'],
+                        'wp_js'         => $wp_js,
+                    ]), $id);
+                }
+            }
+        }
+
+        /* --------- PLUGIN BUNDLE (manifest + FS-check + mtime-aware) --------- */
         $plugins_key = '';
         if(!empty($plugins) && !empty($files["js"]["plugins"])){
 
             $this->error_log("Plugins boş diil ");
 
-            $plugins_key = sha1(json_encode($plugins));
+            // mtime hash: kaynak dosyalar değişince aynı plugin listesi için yeni bundle
+            $plugin_files_css_src = [];
+            $plugin_files_css_rtl_src = [];
+            $plugin_files_js_src = [];
+            foreach($plugins as $plugin){
+                if(!empty($files["js"]["plugins"][$plugin]["css"])){
+                    $plugin_files_css_src[]     = STATIC_PATH . 'js/plugins/'.$plugin.".css";
+                    $plugin_files_css_rtl_src[] = STATIC_PATH . 'js/plugins/'.$plugin."-rtl.css";
+                }
+                $plugin_files_js_src[] = STATIC_PATH . 'js/plugins/'.$plugin.".js";
+                $plugin_files_js_src[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js";
+            }
+            $src_mtime = $this->source_files_mtime_hash(array_merge($plugin_files_css_src, $plugin_files_js_src));
+            $plugins_key = sha1(json_encode($plugins) . '|' . $src_mtime);
+
             $plugin_manifest = $this->manifest['plugins'][$plugins_key] ?? null;
 
             $need_rebuild_plugin = true;
@@ -1236,48 +1316,47 @@ class PageAssetsExtractor{
                     $plugin_css_rtl = $mr;
                     $plugin_js      = $mj;
                     $need_rebuild_plugin = false;
+                    $this->error_log("[PAE] Plugin bundle cache HIT: {$plugins_key}");
                 }
             }
 
             if ($need_rebuild_plugin) {
-                $plugin_files_css = [];
-                $plugin_files_css_rtl = [];
-                foreach($plugins as $plugin){
-                    if(!empty($files["js"]["plugins"][$plugin]["css"])){
-                        $plugin_files_css[]     = STATIC_URL . 'js/plugins/'.$plugin.".css";
-                        $plugin_files_css_rtl[] = STATIC_URL . 'js/plugins/'.$plugin."-rtl.css";
-                    }
+                $this->error_log("[PAE] Plugin bundle REBUILD: {$plugins_key}");
+
+                // Eski plugins_key'i kullanan başka content var mı? Yoksa eski dosyaları sil
+                $old_plugins_key = $this->manifest['content_usage'][$content_usage_key]['plugins_key'] ?? '';
+                if ($old_plugins_key && $old_plugins_key !== $plugins_key) {
+                    $this->_maybe_delete_plugin_bundle($old_plugins_key);
                 }
 
-                if(!empty($plugin_files_css)){
-                    $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css, $plugin_files_whitelist);
+                if(!empty($plugin_files_css_src)){
+                    $plugin_css = $this->combine_and_cache_files("css", $plugin_files_css_src, $plugin_files_whitelist);
                     $plugin_css = str_replace(STATIC_URL, '', $plugin_css);
                 }
-                if(!empty($plugin_files_css_rtl)){
-                    $plugin_css_rtl = $this->combine_and_cache_files("css", $plugin_files_css_rtl, $plugin_files_whitelist);
+                if(!empty($plugin_files_css_rtl_src)){
+                    $plugin_css_rtl = $this->combine_and_cache_files("css", $plugin_files_css_rtl_src, $plugin_files_whitelist);
                     $plugin_css_rtl = str_replace(STATIC_URL, '', $plugin_css_rtl);
                 }
 
-                $plugin_files_js = [];
-                foreach($plugins as $plugin){ 
-                    $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin.".js"; 
-                }
-                foreach($plugins as $plugin){ 
-                    $plugin_files_js[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js"; 
-                }
-                if($plugin_files_js){
-                    //module
-                    $plugin_js = $this->combine_and_cache_files("js", $plugin_files_js);
+                $plugin_files_js_src = array_filter($plugin_files_js_src, 'file_exists');
+                if($plugin_files_js_src){
+                    $plugin_js = $this->combine_and_cache_files("js", array_values($plugin_files_js_src));
                                  $this->combine_and_cache_modules($plugins, $plugin_js);
                     $plugin_js = str_replace(STATIC_URL, '', $plugin_js);
                 }
 
                 $this->manifest['plugins'][$plugins_key] = [
-                    'css'     => $plugin_css ?? '',
-                    'css_rtl' => $plugin_css_rtl ?? '',
-                    'js'      => $plugin_js ?? '',
+                    'css'      => $plugin_css ?? '',
+                    'css_rtl'  => $plugin_css_rtl ?? '',
+                    'js'       => $plugin_js ?? '',
+                    'contents' => [], // bu bundle'ı kullanan content_id'ler
                 ];
                 $this->manifest_write();
+            }
+
+            // Bu content'i bundle'ın kullanıcı listesine ekle
+            if (!in_array($content_usage_key, $this->manifest['plugins'][$plugins_key]['contents'] ?? [])) {
+                $this->manifest['plugins'][$plugins_key]['contents'][] = $content_usage_key;
             }
         }
 
@@ -1347,7 +1426,6 @@ class PageAssetsExtractor{
         $result = [
             "js"            => $js,
             "css"           => $css,
-            //"css_rtl"       => $css_rtl,
             "css_page"      => $css_page,
             "css_page_rtl"  => $css_page_rtl,
             "plugins"       => $plugins,
@@ -1358,6 +1436,13 @@ class PageAssetsExtractor{
         ];
 
         $this->fix_js_data($result, ["js", "plugin_js", "wp_js"]);
+
+        // Content usage manifest'ini güncelle
+        $this->manifest['content_usage'][$content_usage_key] = [
+            'plugins_key'  => $plugins_key,
+            'structure_fp' => $this->structure_fp,
+        ];
+        $this->manifest_write();
 
         $this->error_log("PAE result summary: css_page={$result['css_page']} | plugin_css={$result['plugin_css']} | plugins=".count($plugins));
 
@@ -1509,6 +1594,27 @@ class PageAssetsExtractor{
     }
 
     /* ===================== BİRLEŞTİRME & CACHE ===================== */
+
+    /**
+     * Kaynak dosyaların mtime'larından bir fingerprint üretir.
+     * Bu sayede kaynak dosya değişince aynı plugin kombinasyonu için yeni bundle oluşturulur.
+     */
+    private function source_files_mtime_hash(array $files): string {
+        $data = '';
+        foreach ($files as $file) {
+            $plugin_name = basename($file);
+            $candidates = [
+                STATIC_PATH . 'js/plugins/' . $plugin_name,
+                rtrim(STATIC_PATH, '/') . '/css/' . $plugin_name,
+                rtrim(STATIC_PATH, '/') . '/js/' . $plugin_name,
+            ];
+            foreach ($candidates as $c) {
+                if (file_exists($c)) { $data .= $c . ':' . filemtime($c) . '|'; break; }
+            }
+        }
+        return md5($data);
+    }
+
     public function combine_and_cache_files($type, $files, $whitelist = []) {
         if ($type !== 'css' && $type !== 'js') return false;
 
@@ -1545,17 +1651,16 @@ class PageAssetsExtractor{
                 if($type == "css"){
                     $content = str_replace(STATIC_URL, "../../", $content);
                     $content = str_replace("[STATIC_URL]", "../../", $content);
+                    $combined_content .= $content . "\n";
+                } else {
+                    $combined_content .= $content . ";\n";
                 }
-                $combined_content .= $content . ";\n";
             }
         }
 
         if($type == "css" && $combined_content !== ''){
             $combined_content = $this->remove_unused_css($this->html, $combined_content, "", $whitelist);
         }
-
-     //   $combined_content = str_replace(["(function($) {","(function($){"], "", $combined_content);
-     //   $combined_content = str_replace(["})(jQuery)","}(jQuery))"], "", $combined_content);
 
         $hash = $this->content_hash($combined_content, $type);
         $cache_file = $cache_dir . $hash . '.' . $type;
@@ -2628,12 +2733,34 @@ class PageAssetsExtractor{
 
 
     /**
+     * Eski plugin bundle'ı başka content kullanmıyorsa siler.
+     */
+    private function _maybe_delete_plugin_bundle(string $plugins_key): void {
+        $pm = $this->manifest['plugins'][$plugins_key] ?? null;
+        if (!$pm) return;
+
+        $contents = $pm['contents'] ?? [];
+        if (!empty($contents)) {
+            $this->error_log("[PAE] Plugin bundle {$plugins_key} hâlâ " . count($contents) . " content tarafından kullanılıyor, silinmiyor.");
+            return;
+        }
+
+        // Kimse kullanmıyor, dosyaları sil
+        foreach (['css', 'css_rtl', 'js'] as $k) {
+            if (!empty($pm[$k]) && $this->file_exists_rel($pm[$k])) {
+                $abs = rtrim(STATIC_PATH, '/') . '/' . ltrim($pm[$k], '/');
+                if (@unlink($abs)) {
+                    $this->error_log("[PAE] Plugin bundle dosyası silindi: {$pm[$k]}");
+                }
+            }
+        }
+        unset($this->manifest['plugins'][$plugins_key]);
+        $this->error_log("[PAE] Plugin bundle manifest'ten kaldırıldı: {$plugins_key}");
+    }
+
+    /**
      * YENİ: Güncellenen hash değerlerine göre CSS kullanımını kaydeder ve kullanılmayan eski dosyayı siler.
      * KRİTİK: Ortak kullanılan dosyaların silinmesini engeller.
-     *
-     * @param string $old_hash Eski kullanılan CSS dosyası hash'i.
-     * @param string $new_hash Yeni kullanılan CSS dosyası hash'i.
-     * @param int|string $content_id Etkin olan içeriğin (Post ID, Term ID, Options String vb.) ID'si.
      */
     protected function update_css_usage_and_cleanup(string $old_hash, string $new_hash, $content_id): void {
         // Güncel manifesti oku
@@ -2705,25 +2832,32 @@ class PageAssetsExtractor{
             // 1. Templates altındaki hashleri topla
             if (isset($this->manifest['templates']) && is_array($this->manifest['templates'])) {
                 foreach ($this->manifest['templates'] as $tpl_data) {
-                    if (!empty($tpl_data['css'])) $active_hashes[] = basename($tpl_data['css'], '.css');
-                    if (!empty($tpl_data['css_rtl'])) $active_hashes[] = basename($tpl_data['css_rtl'], '.css');
+                    if (!empty($tpl_data['css']))          $active_hashes[] = basename($tpl_data['css'], '.css');
+                    if (!empty($tpl_data['css_rtl']))      $active_hashes[] = basename($tpl_data['css_rtl'], '.css');
                     if (!empty($tpl_data['critical_css'])) $active_hashes[] = basename($tpl_data['critical_css'], '.css');
                 }
             }
 
             // 2. Plugins altındaki hashleri topla
             if (isset($this->manifest['plugins']) && is_array($this->manifest['plugins'])) {
-                foreach ($this->manifest['plugins'] as $plg_data) {
-                    if (!empty($plg_data['css'])) $active_hashes[] = basename($plg_data['css'], '.css');
+                foreach ($this->manifest['plugins'] as $pk => $plg_data) {
+                    if (!empty($plg_data['css']))     $active_hashes[] = basename($plg_data['css'], '.css');
                     if (!empty($plg_data['css_rtl'])) $active_hashes[] = basename($plg_data['css_rtl'], '.css');
-                    if (!empty($plg_data['js'])) $active_hashes[] = basename($plg_data['js'], '.js');
+                    if (!empty($plg_data['js']))      $active_hashes[] = basename($plg_data['js'], '.js');
+
+                    // contents listesini temizle: artık content_usage'da olmayan id'leri düş
+                    if (isset($plg_data['contents']) && is_array($plg_data['contents'])) {
+                        $valid_contents = array_filter($plg_data['contents'], function($ck) use ($pk) {
+                            return isset($this->manifest['content_usage'][$ck])
+                                && ($this->manifest['content_usage'][$ck]['plugins_key'] ?? '') === $pk;
+                        });
+                        $this->manifest['plugins'][$pk]['contents'] = array_values($valid_contents);
+                    }
                 }
             }
         }
 
         // --- KRİTİK SİGORTA ---
-        // Eğer manifestten 1 tane bile hash çekemediysek işlemi durdur. 
-        // Bu sayede her şeyin silinmesini engelleriz.
         if (empty($active_hashes)) {
             return 0;
         }
@@ -2740,17 +2874,17 @@ class PageAssetsExtractor{
             if ($files) {
                 foreach ($files as $file) {
                     $file_name = basename($file, "." . $t);
-                    
-                    // Eğer bu dosya manifestteki aktif listesinde YOKSA ve 
-                    // ismi manifestin kendisi değilse sil.
                     if (!in_array($file_name, $active_hashes) && strpos($file_name, 'manifest') === false) {
                         if (@unlink($file)) {
                             $deleted_count++;
+                            $this->error_log("[PAE] Orphan silindi: " . basename($file));
                         }
                     }
                 }
             }
         }
+
+        $this->error_log("[PAE] purge_orphan_assets: {$deleted_count} dosya silindi.");
         return $deleted_count;
     }
 

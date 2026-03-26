@@ -378,14 +378,17 @@
                 "class": "acf-location-posts",
                 "id": ""
             },
-            "choices": [],
+            "choices": {
+                "4172": "Schon International Kozmetik San. ve Tic. A.Ş. (contact)",
+                "1649": "Schon International Kozmetik San. ve Tic. A.Ş. (contact)"
+            },
             "default_value": false,
             "return_format": "value",
-            "multiple": 0,
+            "multiple": 1,
             "translations": "sync",
             "allow_null": 0,
             "allow_in_bindings": 0,
-            "ui": 0,
+            "ui": 1,
             "ajax": 0,
             "placeholder": "",
             "create_options": 0,
@@ -820,7 +823,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772218166,
+    "modified": 1774302577,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

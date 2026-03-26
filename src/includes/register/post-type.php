@@ -510,7 +510,7 @@ add_action('save_post', function($post_id, $post, $update) {
             }
 
             // CSS dosyasını ayrıca kaydet
-            file_put_contents($render_dir . $post_slug . ".css", $final_css);
+            file_put_contents($render_dir . $post_id . ".css", $final_css);
             
             // HTML çıktısına stili ekle
             $html_output .= "<style type='text/css'>" . $final_css . "</style>";
@@ -520,7 +520,7 @@ add_action('save_post', function($post_id, $post, $update) {
             if (function_exists('pll_get_post_language')) $lang = pll_get_post_language($post_id);
             elseif (function_exists('qtranxf_getLanguage')) $lang = qtranxf_getLanguage();
             
-            $filename = sprintf('%s_%s.twig', $post_slug, $lang);
+            $filename = sprintf('%s_%s.twig', $post_id, $lang);
         }
 
         // 5. DOSYAYI YAZMA (Gereksiz yazmayı önlemek için Hash kontrolü)
@@ -545,6 +545,7 @@ add_action('save_post', function($post_id, $post, $update) {
         // Meta güncelle
         update_post_meta($post_id, '_rendered_html_hash', $new_hash);
         update_post_meta($post_id, 'template', $filename); // Eski kodla uyum için
+        update_post_meta($post_id, 'css', $post_id . ".css"); // Eski kodla uyum için
 }, 20, 3);
 
 add_action('save_post_template', function($post_id, $post, $update) {

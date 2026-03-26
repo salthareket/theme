@@ -20,7 +20,7 @@
             "tabs": "all",
             "toolbar": "full",
             "media_upload": 1,
-            "delay": 0,
+            "delay": 1,
             "pll_default_value": ""
         }
     ],
@@ -59,7 +59,7 @@
     "label_placement": "top",
     "instruction_placement": "label",
     "hide_on_screen": "",
-    "active": false,
+    "active": true,
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
@@ -70,7 +70,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1772218136,
+    "modified": 1774302508,
     "acfe_categories": {
         "general": "General"
     }

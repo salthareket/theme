@@ -1029,7 +1029,30 @@ class RemoveUnusedCss {
 
         // data-template taraması
         $extra_html = $this->collectTwigLoadedHtml($dom);
+
         if ($extra_html) {
+            // HİÇ EKLEME YAPMIYORUZ, DOĞRUDAN SÜZÜYORUZ
+            $extra_classes = [];
+            if (preg_match_all('/class=["\']([^"\']+)["\']/i', $extra_html, $class_matches)) {
+                foreach ($class_matches[1] as $match) {
+                    $split = preg_split('/\s+/', trim($match), -1, PREG_SPLIT_NO_EMPTY);
+                    $extra_classes = array_merge($extra_classes, $split);
+                }
+            }
+            $extra_classes = array_unique($extra_classes);
+
+            // 2. Bu classları sanki HTML'de varmış gibi "WhiteList"e manuel ekle
+            // Eğer sınıfında $this->white_list gibi bir dizi varsa ona basıyoruz
+            if (!empty($extra_classes)) {
+                    foreach ($extra_classes as $cls) {
+                        // Bu metot muhtemelen sınıfında vardır veya whitelist dizisine doğrudan ekle
+                        $this->white_list[$cls] = true; 
+                    }
+                    error_log('[RemoveUnusedCss] Extra ' . count($extra_classes) . ' class whitelist e manuel eklendi. DOM a dokunulmadı.');
+            }
+        }
+
+        /*if ($extra_html) {
             // Eklenen fragmenti logla
             //error_log('[RemoveUnusedCss] collected extra html length=' . strlen($extra_html));
 
@@ -1044,7 +1067,7 @@ class RemoveUnusedCss {
             }
         } else {
             //error_log('[RemoveUnusedCss] no extra twig html collected');
-        }
+        }*/
         
         $this->addHtmlWhitelist($dom);
 

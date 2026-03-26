@@ -9,26 +9,31 @@
 {% endif %}
 
 {% set path = "" %}
+{% set footer_id = "footer" %}
+{% set footer_class = "footer z-0" %}
 {% set template_post = [] %}
 {% if template == "static" %}
+    {% set footer_class = footer_class ~ " pt-5 pb-4" %}
     {% set path = "footer-static.twig" %}
 {% else %}
+    {% set footer_id = footer_id ~ "-custom" %}
+    {% set footer_class = footer_class ~ " " ~ template_post.slug %}
     {% set template_post = get_post(template) %}
     {% if template_post.meta("render_template") %}
         {% set path = 'theme/templates/_custom/' ~ template_post.id ~ "_" ~ language ~ ".twig" %}
     {% endif %}
 {% endif %}
 
-<footer class="footer {% if template_post %}{{ template_post.slug }}{% endif %} z-0 pt-5 pb-4" itemtype="https://schema.org/WPFooter" itemscope="" id="footer" role="contentinfo">
-
-    <div class="{{footer_options.container}}">
-        {% if path %}
+<footer class="footer {{ footer_class }}" itemtype="https://schema.org/WPFooter" itemscope="" id="{{ footer_id }}" role="contentinfo">
+    
+    {% if path %}
+        <div class="{{footer_options.container}}">
             {% include path %}
-        {% elseif template_post %}
-            {{template_post.get_blocks().html }}
-            <link id='footer-css' rel='preload' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css' as='style' media="all" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
-            <noscript><link rel='stylesheet' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css'></noscript>
-        {% endif %}
-    </div>
+        </div>
+    {% elseif template_post %}
+        {{ template_post.get_blocks().html }}
+        <link id='footer-css' rel='preload' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css' as='style' media="all" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel='stylesheet' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css'></noscript>
+    {% endif %}
 
 </footer>

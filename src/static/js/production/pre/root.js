@@ -195,7 +195,7 @@ window.waiting_init = {
 
 // lazy-load main-combined.css only once, when a matching modal is triggered
 (function() {
-  const VALID_METHODS = ['form_modal', 'form_page', 'form_map', 'iframe_modal', 'template_modal'];
+  const VALID_METHODS = ['form_modal', 'page_modal', 'map_modal', 'iframe_modal', 'template_modal', 'custom_modal'];
   const FULL_CSS_URL = ajax_request_vars.theme_url+'/static/css/main-combined.css?v=1.0.0'; // buraya kendi yolunu yaz
   let cssLoaded = false;
 
@@ -466,7 +466,7 @@ class ajax_query {
 
             if (hooks.before && !obj.skipBefore) {
                 if (obj.form.length > 0) obj.form.addClass("ajax-processing");
-                const proceed = await hooks.before(null, obj.vars, obj.form, obj.objs);
+                const proceed = await hooks.before(obj, obj.vars, obj.form, obj.objs);
                 if (proceed === false) {
                     delete window.active_requests[obj.method];
                     this.queue(); return;
