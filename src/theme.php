@@ -234,8 +234,8 @@ Class Theme{
 
         add_action("acf/init", [$this, "acf_init"]);
 
-        add_action("template_redirect", [$this, "site_assets"]);//add_action("template_redirect", [$this, "site_assets"], 1);
-        add_action("template_redirect", [$this, "global_variables"], 999);//template_redirect idi after_setup_theme yapıldı (get_field dattaları gelmiyodu)
+        add_action("template_redirect", [$this, "site_assets"]);
+        add_action("template_redirect", [$this, "global_variables"], 10);
                 
         add_action("pre_get_posts", [$this, "query_all_posts"], 10);
         add_filter('get_terms_args', [$this, "query_all_terms"], 10, 2);
@@ -322,60 +322,6 @@ Class Theme{
             define('WP_MAX_MEMORY_LIMIT', '2048M');
         }
     }
-
-    /*public static function init_theme_settings_menu() {
-        // Ana menü oluştur
-        add_menu_page(
-            'Theme Settings',
-            'Theme Settings',
-            'manage_options',
-            'theme-settings',
-            '', // Ana menü için bir sayfa içeriği yok
-            'dashicons-admin-generic', // Menü simgesi
-            90 // Menü sırası
-        );
-
-        // Theme Update alt menüsünü ekle
-        add_submenu_page(
-            'theme-settings', // Ana menü slug'ı
-            'Theme Update',
-            'Theme Update',
-            'manage_options',
-            'update-theme',
-            ['Update', 'render_page'], // Theme Update içeriğini render et
-            1
-        );
-
-        // Plugin Yönetimi alt menüsünü ekle
-        add_submenu_page(
-            'theme-settings', // Ana menü slug'ı
-            'Plugin Manager',
-            'Plugin Manager',
-            'manage_options',
-            'plugin-manager',
-            ["PluginManager", 'render_option_page'], // Plugin Yönetimi içeriğini render et
-            2
-        );
-
-        add_submenu_page(
-            'theme-settings', // Ana menü slug'ı
-            'Video Process',
-            'Video Process',
-            'manage_options',
-            'video-process',
-            ['Update', 'render_video_process_page'], // Theme Update içeriğini render et
-            3
-        );
-
-        // Gereksiz alt menüyü kaldır
-        add_action('admin_menu', function () {
-            global $submenu;
-            if (isset($submenu['theme-settings'])) {
-                // İlk alt menü olan "Theme Settings" linkini kaldır
-                unset($submenu['theme-settings'][0]);
-            }
-        }, 999); // Geç bir öncelik ile çalıştır
-    }*/
     public static function init_theme_settings_menu() {
         // 1. Ana menü oluştur
         add_menu_page(
@@ -421,14 +367,15 @@ Class Theme{
             3
         );
 
-        // Gereksiz alt menüyü kaldırma aksiyonu (Zaten içindesin, tekrar action eklemene gerek yok ama kalsın dersen önceliği doğru ayarla)
-       // add_action('admin_menu', function () {
-            global $submenu;
-            if (isset($submenu['theme-settings'])) {
-                unset($submenu['theme-settings'][0]);
-            }
-        //}, 999);
+        // Bu fonksiyon zaten admin_menu hook'u içinde çalışıyor.
+        // $submenu burada dolu olduğundan doğrudan unset yapabiliriz.
+        // İç içe add_action('admin_menu') açmaya gerek yok — döngü yaratır.
+        global $submenu;
+        if ( isset( $submenu['theme-settings'] ) ) {
+            unset( $submenu['theme-settings'][0] );
+        }
     }
+
     public function menu_actions(){
         register_nav_menus(get_menu_locations());
         if (function_exists("acf_add_options_page")) {
@@ -684,8 +631,7 @@ Class Theme{
         }
 
         if (ENABLE_SEARCH_HISTORY) {
-            //$GLOBALS["search_history"] = $site_config["search_history"] ?? [];
-            Data::set("site_config", $site_config["search_history"] ?? []);
+            Data::set("search_history", $site_config["search_history"] ?? []);
         }
 
         // 6. Üyelik ve Lokasyon Mantığı (Sadece Frontend ve Login durumunda)
@@ -785,11 +731,12 @@ Class Theme{
             $language_url_view = true;
             $language_rtl   = false;
 
-            // 🚀 MERMİ GİBİ CACHE: Her sayfa ve her dil için ayrı cache anahtarı
+            // Cache key: post_type + queried_object_id + language
+            // URL bazlı değil — aynı post_type'taki sayfalar aynı dil listesini paylaşır.
             $queried_obj_id = get_queried_object_id();
-            $uri_hash = md5($_SERVER['REQUEST_URI'] ?? '');
-            $cache_key = 'sh_lang_cache_' . $language . '_' . ($queried_obj_id ?: $uri_hash);
-            $cached_data = get_transient($cache_key);
+            $post_type      = get_post_type() ?: get_query_var('post_type') ?: 'general';
+            $cache_key      = 'sh_lang_cache_' . $language . '_' . $post_type . '_' . $queried_obj_id;
+            $cached_data    = get_transient($cache_key);
 
             if (false !== $cached_data) {
                 Data::set("language",  $cached_data['language']);
@@ -1161,20 +1108,19 @@ Class Theme{
         return array_filter( array_unique( $classes ) );
     }
 
-    public function site_assets($jsLoad = 0, $meta = []){ // id ile olusturtucaz ajax için
+    public function site_assets($jsLoad = 0, $meta = []){
 
-        // 1. Zaten tanımlıysa, hesaplanmış olanı döndür (PERFORMANS)
+        // Zaten tanımlıysa döndür
         if (defined('SITE_ASSETS')) {
             return SITE_ASSETS;
         }
 
-        // 1. Erken Çıkış
-        if ($this->is_admin || 
-            (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) || 
-            //defined('DOING_AJAX') || 
-            defined('DOING_CRON') || 
-            defined('SITE_ASSETS') ||
-            defined('REST_REQUEST') && REST_REQUEST
+        // Erken Çıkış — admin, cron, REST
+        if (
+            $this->is_admin ||
+            (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ||
+            defined('DOING_CRON') ||
+            (defined('REST_REQUEST') && REST_REQUEST)
         ) {
             return;
         }

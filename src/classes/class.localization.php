@@ -7,58 +7,47 @@ Class Localization{
 	    protected  $ipdat;
 
 	    function __construct(){
-	    	global $wpdb;
-	    	if(ENABLE_IP2COUNTRY && ENABLE_IP2COUNTRY_DB){
-		    	$table = "ip2country";
-		        if (!$wpdb->get_var("SHOW TABLES LIKE '".$table."'")) {
-				    $this->create_table($table);
-				}	    		
-	    	}else{
-	    		$table = "ip2country";
-	    		$this->remove_table($table);
+	    	if ( ENABLE_IP2COUNTRY && ENABLE_IP2COUNTRY_DB ) {
+	    		$this->maybe_create_table( 'ip2country' );
+	    	} else {
+	    		$this->remove_table( 'ip2country' );
+	    	}
+	    	if ( ( ENABLE_IP2COUNTRY && ENABLE_IP2COUNTRY_DB ) || ENABLE_LOCATION_DB ) {
+	    		$this->maybe_create_table( 'countries' );
+	    		$this->maybe_create_table( 'states' );
+	    	} else {
+	    		$this->remove_table( 'countries' );
+	    		$this->remove_table( 'states' );
+	    	}
+	    }
 
-	    	}
-	    	if((ENABLE_IP2COUNTRY && ENABLE_IP2COUNTRY_DB) || ENABLE_LOCATION_DB){
-		    	$table = "countries";
-			    if (!$wpdb->get_var("SHOW TABLES LIKE '".$table."'")) {
-					$this->create_table($table);
-				}
-			    $table = "states";
-			    if (!$wpdb->get_var("SHOW TABLES LIKE '".$table."'")) {
-					$this->create_table($table);
-				}
-			}else{
-	    		$table = "countries";
-	    		$this->remove_table($table);
-	    		$table = "states";
-	    		$this->remove_table($table);
-	    	}
+	    private function maybe_create_table( string $table ): void {
+	    	$cache_key = 'sh_table_exists_' . $table;
+	    	if ( get_transient( $cache_key ) ) return;
+	    	global $wpdb;
+	    	$exists = (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . $table ) );
+	    	if ( ! $exists ) $this->create_table( $table );
+	    	set_transient( $cache_key, true, 7 * DAY_IN_SECONDS );
 	    }
 	    public function woocommerce_support($value=true){
 	    	$this->woocommerce_support = $value;
 	    }
-	    Private function create_table($table) {
-			$filename = SH_STATIC_PATH . "data/".$table.".sql";
-			$mysql_host = DB_HOST;
-			$mysql_username = DB_USER;
-			$mysql_password = DB_PASSWORD;
-			$mysql_database = DB_NAME;
-			$conn = mysqli_connect($mysql_host, $mysql_username, $mysql_password) or die('Error connecting to MySQL server: ' . mysqli_error($conn));
-			mysqli_select_db($conn, $mysql_database) or die('Error selecting MySQL database: ' . mysqli_error($conn));
-			$templine = '';
-			$lines = file($filename);
-			foreach ($lines as $line){
-				// Skip it if it's a comment
-				if (substr($line, 0, 2) == '--' || $line == '')
-				    continue;
-				$templine .= $line;
-				if (substr(trim($line), -1, 1) == ';'){
-				    mysqli_query($conn, $templine);// or print('Error performing query \'<strong>' . $templine . '\': ' . mysqli_error($conn) . '<br /><br />');
-				    $templine = '';
-				}
-			}
-			mysqli_close($conn);
-			//echo "Tables imported successfully";
+	    Private function create_table( string $table ): void {
+	    	global $wpdb;
+	    	$filename = SH_STATIC_PATH . "data/" . $table . ".sql";
+	    	if ( ! file_exists( $filename ) ) return;
+	    	$sql_raw = file_get_contents( $filename );
+	    	if ( empty( trim( $sql_raw ) ) ) return;
+	    	$templine = '';
+	    	foreach ( explode( "\n", $sql_raw ) as $line ) {
+	    		$line = rtrim( $line );
+	    		if ( $line === '' || substr( $line, 0, 2 ) === '--' ) continue;
+	    		$templine .= $line . "\n";
+	    		if ( substr( trim( $line ), -1 ) === ';' ) {
+	    			$wpdb->query( $templine ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+	    			$templine = '';
+	    		}
+	    	}
 	    }
 
 	    Private function remove_table($table) {
@@ -71,13 +60,23 @@ Class Localization{
 		public function where($vars){
 			$where = "";
 			if($vars){
+			    static $allowed_columns = [
+			        'id', 'iso2', 'name', 'region', 'subregion', 'country_code',
+			        'state_code', 'fips_code', 'woo', 'state_id',
+			    ];
 			    $index = 0;
 			    $where .= " where ";
 			    foreach($vars as $key => $var){
-			      $var = !is_numeric($var) || isset($var[0]) && $var[0] === "0"?"'$var'":$var;
-			   	  $where .= "$key = $var".($index < count($vars)-1?" and ":"");
-			   	  $index++;
+			        $safe_key = in_array($key, $allowed_columns, true) ? $key : null;
+			        if ($safe_key === null) { $index++; continue; }
+			        $var = !is_numeric($var) || (isset($var[0]) && $var[0] === "0") ? "'" . esc_sql($var) . "'" : intval($var);
+			        $where .= "$safe_key = $var" . ($index < count($vars) - 1 ? " and " : "");
+			        $index++;
 			    }
+			    if (trim($where) === 'where') $where = "";
+			}
+			return $where;
+		}
 			}
 			return $where;
 		}
