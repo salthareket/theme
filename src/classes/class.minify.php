@@ -649,10 +649,11 @@ class SaltMinifier{
                 $js_list_conditional_version[] = $key."|".$plugin["version"];
                 
                 $js_list_conditional_set[$key] = [
-                    "js" =>       !empty($plugin["url"]) ? $this->rules["config"]["plugin_uri"] . $key.".js" : "",
-                    "css" =>      !empty($plugin["css"]) ? $this->rules["config"]["plugin_uri"] . $key.".css" : "",
-                    "js_init" =>  !empty($plugin["url"]) ? $this->rules["config"]["plugin_uri"] . $key."-init.js" : "",
-                    "init" =>     !empty($plugin["init"]) ? $plugin["init"] : ""
+                    "js" =>           !empty($plugin["url"]) ? $this->rules["config"]["plugin_uri"] . $key.".js" : "",
+                    "css" =>          !empty($plugin["css"]) ? $this->rules["config"]["plugin_uri"] . $key.".css" : "",
+                    "js_init" =>      !empty($plugin["url"]) ? $this->rules["config"]["plugin_uri"] . $key."-init.js" : "",
+                    "init" =>         !empty($plugin["init"]) ? $plugin["init"] : "",
+                    "dependencies" => !empty($plugin["dependencies"]) ? $plugin["dependencies"] : [],
                 ];
             }
             $js_list_all[] = $key;

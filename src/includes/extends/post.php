@@ -111,7 +111,6 @@ class Post extends Timber\Post{
         }
         return $code;
     }
-
     public function get_map_popup(){
         $map_data = $this->get_map_data();
         $user = Data::get("user");
@@ -130,6 +129,7 @@ class Post extends Timber\Post{
                     "</div>" .
                 "</div>";
     }
+
 
     public function get_video_embed($url="", $image_size=0, $attrs=[]){
         $embed = new OembedVideo($url, $image_size, $attrs);
@@ -159,110 +159,6 @@ class Post extends Timber\Post{
         }
         return $blocks_array;
     }
-
-    public function get_blocks_v1($args = []) {
-        if (has_blocks($this)) {
-            $content = $this->content;
-        }else{
-            if(in_array(get_query_var("qpt_settings"), [2, 3])){
-                return "";
-            }
-            $content = $this->content;
-        }
-        return $content;
-    }
-
-    /*public function get_blocks($args = []) {
-        
-        $content = '';
-        $all_required_js = [];
-
-        if (has_blocks($this)) {
-
-            $blocks = parse_blocks($this->post_content);
-
-            $blocks = array_filter($blocks, function ($block) {
-                return !isset($block['attrs']['data']['block_settings_hero']) || !$block['attrs']['data']['block_settings_hero'];
-            });
-            if(in_array(get_query_var("qpt_settings"), [2, 3])){
-                $blocks = array_filter($blocks, function ($block) {
-                    if (isset($block['attrs']["name"])) {
-                        return (
-                            ($block['attrs']["name"] == "acf/text" && has_shortcode($block['attrs']["data"]["text"], "search_field")) 
-                            || $block['attrs']["name"] == "acf/search-results"
-                        );
-                    }
-                    return false;
-                });
-            }
-            
-            foreach ($blocks as $block) {
-                $block_type = WP_Block_Type_Registry::get_instance()->get_registered($block['blockName']);
-                if (isset($block_type->required_js) && !empty($block_type->required_js)) {
-                    $all_required_js = array_merge($all_required_js, $block_type->required_js);
-                }
-
-                if (isset($block_type->cache_html) && !empty($block_type->cache_html)) {
-                    //echo render_block($block);
-                    //echo "evet cachre haşyieme ".$block['blockName'];
-                }
-            }
-
-            $blocks = array_values($blocks);
-
-            // Bloklara sıra (index) ekleme
-            $index = 0;
-            $blocks = array_map(function ($block) use (&$index) {
-                // Zero-based index ekleme
-                $block['attrs']['index'] = $index;
-                $index++;
-                return $block;
-            }, $blocks);
-
-            $content = join('', array_map('render_block', $blocks));
-
-            if(isset($args["extract_js"])){
-                $html = "";
-                $js = "";
-                $html = preg_replace_callback('/<script\b[^>]*>(.*?)<\/script>/is', function($matches) use (&$js) {
-                    $js .= $matches[0] . "\n";
-                    return '';
-                }, $content);
-                $content = array(
-                    "html" => $html,
-                    "js" => $js
-                ); 
-            }
-            
-            $seperate_css = isset($args["seperate_css"]) ? (bool)$args["seperate_css"] : SEPERATE_CSS;
-            $seperate_js = isset($args["seperate_js"]) ? (bool)$args["seperate_js"] : SEPERATE_JS;
-        
-            if(!isset($_GET["fetch"]) && ($seperate_css || $seperate_js)){ 
-                $tags = "";
-                if($seperate_css){
-                    $tags = "<style>";
-                }
-                if($seperate_js){
-                    $tags .= "<script>";
-                }
-                if(!empty($tags)){
-                    $content = $this->strip_tags($content, $tags);//strip_tags_opposite($content, '<script><style>');                    
-                }
-            }
-
-        }else{
-            if(in_array(get_query_var("qpt_settings"), [2, 3])){
-                return "";
-            }
-            $content = $this->content;
-        }
-
-        return array(
-            "html" => $content,
-            "required_js" => array_values(array_unique($all_required_js))
-        ); 
-    }*/
-
     public function get_blocks($args = []) {
         $content = '';
         $all_required_js = [];
@@ -368,9 +264,6 @@ class Post extends Timber\Post{
             "required_js" => array_values(array_unique($all_required_js))
         ); 
     }
-
-
-
     private function get_block_dependencies($block_name) {
         $slug = str_replace('acf/', '', $block_name);
         
@@ -391,7 +284,6 @@ class Post extends Timber\Post{
 
         return [];
     }
-
     private function render_embed_block($url) {
         // wp_oembed_get ile tüm desteklenen platformlar için embed kodunu al
         $embed_code = wp_oembed_get($url);
@@ -404,7 +296,6 @@ class Post extends Timber\Post{
         // Embed kodunu döndür
         return $embed_code;
     }
-
     public function get_block($block_name = "", $render = false, $args = []) {
         if (!$block_name) {
             return 'Lütfen geçerli bir post ID ve blok adı belirtin.';
@@ -431,10 +322,10 @@ class Post extends Timber\Post{
         return '';//Belirtilen blok bulunamadı.';
     }
 
+
     public function get_deeper_link(){
         return get_page_deeper_link($this->ID);
     }
-
     public function post2Root(){
         return post2Root($this->ID);
     }
@@ -451,73 +342,6 @@ class Post extends Timber\Post{
     public function get_breadcrumb($link=true){
         return post2Breadcrumb($this->ID, $link);
     }
-
-    /*public function strip_tags($content = "", $allowed_tags = "<script><style>") {
-         // DOMDocument başlat
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        libxml_use_internal_errors(true); // Hataları gizle
-
-        // HTML'yi yükle (UTF-8 desteği için encoding belirtildi)
-        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $content , LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        libxml_clear_errors();
-
-        // İzin verilen tagleri al
-        $allowed_tags_array = explode('><', trim($allowed_tags, '<>'));
-
-        // Taglere göre işlem yap
-        foreach ($allowed_tags_array as $tag) {
-            $elements = $dom->getElementsByTagName($tag);
-
-            // Tüm elementleri sondan başa doğru kontrol et
-            for ($i = $elements->length - 1; $i >= 0; $i--) {
-                $element = $elements->item($i);
-
-                // `data-inline="true"` kontrolü
-                if (!$element->hasAttribute('data-inline') || $element->getAttribute('data-inline') !== 'true') {
-                    $element->parentNode->removeChild($element);
-                }
-            }
-        }
-
-        // Sonuç HTML'yi döndür (daha güvenli string işlemi)
-        $output = $dom->saveHTML();
-        return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
-    }*/
-
-    /*
-    public function strip_tags($content = "", $allowed_tags = "<script><style>") {
-        if (empty($content)) return "";
-
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        libxml_use_internal_errors(true);
-
-        // UTF-8 için başlangıcı ekle
-        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        libxml_clear_errors();
-
-        $allowed_tags_array = explode('><', trim($allowed_tags, '<>'));
-
-        foreach ($allowed_tags_array as $tag) {
-            $elements = $dom->getElementsByTagName($tag);
-            for ($i = $elements->length - 1; $i >= 0; $i--) {
-                $element = $elements->item($i);
-                // data-inline="true" değilse SİL
-                if (!$element->hasAttribute('data-inline') || $element->getAttribute('data-inline') !== 'true') {
-                    $element->parentNode->removeChild($element);
-                }
-            }
-        }
-
-        // saveHTML() yerine saveXML() dersen <source /> şeklinde kapatır
-        // Ama HTML standartı için saveHTML() kalmalı.
-        $output = $dom->saveHTML();
-
-        // XML başlığını temizle
-        $output = str_replace('<?xml encoding="utf-8" ?>', '', $output);
-
-        return html_entity_decode($output, ENT_QUOTES | ENT_XML1, 'UTF-8');
-    }
-    */
 
     public function strip_tags($content = "", $allowed_tags = "<script><style>") {
         if (empty($content)) return "";
@@ -638,7 +462,6 @@ class Post extends Timber\Post{
         }
         return $lang_id;
     }
-
     public function pll_get_post_default(){
         $fallback = $this->ID;
         $ml = trim((string) (ENABLE_MULTILANGUAGE ?? ''));

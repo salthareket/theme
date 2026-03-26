@@ -17,261 +17,6 @@ function loadJS(src) {
         document.head.appendChild(script);
     });
 }
-/*
-function isLoadedJS_v1($name, $load = false, $callback = "") {
-    var $loaded = false;
-
-    if (typeof required_js !== "undefined" && required_js.indexOf($name) > -1) {
-        $loaded = true;
-    }
-
-    if (!$loaded && typeof conditional_js !== "undefined" && conditional_js.indexOf($name) > -1) {
-        $loaded = true;
-    }
-
-    // Eğer zaten yüklüyse, sadece true dön
-    if ($loaded) {
-        return true;
-    }
-
-    // Eğer yükleme istenmiyorsa, false dön
-    if (!$load) {
-        return false;
-    }
-
-    // Buradan sonrası: yükle, init et, callback’i çağır
-    const configUrl = ajax_request_vars.theme_url + "/static/js/js_files_conditional_set.json";
-    fetch(configUrl)
-        .then(response => response.json())
-        .then(data => {
-            const libConfig = data[$name];
-            if (!libConfig) {
-                alert($name + " için tanım bulunamadı!");
-                return;
-            }
-
-            const promises = [];
-
-            debugJS(libConfig)
-
-            if (libConfig.css) {
-                debugJS(libConfig.css)
-                promises.push(loadCSS(libConfig.css));
-            }
-
-            if (libConfig.js) {
-                debugJS(libConfig.js)
-                promises.push(loadJS(libConfig.js));
-            }
-
-            if (libConfig.js_init) {
-                debugJS(libConfig.js_init)
-                promises.push(loadJS(libConfig.js_init));
-            }
-
-            Promise.all(promises).then(() => {
-                if (typeof conditional_js !== "undefined") {
-                    conditional_js.push($name);
-                }
-
-                if (libConfig.init && typeof window[libConfig.init] === 'function') {
-                    window[libConfig.init]();
-                }
-
-                if (typeof $callback === "function") {
-                    $callback();
-                }
-            }).catch(err => {
-                console.error(err);
-                alert($name + " yüklenirken hata oluştu!");
-            });
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Yapılandırma dosyası çekilemedi!");
-        });
-
-    return false;
-}
-function isLoadedJS_v2($name, $load = false, $callback = null) {
-    // 1. Array ise tek tek ve güvenli yükle
-    if (Array.isArray($name)) {
-        if ($name.length === 0) {
-            if (typeof $callback === "function") $callback();
-            return true;
-        }
-        let list = [...$name]; // Orijinal listeyi bozma
-        let current = list.shift();
-        isLoadedJS(current, $load, () => {
-            isLoadedJS(list, $load, $callback);
-        });
-        return false;
-    }
-
-    // 2. Yüklü mü kontrolü (En basit haliyle)
-    let check_required = (typeof required_js !== "undefined" && required_js.indexOf($name) > -1);
-    let check_conditional = (typeof conditional_js !== "undefined" && conditional_js.indexOf($name) > -1);
-
-    if (check_required || check_conditional) {
-        if (typeof $callback === "function") $callback();
-        return true;
-    }
-
-    if (!$load) return false;
-
-    // 3. Yükleme Başlat (Callback yapısı, await yok ki kilitlemesin)
-    const configUrl = ajax_request_vars.theme_url + "/static/js/js_files_conditional_set.json";
-    
-    $.ajax({
-        url: configUrl,
-        dataType: 'json',
-        cache: true, // Her seferinde çekmesin
-        success: function(data) {
-            console.log(data)
-            console.log($name)
-            const libConfig = data[$name];
-            if (!libConfig) {
-                console.error($name + " configde yok.");
-                return;
-            }
-
-            // Dosyaları sırayla yükle (Önce CSS, sonra JS)
-            let loadTasks = [];
-            if (libConfig.css) loadTasks.push(loadCSS(libConfig.css));
-            if (libConfig.js) loadTasks.push(loadJS(libConfig.js));
-
-            Promise.all(loadTasks).then(() => {
-                if (libConfig.js_init) return loadJS(libConfig.js_init);
-            }).then(() => {
-                // Kaydet ve Init çalıştır
-                if (typeof conditional_js !== "undefined") conditional_js.push($name);
-                if (libConfig.init && typeof window[libConfig.init] === 'function') {
-                    window[libConfig.init]();
-                }
-                if (typeof $callback === "function") $callback();
-            });
-        }
-    });
-
-    return false;
-}
-function isLoadedJS_v3($name, $load = false, $callback = null) {
-    // 1. Array ise (Dışarıdan gelen liste) tek tek ve güvenli yükle
-    if (Array.isArray($name)) {
-        if ($name.length === 0) {
-            if (typeof $callback === "function") $callback();
-            return true;
-        }
-        let list = [...$name];
-        let current = list.shift();
-        isLoadedJS(current, $load, () => {
-            isLoadedJS(list, $load, $callback);
-        });
-        return false;
-    }
-
-    // 2. Yüklü mü kontrolü
-    let check_required = (typeof required_js !== "undefined" && required_js.indexOf($name) > -1);
-    let check_conditional = (typeof conditional_js !== "undefined" && conditional_js.indexOf($name) > -1);
-
-    if (check_required || check_conditional) {
-        if (typeof $callback === "function") $callback();
-        return true;
-    }
-
-    if (!$load) return false;
-
-    // 3. Yükleme Başlat
-    const configUrl = ajax_request_vars.theme_url + "/static/js/js_files_conditional_set.json";
-    
-    $.ajax({
-        url: configUrl,
-        dataType: 'json',
-        cache: true,
-        success: function(data) {
-            const libConfig = data[$name];
-            if (!libConfig) {
-                console.error($name + " configde yok.");
-                return;
-            }
-
-            // --- CSS'leri hemen yükle ---
-            if (libConfig.css) {
-                const cssFiles = Array.isArray(libConfig.css) ? libConfig.css : [libConfig.css];
-                cssFiles.forEach(file => {
-                    if(typeof loadCSS === "function") loadCSS(file);
-                });
-            }
-
-            // --- JS'leri SIRAYLA yükle (Vagon Mantığı) ---
-            const jsFiles = libConfig.js ? (Array.isArray(libConfig.js) ? [...libConfig.js] : [libConfig.js]) : [];
-
-            const loadJSChain = (list, finalAction) => {
-                if (list.length === 0) {
-                    finalAction();
-                    return;
-                }
-
-                let file = list.shift();
-                let finalUrl = '';
-
-                // URL Çözümleme
-                if (file.startsWith('http')) {
-                    finalUrl = file;
-                } else if (file.startsWith('wp-includes/')) {
-                    finalUrl = ajax_request_vars.site_url + '/' + file;
-                } else if (file.startsWith('/')) {
-                    finalUrl = ajax_request_vars.site_url + file;
-                } else {
-                    finalUrl = ajax_request_vars.plugin_url + '/' + file;
-                }
-
-                console.log("Yükleme Sırasında: " + file);
-
-                // loadJS Promise döndürmeli ve script.async = false içermeli!
-                loadJS(finalUrl).then(() => {
-                    console.log("Başarıyla Çalıştı: " + file);
-                    loadJSChain(list, finalAction); // Biri bitmeden (onload olmadan) diğerine geçmez
-                }).catch(err => {
-                    console.error("Zincir kırıldı! Dosya yüklenemedi: " + finalUrl, err);
-                });
-            };
-
-            // Zinciri başlat ve bittiğinde Init/Callback çalıştır
-            loadJSChain(jsFiles, () => {
-                
-                const finalize = () => {
-                    if (typeof conditional_js !== "undefined") conditional_js.push($name);
-                    
-                    // Init Fonksiyonu (Noktalı yapıları destekler örn: AppCF7.initForms)
-                    if (libConfig.init) {
-                        const parts = libConfig.init.split('.');
-                        let func = window;
-                        parts.forEach(p => { if(func) func = func[p]; });
-
-                        if (typeof func === 'function') {
-                            console.log("Init Çalışıyor: " + libConfig.init);
-                            // Modal açıksa sadece modalı tarasın
-                            const scope = $('.modal:visible').length ? $('.modal:visible') : $("body");
-                            func(scope);
-                        }
-                    }
-                    
-                    if (typeof $callback === "function") $callback();
-                };
-
-                // Eğer ek bir js_init dosyası varsa önce onu yükle
-                if (libConfig.js_init) {
-                    loadJS(libConfig.js_init).then(finalize);
-                } else {
-                    finalize();
-                }
-            });
-        }
-    });
-
-    return false;
-}*/
 function isLoadedJS($name, $load = false, $callback = null) {
     // Statik değişkenleri ilk kez çalışırken tanımla (Namespace koruması)
     if (typeof isLoadedJS.cache === 'undefined') {
@@ -705,3 +450,89 @@ $( document ).ready(function() {
             $("body").removeClass("loading-process");
         }, false );*/
 });
+
+/**
+ * modal_load_plugins_then_init
+ *
+ * Modal içeriği yüklendikten sonra gereken plugin'leri sırayla yükler,
+ * hepsi hazır olunca init_functions() çağırır.
+ *
+ * @param {Object} plugins  { pluginKey: "initFuncName", ... }  (custom_modal PHP'den geliyor)
+ *                          ya da string[] array  (sadece key listesi)
+ * @param {jQuery} scope    Modal jQuery objesi — init scope'u için
+ */
+function modal_load_plugins_then_init(plugins, scope) {
+
+    // Normalize: array ise { key: "" } objesine çevir
+    var pluginMap = {};
+    if (Array.isArray(plugins)) {
+        plugins.forEach(function(k) { pluginMap[k] = ""; });
+    } else if (plugins && typeof plugins === 'object') {
+        pluginMap = plugins;
+    }
+
+    var keys = Object.keys(pluginMap);
+
+    if (!keys.length) {
+        // Yüklenecek plugin yok, direkt init
+        if (typeof init_functions === 'function') { init_functions(); }
+        return;
+    }
+
+    // Bağımlılık sıralaması: js_files_conditional_set.json'daki dependencies alanını oku
+    // isLoadedJS zaten cache'liyor, ikinci çağrıda JSON isteği atmaz
+    var _loadChain = function(list, onDone) {
+        if (!list.length) { onDone(); return; }
+        var name = list.shift();
+
+        // Önce dependencies'i yükle (varsa)
+        var _loadWithDeps = function(pluginName, cb) {
+            var config = isLoadedJS.cache ? isLoadedJS.cache[pluginName] : null;
+            var deps   = (config && Array.isArray(config.dependencies)) ? config.dependencies.slice() : [];
+
+            if (!deps.length) {
+                // Bağımlılık yok, direkt yükle
+                isLoadedJS(pluginName, true, cb);
+                return;
+            }
+
+            // Önce bağımlılıkları yükle, sonra asıl plugin'i
+            _loadChain(deps, function() {
+                isLoadedJS(pluginName, true, cb);
+            });
+        };
+
+        _loadWithDeps(name, function() {
+            _loadChain(list, onDone);
+        });
+    };
+
+    // isLoadedJS cache'i hazır mı? Hazır değilse önce bir dummy çağrıyla yüklet
+    var _run = function() {
+        _loadChain(keys.slice(), function() {
+            // Hepsi yüklendi, init et
+            if (typeof init_functions === 'function') {
+                init_functions(pluginMap);
+            }
+        });
+    };
+
+    if (isLoadedJS.cache) {
+        _run();
+    } else {
+        // Cache henüz yok — bir plugin'i $load=true ile çağırarak JSON'u çektir,
+        // sonra tüm zinciri başlat
+        var firstKey = keys[0];
+        isLoadedJS(firstKey, true, function() {
+            // firstKey yüklendi, geri kalanları da işle
+            var remaining = keys.slice(1);
+            if (!remaining.length) {
+                if (typeof init_functions === 'function') { init_functions(pluginMap); }
+                return;
+            }
+            _loadChain(remaining, function() {
+                if (typeof init_functions === 'function') { init_functions(pluginMap); }
+            });
+        });
+    }
+}

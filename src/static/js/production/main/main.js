@@ -145,7 +145,7 @@ window.withMethods = function(callback) {
     });
 };
 
-function init_functions(){
+function init_functions($plugins_req = []){
 	root.ui.scroll_dedect();
 	//function_secure("", "root.ui.scroll_dedect", []);
 
@@ -213,6 +213,17 @@ function init_functions(){
         ajax_hooks["get_nearest_locations"].init({
 			post_type : "satis-noktalari"
 		});*/
+
+		if($plugins_req){
+			if ($plugins_req && typeof $plugins_req === 'object') {
+			    Object.entries($plugins_req).forEach(([name, plugin]) => {
+			        // Fonksiyonun tanımlı olup olmadığını da kontrol edelim ki patlamasın
+			        if (typeof function_secure === 'function') {
+			            function_secure(plugin, name);
+			        }
+			    });
+			}
+		}
 }
 
 $( document ).ready(function() {
