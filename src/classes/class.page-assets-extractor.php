@@ -52,7 +52,7 @@ class PageAssetsExtractor{
     public $disable_hooks = false;
     public $force_rebuild = false;
 
-    public $debug = true;
+    public $debug = false; // Production'da kapalı — error_log'u patlatma
 
     public $home_url = "";
     public $home_url_encoded = "";
@@ -322,10 +322,8 @@ class PageAssetsExtractor{
         // arşivleri güncelle
         $this->fetch_and_save_archives_assets($post->post_type);
 
-        if ($ok !== false) {
-            $this->error_log('[PAE] on_save_post fallback build_related_assets call');
-            $this->build_related_assets($post_id, $post->post_type);
-        }
+        // build_related_assets zaten fetch_and_save_archives_assets içinde arşivleri hallediyor.
+        // Burada tekrar çağırmak çift iş — kaldırıldı.
 
         return $ok;
     }
@@ -380,7 +378,7 @@ class PageAssetsExtractor{
             : get_term_meta($id, self::HTML_HASH_META_KEY, true);
 
         if ($current_html_hash !== $last_html_hash) {
-            $this->error_log("[PAE] {$context} HTML değişmiş, manifest purge ediliyor...");
+            $this->error_log("[PAE] {$context} HTML değişmiş, force_rebuild açıldı.");
             $this->force_rebuild = true;
 
             if ($context === 'post') {
@@ -389,7 +387,12 @@ class PageAssetsExtractor{
                 update_term_meta($id, self::HTML_HASH_META_KEY, $current_html_hash);
             }
 
-            $this->purge_page_assets_manifest();
+            // Tüm manifest'i patlatma lan — sadece bu içeriğin structure_fp'sini sıfırla.
+            // Diğer sayfaların purge cache'i gidiyordu, artık gitmiyor.
+            $content_key = $context . ':' . $id;
+            if (isset($this->manifest['content_usage'][$content_key])) {
+                unset($this->manifest['content_usage'][$content_key]);
+            }
             $this->manifest_write();
         } else {
             $this->error_log("[PAE] {$context} HTML aynı, rebuild gerek yok.");
@@ -399,13 +402,25 @@ class PageAssetsExtractor{
 
     /* ===================== FİLTRELER ===================== */
 
+    // Static cache — her çağrıda DB'ye gitme lan
+    private static $cached_public_post_types = null;
+    private static $cached_public_taxonomies = null;
+
     private function is_supported_post_type($post_type) {
-        $public_pts = function_exists('get_post_types') ? array_keys(get_post_types(['public' => true], 'names')) : [];
-        return in_array($post_type, $public_pts, true);
+        if ( self::$cached_public_post_types === null ) {
+            self::$cached_public_post_types = function_exists('get_post_types')
+                ? array_keys( get_post_types(['public' => true], 'names') )
+                : [];
+        }
+        return in_array($post_type, self::$cached_public_post_types, true);
     }
     private function is_supported_taxonomy($taxonomy) {
-        $public_tax = function_exists('get_taxonomies') ? get_taxonomies(['public' => true]) : [];
-        return in_array($taxonomy, $public_tax, true);
+        if ( self::$cached_public_taxonomies === null ) {
+            self::$cached_public_taxonomies = function_exists('get_taxonomies')
+                ? array_values( get_taxonomies(['public' => true]) )
+                : [];
+        }
+        return in_array($taxonomy, self::$cached_public_taxonomies, true);
     }
 
     /* ===================== URL FETCH ===================== */
@@ -609,18 +624,32 @@ class PageAssetsExtractor{
     }
 
     public function fetch_all() {
-        $urls = $this->get_all_urls();
+        $this->mass = true;
+        $urls    = $this->get_all_urls();
         $results = [];
-        foreach ($urls as $id => $row) {
-            $results[$row["url"]] = $this->fetch($row["url"], $id, $row["type"]);
+        try {
+            foreach ($urls as $id => $row) {
+                $results[$row["url"]] = $this->fetch($row["url"], $id, $row["type"]);
+            }
+        } finally {
+            // mass modunda fetch() içinde end_heavy_process çağrılmıyor,
+            // burada garantiyle çağırıyoruz lan
+            $this->end_heavy_process();
+            $this->mass = false;
         }
         return $results;
     }
 
     public function fetch_urls($urls) {
+        $this->mass = true;
         $results = [];
-        foreach ($urls as $id => $row) {
-            $results[$row["url"]] = $this->fetch($row["url"], $id, $row["type"]);
+        try {
+            foreach ($urls as $id => $row) {
+                $results[$row["url"]] = $this->fetch($row["url"], $id, $row["type"]);
+            }
+        } finally {
+            $this->end_heavy_process();
+            $this->mass = false;
         }
         return $results;
     }
@@ -778,9 +807,10 @@ class PageAssetsExtractor{
     }*/
     private function manifest_write() {
         @file_put_contents($this->manifest_path, json_encode($this->manifest, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
-        //if (rand(1, 100) <= 2) {
+        // Orphan temizliği %2 ihtimalle çalışsın — her yazımda dosya sistemi taraması yapma lan
+        if ( mt_rand(1, 100) <= 2 ) {
             $this->purge_orphan_assets();
-        //}
+        }
     }
 
     private function acquire_lock($id) {
@@ -1974,50 +2004,45 @@ class PageAssetsExtractor{
 
 
     public function save_post_terms( $post_id ) {
-        if ( ! function_exists('get_post') || ! get_post($post_id) ) {
-            return [];
-        }
-
-        $updated = [];
-        $pt = function_exists('get_post_type') ? get_post_type($post_id) : '';
-        $tax_objects = function_exists('get_object_taxonomies') ? get_object_taxonomies($pt, 'objects') : [];
-
-        if (empty($tax_objects)) {
-            return $updated;
-        }
-
-        // on_save_term vs. recursive tetiklenmesin diye korumayı aç/kapa
-        $prev_disable = $this->disable_hooks;
-        $this->disable_hooks = true;
-
-        try {
-            foreach ($tax_objects as $taxonomy => $details) {
-                if (empty($details->public)) {
-                    continue;
-                }
-
-                $terms = function_exists('get_the_terms') ? get_the_terms($post_id, $taxonomy) : [];
-                if (empty($terms) || is_wp_error($terms)) {
-                    continue;
-                }
-
-                foreach ($terms as $term) {
-                    // Terim sayfasının asset’lerini rebuild et
-                    $this->type = 'term';
-                    $ok = $this->fetch_term_url($term->term_id, $taxonomy);
-                    if ($ok !== false) {
-                        $updated[] = $term->term_id;
-                    }
-                }
+            if ( ! function_exists('get_post') || ! get_post($post_id) ) {
+                return [];
             }
-        } catch (\Throwable $e) {
-            $this->error_log('save_post_terms error: ' . $e->getMessage());
-        } finally {
-            $this->disable_hooks = $prev_disable;
+
+            $pt          = function_exists('get_post_type') ? get_post_type($post_id) : '';
+            $tax_objects = function_exists('get_object_taxonomies') ? get_object_taxonomies($pt, 'objects') : [];
+
+            if (empty($tax_objects)) {
+                return [];
+            }
+
+            // Term fetch'lerini shutdown'a ertele — admin response'unu bloklama lan
+            // Her term için ayrı HTTP isteği atılıyor, bunu request içinde yapma
+            add_action('shutdown', function() use ($post_id, $tax_objects) {
+                $prev_disable        = $this->disable_hooks;
+                $this->disable_hooks = true;
+
+                try {
+                    foreach ($tax_objects as $taxonomy => $details) {
+                        if (empty($details->public)) continue;
+
+                        $terms = function_exists('get_the_terms') ? get_the_terms($post_id, $taxonomy) : [];
+                        if (empty($terms) || is_wp_error($terms)) continue;
+
+                        foreach ($terms as $term) {
+                            $this->type = 'term';
+                            $this->fetch_term_url($term->term_id, $taxonomy);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    $this->error_log('save_post_terms error: ' . $e->getMessage());
+                } finally {
+                    $this->disable_hooks = $prev_disable;
+                }
+            }, 99);
+
+            return []; // Shutdown'da çalışacak
         }
 
-        return $updated;
-    }
 
 
     public function delete_existing_assets($id) {
@@ -2080,7 +2105,7 @@ class PageAssetsExtractor{
         }
 
         static $downloaded = [];
-       // if (isset($downloaded[$sitemap_url])) return $urls;
+        if (isset($downloaded[$sitemap_url])) return $urls; // Aynı sitemap'i iki kez indirme lan
 
         $cache_key = 'sh_turbo_sitemap_' . md5($sitemap_url);
         $sitemap_content = get_transient($cache_key);
