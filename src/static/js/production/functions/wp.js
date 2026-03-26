@@ -451,6 +451,104 @@ $( document ).ready(function() {
         }, false );*/
 });
 
+/* ============================================================
+ *  MODAL ORTAK YARDIMCILAR
+ *  Tüm modal türleri (custom, template, page, map, form, iframe)
+ *  bu fonksiyonları kullanır — tekrar yok, tek nokta.
+ * ============================================================ */
+
+/**
+ * modal_create_dialog
+ * Bootbox dialog oluşturur, fullscreen + özel class'ları uygular, ID atar.
+ *
+ * @param {Object} vars       Ajax hook'tan gelen vars objesi
+ * @param {Object} response   Ajax response objesi (onHidden için)
+ * @param {Object} objs       Ajax objs objesi
+ * @param {Object} opts       Ek seçenekler: { className, defaultClose, defaultCentered, defaultBackdrop }
+ * @returns {jQuery}          Oluşturulan dialog jQuery objesi
+ */
+function modal_create_dialog(vars, response, objs, opts) {
+    opts = opts || {};
+
+    var className  = (opts.className || 'modal-page') + ' loading ' + (vars.class || '');
+    var scrollable = bool(vars.scrollable, false);
+    var close      = bool(vars.close,      opts.defaultClose    !== undefined ? opts.defaultClose    : true);
+    var centered   = bool(vars.centered,   opts.defaultCentered !== undefined ? opts.defaultCentered : true);
+    var animate    = bool(vars.animate,    false);
+    var backdrop   = bool(vars.backdrop,   opts.defaultBackdrop !== undefined ? opts.defaultBackdrop : true);
+    var size       = !IsBlank(vars.size)   ? vars.size : 'xl';
+
+    var dialog = bootbox.dialog({
+        className:     className,
+        title:         '<div></div>',
+        message:       '<div></div>',
+        closeButton:   close,
+        size:          size,
+        scrollable:    scrollable,
+        centerVertical: centered,
+        animate:       animate,
+        backdrop:      backdrop,
+        buttons:       {},
+        onHidden: function() { if (response && response.abort) response.abort(); }
+    });
+
+    // Fullscreen
+    if (vars.fullscreen) {
+        dialog.find('.modal-dialog').addClass(
+            vars.fullscreen === true ? 'modal-fullscreen' : vars.fullscreen
+        );
+    }
+
+    // Özel modal class'ları: [{ "modal-dialog": "my-class" }, ...]
+    if (Array.isArray(vars.modal)) {
+        vars.modal.forEach(function(item) {
+            Object.entries(item).forEach(function(entry) {
+                dialog.find('.' + entry[0]).addClass(entry[1]);
+            });
+        });
+    }
+
+    // Eşsiz ID
+    dialog.attr('id', typeof generateCode === 'function' ? generateCode(5) : 'modal_' + Date.now());
+
+    // objs ve response güncelle
+    objs.modal       = dialog;
+    response.objs    = { modal: dialog, btn: objs.btn };
+
+    return dialog;
+}
+
+/**
+ * modal_handle_error
+ * Hata durumunda modal'ı gizler ve mesajı gösterir.
+ * @returns {boolean} false — after hook'undan erken çıkmak için kullan
+ */
+function modal_handle_error(response, modal) {
+    modal.addClass('remove-on-hidden').modal('hide');
+    if (response.message && typeof response_view === 'function') {
+        response_view(response);
+    }
+    return false;
+}
+
+/**
+ * modal_set_content
+ * Response data'sına göre modal içeriğini yerleştirir.
+ * content varsa → .modal-content'e, yoksa title+body ayrı ayrı.
+ */
+function modal_set_content(response, modal) {
+    var data = response.data;
+    if (!data) return;
+
+    if (data.hasOwnProperty('content')) {
+        modal.find('.modal-content').html(data.content);
+    } else {
+        if (data.title   !== undefined) modal.find('.modal-title').html(data.title);
+        if (data.body    !== undefined) modal.find('.modal-body').html(data.body);
+        if (data.content !== undefined) modal.find('.modal-body').html(data.content);
+    }
+}
+
 /**
  * modal_load_plugins_then_init
  *
@@ -510,29 +608,53 @@ function modal_load_plugins_then_init(plugins, scope) {
     // isLoadedJS cache'i hazır mı? Hazır değilse önce bir dummy çağrıyla yüklet
     var _run = function() {
         _loadChain(keys.slice(), function() {
-            // Hepsi yüklendi, init et
-            if (typeof init_functions === 'function') {
-                init_functions(pluginMap);
-            }
+            // Hepsi yüklendi — direkt init et, init_functions'a bırakma
+            // init_functions içindeki function_secure isLoadedJS(key, false) ile kontrol ediyor
+            // ve sayfada olmayan plugin'ler için false dönebiliyor.
+            // Biz zaten yükledik, direkt window[initFunc]() çağırıyoruz.
+            Object.entries(pluginMap).forEach(function(entry) {
+                var pluginKey  = entry[0]; // "leaflet"
+                var initFunc   = entry[1]; // "init_leaflet"
+                if (!initFunc) return;
+
+                // "a.b.c" dot notation desteği (örn: "AppCF7.initForms")
+                var parts = initFunc.split('.');
+                var fn = window;
+                parts.forEach(function(p) { if (fn && fn[p]) fn = fn[p]; });
+
+                if (typeof fn === 'function') {
+                    var modalScope = (scope && scope.length) ? scope : $('.modal:visible').length ? $('.modal:visible') : $("body");
+                    fn(modalScope);
+                }
+            });
+
+            // Genel init (scroll, btn_ajax_method vs.) için de çağır ama plugins olmadan
+            if (typeof init_functions === 'function') { init_functions(); }
         });
     };
 
     if (isLoadedJS.cache) {
         _run();
     } else {
-        // Cache henüz yok — bir plugin'i $load=true ile çağırarak JSON'u çektir,
-        // sonra tüm zinciri başlat
         var firstKey = keys[0];
         isLoadedJS(firstKey, true, function() {
-            // firstKey yüklendi, geri kalanları da işle
             var remaining = keys.slice(1);
-            if (!remaining.length) {
-                if (typeof init_functions === 'function') { init_functions(pluginMap); }
-                return;
-            }
-            _loadChain(remaining, function() {
-                if (typeof init_functions === 'function') { init_functions(pluginMap); }
-            });
+            var _finish = function() {
+                Object.entries(pluginMap).forEach(function(entry) {
+                    var initFunc = entry[1];
+                    if (!initFunc) return;
+                    var parts = initFunc.split('.');
+                    var fn = window;
+                    parts.forEach(function(p) { if (fn && fn[p]) fn = fn[p]; });
+                    if (typeof fn === 'function') {
+                        var modalScope = (scope && scope.length) ? scope : $('.modal:visible').length ? $('.modal:visible') : $("body");
+                        fn(modalScope);
+                    }
+                });
+                if (typeof init_functions === 'function') { init_functions(); }
+            };
+            if (!remaining.length) { _finish(); return; }
+            _loadChain(remaining, _finish);
         });
     }
 }

@@ -1033,3 +1033,63 @@ function deleteFolder($dir) {
     }
     rmdir($dir);
 }
+
+/**
+ * modal_get_plugins_req
+ * Post'un asset meta'sından plugin → init_func haritasını döndürür.
+ * custom_modal ve template_modal PHP'lerinde tekrar eden mantık buraya taşındı.
+ *
+ * @param  int|WP_Post $post_id  Post ID veya WP_Post objesi
+ * @return array                 [ 'leaflet' => 'init_leaflet', ... ]
+ */
+function modal_get_plugins_req( $post_id ): array {
+    if ( ! function_exists('compile_files_config') ) {
+        if ( defined('SH_INCLUDES_PATH') && file_exists( SH_INCLUDES_PATH . 'minify-rules.php' ) ) {
+            require_once SH_INCLUDES_PATH . 'minify-rules.php';
+        } else {
+            return [];
+        }
+    }
+
+    $post_id   = is_object($post_id) ? $post_id->ID : (int) $post_id;
+    $assets    = get_post_meta( $post_id, 'assets', true );
+    $plugins   = is_array($assets) ? ( $assets['plugins'] ?? [] ) : [];
+
+    if ( empty($plugins) ) return [];
+
+    $plugins_all = compile_files_config()['js']['plugins'] ?? [];
+    $result      = [];
+
+    foreach ( $plugins as $plugin ) {
+        if ( isset( $plugins_all[$plugin]['init'] ) ) {
+            $result[$plugin] = $plugins_all[$plugin]['init'];
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * modal_json_output
+ * Tüm modal PHP'lerinde tekrar eden json_encode + die() kalıbını tek noktaya toplar.
+ * title varsa title+body, yoksa content formatında döner.
+ *
+ * @param string $html        Modal içeriği
+ * @param array  $plugins_req [ 'leaflet' => 'init_leaflet', ... ]
+ * @param array  $vars        Ajax vars (title için)
+ * @param bool   $error
+ * @param string $message
+ */
+function modal_json_output( string $html, array $plugins_req = [], array $vars = [], bool $error = false, string $message = '' ): void {
+    $data = isset($vars['title'])
+        ? [ 'title' => $vars['title'], 'body'    => $html, 'plugins' => $plugins_req ]
+        : [ 'content' => $html,        'plugins' => $plugins_req ];
+
+    echo json_encode([
+        'error'   => $error,
+        'message' => $message,
+        'html'    => '',
+        'data'    => $data,
+    ]);
+    die();
+}
