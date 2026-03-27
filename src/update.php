@@ -1687,12 +1687,9 @@ class Update {
      * Silme işlemi yapmadan ID eşleşmesiyle (Update) çalışır, veri kaybını önler.
      */
     private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
-        // 1. Klasör Yolu Ayarı
         if (empty($acf_json_path)) {
             $acf_json_path = get_template_directory() . '/acf-json';
         }
-        
-        // 2. Klasör ve Dosya Kontrolü
         if (!is_dir($acf_json_path)) {
             return ['success' => false, 'message' => 'ACF JSON dizini bulunamadı: ' . $acf_json_path];
         }
@@ -1706,34 +1703,19 @@ class Update {
 
         foreach ($json_files as $file) {
             $json_content = file_get_contents($file);
-            $field_group = json_decode($json_content, true);
+            $field_group  = json_decode($json_content, true);
 
-            // Geçersiz JSON veya eksik key kontrolü
-            if (!$field_group || !isset($field_group['key'])) {
-                continue;
-            }
+            if (!$field_group || !isset($field_group['key'])) continue;
 
-            // 3. Veritabanında Mevcut mu Kontrol Et
             $existing_group = acf_get_field_group($field_group['key']);
 
             if ($existing_group) {
-                // Eğer üzerine yazma (overwrite) kapalıysa bu dosyayı geç
-                if (!$overwrite) {
-                    continue;
-                }
-
-                // KRİTİK: Mevcut ID'yi yeni veriye enjekte et. 
-                // Böylece acf_import_field_group silme yapmadan "Update" gerçekleştirir.
-                $field_group['ID'] = $existing_group['ID'];
-                
-                // Mevcut statüyü (active/inactive) koru
-                if (isset($existing_group['active'])) {
-                    $field_group['active'] = $existing_group['active'];
-                }
+                if (!$overwrite) continue;
+                // Mevcut ID'yi enjekte et — acf_import_field_group silme yapmadan update eder
+                $field_group['ID']     = $existing_group['ID'];
+                $field_group['active'] = $existing_group['active'] ?? $field_group['active'];
             }
 
-            // 4. Import / Update İşlemi
-            // ID varsa günceller, yoksa yeni oluşturur.
             $result = acf_import_field_group($field_group);
 
             if ($result && !is_wp_error($result)) {
@@ -1741,14 +1723,11 @@ class Update {
             }
         }
 
-        // 5. İşlem Bittikten Sonra Cache Temizliği (Döngü dışında tek sefer)
         if (!empty($imported_keys)) {
-            if (function_exists('acf_cache_delete_all')) {
-                acf_cache_delete_all();
-            }
+            if (function_exists('acf_cache_delete_all')) acf_cache_delete_all();
             return [
-                'success' => true, 
-                'message' => count($imported_keys) . ' adet grup başarıyla işlendi (Eklendi/Güncellendi).',
+                'success' => true,
+                'message' => count($imported_keys) . ' adet grup başarıyla işlendi.',
                 'keys'    => $imported_keys
             ];
         }
@@ -1772,90 +1751,43 @@ class Update {
         get_theme_styles([], true);
     }*/
     /**
-     * RE-DESIGN: Dinamik Flexible Content Alanlarının Güncellenmesi
+     * Dinamik Flexible Content Alanlarının Güncellenmesi.
      * Yeni/Güncel blokları 'block-bootstrap-columns' alanına layout olarak ekler.
-     * Güncelleme sonrası ACF field group'u programatik olarak re-save eder —
-     * böylece flexible content içindeki clone subfield'lar DB'ye tam yazılır
-     * ve kullanıcının edit sayfasından manuel save yapmasına gerek kalmaz.
+     * register_fields adımı JSON'u zaten DB'ye yazdığı için burada sadece
+     * flexible content layout'larını güncelliyoruz — field duplicate olmaz.
      */
     private static function update_fields() {
         global $wpdb;
-        
+
         $block_columns_key = "group_66e309dc049c4";
-        
-        $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'", $block_columns_key);
+
+        $query   = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'", $block_columns_key);
         $post_id = $wpdb->get_var($query);
 
-        if (!$post_id) {
-            return false;
-        }
+        if (!$post_id) return false;
 
-        // 1. Tüm blokları block-bootstrap-columns'a layout olarak ekle
-        if (function_exists('acf_save_post_block_columns_action')) {
-            acf_save_post_block_columns_action($post_id);
-        } else {
-            return false;
-        }
+        // 1. Tüm blokları flexible content'e layout olarak ekle
+        if (!function_exists('acf_save_post_block_columns_action')) return false;
+        acf_save_post_block_columns_action($post_id);
 
-        // 2. ACF cache'i temizle
+        // 2. Cache temizle
         $cache_updater = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block_columns_key);
         $cache_updater->clear_cache();
 
-        // 3. KRİTİK: Field group'u JSON'dan okuyup ACF'nin tam update akışıyla re-save et.
-        // Bu adım, flexible content içindeki clone subfield'ların DB'ye tam yazılmasını sağlar.
-        // Kullanıcının edit sayfasından manuel save yapmasına gerek kalmaz.
-        $field_group = acf_get_field_group($block_columns_key);
-        if ($field_group) {
-            // Field'ları da çek
-            $fields = acf_get_fields($field_group);
-
-            if (is_array($fields)) {
-                // Her field'ı tek tek update et — subfield'lar dahil
-                foreach ($fields as $field) {
-                    self::_acf_update_field_recursive($field, $field_group['ID']);
-                }
-            }
-
-            // Field group'u update et (ACF'nin tam save akışı)
-            acf_update_field_group($field_group);
-        }
-
-        // 4. Tema stilleri güncelle
+        // 3. Tema stilleri güncelle
         if (function_exists('get_theme_styles')) {
             get_theme_styles([], true);
         }
     }
 
     /**
-     * ACF field'ı ve tüm alt field'larını (subfields, layouts) recursive olarak update eder.
-     * Flexible content layout'larındaki clone field'ların DB'ye tam yazılmasını sağlar.
+     * ACF field'ı ve tüm alt field'larını recursive olarak update eder.
+     * NOT: Şu an kullanılmıyor — duplicate sorununa yol açtığı için devre dışı.
+     * Gerekirse ileride ID kontrolü eklenerek aktif edilebilir.
      */
     private static function _acf_update_field_recursive(array $field, int $parent_id): void {
-        if (empty($field['key'])) return;
-
-        $field['parent'] = $parent_id;
-        $result = acf_update_field($field);
-
-        $new_id = is_array($result) ? ($result['ID'] ?? 0) : (int) $result;
-        if (!$new_id) return;
-
-        // Flexible content: layout'ların subfield'larını da update et
-        if ($field['type'] === 'flexible_content' && !empty($field['layouts'])) {
-            foreach ($field['layouts'] as $layout) {
-                if (!empty($layout['sub_fields'])) {
-                    foreach ($layout['sub_fields'] as $sub_field) {
-                        self::_acf_update_field_recursive($sub_field, $new_id);
-                    }
-                }
-            }
-        }
-
-        // Repeater / group subfield'ları
-        if (!empty($field['sub_fields'])) {
-            foreach ($field['sub_fields'] as $sub_field) {
-                self::_acf_update_field_recursive($sub_field, $new_id);
-            }
-        }
+        // Intentionally disabled — acf_import_field_group zaten field'ları yazıyor.
+        // Bu metodu çağırmak duplicate field'lara yol açar.
     }
     private static function npm_install(): string{
         $workingDir = ABSPATH;
