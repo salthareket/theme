@@ -100,39 +100,40 @@ class Update {
 
     private static function check_installation(){
         if (!(defined('DOING_AJAX') && DOING_AJAX)) {
-            $status = self::$status;
+            $status       = self::$status;
             $tasks_status = self::$tasks_status;
 
-            if (empty($status)) {
-                $status = "pending";
+            if ( empty($status) ) {
+                $status       = "pending";
                 $tasks_status = [];
                 add_option('sh_theme_status', $status);
                 add_option('sh_theme_tasks_status', $tasks_status);
             } else {
-                if (count(self::$installation_tasks) > count($tasks_status)) {
-                    $status = "pending";
+                // Eğer hiç tamamlanmış task yoksa (ilk kurulum) pending'e al
+                if ( empty($tasks_status) ) {
+                    $status       = "pending";
                     $tasks_status = [];
                     update_option('sh_theme_status', $status);
                     update_option('sh_theme_tasks_status', $tasks_status);
                 }
             }
 
-            self::$status = $status;
+            self::$status       = $status;
             self::$tasks_status = $tasks_status;
 
-            if ($status === 'pending' || !$status) {
-                if (is_admin()) {
+            if ( $status === 'pending' || ! $status ) {
+                if ( is_admin() ) {
                     $current_page = $_GET['page'] ?? '';
-                    if ($current_page !== 'update-theme') {
+                    if ( $current_page !== 'update-theme' ) {
                         wp_safe_redirect(admin_url('admin.php?page=update-theme'));
                         exit;
                     }
                 } else {
                     $uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-                    $is_asset = preg_match('/\.(js|css|jpg|jpeg|png|svg|woff2?|ttf|eot|gif|webp)$/i', $uri_path);
-                    $is_rest_api = strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false;
+                    $is_asset   = preg_match('/\.(js|css|jpg|jpeg|png|svg|woff2?|ttf|eot|gif|webp)$/i', $uri_path);
+                    $is_rest    = strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false;
 
-                    if (!$is_asset && !$is_rest_api && !is_login_page()) {
+                    if ( ! $is_asset && ! $is_rest && ! is_login_page() ) {
                         wp_die(
                             sprintf(
                                 '<h2 class="text-danger">Warning</h2>The theme setup is not complete. Please complete the installation from the <a href="%s">update page</a>.',
@@ -145,75 +146,37 @@ class Update {
         }
     }
 
+    /**
+     * composer.lock dosyasını okur ve parse eder.
+     * Başarısızlıkta null döner — her metod tekrar tekrar aynı kodu yazmasın.
+     */
+    private static function _read_composer_lock(): ?array {
+        if (!file_exists(self::$composer_lock_path)) return null;
+        $content = file_get_contents(self::$composer_lock_path);
+        if (!$content) return null;
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE || empty($data['packages'])) return null;
+        return $data;
+    }
+
     private static function get_package_github_url($package_name) {
-        if (!file_exists(self::$composer_lock_path)) {
-            //error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
-            return 'Unknown';
-        }
-        $lock_data = file_get_contents(self::$composer_lock_path);
-
-        if (!$lock_data) {
-            //error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
-            return 'Unknown';
-        }
-
-        $lock_data = json_decode($lock_data, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            //error_log('JSON parse hatası: ' . json_last_error_msg());
-            return 'Unknown';
-        }
-
-        if (empty($lock_data['packages'])) {
-            //error_log('composer.lock dosyasında paket bulunamadı.');
-            return 'Unknown';
-        }
-
-        foreach ($lock_data['packages'] as $package) {
+        $lock = self::_read_composer_lock();
+        if (!$lock) return 'Unknown';
+        foreach ($lock['packages'] as $package) {
             if ($package['name'] === $package_name) {
-                //error_log('Github URL bulundu: '.$package_name . ":" . $package['dist']["url"]);
-                $url = $package['dist']["url"];
-                return preg_replace('#/[^/]+$#', '/', $url);
+                return preg_replace('#/[^/]+$#', '/', $package['dist']['url']);
             }
         }
-
-        //error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
     }
     private static function get_package_version($package_name) {
-
-        if (!file_exists(self::$composer_lock_path)) {
-            //error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
-            return 'Unknown';
-        }
-
-        $lock_data = file_get_contents(self::$composer_lock_path);
-
-        if (!$lock_data) {
-            //error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
-            return 'Unknown';
-        }
-
-        $lock_data = json_decode($lock_data, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            //error_log('JSON parse hatası: ' . json_last_error_msg());
-            return 'Unknown';
-        }
-
-        if (empty($lock_data['packages'])) {
-            //error_log('composer.lock dosyasında paket bulunamadı.');
-            return 'Unknown';
-        }
-
-        foreach ($lock_data['packages'] as $package) {
+        $lock = self::_read_composer_lock();
+        if (!$lock) return 'Unknown';
+        foreach ($lock['packages'] as $package) {
             if ($package['name'] === $package_name) {
-                //error_log('Mevcut sürüm bulundu: '.$package_name . ":" . $package['version']);
                 return $package['version'];
             }
         }
-
-        //error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
     }
     private static function get_current_version() {
@@ -331,8 +294,9 @@ class Update {
         return $required_packages;
     }
     private static function get_installed_packages() {
-        $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
-        return array_map(function($pkg) { return $pkg['name']; }, $lock_data['packages'] ?? []);
+        $lock = self::_read_composer_lock();
+        if (!$lock) return [];
+        return array_map(fn($pkg) => $pkg['name'], $lock['packages']);
     }
     public static function check_for_update_notice() {
         $current_version = self::get_current_version();
@@ -800,113 +764,84 @@ class Update {
 
 
     public static function composer_manuel_install($package_name, $latest_version="", $silent = false) {
-        //error_log("composer_manuel_install işlemi başlatıldı...");
         try {
-        
             $package_folder = self::$theme_root . "/vendor/".$package_name;
 
-            // ZIP dosyasını indirme
-            //$url = self::composer_get_latest_version_url($package_name);
-            //$url = self::$github_api_url . '/' . $package_name . '/zipball/' . $latest_version;
-            $url = self::get_package_github_url($package_name) . $latest_version;
+            $url      = self::get_package_github_url($package_name) . $latest_version;
             $tmp_file = download_url($url);
 
             if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
-                //error_log($url);
-                //error_log(print_r($tmp_file, true));
-                //error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
-                wp_send_json_error(['message' => 'ZIP dosyası indirilemedi veya bozuk.']);
+                $msg = 'ZIP dosyası indirilemedi veya bozuk.';
+                if ($silent) throw new \Exception($msg);
+                wp_send_json_error(['message' => $msg]);
             }
-            //error_log("ZIP dosyası indirildi: " . $tmp_file);
 
-            // Geçici dizin kontrolü
             $temp_dir = self::$vendor_directory . '/temp';
             if (!file_exists($temp_dir)) {
                 if (!mkdir($temp_dir, 0755, true) && !is_dir($temp_dir)) {
-                    //error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
-                    wp_send_json_error(['message' => 'Geçici dizin oluşturulamadı.']);
+                    $msg = 'Geçici dizin oluşturulamadı.';
+                    if ($silent) throw new \Exception($msg);
+                    wp_send_json_error(['message' => $msg]);
                 }
-                //error_log("Geçici dizin oluşturuldu: " . $temp_dir);
             }
 
-            // ZIP dosyasını çıkarma
             $unzip_result = unzip_file($tmp_file, $temp_dir);
             if (is_wp_error($unzip_result)) {
-                //error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
-
-                // Fallback: ZipArchive kullanarak dosyayı çıkar
-                $zip = new ZipArchive();
+                $zip = new \ZipArchive();
                 if ($zip->open($tmp_file) === true) {
                     $extract_result = $zip->extractTo($temp_dir);
                     $zip->close();
                     if (!$extract_result) {
-                        //error_log("ZipArchive ile çıkarma başarısız oldu.");
                         self::delete_directory($temp_dir);
-                        wp_send_json_error(['message' => 'ZipArchive ile çıkarma başarısız oldu.']);
+                        $msg = 'ZipArchive ile çıkarma başarısız oldu.';
+                        if ($silent) throw new \Exception($msg);
+                        wp_send_json_error(['message' => $msg]);
                     }
-                    //error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
                 } else {
-                    //error_log("ZipArchive ile çıkarma başarısız oldu.");
                     self::delete_directory($temp_dir);
-                    wp_send_json_error(['message' => 'ZIP dosyası çıkarılamadı.']);
+                    $msg = 'ZIP dosyası çıkarılamadı.';
+                    if ($silent) throw new \Exception($msg);
+                    wp_send_json_error(['message' => $msg]);
                 }
-            } else {
-                //error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
             }
 
             @unlink($tmp_file);
 
-            // Çıkarılan klasörü taşıma
             $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
             if ($extracted_dir && is_dir($extracted_dir)) {
-                //self::delete_directory(self::$repo_directory);
                 if (!self::moveFolderForce($extracted_dir, $package_folder)) {
-                    //error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . $package_folder);
-                    //self::delete_directory($temp_dir);
-                    wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
+                    $msg = 'Yeni sürüm taşınamadı.';
+                    if ($silent) throw new \Exception($msg);
+                    wp_send_json_error(['message' => $msg]);
                 }
-                //error_log("Yeni sürüm başarıyla taşındı: " . $package_folder);
-
-                // Geçici dizini temizle
                 self::delete_directory($temp_dir);
                 self::update_composer_lock($package_name, $latest_version);
-                if(!$silent){
-                    wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);                    
+                if (!$silent) {
+                    wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
                 }
             } else {
-                //error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
                 self::delete_directory($temp_dir);
-                wp_send_json_error(['message' => 'Çıkarılan klasör yapısı geçersiz.']);
+                $msg = 'Çıkarılan klasör yapısı geçersiz.';
+                if ($silent) throw new \Exception($msg);
+                wp_send_json_error(['message' => $msg]);
             }
-        } catch (Exception $e) {
-            //error_log("Güncelleme sırasında hata: " . $e->getMessage());
+        } catch (\Exception $e) {
+            if ($silent) throw $e; // Sessiz modda üst katmana bırak
             wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
         }
     }
     public static function update_composer_lock($package_name, $latest_version) {
-        if (!file_exists(self::$composer_lock_path)) {
-            //error_log("composer.lock not found.");
-            return;
-        }
-
-        $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
-        if (!$lock_data) {
-            //error_log("composer.lock dosyası okunamadı.");
-            return;
-        }
+        $lock_data = self::_read_composer_lock();
+        if (!$lock_data) return;
 
         // Packagist API'den gerekli bilgileri al
-        $url = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
+        $url      = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
         $response = wp_remote_get($url);
-        if (is_wp_error($response)) {
-            //error_log("Packagist API'den bilgi alınamadı: " . $response->get_error_message());
-            return;
-        }
+        if (is_wp_error($response)) return;
 
-        $package_data = json_decode(wp_remote_retrieve_body($response), true);
+        $package_data     = json_decode(wp_remote_retrieve_body($response), true);
         $package_versions = $package_data['packages'][$package_name] ?? [];
 
-        // Doğru sürüm bilgilerini bul
         $package_version_data = null;
         foreach ($package_versions as $version) {
             if ($version['version'] === $latest_version) {
@@ -914,13 +849,7 @@ class Update {
                 break;
             }
         }
-
-        if (!$package_version_data) {
-            //error_log("İstenilen sürüm bulunamadı: $package_name - $latest_version");
-            return;
-        }
-
-        // composer.lock içeriğini güncelle
+        if (!$package_version_data) return;
         $packages_sections = ['packages', 'packages-dev'];
         foreach ($packages_sections as $section) {
             if (!isset($lock_data[$section])) {
@@ -1366,63 +1295,33 @@ class Update {
         }
     }
     public static function is_composer_dependency($package_name, $latest_version) {
-        if (!file_exists(self::$composer_lock_path)) {
-            //error_log("composer.lock dosyası bulunamadı.");
-            return false;
-        }
-
         try {
-            // composer.lock dosyasını oku
-            $composerLockContent = file_get_contents(self::$composer_lock_path);
+            $lock = self::_read_composer_lock();
+            if (!$lock) return false;
 
-            if ($composerLockContent === false) {
-                //error_log("composer.lock dosyası okunamadı.");
-                return false;
-            }
-
-            // JSON'u ayrıştır
-            $composerLockData = json_decode($composerLockContent, true);
-
-            if (!isset($composerLockData['packages']) && !isset($composerLockData['packages-dev'])) {
-                //error_log("composer.lock dosyasında 'packages' veya 'packages-dev' bulunamadı.");
-                return false;
-            }
-
-            // composer/composer bağımlılıklarını al
             $composerDependencies = [];
             $composerRequirements = [];
 
             foreach (['packages', 'packages-dev'] as $key) {
-                foreach ($composerLockData[$key] ?? [] as $package) {
+                foreach ($lock[$key] ?? [] as $package) {
                     if ($package['name'] === 'composer/composer' && isset($package['require'])) {
                         $composerDependencies = array_keys($package['require']);
                         $composerRequirements = $package['require'];
-                        break 2; // Her iki alanı da kontrol ettiğimiz için dış döngüyü de kırıyoruz
+                        break 2;
                     }
                 }
             }
 
-            // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
-            if (!in_array($package_name, $composerDependencies, true)) {
-                //error_log("{$package_name} bağımlılık listesinde bulunamadı.");
-                return false;
-            }
+            if (!in_array($package_name, $composerDependencies, true)) return false;
 
-            // Sürüm kontrolü yap
             if (isset($composerRequirements[$package_name])) {
-                $requiredVersion = $composerRequirements[$package_name];
-
-                // Sürüm uyumluluğunu kontrol et
-                if (!self::is_version_compatible($latest_version, $requiredVersion)) {
-                    //error_log("{$package_name}: {$latest_version} mevcut gereksinimlere uygun değil ({$requiredVersion}).");
+                if (!self::is_version_compatible($latest_version, $composerRequirements[$package_name])) {
                     return false;
                 }
             }
 
-            return true; // Paket composer/composer bağımlılığı ve sürümü uyumlu
-        } catch (Exception $e) {
-            // Hata durumunda false döner
-            //error_log('Hata: ' . $e->getMessage());
+            return true;
+        } catch (\Exception $e) {
             return false;
         }
     }
@@ -1534,205 +1433,117 @@ class Update {
             }
         }
     }
-    /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
-        // ACF JSON klasör yolu
-        if(empty($acf_json_path)){
-            $acf_json_path = get_template_directory() . '/acf-json';
-        }
-      
-        // Klasör kontrolü
-        if (!is_dir($acf_json_path)) {
-            return ['success' => false, 'message' => 'acf-json directory not found'];
-        }
-
-        // JSON dosyalarını al
-        $json_files = glob($acf_json_path . '/*.json');
-
-        if (empty($json_files)) {
-            return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
-        }
-
-        $imported_groups = [];
-        foreach ($json_files as $file) {
-            // Dosyayı oku ve JSON verisini çözümle
-            $json_content = file_get_contents($file);
-            $field_group = json_decode($json_content, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE || empty($field_group)) {
-                continue; // Geçersiz JSON dosyalarını atla
-            }
-
-            if (isset($field_group['key'])) {
-                if(!in_array($field_group['key'], $imported_groups)){
-                    // Var olan grup kontrolü
-                    $existing_group = acf_get_field_group($field_group['key']);
-
-                    if ($existing_group) {
-                        if ($overwrite) {
-                            acf_delete_field_group($existing_group['ID']); // Eskiyi sil
-                            acf_import_field_group($field_group); // Yeniyi ekle
-                        } else {
-                            acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
-                        }
-                    }else {
-                        acf_import_field_group($field_group);
-                    }
-
-                    if (defined('ACF_LOCAL_JSON')) {
-                        acf_write_json_field_group($field_group);
-                    }
-
-                    // Yeni grubu veritabanına ekle
-                    //acf_import_field_group($field_group);
-                    $imported_groups[] = $field_group['key'];               
-                }
-
-            }
-        }
-
-        if (!empty($imported_groups)) {
-            return ['success' => true, 'message' => 'Registered ACF field groups: ' . implode(', ', $imported_groups)];
-        } else {
-            return ['success' => false, 'message' => 'No field groups were register.'];
-        }
-    }*/
-    /**
-     * RE-DESIGN: Kopyalanan JSON dosyalarını ACF'nin güvenli import API'si ile DB'ye kaydeder/günceller.
-     * Bu metod, acf_import_field_group kullandığı için mevcut post/sayfa verilerini korur.
-     */
-    /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
-        // ACF JSON klasör yolu
-        if(empty($acf_json_path)){
-            $acf_json_path = get_template_directory() . '/acf-json';
-        }
-        
-        // Klasör kontrolü
-        if (!is_dir($acf_json_path)) {
-            return ['success' => false, 'message' => 'acf-json directory not found'];
-        }
-
-        // JSON dosyalarını al
-        $json_files = glob($acf_json_path . '/*.json');
-
-        if (empty($json_files)) {
-            return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
-        }
-
-        $imported_groups = [];
-        foreach ($json_files as $file) {
-            // Dosyayı oku ve JSON verisini çözümle
-            $json_content = file_get_contents($file);
-            $field_group = json_decode($json_content, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE || empty($field_group) || !isset($field_group['key'])) {
-                continue; // Geçersiz JSON dosyalarını atla
-            }
-
-            if (isset($field_group['key'])) {
-                
-                // 1. Var olan grup kontrolü (ACF'in kendi fonksiyonunu kullanıyoruz)
-                $existing_group = acf_get_field_group($field_group['key']);
-
-                if ($existing_group) {
-                    $existing_id = $existing_group['ID'];
-                    
-                    // Statüyü korumak için orijinal statüyü al
-                    $original_status = get_post_status($existing_id); 
-
-                    if ($overwrite) {
-                        // YOL 1: SİL VE YENİDEN EKLE (Overwrite = true)
-                        // Bu yolda acf_delete_field_group, mevcut meta verilerini (field values) korumaz!
-                        acf_delete_field_group($existing_id); 
-                        $result = acf_import_field_group($field_group); // Yeniyi ekle
-                        
-                        // 💡 KRİTİK DÜZELTME: Statüyü Geri Yükle
-                        if (!is_wp_error($result) && $original_status && $original_status !== 'publish') {
-                            wp_update_post([
-                                'ID'          => $result['ID'],
-                                'post_status' => $original_status,
-                            ]);
-                        }
-
-                    } else {
-                        // YOL 2: SADECE İÇERİĞİ GÜNCELLE (Overwrite = false)
-                        // acf_update_field_group, mevcut kaydı günceller ve statüyü korur (duplicate olmaz).
-                        $updated_group = array_merge($existing_group, $field_group);
-                        acf_update_field_group($updated_group);
-                        $result = true; // Başarılı kabul et
-                    }
-                } else {
-                    // Yeni grup ekle (Veritabanında yoksa)
-                    $result = acf_import_field_group($field_group);
-                }
-
-                if (defined('ACF_LOCAL_JSON')) {
-                    // Tema JSON'unu tekrar yaz (ACF'in kendi mekanizması).
-                    acf_write_json_field_group($field_group); 
-                }
-                
-                if (!is_wp_error($result) && $result !== false) {
-                    $imported_groups[] = $field_group['key'];
-                }
-            }
-        }
-
-        if (!empty($imported_groups)) {
-            return ['success' => true, 'message' => 'Registered/Updated ACF field groups: ' . count($imported_groups)];
-        } else {
-            return ['success' => true, 'message' => 'No field groups were registered or updated.'];
-        }
-    }*/
     /**
      * ACF JSON dosyalarını güvenli bir şekilde DB'ye aktarır veya günceller.
-     * Silme işlemi yapmadan ID eşleşmesiyle (Update) çalışır, veri kaybını önler.
+     * - Duplicate field group'ları temizler (ghost kayıtlar)
+     * - Silme yapmadan ID eşleşmesiyle update eder, veri kaybını önler
+     * - Tüm JSON'ları sync eder
      */
-    private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
-        if (empty($acf_json_path)) {
+    private static function acf_json_to_db( string $acf_json_path = "", bool $overwrite = true ): array {
+
+        // 1. Klasör Yolu
+        if ( empty($acf_json_path) ) {
             $acf_json_path = get_template_directory() . '/acf-json';
         }
-        if (!is_dir($acf_json_path)) {
+        if ( ! is_dir($acf_json_path) ) {
             return ['success' => false, 'message' => 'ACF JSON dizini bulunamadı: ' . $acf_json_path];
         }
 
         $json_files = glob($acf_json_path . '/*.json');
-        if (empty($json_files)) {
+        if ( empty($json_files) ) {
             return ['success' => false, 'message' => 'Klasörde JSON dosyası bulunamadı.'];
+        }
+
+        // 2. Duplicate temizliği — import öncesi ghost kayıtları sil
+        // Aynı key'e sahip birden fazla acf-field-group post'u varsa en yenisi hariç sil
+        global $wpdb;
+        $duplicate_keys = $wpdb->get_results(
+            "SELECT post_name, COUNT(*) as cnt, GROUP_CONCAT(ID ORDER BY ID ASC) as ids
+             FROM {$wpdb->posts}
+             WHERE post_type = 'acf-field-group'
+             AND post_status != 'trash'
+             GROUP BY post_name
+             HAVING cnt > 1",
+            ARRAY_A
+        );
+
+        foreach ( (array) $duplicate_keys as $dup ) {
+            $ids = explode(',', $dup['ids']);
+            // En son eklenen (en büyük ID) gerçek kayıt, diğerleri ghost — sil
+            $real_id = array_pop($ids);
+            foreach ( $ids as $ghost_id ) {
+                // ACF'nin kendi silme fonksiyonunu kullan — field'ları da temizler
+                if ( function_exists('acf_delete_field_group') ) {
+                    acf_delete_field_group( (int) $ghost_id );
+                } else {
+                    wp_delete_post( (int) $ghost_id, true );
+                }
+            }
         }
 
         $imported_keys = [];
 
-        foreach ($json_files as $file) {
+        foreach ( $json_files as $file ) {
             $json_content = file_get_contents($file);
             $field_group  = json_decode($json_content, true);
 
-            if (!$field_group || !isset($field_group['key'])) continue;
-
-            $existing_group = acf_get_field_group($field_group['key']);
-
-            if ($existing_group) {
-                if (!$overwrite) continue;
-                // Mevcut ID'yi enjekte et — acf_import_field_group silme yapmadan update eder
-                $field_group['ID']     = $existing_group['ID'];
-                $field_group['active'] = $existing_group['active'] ?? $field_group['active'];
+            if ( ! $field_group || ! isset($field_group['key']) ) {
+                continue;
             }
 
+            // 3. Mevcut grup kontrolü — key üzerinden bul
+            $existing_group = acf_get_field_group( $field_group['key'] );
+
+            if ( $existing_group ) {
+                if ( ! $overwrite ) {
+                    continue;
+                }
+                // Mevcut ID'yi enjekte et → acf_import_field_group yeni kayıt açmaz, günceller
+                $field_group['ID'] = $existing_group['ID'];
+                // Aktif/pasif durumu koru
+                if ( isset($existing_group['active']) ) {
+                    $field_group['active'] = $existing_group['active'];
+                }
+            }
+
+            // 4. Import / Update
             $result = acf_import_field_group($field_group);
 
-            if ($result && !is_wp_error($result)) {
+            if ( $result && ! is_wp_error($result) ) {
                 $imported_keys[] = $field_group['key'];
             }
         }
 
-        if (!empty($imported_keys)) {
-            if (function_exists('acf_cache_delete_all')) acf_cache_delete_all();
+        // 5. Cache temizliği — döngü dışında tek sefer
+        if ( ! empty($imported_keys) ) {
+            self::_flush_acf_cache();
             return [
                 'success' => true,
-                'message' => count($imported_keys) . ' adet grup başarıyla işlendi.',
-                'keys'    => $imported_keys
+                'message' => count($imported_keys) . ' adet grup işlendi (Eklendi/Güncellendi).',
+                'keys'    => $imported_keys,
             ];
         }
 
         return ['success' => true, 'message' => 'Yapılacak bir işlem bulunamadı.'];
+    }
+
+    /**
+     * ACF field cache'ini güvenli şekilde temizler.
+     * acf_cache_delete_all ACF 6.x'te yok — acf_flush_field_cache kullanıyoruz.
+     */
+    private static function _flush_acf_cache(): void {
+        if ( function_exists('acf_get_field_groups') ) {
+            $groups = acf_get_field_groups();
+            if ( is_array($groups) ) {
+                foreach ( $groups as $group ) {
+                    $group = wp_parse_args($group, ['name' => '', 'parent' => 0]);
+                    if ( function_exists('acf_flush_field_cache') ) {
+                        acf_flush_field_cache($group);
+                    }
+                }
+            }
+        }
+        wp_cache_flush();
     }
     private static function register_fields(){
         self::acf_json_to_db();
@@ -1751,45 +1562,57 @@ class Update {
         get_theme_styles([], true);
     }*/
     /**
-     * Dinamik Flexible Content Alanlarının Güncellenmesi.
+     * RE-DESIGN: Dinamik Flexible Content Alanlarının Güncellenmesi
      * Yeni/Güncel blokları 'block-bootstrap-columns' alanına layout olarak ekler.
-     * register_fields adımı JSON'u zaten DB'ye yazdığı için burada sadece
-     * flexible content layout'larını güncelliyoruz — field duplicate olmaz.
      */
     private static function update_fields() {
         global $wpdb;
 
+        // 1. Block Bootstrap Columns — dinamik layout güncelleme
         $block_columns_key = "group_66e309dc049c4";
+        $post_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'",
+                $block_columns_key
+            )
+        );
 
-        $query   = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'", $block_columns_key);
-        $post_id = $wpdb->get_var($query);
+        if ( $post_id && function_exists('acf_save_post_block_columns_action') ) {
+            acf_save_post_block_columns_action($post_id);
+        }
 
-        if (!$post_id) return false;
+        // 2. Tüm field group'ları sync et — her birini wp_update_post ile kaydet.
+        //    Bu save_post hook'unu tetikler, ACF JSON sync'i tamamlanır.
+        //    Manuel admin save'e gerek kalmaz.
+        $field_groups = $wpdb->get_results(
+            "SELECT ID FROM {$wpdb->posts}
+             WHERE post_type = 'acf-field-group'
+             AND post_status = 'publish'",
+            ARRAY_A
+        );
 
-        // 1. Tüm blokları flexible content'e layout olarak ekle
-        if (!function_exists('acf_save_post_block_columns_action')) return false;
-        acf_save_post_block_columns_action($post_id);
+        if ( ! empty($field_groups) ) {
+            remove_action('save_post', 'acf_save_post_block_columns', 20);
 
-        // 2. Cache temizle
-        $cache_updater = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block_columns_key);
-        $cache_updater->clear_cache();
+            foreach ( $field_groups as $group ) {
+                wp_update_post([
+                    'ID'          => (int) $group['ID'],
+                    'post_status' => 'publish',
+                ]);
+            }
 
-        // 3. Tema stilleri güncelle
-        if (function_exists('get_theme_styles')) {
+            add_action('save_post', 'acf_save_post_block_columns', 20);
+        }
+
+        // 3. Cache temizle
+        self::_flush_acf_cache();
+
+        // 4. Tema stilleri güncelle
+        if ( function_exists('get_theme_styles') ) {
             get_theme_styles([], true);
         }
     }
-
-    /**
-     * ACF field'ı ve tüm alt field'larını recursive olarak update eder.
-     * NOT: Şu an kullanılmıyor — duplicate sorununa yol açtığı için devre dışı.
-     * Gerekirse ileride ID kontrolü eklenerek aktif edilebilir.
-     */
-    private static function _acf_update_field_recursive(array $field, int $parent_id): void {
-        // Intentionally disabled — acf_import_field_group zaten field'ları yazıyor.
-        // Bu metodu çağırmak duplicate field'lara yol açar.
-    }
-    private static function npm_install(): string{
+    private static function npm_install(): bool {
         $workingDir = ABSPATH;
         if (!is_dir($workingDir)) {
             wp_send_json_error(['message' => 'npm path not found: '.$dir]);
@@ -1879,148 +1702,147 @@ class Update {
 
     public static function run_task() {
         check_ajax_referer('update_theme_nonce', 'nonce');
-        $task_id = isset($_POST['task_id']) ? sanitize_text_field($_POST['task_id']) : '';
+
+        $task_id      = sanitize_text_field($_POST['task_id'] ?? '');
         $plugin_types = isset($_POST['plugin_types']) && is_array($_POST['plugin_types'])
-        ? array_map('sanitize_text_field', $_POST['plugin_types'])
-        : [];
+            ? array_map('sanitize_text_field', $_POST['plugin_types'])
+            : [];
         $tasks_status = isset($_POST['tasks_status']) && is_array($_POST['tasks_status'])
-        ? array_map('sanitize_text_field', $_POST['tasks_status'])
-        : [];
-        if($tasks_status){
+            ? array_map('sanitize_text_field', $_POST['tasks_status'])
+            : [];
+
+        if ( $tasks_status ) {
             self::$tasks_status = $tasks_status;
         }
-        try {
-            switch ($task_id) {
-                case 'fix_packages':
-                    self::fix_packages();
-                    self::update_task_status('fix_packages', true);
-                    $tasks_status = self::$tasks_status;//json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Composer packages fixed successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case "update_theme_apperance" :
-                    self::update_theme_apperance();
-                    self::update_task_status('update_theme_apperance', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Theme apperances updated successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'copy_theme':
-                    self::copy_theme();
-                    self::update_task_status('copy_theme', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Theme files copied successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                /*case 'copy_templates':
-                    self::copy_templates();
-                    self::update_task_status('copy_templates', true);
-                    wp_send_json_success(['message' => 'Template filess copied successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'copy_fonts':
-                    self::copy_fonts();
-                    self::update_task_status('copy_fonts', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Fonts copied successfully', 'tasks_status' => $tasks_status ]);
-                    break;*/
-                case 'copy_fields':
-                    self::copy_fields();
-                    self::update_task_status('copy_fields', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'ACF fields copied successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'register_fields':
-                    self::register_fields();
-                    self::update_task_status('register_fields', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'ACF fields registered successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case "update_fields":
-                    self::update_fields();
-                    self::update_task_status('update_fields', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'ACF fields updated successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case "install_mu_plugins":
-                    self::install_mu_plugins();
-                    self::update_task_status('install_mu_plugins', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Must Use plugins updated successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'install_wp_plugins':
-                    ob_start();
-                    self::install_wp_plugins($plugin_types);
-                    ob_clean();
-                    self::update_task_status('install_wp_plugins', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'WP plugins installed successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'install_local_plugins':
-                    self::install_local_plugins($plugin_types);
-                    self::update_task_status('install_local_plugins', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Local plugins installed successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'npm_install':
-                    self::npm_install();
-                    self::update_task_status('npm_install', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'NPM Packages installed successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'compile_methods':
-                    self::compile_methods();
-                    self::update_task_status('compile_methods', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'ACF Methods compiled successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'generate_files':
-                    self::generate_files();
-                    self::update_task_status('generate_files', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'Files generated successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'compile_js_css':
-                    self::compile_js_css();
-                    self::update_task_status('compile_js_css', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => 'JS/CSS compiled successfully', 'tasks_status' => $tasks_status ]);
-                    break;
-                case 'defaults':
-                    self::defaults($plugin_types);
-                    self::update_task_status('defaults', true);
-                    $tasks_status = json_encode(self::$tasks_status);
-                    wp_send_json_success(['message' => "Default values have been successfully created.", 'tasks_status' => $tasks_status ]);
-                    break;
-                default:
-                    wp_send_json_error(['message' => 'Invalid task ID']);
-            }
 
+        try {
+            $result = self::execute_task($task_id, $plugin_types);
+            if ( $result === false ) {
+                wp_send_json_error(['message' => 'Invalid task ID: ' . $task_id]);
+                return;
+            }
+            self::update_task_status($task_id, true);
+            wp_send_json_success([
+                'message'      => $result,
+                'tasks_status' => self::$tasks_status,
+            ]);
         } catch (Exception $e) {
-            wp_send_json_error(['message' => 'Error during task execution: ' . $e->getMessage()]);
+            wp_send_json_error(['message' => 'Error: ' . $e->getMessage()]);
         }
     }
-    private static function update_task_status($task_id, $status) {
-        $tasks_status = get_option('sh_theme_tasks_status', []);
-        $tasks_status[$task_id] = $status;
-        self::$tasks_status = $tasks_status;
+
+    public static function run_update_task() {
+        check_ajax_referer('update_theme_nonce', 'nonce');
+
+        $task_id      = sanitize_text_field($_POST['task_id'] ?? '');
+        $plugin_types = isset($_POST['plugin_types']) && is_array($_POST['plugin_types'])
+            ? array_map('sanitize_text_field', $_POST['plugin_types'])
+            : [];
+
+        // Update task'ları installation task'larından farklı — status güncellenmez
+        try {
+            $result = self::execute_task($task_id, $plugin_types);
+            if ( $result === false ) {
+                wp_send_json_error(['message' => 'Invalid task ID: ' . $task_id]);
+                return;
+            }
+            wp_send_json_success(['message' => $result]);
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Task'ı çalıştırır, mesaj döner. Bilinmeyen task için false döner.
+     * run_task ve run_update_task ortak mantığı burada — tekrar yok.
+     */
+    private static function execute_task( string $task_id, array $plugin_types = [] ) {
+        switch ( $task_id ) {
+            case 'fix_packages':
+                self::fix_packages();
+                return 'Composer packages fixed successfully';
+
+            case 'update_theme_apperance':
+                self::update_theme_apperance();
+                return 'Theme appearance updated successfully';
+
+            case 'copy_theme':
+                self::copy_theme();
+                return 'Theme files copied successfully';
+
+            case 'copy_fields':
+                self::copy_fields();
+                return 'ACF fields copied successfully';
+
+            case 'register_fields':
+                self::register_fields();
+                return 'ACF fields registered successfully';
+
+            case 'update_fields':
+                self::update_fields();
+                return 'ACF fields updated successfully';
+
+            case 'install_mu_plugins':
+                self::install_mu_plugins();
+                return 'Must Use plugins updated successfully';
+
+            case 'install_wp_plugins':
+                ob_start();
+                self::install_wp_plugins($plugin_types);
+                ob_end_clean();
+                return 'WP plugins installed successfully';
+
+            case 'install_local_plugins':
+                self::install_local_plugins($plugin_types);
+                return 'Local plugins installed successfully';
+
+            case 'npm_install':
+                self::npm_install();
+                return 'NPM packages installed successfully';
+
+            case 'compile_methods':
+                self::compile_methods();
+                return 'ACF Methods compiled successfully';
+
+            case 'generate_files':
+                self::generate_files();
+                return 'Files generated successfully';
+
+            case 'compile_js_css':
+                self::compile_js_css();
+                return 'JS/CSS compiled successfully';
+
+            case 'defaults':
+                self::defaults($plugin_types);
+                return 'Default values created successfully';
+
+            default:
+                return false;
+        }
+    }
+    private static function update_task_status( string $task_id, bool $status ): void {
+        // Static property'yi kullan — her seferinde DB'ye gitme
+        $tasks_status              = self::$tasks_status ?: get_option('sh_theme_tasks_status', []);
+        $tasks_status[$task_id]    = $status;
+        self::$tasks_status        = $tasks_status;
         update_option('sh_theme_tasks_status', $tasks_status);
-        //error_log($task_id." yuklendi");
-        //error_log(self::tasks_completed());
-        //error_log(json_encode(get_option('sh_theme_tasks_status')));
-        if (self::tasks_completed()) {
+
+        // Tüm task'lar tamamlandıysa status'u güncelle
+        if ( self::tasks_completed() ) {
             update_option('sh_theme_status', true);
             self::$status = true;
-            //error_log("Tüm görevler tamamlandı. sh_theme_status true yapıldı.");
         }
     }
-    public static function is_task_completed($task=""){
-        $tasks_status = get_option('sh_theme_tasks_status', []);
-        if(is_array($tasks_status) && in_array($task, array_keys($tasks_status))){
-           return true;
-        }
-        return false;
+
+    public static function is_task_completed( string $task = '' ): bool {
+        $tasks_status = self::$tasks_status ?: get_option('sh_theme_tasks_status', []);
+        return is_array($tasks_status) && array_key_exists($task, $tasks_status);
     }
-    public static function tasks_completed() {
-        $tasks_status = get_option('sh_theme_tasks_status', []);
-        foreach (self::$installation_tasks as $task) {
-            if (empty($tasks_status[$task['id']]) || $tasks_status[$task['id']] !== true) {
+
+    public static function tasks_completed(): bool {
+        $tasks_status = self::$tasks_status ?: get_option('sh_theme_tasks_status', []);
+        foreach ( self::$installation_tasks as $task ) {
+            if ( empty($tasks_status[$task['id']]) || $tasks_status[$task['id']] !== true ) {
                 return false;
             }
         }
@@ -2104,14 +1926,7 @@ class Update {
         rmdir($dir);
     }
     private static function delete_directory($dir) {
-        /*if (!is_dir($dir)) return;
-
-        $files = array_diff(scandir($dir), ['.', '..']);
-        foreach ($files as $file) {
-            $path = $dir . '/' . $file;
-            is_dir($path) ? self::delete_directory($path) : unlink($path);
-        }
-        rmdir($dir);*/
+        self::recurseDelete($dir);
     }
 
 
@@ -2430,3 +2245,4 @@ class Update {
         <?php
      }
 }
+
