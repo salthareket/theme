@@ -109,6 +109,13 @@ class Update {
                 add_option('sh_theme_status', $status);
                 add_option('sh_theme_tasks_status', $tasks_status);
             } else {
+                // Yeni task eklendiyse sadece eksik olanları ekle, tümünü sıfırlama
+                // Eski davranış: count karşılaştırması → yeni task eklenince kurulumu sıfırlıyordu
+                $existing_task_ids = array_keys($tasks_status);
+                $missing_tasks     = array_filter(
+                    self::$installation_tasks,
+                    fn($t) => ! in_array($t['id'], $existing_task_ids, true)
+                );
                 // Eğer hiç tamamlanmış task yoksa (ilk kurulum) pending'e al
                 if ( empty($tasks_status) ) {
                     $status       = "pending";
@@ -116,6 +123,8 @@ class Update {
                     update_option('sh_theme_status', $status);
                     update_option('sh_theme_tasks_status', $tasks_status);
                 }
+                // Yeni task'lar varsa sadece onları pending olarak işaretle, mevcut kurulumu bozma
+                // (Yeni task'lar bir sonraki update'te çalışacak)
             }
 
             self::$status       = $status;
@@ -146,37 +155,75 @@ class Update {
         }
     }
 
-    /**
-     * composer.lock dosyasını okur ve parse eder.
-     * Başarısızlıkta null döner — her metod tekrar tekrar aynı kodu yazmasın.
-     */
-    private static function _read_composer_lock(): ?array {
-        if (!file_exists(self::$composer_lock_path)) return null;
-        $content = file_get_contents(self::$composer_lock_path);
-        if (!$content) return null;
-        $data = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE || empty($data['packages'])) return null;
-        return $data;
-    }
-
     private static function get_package_github_url($package_name) {
-        $lock = self::_read_composer_lock();
-        if (!$lock) return 'Unknown';
-        foreach ($lock['packages'] as $package) {
+        if (!file_exists(self::$composer_lock_path)) {
+            //error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
+            return 'Unknown';
+        }
+        $lock_data = file_get_contents(self::$composer_lock_path);
+
+        if (!$lock_data) {
+            //error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
+            return 'Unknown';
+        }
+
+        $lock_data = json_decode($lock_data, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            //error_log('JSON parse hatası: ' . json_last_error_msg());
+            return 'Unknown';
+        }
+
+        if (empty($lock_data['packages'])) {
+            //error_log('composer.lock dosyasında paket bulunamadı.');
+            return 'Unknown';
+        }
+
+        foreach ($lock_data['packages'] as $package) {
             if ($package['name'] === $package_name) {
-                return preg_replace('#/[^/]+$#', '/', $package['dist']['url']);
+                //error_log('Github URL bulundu: '.$package_name . ":" . $package['dist']["url"]);
+                $url = $package['dist']["url"];
+                return preg_replace('#/[^/]+$#', '/', $url);
             }
         }
+
+        //error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
     }
     private static function get_package_version($package_name) {
-        $lock = self::_read_composer_lock();
-        if (!$lock) return 'Unknown';
-        foreach ($lock['packages'] as $package) {
+
+        if (!file_exists(self::$composer_lock_path)) {
+            //error_log('composer.lock dosyası bulunamadı: ' . self::$composer_lock_path);
+            return 'Unknown';
+        }
+
+        $lock_data = file_get_contents(self::$composer_lock_path);
+
+        if (!$lock_data) {
+            //error_log('composer.lock dosyası okunamadı: ' . self::$composer_lock_path);
+            return 'Unknown';
+        }
+
+        $lock_data = json_decode($lock_data, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            //error_log('JSON parse hatası: ' . json_last_error_msg());
+            return 'Unknown';
+        }
+
+        if (empty($lock_data['packages'])) {
+            //error_log('composer.lock dosyasında paket bulunamadı.');
+            return 'Unknown';
+        }
+
+        foreach ($lock_data['packages'] as $package) {
             if ($package['name'] === $package_name) {
+                //error_log('Mevcut sürüm bulundu: '.$package_name . ":" . $package['version']);
                 return $package['version'];
             }
         }
+
+        //error_log('Paket bulunamadı: '.$package_name);
         return 'Unknown';
     }
     private static function get_current_version() {
@@ -294,9 +341,8 @@ class Update {
         return $required_packages;
     }
     private static function get_installed_packages() {
-        $lock = self::_read_composer_lock();
-        if (!$lock) return [];
-        return array_map(fn($pkg) => $pkg['name'], $lock['packages']);
+        $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
+        return array_map(function($pkg) { return $pkg['name']; }, $lock_data['packages'] ?? []);
     }
     public static function check_for_update_notice() {
         $current_version = self::get_current_version();
@@ -764,84 +810,113 @@ class Update {
 
 
     public static function composer_manuel_install($package_name, $latest_version="", $silent = false) {
+        //error_log("composer_manuel_install işlemi başlatıldı...");
         try {
+        
             $package_folder = self::$theme_root . "/vendor/".$package_name;
 
-            $url      = self::get_package_github_url($package_name) . $latest_version;
+            // ZIP dosyasını indirme
+            //$url = self::composer_get_latest_version_url($package_name);
+            //$url = self::$github_api_url . '/' . $package_name . '/zipball/' . $latest_version;
+            $url = self::get_package_github_url($package_name) . $latest_version;
             $tmp_file = download_url($url);
 
             if (is_wp_error($tmp_file) || !file_exists($tmp_file) || filesize($tmp_file) === 0) {
-                $msg = 'ZIP dosyası indirilemedi veya bozuk.';
-                if ($silent) throw new \Exception($msg);
-                wp_send_json_error(['message' => $msg]);
+                //error_log($url);
+                //error_log(print_r($tmp_file, true));
+                //error_log("ZIP dosyası indirilemedi veya bozuk: " . $tmp_file);
+                wp_send_json_error(['message' => 'ZIP dosyası indirilemedi veya bozuk.']);
             }
+            //error_log("ZIP dosyası indirildi: " . $tmp_file);
 
+            // Geçici dizin kontrolü
             $temp_dir = self::$vendor_directory . '/temp';
             if (!file_exists($temp_dir)) {
                 if (!mkdir($temp_dir, 0755, true) && !is_dir($temp_dir)) {
-                    $msg = 'Geçici dizin oluşturulamadı.';
-                    if ($silent) throw new \Exception($msg);
-                    wp_send_json_error(['message' => $msg]);
+                    //error_log("Geçici dizin oluşturulamadı: " . $temp_dir);
+                    wp_send_json_error(['message' => 'Geçici dizin oluşturulamadı.']);
                 }
+                //error_log("Geçici dizin oluşturuldu: " . $temp_dir);
             }
 
+            // ZIP dosyasını çıkarma
             $unzip_result = unzip_file($tmp_file, $temp_dir);
             if (is_wp_error($unzip_result)) {
-                $zip = new \ZipArchive();
+                //error_log("unzip_file başarısız oldu: " . $unzip_result->get_error_message());
+
+                // Fallback: ZipArchive kullanarak dosyayı çıkar
+                $zip = new ZipArchive();
                 if ($zip->open($tmp_file) === true) {
                     $extract_result = $zip->extractTo($temp_dir);
                     $zip->close();
                     if (!$extract_result) {
+                        //error_log("ZipArchive ile çıkarma başarısız oldu.");
                         self::delete_directory($temp_dir);
-                        $msg = 'ZipArchive ile çıkarma başarısız oldu.';
-                        if ($silent) throw new \Exception($msg);
-                        wp_send_json_error(['message' => $msg]);
+                        wp_send_json_error(['message' => 'ZipArchive ile çıkarma başarısız oldu.']);
                     }
+                    //error_log("ZipArchive ile dosya başarıyla çıkarıldı.");
                 } else {
+                    //error_log("ZipArchive ile çıkarma başarısız oldu.");
                     self::delete_directory($temp_dir);
-                    $msg = 'ZIP dosyası çıkarılamadı.';
-                    if ($silent) throw new \Exception($msg);
-                    wp_send_json_error(['message' => $msg]);
+                    wp_send_json_error(['message' => 'ZIP dosyası çıkarılamadı.']);
                 }
+            } else {
+                //error_log("unzip_file ile ZIP dosyası başarıyla çıkarıldı.");
             }
 
             @unlink($tmp_file);
 
+            // Çıkarılan klasörü taşıma
             $extracted_dir = glob($temp_dir . '/*')[0] ?? null;
             if ($extracted_dir && is_dir($extracted_dir)) {
+                //self::delete_directory(self::$repo_directory);
                 if (!self::moveFolderForce($extracted_dir, $package_folder)) {
-                    $msg = 'Yeni sürüm taşınamadı.';
-                    if ($silent) throw new \Exception($msg);
-                    wp_send_json_error(['message' => $msg]);
+                    //error_log("Yeni sürüm taşınamadı: " . $extracted_dir . " -> " . $package_folder);
+                    //self::delete_directory($temp_dir);
+                    wp_send_json_error(['message' => 'Yeni sürüm taşınamadı.']);
                 }
+                //error_log("Yeni sürüm başarıyla taşındı: " . $package_folder);
+
+                // Geçici dizini temizle
                 self::delete_directory($temp_dir);
                 self::update_composer_lock($package_name, $latest_version);
-                if (!$silent) {
-                    wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);
+                if(!$silent){
+                    wp_send_json_success(['message' => 'Update işlemi başarıyla tamamlandı.']);                    
                 }
             } else {
+                //error_log("Çıkarılan klasör yapısı geçersiz: " . print_r(glob($temp_dir . '/*'), true));
                 self::delete_directory($temp_dir);
-                $msg = 'Çıkarılan klasör yapısı geçersiz.';
-                if ($silent) throw new \Exception($msg);
-                wp_send_json_error(['message' => $msg]);
+                wp_send_json_error(['message' => 'Çıkarılan klasör yapısı geçersiz.']);
             }
-        } catch (\Exception $e) {
-            if ($silent) throw $e; // Sessiz modda üst katmana bırak
+        } catch (Exception $e) {
+            //error_log("Güncelleme sırasında hata: " . $e->getMessage());
             wp_send_json_error(['message' => 'Güncelleme sırasında hata: ' . $e->getMessage()]);
         }
     }
     public static function update_composer_lock($package_name, $latest_version) {
-        $lock_data = self::_read_composer_lock();
-        if (!$lock_data) return;
+        if (!file_exists(self::$composer_lock_path)) {
+            //error_log("composer.lock not found.");
+            return;
+        }
+
+        $lock_data = json_decode(file_get_contents(self::$composer_lock_path), true);
+        if (!$lock_data) {
+            //error_log("composer.lock dosyası okunamadı.");
+            return;
+        }
 
         // Packagist API'den gerekli bilgileri al
-        $url      = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
+        $url = "https://repo.packagist.org/p2/" . urlencode($package_name) . ".json";
         $response = wp_remote_get($url);
-        if (is_wp_error($response)) return;
+        if (is_wp_error($response)) {
+            //error_log("Packagist API'den bilgi alınamadı: " . $response->get_error_message());
+            return;
+        }
 
-        $package_data     = json_decode(wp_remote_retrieve_body($response), true);
+        $package_data = json_decode(wp_remote_retrieve_body($response), true);
         $package_versions = $package_data['packages'][$package_name] ?? [];
 
+        // Doğru sürüm bilgilerini bul
         $package_version_data = null;
         foreach ($package_versions as $version) {
             if ($version['version'] === $latest_version) {
@@ -849,7 +924,13 @@ class Update {
                 break;
             }
         }
-        if (!$package_version_data) return;
+
+        if (!$package_version_data) {
+            //error_log("İstenilen sürüm bulunamadı: $package_name - $latest_version");
+            return;
+        }
+
+        // composer.lock içeriğini güncelle
         $packages_sections = ['packages', 'packages-dev'];
         foreach ($packages_sections as $section) {
             if (!isset($lock_data[$section])) {
@@ -1295,33 +1376,63 @@ class Update {
         }
     }
     public static function is_composer_dependency($package_name, $latest_version) {
-        try {
-            $lock = self::_read_composer_lock();
-            if (!$lock) return false;
+        if (!file_exists(self::$composer_lock_path)) {
+            //error_log("composer.lock dosyası bulunamadı.");
+            return false;
+        }
 
+        try {
+            // composer.lock dosyasını oku
+            $composerLockContent = file_get_contents(self::$composer_lock_path);
+
+            if ($composerLockContent === false) {
+                //error_log("composer.lock dosyası okunamadı.");
+                return false;
+            }
+
+            // JSON'u ayrıştır
+            $composerLockData = json_decode($composerLockContent, true);
+
+            if (!isset($composerLockData['packages']) && !isset($composerLockData['packages-dev'])) {
+                //error_log("composer.lock dosyasında 'packages' veya 'packages-dev' bulunamadı.");
+                return false;
+            }
+
+            // composer/composer bağımlılıklarını al
             $composerDependencies = [];
             $composerRequirements = [];
 
             foreach (['packages', 'packages-dev'] as $key) {
-                foreach ($lock[$key] ?? [] as $package) {
+                foreach ($composerLockData[$key] ?? [] as $package) {
                     if ($package['name'] === 'composer/composer' && isset($package['require'])) {
                         $composerDependencies = array_keys($package['require']);
                         $composerRequirements = $package['require'];
-                        break 2;
+                        break 2; // Her iki alanı da kontrol ettiğimiz için dış döngüyü de kırıyoruz
                     }
                 }
             }
 
-            if (!in_array($package_name, $composerDependencies, true)) return false;
+            // Paketin composer/composer bağımlılığı olup olmadığını kontrol et
+            if (!in_array($package_name, $composerDependencies, true)) {
+                //error_log("{$package_name} bağımlılık listesinde bulunamadı.");
+                return false;
+            }
 
+            // Sürüm kontrolü yap
             if (isset($composerRequirements[$package_name])) {
-                if (!self::is_version_compatible($latest_version, $composerRequirements[$package_name])) {
+                $requiredVersion = $composerRequirements[$package_name];
+
+                // Sürüm uyumluluğunu kontrol et
+                if (!self::is_version_compatible($latest_version, $requiredVersion)) {
+                    //error_log("{$package_name}: {$latest_version} mevcut gereksinimlere uygun değil ({$requiredVersion}).");
                     return false;
                 }
             }
 
-            return true;
-        } catch (\Exception $e) {
+            return true; // Paket composer/composer bağımlılığı ve sürümü uyumlu
+        } catch (Exception $e) {
+            // Hata durumunda false döner
+            //error_log('Hata: ' . $e->getMessage());
             return false;
         }
     }
@@ -1926,7 +2037,14 @@ class Update {
         rmdir($dir);
     }
     private static function delete_directory($dir) {
-        self::recurseDelete($dir);
+        /*if (!is_dir($dir)) return;
+
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            is_dir($path) ? self::delete_directory($path) : unlink($path);
+        }
+        rmdir($dir);*/
     }
 
 
