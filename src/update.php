@@ -100,49 +100,39 @@ class Update {
 
     private static function check_installation(){
         if (!(defined('DOING_AJAX') && DOING_AJAX)) {
-            $status       = self::$status;
+            $status = self::$status;
             $tasks_status = self::$tasks_status;
 
-            if ( empty($status) ) {
-                $status       = "pending";
+            if (empty($status)) {
+                $status = "pending";
                 $tasks_status = [];
                 add_option('sh_theme_status', $status);
                 add_option('sh_theme_tasks_status', $tasks_status);
             } else {
-                // Yeni task eklendiyse sadece eksik olanları ekle, tümünü sıfırlama
-                // Eski davranış: count karşılaştırması → yeni task eklenince kurulumu sıfırlıyordu
-                $existing_task_ids = array_keys($tasks_status);
-                $missing_tasks     = array_filter(
-                    self::$installation_tasks,
-                    fn($t) => ! in_array($t['id'], $existing_task_ids, true)
-                );
-                // Eğer hiç tamamlanmış task yoksa (ilk kurulum) pending'e al
-                if ( empty($tasks_status) ) {
-                    $status       = "pending";
+                if (count(self::$installation_tasks) > count($tasks_status)) {
+                    $status = "pending";
                     $tasks_status = [];
                     update_option('sh_theme_status', $status);
                     update_option('sh_theme_tasks_status', $tasks_status);
                 }
-                // Yeni task'lar varsa sadece onları pending olarak işaretle, mevcut kurulumu bozma
-                // (Yeni task'lar bir sonraki update'te çalışacak)
             }
 
-            self::$status       = $status;
+            self::$status = $status;
             self::$tasks_status = $tasks_status;
 
-            if ( $status === 'pending' || ! $status ) {
-                if ( is_admin() ) {
+            if ($status === 'pending' || !$status) {
+                if (is_admin()) {
                     $current_page = $_GET['page'] ?? '';
-                    if ( $current_page !== 'update-theme' ) {
+                    if ($current_page !== 'update-theme') {
                         wp_safe_redirect(admin_url('admin.php?page=update-theme'));
                         exit;
                     }
                 } else {
                     $uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-                    $is_asset   = preg_match('/\.(js|css|jpg|jpeg|png|svg|woff2?|ttf|eot|gif|webp)$/i', $uri_path);
-                    $is_rest    = strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false;
+                    $is_asset = preg_match('/\.(js|css|jpg|jpeg|png|svg|woff2?|ttf|eot|gif|webp)$/i', $uri_path);
+                    $is_rest_api = strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false;
 
-                    if ( ! $is_asset && ! $is_rest && ! is_login_page() ) {
+                    if (!$is_asset && !$is_rest_api && !is_login_page()) {
                         wp_die(
                             sprintf(
                                 '<h2 class="text-danger">Warning</h2>The theme setup is not complete. Please complete the installation from the <a href="%s">update page</a>.',
@@ -1544,202 +1534,229 @@ class Update {
             }
         }
     }
-    /**
-     * ACF JSON dosyalarını güvenli bir şekilde DB'ye aktarır veya günceller.
-     * - Duplicate field group'ları temizler (ghost kayıtlar)
-     * - Silme yapmadan ID eşleşmesiyle update eder, veri kaybını önler
-     * - Tüm JSON'ları sync eder
-     */
-    private static function acf_json_to_db( string $acf_json_path = "", bool $overwrite = true ): array {
-
-        // 1. Klasör Yolu
-        if ( empty($acf_json_path) ) {
+    /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+        // ACF JSON klasör yolu
+        if(empty($acf_json_path)){
             $acf_json_path = get_template_directory() . '/acf-json';
         }
-        if ( ! is_dir($acf_json_path) ) {
+      
+        // Klasör kontrolü
+        if (!is_dir($acf_json_path)) {
+            return ['success' => false, 'message' => 'acf-json directory not found'];
+        }
+
+        // JSON dosyalarını al
+        $json_files = glob($acf_json_path . '/*.json');
+
+        if (empty($json_files)) {
+            return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
+        }
+
+        $imported_groups = [];
+        foreach ($json_files as $file) {
+            // Dosyayı oku ve JSON verisini çözümle
+            $json_content = file_get_contents($file);
+            $field_group = json_decode($json_content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || empty($field_group)) {
+                continue; // Geçersiz JSON dosyalarını atla
+            }
+
+            if (isset($field_group['key'])) {
+                if(!in_array($field_group['key'], $imported_groups)){
+                    // Var olan grup kontrolü
+                    $existing_group = acf_get_field_group($field_group['key']);
+
+                    if ($existing_group) {
+                        if ($overwrite) {
+                            acf_delete_field_group($existing_group['ID']); // Eskiyi sil
+                            acf_import_field_group($field_group); // Yeniyi ekle
+                        } else {
+                            acf_update_field_group(array_merge($existing_group, $field_group)); // Güncelle
+                        }
+                    }else {
+                        acf_import_field_group($field_group);
+                    }
+
+                    if (defined('ACF_LOCAL_JSON')) {
+                        acf_write_json_field_group($field_group);
+                    }
+
+                    // Yeni grubu veritabanına ekle
+                    //acf_import_field_group($field_group);
+                    $imported_groups[] = $field_group['key'];               
+                }
+
+            }
+        }
+
+        if (!empty($imported_groups)) {
+            return ['success' => true, 'message' => 'Registered ACF field groups: ' . implode(', ', $imported_groups)];
+        } else {
+            return ['success' => false, 'message' => 'No field groups were register.'];
+        }
+    }*/
+    /**
+     * RE-DESIGN: Kopyalanan JSON dosyalarını ACF'nin güvenli import API'si ile DB'ye kaydeder/günceller.
+     * Bu metod, acf_import_field_group kullandığı için mevcut post/sayfa verilerini korur.
+     */
+    /*private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+        // ACF JSON klasör yolu
+        if(empty($acf_json_path)){
+            $acf_json_path = get_template_directory() . '/acf-json';
+        }
+        
+        // Klasör kontrolü
+        if (!is_dir($acf_json_path)) {
+            return ['success' => false, 'message' => 'acf-json directory not found'];
+        }
+
+        // JSON dosyalarını al
+        $json_files = glob($acf_json_path . '/*.json');
+
+        if (empty($json_files)) {
+            return ['success' => false, 'message' => 'No JSON files found in acf-json directory'];
+        }
+
+        $imported_groups = [];
+        foreach ($json_files as $file) {
+            // Dosyayı oku ve JSON verisini çözümle
+            $json_content = file_get_contents($file);
+            $field_group = json_decode($json_content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || empty($field_group) || !isset($field_group['key'])) {
+                continue; // Geçersiz JSON dosyalarını atla
+            }
+
+            if (isset($field_group['key'])) {
+                
+                // 1. Var olan grup kontrolü (ACF'in kendi fonksiyonunu kullanıyoruz)
+                $existing_group = acf_get_field_group($field_group['key']);
+
+                if ($existing_group) {
+                    $existing_id = $existing_group['ID'];
+                    
+                    // Statüyü korumak için orijinal statüyü al
+                    $original_status = get_post_status($existing_id); 
+
+                    if ($overwrite) {
+                        // YOL 1: SİL VE YENİDEN EKLE (Overwrite = true)
+                        // Bu yolda acf_delete_field_group, mevcut meta verilerini (field values) korumaz!
+                        acf_delete_field_group($existing_id); 
+                        $result = acf_import_field_group($field_group); // Yeniyi ekle
+                        
+                        // 💡 KRİTİK DÜZELTME: Statüyü Geri Yükle
+                        if (!is_wp_error($result) && $original_status && $original_status !== 'publish') {
+                            wp_update_post([
+                                'ID'          => $result['ID'],
+                                'post_status' => $original_status,
+                            ]);
+                        }
+
+                    } else {
+                        // YOL 2: SADECE İÇERİĞİ GÜNCELLE (Overwrite = false)
+                        // acf_update_field_group, mevcut kaydı günceller ve statüyü korur (duplicate olmaz).
+                        $updated_group = array_merge($existing_group, $field_group);
+                        acf_update_field_group($updated_group);
+                        $result = true; // Başarılı kabul et
+                    }
+                } else {
+                    // Yeni grup ekle (Veritabanında yoksa)
+                    $result = acf_import_field_group($field_group);
+                }
+
+                if (defined('ACF_LOCAL_JSON')) {
+                    // Tema JSON'unu tekrar yaz (ACF'in kendi mekanizması).
+                    acf_write_json_field_group($field_group); 
+                }
+                
+                if (!is_wp_error($result) && $result !== false) {
+                    $imported_groups[] = $field_group['key'];
+                }
+            }
+        }
+
+        if (!empty($imported_groups)) {
+            return ['success' => true, 'message' => 'Registered/Updated ACF field groups: ' . count($imported_groups)];
+        } else {
+            return ['success' => true, 'message' => 'No field groups were registered or updated.'];
+        }
+    }*/
+    /**
+     * ACF JSON dosyalarını güvenli bir şekilde DB'ye aktarır veya günceller.
+     * Silme işlemi yapmadan ID eşleşmesiyle (Update) çalışır, veri kaybını önler.
+     */
+    private static function acf_json_to_db($acf_json_path = "", $overwrite = true) {
+        // 1. Klasör Yolu Ayarı
+        if (empty($acf_json_path)) {
+            $acf_json_path = get_template_directory() . '/acf-json';
+        }
+        
+        // 2. Klasör ve Dosya Kontrolü
+        if (!is_dir($acf_json_path)) {
             return ['success' => false, 'message' => 'ACF JSON dizini bulunamadı: ' . $acf_json_path];
         }
 
         $json_files = glob($acf_json_path . '/*.json');
-        if ( empty($json_files) ) {
+        if (empty($json_files)) {
             return ['success' => false, 'message' => 'Klasörde JSON dosyası bulunamadı.'];
-        }
-
-        // 2. Duplicate temizliği — import öncesi ghost kayıtları sil
-        // Aynı key'e sahip birden fazla acf-field-group post'u varsa en yenisi hariç sil
-        global $wpdb;
-        $duplicate_keys = $wpdb->get_results(
-            "SELECT post_name, COUNT(*) as cnt, GROUP_CONCAT(ID ORDER BY ID ASC) as ids
-             FROM {$wpdb->posts}
-             WHERE post_type = 'acf-field-group'
-             AND post_status != 'trash'
-             GROUP BY post_name
-             HAVING cnt > 1",
-            ARRAY_A
-        );
-
-        foreach ( (array) $duplicate_keys as $dup ) {
-            $ids = explode(',', $dup['ids']);
-            // En son eklenen (en büyük ID) gerçek kayıt, diğerleri ghost — sil
-            $real_id = array_pop($ids);
-            foreach ( $ids as $ghost_id ) {
-                // ACF'nin kendi silme fonksiyonunu kullan — field'ları da temizler
-                if ( function_exists('acf_delete_field_group') ) {
-                    acf_delete_field_group( (int) $ghost_id );
-                } else {
-                    wp_delete_post( (int) $ghost_id, true );
-                }
-            }
         }
 
         $imported_keys = [];
 
-        foreach ( $json_files as $file ) {
+        foreach ($json_files as $file) {
             $json_content = file_get_contents($file);
-            $field_group  = json_decode($json_content, true);
+            $field_group = json_decode($json_content, true);
 
-            if ( ! $field_group || ! isset($field_group['key']) ) {
+            // Geçersiz JSON veya eksik key kontrolü
+            if (!$field_group || !isset($field_group['key'])) {
                 continue;
             }
 
-            // 3. Mevcut grup kontrolü — key üzerinden bul
-            $existing_group = acf_get_field_group( $field_group['key'] );
+            // 3. Veritabanında Mevcut mu Kontrol Et
+            $existing_group = acf_get_field_group($field_group['key']);
 
-            if ( $existing_group ) {
-                if ( ! $overwrite ) {
+            if ($existing_group) {
+                // Eğer üzerine yazma (overwrite) kapalıysa bu dosyayı geç
+                if (!$overwrite) {
                     continue;
                 }
-                // Mevcut ID'yi enjekte et → acf_import_field_group yeni kayıt açmaz, günceller
+
+                // KRİTİK: Mevcut ID'yi yeni veriye enjekte et. 
+                // Böylece acf_import_field_group silme yapmadan "Update" gerçekleştirir.
                 $field_group['ID'] = $existing_group['ID'];
-                // Aktif/pasif durumu koru
-                if ( isset($existing_group['active']) ) {
+                
+                // Mevcut statüyü (active/inactive) koru
+                if (isset($existing_group['active'])) {
                     $field_group['active'] = $existing_group['active'];
                 }
             }
 
-            // 4. Import / Update
-            // acf/update_field_group hook'unu geçici kapat — acfe_autosync JSON'u üzerine yazmasın
-            $saved_callbacks = $GLOBALS['wp_filter']['acf/update_field_group'] ?? null;
-            remove_all_actions('acf/update_field_group');
-
+            // 4. Import / Update İşlemi
+            // ID varsa günceller, yoksa yeni oluşturur.
             $result = acf_import_field_group($field_group);
 
-            // Hook'ları geri yükle
-            if ( $saved_callbacks ) {
-                $GLOBALS['wp_filter']['acf/update_field_group'] = $saved_callbacks;
-            }
-
-            if ( $result && ! is_wp_error($result) ) {
+            if ($result && !is_wp_error($result)) {
                 $imported_keys[] = $field_group['key'];
             }
         }
 
-        // 5. Cache temizliği — döngü dışında tek sefer
-        if ( ! empty($imported_keys) ) {
-            self::_flush_acf_cache();
+        // 5. İşlem Bittikten Sonra Cache Temizliği (Döngü dışında tek sefer)
+        if (!empty($imported_keys)) {
+            if (function_exists('acf_cache_delete_all')) {
+                acf_cache_delete_all();
+            }
             return [
-                'success' => true,
-                'message' => count($imported_keys) . ' adet grup işlendi (Eklendi/Güncellendi).',
-                'keys'    => $imported_keys,
+                'success' => true, 
+                'message' => count($imported_keys) . ' adet grup başarıyla işlendi (Eklendi/Güncellendi).',
+                'keys'    => $imported_keys
             ];
         }
 
         return ['success' => true, 'message' => 'Yapılacak bir işlem bulunamadı.'];
     }
-
-    /**
-     * ACF field cache'ini güvenli şekilde temizler.
-     * acf_cache_delete_all ACF 6.x'te yok — acf_flush_field_cache kullanıyoruz.
-     */
-    private static function _flush_acf_cache(): void {
-        if ( function_exists('acf_get_field_groups') ) {
-            $groups = acf_get_field_groups();
-            if ( is_array($groups) ) {
-                foreach ( $groups as $group ) {
-                    $group = wp_parse_args($group, ['name' => '', 'parent' => 0]);
-                    if ( function_exists('acf_flush_field_cache') ) {
-                        acf_flush_field_cache($group);
-                    }
-                }
-            }
-        }
-        wp_cache_flush();
-    }
-    private static function register_fields(): void {
-        // Import öncesi flexible_content layouts'larını yedekle
-        $layouts_backup = self::_backup_flexible_layouts();
-
+    private static function register_fields(){
         self::acf_json_to_db();
-
-        // Import sonrası layouts'ları geri yükle
-        if ( ! empty($layouts_backup) ) {
-            self::_restore_flexible_layouts($layouts_backup);
-        }
-    }
-
-    /**
-     * Tüm flexible_content field'larının mevcut layouts'larını DB'den yedekler.
-     * @return array [ field_id => ['post_content' => ..., 'layouts' => ...], ... ]
-     */
-    private static function _backup_flexible_layouts(): array {
-        global $wpdb;
-
-        $flexible_fields = $wpdb->get_results(
-            "SELECT ID, post_content FROM {$wpdb->posts}
-             WHERE post_type = 'acf-field'
-             AND post_status = 'publish'",
-            ARRAY_A
-        );
-
-        $backup = [];
-        foreach ( $flexible_fields as $field ) {
-            $content = maybe_unserialize( $field['post_content'] );
-            if ( is_array($content) && isset($content['type']) && $content['type'] === 'flexible_content' ) {
-                if ( ! empty($content['layouts']) ) {
-                    $backup[ (int) $field['ID'] ] = [
-                        'post_content' => $field['post_content'],
-                        'layouts'      => $content['layouts'],
-                    ];
-                }
-            }
-        }
-
-        return $backup;
-    }
-
-    /**
-     * Yedeklenen layouts'ları import sonrası geri yazar.
-     */
-    private static function _restore_flexible_layouts( array $backup ): void {
-        global $wpdb;
-
-        foreach ( $backup as $field_id => $data ) {
-            // Import sonrası field hâlâ var mı?
-            $current = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT post_content FROM {$wpdb->posts} WHERE ID = %d",
-                    $field_id
-                )
-            );
-            if ( ! $current ) continue;
-
-            $current_content = maybe_unserialize($current);
-            if ( ! is_array($current_content) ) continue;
-
-            // Layouts boşsa geri yükle, doluysa dokunma
-            $current_layouts = $current_content['layouts'] ?? [];
-            if ( empty($current_layouts) ) {
-                $current_content['layouts'] = $data['layouts'];
-                $wpdb->update(
-                    $wpdb->posts,
-                    ['post_content' => serialize($current_content)],
-                    ['ID' => $field_id],
-                    ['%s'],
-                    ['%d']
-                );
-                clean_post_cache($field_id);
-            }
-        }
     }
     /*private static function update_fields() {
         global $wpdb;
@@ -1757,165 +1774,90 @@ class Update {
     /**
      * RE-DESIGN: Dinamik Flexible Content Alanlarının Güncellenmesi
      * Yeni/Güncel blokları 'block-bootstrap-columns' alanına layout olarak ekler.
+     * Güncelleme sonrası ACF field group'u programatik olarak re-save eder —
+     * böylece flexible content içindeki clone subfield'lar DB'ye tam yazılır
+     * ve kullanıcının edit sayfasından manuel save yapmasına gerek kalmaz.
      */
-    private static function update_fields(): void {
+    private static function update_fields() {
         global $wpdb;
+        
+        $block_columns_key = "group_66e309dc049c4";
+        
+        $query = $wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'acf-field-group'", $block_columns_key);
+        $post_id = $wpdb->get_var($query);
 
-        // Statik key kullanmıyoruz — 'block-bootstrap-columns' post_excerpt'i ile dinamik bul
-        $post_id = (int) $wpdb->get_var(
-            "SELECT fg.ID
-             FROM {$wpdb->posts} fg
-             INNER JOIN {$wpdb->term_relationships} tr ON fg.ID = tr.object_id
-             INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-             INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
-             WHERE fg.post_type = 'acf-field-group'
-             AND fg.post_status = 'publish'
-             AND fg.post_excerpt = 'block-bootstrap-columns'
-             AND t.slug = 'block'
-             AND tt.taxonomy = 'acf-field-group-category'
-             LIMIT 1"
-        );
-
-        // Fallback: post_excerpt ile bulamazsa acf_block_columns field'ından bul
-        if ( ! $post_id ) {
-            $post_id = (int) $wpdb->get_var(
-                "SELECT post_parent FROM {$wpdb->posts}
-                 WHERE post_type = 'acf-field'
-                 AND post_excerpt = 'acf_block_columns'
-                 AND post_status = 'publish'
-                 LIMIT 1"
-            );
+        if (!$post_id) {
+            return false;
         }
 
-        if ( ! $post_id ) return;
+        // 1. Tüm blokları block-bootstrap-columns'a layout olarak ekle
+        if (function_exists('acf_save_post_block_columns_action')) {
+            acf_save_post_block_columns_action($post_id);
+        } else {
+            return false;
+        }
 
-        // acf_block_columns field'ını bul
-        $field_id = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT ID FROM {$wpdb->posts}
-                 WHERE post_type = 'acf-field'
-                 AND post_excerpt = 'acf_block_columns'
-                 AND post_parent = %d
-                 LIMIT 1",
-                $post_id
-            )
-        );
+        // 2. ACF cache'i temizle
+        $cache_updater = new UpdateFlexibleFieldLayouts($post_id, "acf_block_columns", $block_columns_key);
+        $cache_updater->clear_cache();
 
-        if ( ! $field_id ) return;
+        // 3. KRİTİK: Field group'u JSON'dan okuyup ACF'nin tam update akışıyla re-save et.
+        // Bu adım, flexible content içindeki clone subfield'ların DB'ye tam yazılmasını sağlar.
+        // Kullanıcının edit sayfasından manuel save yapmasına gerek kalmaz.
+        $field_group = acf_get_field_group($block_columns_key);
+        if ($field_group) {
+            // Field'ları da çek
+            $fields = acf_get_fields($field_group);
 
-        $field_content = maybe_unserialize(
-            $wpdb->get_var( $wpdb->prepare("SELECT post_content FROM {$wpdb->posts} WHERE ID = %d", $field_id) )
-        );
-        if ( ! is_array($field_content) ) $field_content = [];
-
-        $layouts = $field_content['layouts'] ?? [];
-
-        // Layouts boşsa UpdateFlexibleFieldLayouts ile oluştur
-        if ( empty($layouts) && class_exists('UpdateFlexibleFieldLayouts') ) {
-            $block = get_post($post_id);
-            if ( $block ) {
-                remove_action('save_post', 'acf_save_post_block_columns', 20);
-                $checker = new UpdateFlexibleFieldLayouts();
-                $blocks  = $checker->get_block_fields();
-                if ( $blocks ) {
-                    $group_field_data = $checker->get_block_field_data($block);
-                    foreach ( $blocks as $item ) {
-                        $layout = new UpdateFlexibleFieldLayouts(
-                            $post_id, "acf_block_columns",
-                            $item->post_name, $item->post_excerpt, $group_field_data
-                        );
-                        $layout->update();
-                    }
+            if (is_array($fields)) {
+                // Her field'ı tek tek update et — subfield'lar dahil
+                foreach ($fields as $field) {
+                    self::_acf_update_field_recursive($field, $field_group['ID']);
                 }
-                add_action('save_post', 'acf_save_post_block_columns', 20);
-
-                // Yeniden oku
-                $field_content = maybe_unserialize(
-                    $wpdb->get_var( $wpdb->prepare("SELECT post_content FROM {$wpdb->posts} WHERE ID = %d", $field_id) )
-                );
-                $layouts = is_array($field_content) ? ($field_content['layouts'] ?? []) : [];
             }
+
+            // Field group'u update et (ACF'nin tam save akışı)
+            acf_update_field_group($field_group);
         }
 
-        if ( empty($layouts) ) return;
-
-        // Her layout için sub_fields'ı DB'deki child acf-field post'larından doldur
-        // Child field'lar post_parent = field_id ile saklanıyor
-        // ve post_content içindeki parent_layout key'i ile layout'a bağlanıyor
-        $all_child_fields = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT ID, post_name, post_title, post_excerpt, post_content
-                 FROM {$wpdb->posts}
-                 WHERE post_type = 'acf-field'
-                 AND post_parent = %d
-                 AND post_status = 'publish'
-                 ORDER BY menu_order ASC",
-                $field_id
-            ),
-            ARRAY_A
-        );
-
-        foreach ( $layouts as $layout_key => &$layout ) {
-            if ( ! empty($layout['sub_fields']) ) continue;
-
-            $sub_fields = [];
-            foreach ( $all_child_fields as $cf ) {
-                $cf_content = maybe_unserialize($cf['post_content']);
-                if ( ! is_array($cf_content) ) continue;
-                if ( ($cf_content['parent_layout'] ?? '') !== $layout_key ) continue;
-
-                $cf_content['key']  = $cf['post_name'];
-                $cf_content['name'] = $cf['post_excerpt'];
-                $sub_fields[] = $cf_content;
-            }
-
-            if ( ! empty($sub_fields) ) {
-                $layout['sub_fields'] = $sub_fields;
-            }
-        }
-        unset($layout);
-
-        // Güncellenmiş layouts'ı field post_content'ine yaz
-        $field_content['layouts'] = $layouts;
-        $wpdb->update(
-            $wpdb->posts,
-            ['post_content' => serialize($field_content)],
-            ['ID' => $field_id],
-            ['%s'], ['%d']
-        );
-        clean_post_cache($field_id);
-
-        // JSON dosyasını manuel güncelle — sadece layouts key'ini yaz, fields'a dokunma
-        // post_name'i dinamik olarak DB'den al
-        $post_name = $wpdb->get_var(
-            $wpdb->prepare("SELECT post_name FROM {$wpdb->posts} WHERE ID = %d", $post_id)
-        );
-        $json_path = get_template_directory() . '/acf-json/' . $post_name . '.json';
-        if ( file_exists($json_path) ) {
-            $json_data = json_decode( file_get_contents($json_path), true );
-            if ( $json_data ) {
-                foreach ( $json_data['fields'] as &$jf ) {
-                    if ( isset($jf['name']) && $jf['name'] === 'acf_block_columns' ) {
-                        $jf['layouts'] = $layouts;
-                        break;
-                    }
-                }
-                unset($jf);
-                $json_data['modified'] = time();
-                file_put_contents(
-                    $json_path,
-                    json_encode($json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-                );
-            }
-        }
-
-        self::_flush_acf_cache();
-
-        if ( function_exists('get_theme_styles') ) {
+        // 4. Tema stilleri güncelle
+        if (function_exists('get_theme_styles')) {
             get_theme_styles([], true);
         }
     }
-    private static function npm_install(): bool {
+
+    /**
+     * ACF field'ı ve tüm alt field'larını (subfields, layouts) recursive olarak update eder.
+     * Flexible content layout'larındaki clone field'ların DB'ye tam yazılmasını sağlar.
+     */
+    private static function _acf_update_field_recursive(array $field, int $parent_id): void {
+        if (empty($field['key'])) return;
+
+        $field['parent'] = $parent_id;
+        $result = acf_update_field($field);
+
+        $new_id = is_array($result) ? ($result['ID'] ?? 0) : (int) $result;
+        if (!$new_id) return;
+
+        // Flexible content: layout'ların subfield'larını da update et
+        if ($field['type'] === 'flexible_content' && !empty($field['layouts'])) {
+            foreach ($field['layouts'] as $layout) {
+                if (!empty($layout['sub_fields'])) {
+                    foreach ($layout['sub_fields'] as $sub_field) {
+                        self::_acf_update_field_recursive($sub_field, $new_id);
+                    }
+                }
+            }
+        }
+
+        // Repeater / group subfield'ları
+        if (!empty($field['sub_fields'])) {
+            foreach ($field['sub_fields'] as $sub_field) {
+                self::_acf_update_field_recursive($sub_field, $new_id);
+            }
+        }
+    }
+    private static function npm_install(): string{
         $workingDir = ABSPATH;
         if (!is_dir($workingDir)) {
             wp_send_json_error(['message' => 'npm path not found: '.$dir]);
@@ -2005,147 +1947,148 @@ class Update {
 
     public static function run_task() {
         check_ajax_referer('update_theme_nonce', 'nonce');
-
-        $task_id      = sanitize_text_field($_POST['task_id'] ?? '');
+        $task_id = isset($_POST['task_id']) ? sanitize_text_field($_POST['task_id']) : '';
         $plugin_types = isset($_POST['plugin_types']) && is_array($_POST['plugin_types'])
-            ? array_map('sanitize_text_field', $_POST['plugin_types'])
-            : [];
+        ? array_map('sanitize_text_field', $_POST['plugin_types'])
+        : [];
         $tasks_status = isset($_POST['tasks_status']) && is_array($_POST['tasks_status'])
-            ? array_map('sanitize_text_field', $_POST['tasks_status'])
-            : [];
-
-        if ( $tasks_status ) {
+        ? array_map('sanitize_text_field', $_POST['tasks_status'])
+        : [];
+        if($tasks_status){
             self::$tasks_status = $tasks_status;
         }
-
         try {
-            $result = self::execute_task($task_id, $plugin_types);
-            if ( $result === false ) {
-                wp_send_json_error(['message' => 'Invalid task ID: ' . $task_id]);
-                return;
+            switch ($task_id) {
+                case 'fix_packages':
+                    self::fix_packages();
+                    self::update_task_status('fix_packages', true);
+                    $tasks_status = self::$tasks_status;//json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Composer packages fixed successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case "update_theme_apperance" :
+                    self::update_theme_apperance();
+                    self::update_task_status('update_theme_apperance', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Theme apperances updated successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'copy_theme':
+                    self::copy_theme();
+                    self::update_task_status('copy_theme', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Theme files copied successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                /*case 'copy_templates':
+                    self::copy_templates();
+                    self::update_task_status('copy_templates', true);
+                    wp_send_json_success(['message' => 'Template filess copied successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'copy_fonts':
+                    self::copy_fonts();
+                    self::update_task_status('copy_fonts', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Fonts copied successfully', 'tasks_status' => $tasks_status ]);
+                    break;*/
+                case 'copy_fields':
+                    self::copy_fields();
+                    self::update_task_status('copy_fields', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF fields copied successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'register_fields':
+                    self::register_fields();
+                    self::update_task_status('register_fields', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF fields registered successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case "update_fields":
+                    self::update_fields();
+                    self::update_task_status('update_fields', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF fields updated successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case "install_mu_plugins":
+                    self::install_mu_plugins();
+                    self::update_task_status('install_mu_plugins', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Must Use plugins updated successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'install_wp_plugins':
+                    ob_start();
+                    self::install_wp_plugins($plugin_types);
+                    ob_clean();
+                    self::update_task_status('install_wp_plugins', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'WP plugins installed successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'install_local_plugins':
+                    self::install_local_plugins($plugin_types);
+                    self::update_task_status('install_local_plugins', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Local plugins installed successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'npm_install':
+                    self::npm_install();
+                    self::update_task_status('npm_install', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'NPM Packages installed successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'compile_methods':
+                    self::compile_methods();
+                    self::update_task_status('compile_methods', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'ACF Methods compiled successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'generate_files':
+                    self::generate_files();
+                    self::update_task_status('generate_files', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'Files generated successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'compile_js_css':
+                    self::compile_js_css();
+                    self::update_task_status('compile_js_css', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => 'JS/CSS compiled successfully', 'tasks_status' => $tasks_status ]);
+                    break;
+                case 'defaults':
+                    self::defaults($plugin_types);
+                    self::update_task_status('defaults', true);
+                    $tasks_status = json_encode(self::$tasks_status);
+                    wp_send_json_success(['message' => "Default values have been successfully created.", 'tasks_status' => $tasks_status ]);
+                    break;
+                default:
+                    wp_send_json_error(['message' => 'Invalid task ID']);
             }
-            self::update_task_status($task_id, true);
-            wp_send_json_success([
-                'message'      => $result,
-                'tasks_status' => self::$tasks_status,
-            ]);
+
         } catch (Exception $e) {
-            wp_send_json_error(['message' => 'Error: ' . $e->getMessage()]);
+            wp_send_json_error(['message' => 'Error during task execution: ' . $e->getMessage()]);
         }
     }
-
-    public static function run_update_task() {
-        check_ajax_referer('update_theme_nonce', 'nonce');
-
-        $task_id      = sanitize_text_field($_POST['task_id'] ?? '');
-        $plugin_types = isset($_POST['plugin_types']) && is_array($_POST['plugin_types'])
-            ? array_map('sanitize_text_field', $_POST['plugin_types'])
-            : [];
-
-        // Update task'ları installation task'larından farklı — status güncellenmez
-        try {
-            $result = self::execute_task($task_id, $plugin_types);
-            if ( $result === false ) {
-                wp_send_json_error(['message' => 'Invalid task ID: ' . $task_id]);
-                return;
-            }
-            wp_send_json_success(['message' => $result]);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => 'Error: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Task'ı çalıştırır, mesaj döner. Bilinmeyen task için false döner.
-     * run_task ve run_update_task ortak mantığı burada — tekrar yok.
-     */
-    private static function execute_task( string $task_id, array $plugin_types = [] ) {
-        switch ( $task_id ) {
-            case 'fix_packages':
-                self::fix_packages();
-                return 'Composer packages fixed successfully';
-
-            case 'update_theme_apperance':
-                self::update_theme_apperance();
-                return 'Theme appearance updated successfully';
-
-            case 'copy_theme':
-                self::copy_theme();
-                return 'Theme files copied successfully';
-
-            case 'copy_fields':
-                self::copy_fields();
-                return 'ACF fields copied successfully';
-
-            case 'register_fields':
-                self::register_fields();
-                return 'ACF fields registered successfully';
-
-            case 'update_fields':
-                self::update_fields();
-                return 'ACF fields updated successfully';
-
-            case 'install_mu_plugins':
-                self::install_mu_plugins();
-                return 'Must Use plugins updated successfully';
-
-            case 'install_wp_plugins':
-                ob_start();
-                self::install_wp_plugins($plugin_types);
-                ob_end_clean();
-                return 'WP plugins installed successfully';
-
-            case 'install_local_plugins':
-                self::install_local_plugins($plugin_types);
-                return 'Local plugins installed successfully';
-
-            case 'npm_install':
-                self::npm_install();
-                return 'NPM packages installed successfully';
-
-            case 'compile_methods':
-                self::compile_methods();
-                return 'ACF Methods compiled successfully';
-
-            case 'generate_files':
-                self::generate_files();
-                return 'Files generated successfully';
-
-            case 'compile_js_css':
-                self::compile_js_css();
-                return 'JS/CSS compiled successfully';
-
-            case 'defaults':
-                self::defaults($plugin_types);
-                return 'Default values created successfully';
-
-            default:
-                return false;
-        }
-    }
-    private static function update_task_status( string $task_id, bool $status ): void {
-        // Static property'yi kullan — her seferinde DB'ye gitme
-        $tasks_status              = self::$tasks_status ?: get_option('sh_theme_tasks_status', []);
-        $tasks_status[$task_id]    = $status;
-        self::$tasks_status        = $tasks_status;
+    private static function update_task_status($task_id, $status) {
+        $tasks_status = get_option('sh_theme_tasks_status', []);
+        $tasks_status[$task_id] = $status;
+        self::$tasks_status = $tasks_status;
         update_option('sh_theme_tasks_status', $tasks_status);
-
-        // Tüm task'lar tamamlandıysa status'u güncelle
-        if ( self::tasks_completed() ) {
+        //error_log($task_id." yuklendi");
+        //error_log(self::tasks_completed());
+        //error_log(json_encode(get_option('sh_theme_tasks_status')));
+        if (self::tasks_completed()) {
             update_option('sh_theme_status', true);
             self::$status = true;
+            //error_log("Tüm görevler tamamlandı. sh_theme_status true yapıldı.");
         }
     }
-
-    public static function is_task_completed( string $task = '' ): bool {
-        $tasks_status = self::$tasks_status ?: get_option('sh_theme_tasks_status', []);
-        return is_array($tasks_status) && array_key_exists($task, $tasks_status);
+    public static function is_task_completed($task=""){
+        $tasks_status = get_option('sh_theme_tasks_status', []);
+        if(is_array($tasks_status) && in_array($task, array_keys($tasks_status))){
+           return true;
+        }
+        return false;
     }
-
-    public static function tasks_completed(): bool {
-        $tasks_status = self::$tasks_status ?: get_option('sh_theme_tasks_status', []);
-        foreach ( self::$installation_tasks as $task ) {
-            if ( empty($tasks_status[$task['id']]) || $tasks_status[$task['id']] !== true ) {
+    public static function tasks_completed() {
+        $tasks_status = get_option('sh_theme_tasks_status', []);
+        foreach (self::$installation_tasks as $task) {
+            if (empty($tasks_status[$task['id']]) || $tasks_status[$task['id']] !== true) {
                 return false;
             }
         }
