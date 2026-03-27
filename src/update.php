@@ -1618,7 +1618,16 @@ class Update {
             }
 
             // 4. Import / Update
+            // acf/update_field_group hook'unu geçici kapat — acfe_autosync JSON'u üzerine yazmasın
+            $saved_callbacks = $GLOBALS['wp_filter']['acf/update_field_group'] ?? null;
+            remove_all_actions('acf/update_field_group');
+
             $result = acf_import_field_group($field_group);
+
+            // Hook'ları geri yükle
+            if ( $saved_callbacks ) {
+                $GLOBALS['wp_filter']['acf/update_field_group'] = $saved_callbacks;
+            }
 
             if ( $result && ! is_wp_error($result) ) {
                 $imported_keys[] = $field_group['key'];
@@ -1657,11 +1666,7 @@ class Update {
         wp_cache_flush();
     }
     private static function register_fields(): void {
-        global $wpdb;
-
-        // acf_import_field_group, flexible_content field'larının layouts'ını
-        // JSON'daki boş değerle üzerine yazıyor.
-        // Import öncesi mevcut layouts'ları kaydet, sonra geri yaz.
+        // Import öncesi flexible_content layouts'larını yedekle
         $layouts_backup = self::_backup_flexible_layouts();
 
         self::acf_json_to_db();
