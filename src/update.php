@@ -1840,28 +1840,26 @@ class Update {
         if ( empty($layouts) ) return;
 
         // Her layout için sub_fields'ı DB'deki child acf-field post'larından doldur
-        // Layout post'ları: post_parent = field_id, post_name = layout_key
+        // Child field'lar post_parent = field_id ile saklanıyor
+        // ve post_content içindeki parent_layout key'i ile layout'a bağlanıyor
+        $all_child_fields = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT ID, post_name, post_title, post_excerpt, post_content
+                 FROM {$wpdb->posts}
+                 WHERE post_type = 'acf-field'
+                 AND post_parent = %d
+                 AND post_status = 'publish'
+                 ORDER BY menu_order ASC",
+                $field_id
+            ),
+            ARRAY_A
+        );
+
         foreach ( $layouts as $layout_key => &$layout ) {
-            if ( ! empty($layout['sub_fields']) ) continue; // Zaten doluysa dokunma
+            if ( ! empty($layout['sub_fields']) ) continue;
 
-            // Child field post'ları post_parent = post_id (field group ID) ile saklanıyor
-            // ve post_content içindeki parent_layout key'i ile layout'a bağlanıyor
-            $child_fields = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT ID, post_name, post_title, post_excerpt, post_content
-                     FROM {$wpdb->posts}
-                     WHERE post_type = 'acf-field'
-                     AND post_parent = %d
-                     AND post_status = 'publish'
-                     ORDER BY menu_order ASC",
-                    $post_id
-                ),
-                ARRAY_A
-            );
-
-            // parent_layout = layout_key olan field'ları filtrele
             $sub_fields = [];
-            foreach ( $child_fields as $cf ) {
+            foreach ( $all_child_fields as $cf ) {
                 $cf_content = maybe_unserialize($cf['post_content']);
                 if ( ! is_array($cf_content) ) continue;
                 if ( ($cf_content['parent_layout'] ?? '') !== $layout_key ) continue;
