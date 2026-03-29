@@ -299,6 +299,23 @@ class QueryCache {
 
 
     // =========================================================================
+    // GENERIC WRAP (Herhangi bir callback'i cache'le)
+    // =========================================================================
+
+    /**
+     * Herhangi bir callable'ı cache key ile sarar.
+     *
+     * Kullanım:
+     *   QueryCache::wrap('kampanyalar', fn() => get_posts([...]), ['post_type' => ['campaign']]);
+     */
+    public static function wrap( string $key, callable $callback, array $deps = [] ) {
+        if ( ! self::$cache || ! ( self::$config['wrap'] ?? true ) ) {
+            return $callback();
+        }
+        return self::_read_or_fetch( 'wrap_' . $key, $callback, $deps );
+    }
+
+    // =========================================================================
     // WP GET_POSTS
     // =========================================================================
 
