@@ -217,6 +217,18 @@ class QueryCache {
         add_action( 'wp_update_nav_menu', [ $c, 'on_menu_change' ] );
     }
 
+    // =========================================================================
+    // PUBLIC ACCESSORS
+    // =========================================================================
+
+    public static function is_enabled(): bool {
+        return self::$cache;
+    }
+
+    public static function get_config( string $key = '' ) {
+        if ( $key === '' ) return self::$config;
+        return self::$config[ $key ] ?? null;
+    }
 
     // =========================================================================
     // ACF GET_FIELD

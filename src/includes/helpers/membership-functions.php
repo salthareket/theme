@@ -720,6 +720,7 @@ function custom_override_shipping_fields( $fields ) {
 }
 
 
+if (!function_exists('woocommerce_form_field')) {
 function woocommerce_form_field( $key, $args, $value = null ) {
         $defaults = array(
             'type'              => 'text',
@@ -971,6 +972,7 @@ function woocommerce_form_field( $key, $args, $value = null ) {
             echo $field; // WPCS: XSS ok.
         }
 }
+} // end if (!function_exists('woocommerce_form_field'))
 
 
 

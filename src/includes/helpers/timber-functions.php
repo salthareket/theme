@@ -27,7 +27,7 @@ function timber_get_menu($name) {
     if (isset($cache[$key])) return $cache[$key];
 
     // 2. Cache kapalıysa direkt Timber
-    if (!\QueryCache::$cache || (\QueryCache::$config['menu'] ?? true) === false) {
+    if (!\QueryCache::is_enabled() || (\QueryCache::get_config('menu') ?? true) === false) {
         return Timber::get_menu($name);
     }
 
