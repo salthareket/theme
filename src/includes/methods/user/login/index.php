@@ -1,4 +1,4 @@
 <?php
-$salt = \Salt::get_instance();//new Salt();
+$salt = \Salt::get_instance();
 echo json_encode($salt->login($vars));
-die();
+wp_die();

@@ -2,8 +2,8 @@
 
 namespace SaltHareket;
 
-use ScssPhp\SCSSPhp\SCSSCompiler;
-use ScssPhp\ScssPhp\OutputStyle;
+use ScssPhp\ScssPhp\Compiler;
+// use ScssPhp\ScssPhp\OutputStyle; // v2.0 için hazırlık
 
 class Data {
     private static $storage = [];
@@ -189,6 +189,24 @@ class Data {
 class_alias('\SaltHareket\Data', 'Data');
 
 
+/**
+ * Theme — Ana tema class'i. Singleton.
+ *
+ * Post type/taxonomy register, language settings, global variables,
+ * site config, query modifications, admin menu, SCSS compile.
+ *
+ * KULLANIM:
+ *   $theme = Theme::getInstance();
+ *   $theme->init();
+ *
+ *   // Site config (JS'e aktarilan global ayarlar)
+ *   $config = Theme::get_site_config();
+ *
+ *   // SCSS compile (admin'den tetiklenir)
+ *   $errors = Theme::scss_compile();
+ *
+ * @package SaltHareket
+ */
 Class Theme{
 
     private static $instance = null; // Canlı örneği burada saklıyoruz
@@ -586,6 +604,7 @@ Class Theme{
             $user->ID = $current_user->ID;
             $user->roles = (array) $current_user->roles;
             $user->user_email = $current_user->user_email;
+            $user_roles = (array) $current_user->roles;
         } else {
             $timber_user = \Timber::get_user();
             if ($timber_user) {
@@ -664,7 +683,7 @@ Class Theme{
                 $user->newsletter = \SaltBase::newsletter("status", $user->user_email);
             }
 
-            $user->messages_count = (ENABLE_CHAT && function_exists('yobro_unseen_messages_count')) ? yobro_unseen_messages_count() : 0;
+            $user->messages_count = (ENABLE_CHAT && class_exists('Messenger')) ? Messenger::count() : 0;
             $user->notification_count = (ENABLE_NOTIFICATIONS) ? $salt->notification_count() : 0;
             $user->menu = function_exists('get_account_menu') ? get_account_menu() : [];
         }
@@ -1347,8 +1366,8 @@ Class Theme{
 
                 // Çerezler eksikse IP'den bul
                 if (empty($user_data['city']) || empty($user_data['code'])) {
-                    global $salt; 
-                    if(isset($salt)){
+                    $salt = Data::get("salt");
+                    if($salt){
                         $data = (isset($salt->localization)) ? $salt->localization->ip_info() : null;
                         if ($data) {
                             $user_data['country'] = $data->name ?? ($data['name'] ?? 'Unknown');

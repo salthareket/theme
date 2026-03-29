@@ -260,7 +260,7 @@ function salt_custom_dashboard(){
                     break;
 
                     case "messages":
-                        $messages_count = yobro_unseen_messages_count();
+                        $messages_count = Messenger::count();
                         $plural = "";
                         if($messages_count>1){
                             $plural = "s";

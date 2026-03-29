@@ -1,45 +1,29 @@
-if ( typeof acf !== 'undefined' ) {
-    
-    ( function( $ ) {
+if (typeof acf !== 'undefined') {
+    (function($) {
+        function initialize_bs_columns_field($field) {
+            var $block = $($field).closest('.wp-block');
+            if ($block.data('type') !== 'acf/bootstrap-columns') return;
 
-        function initialize_bs_columns_field($field){
-            if($($field).closest(".wp-block").data("type") == "acf/bootstrap-columns"){
-                let block = $($field).closest(".wp-block");
+            var $rowCols     = $block.find("[data-name='row_cols']").first();
+            var $breakpoints = $block.find("[data-name='acf_block_columns']").first()
+                .find('.values').first()
+                .find('> .layout').not("[data-layout='block-bootstrap-columns']")
+                .find("[data-name='breakpoints']");
 
-                let row_cols = block.find("[data-name='row_cols']").first();
-                let breakpoints  = block.find("[data-name='acf_block_columns']").first().find(".values").first().find(">.layout").not("[data-layout='block-bootstrap-columns']").find("[data-name='breakpoints']");
-                row_cols.find("input[type='checkbox']").on("change", function(){
-                    debugJS(breakpoints.length)
-                    if($(this).is(":checked")){
-                        breakpoints.addClass("acf-hidden");
-                    }else{
-                        breakpoints.removeClass("acf-hidden");
-                    }
-                });
-                acf.add_action( 'acfe/modal/open', function($modal, $args){
-                    let breakpoints = $($modal.$el).find("[data-name='breakpoints']").first();
-                    let row_cols = $($modal.$el).closest(".acf-block-fields").find("[data-name='row_cols']").first();
-                    if(row_cols.find("input[type='checkbox']").is(":checked")){
-                        breakpoints.addClass("acf-hidden");
-                    }else{
-                        breakpoints.removeClass("acf-hidden");
-                    }
-                });
-                
-            }
+            $rowCols.find("input[type='checkbox']").on('change', function() {
+                $breakpoints.toggleClass('acf-hidden', $(this).is(':checked'));
+            });
+
+            acf.add_action('acfe/modal/open', function($modal) {
+                var $bp = $($modal.$el).find("[data-name='breakpoints']").first();
+                var $rc = $($modal.$el).closest('.acf-block-fields').find("[data-name='row_cols']").first();
+                $bp.toggleClass('acf-hidden', $rc.find("input[type='checkbox']").is(':checked'));
+            });
         }
 
-        if( typeof acf.add_action !== 'undefined' ) {
-
-            acf.add_action( 'ready_field/type=acf_bs_breakpoints', initialize_bs_columns_field );
-            acf.add_action( 'append_field/type=acf_bs_breakpoints', initialize_bs_columns_field );
-            /*acf.addAction('append', function($el) {
-                if ($el.hasClass('layout') && $el.closest('.acf-flexible-content').length && $el.data("layout") == "block-bootstrap-columns") {
-                    debugJS('Flexible Content alanına yeni bir öğe eklendi:', $el);
-                    initialize_bs_columns_field($el);
-                }
-            });*/
+        if (typeof acf.add_action !== 'undefined') {
+            acf.add_action('ready_field/type=acf_bs_breakpoints', initialize_bs_columns_field);
+            acf.add_action('append_field/type=acf_bs_breakpoints', initialize_bs_columns_field);
         }
-
-    } )( jQuery );
+    })(jQuery);
 }

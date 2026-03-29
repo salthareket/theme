@@ -1,17 +1,10 @@
 <?php
 $required_setting = ENABLE_MEMBERSHIP;
 
-$salt = \Salt::get_instance();//new Salt();
+$salt   = \Salt::get_instance();
 $status = $salt->nickname_exist($vars);
-$error = false;
-$message = "";
-if ($status) {
-	$error = true;
-	$message = $status;
-}
-$output = [
-	"error" => $error,
-	"message" => $message,
-];
-echo json_encode($output);
-die();
+
+$response['error']   = (bool) $status;
+$response['message'] = $status ?: '';
+echo json_encode($response);
+wp_die();

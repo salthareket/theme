@@ -194,7 +194,7 @@ function inline_js_add($name = "", $url = "", $in_footer = true, $attrs = []) {
     if (!file_exists($path)) {
         return;
     }
-    $code = file_get_contents($url);
+    $code = file_get_contents($path);
     if($attrs){
     	//add_action('wp_footer', function() use ($code, $attrs){
 		    $attr_str = '';
@@ -321,9 +321,9 @@ function frontend_header_styles(){
     wp_dequeue_style('font-for-new');
     wp_dequeue_style('google-fonts-roboto');
 
-    $locale_file_path = STATIC_PATH . 'css/locale-' . $GLOBALS['language'] . '.css';
+    $locale_file_path = STATIC_PATH . 'css/locale-' . Data::get("language") . '.css';
 	if (file_exists($locale_file_path) && is_readable($locale_file_path) && filesize($locale_file_path) > 0) {
-	    wp_register_style('locale', STATIC_URL . 'css/locale-' . $GLOBALS['language'] . '.css' , array(), $version, '');
+	    wp_register_style('locale', STATIC_URL . 'css/locale-' . Data::get("language") . '.css' , array(), $version, '');
 	    wp_enqueue_style('locale');
 	}
 
@@ -475,8 +475,8 @@ function frontend_footer_scripts(){
     	}
     }
 
-    if(isset($GLOBALS['google_maps_api_key']) && !empty($GLOBALS['google_maps_api_key'])){
-	    wp_register_script('googlemaps','https://maps.googleapis.com/maps/api/js?key='.$GLOBALS['google_maps_api_key'].'&language='.$GLOBALS['language'], array(),null,true);
+    if(Data::get("google_maps_api_key")){
+	    wp_register_script('googlemaps','https://maps.googleapis.com/maps/api/js?key='.Data::get("google_maps_api_key").'&language='.Data::get("language"), array(),null,true);
 	    wp_enqueue_script('googlemaps');    	
     }
 
@@ -637,9 +637,9 @@ function frontend_footer_scripts(){
 	    }
     }
 
-	$locale_script_path = STATIC_PATH . 'js/locale/' . $GLOBALS['language'] . '.js';
+	$locale_script_path = STATIC_PATH . 'js/locale/' . Data::get("language") . '.js';
 	if (file_exists($locale_script_path) && is_readable($locale_script_path) && filesize($locale_script_path) > 0) {
-	    wp_register_script('locale', STATIC_URL . 'js/locale/' . $GLOBALS['language'] . '.js', array(), null, true);
+	    wp_register_script('locale', STATIC_URL . 'js/locale/' . Data::get("language") . '.js', array(), null, true);
 	    wp_enqueue_script('locale');
 	}
 

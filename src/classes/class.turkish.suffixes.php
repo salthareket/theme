@@ -1,16 +1,38 @@
 <?php
 
 /**
- * Created by IntelliJ IDEA.
- * Author: A. Utku Sipahioğlu (http://teorikdeli.com)
- * Company: Siis (http://siis.com.tr | http://siisgames.com)
+ * Turkce — Turkish grammatical case suffixes.
  *
- * License: MIT
+ * Author: A. Utku Sipahioglu | License: MIT
  * https://github.com/SiisOfficial/turkish-suffixes
  *
- * Demo & detailed usage: http://siis.com.tr/turkish-suffixes
+ * KULLANIM:
+ *   Turkce::accusativeCase('Istanbul')    // Istanbul'u     (belirtme hali -i)
+ *   Turkce::dativeCase('Istanbul')        // Istanbul'a     (yonelme hali -e)
+ *   Turkce::locativeCase('Istanbul')      // Istanbul'da    (bulunma hali -de)
+ *   Turkce::ablativeCase('Istanbul')      // Istanbul'dan   (ayrilma hali -den)
+ *   Turkce::genitiveCase('Istanbul')      // Istanbul'un    (sahiplik hali -in)
+ *   Turkce::comitativeCase('Istanbul')    // Istanbul'la    (vasita hali -le)
+ *   Turkce::conjunction('Istanbul')       // Istanbul da    (dahi baglaci)
+ *   Turkce::ordinalNumber('5')            // 5'inci         (sira sayisi)
+ *   Turkce::distributive('3')             // 3'er           (ulestirme)
  *
- * Version: 1.5
+ *   // Yabanci kelimeler icin fake pronounce:
+ *   Turkce::dativeCase('Apple')           // Apple'a  (otomatik pronounce)
+ *   Turkce::dativeCase('view', 'yiv')     // view'a   (manuel fake)
+ *
+ *   // Turkce alias'lar:
+ *   Turkce::belirtmeHali('Ankara')        // Ankara'yi
+ *   Turkce::yonelmeHali('Ankara')         // Ankara'ya
+ *   Turkce::bulunmaHali('Ankara')         // Ankara'da
+ *   Turkce::ayrilmaHali('Ankara')         // Ankara'dan
+ *   Turkce::sahiplikHali('Ankara')        // Ankara'nin
+ *   Turkce::vasitaHali('Ankara')          // Ankara'yla
+ *   Turkce::dahiBaglac('Ankara')          // Ankara da
+ *   Turkce::siraSayi('1')                 // 1'inci
+ *   Turkce::ulestirme('5')                // 5'er
+ *
+ * @package SaltHareket
  */
 class Turkce {
     /*
@@ -551,7 +573,7 @@ class Turkce {
     }
 
     public static function distributive($number, $integer = false) {
-        return self::siraSayi($number, $integer);
+        return self::ulestirme($number, $integer);
     }
 
     /**
@@ -561,13 +583,12 @@ class Turkce {
      * @param $noun
      * @return mixed
      */
-    public static function processForNumber($callback = 'belirtmeHali', $noun) {
+    public static function processForNumber(string $callback = 'belirtmeHali', $noun): string {
         $last_number = preg_split('/\D/', $noun);
         $last_number = $last_number[count($last_number) - 1];
 
         if($last_number == 0) {
-            // it is directly zero
-            return call_user_func('self::' . $callback, "fır", $noun);
+            return call_user_func([self::class, $callback], "fır", $noun);
         }
 
         //  We don't need a full word, last 3 letters'd be enough
@@ -595,49 +616,36 @@ class Turkce {
         //  last number's length
         $digit_length = mb_strlen($last_number);
 
-        //  Check last number
+        $call = [self::class, $callback];
+
         $last_1_letter = mb_substr($noun, -1, 1, 'utf-8');
         $last_1_number = preg_split('/^\D/', $last_1_letter);
         $last_1_number = $last_1_number[count($last_1_number) - 1];
-        if($last_1_number != "0") return call_user_func('self::' . $callback, $endings[intval($last_1_number)], $noun);
+        if($last_1_number != "0") return call_user_func($call, $endings[intval($last_1_number)], $noun);
 
-
-        //  Check last two numbers
         $last_2_letter = mb_substr($noun, -2, 2, 'utf-8');
         $last_2_number = preg_split('/^\D/', $last_2_letter);
         $last_2_number = $last_2_number[count($last_2_number) - 1];
-        if($last_2_number != "00") return call_user_func('self::' . $callback, $endings[intval($last_2_number)], $noun);
+        if($last_2_number != "00") return call_user_func($call, $endings[intval($last_2_number)], $noun);
 
-        //  Check last three numbers
         $last_3_letter = mb_substr($noun, -3, 3, 'utf-8');
         $last_3_number = preg_split('/^\D/', $last_3_letter);
         $last_3_number = $last_3_number[count($last_3_number) - 1];
-        if($last_3_number != "000") return call_user_func('self::' . $callback, "yüz", $noun);
+        if($last_3_number != "000") return call_user_func($call, "yüz", $noun);
 
-        //  Check last four numbers
         $last_4_letter = mb_substr($noun, -4, 4, 'utf-8');
         $last_4_number = preg_split('/^\D/', $last_4_letter);
         $last_4_number = $last_4_number[count($last_4_number) - 1];
-        if($last_4_number != "0000" || $digit_length < 7) return call_user_func('self::' . $callback, "bin", $noun);
+        if($last_4_number != "0000" || $digit_length < 7) return call_user_func($call, "bin", $noun);
 
-        //  Check for the rest
         if($digit_length >= 7) {
-            // if this is 8, 11, 14, etc.
             if(($digit_length + 1) % 3 == 0) {
-                if($digit_length % 2 == 0) {
-                    return call_user_func('self::' . $callback, "yon", $noun);
-                } else {
-                    return call_user_func('self::' . $callback, "yar", $noun);
-                }
+                return call_user_func($call, $digit_length % 2 == 0 ? "yon" : "yar", $noun);
             } elseif($digit_length % 3 == 0 || ($digit_length + 2) % 3 == 0) {
-                if($digit_length % 2 == 0) {
-                    return call_user_func('self::' . $callback, "yar", $noun);
-                } else {
-                    return call_user_func('self::' . $callback, "yon", $noun);
-                }
+                return call_user_func($call, $digit_length % 2 == 0 ? "yar" : "yon", $noun);
             }
         }
 
-        return call_user_func('self::' . $callback, $noun);
+        return call_user_func($call, $noun);
     }
 }

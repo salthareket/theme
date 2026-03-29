@@ -2,6 +2,19 @@
 
 namespace SaltHareket;
 
+/**
+ * Image — Responsive image set, srcset, lazy loading, breakpoint-based image generation.
+ *
+ * KULLANIM:
+ *   $img = new Image();
+ *   $html = $img->get_image_set_post(['src' => 123, 'class' => 'img-fluid']);
+ *   $html = $img->get_image_set_multiple($args, true);
+ *
+ *   // Twig'de:
+ *   {{ img({'src': post.thumbnail.id, 'class': 'img-fluid'}) }}
+ *
+ * @package SaltHareket
+ */
 class Image {
 
     // Sınıf versiyonu (Tasarım/CSS değişirse burayı arttır, tüm cache patlasın)
@@ -104,7 +117,19 @@ class Image {
         if ($this->invalid) return $this->not_found();
 
         // --- CACHE BAŞLANGIÇ ---
-        $cache_key = 'sh_img_' . md5(serialize($this->args) . self::VERSION);
+        $cache_key = 'sh_img_' . md5(json_encode([
+            $this->args['src'] ?? '',
+            $this->args['class'] ?? '',
+            $this->args['type'] ?? '',
+            $this->args['lazy'] ?? true,
+            $this->args['lcp'] ?? false,
+            $this->args['placeholder'] ?? false,
+            $this->args['width'] ?? '',
+            $this->args['height'] ?? '',
+            $this->args['inline'] ?? true,
+            $this->args['wrapper'] ?? false,
+            self::VERSION
+        ], JSON_UNESCAPED_UNICODE));
 
         // 1. Statik Cache (Aynı request içinde)
         if (isset(self::$static_cache[$cache_key])) return self::$static_cache[$cache_key];
@@ -227,33 +252,38 @@ class Image {
     }
 
     private function handle_lcp_preload($attrs) {
-        if(!$this->args["lazy"] && $this->args["lcp"] && (!function_exists('is_user_logged_in') || is_user_logged_in())){
-            add_action('wp_head', function() use ($attrs) {
-                self::add_preload_image($attrs);
-            });
+        if(!$this->args["lazy"] && $this->args["lcp"]){
+            $preload_attrs = $attrs;
+            add_action('wp_head', function() use ($preload_attrs) {
+                self::add_preload_image($preload_attrs);
+            }, 2);
         }
     }
 
     private function track_dependencies($cache_key) {
         $ids = [];
-        // src array ise içindeki tüm ID'leri topla
-        if (is_array($this->args['src'])) {
-            foreach($this->args['src'] as $val) {
-                if (is_numeric($val)) $ids[] = (int)$val;
-            }
+        if (isset($this->args['post']) && is_object($this->args['post']) && isset($this->args['post']->ID)) {
+            $ids[] = (int) $this->args['post']->ID;
         }
-        // Mevcut post ID'sini ekle
-        if (isset($this->args['post']->ID)) $ids[] = (int)$this->args['post']->ID;
-        
+        if ($this->id) $ids[] = (int) $this->id;
+
         $ids = array_unique(array_filter($ids));
+        if (empty($ids)) return;
+
+        // Batch: tek option'da tüm mapping'leri tut
+        $all_rels = get_option('sh_img_rels', []);
+        $changed = false;
 
         foreach ($ids as $id) {
-            $rel_key = "sh_img_rel_" . $id;
-            $rels = get_option($rel_key, []);
-            if (!in_array($cache_key, $rels)) {
-                $rels[] = $cache_key;
-                update_option($rel_key, $rels, false);
+            if (!isset($all_rels[$id])) $all_rels[$id] = [];
+            if (!in_array($cache_key, $all_rels[$id])) {
+                $all_rels[$id][] = $cache_key;
+                $changed = true;
             }
+        }
+
+        if ($changed) {
+            update_option('sh_img_rels', $all_rels, false);
         }
     }
 
@@ -290,8 +320,8 @@ class Image {
         $svg = $this->file_get_contents_curl($url);
         if (!$svg) return '';
 
-        $svg = preg_replace('//', '', $svg); // yorumları sil
-        $svg = preg_replace('/<\?xml.*\?>/i', '', $svg); // xml deklarasyonunu sil
+        $svg = preg_replace('/<!--.*?-->/s', '', $svg); // HTML yorumları sil
+        $svg = preg_replace('/<\?xml.*?\?>/i', '', $svg); // xml deklarasyonunu sil
 
         $suffix = '_' . uniqid();
         
@@ -323,17 +353,59 @@ class Image {
     }
 
     private function file_get_contents_curl($url) {
+        // 1. URL'yi local path'e çevir (en hızlı)
+        $local_path = $this->url_to_local_path($url);
+        if ($local_path && file_exists($local_path)) {
+            return file_get_contents($local_path);
+        }
+
+        // 2. allow_url_fopen açıksa direkt oku
+        if (ini_get('allow_url_fopen')) {
+            $content = @file_get_contents($url);
+            if ($content !== false) return $content;
+        }
+
+        // 3. Curl fallback
         if (function_exists('curl_version')) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Localhost güvenliği için
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             $data = curl_exec($ch);
             curl_close($ch);
             return $data;
         }
-        return @file_get_contents($url);
+
+        return false;
+    }
+
+    /**
+     * Convert URL to local filesystem path
+     */
+    private function url_to_local_path($url) {
+        if (empty($url) || !is_string($url)) return false;
+
+        $site_url = site_url('/');
+        $abspath = rtrim(ABSPATH, '/');
+
+        // Relative URL (starts with /)
+        if (strpos($url, '/') === 0 && strpos($url, '//') !== 0) {
+            $site_path = rtrim(parse_url($site_url, PHP_URL_PATH) ?: '', '/');
+            if ($site_path && strpos($url, $site_path) === 0) {
+                $url = substr($url, strlen($site_path));
+            }
+            return $abspath . $url;
+        }
+
+        // Absolute URL (same host)
+        if (strpos($url, $site_url) === 0) {
+            $relative = str_replace($site_url, '', $url);
+            return $abspath . '/' . ltrim($relative, '/');
+        }
+
+        return false;
     }
 
     // --- DİĞER YARDIMCI METODLAR (Sıralama, MediaQuery vs.) ---
@@ -421,22 +493,26 @@ class Image {
         if(empty($attrs)) return;
         if(is_array($attrs)){
             $code = isset($attrs["srcset"]) 
-                ? '<link rel="preload" as="image" href="'.$attrs["src"].'" imagesrcset="'.$attrs["srcset"].'" imagesizes="'.$attrs["sizes"].'" fetchpriority="high">'."\n"
-                : '<link rel="preload" href="'.$attrs["src"].'" as="image" fetchpriority="high">'."\n";
+                ? '<link rel="preload" as="image" href="'.esc_url($attrs["src"]).'" imagesrcset="'.esc_attr($attrs["srcset"]).'" imagesizes="'.esc_attr($attrs["sizes"]).'" fetchpriority="high">'."\n"
+                : '<link rel="preload" href="'.esc_url($attrs["src"]).'" as="image" fetchpriority="high">'."\n";
         } else {
-            $code = '<link rel="preload" href="'.$attrs.'" as="image" fetchpriority="high">'."\n";
+            $code = '<link rel="preload" href="'.esc_url($attrs).'" as="image" fetchpriority="high">'."\n";
         }
         if($echo) echo $code; else return $code;
     }
 
-    public function not_found(){
-        return $this->args["placeholder"] ? '<div class="img-placeholder '.$this->args["placeholder_class"].' img-not-found"></div>' : '';
+    public function not_found(): string {
+        return $this->args["placeholder"] ? '<div class="img-placeholder ' . esc_attr($this->args["placeholder_class"]) . ' img-not-found"></div>' : '';
+    }
+
+    public static function clearStaticCache() {
+        self::$static_cache = [];
     }
 
     public static function render($args) {
         // Önce bi hash'e bak, nesneyi hiç doğurmadan sonucu dönebilir miyiz?
         $version = self::VERSION;
-        $cache_key = 'sh_img_' . md5(serialize($args) . $version);
+        $cache_key = 'sh_img_' . md5(json_encode($args, JSON_UNESCAPED_UNICODE) . $version);
 
         if (isset(self::$static_cache[$cache_key])) {
             return self::$static_cache[$cache_key];
@@ -448,16 +524,29 @@ class Image {
     }
 }
 
-/** * AUTO-INVALIDATION: Görsel silindiğinde cache'i patlatır.
- * Bu kısmı functions.php'ye veya sınıftan bağımsız bir yere koymalısın.
+/**
+ * AUTO-INVALIDATION
+ * - Görsel silindiğinde → cache patlar
+ * - Görsel güncellendiğinde (replace, crop, metadata) → cache patlar
  */
-add_action('delete_attachment', function($post_id) {
-    $rel_key = "sh_img_rel_" . $post_id;
-    $related_hashes = get_option($rel_key);
-    if ($related_hashes && is_array($related_hashes)) {
-        foreach ($related_hashes as $hash) {
+function _sh_img_invalidate_cache($post_id) {
+    if (get_post_type($post_id) !== 'attachment') return;
+    $all_rels = get_option('sh_img_rels', []);
+    if (isset($all_rels[$post_id]) && is_array($all_rels[$post_id])) {
+        foreach ($all_rels[$post_id] as $hash) {
             delete_transient($hash);
         }
-        delete_option($rel_key);
+        // Silme işleminde mapping'i de kaldır, güncelleme'de koru (yeniden oluşturulacak)
+        if (current_action() === 'delete_attachment') {
+            unset($all_rels[$post_id]);
+            update_option('sh_img_rels', $all_rels, false);
+        }
     }
-}, 10, 1);
+    \SaltHareket\Image::clearStaticCache();
+}
+add_action('delete_attachment', '_sh_img_invalidate_cache');
+add_action('edit_attachment', '_sh_img_invalidate_cache');
+add_action('wp_update_attachment_metadata', function($data, $post_id) {
+    _sh_img_invalidate_cache($post_id);
+    return $data;
+}, 10, 2);

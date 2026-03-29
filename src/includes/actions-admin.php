@@ -1,14 +1,8 @@
 <?php
 
 add_action('wp_update_nav_menu', function($menu_id, $menu_data = []) {
-    delete_transient('timber_menus'); // Menü cache'ini temizle
+    delete_transient('timber_menus');
 }, 10, 2);
-
-add_filter('wp_generate_attachment_metadata', function($metadata, $attachment_id){
-    $file = get_attached_file($attachment_id);
-    if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'svg') return $metadata;
-    return $metadata; // diğer formatlar için normal conversion
-}, 20, 2);
 
 function set_default_image_alt_text($attachment_id) {
     // Mevcut alt text varsa bırak
@@ -82,7 +76,7 @@ add_action('personal_options_update', 'save_title_field');
 add_action('edit_user_profile_update', 'save_title_field');
 function save_title_field($user_id) {
     if (current_user_can('edit_user', $user_id)) {
-        update_user_meta($user_id, 'title', $_POST['title']);
+        update_user_meta($user_id, 'title', sanitize_text_field($_POST['title'] ?? ''));
     }
 }
 

@@ -212,10 +212,12 @@ class AssetManager {
 
         if (!file_exists($cache_dir)) wp_mkdir_p($cache_dir);
 
-        // 7 günden eski cache dosyalarını temizle (disk şişmesini önle)
-        foreach (glob($cache_dir . '*-inline.css') ?: [] as $old_file) {
-            if (filemtime($old_file) < (time() - 7 * DAY_IN_SECONDS)) {
-                @unlink($old_file);
+        // 7 günden eski cache dosyalarını temizle — sadece %2 ihtimalle (disk şişmesini önle)
+        if (mt_rand(1, 50) === 1) {
+            foreach (glob($cache_dir . '*-inline.css') ?: [] as $old_file) {
+                if (filemtime($old_file) < (time() - 7 * DAY_IN_SECONDS)) {
+                    @unlink($old_file);
+                }
             }
         }
 
@@ -260,7 +262,7 @@ class AssetManager {
             wp_deregister_script($h);
         }
 
-        if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && !ENABLE_CART) {
+        if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && defined('ENABLE_CART') && !ENABLE_CART) {
             wp_deregister_script("wc-order-attribution");
         }
 
@@ -414,7 +416,7 @@ class AssetManager {
         wp_dequeue_style('font-for-new');
         wp_dequeue_style('google-fonts-roboto');
 
-        if(ENABLE_ECOMMERCE){
+        if(defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE){
             $remove_woocommerce_styles = QueryCache::get_field("remove_woocommerce_styles", "options");//get_option("options_remove_woocommerce_styles");
             if($remove_woocommerce_styles){
                 wp_dequeue_style('woocommerce-smallscreen');
@@ -434,13 +436,17 @@ class AssetManager {
             global $wpdb;
             $taxonomy_exists = taxonomy_exists( 'product_brand' );
             if ($taxonomy_exists ) {
-                $has_brand = $wpdb->get_var( "
-                    SELECT term_taxonomy_id
-                    FROM {$wpdb->term_taxonomy}
-                    WHERE taxonomy = 'product_brand'
-                    LIMIT 1
-                " );
-                if ( ! $has_brand ) {
+                $has_brand = get_transient('_salt_has_product_brand');
+                if ($has_brand === false) {
+                    $has_brand = $wpdb->get_var( "
+                        SELECT term_taxonomy_id
+                        FROM {$wpdb->term_taxonomy}
+                        WHERE taxonomy = 'product_brand'
+                        LIMIT 1
+                    " ) ? '1' : '0';
+                    set_transient('_salt_has_product_brand', $has_brand, DAY_IN_SECONDS);
+                }
+                if ( $has_brand === '0' ) {
                     wp_dequeue_style( 'brands-styles' );
                     wp_deregister_style( 'brands-styles' );
                 }
@@ -450,7 +456,8 @@ class AssetManager {
 
     public function delay_css_loading($tag, $handle, $href) {
         if (in_array($handle, ['locale', 'newsletter'])) {
-            return "<link id='{$handle}' rel='preload' href='{$href}' as='style' onload=\"this.onload=null;this.rel='stylesheet'\"><noscript><link rel='stylesheet' href='{$href}'></noscript>\n";
+            $safe_href = esc_url($href);
+            return "<link id='{$handle}' rel='preload' href='{$safe_href}' as='style' onload=\"this.onload=null;this.rel='stylesheet'\"><noscript><link rel='stylesheet' href='{$safe_href}'></noscript>\n";
         }
         return $tag;
     }
@@ -485,15 +492,17 @@ class AssetManager {
     public function handle_manual_purge() {
         if (isset($_GET['purge_assets']) && current_user_can('manage_options')) {
             global $wpdb;
-            $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_font_preloads_%'");
+            $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_font_inline_cache_%' OR option_name LIKE '_transient_timeout_font_inline_cache_%' OR option_name LIKE '_transient_font_inline_cache_state_%' OR option_name LIKE '_transient_timeout_font_inline_cache_state_%'");
             $cache_folder = rtrim(STATIC_PATH, '/') . '/css/cache';
-            if (file_exists($cache_folder)) array_map('unlink', glob("$cache_folder/*.css"));
+            if (file_exists($cache_folder)) array_map('unlink', glob("$cache_folder/*.css") ?: []);
+            self::$runtime_cache = [];
+            self::$preload_queue = [];
             wp_die('Temizlik Tamam Abi!');
         }
     }
 
     public function load_admin_files() {
-        wp_enqueue_style('fontawesome','https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' , array(),'5.13.0','');
+        wp_enqueue_style('fontawesome','https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' , array(),'6.7.2','');
         wp_enqueue_style('bootstrap-admin', STATIC_URL . 'css/bootstrap-admin.css'); 
         wp_enqueue_style('root', STATIC_URL . 'css/root.css');
         wp_enqueue_style('acf-layouts', STATIC_URL . 'css/header-admin.css');

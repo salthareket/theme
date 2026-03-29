@@ -856,7 +856,7 @@ function save_theme_styles_header_themes($header){
                             $code .= $btn_reverse;
                         $code .= ");\n";
                     $code .= "}\n";
-                }error_log($code);
+                }
                 $wpscss_compiler = new SCSSCompiler();
                 $code = $wpscss_compiler->compile_string($code);
                 ////error_log($code);
@@ -4570,14 +4570,15 @@ function acf_layout_posts_preload($fields = array()){// Kullanılmıyor gozukuyo
 
 function display_search_ranks_table() {
     global $wpdb;
+    $sh = new SearchHistory();
+    $table = $sh->get_table_name();
 
     if ( isset($_GET['delete_id']) ) {
-        $delete_id = intval($_GET['delete_id']);
-        $wpdb->delete('wp_search_terms', array('id' => $delete_id));
+        $sh->delete_term( intval($_GET['delete_id']) );
         echo '<meta http-equiv="refresh" content="0; url=' . admin_url('admin.php?page=search-ranks') . '">';
     }
 
-    $results = $wpdb->get_results("SELECT * FROM wp_search_terms ORDER BY rank DESC");
+    $results = $sh->get_all();
 
     if ($results) {
         echo '<div class="bg-white rounded-3 p-3 shadow-sm"><table class="table table-hover table-striped" style="width:100%; border-collapse: collapse;background-color:#fff;">';

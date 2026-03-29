@@ -194,43 +194,43 @@ $required_plugins_local[] = array(
 
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.1",
+    "v" => "1.2.1",
     "name" => "acf-bs-breakpoints/index.php",
     "file" => "acf-bs-breakpoints"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.1",
+    "v" => "1.2.1",
     "name" => "acf-query-field/acf-query-field.php",
     "file" => "acf-query-field"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.0.4",
     "name" => "acf-unit-field/index.php",
     "file" => "acf-unit-field"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0",
+    "v" => "1.0.2",
     "name" => "tinymce-shortcut-plugin/index.php",
     "file" => "tinymce-shortcut-plugin"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.0",
+    "v" => "1.0.2",
     "name" => "gradient-picker-for-acf/gradient-picker-for-acf.php",
     "file" => "gradient-picker-for-acf"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.3.30",
+    "v" => "1.3.31",
     "name" => "salt-table-for-acf/salt-table-for-acf.php",
     "file" => "salt-table-for-acf"
 );
 $required_plugins_local[] = array(
     "type" => ["multilanguage", "ai"],
-    "v" => "1.0.4",
+    "v" => "1.0.7",
     "name" => "salt-ai-translator/salt-ai-translator.php",
     "file" => "salt-ai-translator"
 );

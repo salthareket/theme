@@ -4,7 +4,7 @@
  */
 class AvifConverter {
 
-    private $quality; 
+    private $quality = null; 
     private $allowed_formats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'heic'];
 
     public function __construct($quality = null) {
@@ -107,7 +107,9 @@ class AvifConverter {
             }
         }
 
-        // Veritabanı Güncelleme (GUID değiştirilmez, sadece mime ve yol)
+        // Veritabanı Güncelleme
+        // GUID değiştirilmez — orijinal dosyaya guid üzerinden erişilebilir kalır
+        // Orijinal dosya (.jpg/.png) diskte korunur
         update_attached_file($attachment_id, $new_main_path);
         wp_update_post([
             'ID' => $attachment_id,
@@ -118,57 +120,75 @@ class AvifConverter {
     }
 
     private function attempt_conversion($source_path, $target_ext) {
-        $target_path = preg_replace('/\.[^.]+$/', '', $source_path) . '-converted.' . $target_ext;
+        $base_path = preg_replace('/\.[^.]+$/', '', $source_path);
+        $target_path = $base_path . '.' . $target_ext;
+
+        // Kaynak ve hedef aynıysa (zaten dönüştürülmüş) skip
+        if ($source_path === $target_path) return false;
+
+        // Güvenli yazım: önce .tmp'ye yaz, başarılıysa rename et
+        $tmp_path = $target_path . '.tmp';
         $quality = $this->quality ?? ($target_ext === 'webp' ? $this->get_webp_quality($source_path) : $this->get_avif_quality($source_path));
 
         try {
             if (class_exists('Imagick')) {
                 $im = new Imagick($source_path);
-                $im->stripImage(); // Metadata temizliği burada yapılıyor
-                $im->setImageFormat($target_ext);
-                $im->setImageCompressionQuality($quality);
+                try {
+                    $im->stripImage();
+                    $im->setImageFormat($target_ext);
+                    $im->setImageCompressionQuality($quality);
 
-                if ($target_ext === 'webp') {
-                    $im->setOption('webp:method', '6');
-                    $im->setOption('webp:sharp-yuv', 'true');
-                    if ($this->looks_like_flat_graphic($source_path)) $im->setOption('webp:near-lossless', '60');
-                } else {
-                    $im->setOption('avif:effort', '3'); // Hız için 3 idealdir
+                    if ($target_ext === 'webp') {
+                        $im->setOption('webp:method', '6');
+                        $im->setOption('webp:sharp-yuv', 'true');
+                        if ($this->looks_like_flat_graphic($source_path)) $im->setOption('webp:near-lossless', '60');
+                    } else {
+                        $im->setOption('avif:effort', '3');
+                    }
+
+                    $im->writeImage($tmp_path);
+                } finally {
+                    $im->clear();
+                    $im->destroy();
                 }
-
-                $im->writeImage($target_path);
-                $im->clear();
-                $im->destroy();
             } elseif (function_exists('image' . $target_ext)) {
                 $img = $this->create_image_from_file($source_path);
                 if (!$img) return false;
                 
                 if ($target_ext === 'webp') {
                     imagesavealpha($img, true);
-                    imagewebp($img, $target_path, $quality);
+                    imagewebp($img, $tmp_path, $quality);
                 } else {
-                    imageavif($img, $target_path, $quality);
+                    imageavif($img, $tmp_path, $quality);
                 }
                 imagedestroy($img);
             }
 
-            return (file_exists($target_path) && filesize($target_path) > 0) 
-                ? ['path' => $target_path, 'mime' => 'image/' . $target_ext] : false;
+            // Tmp başarılıysa rename, değilse temizle
+            if (file_exists($tmp_path) && filesize($tmp_path) > 0) {
+                rename($tmp_path, $target_path);
+                return ['path' => $target_path, 'mime' => 'image/' . $target_ext];
+            }
+
+            @unlink($tmp_path);
+            return false;
 
         } catch (Exception $e) {
-            //error_log("Conversion Error: " . $e->getMessage());
+            @unlink($tmp_path);
             return false;
         }
     }
 
     private function get_avif_quality($path = null) {
-        $q = 75; // Dengeli varsayılan
+        $q = 75;
         if ($path && $this->looks_like_flat_graphic($path)) $q = 85;
         return $q;
     }
 
     private function get_webp_quality($path = null) {
-        return min($this->get_avif_quality($path) + 10, 92);
+        $q = 88;
+        if ($path && $this->looks_like_flat_graphic($path)) $q = 92;
+        return $q;
     }
 
     private function looks_like_flat_graphic($path) {
@@ -180,10 +200,14 @@ class AvifConverter {
 
     private function has_alpha_channel($path) {
         if (class_exists('Imagick')) {
-            $im = new Imagick($path);
-            $alpha = $im->getImageAlphaChannel();
-            $im->destroy();
-            return $alpha;
+            try {
+                $im = new Imagick($path);
+                $alpha = $im->getImageAlphaChannel();
+                $im->destroy();
+                return $alpha;
+            } catch (Exception $e) {
+                return false;
+            }
         }
         // PNG ise binary kontrol (Hızlı)
         if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'png') {
@@ -208,11 +232,26 @@ class AvifConverter {
 
     public function cleanup_leftover_original_files($attachment_id) {
         $file = get_attached_file($attachment_id);
-        if ($file) {
-            $base = preg_replace('/-converted\.\w+$/', '', $file);
-            foreach ($this->allowed_formats as $ext) {
-                if (file_exists($base . '.' . $ext)) @unlink($base . '.' . $ext);
-            }
+        if (!$file) return;
+
+        $base = preg_replace('/\.[^.]+$/', '', $file);
+
+        // Orijinal formatları temizle (guid'deki dosya)
+        foreach ($this->allowed_formats as $ext) {
+            $path = $base . '.' . $ext;
+            if (file_exists($path)) @unlink($path);
+        }
+
+        // Converted formatları da temizle
+        foreach (['avif', 'webp'] as $ext) {
+            $path = $base . '.' . $ext;
+            if (file_exists($path)) @unlink($path);
+        }
+
+        // Eski -converted suffix'li dosyalar varsa onları da temizle (geriye uyumluluk)
+        foreach (array_merge($this->allowed_formats, ['avif', 'webp']) as $ext) {
+            $path = $base . '-converted.' . $ext;
+            if (file_exists($path)) @unlink($path);
         }
     }
 }

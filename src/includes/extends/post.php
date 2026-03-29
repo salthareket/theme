@@ -114,18 +114,19 @@ class Post extends Timber\Post{
     public function get_map_popup(){
         $map_data = $this->get_map_data();
         $user = Data::get("user");
+        $image = $map_data["image"] ?? ($this->thumbnail ? $this->thumbnail->src('thumbnail') : '');
         return  "<div class='row gx-3 gy-2'>" .
                     "<div class='col-auto'>" .
-                         "<img src='" . $map_data["image"] . "' class='img-fluid rounded' style='max-width:50px;'/>" .
+                         "<img src='" . esc_url($image) . "' class='img-fluid rounded' style='max-width:50px;'/>" .
                     "</div>" .
                     "<div class='col'>" .
                         "<ul class='list-unstyled m-0'>" .
-                            "<li class='fw-bold'>" . $map_data["title"] . "</li>" .
-                            "<li class='text-muted' style='font-size:12px;'>" . $this->get_location() . "</li>" .
+                            "<li class='fw-bold'>" . esc_html($map_data["title"] ?? '') . "</li>" .
+                            "<li class='text-muted' style='font-size:12px;'>" . esc_html($this->get_location() ?? '') . "</li>" .
                         "</ul>" .
                     "</div>" .
                     "<div class='col-12 text-primary' style='font-size:12px;'>" .
-                        $this->get_local_date("", "", $user->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
+                        ($user ? $this->get_local_date("", "", $user->get_timezone()) : '') . ($user ? " GMT" . $this->get_gmt() : '') .
                     "</div>" .
                 "</div>";
     }
@@ -263,38 +264,6 @@ class Post extends Timber\Post{
             "html" => $content,
             "required_js" => array_values(array_unique($all_required_js))
         ); 
-    }
-    private function get_block_dependencies($block_name) {
-        $slug = str_replace('acf/', '', $block_name);
-        
-        // Twig dosyasının yolunu belirle (Kendi klasör yapına göre güncelle)
-        $file_path = get_template_directory() . '/views/blocks/' . $slug . '.twig';
-
-        if (!file_exists($file_path)) return [];
-
-        $content = file_get_contents($file_path);
-        
-        // Yorum bloğu içindeki "Required:" satırını yakala
-        preg_match('/Required:\s*(.*)/i', $content, $matches);
-
-        if (isset($matches[1])) {
-            // Virgülle ayrılmış kütüphaneleri temizleyip array yap
-            return array_map('trim', explode(',', $matches[1]));
-        }
-
-        return [];
-    }
-    private function render_embed_block($url) {
-        // wp_oembed_get ile tüm desteklenen platformlar için embed kodunu al
-        $embed_code = wp_oembed_get($url);
-
-        // Eğer embed bulunamadıysa, URL'yi düz metin olarak göster
-        if (!$embed_code) {
-            return '<a href="' . esc_url($url) . '">' . esc_html($url) . '</a>';
-        }
-
-        // Embed kodunu döndür
-        return $embed_code;
     }
     public function get_block($block_name = "", $render = false, $args = []) {
         if (!$block_name) {

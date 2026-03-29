@@ -2,34 +2,63 @@
 
 use ScssPhp\ScssPhp\Compiler;
 use ScssPhp\ScssPhp\ValueConverter;
-//use ScssPhp\ScssPhp\OutputStyle; v.2.0.0
+
+/**
+ * SCSSCompiler — scssphp wrapper.
+ *
+ * SCSS dosyalarını CSS'e derler. scssphp/scssphp ^1.13 kullanır.
+ * Otomatik compile YOKTUR — sadece açıkça çağrıldığında çalışır.
+ *
+ * KULLANIM:
+ *
+ *   // Tam compile (dizin bazlı)
+ *   $compiler = new SCSSCompiler(
+ *       [SH_STATIC_PATH . 'scss/'],   // SCSS kaynak dizinleri
+ *       STATIC_PATH . 'css/',          // CSS çıktı dizini
+ *       'SOURCE_MAP_NONE',             // sourcemap: SOURCE_MAP_NONE | SOURCE_MAP_INLINE | SOURCE_MAP_FILE
+ *       'compressed'                   // output: compressed | expanded | nested | compact
+ *   );
+ *   $compiler->set_variables(['primary' => '#ff0000', 'font-size' => '16px']);
+ *   $compiler->compile();
+ *   $errors = $compiler->get_compile_errors();
+ *
+ *   // String compile (tek seferlik)
+ *   $compiler = new SCSSCompiler();
+ *   $css = $compiler->compile_string('.btn { color: darken(#fff, 10%); }');
+ *
+ *   // Theme entegrasyonu (admin'den tetiklenir)
+ *   Theme::scss_compile();
+ *
+ * @package SaltHareket
+ * @since   1.0.0
+ */
 
 class SCSSCompiler {
 
-    private array $scss_dirs; // Artık array olarak kabul ediliyor
-    private string $css_dir;
-    private string $cache;
-    private array $compile_errors;
+    private array    $scss_dirs;
+    private string   $css_dir;
+    private string   $cache_dir;
+    private array    $compile_errors = [];
     private Compiler $scssc;
-    private string $sourcemaps;
+    private string   $sourcemaps;
 
-    //public function __construct(array $scss_dirs, string $css_dir, string $sourcemaps, OutputStyle $compile_method = OutputStyle::COMPRESSED) { v2.0.0
-    public function __construct(array $scss_dirs = [], string $css_dir = "", string $sourcemaps = "", string $compile_method = "compressed") {
+    public function __construct(
+        array  $scss_dirs = [],
+        string $css_dir = '',
+        string $sourcemaps = 'SOURCE_MAP_NONE',
+        string $compile_method = 'compressed'
+    ) {
         $this->scss_dirs = $scss_dirs;
-        $this->css_dir = $css_dir;
-        $this->compile_errors = [];
-        $this->scssc = new Compiler();
-
-        $this->cache = STATIC_PATH . '/cache/';
-
-        $this->scssc->setOutputStyle($compile_method);
-
-        // Tüm dizinleri SCSSPHP'ye setImportPaths ile aktar
-        $this->scssc->setImportPaths($this->scss_dirs);
-
+        $this->css_dir   = $css_dir;
         $this->sourcemaps = $sourcemaps;
+        $this->cache_dir  = defined( 'STATIC_PATH' ) ? rtrim( STATIC_PATH, '/' ) . '/cache/' : sys_get_temp_dir() . '/scss_cache/';
 
-        add_action('wp_loaded', [$this, 'wp_scss_needs_compiling']);
+        $this->scssc = new Compiler();
+        $this->scssc->setOutputStyle( $compile_method );
+
+        if ( ! empty( $scss_dirs ) ) {
+            $this->scssc->setImportPaths( $scss_dirs );
+        }
     }
 
     public function get_scss_dirs(): array {
@@ -44,108 +73,110 @@ class SCSSCompiler {
         return $this->compile_errors;
     }
 
+    // =========================================================================
+    // COMPILE — Dizin bazlı
+    // =========================================================================
+
     public function compile(): void {
         $input_files = [];
 
-        // Tüm SCSS dizinlerini dolaş ve dosyaları topla
-        foreach ($this->scss_dirs as $scss_dir) {
-            foreach (new DirectoryIterator($scss_dir) as $file) {
-                if (substr($file, 0, 1) != "_" && pathinfo($file->getFilename(), PATHINFO_EXTENSION) == 'scss') {
-                    $input_files[] = $scss_dir . $file->getFilename();
-                }
-            }
-        }
-
-        foreach ($input_files as $input) {
-            $outputName = preg_replace("/\.[^$]*/", ".css", basename($input));
-            $output = $this->css_dir . $outputName;
-
-            $this->compiler($input, $output);
-        }
-
-        if (count($this->compile_errors) < 1) {
-            if (is_writable($this->css_dir)) {
-                foreach (new DirectoryIterator($this->cache) as $cache_file) {
-                    if (pathinfo($cache_file->getFilename(), PATHINFO_EXTENSION) == 'css') {
-                        file_put_contents($this->css_dir . $cache_file, file_get_contents($this->cache . $cache_file));
-                        unlink($this->cache . $cache_file->getFilename());
-                    }
-                }
-            } else {
-                $errors = [
-                    'file' => 'CSS Directory',
-                    'message' => "File Permissions Error, permission denied. Please make your CSS directory writable."
+        foreach ( $this->scss_dirs as $scss_dir ) {
+            if ( ! is_dir( $scss_dir ) ) {
+                $this->compile_errors[] = [
+                    'file'    => $scss_dir,
+                    'message' => 'SCSS directory not found.',
                 ];
-                $this->compile_errors[] = $errors;
+                continue;
             }
+
+            foreach ( new \DirectoryIterator( $scss_dir ) as $file ) {
+                if ( $file->isDot() ) continue;
+                $name = $file->getFilename();
+                // _ ile başlayanlar partial — compile etme
+                if ( str_starts_with( $name, '_' ) ) continue;
+                if ( $file->getExtension() !== 'scss' ) continue;
+                $input_files[] = $scss_dir . $name;
+            }
+        }
+
+        foreach ( $input_files as $input ) {
+            $output_name = pathinfo( $input, PATHINFO_FILENAME ) . '.css';
+            $this->compile_file( $input, $this->css_dir . $output_name );
+        }
+
+        // Hata yoksa cache'ten css_dir'a taşı
+        if ( empty( $this->compile_errors ) ) {
+            $this->flush_cache_to_output();
         }
     }
 
-    public function compile_string(string $scss_string): string {
+    // =========================================================================
+    // COMPILE — String bazlı
+    // =========================================================================
+
+    public function compile_string( string $scss_string ): string {
+        if ( empty( trim( $scss_string ) ) ) return '';
+
         try {
-            $compilationResult = $this->scssc->compileString($scss_string);
-            return $compilationResult->getCss();
-        } catch (Exception $e) {
-            //error_log("SCSS compile_string error: " . $e->getMessage());
-            return ""; // veya istersen false dönebilirsin
-        }
-    }
-
-    private function compiler(string $in, string $out): void {
-        if (!file_exists($this->cache)) {
-            mkdir($this->cache, 0644);
-        }
-        if (is_writable($this->cache)) {
-            try {
-                $map = basename($out) . '.map';
-                $this->scssc->setSourceMap(constant('ScssPhp\ScssPhp\Compiler::' . $this->sourcemaps));
-                $this->scssc->setSourceMapOptions([
-                    'sourceMapWriteTo' => $this->css_dir . $map,
-                    'sourceMapURL' => $map,
-                    'sourceMapBasepath' => rtrim(ABSPATH, '/'),
-                    'sourceRoot' => home_url('/'),
-                ]);
-
-                $compilationResult = $this->scssc->compileString(file_get_contents($in), $in);
-                $css = $compilationResult->getCss();
-
-                file_put_contents($this->cache . basename($out), $css);
-            } catch (Exception $e) {
-                $errors = [
-                    'file' => basename($in),
-                    'message' => $e->getMessage(),
-                ];
-                $this->compile_errors[] = $errors;
-            }
-        } else {
-            $errors = [
-                'file' => $this->cache,
-                'message' => "File Permission Error, permission denied. Please make the cache directory writable."
+            $result = $this->scssc->compileString( $scss_string );
+            return $result->getCss();
+        } catch ( \Exception $e ) {
+            $this->compile_errors[] = [
+                'file'    => 'string_input',
+                'message' => $e->getMessage(),
             ];
-            $this->compile_errors[] = $errors;
+            return '';
         }
     }
+
+    // =========================================================================
+    // VARIABLES
+    // =========================================================================
+
+    public function set_variables( array $variables ): void {
+        // Boş ve array değerleri filtrele
+        $clean = [];
+        foreach ( $variables as $key => $value ) {
+            if ( is_array( $value ) || empty( $value ) || trim( (string) $value ) === '' ) {
+                continue;
+            }
+            $clean[ $key ] = $value;
+        }
+
+        if ( ! empty( $clean ) ) {
+            $this->scssc->addVariables(
+                array_map( 'ScssPhp\ScssPhp\ValueConverter::parseValue', $clean )
+            );
+        }
+    }
+
+    // =========================================================================
+    // NEEDS COMPILING — Manuel kontrol
+    // =========================================================================
 
     public function needs_compiling(): bool {
         $latest_scss = 0;
-        $latest_css = 0;
+        $latest_css  = 0;
 
-        foreach ($this->scss_dirs as $scss_dir) {
-            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($scss_dir), RecursiveDirectoryIterator::SKIP_DOTS) as $sfile) {
-                if (pathinfo($sfile->getFilename(), PATHINFO_EXTENSION) == 'scss') {
-                    $file_time = $sfile->getMTime();
-                    if ((int) $file_time > $latest_scss) {
-                        $latest_scss = $file_time;
-                    }
+        foreach ( $this->scss_dirs as $scss_dir ) {
+            if ( ! is_dir( $scss_dir ) ) continue;
+            $iter = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator( $scss_dir, \RecursiveDirectoryIterator::SKIP_DOTS )
+            );
+            foreach ( $iter as $file ) {
+                if ( $file->getExtension() === 'scss' ) {
+                    $latest_scss = max( $latest_scss, $file->getMTime() );
                 }
             }
         }
 
-        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->css_dir), RecursiveDirectoryIterator::SKIP_DOTS) as $cfile) {
-            if (pathinfo($cfile->getFilename(), PATHINFO_EXTENSION) == 'css') {
-                $file_time = $cfile->getMTime();
-                if ((int) $file_time > $latest_css) {
-                    $latest_css = $file_time;
+        if ( ! empty( $this->css_dir ) && is_dir( $this->css_dir ) ) {
+            $iter = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator( $this->css_dir, \RecursiveDirectoryIterator::SKIP_DOTS )
+            );
+            foreach ( $iter as $file ) {
+                if ( $file->getExtension() === 'css' ) {
+                    $latest_css = max( $latest_css, $file->getMTime() );
                 }
             }
         }
@@ -153,35 +184,130 @@ class SCSSCompiler {
         return $latest_scss > $latest_css;
     }
 
-    public function set_variables(array $variables) {
-        $this->scssc->addVariables(array_map('ScssPhp\ScssPhp\ValueConverter::parseValue', $variables));
+    // =========================================================================
+    // WP ENTEGRASYONU — Sadece açıkça çağrıldığında
+    // =========================================================================
+
+    /**
+     * WP filter'larından variable'ları alıp compile eder.
+     * Theme::scss_compile() tarafından çağrılır.
+     */
+    public function wp_scss_compile(): void {
+        $variables = apply_filters( 'wp_scss_variables', [] );
+
+        // Boş/array değerleri filtrele
+        $clean = [];
+        foreach ( $variables as $key => $value ) {
+            if ( is_array( $value ) || empty( $value ) || trim( (string) $value ) === '' ) {
+                continue;
+            }
+            $clean[ $key ] = $value;
+        }
+
+        $this->set_variables( $clean );
+        $this->compile();
     }
 
-    public function wp_scss_needs_compiling() {
-        global $wpscss_compiler;
-        $needs_compiling = apply_filters('wp_scss_needs_compiling', $wpscss_compiler->needs_compiling());
-        if ($needs_compiling) {
+    /**
+     * @deprecated Otomatik compile kaldırıldı. Doğrudan wp_scss_compile() kullanın.
+     */
+    public function wp_scss_needs_compiling(): void {
+        $needs = apply_filters( 'wp_scss_needs_compiling', $this->needs_compiling() );
+        if ( $needs ) {
             $this->wp_scss_compile();
         }
     }
 
-    public function wp_scss_compile() {
-        global $wpscss_compiler;
-        $variables = apply_filters('wp_scss_variables', []);
-        foreach ($variables as $variable_key => $variable_value) {
-            if(is_array($variable_value)){
-                unset($variables[$variable_key]);
-                continue;
-            }
-            if(empty($variable_value)){
-                unset($variables[$variable_key]);
-                continue;
-            }
-            if (strlen(trim($variable_value)) == 0) {
-                unset($variables[$variable_key]);
-            }
+    // =========================================================================
+    // PRIVATE
+    // =========================================================================
+
+    private function compile_file( string $in, string $out ): void {
+        if ( ! file_exists( $in ) ) {
+            $this->compile_errors[] = [
+                'file'    => basename( $in ),
+                'message' => 'Source file not found: ' . $in,
+            ];
+            return;
         }
-        $wpscss_compiler->set_variables($variables);
-        $wpscss_compiler->compile();
+
+        $this->ensure_dir( $this->cache_dir );
+
+        if ( ! is_writable( $this->cache_dir ) ) {
+            $this->compile_errors[] = [
+                'file'    => $this->cache_dir,
+                'message' => 'Cache directory not writable.',
+            ];
+            return;
+        }
+
+        try {
+            // Sourcemap ayarları
+            $sourcemap_const = $this->resolve_sourcemap_constant();
+            $this->scssc->setSourceMap( $sourcemap_const );
+
+            if ( $sourcemap_const !== Compiler::SOURCE_MAP_NONE ) {
+                $map = basename( $out ) . '.map';
+                $this->scssc->setSourceMapOptions( [
+                    'sourceMapWriteTo'  => $this->css_dir . $map,
+                    'sourceMapURL'      => $map,
+                    'sourceMapBasepath' => defined( 'ABSPATH' ) ? rtrim( ABSPATH, '/' ) : '',
+                    'sourceRoot'        => function_exists( 'home_url' ) ? home_url( '/' ) : '/',
+                ] );
+            }
+
+            $scss_content = file_get_contents( $in );
+            if ( $scss_content === false ) {
+                throw new \RuntimeException( 'Cannot read file: ' . $in );
+            }
+
+            $result = $this->scssc->compileString( $scss_content, $in );
+            file_put_contents( $this->cache_dir . basename( $out ), $result->getCss() );
+
+        } catch ( \Exception $e ) {
+            $this->compile_errors[] = [
+                'file'    => basename( $in ),
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function flush_cache_to_output(): void {
+        if ( ! is_dir( $this->css_dir ) ) {
+            $this->ensure_dir( $this->css_dir );
+        }
+
+        if ( ! is_writable( $this->css_dir ) ) {
+            $this->compile_errors[] = [
+                'file'    => 'CSS Directory',
+                'message' => 'CSS directory not writable: ' . $this->css_dir,
+            ];
+            return;
+        }
+
+        if ( ! is_dir( $this->cache_dir ) ) return;
+
+        foreach ( new \DirectoryIterator( $this->cache_dir ) as $file ) {
+            if ( $file->isDot() || $file->getExtension() !== 'css' ) continue;
+            $name = $file->getFilename();
+            file_put_contents( $this->css_dir . $name, file_get_contents( $this->cache_dir . $name ) );
+            @unlink( $this->cache_dir . $name );
+        }
+    }
+
+    private function resolve_sourcemap_constant(): int {
+        $map = [
+            'SOURCE_MAP_NONE'   => Compiler::SOURCE_MAP_NONE,
+            'SOURCE_MAP_INLINE' => Compiler::SOURCE_MAP_INLINE,
+            'SOURCE_MAP_FILE'   => Compiler::SOURCE_MAP_FILE,
+        ];
+
+        return $map[ $this->sourcemaps ] ?? Compiler::SOURCE_MAP_NONE;
+    }
+
+    private function ensure_dir( string $path ): void {
+        if ( ! is_dir( $path ) ) {
+            @mkdir( $path, 0755, true );
+        }
     }
 }

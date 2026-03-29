@@ -137,33 +137,35 @@ class custom_menu_items {
 		$instance->menus[ $menu_slug ] = $menu_slug;
 
 		if ($object_type == 'post' && $object = get_post( $object_ID ) ) {
+			$permalink = get_permalink($object);
 			$instance->menu_items[] = array(
 				'menu'        => $menu_slug,
 				'order'       => $order,
 				'parent'      => $parent,
 				'post_parent' => $object->post_parent,
-				'title'       => !empty($title)?$title:get_the_title($object),
-				'url'         => get_permalink($object).(isset($query)?$query:''),
+				'title'       => !empty($title) ? $title : get_the_title($object),
+				'url'         => $permalink . (!empty($query) ? $query : ''),
 				'ID'          => $ID,
 				'type'        => 'post_type',
 				'object'      => get_post_type($object),
-				'object_id'   => !empty($menu_item_object_id)?$menu_item_object_id:$object_ID,
+				'object_id'   => !empty($menu_item_object_id) ? $menu_item_object_id : $object_ID,
 				'classes'     => $classes,
-				'slug'        => $object->slug,
+				'slug'        => $object->post_name,
 			);
-		}else if ($object_type == 'term') {
-			global $wpdb;
-			$sql = "SELECT t.*, tt.taxonomy, tt.parent FROM {$wpdb->terms} as t LEFT JOIN {$wpdb->term_taxonomy} as tt on tt.term_id = t.term_id WHERE t.term_id = %d";
-			$object = $wpdb->get_row($wpdb->prepare($sql, $object_ID));
+		} else if ($object_type == 'term') {
+			$object = get_term( $object_ID );
 
-			if ( $object ) {
-				$instance->menu_items[] = $tmp = array(
+			if ( $object && !is_wp_error($object) ) {
+				$term_link = get_term_link( (int) $object->term_id, $object->taxonomy );
+				if ( is_wp_error($term_link) ) $term_link = '';
+
+				$instance->menu_items[] = array(
 					'menu'        => $menu_slug,
 					'order'       => $order,
 					'parent'      => $parent,
 					'post_parent' => $object->parent,
-					'title'       => !empty($title)?$title:$object->name,
-					'url'         => get_term_link((int)$object->term_id, $object->taxonomy).(isset($query)?$query:''),
+					'title'       => !empty($title) ? $title : $object->name,
+					'url'         => $term_link . (!empty($query) ? $query : ''),
 					'ID'          => $ID,
 					'type'        => 'taxonomy',
 					'object'      => $object->taxonomy,
@@ -218,7 +220,9 @@ class custom_menu_items {
 	 * @return int
 	 */
 	private function make_item_ID( $item ){
-		return 1000000 + $item['order'] + $item['parent'];
+		static $counter = 0;
+		$counter++;
+		return 1000000 + $counter;
 	}
 
 	/**
@@ -251,6 +255,7 @@ class custom_menu_items {
 		$item_obj->description      = '';
 		$item_obj->xfn              = '';
 		$item_obj->status           = '';
+		$item_obj->post_name        = !empty( $item['slug'] ) ? $item['slug'] : '';
 
 		$item_obj = new WP_Post($item_obj);
 		
@@ -269,7 +274,8 @@ class custom_menu_items {
 	private function fix_menu_orders( $items ){
 		$items = wp_list_sort( $items, 'menu_order' );
 
-		for( $i = 0; $i < count( $items ); $i++ ){
+		$count = count( $items );
+		for( $i = 0; $i < $count; $i++ ){
 			$items[ $i ]->menu_order = $i;
 		}
 

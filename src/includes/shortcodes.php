@@ -8,7 +8,6 @@ function get_option_shortcode( $atts ) {
 }
 add_shortcode( 'get_option', 'get_option_shortcode' );
 
-
 function get_page_url_shortcode( $atts ) {
     $a = shortcode_atts( array(
        'path' => ""
@@ -27,7 +26,7 @@ function translate_shortcode($atts, $content = null) {
         $atts,
         'translate'
     );
-    $translated_text = __n($atts['text'], $atts['plural'], $atts['count']);
+    $translated_text = _n($atts['text'], $atts['plural'], (int) $atts['count'], TEXT_DOMAIN);
     return $translated_text;
 }
 add_shortcode('translate', 'translate_shortcode');
@@ -35,11 +34,14 @@ add_shortcode('translate', 'translate_shortcode');
 add_action('wp_ajax_render_shortcode', 'render_shortcode_ajax');
 add_action('wp_ajax_nopriv_render_shortcode', 'render_shortcode_ajax');
 function render_shortcode_ajax() {
-    if (!empty($_POST['shortcode'])) {
-        $shortcode = wp_kses_post(stripslashes($_POST['shortcode'])); // Shortcode'u al ve escape karakterlerini kaldır
-        echo do_shortcode($shortcode); // Shortcode'u render et ve sonucu döndür
+    if ( ! check_ajax_referer( 'ajax', '_wpnonce', false ) ) {
+        wp_send_json_error( 'Invalid nonce.' );
     }
-    wp_die(); // AJAX isteği sona erdir
+    if (!empty($_POST['shortcode'])) {
+        $shortcode = wp_kses_post(stripslashes($_POST['shortcode']));
+        echo do_shortcode($shortcode);
+    }
+    wp_die();
 }
 
 add_action("init", function(){
@@ -392,7 +394,6 @@ add_action("init", function(){
     $shortcodes = customShortcodes::getInstance();
     $shortcodes->add($shortcodes_list);
 });
-
 
 if(!ENABLE_ECOMMERCE){
    function salt_login_form_shortcode() {

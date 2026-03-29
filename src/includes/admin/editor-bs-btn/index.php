@@ -1,194 +1,109 @@
 <?php
 
-// Callback function to insert 'styleselect' into the $buttons array
-function my_mce_buttons_2( $buttons ) {
-    array_unshift( $buttons, 'styleselect' );
+/**
+ * TinyMCE Editor — Bootstrap style select, font weights, line heights, margins.
+ */
+
+add_filter('mce_buttons_2', function($buttons) {
+    array_unshift($buttons, 'styleselect');
     return $buttons;
-}
-// Register our callback to the appropriate filter
-add_filter('mce_buttons_2', 'my_mce_buttons_2');
+});
 
-// Callback function to filter the MCE settings
-function my_mce_before_init_insert_formats( $init_array ) {
-   
-    $new_styles = []; 
+add_filter('tiny_mce_before_init', function($init_array) {
+    $new_styles = [];
 
-    // Buttons from costom colors
-    $buttons = array();
-    if(Data::has("mce_text_colors")){
-        foreach (Data::get("mce_text_colors") as $value) {
-            $slug = strtolower($value);
-            $buttons[] = array(  
-                'title' => 'btn-'.$slug,  
-                'selector' => 'a',  
-                'classes' => 'btn btn-'.$slug.' btn-extended'             
-            );
+    // ─── Button Styles ──────────────────────────────────────
+    $buttons = [];
+    if (Data::has('mce_text_colors')) {
+        foreach (Data::get('mce_text_colors') as $value) {
+            $slug      = strtolower($value);
+            $buttons[] = ['title' => 'btn-' . $slug, 'selector' => 'a', 'classes' => 'btn btn-' . $slug . ' btn-extended'];
         }
     }
-    $new_styles[] = [
-       "title" => "Button",
-       "items" => $buttons
+    $new_styles[] = ['title' => 'Button', 'items' => $buttons];
+
+    // ─── Base Styles ────────────────────────────────────────
+    $base_styles = [
+        ['title' => 'List Unstyled',   'selector' => 'ul, ol', 'classes' => 'list-unstyled ms-4'],
+        ['title' => 'Table Bordered',  'selector' => 'table',  'classes' => 'table-bordered'],
+        ['title' => 'Table Striped',   'selector' => 'table',  'classes' => 'table-striped'],
+        ['title' => 'Text - Slab',     'selector' => '*',      'classes' => 'slab-text-container'],
+        ['title' => 'Small',           'inline'   => 'small'],
     ];
+    $new_styles[] = ['title' => 'Styles', 'items' => $base_styles];
 
-
-    $style_formats = array(
-        array(  
-            'title' => 'List Unstyled 22',  
-            'selector' => 'ul, ol',  
-            'classes' => 'list-unstyled ms-4'             
-        ),
-        array(  
-            'title' => 'Table Bordered',  
-            'selector' => 'table',  
-            'classes' => 'table-bordered'             
-        ),
-        array(  
-            'title' => 'Table Striped',  
-            'selector' => 'table',  
-            'classes' => 'table-striped'             
-        ),
-        array(  
-            'title' => 'Text - Slab',  
-            'selector' => '*',  
-            'classes' => 'slab-text-container'             
-        ),
-        array(
-            'title' => 'Small',
-            'inline' => 'small'
-        ),
-    );
-    $new_styles[] = [
-       "title" => "Styles",
-       "items" => $style_formats
-    ];
-
-    $breakpoints = Data::get("breakpoints");
-    if($breakpoints){
-        $typography = [];
-        $theme_styles = acf_get_theme_styles();
-        if($theme_styles){
-            if(isset($theme_styles["typography"])){
-                $typography = $theme_styles["typography"];                  
-            }
+    // ─── Breakpoint Typography ──────────────────────────────
+    $breakpoints = Data::get('breakpoints');
+    if ($breakpoints) {
+        $typography    = [];
+        $theme_styles  = function_exists('acf_get_theme_styles') ? acf_get_theme_styles() : [];
+        if (isset($theme_styles['typography'])) {
+            $typography = $theme_styles['typography'];
         }
-        foreach($breakpoints as $key => $breakpoint){
-            $size = "";
-            if(isset($typography["title"][$key]) && !empty($typography["title"][$key]["value"])){
-               $size = " - ".$typography["title"][$key]["value"].$typography["title"][$key]["unit"];
-            }
-            $title_classes[] = array(  
-                'title' => 'Title - '.$key.$size,  
-                'selector' => 'h1,h2,h3,h4,h5,h6',  
-                'classes' => 'title-'.$key             
-            );
-            $size = "";
-            if(isset($typography["text"][$key]) && !empty($typography["text"][$key]["value"])){
-               $size = " - ".$typography["text"][$key]["value"].$typography["text"][$key]["unit"];
-            }
-            $text_classes[] = array(  
-                'title' => 'Text - '.$key.$size,
-                'selector' => 'p',  
-                'classes' => 'text-'.$key             
-            );
+
+        $title_classes = [];
+        $text_classes  = [];
+
+        foreach ($breakpoints as $key => $bp) {
+            $title_size = (isset($typography['title'][$key]['value']) && $typography['title'][$key]['value'] !== '')
+                ? ' - ' . $typography['title'][$key]['value'] . $typography['title'][$key]['unit'] : '';
+            $title_classes[] = ['title' => 'Title - ' . $key . $title_size, 'selector' => 'h1,h2,h3,h4,h5,h6', 'classes' => 'title-' . $key];
+
+            $text_size = (isset($typography['text'][$key]['value']) && $typography['text'][$key]['value'] !== '')
+                ? ' - ' . $typography['text'][$key]['value'] . $typography['text'][$key]['unit'] : '';
+            $text_classes[] = ['title' => 'Text - ' . $key . $text_size, 'selector' => 'p', 'classes' => 'text-' . $key];
         }
-        $new_styles[] = [
-           "title" => "Title",
-           "items" => $title_classes
-        ];
-        $new_styles[] = [
-           "title" => "Text",
-           "items" => $text_classes
-        ];
-        //$style_formats = array_merge($title_classes, $style_formats);
-        //$style_formats = array_merge($text_classes, $style_formats);
+
+        $new_styles[] = ['title' => 'Title', 'items' => $title_classes];
+        $new_styles[] = ['title' => 'Text',  'items' => $text_classes];
     }
-    
-    $font_weights = [];
-    foreach(["normal", 100, 200, 300, 400, 500, 600, 700, 800, 900] as $fw){
-        $font_weights[] = array(  
-            'title' => 'Font Weight - '.$fw,  
-            'selector' => '*',  
-            'classes' => 'fw-'.$fw             
-        );
+
+    // ─── Font Weight ────────────────────────────────────────
+    $fw_items = [];
+    foreach (['normal', 100, 200, 300, 400, 500, 600, 700, 800, 900] as $fw) {
+        $fw_items[] = ['title' => 'Font Weight - ' . $fw, 'selector' => '*', 'classes' => 'fw-' . $fw];
     }
-    $new_styles[] = [
-        "title" => "Font Weight",
-        "items" => $font_weights
-    ];
-    //$style_formats = array_merge($font_weights, $style_formats);
+    $new_styles[] = ['title' => 'Font Weight', 'items' => $fw_items];
 
-    $line_heights = [];
-    foreach(["1", "base", "sm", "md", "lg"] as $lh){
-        $line_heights[] = array(  
-            'title' => 'Line Height - '.$lh,  
-            'selector' => '*',  
-            'classes' => 'lh-'.$lh             
-        );
+    // ─── Line Height ────────────────────────────────────────
+    $lh_items = [];
+    foreach (['1', 'base', 'sm', 'md', 'lg'] as $lh) {
+        $lh_items[] = ['title' => 'Line Height - ' . $lh, 'selector' => '*', 'classes' => 'lh-' . $lh];
     }
-    $new_styles[] = [
-        "title" => "Line Height",
-        "items" => $line_heights
-    ];
-    //$style_formats = array_merge($line_heights, $style_formats);
+    $new_styles[] = ['title' => 'Line Height', 'items' => $lh_items];
 
-
-    $margins = [];
-    foreach(["mt-5", "mt-4", "mt-3", "mt-2", "mt-1", "m-0", "mb-5", "mb-4", "mb-3", "mb-2", "mb-1"] as $margin){
-        $margins[] = array(  
-            'title' => 'Margin - '.$margin,  
-            'selector' => 'h1,h2,h3,h4,h5,h6,p',  
-            'classes' => $margin            
-        );
+    // ─── Margin ─────────────────────────────────────────────
+    $margin_items = [];
+    foreach (['mt-5', 'mt-4', 'mt-3', 'mt-2', 'mt-1', 'm-0', 'mb-5', 'mb-4', 'mb-3', 'mb-2', 'mb-1'] as $m) {
+        $margin_items[] = ['title' => 'Margin - ' . $m, 'selector' => 'h1,h2,h3,h4,h5,h6,p', 'classes' => $m];
     }
-    $new_styles[] = [
-        "title" => "Margin",
-        "items" => $margins
-    ];
-    
-    $mce_styles = Data::get("mce_styles");
-    if(isset($mce_styles) && is_array($mce_styles)){
-        $style_formats = array_merge($mce_styles, $style_formats);
-        $new_styles[] = [
-            "title" => "Extras",
-            "items" => $mce_styles
-        ];
-    }  
-    // Insert the array, JSON ENCODED, into 'style_formats'
-    //$init_array['style_formats'] = json_encode( $style_formats );  
+    $new_styles[] = ['title' => 'Margin', 'items' => $margin_items];
 
+    // ─── Extra MCE Styles ───────────────────────────────────
+    $mce_styles = Data::get('mce_styles');
+    if (is_array($mce_styles) && !empty($mce_styles)) {
+        $new_styles[] = ['title' => 'Extras', 'items' => $mce_styles];
+    }
 
-    //colors
-    $mce_text_colors = Data::get("mce_text_colors");
-    if(isset($mce_text_colors)){
-        $mce_colors = '';
-        foreach ($mce_text_colors as $key => $value) {
-            $mce_colors .= '"' . str_replace("#", "", $key) . '", "' . $value . '", ';
+    // ─── Text Colors ────────────────────────────────────────
+    $mce_text_colors = Data::get('mce_text_colors');
+    if ($mce_text_colors) {
+        $pairs = [];
+        foreach ($mce_text_colors as $hex => $name) {
+            $pairs[] = '"' . str_replace('#', '', $hex) . '"';
+            $pairs[] = '"' . $name . '"';
         }
-        $mce_colors = rtrim($mce_colors, ', ');
-        $init_array['textcolor_map'] = '[' . $mce_colors . ']';
+        $init_array['textcolor_map']  = '[' . implode(', ', $pairs) . ']';
         $init_array['textcolor_rows'] = 1;
     }
 
-    // Yeni stilleri JSON formatına çevir
-    $new_styles_json = json_encode($new_styles);
-
-    // Mevcut style_formats'ı korumak için style_formats_merge ayarını aktif et
     $init_array['style_formats_merge'] = true;
+    $init_array['style_formats']       = json_encode($new_styles);
 
-    // Yeni stilleri init_array'ye ekle
-    $init_array['style_formats'] = $new_styles_json;
+    return $init_array;
+});
 
-    return $init_array;  
-
-} 
-// Attach callback to 'tiny_mce_before_init' 
-add_filter( 'tiny_mce_before_init', 'my_mce_before_init_insert_formats' );
-
-
-
-// add letter spacing button
-function custom_tinymce_buttons($buttons) {
-    array_push($buttons, 'letter_spacing_button');
+add_filter('mce_buttons', function($buttons) {
+    $buttons[] = 'letter_spacing_button';
     return $buttons;
-}
-add_filter('mce_buttons', 'custom_tinymce_buttons');
+});

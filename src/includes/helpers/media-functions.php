@@ -26,31 +26,6 @@ function file_get_contents_curl($url) {
     return false;
 }
 
-/*
-function get_embed_video_data($url){
-    $dimensions = array(
-       "width"  => "100%",
-       "height" => "100%"
-    );
-    $video = parse_video_uri( $url );
-    if ( $video['type'] == 'youtube' ){
-        $api_url = 'https://noembed.com/embed?url=' . urlencode($url);  
-    }
-    if ($video['type'] == 'vimeo'){
-        $api_url = 'https://vimeo.com/api/oembed.json?url=' . urlencode($url);  
-    }
-    $response = json_decode(file_get_contents($api_url));
-    if( is_wp_error( $response ) ) {
-        return $dimensions;
-    } else {
-        $response = json_decode(json_encode($response), true);
-        return array(
-            "width"  => $response["width"],
-            "height" => $response["height"]
-        );
-    }
-}
-*/
 function set_embed_lazy($code){
     if(empty($code)){
         return $code;
@@ -62,28 +37,25 @@ function set_embed_lazy($code){
 
 
 
-function upload_image($url="", $post_id=0, $featured=false) {
-    $attachmentId = "";
-    if($url != "") {
+function upload_image($url = "", $post_id = 0, $featured = false) {
+    $attachmentId = 0;
+    if (empty($url)) return $attachmentId;
 
-        $file = array();
-        $file['name'] = $url;
-        $file['tmp_name'] = download_url($url);
-   
-        if (is_wp_error($file['tmp_name'])) {
+    $file = [];
+    $file['name'] = $url;
+    $file['tmp_name'] = download_url($url);
+
+    if (is_wp_error($file['tmp_name'])) {
+        @unlink($file['tmp_name']);
+    } else {
+        $attachmentId = media_handle_sideload($file, $post_id);
+        if ( is_wp_error($attachmentId) ) {
             @unlink($file['tmp_name']);
-            var_dump( $file['tmp_name']->get_error_messages( ) );
-        } else {
-            $attachmentId = media_handle_sideload($file, $post_id);
-            if ( is_wp_error($attachmentId) ) {
-                @unlink($file['tmp_name']);
-                var_dump( $attachmentId->get_error_messages( ) );
-            } else {                
-                $image = wp_get_attachment_url( $attachmentId );
-            }
-            if($featured){
-               set_post_thumbnail( $post_id, $attachmentId );
-            }
+        } else {                
+            $image = wp_get_attachment_url( $attachmentId );
+        }
+        if($featured){
+           set_post_thumbnail( $post_id, $attachmentId );
         }
     }
     return $attachmentId;
@@ -93,7 +65,10 @@ function featured_image_from_url($image_url = "", $post_id = 0, $featured = fals
               return;
           }
           $upload_dir = wp_upload_dir(); // Set upload folder
-          $image_data = file_get_contents($image_url); // Get image data
+          $image_data = file_get_contents_curl($image_url); // Get image data (güvenli curl ile)
+          if (empty($image_data)) {
+              return 0;
+          }
 
           //$filename   = basename($image_url); // Create image file name
           
@@ -176,6 +151,7 @@ function insert_attachment($file_handler, $post_id, $setthumb=false) {
 
 function _get_all_image_sizes() {
     global $_wp_additional_image_sizes;
+    $image_sizes = [];
     $default_image_sizes = get_intermediate_image_sizes();
     foreach ( $default_image_sizes as $size ) {
         $image_sizes[ $size ][ 'width' ] = intval( get_option( "{$size}_size_w" ) );
@@ -264,7 +240,7 @@ function inline_svg($url = "", $args = []){
 
         // 5. ADIM: Class ve Attribute Yönetimi
         if(isset($args["class"])){
-            $svg = str_replace("<svg ", "<svg class='".$args["class"]."' ", $svg);
+            $svg = str_replace("<svg ", "<svg class='".esc_attr($args["class"])."' ", $svg);
         }
 
         // Width / Height ayarları
@@ -440,12 +416,20 @@ function upload_file($file, $post_id) {
 
 // Resize uploaded book cover size to 780x1200px
 function wp_handle_upload_resize($image_data){
-      $post_types = array_keys(Data::get("upload_resize"));
-      $post_type = get_post_type($_REQUEST['post_id']); // post_id parametresini kullanarak gönderi türünü al
-      if (!in_array($post_type, $post_types)) {
-        return $image_data; // Dosya nesnesini geri döndür
+      $upload_resize = Data::get("upload_resize");
+      if (empty($upload_resize) || !is_array($upload_resize)) {
+          return $image_data;
       }
-      $post_type_data = Data::get("upload_resize.{$post_type}", []);
+      $post_types = array_keys($upload_resize);
+      $post_id = isset($_REQUEST['post_id']) ? absint($_REQUEST['post_id']) : 0;
+      if (!$post_id) {
+          return $image_data;
+      }
+      $post_type = get_post_type($post_id);
+      if (!in_array($post_type, $post_types)) {
+        return $image_data;
+      }
+      $post_type_data = $upload_resize[$post_type] ?? [];
 
       $resizing_enabled = true;
       $force_jpeg_recompression = true;
@@ -517,7 +501,8 @@ function wp_handle_upload_convert_image( $params, $compression_level ){
   $image = $params['file'];
 
   $contents = file_get_contents( $image );
-  if ( ord ( file_get_contents( $image, false, null, 25, 1 ) ) & 4 ) $transparent = 1;
+  // Byte 25'teki flag'i kontrol et (transparency indicator)
+  if ( isset($contents[25]) && (ord($contents[25]) & 4) ) $transparent = 1;
   if ( stripos( $contents, 'PLTE' ) !== false && stripos( $contents, 'tRNS' ) !== false ) $transparent = 1;
 
   $transparent_pixel = $img = $bg = false;
@@ -638,26 +623,6 @@ function get_image_set($args=array()){
     //$image = new SaltHareket\Image($args);
     //return $image->init();
     return SaltHareket\Image::render($args);
-    /*
-    $defaults = array(
-        'src' => '',
-        'id' => null,
-        'class' => '',
-        'lazy' => true,
-        'lazy_native' => false,
-        'width' => null,
-        'height' => null,
-        'alt' => '',
-        'post' => null,
-        'type' => "img", // img, picture
-        'resize' => false,
-        'lcp' => false,
-        'placeholder' => false,
-        'placeholder_class' => '',
-        'preview' => false,
-        'attrs' => []
-    );
-    */
 }
 function get_video($video_args=array()){
 
@@ -691,30 +656,8 @@ function get_video($video_args=array()){
       {{vtt}}
     </video>';
 
-    /*<div class="swiper-bg bg-cover swiper-video-url position-absolute-fill loading-hide loading-light" 
-    data-video-url="{{data.embed_url}}" 
-    data-video-code="{{data.id}}" 
-    data-video-type="{{data.type}}" 
-    data-video-autoplay="{{slide.video.video_settings.autoplay|boolstr}}" 
-    data-video-rel="0" 
-    data-video-responsive="false" 
-    data-video-loop="{{slide.video.video_settings.loop|boolstr}}" 
-    data-video-control="{{slide.video.video_settings.controls|boolstr}}" 
-    data-video-muted="{{slide.video.video_settings.muted|boolstr}}" 
-    data-video-bg="{{slide.video.video_settings.videoBg|boolstr}}"></div>*/
-
-    /*
-    data-video-file="{{slide.video.video_file}}" 
-    data-video-poster="{{slide.video.video_settings.video_image.src}}" 
-    data-video-bg="{{slide.video.video_settings.videoBg|boolstr}}" 
-    data-video-controls="{{slide.video.video_settings.controls|boolstr}}" 
-    data-video-react="{{slide.video.video_settings.videoReact|boolstr}}" 
-    data-video-muted="{{slide.video.video_settings.muted|boolstr}}" 
-    data-video-loop="{{slide.video.video_settings.loop|boolstr}}"  
-    data-video-autoplay="{{slide.video.video_settings.autoplay|boolstr}}
-    */
-
-    $code = ${$type};
+    $templates = compact('embed', 'audio', 'file', 'file_responsive');
+    $code = $templates[$type] ?? $file;
     if($type != "audio" && $type != "embed" && isset($args["video_file"]) && is_array($args["video_file"])){
         $code = $file_responsive;
     }
@@ -722,7 +665,7 @@ function get_video($video_args=array()){
     $settings = isset($args["video_settings"])?$args["video_settings"]:[];
     if($lazy){
         //$code = str_replace("{{lazy}}", "loading='lazy'", $code);
-        $code = str_replace("{{preload}}", "none'", $code);
+        $code = str_replace("{{preload}}", "none", $code);
         if($type == "embed"){
             $class .= " lazy-container "; 
         }else{
@@ -745,37 +688,6 @@ function get_video($video_args=array()){
             }
         break;
 
-        /*case "embed" :
-            if(!isset($args["video_url"]) || (isset($args["video_url"]) && empty($args["video_url"]))){
-                return;
-            }
-            $embed = new OembedVideo($args["video_url"], "1600x900");
-            $data = $embed->get($settings);
-            $poster = isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])?$settings["video_image"]:$data["src"];
-            if($lazy){
-                $code = str_replace('{{class_lazy}}', 'lazy', $code);
-                $code = str_replace('src="{{src}}"', 'data-src="{{src}}"', $code);
-                if(image_is_lcp($poster)){
-                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init" style="background-image: url(&quot;'.$poster.'&quot;);"></div>', $code);
-                    add_action('wp_head', function() use ($poster) {
-                        Salthareket\Image::add_preload_image($poster);
-                    });
-                }else{
-                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init lazy" data-bg="'.$poster.'"></div>', $code);
-                }
-            }else{
-                $code = str_replace('{{class_lazy}}', '', $code);
-                $code = str_replace("{{poster_lazy}}", "", $code);
-            }
-            $code = str_replace("{{src}}", $data["embed_url"], $code);
-            if(isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])){
-                $code = str_replace("{{poster}}", "data-poster=".$poster, $code);
-            }else{
-                $code = str_replace("{{poster}}", "", $code);
-            }
-            $title = empty($title)?$data["title"]:$title;
-            $code = str_replace("{{title}}", $title ?? '', $code);
-        break;*/
         case "embed" :
             if(!isset($args["video_url"]) || empty($args["video_url"])){
                 return;
@@ -1004,64 +916,6 @@ function getAspectRatio(int $width, int $height){
     $divisor = $greatestCommonDivisor($width, $height);
     return $width / $divisor . '/' . $height / $divisor;
 }
-
-/*function get_google_optimized_avif_quality() {
-    $base_quality = 50; // Varsayılan kalite
-    $min_quality = 10;  // En düşük kalite
-    $max_resolution_threshold = 1920 * 1080; // Full HD'den büyük görseller sıkıştırılmalı
-    $filesize_threshold = 300000; // 300 KB üstünde kaliteyi düşür
-
-    // Son yüklenen dosyayı al
-    global $wpdb;
-    $attachment = $wpdb->get_row("SELECT ID, guid FROM {$wpdb->posts} WHERE post_type = 'attachment' ORDER BY post_date DESC LIMIT 1");
-
-    if (!$attachment) {
-        return $base_quality;
-    }
-
-    $file_path = get_attached_file($attachment->ID);
-    if (!file_exists($file_path)) {
-        return $base_quality;
-    }
-
-    $filesize = filesize($file_path);
-    $image_info = getimagesize($file_path);
-
-    if (!$image_info) {
-        return $base_quality;
-    }
-
-    // Görselin genişlik ve yüksekliğini al
-    $width = $image_info[0];
-    $height = $image_info[1];
-
-    // Görselin piksel yoğunluğunu hesapla
-    $resolution = $width * $height;
-
-    // Ortalama renk çeşitliliğini belirlemek için basit bir hesap (renk derinliği)
-    $bits_per_pixel = isset($image_info['bits']) ? $image_info['bits'] : 8;
-    $color_variation = ($bits_per_pixel / 8) * 100; // Renk çeşitliliğine göre değer üret
-
-    // Eğer çözünürlük 1920x1080'den büyükse kaliteyi düşür
-    if ($resolution > $max_resolution_threshold) {
-        $resolution_factor = ($resolution / $max_resolution_threshold) * 15; // Büyük çözünürlüklerde kaliteyi sert düşür
-        $base_quality -= $resolution_factor;
-    }
-
-    // Dosya boyutu çok büyükse kaliteyi daha da düşür
-    if ($filesize > $filesize_threshold) {
-        $size_factor = ($filesize / $filesize_threshold) * 10; // Büyük dosyalarda ekstra sıkıştırma
-        $base_quality -= $size_factor;
-    }
-
-    // Eğer görselin renk çeşitliliği düşükse (tek renk, az detay), kaliteyi iyice azalt
-    if ($color_variation < 80) { 
-        $base_quality -= 15; // Az detaylı resimler için ekstra sıkıştırma
-    }
-
-    // Kaliteyi min ve max değerler arasında sınırla
-    return max($min_quality, min(80, $base_quality));
-}*/
 
 function get_google_optimized_avif_quality($input = null) {
     $base_quality = 50;

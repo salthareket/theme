@@ -217,9 +217,9 @@ function init_functions($plugins_req = []){
 		if($plugins_req){
 			if ($plugins_req && typeof $plugins_req === 'object') {
 			    Object.entries($plugins_req).forEach(([name, plugin]) => {
-			        // Fonksiyonun tanımlı olup olmadığını da kontrol edelim ki patlamasın
+			        // name = plugin key (leaflet), plugin = init func adı (init_leaflet)
 			        if (typeof function_secure === 'function') {
-			            function_secure(plugin, name);
+			            function_secure(name, plugin); // düzeltildi: önce key, sonra func adı
 			        }
 			    });
 			}

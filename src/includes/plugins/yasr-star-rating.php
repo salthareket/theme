@@ -1,119 +1,125 @@
 <?php
 
-function get_star_vote($post_id = 0, $user_id = 0) {
-    global $wpdb;
-    
-    // Tablo ismini dinamik yapıyoruz
-    $table_name = $wpdb->prefix . "yasr_log";
+/**
+ * YASR (Yet Another Stars Rating) plugin entegrasyonu.
+ *
+ * Rating fonksiyonları Reviews class'ına delegate edildi.
+ * Bu dosya sadece YASR plugin hook'larını ve admin UI gizleme işlemlerini içerir.
+ *
+ * @package SaltHareket
+ */
 
-    // Sorguyu güvenli hale getiriyoruz
-    if ($user_id) {
-        $query = $wpdb->prepare(
-            "SELECT vote FROM {$table_name} WHERE post_id = %d AND user_id = %d ORDER BY id ASC LIMIT 1",
-            $post_id,
-            $user_id
-        );
-    } else {
-        $query = $wpdb->prepare(
-            "SELECT vote FROM {$table_name} WHERE post_id = %d ORDER BY id ASC LIMIT 1",
-            $post_id
-        );
+// =========================================================================
+// RATING FONKSİYONLARI — Reviews class'ına delegate
+// =========================================================================
+
+/**
+ * Post bazlı tekil kullanıcı oyu (yasr_log tablosundan).
+ * YASR plugin'in kendi tablosunu kullanır — Reviews class'ından bağımsız.
+ *
+ * @deprecated Yeni kodda Reviews::rating($post_id, 'post') kullanın.
+ */
+function get_star_vote( int $post_id = 0, int $user_id = 0 ): ?string {
+    global $wpdb;
+    $table = $wpdb->prefix . 'yasr_log';
+
+    if ( $user_id ) {
+        return $wpdb->get_var( $wpdb->prepare(
+            "SELECT vote FROM {$table} WHERE post_id = %d AND user_id = %d ORDER BY id ASC LIMIT 1",
+            $post_id, $user_id
+        ) );
     }
 
-    return $wpdb->get_var($query);
-}
-
-function get_star_votes($post_id) {
-    global $wpdb;
-    
-    $table_name = $wpdb->prefix . "yasr_log";
-
-    // post_id'yi %d (integer) olarak süzgeçten geçiriyoruz
-    $query = $wpdb->prepare(
-        "SELECT COUNT(*) as total, CAST(AVG(vote) AS DECIMAL(10,1)) as point 
-         FROM {$table_name} 
-         WHERE post_id = %d",
+    return $wpdb->get_var( $wpdb->prepare(
+        "SELECT vote FROM {$table} WHERE post_id = %d ORDER BY id ASC LIMIT 1",
         $post_id
-    );
-
-    return $wpdb->get_results($query, OBJECT);
+    ) );
 }
 
-function get_star_votes_profile($user_id=0, $approved=1){
-	global $wpdb;
-	$query= "SELECT 
-                    count(*) as total, CAST(AVG(wpcm2.meta_value) AS DECIMAL(10,1)) as point
-                FROM
-                    ".$wpdb->prefix."comments AS wpc
-                INNER JOIN ".$wpdb->prefix."commentmeta AS wpcm
-                    ON
-                        wpcm.comment_id = wpc.comment_id AND wpc.comment_type = 'review' and wpcm.meta_key = 'comment_profile' AND wpcm.meta_value = $user_id
-                INNER JOIN ".$wpdb->prefix."commentmeta AS wpcm2
-                    ON
-                        wpcm2.comment_id = wpc.comment_id AND wpcm2.meta_key = 'rating'
-                WHERE 
-                    wpc.comment_approved = $approved";
-    return $wpdb->get_row($query);
+/**
+ * Post bazlı toplam oy ve ortalama (yasr_log tablosundan).
+ *
+ * @deprecated Yeni kodda Reviews::rating($post_id, 'post') kullanın.
+ */
+function get_star_votes( int $post_id ): array {
+    global $wpdb;
+    $table = $wpdb->prefix . 'yasr_log';
+
+    return $wpdb->get_results( $wpdb->prepare(
+        "SELECT COUNT(*) as total, CAST(AVG(vote) AS DECIMAL(10,1)) as point
+         FROM {$table} WHERE post_id = %d",
+        $post_id
+    ), OBJECT );
+}
+
+/**
+ * Kullanıcı profil bazlı rating (wp_comments + comment_meta).
+ *
+ * @deprecated Reviews::rating($user_id, 'user') kullanın.
+ */
+function get_star_votes_profile( int $user_id = 0, int $approved = 1 ): ?object {
+    if ( class_exists( 'Reviews' ) ) {
+        $data = Reviews::rating( $user_id, 'user' );
+        return (object) [ 'total' => $data['total'], 'point' => $data['average'] ];
+    }
+
+    // Fallback — Reviews class yoksa eski SQL
+    global $wpdb;
+    return $wpdb->get_row( $wpdb->prepare(
+        "SELECT COUNT(*) as total, CAST(AVG(rm.meta_value) AS DECIMAL(10,1)) as point
+         FROM {$wpdb->comments} c
+         INNER JOIN {$wpdb->commentmeta} pm ON pm.comment_id = c.comment_ID
+             AND pm.meta_key = 'comment_profile' AND pm.meta_value = %d
+         INNER JOIN {$wpdb->commentmeta} rm ON rm.comment_id = c.comment_ID
+             AND rm.meta_key = 'rating'
+         WHERE c.comment_type = 'review' AND c.comment_approved = %d",
+        $user_id, $approved
+    ) );
 }
 
 
-//add this to yasr/lib/yasr-functions.php 449
-//$filtered_schema_type = apply_filters( 'yasr_filter_schema_type', $review_choosen );
-add_filter( 'yasr_filter_schema_type','yasr_schema_type');
-function yasr_schema_type($type){
-	global $post;
-	if($post->post_type=="product"){
-       $type="Product";
-	}
+// =========================================================================
+// YASR PLUGIN HOOK'LARI
+// =========================================================================
+
+add_filter( 'yasr_filter_schema_type', 'yasr_schema_type' );
+function yasr_schema_type( $type ) {
+    global $post;
+    if ( isset( $post->post_type ) && $post->post_type === 'product' ) {
+        $type = 'Product';
+    }
     return $type;
 }
 
-add_filter( 'yasr_filter_schema_jsonld','yasr_schema');
-function yasr_schema($type){
+add_filter( 'yasr_filter_schema_jsonld', 'yasr_schema' );
+function yasr_schema( $type ) {
     return $type;
 }
 
-function yasr_wpml_save($post_id, $rating) {
-}
-//do_action('yasr_action_on_visitor_vote', 'yasr_wpml_save', $post_id, $rating);
 
+// =========================================================================
+// ADMIN — YASR menü ve metabox gizleme
+// =========================================================================
 
-if(is_admin()){
-        function plt_hide_yet_another_stars_rating_menus() {
-            //Hide "Yet Another Stars Rating".
-            remove_menu_page('yasr_settings_page');
-            //Hide "Yet Another Stars Rating → Settings".
-            remove_submenu_page('yasr_settings_page', 'yasr_settings_page');
-            //Hide "Yet Another Stars Rating → Stats".
-            remove_submenu_page('yasr_settings_page', 'yasr_stats_page');
-            //Hide "Yet Another Stars Rating → Contact Us".
-            remove_submenu_page('yasr_settings_page', '#');
-            //Hide "Yet Another Stars Rating → Upgrade".
-            remove_submenu_page('yasr_settings_page', 'yasr_settings_page-pricing');
-        }
-        add_action('admin_menu', 'plt_hide_yet_another_stars_rating_menus', 1000000000);
+if ( is_admin() ) {
 
-        function plt_hide_yet_another_stars_rating_metaboxes() {
-            $screen = get_current_screen();
-            if ( !$screen ) {
-                return;
-            }
-            //Hide the "YASR" meta box.
-            remove_meta_box('yasr_metabox_overall_rating', $screen->id, 'side');
-            //Hide the "Yet Another Stars Rating" meta box.
-            remove_meta_box('yasr_metabox_below_editor_metabox', $screen->id, 'normal');
-        }
-        add_action('add_meta_boxes', 'plt_hide_yet_another_stars_rating_metaboxes', 20);
+    add_action( 'admin_menu', static function () {
+        remove_menu_page( 'yasr_settings_page' );
+        remove_submenu_page( 'yasr_settings_page', 'yasr_settings_page' );
+        remove_submenu_page( 'yasr_settings_page', 'yasr_stats_page' );
+        remove_submenu_page( 'yasr_settings_page', '#' );
+        remove_submenu_page( 'yasr_settings_page', 'yasr_settings_page-pricing' );
+    }, 1000000000 );
 
-        function plt_hide_yet_another_stars_rating_dashboard_widgets() {
-            $screen = get_current_screen();
-            if ( !$screen ) {
-                return;
-            }
-            //Remove the "Recent Ratings" widget.
-            remove_meta_box('yasr_widget_log_dashboard', 'dashboard', 'normal');
-            //Remove the "Your Ratings" widget.
-            remove_meta_box('yasr_users_dashboard_widget', 'dashboard', 'normal');
-        }
-        add_action('wp_dashboard_setup', 'plt_hide_yet_another_stars_rating_dashboard_widgets', 20);
+    add_action( 'add_meta_boxes', static function () {
+        $screen = get_current_screen();
+        if ( ! $screen ) return;
+        remove_meta_box( 'yasr_metabox_overall_rating', $screen->id, 'side' );
+        remove_meta_box( 'yasr_metabox_below_editor_metabox', $screen->id, 'normal' );
+    }, 20 );
+
+    add_action( 'wp_dashboard_setup', static function () {
+        remove_meta_box( 'yasr_widget_log_dashboard', 'dashboard', 'normal' );
+        remove_meta_box( 'yasr_users_dashboard_widget', 'dashboard', 'normal' );
+    }, 20 );
 }

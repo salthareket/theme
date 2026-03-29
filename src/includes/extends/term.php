@@ -8,25 +8,6 @@ class Term extends Timber\Term{
     public function thumbnail(){
         return Timber::get_image(get_term_meta($this->term_id, '_thumbnail_id', true));
     }
-    /*public function get_thumbnail($args=array()){
-        $media = $this->meta("media");
-        if($media->media_type == "image"){
-            if($media->use_responsive_image){
-                $args["src"] = $media->image_responsive;
-                $image = new SaltHareket\Image($args);
-                return $image->init();
-            }else{
-                $args["src"] = $this->thumbnail();
-                $image = new SaltHareket\Image($args);
-                return $image->init();
-            }
-        }else{
-            $args["src"] = $this->thumbnail();
-            $image = new SaltHareket\Image($args);
-            return $image->init();
-        }
-    }*/
-
     public function get_thumbnail(array $args = []){
         $media = $this->meta('media');
         $src   = '';
@@ -155,59 +136,56 @@ class Term extends Timber\Term{
     }
 
 
-    public function get_field_lang($field="", $lang=""){
-        if(empty($field)){
-            return;
+    public function get_field_lang($field = '', $lang = '') {
+        if (empty($field)) return null;
+        if (empty($lang)) $lang = Data::get('language');
+
+        $value = get_term_meta($this->ID, $field, true);
+        if (ENABLE_MULTILANGUAGE === 'qtranslate-xt' && function_exists('qtranxf_use')) {
+            return qtranxf_use($lang, $value, false, true);
         }
-        if(empty($lang)){
-            $lang = Data::get("language");
-        }
-        $value = get_term_meta( $this->ID, $field, true);
-        if(ENABLE_MULTILANGUAGE == "qtranslate"){
-            return qtranxf_use($lang, $value, false, true );
-        }
+        return $value;
     }
-    public function lang($lang=""){
-        if(ENABLE_MULTILANGUAGE == "qtranslate"){
-            return $this->i18n_config["name"]["ts"][$lang];
-            //return qtrans_translate($this->name, $lang);
+
+    public function lang($lang = '') {
+        if (ENABLE_MULTILANGUAGE === 'qtranslate-xt' && isset($this->i18n_config['name']['ts'][$lang])) {
+            return $this->i18n_config['name']['ts'][$lang];
         }
+        return $this->name;
     }
-    public function content(){
+
+    public function content() {
         $desc = $this->description;
-        if(ENABLE_MULTILANGUAGE){
+        if (ENABLE_MULTILANGUAGE === 'qtranslate-xt') {
             global $q_config;
-            if(empty($desc) && !$q_config["hide_untranslated"] && $q_config["show_alternative_content"]){
-                $default_language = $q_config["default_language"];
-                $desc = nl2br($this->i18n_config["description"]["ts"][$default_language]);
+            if (empty($desc) && isset($q_config) && !$q_config['hide_untranslated'] && $q_config['show_alternative_content']) {
+                $desc = nl2br($this->i18n_config['description']['ts'][$q_config['default_language']] ?? '');
             }
         }
         return $desc;
     }
     public function get_country_post_count(){
-        $count = true;
-        if(ENABLE_REGIONAL_PRODUCTS){
-            $my_posts = get_posts(array(
-              'post_type' => 'urun', //post type
-              'numberposts' => -1,
-              'tax_query' => array(
-                array(
-                  'taxonomy' => 'urun-kategorisi', //taxonomy name
-                  'field' => 'id', //field to get
-                  'terms' => $this->ID, //term id
-                  'include_children' => true,
-                ),
-                array(
+        if (!defined('ENABLE_REGIONAL_POSTS') || !ENABLE_REGIONAL_POSTS) return true;
+
+        $my_posts = get_posts([
+            'post_type'   => 'urun',
+            'numberposts' => -1,
+            'tax_query'   => [
+                [
+                    'taxonomy'         => 'urun-kategorisi',
+                    'field'            => 'id',
+                    'terms'            => $this->ID,
+                    'include_children' => true,
+                ],
+                [
                     'taxonomy' => 'region',
-                    'field' => 'term_id',
-                    'terms' => Data::get("site_config.user_region"),
-                    'operator' => 'IN'
-                )
-              )
-            ));
-            $count = count($my_posts);            
-        }
-        return $count;
+                    'field'    => 'term_id',
+                    'terms'    => Data::get('site_config.user_region'),
+                    'operator' => 'IN',
+                ],
+            ],
+        ]);
+        return count($my_posts);
     }
     public function get_posts_2($post_type="post"){
         return Timber::get_posts(

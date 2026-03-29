@@ -19,14 +19,19 @@ class VideoProcessor{
         $this->supported = $this->is_supported();
         $this->available = $this->is_available();
         if($this->available){
-            $this->ffmpeg = FFMpeg::create([
-                'ffmpeg.binaries'  => $this->ffmpegPath,
-                'ffprobe.binaries' => $this->ffprobePath,
-                'timeout'          => 3600,
-                'ffmpeg.threads'   => 4,
-                'log_level'        => 'error',
-                'ffmpeg.log_path'  => $outputDir.'ffmpeg.log',
-            ]);            
+            try {
+                $this->ffmpeg = FFMpeg::create([
+                    'ffmpeg.binaries'  => $this->ffmpegPath,
+                    'ffprobe.binaries' => $this->ffprobePath,
+                    'timeout'          => 3600,
+                    'ffmpeg.threads'   => 4,
+                    'log_level'        => 'error',
+                    'ffmpeg.log_path'  => $outputDir.'/ffmpeg.log',
+                ]);
+            } catch (\Exception $e) {
+                $this->available = false;
+                error_log('VideoProcessor: FFMpeg init failed — ' . $e->getMessage());
+            }
         }
     }
 
@@ -107,14 +112,14 @@ class VideoProcessor{
         if ($dimensions["height"] > 720) {
             $inputPath    = $this->resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $dimensions["width"], $dimensions["height"]);
             $results[720] = $this->saveToMediaLibrary($post_id, $inputPath, $inputId);
+            $video_task["tasks"]['sizes']["720"] = true;
+            $this->update_video_task($post_id, $video_task);
         }
-        $video_task["tasks"]['sizes']["720"] = true;
-        $this->update_video_task($post_id, $video_task);
         
         if ($sizes) {
             $resolutions = is_array($sizes) ? $sizes : [480, 360];
             foreach ($resolutions as $height) {
-                if($resolutions != 720){
+                if($height != 720){
                     $width = (int) round($height * ($dimensions["width"] / $dimensions["height"]));
                     $width = round($width / 2) * 2;
                     $height = round($height / 2) * 2;
@@ -156,18 +161,8 @@ class VideoProcessor{
         return $results;
     }
 
-    /*private function sanitizeFileName($post_id){
-        $postType = get_post_type($post_id);
-        $uniqueString = $postType . '-' . $post_id;
-        return md5($uniqueString);
-    }*/
     private function sanitizeFileName($inputPath, $attachment_id) {
-        $filename = pathinfo($inputPath, PATHINFO_FILENAME);
-        $extension = pathinfo($inputPath, PATHINFO_EXTENSION);
-        if (empty($extension)) {
-            $extension = 'mp4';
-        }
-        return $filename;// . "-" . $attachment_id.".".$extension;
+        return pathinfo($inputPath, PATHINFO_FILENAME);
     }
 
     private function convertToMp4IfNeeded($inputPath, $outputDir, $baseFileName){
@@ -179,8 +174,7 @@ class VideoProcessor{
         $format = new X264('aac', 'libx264');
         $audioStream = $video->getStreams()->audios()->first();
         if (!$audioStream) {
-            //error_log("Sessiz video işleniyor.");
-            $format->setAudioCodec("copy");
+            $format->setAdditionalParameters(['-an']); // No audio stream
         }
 
         $video->save($format, $outputPath);
@@ -190,6 +184,7 @@ class VideoProcessor{
     private function resizeIfLargerThan720p($inputPath, $outputDir, $baseFileName, $originalWidth, $originalHeight){
         $targetHeight = 720;
         $targetWidth = (int) round($targetHeight * ($originalWidth / $originalHeight));
+        $targetWidth = (int) (round($targetWidth / 2) * 2); // ffmpeg requires even dimensions
 
         $outputPath = "{$outputDir}/{$baseFileName}.mp4";
         $this->convertResolutionToPath($inputPath, $outputPath, $targetWidth, $targetHeight);
@@ -209,7 +204,7 @@ class VideoProcessor{
 
         // CRF ve Preset Ayarları
         $crf = 23; // Varsayılan CRF
-        $preset = 'veryslow'; // Yavaş kodlama, daha küçük dosya boyutu
+        $preset = 'slow'; // Good compression/speed balance for production
         if ($height == 720) {
             $crf = 23;
         } elseif ($height == 480) {
@@ -253,14 +248,16 @@ class VideoProcessor{
     }
 
     private function generatePosterFrame($inputPath, $posterPath){
-        $this->ffmpeg->open($inputPath)
-            ->frame(\FFMpeg\Coordinate\TimeCode::fromSeconds(5))
+        $video = $this->ffmpeg->open($inputPath);
+        $duration = (float) $video->getFormat()->get('duration');
+        $frameTime = min(5, max(0, $duration - 0.5)); // 5. saniye veya video sonuna yakın
+        $video->frame(\FFMpeg\Coordinate\TimeCode::fromSeconds($frameTime))
             ->save($posterPath);
     }
     
     private function generateThumbnails($inputPath, $thumbnailsDir, $spritePath, $vttPath){
         if (!file_exists($thumbnailsDir)) {
-            mkdir($thumbnailsDir, 0777, true);
+            wp_mkdir_p($thumbnailsDir);
         }
 
         $frames = [];
@@ -325,7 +322,7 @@ class VideoProcessor{
             }
         }
 
-        imagejpeg($sprite, $spritePath);
+        imagejpeg($sprite, $spritePath, 65); // Lower quality OK for thumbnail sprites
         imagedestroy($sprite);
     }
     private function createVtt($frames, $spritePath, $vttPath, $frameInterval) {
@@ -393,10 +390,10 @@ class VideoProcessor{
         }
         $attachment_id = $result['720'];
         if(isset($result['480'])){
-            update_post_meta($attachment_id, 'tablet', $result['sizes']['480']);
+            update_post_meta($attachment_id, 'tablet', $result['480']);
         }
         if(isset($result['360'])){
-            update_post_meta($attachment_id, 'phone', $result['sizes']['360']);
+            update_post_meta($attachment_id, 'phone', $result['360']);
         }
         if(isset($result['poster'])){
             update_post_meta($attachment_id, 'poster', $result['poster']);

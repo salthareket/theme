@@ -18,13 +18,11 @@ function loadJS(src) {
     });
 }
 function isLoadedJS($name, $load = false, $callback = null) {
-    // Statik değişkenleri ilk kez çalışırken tanımla (Namespace koruması)
     if (typeof isLoadedJS.cache === 'undefined') {
         isLoadedJS.cache = null;
         isLoadedJS.loading = false;
     }
 
-    // 1. Array Desteği
     if (Array.isArray($name)) {
         if ($name.length === 0) {
             if (typeof $callback === "function") $callback();
@@ -38,7 +36,6 @@ function isLoadedJS($name, $load = false, $callback = null) {
         return false;
     }
 
-    // 2. Yüklü mü kontrolü
     let check_required = (typeof required_js !== "undefined" && required_js.indexOf($name) > -1);
     let check_conditional = (typeof conditional_js !== "undefined" && conditional_js.indexOf($name) > -1);
 
@@ -49,7 +46,6 @@ function isLoadedJS($name, $load = false, $callback = null) {
 
     if (!$load) return false;
 
-    // 3. Kütüphane İşleme Motoru
     const processLibrary = (data) => {
         const libConfig = data[$name];
         if (!libConfig) return;
@@ -62,11 +58,7 @@ function isLoadedJS($name, $load = false, $callback = null) {
         const jsFiles = libConfig.js ? (Array.isArray(libConfig.js) ? [...libConfig.js] : [libConfig.js]) : [];
 
         const loadJSChain = (list, finalAction) => {
-            if (list.length === 0) {
-                finalAction();
-                return;
-            }
-
+            if (list.length === 0) { finalAction(); return; }
             let item = list.shift();
             let isObj = (typeof item === 'object' && item !== null);
             let finalUrl = isObj ? item.url : item;
@@ -83,11 +75,10 @@ function isLoadedJS($name, $load = false, $callback = null) {
 
             loadJS(finalUrl).then(() => {
                 if (isObj && item.callback_code) {
-                    try {
-                        new Function(item.callback_code)();
-                    } catch (e) { console.error("Callback Hatası:", e); }
+                    try { new Function(item.callback_code)(); }
+                    catch (e) { console.error("Callback Hatası:", e); }
                 }
-                loadJSChain(list, finalAction); 
+                loadJSChain(list, finalAction);
             }).catch(() => loadJSChain(list, finalAction));
         };
 
@@ -96,12 +87,10 @@ function isLoadedJS($name, $load = false, $callback = null) {
                 if (typeof conditional_js !== "undefined" && conditional_js.indexOf($name) === -1) {
                     conditional_js.push($name);
                 }
-                
                 if (libConfig.init) {
                     const parts = libConfig.init.split('.');
                     let func = window;
                     parts.forEach(p => { if(func && func[p]) func = func[p]; });
-
                     if (typeof func === 'function') {
                         const scope = $('.modal:visible').length ? $('.modal:visible') : $("body");
                         func(scope);
@@ -109,32 +98,22 @@ function isLoadedJS($name, $load = false, $callback = null) {
                 }
                 if (typeof $callback === "function") $callback();
             };
-
-            if (libConfig.js_init) {
-                loadJS(libConfig.js_init).then(finalize);
-            } else {
-                finalize();
-            }
+            if (libConfig.js_init) { loadJS(libConfig.js_init).then(finalize); }
+            else { finalize(); }
         });
     };
 
-    // 4. Hafıza (Cache) Yönetimi
     if (isLoadedJS.cache) {
         processLibrary(isLoadedJS.cache);
     } else {
         if (isLoadedJS.loading) {
-            // Eğer yükleme devam ediyorsa, kısa bir süre sonra tekrar dene
             setTimeout(() => isLoadedJS($name, $load, $callback), 50);
             return false;
         }
-
         isLoadedJS.loading = true;
         const configUrl = ajax_request_vars.theme_url + "/static/js/js_files_conditional_set.json";
-        
         $.ajax({
-            url: configUrl,
-            dataType: 'json',
-            cache: true,
+            url: configUrl, dataType: 'json', cache: true,
             success: function(data) {
                 isLoadedJS.cache = data;
                 isLoadedJS.loading = false;
@@ -146,18 +125,14 @@ function isLoadedJS($name, $load = false, $callback = null) {
             }
         });
     }
-
     return false;
 }
 function function_secure($plugin, $name, $params) {
     debugJS($plugin, $name, $params)
     if (isLoadedJS($plugin)) {
         if (typeof window[$name] === 'function') {
-            if (Array.isArray($params)) {
-                window[$name].apply(null, $params);
-            } else {
-                window[$name]($params);
-            }
+            if (Array.isArray($params)) { window[$name].apply(null, $params); }
+            else { window[$name]($params); }
         } else {
             console.error($name + ' is not a function...');
         }
@@ -166,76 +141,35 @@ function function_secure($plugin, $name, $params) {
     }
 }
 
-/*
-        wpcf7invalid — Fires when an Ajax form submission has completed successfully, but mail hasn’t been sent because there are fields with invalid input.
-        wpcf7spam — Fires when an Ajax form submission has completed successfully, but mail hasn’t been sent because a possible spam activity has been detected.
-        wpcf7mailsent — Fires when an Ajax form submission has completed successfully, and mail has been sent.
-        wpcf7mailfailed — Fires when an Ajax form submission has completed successfully, but it has failed in sending mail.
-        wpcf7submit — Fires when an Ajax form submission has completed successfully, regardless of other incidents.*/
-        /*detail.contactFormId  The ID of the contact form.
-        detail.pluginVersion    The version of Contact Form 7 plugin.
-        detail.contactFormLocale    The locale code of the contact form.
-        detail.unitTag  The unit-tag of the contact form.
-        detail.containerPostId  The ID of the post that the contact form is placed in.
-*/
+
+/**
+ * CF7Manager — Contact Form 7 entegrasyonu.
+ * Event listener'lar, form init, loader yönetimi, hata işaretleme.
+ */
 class CF7Manager {
     constructor() {
         this.initEventListeners();
     }
 
-    // 1. Statik Global Dinleyiciler (Sayfa ömrü boyunca 1 kez kurulur)
     initEventListeners() {
         const _this = this;
-
-        // Form gönderilmeye başlandığında (Hata veya Başarı fark etmez)
-        document.addEventListener('wpcf7submit', (e) => {
-            _this.toggleLoader(false);
-            _this.handleFormActions(e, 'submit');
-        }, false);
-
-        // Mail başarıyla gittiğinde
-        document.addEventListener('wpcf7mailsent', (e) => {
-            _this.handleFormActions(e, 'sent');
-        }, false);
-
-        // Hatalı form gönderimi
-        document.addEventListener('wpcf7invalid', (e) => {
-            _this.handleInvalidFields(e);
-            _this.toggleLoader(false);
-        }, false);
-
-        // Diğer durumlar için loader kapat
+        document.addEventListener('wpcf7submit', (e) => { _this.toggleLoader(false); _this.handleFormActions(e, 'submit'); }, false);
+        document.addEventListener('wpcf7mailsent', (e) => { _this.handleFormActions(e, 'sent'); }, false);
+        document.addEventListener('wpcf7invalid', (e) => { _this.handleInvalidFields(e); _this.toggleLoader(false); }, false);
         ['wpcf7mailfailed', 'wpcf7spam'].forEach(evt => {
             document.addEventListener(evt, () => _this.toggleLoader(false), false);
         });
     }
 
-    // 2. Formu Başlatma (Senin o bahsettiğin 'Olmuyor' dediğin yeri çözen kısım)
     initForms($scope = $("body")) {
-        // --- KRİTİK UYANDIRMA ALARMI ---
-        // Eğer wpcf7 objesi henüz fonksiyonlarını yüklemediyse (DOMContentLoaded geçildiyse)
         if (typeof wpcf7 !== 'undefined' && typeof wpcf7.init !== 'function') {
-            console.log("CF7 Kapsülü Class içinden patlatılıyor...");
             document.dispatchEvent(new Event('DOMContentLoaded'));
         }
-
         const _this = this;
-        
         $scope.find(".wpcf7-form").each(function() {
             const $form = $(this);
-            const formEl = $form[0];
-
-            // CF7'nin ana init metodunu çağır (Artık wpcf7.init var olduğundan eminiz)
-            if (typeof wpcf7 !== 'undefined' && typeof wpcf7.init === 'function') {
-                wpcf7.init(formEl);
-            }
-
-            // Conditional Fields Desteği
-            if (typeof wpcf7cf === "object") {
-                wpcf7cf.initForm($form);
-            }
-
-            // Submit butonu loader tetikleyici
+            if (typeof wpcf7 !== 'undefined' && typeof wpcf7.init === 'function') { wpcf7.init($form[0]); }
+            if (typeof wpcf7cf === "object") { wpcf7cf.initForm($form); }
             $form.find(".btn-submit").off("click").on("click", function() {
                 $(this).closest(".wpcf7-form").find(".accordion-item.error").removeClass("error");
                 _this.toggleLoader(true);
@@ -243,227 +177,108 @@ class CF7Manager {
         });
     }
 
-    // 3. Loader Yönetimi (Modal veya Body otomatik algılar)
     toggleLoader(show) {
-        const $target = $('.modal:visible').length > 0 
-            ? $('.modal:visible').find(".modal-content") 
-            : $("body");
-
+        const $target = $('.modal:visible').length > 0 ? $('.modal:visible').find(".modal-content") : $("body");
         if (show) $target.addClass("loading-process");
         else $target.removeClass("loading-process");
     }
 
-    // 4. Form Aksiyonları (Modal/Sayfa ayrımını tek fonksiyonda birleştirdik)
     handleFormActions(e, type) {
         const $form = $(e.target);
         const $formSubmit = $form.find('.btn-submit');
-        const isModal = $('.modal:visible').length > 0;
-        const $scrollTarget = isModal ? $('.modal:visible') : $("html,body");
-        
-        // Hata durumları
-        const hasError = $form.hasClass('invalid') || $form.hasClass('failed') || 
-                         $form.hasClass('unaccepted') || $form.hasClass('spam');
+        const $scrollTarget = $('.modal:visible').length > 0 ? $('.modal:visible') : $("html,body");
+        const hasError = $form.hasClass('invalid') || $form.hasClass('failed') || $form.hasClass('unaccepted') || $form.hasClass('spam');
 
         if (type === "submit" && hasError) {
             this.scrollToElement($scrollTarget, $form);
             $formSubmit.prop('disabled', false).blur();
-        } 
-        
-        else if (type === "sent") {
+        } else if (type === "sent") {
             this.scrollToElement($scrollTarget, $form);
             $formSubmit.prop('disabled', false).blur();
-            if (!hasError) {
-                $form.removeClass("sent").addClass("init");
-                // Gerekirse mesajı burada decode edip alert basabilirsin
-            }
+            if (!hasError) { $form.removeClass("sent").addClass("init"); }
         }
     }
 
-    // 5. Hatalı Alanları İşaretleme (Accordion desteği dahil)
     handleInvalidFields(e) {
         const $form = $(e.target);
         $form.find(".accordion-item.error").removeClass("error");
-
         if (e.detail && e.detail.apiResponse && e.detail.apiResponse.invalid_fields) {
             e.detail.apiResponse.invalid_fields.forEach(fieldObj => {
                 const $field = $form.find("[name='" + fieldObj.field + "']");
-                
-                // Eğer alan bir accordion içindeyse onu işaretle
-                if ($field.closest(".accordion-item").length > 0) {
-                    $field.closest(".accordion-item").addClass("error");
-                }
-
-                // Alana tıklandığında kırmızı uyarıyı temizle
-                $field.one("click", function() {
-                    $(this).removeClass("wpcf7-not-valid");
-                });
+                if ($field.closest(".accordion-item").length > 0) { $field.closest(".accordion-item").addClass("error"); }
+                $field.one("click", function() { $(this).removeClass("wpcf7-not-valid"); });
             });
         }
     }
 
-    // Yardımcı: Scroll işlemi
     scrollToElement($container, $element) {
-        const headerHeight = $("header#header").height() || 0;
-        const offset = $element.offset().top - headerHeight - 20;
-        
+        const offset = $element.offset().top - ($("header#header").height() || 0) - 20;
         $container.animate({ scrollTop: offset }, 600);
     }
 }
 window.AppCF7 = new CF7Manager();
-function initContactForm(){}
-/*
-function initContactForm(){
-    var obj = wpcf7;
-        obj.initForm = function ( el ) { 
-            obj.init( el[0] ); 
-        }
-        $(".wpcf7-form").each(function(){
-            var wpcf7_form = $(this);
-            obj.initForm(wpcf7_form);
 
-            //init conditional fields
-            if(typeof wpcf7cf === "object"){
-                wpcf7cf.initForm(wpcf7_form);
-            }
-
-            wpcf7_form.find(".btn-submit").on("click", function(){
-                $(this).find(".accordion-item.error").removeClass("error");
-                if($('.modal:visible').length > 0){
-                    $('.modal:visible').find(".modal-content").addClass("loading-process");
-                }else{
-                    $("body").addClass("loading-process");
-                }
-            });            
-
-        });
-}
-function modalFormActions(e, type){
-    var form = $('.modal:visible').find(e.target);
-    var formSubmit = form.find('.btn-submit');
-    if(type == "submit"){
-        if(form.hasClass('invalid')||form.hasClass('failed')||form.hasClass('unaccepted')||form.hasClass('spam')){
-           $('.modal:visible').animate({ scrollTop:form.offset().top - $("header#header").height()  },600, function(){
-               formSubmit.attr('disabled',false).blur();
-           });
-        }else{
-            form.removeClass("sent").addClass("init");
-            var message = decodeHtml(e.detail.apiResponse.message);
-            //debugJS(e);
-            //$('.modal:visible').modal("hide");
-            //_alert("", message, "xxl", "modal-fullscreen bg-tertiary text-white", "", "", true, true);
-        }
-    };
-    if(type == "sent"){
-       $('.modal:visible').animate({ scrollTop:form.offset().top - $("header#header").height()  },600);
-       formSubmit.attr('disabled',false).blur();       
-    }
-    
-    //$(".modal").animate({ scrollTop: $(".wpcf7-response-output").offset().top }, 600);
-};
-function contactFormActions(e, type){
-    var form = $(e.target);
-    var formSubmit = form.find('.btn-submit');
-    if(type == "submit"){
-        if(form.hasClass('invalid')||form.hasClass('failed')||form.hasClass('unaccepted')||form.hasClass('spam')){
-           $("html,body").animate({ scrollTop:form.offset().top - $("header#header").height()  }, 600);
-           formSubmit.attr('disabled', false).blur();
-        }else{
-            form.removeClass("sent").addClass("init");
-            var message = decodeHtml(e.detail.apiResponse.message);
-            //debugJS(e);
-            //_alert("", message, "xxl", "modal-fullscreen bg-tertiary text-white", "", "", true, true);
-        }
-    };
-    if(type == "sent"){
-       $("html,body").animate({ scrollTop:form.offset().top - $("header#header").height()  }, 600);
-       formSubmit.attr('disabled', false).blur();
-    }
-};
-function contactform_sent(e){
-    var formId = e.detail.contactFormId;
-    if($('.modal:visible').length>0){
-        $('.modal:visible').find(".modal-content").removeClass("loading-process");
-        modalFormActions(e, 'sent');
-    }else{
-        $("body").removeClass("loading-process");
-        contactFormActions(e, 'sent');
-    }
-}
-function contactform_invalid(e){
-     $(e.target).find(".accordion-item.error").removeClass("error");
-     $(e.detail.apiResponse.invalid_fields).each(function(i, obj) {
-        obj = $("[name='"+obj.field+"']");
-        if(obj.closest(".accordion-item").length > 0){
-            obj.closest(".accordion-item").addClass("error");
-        }
-        obj.on("click", function(e){
-            $(this).removeClass("wpcf7-not-valid");
-         });
-     });
-}*/
-$( document ).ready(function() {
+$(document).ready(function() {
     window.AppCF7.initForms();
-        /*wpcf7invalid — Fires when an Ajax form submission has completed successfully, but mail hasn’t been sent because there are fields with invalid input.
-        wpcf7spam — Fires when an Ajax form submission has completed successfully, but mail hasn’t been sent because a possible spam activity has been detected.
-        wpcf7mailsent — Fires when an Ajax form submission has completed successfully, and mail has been sent.
-        wpcf7mailfailed — Fires when an Ajax form submission has completed successfully, but it has failed in sending mail.
-        wpcf7submit — Fires when an Ajax form submission has completed successfully, regardless of other incidents.*/
-        /*detail.contactFormId  The ID of the contact form.
-        detail.pluginVersion    The version of Contact Form 7 plugin.
-        detail.contactFormLocale    The locale code of the contact form.
-        detail.unitTag  The unit-tag of the contact form.
-        detail.containerPostId  The ID of the post that the contact form is placed in.
-        $( '.wpcf7' ).each(function(){
-                var form = $(this);
-                form.find(".btn-submit").on("click", function(){
-                    $(this).find(".accordion-item.error").removeClass("error");
-                    if($('.modal:visible').length > 0){
-                       $('.modal:visible').find(".modal-content").addClass("loading-process");
-                    }else{
-                        $("body").addClass("loading-process");
-                    }
-                });            
-        });
-        document.addEventListener( 'wpcf7submit', function( e ) {
-            //event.detail.contactFormId;
-            //$(e.target).find(".accordion-item.error").removeClass("error");
-            if($('.modal:visible').length > 0){
-                $('.modal:visible').find(".modal-content").removeClass("loading-process");
-                modalFormActions(e, 'submit');
-            }else{
-                $("body").removeClass("loading-process");
-                contactFormActions(e, 'submit');
-            }
-        }, false );
-        document.addEventListener( 'wpcf7mailsent', function( e ) {
-            //event.detail.contactFormId;
-            contactform_sent(e);
-        }, false );
-        document.addEventListener( 'wpcf7mailfailed', function( e ) {
-            $("body").removeClass("loading-process");
-        }, false );
-        document.addEventListener( 'wpcf7spam', function( e ) {
-            $("body").removeClass("loading-process");
-        }, false );
-        document.addEventListener( 'wpcf7invalid', function( e ) {
-            contactform_invalid(e)
-            $("body").removeClass("loading-process");
-        }, false );*/
 });
 
-/**
- * modal_load_plugins_then_init
- *
- * Modal içeriği yüklendikten sonra gereken plugin'leri sırayla yükler,
- * hepsi hazır olunca init_functions() çağırır.
- *
- * @param {Object} plugins  { pluginKey: "initFuncName", ... }  (custom_modal PHP'den geliyor)
- *                          ya da string[] array  (sadece key listesi)
- * @param {jQuery} scope    Modal jQuery objesi — init scope'u için
- */
-function modal_load_plugins_then_init(plugins, scope) {
 
-    // Normalize: array ise { key: "" } objesine çevir
+/* ============================================================
+ *  MODAL ORTAK YARDIMCILAR
+ *  Tüm modal türleri (custom, template, page, map, form, iframe)
+ *  bu fonksiyonları kullanır — tekrar yok, tek nokta.
+ * ============================================================ */
+
+function modal_create_dialog(vars, response, objs, opts) {
+    opts = opts || {};
+    var className  = (opts.className || 'modal-page') + ' loading ' + (vars.class || '');
+    var scrollable = bool(vars.scrollable, false);
+    var close      = bool(vars.close,      opts.defaultClose    !== undefined ? opts.defaultClose    : true);
+    var centered   = bool(vars.centered,   opts.defaultCentered !== undefined ? opts.defaultCentered : true);
+    var animate    = bool(vars.animate,    false);
+    var backdrop   = bool(vars.backdrop,   opts.defaultBackdrop !== undefined ? opts.defaultBackdrop : true);
+    var size       = !IsBlank(vars.size)   ? vars.size : 'xl';
+
+    var dialog = bootbox.dialog({
+        className: className, title: '<div></div>', message: '<div></div>',
+        closeButton: close, size: size, scrollable: scrollable,
+        centerVertical: centered, animate: animate, backdrop: backdrop, buttons: {},
+        onHidden: function() { if (response && response.abort) response.abort(); }
+    });
+
+    if (vars.fullscreen) {
+        dialog.find('.modal-dialog').addClass(vars.fullscreen === true ? 'modal-fullscreen' : vars.fullscreen);
+    }
+    if (Array.isArray(vars.modal)) {
+        vars.modal.forEach(function(item) {
+            Object.entries(item).forEach(function(entry) { dialog.find('.' + entry[0]).addClass(entry[1]); });
+        });
+    }
+    dialog.attr('id', typeof generateCode === 'function' ? generateCode(5) : 'modal_' + Date.now());
+    objs.modal = dialog;
+    response.objs = { modal: dialog, btn: objs.btn };
+    return dialog;
+}
+
+function modal_handle_error(response, modal) {
+    modal.addClass('remove-on-hidden').modal('hide');
+    if (response.message && typeof response_view === 'function') { response_view(response); }
+    return false;
+}
+
+function modal_set_content(response, modal) {
+    var data = response.data;
+    if (!data) return;
+    if (data.hasOwnProperty('content')) {
+        modal.find('.modal-content').html(data.content);
+    } else {
+        if (data.title   !== undefined) modal.find('.modal-title').html(data.title);
+        if (data.body    !== undefined) modal.find('.modal-body').html(data.body);
+        if (data.content !== undefined) modal.find('.modal-body').html(data.content);
+    }
+}
+
+function modal_load_plugins_then_init(plugins, scope) {
     var pluginMap = {};
     if (Array.isArray(plugins)) {
         plugins.forEach(function(k) { pluginMap[k] = ""; });
@@ -472,67 +287,60 @@ function modal_load_plugins_then_init(plugins, scope) {
     }
 
     var keys = Object.keys(pluginMap);
-
     if (!keys.length) {
-        // Yüklenecek plugin yok, direkt init
         if (typeof init_functions === 'function') { init_functions(); }
         return;
     }
 
-    // Bağımlılık sıralaması: js_files_conditional_set.json'daki dependencies alanını oku
-    // isLoadedJS zaten cache'liyor, ikinci çağrıda JSON isteği atmaz
     var _loadChain = function(list, onDone) {
         if (!list.length) { onDone(); return; }
         var name = list.shift();
-
-        // Önce dependencies'i yükle (varsa)
         var _loadWithDeps = function(pluginName, cb) {
             var config = isLoadedJS.cache ? isLoadedJS.cache[pluginName] : null;
-            var deps   = (config && Array.isArray(config.dependencies)) ? config.dependencies.slice() : [];
-
-            if (!deps.length) {
-                // Bağımlılık yok, direkt yükle
-                isLoadedJS(pluginName, true, cb);
-                return;
-            }
-
-            // Önce bağımlılıkları yükle, sonra asıl plugin'i
-            _loadChain(deps, function() {
-                isLoadedJS(pluginName, true, cb);
-            });
+            var deps = (config && Array.isArray(config.dependencies)) ? config.dependencies.slice() : [];
+            if (!deps.length) { isLoadedJS(pluginName, true, cb); return; }
+            _loadChain(deps, function() { isLoadedJS(pluginName, true, cb); });
         };
-
-        _loadWithDeps(name, function() {
-            _loadChain(list, onDone);
-        });
+        _loadWithDeps(name, function() { _loadChain(list, onDone); });
     };
 
-    // isLoadedJS cache'i hazır mı? Hazır değilse önce bir dummy çağrıyla yüklet
     var _run = function() {
         _loadChain(keys.slice(), function() {
-            // Hepsi yüklendi, init et
-            if (typeof init_functions === 'function') {
-                init_functions(pluginMap);
-            }
+            Object.entries(pluginMap).forEach(function(entry) {
+                var initFunc = entry[1];
+                if (!initFunc) return;
+                var parts = initFunc.split('.');
+                var fn = window;
+                parts.forEach(function(p) { if (fn && fn[p]) fn = fn[p]; });
+                if (typeof fn === 'function') {
+                    var modalScope = (scope && scope.length) ? scope : $('.modal:visible').length ? $('.modal:visible') : $("body");
+                    fn(modalScope);
+                }
+            });
+            if (typeof init_functions === 'function') { init_functions(); }
         });
     };
 
-    if (isLoadedJS.cache) {
-        _run();
-    } else {
-        // Cache henüz yok — bir plugin'i $load=true ile çağırarak JSON'u çektir,
-        // sonra tüm zinciri başlat
-        var firstKey = keys[0];
-        isLoadedJS(firstKey, true, function() {
-            // firstKey yüklendi, geri kalanları da işle
+    if (isLoadedJS.cache) { _run(); }
+    else {
+        isLoadedJS(keys[0], true, function() {
             var remaining = keys.slice(1);
-            if (!remaining.length) {
-                if (typeof init_functions === 'function') { init_functions(pluginMap); }
-                return;
-            }
-            _loadChain(remaining, function() {
-                if (typeof init_functions === 'function') { init_functions(pluginMap); }
-            });
+            var _finish = function() {
+                Object.entries(pluginMap).forEach(function(entry) {
+                    var initFunc = entry[1];
+                    if (!initFunc) return;
+                    var parts = initFunc.split('.');
+                    var fn = window;
+                    parts.forEach(function(p) { if (fn && fn[p]) fn = fn[p]; });
+                    if (typeof fn === 'function') {
+                        var modalScope = (scope && scope.length) ? scope : $('.modal:visible').length ? $('.modal:visible') : $("body");
+                        fn(modalScope);
+                    }
+                });
+                if (typeof init_functions === 'function') { init_functions(); }
+            };
+            if (!remaining.length) { _finish(); return; }
+            _loadChain(remaining, _finish);
         });
     }
 }

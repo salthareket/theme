@@ -1,128 +1,123 @@
 <?php
-/*
- * Script Name:   Schema.org Breadcrumbs for WordPress SEO
- * Contributors:  Felix Arntz (@felixarntz / leaves-and-love.net)
- * Description:   This class modifies the WordPress SEO plugin by Yoast to use valid Schema.org markup for breadcrumbs instead of the RDFa.
- * Version:       1.3.1
- * License:       GNU General Public License
- * License URI:   http://www.opensource.org/licenses/gpl-license.php GPL v2.0 (or later)
- */
- 
+
 /**
- * This class modifies the breadcrumbs from the WordPress SEO plugin by Yoast to use Schema.org markup instead of RDFa.
- * It uses a singleton pattern so that it can only be instantiated once.
- * Simply include this file in your plugin or theme and enable the class, for example like this:
- * <code>function yourtheme_instantiate_class()
- * {
- *    if( function_exists( 'yoast_breadcrumb' ) )
- *    {
- *      Schema_Breadcrumbs::instance();
- *    }
- * }
- * add_action( 'after_setup_theme', 'yourtheme_instantiate_class' );</code>
- * 
- * The content is modified using the following plugin filters:
- * - 'wpseo_breadcrumb_single_link'
- * - 'wpseo_breadcrumb_output'
- * 
- * This class will not do anything if the WordPress SEO plugin is not installed:
- * http://yoast.com/wordpress/seo/
- * 
- * @package WPSEO_SchemaBreadcrumbs
- * @version 1.3.1
- * @author Felix Arntz <felix-arntz@leaves-and-love.net>
- * 
+ * Schema_Breadcrumbs — Yoast SEO breadcrumb markup'ını Schema.org + Bootstrap uyumlu hale getirir.
+ *
+ * Yoast'ın default breadcrumb HTML'ini <ul class="breadcrumb"><li> yapısına çevirir,
+ * Schema.org BreadcrumbList / ListItem markup'ı ekler, btn-loading-page class'ı ile
+ * SPA-style sayfa geçişi destekler.
+ *
+ * KULLANIM:
+ *   // theme.php veya functions.php'de:
+ *   if ( function_exists( 'yoast_breadcrumb' ) && class_exists( 'Schema_Breadcrumbs' ) ) {
+ *       Schema_Breadcrumbs::instance();
+ *   }
+ *
+ * NOT: Yoast SEO 20+ zaten JSON-LD Schema.org breadcrumb üretiyor.
+ *      Bu class sadece GÖRSEL HTML markup'ı için gerekli.
+ *      Eğer Yoast'ın default HTML'i yeterliyse bu class devre dışı bırakılabilir.
+ *
+ * @package SaltHareket
+ * @since   1.0.0
  */
-class Schema_Breadcrumbs
-{
-  private static $instance = null;
 
-  private $breadcrumb_link_counter = 0;
+class Schema_Breadcrumbs {
 
-  /**
-   * Singleton Pattern
-   * 
-   * @return Schema_Breadcrumbs instance of the class
-   */
-  public static function instance()
-  {
-    if( self::$instance === null )
-    {
-      self::$instance = new self;
-    }
-    return self::$instance;
-  }
-  
-  /**
-   * Constructor of the class
-   * 
-   * Adds the modifying functions to the four WordPress SEO plugin filters.
-   */
-  private function __construct()
-  {
-    add_filter( 'wpseo_breadcrumb_single_link', array( $this, 'modify_breadcrumb_element' ), 10, 2 );
-    add_filter( 'wpseo_breadcrumb_output', array( $this, 'modify_breadcrumb_output' ) );
-  }
-  
-  /**
-   * This function modifies the output for a single breadcrumb.
-   * 
-   * The default output is not modified, instead a completely new output is generated.
-   * If the default link output contains a rel attribute with the value 'v:url' (which is added by WordPress SEO for every but the last link), URL and text are output.
-   * Otherwise it is the current page for which only the text is printed out.
-   * 
-   * In this method the Schema.org markup for a single breadcrumb is added, and the link counter (class variable) is increased by 1 (for each link).
-   * 
-   * @param string $link_output the default output created by the WordPress SEO plugin
-   * @param array $link an array containing data for the breadcrumb link (with fields 'url' and 'text')
-   * @return string the output for a single breadcrumb link
-   */
-  public function modify_breadcrumb_element( $link_output, $link )
-  {
-    $output = '';
-	
-    if( isset( $link['url'] ) && substr_count( $link_output, 'rel="v:url"' ) > 0 ){
-      $output .= '<li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"><a href="' . esc_attr( $link['url'] ) . '" class="btn-loading-page"><inner-span itemprop="name">' . $link['text'] . '</inner-span><meta itemprop="position" content="'.($this->breadcrumb_link_counter+1).'" /></a></li>';
-    }else{
-      $opt = array();
-      if( class_exists( 'WPSEO_Options' ) ){ // WPSEO >= 1.5
-        $opt = WPSEO_Options::get_all();
-      }else{ // WPSEO < 1.5
-        $opt = get_wpseo_options();
-      }
+    private static ?self $instance = null;
+    private int $position = 0;
+    private bool $bold_last = false;
 
-      if(empty($link['url'])){
-        $link['url'] = current_url();
-      }
-	  //$output .= '<li class="breaker"></li>';
-      if( isset( $opt['breadcrumbs-boldlast'] ) && $opt['breadcrumbs-boldlast'] ){
-		$output .= '<li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem" class="breadcrumb_last"><a href="' . esc_attr( $link['url'] ) . '" class="btn-loading-page"><inner-span itemprop="name"><strong>' . $link['text'] . '</strong></inner-span><meta itemprop="position" content="'.($this->breadcrumb_link_counter+1).'" /></a></li>';
-      }else{
-		$output .= '<li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem" class="breadcrumb_last"><a href="' . esc_attr( $link['url'] ) . '" class="btn-loading-page"><inner-span itemprop="name">' . $link['text'] . '</inner-span><meta itemprop="position" content="'.($this->breadcrumb_link_counter+1).'" /></a></li>';
-      }
+    public static function instance(): self {
+        if ( self::$instance === null ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
     }
-    $this->breadcrumb_link_counter++;
-    return $output;
-  }
-  
-  /**
-   * This function modifies the overall breadcrumbs output.
-   * 
-   * The default output is directly modified: The RDFa markup is replaced by equivalent Schema.org markup.
-   * 
-   * @param string $full_output the default output created by the WordPress SEO plugin
-   * @return string the overall breadcrumbs output
-   */
-  public function modify_breadcrumb_output( $full_output ){
-    //$string_to_replace = ' prefix="v: http://rdf.data-vocabulary.org/#"';
-	  $string_to_replace = ' xmlns:v="http://rdf.data-vocabulary.org/#"';
-    if( version_compare( WPSEO_VERSION, '1.5.3.3', '<' ) ){
-      $string_to_replace = ' xmlns:v="http://rdf.data-vocabulary.org/#"';
+
+    private function __construct() {
+        // boldlast ayarını bir kez çek — her element'te DB'ye gitme
+        $titles = get_option( 'wpseo_titles', [] );
+        $this->bold_last = ! empty( $titles['breadcrumbs-boldlast'] );
+
+        add_filter( 'wpseo_breadcrumb_single_link', [ $this, 'modify_element' ], 10, 2 );
+        add_filter( 'wpseo_breadcrumb_output', [ $this, 'modify_output' ] );
     }
-    $output = str_replace( $string_to_replace, ' itemprop="breadcrumb" itemscope="itemscope" itemtype="http://schema.org/BreadcrumbList"', $full_output );
-	  $output = str_replace( '<span','<ul class="breadcrumb"' , $output );
-	  $output = str_replace( '</span>','</ul>' , $output );
-	  $output = str_replace( 'inner-span','span' , $output );
-    return $output;
-  }
+
+    /**
+     * Tekil breadcrumb element'ini Schema.org ListItem markup'ına çevirir.
+     */
+    public function modify_element( string $link_output, array $link ): string {
+        $this->position++;
+
+        $url  = esc_url( $link['url'] ?? '' );
+        $text = esc_html( $link['text'] ?? '' );
+
+        if ( empty( $text ) ) {
+            return $link_output;
+        }
+
+        $is_link = ! empty( $url ) && str_contains( $link_output, 'rel="v:url"' );
+
+        // Son element (current page) — link yoksa current URL kullan
+        if ( ! $is_link && empty( $url ) ) {
+            $url = esc_url( $this->current_url() );
+        }
+
+        $name_html = $text;
+        if ( ! $is_link && $this->bold_last ) {
+            $name_html = '<strong>' . $text . '</strong>';
+        }
+
+        $last_class = $is_link ? '' : ' breadcrumb_last';
+
+        return sprintf(
+            '<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="%s">'
+            . '<a href="%s" class="btn-loading-page">'
+            . '<span itemprop="name">%s</span>'
+            . '<meta itemprop="position" content="%d" />'
+            . '</a></li>',
+            ltrim( $last_class ),
+            $url,
+            $name_html,
+            $this->position
+        );
+    }
+
+    /**
+     * Breadcrumb wrapper'ını Schema.org BreadcrumbList + <ul> yapısına çevirir.
+     */
+    public function modify_output( string $output ): string {
+        // Yoast'ın RDFa namespace'ini Schema.org ile değiştir
+        $output = str_replace(
+            [ ' xmlns:v="http://rdf.data-vocabulary.org/#"', ' prefix="v: http://rdf.data-vocabulary.org/#"' ],
+            ' itemscope itemtype="https://schema.org/BreadcrumbList"',
+            $output
+        );
+
+        // Wrapper <span> → <ul class="breadcrumb">
+        // Sadece açılış ve kapanış span'ını hedefle — içerideki span'lara dokunma
+        $output = preg_replace(
+            '/<span\s+([^>]*(?:itemscope|itemprop)[^>]*)>/',
+            '<ul class="breadcrumb" $1>',
+            $output,
+            1 // sadece ilk match
+        );
+
+        // Kapanış — son </span>'ı </ul> yap
+        $last_span_pos = strrpos( $output, '</span>' );
+        if ( $last_span_pos !== false ) {
+            $output = substr_replace( $output, '</ul>', $last_span_pos, 7 );
+        }
+
+        return $output;
+    }
+
+    private function current_url(): string {
+        if ( function_exists( 'current_url' ) ) {
+            return current_url();
+        }
+        // Fallback
+        $protocol = is_ssl() ? 'https' : 'http';
+        return $protocol . '://' . ( $_SERVER['HTTP_HOST'] ?? '' ) . ( $_SERVER['REQUEST_URI'] ?? '' );
+    }
 }

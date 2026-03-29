@@ -1,185 +1,110 @@
 <?php
-$error = false;
-            $response = [];
-            $response["results"] = [];
-            if (isset($vars["type"])) {
-                if(isset( $vars["keyword"])){
-                   $keyword = $vars["keyword"];
-                }
-                if(!isset($keyword)){
-                    $keyword = $_POST["keyword"];
-                }
-                if($vars["type"] == "user"){
-                    $user = true;
-                    $taxonomy = false;
-                    $post_type = false;
-                }else{
-                    $user = false;
-                    $taxonomy = taxonomy_exists($vars["type"]);
-                    $post_type = post_type_exists($vars["type"]);                    
-                }
-                if (!isset($vars["response_type"])) {
-                    $vars["response_type"] = "select2";
-                }
-                if (!isset($vars["count"])) {
-                    $vars["count"] = 10;
-                }
-                if (!isset($vars["page"])) {
-                    $vars["page"] = 1;
-                }
-                $offset = ($vars["page"] - 1) * $vars["count"];
-                if ($taxonomy) {
-                    $args = [
-                        "taxonomy" => $vars["type"],
-                        "hide_empty" => false,
-                        "number" => $vars["count"],
-                        "offset" => $offset,
-                        "fields" => "id=>name",
-                    ];
-                    if (isset($vars["value"])) {
-                        $args["include"] = $vars["value"];
-                    }
-                    if (isset($vars["selected"])) {
-                        $args["exclude"] = $vars["selected"];
-                    }
-                    if (!empty($keyword)) {
-                        $args["search"] = $keyword;
-                        $total_terms = wp_count_terms($args);
-                    } else {
-                        $total_terms = wp_count_terms($vars["type"]);
-                    }
-                    $total_pages = ceil($total_terms / $vars["page"]);
-                    $terms = get_terms($args);
-                }
-                if ($post_type) {
-                    $args = [
-                        "post_type" => $vars["type"],
-                        "posts_per_page" => $vars["count"],
-                        "offset" => $offset,
-                        "fields" => "id=>title",
-                    ];
-                    if (!empty($keyword)) {
-                        $args["s"] = $keyword;
-                        $total_terms = wp_count_posts_by_query($args);
-                    } else {
-                        $total_terms = wp_count_posts($vars["type"])->publish;
-                    }
-                    $total_pages = ceil($total_terms / $vars["page"]);
-                    $terms = Timber::get_posts($args)->to_array();
-                }
-                if($user){
-                    $search_string = esc_attr( trim( $keyword ) );
-                    $parts = explode( ' ', $search_string );
+$error         = false;
+$message       = '';
+$data          = ['results' => []];
+$type          = $vars['type'] ?? '';
+$kw            = sanitize_text_field($vars['keyword'] ?? ($keyword ?? ''));
+$response_type = $vars['response_type'] ?? 'select2';
+$count         = (int) ($vars['count'] ?? 10);
+$page          = max(1, (int) ($vars['page'] ?? 1));
+$offset        = ($page - 1) * $count;
+$total_pages   = 1;
+$terms         = [];
 
-                    $args = array(
-                        //'search'         => "*{$search_string}*",
-                        /* 'search_columns' => array(
-                           'user_login',
-                            'user_nicename',
-                            'user_email',
-                            'user_url',
-                        ),*/
-                    );
-                    if( ! empty( $parts ) ){
-                        $args['meta_query'] = [];
-                        $args['meta_query']['relation'] = 'OR';
-                        foreach( $parts as $part ){
-                            $args['meta_query'][] = array(
-                                'key'     => 'first_name',
-                                'value'   => $part,
-                                'compare' => 'LIKE'
-                            );
-                            $args['meta_query'][] = array(
-                                'key'     => 'last_name',
-                                'value'   => $part,
-                                'compare' => 'LIKE'
-                            );
-                        }
-                    }
-                    $users = new WP_User_Query( $args );
-                    //print_r($users);
-                    $terms = $users->get_results();
-                    //print_r($terms);
+if (empty($type)) {
+    $response['error']   = true;
+    $response['message'] = 'Please provide a type';
+    echo json_encode($response);
+    wp_die();
+}
+
+$is_user      = ($type === 'user');
+$is_taxonomy  = !$is_user && taxonomy_exists($type);
+$is_post_type = !$is_user && !$is_taxonomy && post_type_exists($type);
+
+// ─── Veri Çekme ─────────────────────────────────────────────
+if ($is_taxonomy) {
+    $args = [
+        'taxonomy'   => $type,
+        'hide_empty' => false,
+        'number'     => $count,
+        'offset'     => $offset,
+        'fields'     => 'id=>name',
+    ];
+    if (!empty($vars['value']))    $args['include'] = $vars['value'];
+    if (!empty($vars['selected'])) $args['exclude'] = $vars['selected'];
+    if (!empty($kw))               $args['search']  = $kw;
+
+    $total       = !empty($kw) ? wp_count_terms($args) : wp_count_terms($type);
+    $total_pages = $count > 0 ? ceil($total / $count) : 1;
+    $terms       = get_terms($args);
+
+} elseif ($is_post_type) {
+    $args = [
+        'post_type'      => $type,
+        'posts_per_page' => $count,
+        'offset'         => $offset,
+    ];
+    if (!empty($kw)) $args['s'] = $kw;
+
+    $total       = !empty($kw) ? wp_count_posts_by_query($args) : wp_count_posts($type)->publish;
+    $total_pages = $count > 0 ? ceil($total / $count) : 1;
+    $terms       = Timber::get_posts($args)->to_array();
+
+} elseif ($is_user) {
+    $parts = explode(' ', esc_attr(trim($kw)));
+    $args  = ['meta_query' => ['relation' => 'OR']];
+    foreach ($parts as $part) {
+        if (empty($part)) continue;
+        $args['meta_query'][] = ['key' => 'first_name', 'value' => $part, 'compare' => 'LIKE'];
+        $args['meta_query'][] = ['key' => 'last_name',  'value' => $part, 'compare' => 'LIKE'];
+    }
+    $terms = (new WP_User_Query($args))->get_results();
+}
+
+// ─── Response Formatlama ────────────────────────────────────
+$results = [];
+
+if ($response_type === 'select2') {
+    if ($is_taxonomy) {
+        foreach ($terms as $tid => $name) {
+            $results[] = ['id' => $tid, 'text' => $name];
+        }
+    } elseif ($is_post_type) {
+        foreach ($terms as $post) {
+            $text = $post->post_title;
+            if (!empty($vars['response_extra'])) {
+                foreach (array_map('trim', explode(',', $vars['response_extra'])) as $extra) {
+                    $text .= ' - ' . ($extra === 'author' ? ($post->author->display_name ?? '') : ($post->{$extra} ?? ''));
                 }
-                switch ($vars["response_type"]) {
-                    case "select2":
-                        if ($taxonomy) {
-                            foreach ($terms as $key => $term) {
-                                $response["results"][] = [
-                                    "id" => $key,
-                                    "text" => $term
-                                ];
-                            }
-                        }
-                        if ($post_type) {
-                            foreach ($terms as $key => $term) {
-                                $text = $term->post_title;
-                                if(!empty($vars["response_extra"])){
-                                    $extras = explode(",", $vars["response_extra"]);
-                                    foreach($extras as $extra){
-                                        $extra = Trim($extra);
-                                        switch($extra){
-                                            case "author" :
-                                               $text .= " - ".$term->author->display_name;
-                                            break;
-                                            default:
-                                               $text .= " - ".$term->{$extra};
-                                            break;
-                                        }
-                                    }
-                                }
-                                $response["results"][] = [
-                                    "id" => $term->ID,
-                                    "text" => $text
-                                ];
-                            }
-                        }
-                        if ($user) {
-                            foreach ($terms as $key => $term) {
-                                $response["results"][] = [
-                                    "id" => $term->ID,
-                                    "text" => $term->first_name." ".$term->last_name,
-                                ];
-                            }
-                        }
-                        if ($vars["page"] < $total_pages && $terms) {
-                            $response["pagination"]["more"] = true;
-                        } else {
-                            $response["pagination"]["more"] = false;
-                        }
-                        break;
-                    case "autocomplete":
-                        if ($taxonomy) {
-                            foreach ($terms as $key => $term) {
-                                $response["results"][$key] =  $term;
-                            }
-                        }
-                        if ($post_type) {
-                            foreach ($terms as $key => $term) {
-                                $response["results"][$term->ID] = $term->post_title;
-                            }
-                        }
-                        if ($user) {
-                            foreach ($terms as $key => $term) {
-                                $response["results"][$term->ID] = $term->first_name." ".$term->last_name;
-                            }
-                        }
-                        break;
-                }
-                $data = $response;
-            } else {
-                $error = true;
-                $message = "Please provide a type";
             }
-            $output = [
-                "error" => $error,
-                "message" => $message,
-                "data" => $data,
-                "html" => $html,
-                "redirect" => $redirect_url,
-            ];
-            if($vars["response_type"] == "autocomplete"){
-                $output = $output["data"]["results"];
-            }
-            echo json_encode($output);
-            die();
+            $results[] = ['id' => $post->ID, 'text' => $text];
+        }
+    } elseif ($is_user) {
+        foreach ($terms as $u) {
+            $results[] = ['id' => $u->ID, 'text' => $u->first_name . ' ' . $u->last_name];
+        }
+    }
+    $data = [
+        'results'    => $results,
+        'pagination' => ['more' => ($page < $total_pages && !empty($terms))],
+    ];
+
+} elseif ($response_type === 'autocomplete') {
+    if ($is_taxonomy) {
+        foreach ($terms as $tid => $name) $results[$tid] = $name;
+    } elseif ($is_post_type) {
+        foreach ($terms as $post) $results[$post->ID] = $post->post_title;
+    } elseif ($is_user) {
+        foreach ($terms as $u) $results[$u->ID] = $u->first_name . ' ' . $u->last_name;
+    }
+    // autocomplete direkt results döner
+    echo json_encode($results);
+    wp_die();
+}
+
+$response['error']   = $error;
+$response['message'] = $message;
+$response['data']    = $data;
+echo json_encode($response);
+wp_die();

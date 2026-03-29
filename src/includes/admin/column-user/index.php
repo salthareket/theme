@@ -1,39 +1,33 @@
 <?php
 
+/**
+ * Admin Users Table — Register Type, Activation Status, Password Set columns.
+ */
 
-function new_modify_user_table( $column ) {
-    $column['register_type'] = 'Register Type';
-    $column['user_status'] = 'Activated';
-    $column['password_set'] = 'Password Set';
-    return $column;
-}
-add_filter( 'manage_users_columns', 'new_modify_user_table' );
+add_filter('manage_users_columns', function($columns) {
+    $columns['register_type'] = 'Register Type';
+    $columns['user_status']   = 'Activated';
+    $columns['password_set']  = 'Password Set';
+    return $columns;
+});
 
-function new_modify_user_table_row( $val, $column_name, $user_id ) {
+add_filter('manage_users_custom_column', function($val, $column_name, $user_id) {
     switch ($column_name) {
-        case 'register_type' :
-            $value = get_user_meta( $user_id, 'register_type', true);
-            return $value;
-        case 'user_status' :
-            $value = get_user_meta( $user_id, 'user_status', true);
-            if($value){
-                return "<span style='color:green;'>Yes</span>";
-            }else{
-                return "<span style='color:red;'>No</span>";
+        case 'register_type':
+            return esc_html(get_user_meta($user_id, 'register_type', true));
+
+        case 'user_status':
+            return get_user_meta($user_id, 'user_status', true)
+                ? '<span style="color:green">Yes</span>'
+                : '<span style="color:red">No</span>';
+
+        case 'password_set':
+            if (!metadata_exists('user', $user_id, 'password_set')) {
+                return '<span style="color:red">No - not exist</span>';
             }
-        case 'password_set' :
-            $value = get_user_meta( $user_id, 'password_set', true);
-            if(!metadata_exists( 'user', $user_id, 'password_set')){
-                return "<span style='color:red;'>No - not exist</span>";
-            }else{
-                if(!$value){
-                    return "<span style='color:red;'>No".$value."</span>";
-                }else{
-                    return "<span style='color:green;'>Yes</span>";
-                }
-            }
-        default:
+            return get_user_meta($user_id, 'password_set', true)
+                ? '<span style="color:green">Yes</span>'
+                : '<span style="color:red">No</span>';
     }
     return $val;
-}
-add_filter( 'manage_users_custom_column', 'new_modify_user_table_row', 10, 3 );
+}, 10, 3);

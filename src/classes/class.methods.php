@@ -35,7 +35,7 @@ class MethodClass {
                 foreach ($methodDirs as $methodDir) {
                     if ($methodDir !== '.' && $methodDir !== '..' && $methodDir !== '_deprecated' && is_dir($methodsDir . $methodDir)) {
                         // Alt klasörleri işleme
-                        if ($methodDir == "woo" && !ENABLE_ECOMMERCE) {
+                        if ($methodDir == "woo" && (!defined('ENABLE_ECOMMERCE') || !ENABLE_ECOMMERCE)) {
                             continue;
                         }
                         $this->processSubfolder($methodsDir . $methodDir, $methodDir, $indexPhpContent, $indexJsContent, $includeParentFolderName, $platform);
@@ -49,41 +49,26 @@ class MethodClass {
 
         // index.php dosyasını geçici olarak oluşturma
         $tempPhpFilePath = $storeDir . 'index_temp.php';
-        $indexPhpFile = fopen($tempPhpFilePath, 'w');
-        fwrite($indexPhpFile, $this->optimizeCode($indexPhpContent));
-        fclose($indexPhpFile);
+        file_put_contents($tempPhpFilePath, $this->optimizeCode($indexPhpContent), LOCK_EX);
 
         // Kod hatalarını kontrol et
         $errors = [];
         if(isLocalhost()){
-            if($this->checkForSyntaxErrors($tempPhpFilePath)){
-                unlink($tempPhpFilePath);
-                $errors = $this->checkForSyntaxErrors($storeDir);
-            }
+            $errors = $this->checkForSyntaxErrors($tempPhpFilePath);
         }
 
         if (!$errors) {
-            // Eğer hata yoksa temp dosyasını sil
             unlink($tempPhpFilePath);
-
-            // index.php dosyasını oluştur veya güncelle
-            $indexPhpFile = fopen($storeDir . 'index.php', 'w');
-            fwrite($indexPhpFile, $this->optimizeCode($indexPhpContent));
-            fclose($indexPhpFile);
+            file_put_contents($storeDir . 'index.php', $this->optimizeCode($indexPhpContent), LOCK_EX);
             $this->copyToTheme($storeDir . 'index.php', THEME_INCLUDES_PATH . ($platform=="frontend"?"methods":$platform) ."/index.php");
-
         } else {
-            // Eğer hata varsa temp dosyasını sil ve hata mesajını görüntüle
             if(file_exists($tempPhpFilePath)){
                 unlink($tempPhpFilePath);
             }
-            //echo "Kod hataları tespit edildi:\n$error";
         }
 
         // index.js dosyasını oluşturma
-        $indexJsFile = fopen($storeDir . 'index.js', 'w');
-        fwrite($indexJsFile, $this->optimizeCode($indexJsContent));
-        fclose($indexJsFile);
+        file_put_contents($storeDir . 'index.js', $this->optimizeCode($indexJsContent), LOCK_EX);
         $this->copyToTheme($storeDir . 'index.js', STATIC_PATH . 'js/'.($platform=="frontend"?"methods":$platform).'.min.js');
         
         return $errors;
@@ -109,30 +94,70 @@ class MethodClass {
     private function requirement($phpContent = "") {
         $settingLine = '$required_setting';
 
-        if (strpos($phpContent, $settingLine) !== false) {
-            $settingValueStart = strpos($phpContent, $settingLine) + strlen($settingLine);
-            $settingValueEnd = strpos($phpContent, ";", $settingValueStart);
-
-            if ($settingValueStart !== false && $settingValueEnd !== false) {
-                $variableName = trim(substr($phpContent, $settingValueStart, $settingValueEnd - $settingValueStart));
-                $equalsIndex = strpos($variableName, "=");
-
-                // remove required_setting line
-                $settingLineLength = $settingValueEnd - $settingValueStart + 1;
-                $phpContent = substr_replace($phpContent, "", $settingValueStart, $settingLineLength);
-                $phpContent = str_replace($settingLine, "", $phpContent);
-
-                if ($equalsIndex !== false) {
-                    $variableName = trim(str_replace("=", "", $variableName));
-                }
-                if (defined($variableName)) {
-                    if (!constant($variableName)) {
-                        $phpContent = "";
-                    }
-                }
-            }
+        if (strpos($phpContent, $settingLine) === false) {
+            return $phpContent;
         }
-        return $phpContent;
+
+        // Extract the line: $required_setting = EXPRESSION;
+        $settingValueStart = strpos($phpContent, $settingLine);
+        $settingValueEnd = strpos($phpContent, ";", $settingValueStart);
+
+        if ($settingValueStart === false || $settingValueEnd === false) {
+            return $phpContent;
+        }
+
+        // Get the full line and extract expression after "="
+        $fullLine = substr($phpContent, $settingValueStart, $settingValueEnd - $settingValueStart + 1);
+        $equalsPos = strpos($fullLine, "=");
+        if ($equalsPos === false) return $phpContent;
+
+        $expression = trim(substr($fullLine, $equalsPos + 1, -1)); // remove "=" and ";"
+
+        // Remove the $required_setting line from content
+        $phpContent = str_replace($fullLine, "", $phpContent);
+
+        // Evaluate the expression safely
+        // Supports: single constant, CONST && CONST, CONST || CONST, !CONST
+        $result = $this->evaluate_requirement($expression);
+
+        return $result ? $phpContent : "";
+    }
+
+    /**
+     * Safely evaluate a requirement expression made of constants and logical operators
+     * Supports: CONST, CONST && CONST, CONST || CONST, !CONST
+     */
+    private function evaluate_requirement($expression) {
+        $expression = trim($expression);
+
+        // Handle || (OR) — split and check if any part is true
+        if (strpos($expression, '||') !== false) {
+            $parts = array_map('trim', explode('||', $expression));
+            foreach ($parts as $part) {
+                if ($this->evaluate_requirement($part)) return true;
+            }
+            return false;
+        }
+
+        // Handle && (AND) — split and check if all parts are true
+        if (strpos($expression, '&&') !== false) {
+            $parts = array_map('trim', explode('&&', $expression));
+            foreach ($parts as $part) {
+                if (!$this->evaluate_requirement($part)) return false;
+            }
+            return true;
+        }
+
+        // Handle negation: !CONST
+        $negate = false;
+        if (strpos($expression, '!') === 0) {
+            $negate = true;
+            $expression = trim(substr($expression, 1));
+        }
+
+        // Single constant check
+        $value = defined($expression) ? (bool) constant($expression) : false;
+        return $negate ? !$value : $value;
     }
 
     private function processSubfolder($subfolderPath, $subfolderName, &$indexPhpContent, &$indexJsContent, $includeParentFolderName, $platform) {
@@ -173,7 +198,10 @@ class MethodClass {
         $subDirs = scandir($subfolderPath);
         foreach ($subDirs as $subDir) {
             if ($subDir !== '.' && $subDir !== '..' && $subDir !== '_deprecated' && is_dir($subfolderPath . '/' . $subDir)) {
-                // Alt klasörleri işleme (rekürsif olarak)
+                // WooCommerce check (recursive'de de)
+                if ($subDir === "woo" && (!defined('ENABLE_ECOMMERCE') || !ENABLE_ECOMMERCE)) {
+                    continue;
+                }
                 $pathName = ($includeParentFolderName ? $subfolderName . '/' : '') . $subDir;
                 $this->processSubfolder($subfolderPath . '/' . $subDir, $pathName, $indexPhpContent, $indexJsContent, $includeParentFolderName, $platform);
             }

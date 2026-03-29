@@ -198,11 +198,6 @@ function custom_search_add_term() {
     if ( have_posts() ) {
         $term = get_query_var("q");
         $post_type = get_query_var("qpt");
-         //error_log("sonuc var ".$term." ".$post_type);
-         //error_log(json_encode($post_type));
-        if ( ENABLE_SEARCH_HISTORY ) {
-            $search_history_obj = new SearchHistory();
-            $search_history_obj->set_term($term, $post_type);
-        }
+        // Search history artık SearchHistory::auto_track_search() hook'u ile otomatik kaydediliyor
     }
 }

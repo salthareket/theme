@@ -73,7 +73,7 @@ function onClassChange($obj, $class, $callback){
 	      var attributeValue = $(mutation.target).prop(mutation.attributeName);
 	      var classes = attributeValue.split(/\s+/);
 	      if(classes.indexOf($class) > -1 && typeof $callback === "function"){
-	      	 eval($callback)();
+	      	 $callback();
 	      	 debugJS("Class attribute changed to:", attributeValue);
 	      }
 	    }
@@ -273,16 +273,20 @@ function text2clipboard(){
     	var span = $(this).find("span");
         span.css("background-color", "#ddd");
         var textToCopy = $(this).text();
-        var tempTextarea = $('<textarea>');
-        $('body').append(tempTextarea);
-        tempTextarea.val(textToCopy).select();
-        document.execCommand('copy');
-        tempTextarea.remove();
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy);
+        } else {
+            var tempTextarea = $('<textarea>');
+            $('body').append(tempTextarea);
+            tempTextarea.val(textToCopy).select();
+            document.execCommand('copy');
+            tempTextarea.remove();
+        }
+
         span.animate({
             backgroundColor : "transparent"
-          }, 1000, function() {
-            // Animation complete.
-          });
+          }, 1000, function() {});
     });
 }
 
@@ -729,7 +733,7 @@ function translate(str, count = 1, replacements = {}) {
 
 
 // Bekleyen Init İşlemleri (Modüllerin yüklenmesini bekleyen)
-waiting_init = {
+var waiting_init = {
     elements: [],
     add: function(elements, callback) {
         this.elements.push({

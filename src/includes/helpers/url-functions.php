@@ -1,657 +1,354 @@
 <?php
 
+/**
+ * URL Helper Functions
+ *
+ * URL doğrulama, dönüştürme, parse etme ve navigasyon yardımcıları.
+ * Tüm fonksiyonlar mevcut tema API'si ile uyumludur.
+ */
+
+// ─── Doğrulama & Bilgi ──────────────────────────────────────────
+
 function is_url($url) {
     return filter_var($url, FILTER_VALIDATE_URL) !== false;
 }
 
-Function get_host_url(){
-    return site_url();	
+function get_host_url() {
+    return site_url();
 }
 
-function get_url_domain($url){
-	$pieces = parse_url($url);
-    $domain = isset($pieces['host']) ? $pieces['host'] : '';
-    if (preg_match('/(?P<domain>[a-z0-9][a-z0-9\-]{1,63}\.[a-z\.]{2,6})$/i', $domain,    $regs)) {
-       return strstr( $regs['domain'], '.', true );
+/**
+ * URL'den sadece domain adını (TLD hariç) döndürür.
+ * Örn: https://www.example.com/path → "example"
+ */
+function get_url_domain($url) {
+    $host = parse_url($url, PHP_URL_HOST) ?: '';
+    if (preg_match('/(?P<domain>[a-z0-9][a-z0-9\-]{1,63}\.[a-z\.]{2,6})$/i', $host, $m)) {
+        return strstr($m['domain'], '.', true);
     }
+    return '';
 }
 
-function get_host_domain_url(){
-	return preg_replace("(^https?://)", "", site_url() );
+/**
+ * Site URL'sini protokolsüz döndürür.
+ * Örn: https://example.com → example.com
+ */
+function get_host_domain_url() {
+    return preg_replace('#^https?://#', '', site_url());
 }
 
-function extract_url($string){
-   preg_match_all('/\b(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)[-A-Z0-9+&@#\/%=~_|$?!:,.]*[A-Z0-9+&@#\/%=~_|$]/i', $string, $result, PREG_PATTERN_ORDER);
-   if(isset($result[0][0])){
-   	  return $result[0][0];
-   }
-   return;   
+function is_local($url = "") {
+    return parse_url(get_site_url(), PHP_URL_HOST) === parse_url($url, PHP_URL_HOST);
 }
 
-function make_hash_url($url,$hash) {
-	  if(!empty($url) && $hash){
-		 $url=str_replace(get_host_url(),'',$url);
-		 $url_hash=explode('/',$url);
-		 $url_hash=array_filter($url_hash, function($a){return trim($a)!=="";});
-		 $url_hash=array_values($url_hash);
-		 $hash = end($url_hash);
-		 //array_pop($url_hash);
-         //$url_hash = join("/",$url_hash);
-		 //$url_hash=$url_hash[0];		 
-		 str_replace("#",$hash,"");
-		 return get_host_url().'/'.$url_hash[0].'#'.$hash;
-	  }else{
-		  return $url;  
-	  }
+function is_external($url = "") {
+    return Timber\URLHelper::is_external($url);
 }
 
-function make_onepage_url($item, $full_url) {
-	  $url=$item->link;
-	  $lang='';
-	  $hashbang='#';
-
-	  if(!empty($url) && $item->hash_url ){
-		  $site_url = site_url();//.'.tr';
-		  $url_temp=$url;
-		  $multilanguage = false;
-		  $lang = "";
-
-		  if(function_exists('qtranxf_getLanguage')){
-		  	 $multilanguage = true;
-			 $lang = qtranxf_getLanguage();
-			 $lang_default = qtranxf_getLanguageDefault();
-			 $url_temp = str_replace($lang.'/',"",$url_temp);
-		  }
-
-          if(function_exists('icl_get_languages')){
-          	 global $sitepress;
-          	 $multilanguage = true;
-			 $lang = ICL_LANGUAGE_CODE;
-			 $lang_default = $sitepress->get_default_language();
-			 $url_temp = str_replace($lang.'/',"",$url_temp);
-		  }
-
-		  $url_temp = str_replace($site_url,"",$url_temp);
-		  $link_arr = explode('/',$url_temp);
-
-		  if(count($link_arr)>0){
-			  $link_arr = array_values(array_filter($link_arr, function($a){return trim($a)!=="";}));
-			  $url_end = str_replace("#","",end($link_arr));
-			  if($multilanguage){
-				  if(!empty($lang) && $lang!=$lang_default){
-					 $lang=$lang.'/'; 
-				  }else{
-					 $lang='';  
-				  }			  	
-			  }
-			  $url_end=(!empty($url_end)?$hashbang.$url_end:$hashbang.$item->slug);
-              
-              $home_page_url = get_home_url();
-			  $home_page_id = url_to_postid($home_page_url);
-
-			  if($home_page_id == $item->post_parent){
-	              $result = $home_page_url.$url_end;
-			  }else{
-			      array_pop($link_arr);
-	              $link_arr = join("/",$link_arr);
-	              $paths = $link_arr;
-				  $result = $site_url.'/'.$paths.'/'.$lang.$url_end;
-			  }
-
-			  return trim(str_replace(get_host_domain_url().'.',"",$result));
-		  }else{
-			  $result = ($full_url || !is_front_page() ? $url : '').$hashbang.$item->slug;
-			  return trim(str_replace(get_host_domain_url().'.',"",$result));
-		  }
-	  }else{		  
-		  return $url;  
-	  }
-}
-function make_onepage_url_by_id($id,$end_slug) {
-	  $url=get_permalink($id);
-	  $lang='';
-	  $hashbang='#';
-	  if(!empty($url)){
-		  $site_url = site_url();
-		  $url_temp=$url;
-		  if(function_exists('qtranxf_getLanguage')){
-			 $lang = qtranxf_getLanguage();
-			 $url_temp = str_replace($lang.'/',"",$url_temp);
-		  }
-		  $url_temp = str_replace($site_url,"",$url_temp);
-		  $link_arr = explode('/',$url_temp);
-		  if(count($link_arr)>0){
-			  $link_arr = array_values(array_filter($link_arr, create_function('$a','return trim($a)!=="";')));
-			  $url_end = str_replace("#","",($end_slug?end($link_arr):join('/',$link_arr)));
-			  if(!empty($lang) && $lang!=qtranxf_getLanguageDefault()){
-				 $lang=$lang.'/'; 
-			  }else{
-				$lang='';  
-			  }
-			  $url_end=(!empty($url_end)?$hashbang.$url_end:$hashbang.$item->slug);
-			  $result = ($full_url || !is_front_page()?site_url().'/'.$lang:'').$url_end;
-			  $result = str_replace('http:/',"",$result);
-			  return str_replace(get_host_domain_url().'.',"",$result);
-		  }else{
-			  $result = ($full_url || !is_front_page() ? $url : '').$hashbang.$item->slug ;
-			  $result = str_replace('http:/',"",$result);
-			  return str_replace(get_host_domain_url().'.',"",$result);
-		  }
-	  }else{		  
-		  return $url;  
-	  }
-}
-
-function current_url($port=false) {
-
-  if(isLocalhost()){
-  	$port = true;
-  }
-  // Protocol
-  if(!empty($_SERVER['HTTPS'])){
-     $url = ( 'on' == $_SERVER['HTTPS'] ) ? 'https://' : 'http://';
-  }else{
-	 $url = 'http://'; 
-  }
-  $url .= $_SERVER['SERVER_NAME'];
-
-  // Port
-  if($port){
-  	$url .= ( '80' == $_SERVER['SERVER_PORT'] ) ? '' : ':' . $_SERVER['SERVER_PORT'];
-  }
-  $url .= $_SERVER['REQUEST_URI'];
-  return $url;//trailingslashit( $url );
-}
-
-function is_current_url($url="", $hash=false){
-	if($hash && strpos($url, "#") > -1){
-		$url = explode("#", $url)[0];
-	}
-	return ($url == current_url());
-}
-
-
-function bwp_url_to_postid($url){
-	global $wp_rewrite;
-
-	$url = apply_filters('url_to_postid', $url);
-
-	// First, check to see if there is a 'p=N' or 'page_id=N' to match against
-	if ( preg_match('#[?&](p|page_id|attachment_id)=(\d+)#', $url, $values) )	{
-		$id = absint($values[2]);
-		if ( $id )
-			return $id;
-	}
-
-	// Check to see if we are using rewrite rules
-	$rewrite = $wp_rewrite->wp_rewrite_rules();
-
-	// Not using rewrite rules, and 'p=N' and 'page_id=N' methods failed, so we're out of options
-	if ( empty($rewrite) )
-		return 0;
-
-	// Get rid of the #anchor
-	$url_split = explode('#', $url);
-	$url = $url_split[0];
-
-	// Get rid of URL ?query=string
-	$url_split = explode('?', $url);
-	$url = $url_split[0];
-
-	// Add 'www.' if it is absent and should be there
-	if ( false !== strpos(home_url(), '://www.') && false === strpos($url, '://www.') )
-		$url = str_replace('://', '://www.', $url);
-
-	// Strip 'www.' if it is present and shouldn't be
-	if ( false === strpos(home_url(), '://www.') )
-		$url = str_replace('://www.', '://', $url);
-
-	// Strip 'index.php/' if we're not using path info permalinks
-	if ( !$wp_rewrite->using_index_permalinks() )
-		$url = str_replace('index.php/', '', $url);
-
-	if ( false !== strpos($url, home_url()) ) {
-		// Chop off http://domain.com
-		$url = str_replace(home_url(), '', $url);
-	} else {
-		// Chop off /path/to/blog
-		$home_path = parse_url(home_url());
-		$home_path = isset( $home_path['path'] ) ? $home_path['path'] : '' ;
-		$url = str_replace($home_path, '', $url);
-	}
-
-	// Trim leading and lagging slashes
-	$url = trim($url, '/');
-
-	$request = $url;
-	// Look for matches.
-	$request_match = $request;
-	foreach ( (array)$rewrite as $match => $query) {
-		// If the requesting file is the anchor of the match, prepend it
-		// to the path info.
-		if ( !empty($url) && ($url != $request) && (strpos($match, $url) === 0) )
-			$request_match = $url . '/' . $request;
-
-		if ( preg_match("!^$match!", $request_match, $matches) ) {
-			// Got a match.
-			// Trim the query of everything up to the '?'.
-			$query = preg_replace("!^.+\?!", '', $query);
-
-			// Substitute the substring matches into the query.
-			$query = addslashes(WP_MatchesMapRegex::apply($query, $matches));
-
-			// Filter out non-public query vars
-			global $wp;
-			parse_str($query, $query_vars);
-			$query = array();
-			foreach ( (array) $query_vars as $key => $value ) {
-				if ( in_array($key, $wp->public_query_vars) )
-					$query[$key] = $value;
-			}
-
-		// Taken from class-wp.php
-		foreach ( $GLOBALS['wp_post_types'] as $post_type => $t )
-			if ( $t->query_var )
-				$post_type_query_vars[$t->query_var] = $post_type;
-
-		foreach ( $wp->public_query_vars as $wpvar ) {
-			if ( isset( $wp->extra_query_vars[$wpvar] ) )
-				$query[$wpvar] = $wp->extra_query_vars[$wpvar];
-			elseif ( isset( $_POST[$wpvar] ) )
-				$query[$wpvar] = $_POST[$wpvar];
-			elseif ( isset( $_GET[$wpvar] ) )
-				$query[$wpvar] = $_GET[$wpvar];
-			elseif ( isset( $query_vars[$wpvar] ) )
-				$query[$wpvar] = $query_vars[$wpvar];
-
-			if ( !empty( $query[$wpvar] ) ) {
-				if ( ! is_array( $query[$wpvar] ) ) {
-					$query[$wpvar] = (string) $query[$wpvar];
-				} else {
-					foreach ( $query[$wpvar] as $vkey => $v ) {
-						if ( !is_object( $v ) ) {
-							$query[$wpvar][$vkey] = (string) $v;
-						}
-					}
-				}
-
-				if ( isset($post_type_query_vars[$wpvar] ) ) {
-					$query['post_type'] = $post_type_query_vars[$wpvar];
-					$query['name'] = $query[$wpvar];
-				}
-			}
-		}
-
-			// Do the query
-		    $query = new WP_Query($query);
-			if ( !empty($query["posts"]) && $query["is_singular"] )
-				return $query["posts"][0]->ID;
-			else
-				return 0;
-		}
-	}
-	return 0;
-}
-
-/*function getSiteSubfolder(){
-	$url_site = get_site_url();
-	$url = parse_url($url_site);
-	//$url_local = $url["scheme"]."://".$url["host"].($url["host"] == "localhost"?":".$url["port"]:"")."/";
-	$url_local = $url["host"].($url["host"] == "localhost" && (isset($url["port"]) && !empty($url["port"]) && $url["port"] != "80")?":".$url["port"]:"");//."/";
-	$subFolderPath = str_replace($url["scheme"]."://", "", $url_site);
-    $subFolderPath = str_replace($url_local, "", $subFolderPath);
-	//$subFolderPath = explode("/", str_replace($url_local, "", $url_site));
-	$subFolder = "/";
-	if($subFolderPath){
-       $subFolder = $subFolderPath."/";//"/".$subFolderPath[0]."/";
-	}
-	return $subFolder;
-}*/
-function getSiteSubfolder(){
-    $url_site = get_site_url();
-    $url = parse_url($url_site);
-    $url_local = $url["host"] . (isset($url["port"]) && $url["port"] !== "80" ? ":" . $url["port"] : "");
-    $subFolderPath = str_replace($url["scheme"] . "://", "", $url_site);
-    $subFolderPath = str_replace($url_local, "", $subFolderPath);
-    $subFolder = "/";
-    if($subFolderPath){
-        $subFolder = '/' . trim($subFolderPath, '/') . '/';
+function is_current_url($url = "", $hash = false) {
+    if ($hash && str_contains($url, '#')) {
+        $url = explode('#', $url)[0];
     }
-    return $subFolder;
+    return $url === current_url();
 }
 
-/*
-function getUrlEndpoint($url=""){
-	if(empty($url)){
-		$url = current_url();
-	}
-    $url_path = parse_url($url)["path"];
-    print_r($base_endpoint." - ".$url_path);
-    if(!empty($url_path)){
-	    $url_path = trim($url_path, "/");
-	    $url_path = explode("/",$url_path);
-		return end($url_path);    	
-    }else{
-    	return "";
-    }
-}*/
-function getUrlParts($url = ""){
-    if (empty($url)) {
-        $url = current_url();
-    }
-    $url_path = parse_url($url)["path"];
-    $url_path = trim($url_path, "/");
-    
-    $subfolder = getSiteSubfolder();
-    if(!empty($subfolder)){
-    	$url_path = str_replace($subfolder, "", $url_path);
-    }
-    $url_path = explode("/", $url_path);
-    return $url_path;
-}
-function getUrlEndpoint($url = "", $base_endpoint = "") {
-    if (empty($url)) {
-        $url = current_url();
-    }
-    $url_path = parse_url($url)["path"];
-    $url_path = trim($url_path, "/");
-    
-    $url_segments = explode("/", $url_path);
-    $base_index = array_search($base_endpoint, $url_segments);
-
-    if ($base_index !== false && isset($url_segments[$base_index + 1])) {
-        $endpoint = $url_segments[$base_index + 1];
-    } else {
-        $endpoint = end($url_segments);
-    }
-
-    $subfolder = getSiteSubfolder();
-    if(!empty($subfolder)){
-    	$subfolder = str_replace("/", "", $subfolder);
-    	$endpoint = str_replace($subfolder, "", $endpoint);
-    }
-    return $endpoint;
-}
 function isCurrentEndpoint($url = "") {
-	$endpoint = getUrlEndpoint($url);
-    return Timber\URLHelper::get_params(-1)==$endpoint?true:false;
+    return Timber\URLHelper::get_params(-1) === getUrlEndpoint($url);
 }
 
-/*function isLocalhost(){
-	$whitelist = array(
-	    '127.0.0.1',
-	    '::1'
-	);
-	return in_array($_SERVER['REMOTE_ADDR'], $whitelist);
-}*/
+// ─── Localhost Tespiti ───────────────────────────────────────────
 
 function isLocalhost() {
-    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
-    $serverAddr = $_SERVER['SERVER_ADDR'] ?? '';
+    static $result = null;
+    if ($result !== null) return $result;
 
-    $local_ips = [
-        '127.0.0.1',
-        '::1',
-        'localhost'
-    ];
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+    $server = $_SERVER['SERVER_ADDR'] ?? '';
 
-    // Private network aralıkları
-    $private_ranges = [
-        '10.0.0.0/8',
-        '172.16.0.0/12',
-        '192.168.0.0/16'
-    ];
+    $locals = ['127.0.0.1', '::1', 'localhost'];
 
-    // IP'yi CIDR aralığında kontrol eden fonksiyon
-    $inPrivateRange = function ($ip) use ($private_ranges) {
-        foreach ($private_ranges as $cidr) {
-            list($subnet, $mask) = explode('/', $cidr);
-            if ((ip2long($ip) & ~((1 << (32 - $mask)) - 1)) === (ip2long($subnet) & ~((1 << (32 - $mask)) - 1))) {
-                return true;
+    if (in_array($remote, $locals) || in_array($server, $locals)) {
+        return $result = true;
+    }
+
+    // Private network CIDR kontrolü
+    foreach ([$remote, $server] as $ip) {
+        $long = ip2long($ip);
+        if ($long === false) continue;
+        foreach (['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'] as $cidr) {
+            [$subnet, $bits] = explode('/', $cidr);
+            $mask = -1 << (32 - (int)$bits);
+            if (($long & $mask) === (ip2long($subnet) & $mask)) {
+                return $result = true;
             }
         }
-        return false;
-    };
-
-    if (in_array($remoteAddr, $local_ips) || in_array($serverAddr, $local_ips)) {
-        return true;
     }
 
-    if ($inPrivateRange($remoteAddr) || $inPrivateRange($serverAddr)) {
-        return true;
+    return $result = false;
+}
+
+// ─── Mevcut URL & Parçalama ─────────────────────────────────────
+
+function current_url($port = false) {
+    if (isLocalhost()) $port = true;
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
+    $host   = $_SERVER['SERVER_NAME'] ?? 'localhost';
+    $p      = ($port && ($_SERVER['SERVER_PORT'] ?? '80') !== '80') ? ':' . $_SERVER['SERVER_PORT'] : '';
+    $uri    = $_SERVER['REQUEST_URI'] ?? '/';
+
+    return $scheme . $host . $p . $uri;
+}
+
+/**
+ * Site subfolder'ını döndürür.
+ * Örn: http://localhost/my-site → /my-site/
+ * Subfolder yoksa → /
+ */
+function getSiteSubfolder() {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+
+    $parsed = parse_url(get_site_url());
+    $path   = trim($parsed['path'] ?? '', '/');
+
+    return $cache = $path ? "/{$path}/" : '/';
+}
+
+/**
+ * URL'yi parçalara ayırır, subfolder'ı çıkarır.
+ */
+function getUrlParts($url = "") {
+    if (empty($url)) $url = current_url();
+
+    $path = trim(parse_url($url, PHP_URL_PATH) ?: '', '/');
+
+    $subfolder = trim(getSiteSubfolder(), '/');
+    if ($subfolder) {
+        $path = preg_replace('#^' . preg_quote($subfolder, '#') . '/?#', '', $path);
     }
 
-    return false;
+    return $path !== '' ? explode('/', $path) : [];
 }
 
+/**
+ * URL'den endpoint slug'ını çıkarır.
+ * $base_endpoint verilmişse ondan sonraki segmenti döndürür.
+ */
+function getUrlEndpoint($url = "", $base_endpoint = "") {
+    if (empty($url)) $url = current_url();
 
-function queryStringJSON(){
-	//if(empty($querystring)){
-	$querystring = $_SERVER['QUERY_STRING'];
-	//}
-	$keywords = preg_split("/[\s,=,&]+/", $querystring);
-	$arr=array();
-	for($i=0;$i<sizeof($keywords);$i++){
-	   $value = "";
-	   if(isset($keywords[$i+1])){
-	   	  $value=$keywords[$i+1];
-	   }
-	   $arr[$keywords[$i]] = $value;
-	   ++$i;
-	}
-	$obj =(object)$arr;
-	//$obj=
-	return json_encode($obj);
+    $segments = explode('/', trim(parse_url($url, PHP_URL_PATH) ?: '', '/'));
+
+    if ($base_endpoint !== '') {
+        $idx = array_search($base_endpoint, $segments);
+        if ($idx !== false && isset($segments[$idx + 1])) {
+            $endpoint = $segments[$idx + 1];
+        } else {
+            $endpoint = end($segments) ?: '';
+        }
+    } else {
+        $endpoint = end($segments) ?: '';
+    }
+
+    // Subfolder adını endpoint'ten temizle
+    $subfolder = trim(getSiteSubfolder(), '/');
+    if ($subfolder && $endpoint === $subfolder) {
+        $endpoint = '';
+    }
+
+    return $endpoint;
 }
 
+// ─── URL Çıkarma & Dönüştürme ───────────────────────────────────
 
-function rel2abs($rel, $base){
-    /* return if already absolute URL */
-    if (parse_url($rel, PHP_URL_SCHEME) != '') return $rel;
+/**
+ * String içindeki ilk URL'yi bulur ve döndürür.
+ */
+function extract_url($string) {
+    if (preg_match('/\b(?:https?|ftp|file):\/\/[-A-Z0-9+&@#\/%=~_|$?!:,.]*[A-Z0-9+&@#\/%=~_|$]/i', $string, $m)) {
+        return $m[0];
+    }
+    return null;
+}
 
-    /* queries and anchors */
-    if ($rel[0]=='#' || $rel[0]=='?') return $base.$rel;
+/**
+ * Relative URL'yi absolute'a çevirir.
+ */
+function rel2abs($rel, $base) {
+    if (parse_url($rel, PHP_URL_SCHEME) !== null && parse_url($rel, PHP_URL_SCHEME) !== '') return $rel;
+    if (isset($rel[0]) && ($rel[0] === '#' || $rel[0] === '?')) return $base . $rel;
 
-    /* parse base URL and convert to local variables:
-       $scheme, $host, $path */
-    extract(parse_url($base));
+    $parts  = parse_url($base);
+    $scheme = $parts['scheme'] ?? 'https';
+    $host   = $parts['host'] ?? '';
+    $path   = $parts['path'] ?? '';
 
-    /* remove non-directory element from path */
     $path = preg_replace('#/[^/]*$#', '', $path);
+    if (isset($rel[0]) && $rel[0] === '/') $path = '';
 
-    /* destroy path if relative url points to root */
-    if ($rel[0] == '/') $path = '';
+    $abs = "{$host}{$path}/{$rel}";
 
-    /* dirty absolute URL */
-    $abs = "$host$path/$rel";
+    // /./ ve /../ temizliği
+    $re = ['#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#'];
+    for ($n = 1; $n > 0; $abs = preg_replace($re, '/', $abs, -1, $n)) {}
 
-    /* replace '//' or '/./' or '/foo/../' with '/' */
-    $re = array('#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#');
-    for($n=1; $n>0; $abs=preg_replace($re, '/', $abs, -1, $n)) {}
-
-    /* absolute URL is ready! */
-    return $scheme.'://'.$abs;
+    return "{$scheme}://{$abs}";
 }
 
+/**
+ * Absolute path'i relative path'e çevirir.
+ */
 function abs2rel(string $base, string $path) {
     if (is_dir($base)) {
-        $base = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ".";
+        $base = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.';
     }
- 
+
     $a = explode(DIRECTORY_SEPARATOR, $base);
     $b = explode(DIRECTORY_SEPARATOR, $path);
- 
-    $d = [];   // $path push
-    $i = count($a)-1;
- 
-    $sliceEquals = function($a, $b, $j) {
-        if ($j >= count($a) || $j >= count($b)) {
-            throw new Exception('$j out of range');
-        }
-        for ($i = $j; $i >= 0; $i--) {
-            if (strcmp($b[$i], $a[$i])!==0) {
-                return false;
-            }
-        }
-        return true;
-    };
-         // find a, b are the same index of the array element
-    while (array_pop($a)) {
-        $i = count($a)-1;
-        if (isset($b[$i])) {
-            if ($sliceEquals($a, $b, $i)) {
-                break;
-            }
-        }
-        array_push($d, "..");
+
+    // Ortak prefix'i bul
+    $common = 0;
+    $limit  = min(count($a), count($b));
+    while ($common < $limit && $a[$common] === $b[$common]) {
+        $common++;
     }
-         // start from the first different elements
-    for ($i+=1; $i < count($b); $i++) {
-        array_push($d, $b[$i]);
-    }
-    return ".".DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $d);
+
+    // Geri dönüş (..) sayısı: $a'nın kalan derinliği - 1 (dosya adı)
+    $ups      = count($a) - $common - 1;
+    $relative = array_merge(array_fill(0, max(0, $ups), '..'), array_slice($b, $common));
+
+    return '.' . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $relative);
 }
 
-/*function to_relative_url($input) {
-    if (strpos($input, 'http') === 0) {
-        $url = getSiteSubfolder() . str_replace(home_url(), '', $input);
-        return str_replace("//", "/", $url);
-    } elseif (file_exists($input)) {
-        $url = getSiteSubfolder() . str_replace('\\', '/', str_replace(ABSPATH, '/', $input));
-        return str_replace("//", "/", $url);
-    }
-    return $input;
-}*/
+/**
+ * Absolute URL veya fiziksel path'i site-relative URL'ye çevirir.
+ */
 function to_relative_url($input) {
     if (empty($input)) return $input;
 
-    // 1. home_url() zaten alt klasörü içerir (Örn: http://localhost/grand-galata-hotel)
-    // Bunu input içinden komple silelim.
-    $site_url = rtrim(home_url(), '/');
-    
-    // 2. Senin getSiteSubfolder() fonksiyonundan gelen klasör adını alalım
-    // (Örn: /grand-galata-hotel)
-    $subfolder = function_exists('getSiteSubfolder') ? '/' . trim(getSiteSubfolder(), '/') : '';
+    $site_url  = rtrim(home_url(), '/');
+    $subfolder = '/' . trim(getSiteSubfolder(), '/');
+    if ($subfolder === '/') $subfolder = '';
 
+    // Absolute URL → relative
     if (stripos($input, 'http') === 0) {
-        // Domain ve subfolder kısmını sil (Sadece /wp-content/... kalır)
         $path_only = str_ireplace($site_url, '', $input);
-        
-        // Şimdi başına subfolder'ı tekrar ekle
         $url = $subfolder . '/' . ltrim($path_only, '/');
-    } 
-    elseif (stripos($input, ABSPATH) === 0) {
-        // Eğer fiziksel yolsa (C:\... veya /var/www/...)
-        $relative_to_abspath = str_replace(ABSPATH, '', $input);
-        $url = $subfolder . '/' . ltrim(str_replace('\\', '/', $relative_to_abspath), '/');
-    } 
+    }
+    // Fiziksel path → relative
+    elseif (defined('ABSPATH') && stripos($input, ABSPATH) === 0) {
+        $rel = str_replace(['\\', ABSPATH], ['/', ''], $input);
+        $url = $subfolder . '/' . ltrim($rel, '/');
+    }
+    // Zaten relative
     else {
-        // Zaten relative bir yolsa başına subfolder ekle (eğer yoksa)
-        if (!empty($subfolder) && stripos($input, $subfolder) !== 0) {
+        if ($subfolder && stripos($input, $subfolder) !== 0) {
             $url = $subfolder . '/' . ltrim($input, '/');
         } else {
             $url = '/' . ltrim($input, '/');
         }
     }
 
-    // Çift slashları (//) tek slash'a indirge
-    return str_replace("//", "/", $url);
+    // Çift slash temizliği (protokol hariç)
+    return preg_replace('#(?<!:)//+#', '/', $url);
 }
+
 /**
- * Çok katmanlı array içindeki tüm URL'leri bulur ve relative hale getirir.
+ * Array içindeki tüm absolute URL'leri recursive olarak relative yapar.
  */
 function array_urls_to_relative($input) {
-    // Eğer gelen veri array değilse (direkt string ise) direkt temizle dön
     if (!is_array($input)) {
-        if (is_string($input) && stripos($input, 'http') === 0) {
-            return to_relative_url($input);
-        }
-        return $input;
+        return (is_string($input) && stripos($input, 'http') === 0) ? to_relative_url($input) : $input;
     }
 
-    $clean_array = [];
-    foreach ($input as $key => $value) {
-        if (is_array($value)) {
-            // Derine inmeye devam et (Multi-level recursion)
-            $clean_array[$key] = array_urls_to_relative($value);
-        } else if (is_string($value) && stripos($value, 'http') === 0) {
-            // URL bulduk, patlat fonksiyonu
-            $clean_array[$key] = to_relative_url($value);
+    $out = [];
+    foreach ($input as $k => $v) {
+        if (is_array($v)) {
+            $out[$k] = array_urls_to_relative($v);
+        } elseif (is_string($v) && stripos($v, 'http') === 0) {
+            $out[$k] = to_relative_url($v);
         } else {
-            // Diğer veri tiplerini (int, bool vs.) olduğu gibi koru
-            $clean_array[$key] = $value;
+            $out[$k] = $v;
         }
     }
-
-    return $clean_array;
+    return $out;
 }
 
+// ─── URL Temizleme ──────────────────────────────────────────────
 
-function is_prefetch_request() {
-    if ( 
-    	( isset($_SERVER["HTTP_X_PURPOSE"]) && strtolower($_SERVER["HTTP_X_PURPOSE"]) == "preview") || 
-    	( isset($_SERVER["HTTP_X_MOZ"])    and strtolower($_SERVER["HTTP_X_MOZ"]) == "prefetch") ) {
-    	    return true;
-    }
-
-    $headers = getallheaders();
-    if (isset($headers['Purpose']) && $headers['Purpose'] === 'prefetch') {
-        return true;
-    }
-
-    // Farklı bir başlık da kontrol et
-    if (isset($headers['Sec-Purpose']) && $headers['Sec-Purpose'] === 'prefetch') {
-        return true;
-    }
-
-    return false;
-}
-
-function is_local($url = "") {
-    $site_url = parse_url(get_site_url(), PHP_URL_HOST); // Sadece domain: localhost
-    $img_url = parse_url($url, PHP_URL_HOST); // Gelen resmin domaini
-    return $site_url === $img_url;
-}
-
-function is_external($url=""){
-	return Timber\URLHelper::is_external($url);
-}
-
-
+/**
+ * URL'den /search/... ve /page/N parametrelerini temizler.
+ */
 function remove_params_from_url($url) {
-    $parsed_url = parse_url($url);
-    $path = $parsed_url['path'];
+    $p    = parse_url($url);
+    $path = $p['path'] ?? '';
+    $path = preg_replace('#(/search/[^/]+(/[^/]+)?)?(/page/\d+)?/?$#', '', $path);
 
-    // "search" ve "page" parametrelerini kaldırmak için güncellenmiş RegEx
-    $path = preg_replace('#(/search/[^/]+(/[^/]+)?)?(/page/[0-9]+)?(/)?$#', '', $path);
+    $scheme = isset($p['scheme']) ? $p['scheme'] . '://' : '';
+    $host   = $p['host'] ?? '';
+    $port   = isset($p['port']) ? ':' . $p['port'] : '';
 
-    // URL'nin scheme (http/https) kısmını kontrol et
-    $scheme = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
-
-    // URL'nin host (alan adı) kısmını kontrol et
-    $host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
-
-    // URL'nin port numarasını kontrol et
-    $port = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
-
-    // Temizlenmiş path ile yeni URL'yi oluştur
-    $clean_url = $scheme . $host . $port . $path;
-
-    return $clean_url;
-}
-function get_page_status($url=""){
-	$ch = curl_init($url);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($ch, CURLOPT_NOBODY, true); // Sadece başlıkları alır, içerik çekilmez.
-	curl_exec($ch);
-	$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-	curl_close($ch);
-	return $http_code;
+    return $scheme . $host . $port . $path;
 }
 
+/**
+ * URL'den dil kodu ve query string temizleyerek saf path döndürür.
+ * Polylang uyumlu.
+ */
+function get_clean_root_path($full_url) {
+    if (empty($full_url)) return '';
 
-function parse_external_url($url='', $internal_class='internal-link', $external_class='external-link'){
+    $path = parse_url($full_url, PHP_URL_PATH) ?: '/';
+    $path = strtok($path, '?#');
+
+    // /en/, /tr/ gibi 2 harfli dil prefix'ini temizle
+    $path = preg_replace('#^/[a-z]{2}/#', '/', $path);
+
+    return str_starts_with($path, '/') ? $path : '/' . $path;
+}
+
+// ─── HTTP Yardımcıları ──────────────────────────────────────────
+
+/**
+ * URL'nin HTTP durum kodunu döndürür (HEAD request).
+ */
+function get_page_status($url = "") {
+    if (empty($url) || !function_exists('curl_init')) return 0;
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_NOBODY         => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_SSL_VERIFYPEER => false,
+    ]);
+    curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    return $code;
+}
+
+/**
+ * Prefetch/prerender request mi kontrol eder.
+ */
+function is_prefetch_request() {
+    if (isset($_SERVER['HTTP_X_PURPOSE']) && strtolower($_SERVER['HTTP_X_PURPOSE']) === 'preview') return true;
+    if (isset($_SERVER['HTTP_X_MOZ']) && strtolower($_SERVER['HTTP_X_MOZ']) === 'prefetch') return true;
+
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    return ($headers['Purpose'] ?? '') === 'prefetch'
+        || ($headers['Sec-Purpose'] ?? '') === 'prefetch';
+}
+
+/**
+ * URL'yi parse edip internal/external bilgisi döndürür.
+ */
+function parse_external_url($url = '', $internal_class = 'internal-link', $external_class = 'external-link') {
     if (empty($url)) return false;
+
     $ext = Timber\URLHelper::is_external($url);
     return [
         'type'   => $ext ? 'external' : 'internal',
@@ -661,25 +358,228 @@ function parse_external_url($url='', $internal_class='internal-link', $external_
     ];
 }
 
+// ─── Query String ───────────────────────────────────────────────
+
+/**
+ * Mevcut query string'i JSON olarak döndürür.
+ */
+function queryStringJSON() {
+    parse_str($_SERVER['QUERY_STRING'] ?? '', $params);
+    return json_encode((object) $params);
+}
 
 
-function get_clean_root_path($full_url) {
-    if (empty($full_url)) return '';
+// ─── Hash / Onepage URL Yardımcıları ────────────────────────────
 
-    // 1. URL'den domaini ve protokolü söküp at (Sadece path kalsın)
-    $path = parse_url($full_url, PHP_URL_PATH);
+/**
+ * URL'yi hash URL'ye çevirir (onepage navigasyon).
+ */
+function make_hash_url($url, $hash) {
+    if (empty($url) || empty($hash)) return $url;
 
-    // 2. Varsa query stringleri temizle (?v=1.2 gibi)
-    $path = strtok($path, '?#');
+    $url      = str_replace(get_host_url(), '', $url);
+    $segments = array_values(array_filter(explode('/', $url), fn($s) => trim($s) !== ''));
 
-    // 3. Polylang gibi eklentilerin eklediği dil kodlarını (/en/, /tr/) en baştan temizle
-    // regex: başında / olan ve ardından 2 harfli dil kodu gelip tekrar / ile devam eden yapı
-    $clean_path = preg_replace('/^\/[a-z]{2}\//', '/', $path);
+    if (empty($segments)) return $url;
 
-    // 4. Eğer temizlemeden sonra başında / kalmadıysa ekle (Garantiye al)
-    if (strpos($clean_path, '/') !== 0) {
-        $clean_path = '/' . $clean_path;
+    $hash = end($segments);
+    return get_host_url() . '/' . $segments[0] . '#' . $hash;
+}
+
+/**
+ * Çokdilli onepage URL oluşturur (menü item'dan).
+ */
+function make_onepage_url($item, $full_url) {
+    $url = $item->link;
+    if (empty($url) || empty($item->hash_url)) return $url;
+
+    $site_url      = site_url();
+    $url_temp      = $url;
+    $multilanguage = false;
+    $lang          = '';
+    $lang_default  = '';
+
+    // qTranslate desteği
+    if (function_exists('qtranxf_getLanguage')) {
+        $multilanguage = true;
+        $lang          = qtranxf_getLanguage();
+        $lang_default  = qtranxf_getLanguageDefault();
+        $url_temp      = str_replace($lang . '/', '', $url_temp);
     }
 
-    return $clean_path;
+    // WPML desteği
+    if (function_exists('icl_get_languages')) {
+        global $sitepress;
+        $multilanguage = true;
+        $lang          = ICL_LANGUAGE_CODE;
+        $lang_default  = $sitepress->get_default_language();
+        $url_temp      = str_replace($lang . '/', '', $url_temp);
+    }
+
+    $url_temp = str_replace($site_url, '', $url_temp);
+    $segments = array_values(array_filter(explode('/', $url_temp), fn($s) => trim($s) !== ''));
+
+    if (empty($segments)) {
+        $result = ($full_url || !is_front_page() ? $url : '') . '#' . $item->slug;
+        return trim(str_replace(get_host_domain_url() . '.', '', $result));
+    }
+
+    $url_end = str_replace('#', '', end($segments));
+
+    // Dil prefix'i
+    if ($multilanguage && !empty($lang) && $lang !== $lang_default) {
+        $lang = $lang . '/';
+    } else {
+        $lang = '';
+    }
+
+    $hash = !empty($url_end) ? '#' . $url_end : '#' . $item->slug;
+
+    // Ana sayfa çocuğuysa kısa URL
+    $home_id = url_to_postid(get_home_url());
+    if ($home_id == $item->post_parent) {
+        $result = get_home_url() . $hash;
+    } else {
+        array_pop($segments);
+        $paths  = implode('/', $segments);
+        $result = $site_url . '/' . $paths . '/' . $lang . $hash;
+    }
+
+    return trim(str_replace(get_host_domain_url() . '.', '', $result));
+}
+
+/**
+ * Post ID'den onepage URL oluşturur (qTranslate uyumlu).
+ */
+function make_onepage_url_by_id($id, $end_slug, $full_url = false) {
+    $url = get_permalink($id);
+    if (empty($url)) return $url;
+
+    $site_url = site_url();
+    $url_temp = $url;
+    $lang     = '';
+
+    if (function_exists('qtranxf_getLanguage')) {
+        $lang     = qtranxf_getLanguage();
+        $url_temp = str_replace($lang . '/', '', $url_temp);
+    }
+
+    $url_temp = str_replace($site_url, '', $url_temp);
+    $segments = array_values(array_filter(explode('/', $url_temp), fn($s) => trim($s) !== ''));
+
+    if (empty($segments)) {
+        $result = ($full_url || !is_front_page() ? $url : '') . '#';
+        return str_replace(get_host_domain_url() . '.', '', str_replace('http:/', '', $result));
+    }
+
+    $url_end = str_replace('#', '', $end_slug ? end($segments) : implode('/', $segments));
+
+    if (function_exists('qtranxf_getLanguageDefault') && !empty($lang) && $lang !== qtranxf_getLanguageDefault()) {
+        $lang = $lang . '/';
+    } else {
+        $lang = '';
+    }
+
+    $hash   = !empty($url_end) ? '#' . $url_end : '';
+    $result = ($full_url || !is_front_page() ? $site_url . '/' . $lang : '') . $hash;
+    $result = str_replace('http:/', '', $result);
+
+    return str_replace(get_host_domain_url() . '.', '', $result);
+}
+
+// ─── Legacy: URL → Post ID (Rewrite Rules ile) ─────────────────
+
+/**
+ * URL'den post ID çözümler (WP core url_to_postid'in genişletilmiş versiyonu).
+ * Rewrite rule matching ile çalışır.
+ */
+function bwp_url_to_postid($url) {
+    global $wp_rewrite;
+
+    $url = apply_filters('url_to_postid', $url);
+
+    // Direkt query param kontrolü: ?p=N, ?page_id=N, ?attachment_id=N
+    if (preg_match('#[?&](p|page_id|attachment_id)=(\d+)#', $url, $values)) {
+        $id = absint($values[2]);
+        if ($id) return $id;
+    }
+
+    $rewrite = $wp_rewrite->wp_rewrite_rules();
+    if (empty($rewrite)) return 0;
+
+    // Anchor ve query string temizliği
+    $url = explode('#', $url)[0];
+    $url = explode('?', $url)[0];
+
+    // www. normalizasyonu
+    $home = home_url();
+    if (str_contains($home, '://www.') && !str_contains($url, '://www.')) {
+        $url = str_replace('://', '://www.', $url);
+    } elseif (!str_contains($home, '://www.')) {
+        $url = str_replace('://www.', '://', $url);
+    }
+
+    if (!$wp_rewrite->using_index_permalinks()) {
+        $url = str_replace('index.php/', '', $url);
+    }
+
+    // Domain'i soy
+    if (str_contains($url, $home)) {
+        $url = str_replace($home, '', $url);
+    } else {
+        $home_path = parse_url($home, PHP_URL_PATH) ?: '';
+        $url = str_replace($home_path, '', $url);
+    }
+
+    $url     = trim($url, '/');
+    $request = $url;
+
+    foreach ((array) $rewrite as $match => $query) {
+        $request_match = $request;
+        if (!empty($url) && $url !== $request && strpos($match, $url) === 0) {
+            $request_match = $url . '/' . $request;
+        }
+
+        if (!preg_match("!^{$match}!", $request_match, $matches)) continue;
+
+        $query = preg_replace('!^.+\?!', '', $query);
+        $query = addslashes(WP_MatchesMapRegex::apply($query, $matches));
+
+        global $wp;
+        parse_str($query, $query_vars);
+        $filtered = [];
+
+        foreach ((array) $query_vars as $key => $value) {
+            if (in_array($key, $wp->public_query_vars)) {
+                $filtered[$key] = $value;
+            }
+        }
+
+        // Post type query var mapping
+        $pt_vars = [];
+        foreach ($GLOBALS['wp_post_types'] as $pt => $t) {
+            if ($t->query_var) $pt_vars[$t->query_var] = $pt;
+        }
+
+        foreach ($wp->public_query_vars as $wpvar) {
+            $val = $wp->extra_query_vars[$wpvar] ?? $_GET[$wpvar] ?? $query_vars[$wpvar] ?? null;
+            if ($val === null) continue;
+
+            $filtered[$wpvar] = is_array($val) ? array_map('strval', $val) : (string) $val;
+
+            if (isset($pt_vars[$wpvar])) {
+                $filtered['post_type'] = $pt_vars[$wpvar];
+                $filtered['name']      = $filtered[$wpvar];
+            }
+        }
+
+        $wp_query = new WP_Query($filtered);
+        if (!empty($wp_query->posts) && $wp_query->is_singular()) {
+            return $wp_query->posts[0]->ID;
+        }
+
+        return 0;
+    }
+
+    return 0;
 }

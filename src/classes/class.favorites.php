@@ -1,212 +1,388 @@
 <?php
 
-class Favorites{
+/**
+ * Favorites System
+ *
+ * Supports logged-in users (DB storage) and guests (cookie storage).
+ * On login/register, cookie favorites are merged into user account.
+ * Supports post, term, and user object types.
+ *
+ * ─── HOW TO USE ───────────────────────────────────────────
+ *
+ * // Get current user's favorites (auto-detects logged in vs guest)
+ * $favs = new Favorites();
+ * $favs->favorites;                    // [12, 45, 78]
+ * $favs->count();                      // 3
+ *
+ * // Add / Remove / Check
+ * $favs->add(123);                     // adds post ID 123
+ * $favs->remove(123);                  // removes it
+ * $favs->exists(123);                  // true/false
+ *
+ * // For specific user
+ * $favs = new Favorites(5);            // user ID 5's favorites
+ *
+ * // Set type for user favorites (affects count meta)
+ * $favs = new Favorites();
+ * $favs->type = 'user';               // 'post' (default) or 'user'
+ *
+ * // Cookie→DB merge happens automatically on wp_login
+ * // Guest adds favorites → logs in → cookie merged → cookie cleared
+ *
+ * // Type filtering (respects FAVORITE_TYPES from admin settings)
+ * // If admin set Favorite Types → Post Types: [product, product_variation]
+ * // then only those post types can be favorited:
+ * $favs->add(123);                     // only works if post 123 is a product
+ * $favs->add(456, 'user');             // only works if user roles match allowed roles
+ * $favs->add(789, 'term');             // only works if term taxonomy is in allowed taxonomies
+ *
+ * // Get favorites filtered by type
+ * $favs->get_posts('product');          // only product favorites
+ * $favs->get_posts('user');             // only user favorites
+ *
+ * ──────────────────────────────────────────────────────────
+ */
+class Favorites {
 
-	public $favorites;
-    public $user_id;
-    public $type;
+    const COOKIE_NAME = 'wpcf_favorites';
+    const META_KEY = '_favorites';
+    const META_JSON_KEY = 'wpcf_favorites';
+    const COUNT_META_KEY = 'wpcf_favorites_count';
+    const COOKIE_LIFETIME = 30 * DAY_IN_SECONDS;
 
-    function __construct($user_id=0) {
-        $this->user_id = $user_id;
-        $this->get();
-        //$this->$type = $type;
+    /** @var int[] */
+    public $favorites = [];
+
+    /** @var int */
+    public $user_id = 0;
+
+    /** @var string 'post' or 'user' */
+    public $type = 'post';
+
+    /** @var int Items per page for get_posts pagination (0 = no pagination) */
+    public $per_page = 0;
+
+    public function __construct($user_id = 0) {
+        $this->user_id = (int) $user_id;
+        $this->load();
     }
 
-    function setCookie(){
-        $favorites = json_encode($this->favorites, JSON_NUMERIC_CHECK);
-        setcookie( 'wpcf_favorites', $favorites, time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN );
+    // ─── CORE: LOAD ──────────────────────────────────────
 
-    }
-    function unsetCookie(){
-        unset( $_COOKIE['wpcf_favorites'] );
-        setcookie( 'wpcf_favorites', '', time() - ( 15 * 60 ) );
-    }
-
-    function remove($id=0){
-        $tmp = array_values(array_diff($this->favorites, array($id)));
-        /*print_r($this->favorites);
-        print_r(array($id));
-        print_r($tmp);*/
-        $this->favorites = $tmp;//json_encode($tmp, JSON_NUMERIC_CHECK);
-        //print_r($this->favorites);
-        $this->update();
-        $value = get_post_meta( $id, 'wpcf_favorites_count', true );
-        $value = empty($value)||$value==null?0:$value;
-        if($this->type == "user"){
-            update_user_meta($id, 'wpcf_favorites_count', $value - 1 ); 
-        }else{
-            update_post_meta($id, 'wpcf_favorites_count', $value - 1 ); 
-        }
-        if($this->user_id){
-            $this->unsetCookie();
-            //unset( $_COOKIE['wpcf_favorites_count'] );
-            //setcookie( 'wpcf_favorites_count', '', time() - ( 15 * 60 ) );
-        }
-    }
-
-    function check(){
-        $args = array(
-            "fields" => "ids",
-            "include" => $this->favorites
-        );
-        $result = new WP_User_Query($args);
-        $total = $result->total_users;
-        $this->favorites = $result->get_results();
-        $this->update();
-    }
-
-    function exist($id=0){
-        return in_array($id, $this->favorites);
-    }
-
-    function add($id=0){
-        //decode array yapar
-        //encode string yapar
-        $id=intval($id);
-        if(!$this->exist($id)){
-            $favorites = $this->favorites;
-            array_push($favorites, $id);
-            $this->favorites = $favorites;
-            $this->update();
-            if($this->type == "user"){
-               $value = get_user_meta( $id, 'wpcf_favorites_count', true );
-               $value = empty($value)||$value==null?0:$value;
-               update_user_meta($id, 'wpcf_favorites_count', $value + 1 ); 
-            }else{
-               $value = get_post_meta( $id, 'wpcf_favorites_count', true );
-               $value = empty($value)||$value==null?0:$value;
-               update_post_meta($id, 'wpcf_favorites_count', $value + 1 ); 
+    /**
+     * Load favorites from DB (logged in) or cookie (guest)
+     */
+    private function load() {
+        if (is_user_logged_in() || $this->user_id > 0) {
+            if (!$this->user_id) {
+                $this->user_id = get_current_user_id();
             }
+            $this->favorites = $this->load_from_db();
+
+            // If DB empty but cookie has data, merge cookie into DB
+            if (empty($this->favorites)) {
+                $cookie_favs = $this->load_from_cookie();
+                if (!empty($cookie_favs)) {
+                    $this->favorites = $cookie_favs;
+                    $this->save_to_db();
+                }
+            }
+            $this->clear_cookie();
+        } else {
+            $this->favorites = $this->load_from_cookie();
         }
     }
 
-    function update(){
-        /*if(is_array($this->favorites)){
-           $favorites = $this->favorites;
-           $this->favorites = json_encode($this->favorites, JSON_NUMERIC_CHECK);
-        }else{
-           $favorites = json_decode($this->favorites, true);
-        }*/
-        if($this->user_id){
-            delete_user_meta($this->user_id, '_favorites');
-            if($this->favorites){
-                foreach($this->favorites as $favorite){
-                    add_user_meta($this->user_id, '_favorites',  $favorite);
-                }                
-            }
-            update_user_meta($this->user_id, 'wpcf_favorites', json_encode($this->favorites, JSON_NUMERIC_CHECK));
-            //setcookie( 'wpcf_favorites', $this->favorites, time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN );
-        //}else{
-            //setcookie( 'wpcf_favorites', $this->favorites, time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN );
-        }
-        $this->setCookie();
+    private function load_from_db() {
+        global $wpdb;
+        $results = $wpdb->get_col($wpdb->prepare(
+            "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s",
+            $this->user_id,
+            self::META_KEY
+        ));
+        return array_values(array_filter(array_map('intval', $results)));
     }
 
-    function calculate($favorites=array()){
-        //$ids = unicode_decode(json_encode($ids, JSON_NUMERIC_CHECK));
-        //$favorites = json_decode($ids, true);
-        $this->favorites = $favorites;
-        if($this->user_id){
-            delete_user_meta($this->user_id, '_favorites');
-            foreach($this->favorites as $favorite){
-                add_user_meta($this->user_id, '_favorites',  $favorite);
-            }
-            update_user_meta($this->user_id, 'wpcf_favorites', json_encode($this->favorites, JSON_NUMERIC_CHECK));
-        }else{
-            //setcookie( 'wpcf_favorites', $ids, time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN );
-            $this->setCookie();
-        }
+    private function load_from_cookie() {
+        if (!isset($_COOKIE[self::COOKIE_NAME]) || $_COOKIE[self::COOKIE_NAME] === '') return [];
+        $raw = urldecode($_COOKIE[self::COOKIE_NAME]);
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) return [];
+        return array_values(array_filter(array_map('intval', $decoded)));
     }
 
-    function get(){
-	  	if(is_user_logged_in() || $this->user_id > 0){
-	  	    if($this->user_id > 0){
-	           $user = get_user_by( "id", $this->user_id );
-	  	    }else{
-	  	   	   $user = wp_get_current_user();
-               $this->user_id = $user->ID;
-	  	    }
+    // ─── CORE: SAVE ──────────────────────────────────────
 
-            global $wpdb;
-            //$count = $wpdb->get_var("select count(*) from wp_usermeta where user_id=".$this->user_id." and meta_key='_favorites'");
-            $favorites = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_favorites'",
-                    $this->user_id
-                )
-            );
-            if($favorites){
-                $favorites = wp_list_pluck($favorites, "meta_value");
-            }
-            
-	  	    /*if(strlen($user->wpcf_favorites)>2){
-			   $favorites = $user->wpcf_favorites;
-			}else{
-               $favorites = json_decode("[]");
-            }*/
-
-            if(!$favorites && isset($_COOKIE['wpcf_favorites'])){
-                $favorites = urldecode($_COOKIE['wpcf_favorites']);
-                $favorites = json_decode($favorites, true);
-                $this->update();
-            }
-            $this->unsetCookie();
-            //unset( $_COOKIE['wpcf_favorites'] );
-            //setcookie( 'wpcf_favorites', '', time() - ( 15 * 60 ) );
-	  	}else{
-            if(!isset($_COOKIE['wpcf_favorites'])) {
-                setcookie( 'wpcf_favorites', "[]", time() + (30 * DAY_IN_SECONDS), COOKIEPATH, COOKIE_DOMAIN );
-            } else {
-                $favorites = urldecode($_COOKIE['wpcf_favorites']);
-                $favorites = json_decode($favorites, true);
-            }
+    private function save() {
+        if ($this->user_id) {
+            $this->save_to_db();
         }
-        if(empty($favorites) || $favorites == null || $favorites == "null"){
-            $favorites = array();//'[]';
-        }
-        $this->favorites = $favorites;//json_decode($favorites, true);
+        $this->save_to_cookie();
     }
 
-    function merge(){
-        if(isset($_COOKIE['wpcf_favorites'])){
-           $favorites = urldecode($_COOKIE['wpcf_favorites']);
-           $favorites = json_decode($favorites, true );
-           $favorites = array_unique(array_merge($favorites, $this->favorites));
-           $this->calculate($favorites);
-           //$this->update();
-           //print_r($this->favorites);
-           //unset( $_COOKIE['wpcf_favorites'] );
-           //setcookie( 'wpcf_favorites', '', time() - ( 15 * 60 ) );
-           $this->unsetCookie();
+    private function save_to_db() {
+        delete_user_meta($this->user_id, self::META_KEY);
+        foreach ($this->favorites as $fav_id) {
+            add_user_meta($this->user_id, self::META_KEY, $fav_id);
+        }
+        update_user_meta($this->user_id, self::META_JSON_KEY, json_encode($this->favorites, JSON_NUMERIC_CHECK));
+    }
+
+    private function save_to_cookie() {
+        $json = json_encode(array_values($this->favorites), JSON_NUMERIC_CHECK);
+        if (!headers_sent()) {
+            setcookie(self::COOKIE_NAME, $json, time() + self::COOKIE_LIFETIME, COOKIEPATH, COOKIE_DOMAIN);
+        }
+        $_COOKIE[self::COOKIE_NAME] = $json;
+    }
+
+    private function clear_cookie() {
+        if (!headers_sent()) {
+            setcookie(self::COOKIE_NAME, '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN);
+        }
+        unset($_COOKIE[self::COOKIE_NAME]);
+    }
+
+    // ─── PUBLIC API ──────────────────────────────────────
+
+    /**
+     * Add an item to favorites
+     * @param int $id Post ID, Term ID, or User ID
+     * @param string $object_type 'post', 'term', or 'user' — auto-detected if not provided
+     */
+    public function add($id = 0, $object_type = '') {
+        $id = (int) $id;
+        if ($id <= 0 || $this->exists($id)) return;
+
+        // Validate against allowed favorite types
+        if (!$this->is_allowed_type($id, $object_type)) return;
+
+        $this->favorites[] = $id;
+        $this->save();
+        $this->increment_count($id, 1);
+    }
+
+    /**
+     * Remove an item from favorites
+     */
+    public function remove($id = 0) {
+        $id = (int) $id;
+        if (!$this->exists($id)) return;
+
+        $this->favorites = array_values(array_diff($this->favorites, [$id]));
+        $this->save();
+        $this->increment_count($id, -1);
+
+        if ($this->user_id) {
+            $this->clear_cookie();
         }
     }
 
-    function count(){
-        if(is_string($this->favorites)){
-            $this->favorites = json_decode($this->favorites, true);
-        }
+    /**
+     * Check if an item is in favorites
+     */
+    public function exists($id = 0) {
+        return in_array((int) $id, $this->favorites, true);
+    }
+
+    /** @deprecated Use exists() */
+    public function exist($id = 0) {
+        return $this->exists($id);
+    }
+
+    /**
+     * Get favorites count
+     */
+    public function count() {
         return count($this->favorites);
     }
 
-    function get_posts(){
-        $posts = array();
-        if($this->type == "user"){
-            if($this->favorites){
-                $posts = get_users(array(
-                    "include" => $this->favorites
-                ));
-            }
+    // ─── MERGE & SYNC ────────────────────────────────────
+
+    /**
+     * Merge cookie favorites into user account (called on login)
+     */
+    public function merge() {
+        $cookie_favs = $this->load_from_cookie();
+        if (empty($cookie_favs)) return;
+
+        $merged = array_values(array_unique(array_merge($this->favorites, $cookie_favs)));
+        if ($merged !== $this->favorites) {
+            $this->favorites = $merged;
+            $this->save_to_db();
         }
-        return $posts;
+        $this->clear_cookie();
     }
+
+    /**
+     * Validate that favorited items still exist
+     * Removes deleted posts/users from favorites
+     */
+    public function check() {
+        if (empty($this->favorites)) return;
+
+        if ($this->type === 'user') {
+            $args = ['fields' => 'ids', 'include' => $this->favorites];
+            $query = new WP_User_Query($args);
+            $valid_ids = $query->get_results();
+        } else {
+            global $wpdb;
+            $placeholders = implode(',', array_fill(0, count($this->favorites), '%d'));
+            $valid_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE ID IN ($placeholders) AND post_status = 'publish'",
+                ...$this->favorites
+            ));
+        }
+
+        $valid_ids = array_map('intval', $valid_ids);
+        if (count($valid_ids) !== count($this->favorites)) {
+            $this->favorites = array_values($valid_ids);
+            $this->save();
+        }
+    }
+
+    /**
+     * Replace all favorites (used by calculate/sync operations)
+     */
+    public function calculate($favorites = []) {
+        $this->favorites = array_values(array_filter(array_map('intval', $favorites)));
+        if ($this->user_id) {
+            $this->save_to_db();
+        } else {
+            $this->save_to_cookie();
+        }
+    }
+
+    /**
+     * Force update (re-save current state)
+     */
+    public function update() {
+        $this->save();
+    }
+
+    // ─── HELPERS ─────────────────────────────────────────
+
+    /**
+     * Increment/decrement the favorites count on the target object
+     */
+    private function increment_count($id, $delta) {
+        if ($this->type === 'user') {
+            $current = (int) get_user_meta($id, self::COUNT_META_KEY, true);
+            update_user_meta($id, self::COUNT_META_KEY, max(0, $current + $delta));
+        } else {
+            $current = (int) get_post_meta($id, self::COUNT_META_KEY, true);
+            update_post_meta($id, self::COUNT_META_KEY, max(0, $current + $delta));
+        }
+    }
+
+    /**
+     * Check if an item's type is allowed in FAVORITE_TYPES config
+     * If FAVORITE_TYPES is not defined or empty, allow everything (no restriction)
+     */
+    private function is_allowed_type($id, $object_type = '') {
+        if (!defined('FAVORITE_TYPES')) return true;
+        $types = FAVORITE_TYPES;
+        if (empty($types['post_types']) && empty($types['taxonomies']) && empty($types['roles'])) return true;
+
+        // Auto-detect object type if not provided
+        if (empty($object_type)) {
+            $post = get_post($id);
+            if ($post) $object_type = 'post';
+            elseif (get_userdata($id)) $object_type = 'user';
+            else $object_type = 'post'; // fallback
+        }
+
+        if ($object_type === 'post') {
+            $post_type = get_post_type($id);
+            return !empty($types['post_types']) && in_array($post_type, (array) $types['post_types'], true);
+        }
+        if ($object_type === 'term') {
+            $term = get_term($id);
+            return $term && !is_wp_error($term) && !empty($types['taxonomies']) && in_array($term->taxonomy, (array) $types['taxonomies'], true);
+        }
+        if ($object_type === 'user') {
+            $user = get_userdata($id);
+            if (!$user || empty($types['roles'])) return false;
+            return !empty(array_intersect($user->roles, (array) $types['roles']));
+        }
+
+        return true;
+    }
+
+    /**
+     * Get favorited items as objects
+     * @param string $filter_type Optional: 'user', or specific post_type like 'product'
+     * @param int $page Page number (0 = use class default, 1+ = specific page)
+     * @param int|null $per_page Override per_page (null = use $this->per_page)
+     * @return array ['items' => WP_Post[]|WP_User[], 'total' => int, 'pages' => int]
+     */
+    public function get_posts($filter_type = '', $page = 0, $per_page = null) {
+        if (empty($this->favorites)) return ['items' => [], 'total' => 0, 'pages' => 0];
+
+        $limit = $per_page ?? $this->per_page;
+
+        if ($this->type === 'user' || $filter_type === 'user') {
+            $ids = $this->favorites;
+            $total = count($ids);
+            if ($page > 0 && $limit > 0) {
+                $ids = array_slice($ids, ($page - 1) * $limit, $limit);
+            }
+            return [
+                'items' => !empty($ids) ? get_users(['include' => $ids]) : [],
+                'total' => $total,
+                'pages' => ($page > 0 && $limit > 0) ? (int) ceil($total / $limit) : 1,
+            ];
+        }
+
+        $args = [
+            'post__in' => $this->favorites,
+            'post_type' => 'any',
+            'post_status' => 'publish',
+            'orderby' => 'post__in',
+            'no_found_rows' => true,
+        ];
+
+        if (!empty($filter_type) && $filter_type !== 'user') {
+            $args['post_type'] = $filter_type;
+        }
+
+        if ($page > 0 && $limit > 0) {
+            $args['posts_per_page'] = $limit;
+            $args['paged'] = $page;
+            $args['no_found_rows'] = false; // need total count for pagination
+            $query = new WP_Query($args);
+            return [
+                'items' => $query->posts,
+                'total' => $query->found_posts,
+                'pages' => (int) $query->max_num_pages,
+            ];
+        }
+
+        $args['posts_per_page'] = -1;
+        return [
+            'items' => get_posts($args),
+            'total' => count($this->favorites),
+            'pages' => 1,
+        ];
+    }
+
+    // ─── COOKIE HELPERS (legacy compat) ──────────────────
+
+    public function setCookie() { $this->save_to_cookie(); }
+    public function unsetCookie() { $this->clear_cookie(); }
 }
 
-function favorites_from_cookie() {
-        $favorites_obj = new Favorites();
-        $favorites_obj->check();
-        $favorites_obj->merge();
-        /*foreach($GLOBALS['favorites'] as $favorite){
-            $favorites_obj->add($favorite);
-        }*/
+/**
+ * On login: merge cookie favorites into user account
+ */
+function favorites_from_cookie($user_login = '', $user = null) {
+    if (!$user && is_string($user_login)) {
+        $user = get_user_by('login', $user_login);
+    }
+    if (!$user) return;
+
+    $favorites_obj = new Favorites($user->ID);
+    $favorites_obj->check();
+    $favorites_obj->merge();
 }
-add_action('wp_login', 'favorites_from_cookie');
+add_action('wp_login', 'favorites_from_cookie', 10, 2);

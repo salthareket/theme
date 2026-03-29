@@ -33,11 +33,7 @@ class MenuItem extends Timber\MenuItem{
 			$args["collapsed"] = false;
 		}
        
-		/*global $post;
-		$active = $this->current || $this->current_item_parent || $this->current_item_ancestor || in_array($this->object_id, $args["nodes"]) || in_array($this->ID, $args["nodes"]) || ( isset($post->ID) && $post->ID == $this->object_id) || (isset($post->ID) && $post->ID == $this->ID);*/
-
-		// MenuItem.php - get_properties metodu içindeki $active satırını bununla değiştir:
-
+		// Active state hesaplama
 		global $wp, $post;
 
 		// 1. CANLI URL KONTROLÜ (Slug silinse de, cache olsa da en garantisi budur)

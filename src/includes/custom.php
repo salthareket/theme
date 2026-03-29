@@ -328,7 +328,7 @@ class SaltBase{
             }
         }
         if(ENABLE_CHAT){
-            yobro_remove_conversation_by_post($post_id);            
+            Messenger::remove_by_post($post_id);            
         }
     }
 
@@ -337,7 +337,7 @@ class SaltBase{
             Notifications::delete_user_notifications($user_id);            
         }
         if(ENABLE_CHAT){
-           yobro_remove_conversation_by_user($user_id); 
+           Messenger::remove_by_user($user_id); 
         }
     }
 
@@ -370,14 +370,14 @@ class SaltBase{
         }
     }
 
-    static function newsletter($action="", $email=""){
+    public function newsletter($action="", $email=""){
         global $wpdb;
-        if(!isset($email)){
-           $email = $this->user->user_email;
+        if(empty($email)){
+           $email = $this->user->user_email ?? '';
         }
         switch($action){
             case "unsubscribe" :
-                 $wpdb->update('{$wpdb->prefix}newsletter', array('status'=>'U'), array('email'=>$email));
+                 $wpdb->update($wpdb->prefix . 'newsletter', array('status'=>'U'), array('email'=>$email));
                  break;
 
             case "subscribe" :
@@ -620,7 +620,7 @@ class SaltBase{
             $user = get_user_by( $get_by, $user_login );    
             $update_user = wp_update_user( array ( 'ID' => $user->ID, 'user_pass' => $random_password ) );
             if( $update_user ) {
-                $from = 'info@saran-group.com';
+                $from = get_bloginfo( 'admin_email' );
                 if(!(isset($from) && is_email($from))) {        
                     $sitename = strtolower( $_SERVER['SERVER_NAME'] );
                     if ( substr( $sitename, 0, 4 ) == 'www.' ) {
@@ -735,7 +735,7 @@ class SaltBase{
         $encrypt = new Encrypt();
         $code = $encrypt->encrypt($data);
         $wpdb->update( 
-            'wp_users',   
+            $wpdb->users,   
              array( 'user_activation_key' => $user_activation_key ),       
              array( 'ID' => $user_id )
         );
@@ -1093,7 +1093,7 @@ class SaltBase{
         }
     }
 
-    public static function notification($event="", $data=array()){
+    public function notification($event="", $data=array()){
         if(ENABLE_NOTIFICATIONS){
             $user = $this->user;
             $notifications = new Notifications($user, false);
@@ -1295,274 +1295,117 @@ class SaltBase{
 
 
 
-    public function comment_product($vars=array()){
-        $error = false;
-        $message = "";
-        
-        $update = false;
-        if(isset($vars["comment_id"])){
-            if(!empty($vars["comment_id"])){
-                $update = true;
+    /**
+     * Review oluştur/güncelle — AJAX endpoint.
+     * Reviews class'ına delegate eder, notification'ı burada yapar.
+     *
+     * @deprecated Yeni kodda doğrudan Reviews class'ını kullanın.
+     */
+    public function comment_product( $vars = [] ) {
+        $reviews      = new Reviews( $this->user->ID ?? 0 );
+        $is_update    = ! empty( $vars['comment_id'] );
+        $admin_review = ! empty( $vars['admin'] );
+        $target_id    = (int) ( $vars['comment_profile'] ?? 0 );
+        $post_id      = (int) ( $vars['product_id'] ?? 0 );
+
+        if ( $is_update ) {
+            // --- UPDATE ---
+            $result = $reviews->update( (int) $vars['comment_id'], [
+                'content'  => $vars['comment'] ?? '',
+                'rating'   => (int) ( $vars['rating'] ?? 0 ),
+                'approved' => ! empty( $vars['comment_approved'] ) || ( defined( 'DISABLE_REVIEW_APPROVE' ) && DISABLE_REVIEW_APPROVE ),
+                'notify'   => false, // notification'ı aşağıda kendimiz yapacağız
+            ] );
+
+            if ( $result['success'] ) {
+                $is_approved = (int) ( $vars['comment_approved'] ?? 0 ) || ( defined( 'DISABLE_REVIEW_APPROVE' ) && DISABLE_REVIEW_APPROVE );
+                if ( $is_approved && $target_id > 0 ) {
+                    $this->_send_review_notification( 'review-approved', $target_id, $this->user->ID ?? 0, $post_id );
+                }
+            }
+        } else {
+            // --- CREATE ---
+            $result = $reviews->create( [
+                'target_id'   => $target_id > 0 ? $target_id : $post_id,
+                'target_type' => $target_id > 0 ? 'user' : 'post',
+                'author_id'   => (int) ( $vars['user_id'] ?? $this->user->ID ?? 0 ),
+                'rating'      => (int) ( $vars['rating'] ?? 0 ),
+                'title'       => $vars['comment_session_title'] ?? '',
+                'content'     => $vars['comment'] ?? '',
+                'approved'    => ! empty( $vars['comment_approved'] ) || ( defined( 'DISABLE_REVIEW_APPROVE' ) && DISABLE_REVIEW_APPROVE ),
+                'notify'      => false,
+            ] );
+
+            if ( $result['success'] && $target_id > 0 ) {
+                $this->_send_review_notification( 'new-review', $target_id, $this->user->ID ?? 0, $post_id );
             }
         }
 
-        $rating = isset($vars["rating"])?$vars["rating"]:0;//get_star_vote($vars["product_id"], $this->user->ID);
-        if(!$rating){
-           $rating = 0;
-        }
-        $time = current_time('mysql');
+        $comment_id = $result['id'] ?? 0;
 
-        $admin_review = boolval(isset($vars["admin"])?$vars["admin"]:0);
+        return json_encode( [
+            'error'    => ! $result['success'],
+            'message'  => $result['message'],
+            'data'     => $comment_id,
+            'resubmit' => false,
+            'redirect' => '',
+            'refresh'  => $admin_review,
+            'html'     => '',
+        ] );
+    }
 
-        if($admin_review){
-            unset($vars["admin"]);
-            remove_action('transition_comment_status', 'comment_on_approved', 10);
-        }
+    /**
+     * Review detay — AJAX endpoint.
+     */
+    public function comment_product_detail( $vars = [] ) {
+        $error   = false;
+        $message = '';
+        $comment = null;
 
-        if(DISABLE_REVIEW_APPROVE){
-            $vars["comment_approved"] = 1;
-        }
-
-        $user_id = isset($vars["user_id"])?$vars["user_id"]:$this->user->ID;
-        $first_name = isset($vars["first_name"])?$vars["first_name"]:$this->user->first_name;
-        $last_name  = isset($vars["last_name"])?$vars["last_name"]:$this->user->last_name;
-        $user_email  = isset($vars["user_email"])?$vars["user_email"]:$this->user->user_email;
-        $comment_approved = isset($vars["comment_approved"])?$vars["comment_approved"]:0;
-        
-        $user_ip = "";
-        $user_agent = "";
-        $session_tokens = $this->user->session_tokens;
-        $session_token_index = count($session_tokens)-1;
-        $session_token_key = array_keys($session_tokens)[$session_token_index];
-        foreach($session_tokens as $key => $session_token){
-            if($key == $session_token_key ){
-                $user_ip = $session_token["ip"];
-                $user_agent = $session_token["ua"];             
-            }
+        if ( ! empty( $vars['id'] ) ) {
+            $reviews = new Reviews();
+            $comment = $reviews->get( (int) $vars['id'] );
         }
 
-
-        if($update){
-            $comment_id = $vars["comment_id"];
-            $data = array(
-               'comment_ID' => $comment_id,
-               'comment_content' => $vars["comment"],
-               //'comment_author_IP' => $user_ip,
-               //'comment_agent' => $user_agent,
-               //'comment_date' => $time,
-               //'comment_author' => ucfirst($first_name).' '.ucfirst($last_name[0]).'.',
-               'comment_approved' => $comment_approved,
-            );
-            wp_update_comment( $data );
-        }else{
-            $data = array(
-               'comment_post_ID' => $vars["product_id"],
-               'comment_author' => ucfirst($first_name).' '.ucfirst($last_name[0]).'.',
-               'comment_author_email' => $user_email,
-               'comment_author_url' => '',
-               'comment_content' => $vars["comment"],
-               'comment_type' => 'review',
-               'comment_parent' => 0,
-               'user_id' => $user_id,
-               'comment_author_IP' => $user_ip,
-               'comment_agent' => $user_agent,
-               'comment_date' => $time,
-               'comment_approved' => $comment_approved,
-            );
-            $comment_id = wp_insert_comment($data);
+        if ( ! $comment ) {
+            $error   = true;
+            $message = 'Comment ID is not found.';
         }
 
-        if(empty($comment_id)){
-            $error = true;
-            $message = "Your message is not saved. Please try again later.";
-        }else{
-            //wp_update_comment(array("comment_ID" => $comment_id, "comment_approved" => 1));
-            $comment_title = isset($vars["comment_session_title"])?$vars["comment_session_title"]:"";
-            /*if(!empty($comment_title)){
-                $comment_title = explode(" ", $comment_title);
-                if($comment_title){
-                   $comment_title_code = $comment_title[0];
-                   $comment_title = implode (" ", $comment_title);  
-                   $comment_title = trim(str_replace($comment_title_code, "", $comment_title));             
-                }
-            }*/
-            if($update){
-                update_comment_meta( $comment_id, 'rating', $rating);
-                if($admin_review){
-                    if($comment_approved || DISABLE_REVIEW_APPROVE){
-                        $message = "<h3 class='font-weight-bold text-success'>Review has been updated!</h3>";
-                    }else{
-                        $message = "<h3 class='font-weight-bold text-success'>Review has been updated!</h3>Review will publish after your approval.";
-                    }   
-                }else{
-                    if($comment_approved || DISABLE_REVIEW_APPROVE){
-                        $message = "<h3 class='font-weight-bold text-success'>Your comment updated!</h3>";
-                    }else{
-                        $message = "<h3 class='font-weight-bold text-success'>Your comment updated!</h3>We will publish your comment after the approval.<br>Don't worry, also we'll notify you after the approval.";
-                    }                   
-                }
+        $context            = Timber::context();
+        $context['comment'] = $comment;
 
-                if($comment_approved || DISABLE_REVIEW_APPROVE){
-                    $comment_to = new User($vars["comment_profile"]);
-                    $comment_from = new User($user_id);
-                    $application = new Application($vars["product_id"]);
-                    $session = $application->parent();
-                    if($comment_to->get_role() == "expert"){
-                        $this->notification(
-                            "expert/review-approved",
-                            array(
-                                "user" => $comment_from,
-                                "recipient" => $comment_to->ID,
-                                "post" => $session
-                            )
-                        );
-                    }else{
-                        $this->notification(
-                            "client/review-approved",
-                            array(
-                                "user" => $comment_from,
-                                "recipient" => $comment_to->ID,
-                                "post" => $session
-                            )
-                        );
-                    }                    
-                }
+        return json_encode( [
+            'error'    => $error,
+            'message'  => $message,
+            'data'     => '',
+            'resubmit' => false,
+            'redirect' => '',
+            'html'     => Timber::compile( 'users/comment-modal.twig', $context ),
+        ] );
+    }
 
-            }else{
-                add_comment_meta( $comment_id, 'rating', $rating, true); 
-                add_comment_meta( $comment_id, 'comment_title', $comment_title, true);
-                add_comment_meta( $comment_id, 'comment_profile', $vars["comment_profile"], true);
-                if($admin_review){
-                    if($comment_approved || DISABLE_REVIEW_APPROVE){
-                        $message = "<h3 class='font-weight-bold text-success'>Review has been added!</h3>";
-                    }else{
-                        $message = "<h3 class='font-weight-bold text-success'>Review has been added!</h3>Review will publish after your approval.";
-                    }
-                }else{
-                    if($comment_approved || DISABLE_REVIEW_APPROVE){
-                        $message = "<h3 class='font-weight-bold text-success'>Thanks for your comment!</h3>";
-                    }else{
-                        $message = "<h3 class='font-weight-bold text-success'>Thanks for your comment!</h3>We will publish your comment after the approval. <br>Don't worry, also we'll notify you after the approval.";
-                    }
-                }
+    /**
+     * Review notification helper — role bazlı event gönderir.
+     */
+    private function _send_review_notification( string $action, int $target_user_id, int $author_id, int $post_id ): void {
+        if ( ! defined( 'ENABLE_NOTIFICATIONS' ) || ! ENABLE_NOTIFICATIONS ) return;
+        if ( $target_user_id < 1 ) return;
 
-                
-                $rating_stars = "";
-                $rating_stars_emoji = "";
-                switch($rating){
-                    case "1" :
-                       $rating_stars = "★☆☆☆☆";
-                       $rating_stars_emoji = "⭐";
-                    break;
-                    case "2" :
-                       $rating_stars = "★★☆☆☆";
-                       $rating_stars_emoji = "⭐⭐";
-                    break;
-                    case "3" :
-                       $rating_stars = "★★★☆☆";
-                       $rating_stars_emoji = "⭐⭐⭐";
-                    break;
-                    case "4" :
-                       $rating_stars = "★★★★☆";
-                       $rating_stars_emoji = "⭐⭐⭐⭐";
-                    break;
-                    case "5" :
-                       $rating_stars = "★★★★★";
-                       $rating_stars_emoji = "⭐⭐⭐⭐⭐";
-                    break;
-                }
-                $comment_to = new User($vars["comment_profile"]);
-                $comment_from = new User($user_id);
-                $application = new Application($vars["product_id"]);
-                $session = $application->parent();
-                $session->rating = $rating_stars;
-                //$comment = new TimberComment($comment_id);
-                if($comment_to->get_role() == "expert"){
-                    $this->notification(
-                        "expert/new-review",
-                        array(
-                            "user" => $comment_from,
-                            "recipient" => $comment_to->ID,
-                            "post" => $session
-                        )
-                    );
-                }else{
-                    $this->notification(
-                        "client/new-review",
-                        array(
-                            "user" => $comment_from,
-                            "recipient" => $comment_to->ID,
-                            "post" => $session
-                        )
-                    );
-                }
-                        
-            }
+        $target_user = new User( $target_user_id );
+        $author_user = new User( $author_id );
+        $role        = $target_user->get_role() ?: 'client';
+        $post_obj    = $post_id > 0 ? get_post( $post_id ) : null;
 
-            $user_item = new User($vars["comment_profile"]);
-            if($comment_approved || DISABLE_REVIEW_APPROVE){
-                $rating = $user_item->get_rating();
-                update_user_meta($user_item->ID, '_user_rating', $rating->point);
-            }
-
-            iF($admin_review){
-                add_action('transition_comment_status', 'comment_on_approved', 10, 3);
-            }
-
-        }
-        $data = array(
-                        "error"   => $error,
-                        "message" => $message,
-                        "data"    => $comment_id,
-                        "resubmit" => false,
-                        "redirect" => "",
-                        "refresh" => $admin_review,
-                        "html"    => ""
+        $this->notification(
+            $role . '/' . $action,
+            [
+                'user'      => $author_user,
+                'recipient' => $target_user->ID,
+                'post'      => $post_obj,
+            ]
         );
-        return json_encode($data);
     }
-    public function comment_product_detail($vars=array()){
-        $error = false;
-        $message = "";
-        if(isset($vars["id"])){
-            $comment = new Timber\Comment(intval($vars["id"]));
-        }else{
-            $error = true;
-            $message = "Comment ID is not found.";
-            $comment = array();
-        }
-        $context = Timber::context();
-        $context["comment"] = $comment;
-        $data = array(
-                        "error"   => $error,
-                        "message" => $message,
-                        "data"    => '',
-                        "resubmit" => false,
-                        "redirect" => "",
-                        "html"    => Timber::compile( 'users/comment-modal.twig', $context )
-        );
-        return json_encode($data);
-    }
-    static function get_comment_product($product_id, $approved=1){
-        global $wpdb;
-        return $wpdb->get_results("SELECT wpc.comment_ID, wpc.comment_approved, wpc.comment_author,wpc.comment_author_email,wpc.comment_date,wpc.comment_content,wpcm.meta_value AS rating FROM " . $wpdb->prefix . "comments AS wpc INNER JOIN " . $wpdb->prefix . "commentmeta AS wpcm ON wpcm.comment_id = wpc.comment_id " . ($approved?" AND wpc.comment_approved = ".$approved : "") ." AND wpc.comment_type = 'review' AND wpcm.meta_key = 'rating' WHERE wpc.comment_post_id = " . $product_id);
-    }
-    public function on_insert_comment($comment_id, $comment_object) {
-        // Yorumun yazarı olan kullanıcı ID'sini al
-        $user_id = $comment_object->user_id;
-        
-        // Kullanıcı ID'si varsa, kullanıcı rollerini al
-        if ($user_id) {
-            $user = get_userdata($user_id);
-            $roles = $user->roles; // Kullanıcının rollerini al
-            $role = !empty($roles) ? array_shift($roles) : ''; // İlk rolü al
-            
-            // Yorumun meta verilerine user_role ekle
-            add_comment_meta($comment_id, 'user_role', $role);
-        }
-    }
-
-
 
 
     /*// events
@@ -1613,7 +1456,7 @@ class SaltBase{
         if(isset($querystring["loginSocial"])){
             $register_type = $querystring["loginSocial"];
         }
-        update_user_meta( $user_id, 'register_type', $register_by );
+        update_user_meta( $user_id, 'register_type', $register_type );
 
         $vars = isset($_POST['vars'])?$_POST['vars']:$_POST;
 
@@ -1714,13 +1557,14 @@ class SaltBase{
     public function get_markers($posts=array(), $popup = false){
         $data = array();
         foreach($posts as $post){
-            $marker_data = get_field($type."_".$status, "istasyon_options");
             $marker = array();
-            if($marker_data){
+            // Post'un kendi marker meta'sı varsa kullan
+            $marker_data = $post->meta('map_marker') ?? null;
+            if($marker_data && is_array($marker_data)){
                 $marker = array(
-                    "icon"   => $marker_data["url"],
-                    "width"  => $marker_data["width"],
-                    "height" => $marker_data["height"],
+                    "icon"   => $marker_data["url"] ?? '',
+                    "width"  => $marker_data["width"] ?? 0,
+                    "height" => $marker_data["height"] ?? 0,
                 );                
             }
             $data[] = array(
@@ -1829,36 +1673,31 @@ class SaltBase{
     }
 
     public static function get_integration($slug=""){
-        $integrations = get_cached("integrations"); // Option page'den repeater'ı çek
+        $integrations = QueryCache::get_field("integrations", "options");
         if ($integrations) {
             foreach ($integrations as $integration) {
-                if ($integration['name'] === $name) {
-                    return $integration['keys']; // Eğer eşleşirse keys alanını döndür
+                if ($integration['name'] === $slug) {
+                    return $integration['keys'];
                 }
             }
         }
-        return []; // Eğer bulunamazsa null döndür
+        return [];
     }
 
     public function measureLCP($url, $deviceType = 'desktop') {
-        $api = Salt::get_integration("google_pagespeed_insights");
+        $api = self::get_integration("google_pagespeed_insights");
         if($api){
-            $apiKey = $api["key"];
+            $apiKey = $api["key"] ?? '';
             if(!empty($apiKey)){
-                $endpoint = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=$url&key=$apiKey&strategy=$deviceType";
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $endpoint);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                $response = curl_exec($ch);
-                curl_close($ch);
-                if ($response) {
-                    $data = json_decode($response, true);
-                    $lcp = $data['lighthouseResult']['audits']['largest-contentful-paint']['numericValue'];
-                    return $lcp;
-                }             
+                $endpoint = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($url) . "&key=" . $apiKey . "&strategy=" . $deviceType;
+                $response = wp_remote_get( $endpoint, [ 'timeout' => 60 ] );
+                if ( ! is_wp_error( $response ) ) {
+                    $data = json_decode( wp_remote_retrieve_body( $response ), true );
+                    return $data['lighthouseResult']['audits']['largest-contentful-paint']['numericValue'] ?? false;
+                }
             }
         }
-        return false; // Hata durumunda
+        return false;
     }
 }
 

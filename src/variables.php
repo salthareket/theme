@@ -35,6 +35,8 @@ define('THEME_STATIC_PATH',   $template_path . '/theme/static/');
 define('THEME_INCLUDES_URL',  $template_uri . '/theme/includes/');
 define('THEME_STATIC_URL',    $template_uri . "/theme/static/");
 
+// TODO: Bu token ve secret key environment variable'a tasinmali (wp-config.php veya .env)
+// Repo'da acik metin olarak tutulmamali — guvenlik riski.
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
 define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
 
@@ -286,7 +288,6 @@ if (ENABLE_MEMBERSHIP) {
 
 // Güvenlik: Giriş yapmış normal kullanıcıları admin panelinden uzak tut
 if (!ENABLE_ECOMMERCE) {
-    $current_page = $_SERVER['REQUEST_URI']; 
     if (!ENABLE_MEMBERSHIP && is_user_logged_in() && !$is_admin && !current_user_can('manage_options')) {
         if (!defined('DOING_AJAX') && !defined('DOING_CRON')) {
             wp_logout();
@@ -440,7 +441,9 @@ if (defined('SH_THEME_EXISTS') && SH_THEME_EXISTS) {
         $salt = \SaltBase::get_instance();
     }
 }
-//$salt->init();
+if ( ! isset( $salt ) ) {
+    $salt = null;
+}
 Data::set("salt", $salt);
 
 define('VARIABLES_LOADED', true);

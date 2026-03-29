@@ -15,7 +15,7 @@ if(ENABLE_MEMBERSHIP_ACTIVATION){
         }
     }else{
         if(isset($_GET['activation-code']) && ENABLE_ACTIVATION_EMAIL_AUTOLOGIN){
-            $activation_code = $_GET['activation-code'];
+            $activation_code = sanitize_text_field($_GET['activation-code']);
             require SH_CLASSES_PATH . "class.encrypt.php";
             $decrypt = new Encrypt();
             $data = $decrypt->decrypt($activation_code);
@@ -37,7 +37,7 @@ if(ENABLE_MEMBERSHIP_ACTIVATION){
         add_action( 'init', 'verify_user_code', $piority);
         function verify_user_code(){
             if(isset($_GET['activation-code'])){
-                $activation_code = $_GET['activation-code'];
+                $activation_code = sanitize_text_field($_GET['activation-code']);
                 $decrypt = new Encrypt();
                 $data = $decrypt->decrypt($activation_code);
                 if($data){
@@ -54,14 +54,18 @@ if(ENABLE_MEMBERSHIP_ACTIVATION){
                             <?php
                             }else{
                                 global $wpdb;
-                                $code = $wpdb->get_var("SELECT user_activation_key FROM {$wpdb->users} as users where users.ID = $user_id");
+                                $code = $wpdb->get_var( $wpdb->prepare(
+                                    "SELECT user_activation_key FROM {$wpdb->users} WHERE ID = %d",
+                                    (int) $user_id
+                                ) );
                                 if($code == $data['code']){
                                     update_user_meta($user_id, 'user_status', 1);
                                     $user = new User($user_id);
-                                    $GLOBALS["salt"]->log("activation screen", json_encode($user));
-                                    $GLOBALS["salt"]->user = $user;
+                                    $salt = Data::get("salt");
+                                    if ($salt) $salt->log("activation screen", json_encode($user));
+                                    if ($salt) $salt->user = $user;
                                     $role = $user->get_role();
-                                    $GLOBALS["salt"]->notification(
+                                    if ($salt) $salt->notification(
                                         $role."/new-account",
                                         array(
                                             "user"      => $user,
@@ -131,7 +135,7 @@ if(ENABLE_MEMBERSHIP_ACTIVATION){
 add_action( 'init', 'verify_user_email');
 function verify_user_email(){
     if(isset($_GET['activation-email'])){
-        $activation_email = $_GET['activation-email'];
+        $activation_email = sanitize_text_field($_GET['activation-email']);
         $decrypt = new Encrypt();
         $data = $decrypt->decrypt($activation_email);
         if($data){
@@ -326,7 +330,7 @@ function get_account_menu(){
             "count"  => 0,
         ];
         if ($endpoint == "messages" && ENABLE_CHAT) {
-            $nav_item["count"] = yobro_unseen_messages_count();
+            $nav_item["count"] = Messenger::count();
         }
         if ($endpoint == "notifications" && ENABLE_NOTIFICATIONS) {
             $salt = Salt::get_instance();//new Salt();

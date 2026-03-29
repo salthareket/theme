@@ -1,109 +1,85 @@
 <?php
-$html = "";
-$map_service = QueryCache::get_field("map_service", "options");//get_option("options_map_service");//get_cached_field("map_service", "option");
-$id = isset($vars["id"])?$vars["id"]:0;
-$ids = isset($vars["ids"])?$vars["ids"]:[];
-$lat = isset($vars["lat"])?$vars["lat"]:"";
-$lng = isset($vars["lng"])?$vars["lng"]:"";
-$title = isset($vars["title"])?$vars["title"]:get_bloginfo("name");
-$popup = isset($vars["popup"])?$vars["popup"]:[];
+$map_service = QueryCache::get_field('map_service', 'options') ?: 'leaflet';
+$map_id      = absint($vars['id'] ?? 0);
+$map_ids     = $vars['ids'] ?? [];
+$lat         = $vars['lat'] ?? '';
+$lng         = $vars['lng'] ?? '';
+$title       = $vars['title'] ?? get_bloginfo('name');
+$popup       = $vars['popup'] ?? [];
+$html        = '';
 
-$skeleton = array(
-    "map_type" => "",
-    "map_settings" => array(
-        "lat" => "",
-        "lng" => "",
-        "zoom" => "",
-        "map" => array(
-            "markers" => array()
-        ),
-        "posts" => array(),
-        "zoom_position" => $map_service=="leaflet"?"topleft":"TOP_LEFT",
-        "buttons_position" => "",
-        "buttons" => array(),
-        "marker" => array(),
-        "popup_active" => false,
-        "popup_type" => "hover",
-        "popup_template" => "",
-        "popup_ajax" => false,
-        "popup_width" => ""
-    ),
-);
-
-if($popup){
-    $skeleton["map_settings"]["popup_active"] = true;
-    $skeleton["map_settings"]["popup_type"] = $popup["type"];
-    $skeleton["map_settings"]["popup_template"] = "default";
-}
-
-
-if($id){
-    $post = Timber::get_post($id);
-    $post_data = $post->get_map_data();
-    $skeleton["map_type"] = "static";
-    $skeleton["map_settings"]["lat"] = $post_data["lat"];
-    $skeleton["map_settings"]["lng"] = $post_data["lng"];
-    $skeleton["map_settings"]["zoom"] = $post_data["zoom"];
-    $skeleton["map_settings"]["map"]["markers"][] = $post_data;
-    $html = get_map_config($skeleton);//get_map_config($post->get_map_data());
-}else if($ids){
-    $map_data = [];
-
-    /*global $polylang;
-    if (isset($polylang)) {
-        // Polylang'in sorgu üzerindeki etkisini durdur
-        remove_filter('posts_where', array($polylang->filters, 'posts_where'), 10, 2);
-    }*/
-        
-    $args = array(
-        'post_type'      => 'any',
-        'post__in' => $ids,
-        'posts_per_page' => -1,
-        'orderby' => 'post__in',
-        'suppress_filters' => true,
-        'lang'           => '',
-    );
-    $posts = Timber::get_posts($args);
-
-    /*if (isset($polylang)) {
-        add_filter('posts_where', array($polylang->filters, 'posts_where'), 10, 2);
-    }*/
-
-    //$posts = Timber::get_posts($ids);
-    if($posts){
-        $skeleton["map_type"] = "dynamic";
-        $skeleton["map_settings"]["posts"] = $posts;
-        $html = get_map_config($skeleton);
-        /*$map_data = array(
-           "map_type" => "dynamic",
-           "map_settings" => array(
-                "posts"    => $posts
-           )
-        );
-        $html = get_map_config($map_data);*/
-    }
-}else if(!empty($lat) && !empty($lng)){
-    $skeleton["map_type"] = "static";
-    $skeleton["map_settings"]["lat"] = $lat;
-    $skeleton["map_settings"]["lng"] = $lng;
-    $map_data = array(
-        "id"    => "marker_".unique_code(4),
-        "title" => $popup?$popup["title"]:$title,
-        "lat"   => $lat,
-        "lng"   => $lng,
-    );
-    $skeleton["map_settings"]["map"]["markers"][] = $map_data;
-    $html = get_map_config($skeleton);
-    //$html = get_map_config($map_data);
-}
-$output = [
-    "error" => false,
-    "message" => "",
-    "data" => [
-        "title" => $title,
-        "content" => $html,
+$skeleton = [
+    'map_type'     => '',
+    'map_settings' => [
+        'lat'              => '',
+        'lng'              => '',
+        'zoom'             => '',
+        'map'              => ['markers' => []],
+        'posts'            => [],
+        'zoom_position'    => ($map_service === 'leaflet') ? 'topleft' : 'TOP_LEFT',
+        'buttons_position' => '',
+        'buttons'          => [],
+        'marker'           => [],
+        'popup_active'     => false,
+        'popup_type'       => 'hover',
+        'popup_template'   => '',
+        'popup_ajax'       => false,
+        'popup_width'      => '',
     ],
-    "html" => "",
 ];
-echo json_encode($output);
-die();
+
+if (!empty($popup)) {
+    $skeleton['map_settings']['popup_active']   = true;
+    $skeleton['map_settings']['popup_type']     = $popup['type'] ?? 'hover';
+    $skeleton['map_settings']['popup_template'] = 'default';
+}
+
+if ($map_id) {
+    // Tekil post haritası
+    $post      = Timber::get_post($map_id);
+    $post_data = $post->get_map_data();
+
+    $skeleton['map_type']                = 'static';
+    $skeleton['map_settings']['lat']     = $post_data['lat'];
+    $skeleton['map_settings']['lng']     = $post_data['lng'];
+    $skeleton['map_settings']['zoom']    = $post_data['zoom'] ?? 14;
+    $skeleton['map_settings']['map']['markers'][] = $post_data;
+    $html = get_map_config($skeleton);
+
+} elseif (!empty($map_ids)) {
+    // Çoklu post haritası
+    $posts = Timber::get_posts([
+        'post_type'        => 'any',
+        'post__in'         => array_map('absint', $map_ids),
+        'posts_per_page'   => -1,
+        'orderby'          => 'post__in',
+        'suppress_filters' => true,
+        'lang'             => '',
+    ]);
+
+    if ($posts) {
+        $skeleton['map_type']              = 'dynamic';
+        $skeleton['map_settings']['posts'] = $posts;
+        $html = get_map_config($skeleton);
+    }
+
+} elseif ($lat !== '' && $lng !== '') {
+    // Koordinat bazlı harita
+    $skeleton['map_type']            = 'static';
+    $skeleton['map_settings']['lat'] = $lat;
+    $skeleton['map_settings']['lng'] = $lng;
+    $skeleton['map_settings']['map']['markers'][] = [
+        'id'    => 'marker_' . unique_code(4),
+        'title' => !empty($popup['title']) ? $popup['title'] : $title,
+        'lat'   => $lat,
+        'lng'   => $lng,
+    ];
+    $html = get_map_config($skeleton);
+}
+
+$response['data'] = [
+    'title'   => $title,
+    'content' => $html,
+];
+echo json_encode($response);
+wp_die();

@@ -1,19 +1,9 @@
 <?php
 $required_setting = ENABLE_ECOMMERCE;
 
-$data = [];
-            $template = $vars["ajax"]["template"];
+$posts = Timber::get_posts(salt_recently_viewed_products());
+$vars['posts'] = $posts->to_array();
 
-            $data = Timber::get_posts(salt_recently_viewed_products());
-            $templates = [$template];
-            //$context = Timber::context();
-            //print_r($vars);
-            //$context["vars"] = $vars;
-            //$context["vars"]["posts"] = $data->to_array();
-            $vars["posts"] = $data->to_array();
-            return [
-                "error" => false,
-                "message" => "",
-                "data" =>  $vars,
-                "html" => "",
-            ];
+$response['data'] = $vars;
+echo json_encode($response);
+wp_die();

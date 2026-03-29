@@ -1,49 +1,21 @@
 <?php
-$modal = "";
-            $data = [];
-            $template = "tour-plan/comment-modal";
+$comment_id = absint($vars['id'] ?? 0);
+$comment    = new Timber\Comment($comment_id);
 
-            $comment = new Timber\Comment(intval($vars["id"]));
+$tour_plan_id       = $comment->meta('comment_tour');
+$tour_plan_offer_id = get_field('tour_plan_offer_id', $tour_plan_id);
+$agent_id           = get_post_field('post_author', $tour_plan_offer_id);
 
-            $title = $comment->comment_title;
-            $comments = json_decode($comment->comment_content);
-            $author = $comment->comment_author;
-            //$rating = '<div class="star-rating-readonly-ui" data-stars="5" data-value="'.$comment->rating.'"></div>';
-            $image = wp_get_attachment_image_url(
-                $comment->comment_image,
-                "medium_large"
-            );
-            $tour_plan_id = $comment->meta("comment_tour");
-            $tour_plan_offer_id = get_field(
-                "tour_plan_offer_id",
-                $tour_plan_id
-            );
-            $agent_id = get_post_field("post_author", $tour_plan_offer_id);
-            $agent = get_user_by("id", $agent_id);
+$dest_ids      = $comment->meta('comment_destination');
+$destinations  = is_array($dest_ids) ? wp_list_pluck(get_terms('taxonomy=destinations&include=' . implode(',', $dest_ids)), 'name') : [];
 
-            $destinations = get_terms(
-                "taxonomy=destinations&include=" .
-                    join(",", $comment->meta("comment_destination"))
-            );
-            $destinations = wp_list_pluck($destinations, "name");
-            /*$destination_list = '<ul class="list-inline mb-0">';
-                    foreach($destination as $item){
-                       $destination_list .= '<li class="list-inline-item mb-2"><div class="btn btn-warning btn-unlinked rounded-pill">'.$item.'</div></li>';
-                    }   
-                    $destination_list .= '</ul>';*/
+$context                 = Timber::context();
+$context['title']        = $comment->comment_title ?? '';
+$context['comments']     = json_decode($comment->comment_content);
+$context['author']       = $comment->comment_author;
+$context['image']        = wp_get_attachment_image_url($comment->comment_image, 'medium_large');
+$context['agent']        = get_user_by('id', $agent_id);
+$context['destinations'] = $destinations;
+$context['vars']         = $vars;
 
-            $templates = [$template . ".twig"];
-            $context = Timber::context();
-            $context["title"] = $title;
-            $context["comments"] = $comments;
-            $context["author"] = $author;
-            $context["image"] = $image;
-            $context["agent"] = $agent;
-            $context["destinations"] = $destinations;
-            $context["vars"] = $vars;
-            $data = [
-                "error" => false,
-                "message" => "",
-                "data" => $data,
-                "html" => "",
-            ];
+$templates = ['tour-plan/comment-modal.twig'];

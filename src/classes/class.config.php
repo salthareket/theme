@@ -1,12 +1,22 @@
 <?php
 namespace SaltHareket;
 
+/**
+ * SaltConfig — PHP file-based config cache.
+ * ACF options'lari PHP dosyasina cache'ler, DB sorgusunu atlar.
+ *
+ * KULLANIM:
+ *   $val = SaltConfig::get('options_enable_object_cache');
+ *   SaltConfig::set('my_key', 'my_value');
+ *   SaltConfig::rebuild();  // tum cache'i yeniden olustur
+ *
+ * @package SaltHareket
+ */
 class SaltConfig {
 
-    // Bellekte tutulacak statik değişken
     private static $sh_cache_internal = null;
+    private static $initiated = false;
 
-    // variables.php'de kullanılan tüm spesifik anahtarlar
     private static $target_keys = [
         "options_disable_default_cat",
         "options_disable_review_approve",
@@ -57,34 +67,43 @@ class SaltConfig {
     ];
 
     public function __construct() {
-        // Sınıf başlar başlamaz cache'i yükle
+        if (self::$initiated) return;
+        self::$initiated = true;
+
         self::init_cache();
 
-        // Sadece admin panelinde kayıt dinleyicisi aktif olsun
         if (is_admin()) {
             add_action('acf/save_post', [$this, 'handle_options_save'], 30);
         }
     }
 
     /**
-     * Cache Dosyasını veya DB'yi kullanarak belleği doldurur
+     * Cache dosyasının yolunu döndürür
+     */
+    private static function get_cache_path() {
+        if (!defined('THEME_STATIC_PATH')) return false;
+        return THEME_STATIC_PATH . 'data/config-cache.php';
+    }
+
+    /**
+     * Cache dosyasını veya DB'yi kullanarak belleği doldurur
      */
     private static function init_cache() {
-        if (self::$sh_cache_internal !== null) {
-            return;
-        }
+        if (self::$sh_cache_internal !== null) return;
 
-        $cache_file = THEME_STATIC_PATH . 'data/config-cache.php';
+        $cache_file = self::get_cache_path();
 
-        // 1. Önce dosyadan okumayı dene (En hızlı yöntem)
-        if (file_exists($cache_file)) {
-            self::$sh_cache_internal = include $cache_file;
+        // 1. Dosyadan oku (en hızlı)
+        if ($cache_file && file_exists($cache_file)) {
+            $data = @include $cache_file;
+            if (is_array($data)) {
+                self::$sh_cache_internal = $data;
+                return;
+            }
         }
 
         // 2. Dosya yoksa veya bozuksa DB'den çek ve dosyayı oluştur
-        if (!is_array(self::$sh_cache_internal)) {
-            self::generate();
-        }
+        self::generate();
     }
 
     /**
@@ -92,55 +111,62 @@ class SaltConfig {
      */
     public static function get($key, $default = false) {
         self::init_cache();
-        
-        if (isset(self::$sh_cache_internal[$key])) {
+
+        if (self::$sh_cache_internal !== null && array_key_exists($key, self::$sh_cache_internal)) {
             return self::$sh_cache_internal[$key];
         }
 
-        // Eğer target_keys içinde yoksa mecbur DB'ye git (Güvenlik önlemi)
+        // target_keys dışındaki key'ler için DB'ye git
         return get_option($key, $default);
     }
 
     /**
-     * Admin panelinde ayarlar kaydedildiğinde tetiklenir
+     * Admin panelinde ACF options sayfası kaydedildiğinde tetiklenir
      */
     public function handle_options_save($post_id) {
-        // Options sayfası kaydediliyorsa (veya opsiyon anahtarını içeriyorsa)
-        if (strpos($post_id, 'options') !== false) {
+        if ($post_id === 'options' || $post_id === 'option') {
             self::generate();
         }
     }
 
     /**
-     * Tüm ayarları veritabanından çekip PHP dosyasına yazar
+     * Tüm ayarları DB'den çekip PHP dosyasına yazar (atomic write)
      */
-    public static function generate() {
+    public static function generate(): array {
         $config = [];
         foreach (self::$target_keys as $key) {
-            // ACF get_field yerine direkt get_option kullanarak en saf veriyi alalım
             $config[$key] = get_option($key);
         }
 
-        $dir = THEME_STATIC_PATH . 'data/';
-        if (!file_exists($dir)) {
-            wp_mkdir_p($dir);
+        $cache_file = self::get_cache_path();
+        if ($cache_file) {
+            $dir = dirname($cache_file);
+            if (!file_exists($dir)) {
+                wp_mkdir_p($dir);
+            }
+
+            $content = "<?php\n/** SaltConfig Auto Generated Cache — " . date('Y-m-d H:i:s') . " **/\nreturn " . var_export($config, true) . ";\n";
+
+            // Atomic write: temp dosyaya yaz, sonra rename et
+            // Yarıda kalırsa ana cache dosyası bozulmaz
+            $tmp_file = $cache_file . '.tmp.' . getmypid();
+            if (file_put_contents($tmp_file, $content, LOCK_EX) !== false) {
+                rename($tmp_file, $cache_file);
+
+                // OPcache varsa eski versiyonu invalidate et
+                if (function_exists('opcache_invalidate')) {
+                    opcache_invalidate($cache_file, true);
+                }
+            } else {
+                @unlink($tmp_file);
+            }
         }
 
-        // Veriyi PHP array olarak hazırla (Include edildiğinde çok hızlıdır)
-        $content = "<?php\n/** SaltConfig Auto Generated Cache **/\nreturn " . var_export($config, true) . ";";
-        
-        if (file_put_contents($dir . 'config-cache.php', $content)) {
-            //error_log("SaltConfig: Ayarlar başarıyla dosyaya yazıldı.");
-        } else {
-            //error_log("SaltConfig HATA: Dosya yazılamadı! İzinleri kontrol et: " . $dir);
-        }
-
-        // Bellekteki veriyi de hemen güncelle
+        // Bellekteki veriyi hemen güncelle
         self::$sh_cache_internal = $config;
 
         return $config;
     }
 }
 
-// SINIFIN KENDİ KENDİNİ ATEŞLEMESİ
 new \SaltHareket\SaltConfig();

@@ -1,206 +1,504 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
+
+/**
+ * Theme_Site_Exporter — Admin'den site/tema/DB export sistemi.
+ *
+ * KULLANIM:
+ *   // Otomatik — admin_init'te instantiate edilir.
+ *   // ACF Options Page "Development" sayfasındaki "Export" butonuna basılınca
+ *   // terminal UI açılır ve step-by-step export başlar.
+ *
+ *   // Export modları:
+ *   //   full  — DB + WP Core + Theme + wp-content → tek ZIP
+ *   //   db    — Sadece DB dump → ZIP
+ *   //   theme — Sadece aktif tema → ZIP
+ *
+ *   // Özellikler:
+ *   //   - URL replace (current → target)
+ *   //   - Table prefix değiştirme
+ *   //   - wp-config.php DB credentials güncelleme
+ *   //   - Serialized data safe replace
+ *   //   - JSON data safe replace
+ *   //   - Cancel desteği (async flag dosyası)
+ *   //   - Chunk'lı DB export (memory koruması)
+ *   //   - Nonce + capability koruması
+ *   //   - Path traversal koruması
+ *
+ * @package SaltHareket
+ * @since   2.0.0
+ */
 
 class Theme_Site_Exporter {
 
-    const ACF_GROUP_NAME        = 'export_theme';
-    const ACF_PUBLISH_URL_FIELD = 'url';
-    const ACF_OPTIONS_FIELD     = 'options';
-    const AJAX_ACTION_NAME      = 'theme_site_export_process';
-    const LAST_EXPORT_OPTION    = 'theme_site_last_export_info';
+    private const AJAX_EXPORT  = 'theme_site_export_process';
+    private const AJAX_DELETE  = 'theme_site_export_delete';
+    private const AJAX_CANCEL  = 'theme_site_export_cancel';
+    private const NONCE_ACTION = 'theme_site_export_nonce';
+    private const NONCE_FIELD  = '_export_nonce';
+    private const LAST_EXPORT  = 'theme_site_last_export_info';
+    private const DB_CHUNK     = 500;
 
     public function __construct() {
-        add_action( 'wp_ajax_theme_site_export_process', array( $this, 'handle_export_request' ) );
-        add_action( 'wp_ajax_theme_site_export_delete', array( $this, 'handle_delete_export' ) );
-        add_action( 'wp_ajax_theme_site_export_cancel', array( $this, 'handle_cancel_request' ) );
-        if ( isset($_GET['page']) && $_GET['page'] === 'development' ) {
-            add_action( 'admin_footer', array( $this, 'output_admin_scripts' ) );
+        add_action( 'wp_ajax_' . self::AJAX_EXPORT, [ $this, 'handle_export' ] );
+        add_action( 'wp_ajax_' . self::AJAX_DELETE, [ $this, 'handle_delete' ] );
+        add_action( 'wp_ajax_' . self::AJAX_CANCEL, [ $this, 'handle_cancel' ] );
+
+        if ( isset( $_GET['page'] ) && $_GET['page'] === 'development' ) {
+            add_action( 'admin_footer', [ $this, 'render_ui' ] );
         }
     }
 
-    public function handle_cancel_request() {
-        $temp_dir = $_POST['temp_dir'] ?? '';
-        if ($temp_dir && is_dir($temp_dir)) {
-            touch(trailingslashit($temp_dir) . '.cancel_flag');
+    // =========================================================================
+    // AJAX HANDLERS
+    // =========================================================================
+
+    public function handle_export(): void {
+        $this->verify_request();
+
+        @ini_set( 'memory_limit', '2048M' );
+        set_time_limit( 0 );
+
+        $step   = sanitize_key( $_POST['step'] ?? 'init' );
+        $tmp    = $this->sanitize_path( $_POST['temp_dir'] ?? '' );
+        $zip    = $this->sanitize_path( $_POST['zip_path'] ?? '' );
+        $config = $this->sanitize_config( $_POST['config_data'] ?? [] );
+
+        $type = $config['export_mode'] ?? 'full';
+        $cur  = get_site_url();
+        $tar  = $config['url'] ?? '';
+
+        try {
+            if ( $step !== 'init' ) $this->check_cancel( $tmp );
+
+            $res = match ( $step ) {
+                'init'         => $this->step_init( $type ),
+                'db_dump'      => $this->step_db( $tmp, $cur, $tar, $type, $config ),
+                'core_files'   => $this->step_core( $tmp, $config, $type ),
+                'theme_export' => $this->step_theme( $tmp, $cur, $tar, $type, $config ),
+                'zip_download' => $this->step_zip( $tmp, $zip, $type ),
+                default        => throw new \Exception( 'Bilinmeyen adım: ' . $step ),
+            };
+
+            wp_send_json_success( $res );
+        } catch ( \Exception $e ) {
+            wp_send_json_error( [ 'message' => $e->getMessage() ] );
+        }
+    }
+
+    public function handle_delete(): void {
+        $this->verify_request();
+        $last = get_option( self::LAST_EXPORT );
+        if ( $last && ! empty( $last['url'] ) ) {
+            $file = $this->url_to_path( $last['url'] );
+            if ( $file && file_exists( $file ) ) @unlink( $file );
+        }
+        delete_option( self::LAST_EXPORT );
+        wp_send_json_success();
+    }
+
+    public function handle_cancel(): void {
+        $this->verify_request();
+        $tmp = $this->sanitize_path( $_POST['temp_dir'] ?? '' );
+        if ( $tmp && is_dir( $tmp ) ) {
+            touch( trailingslashit( $tmp ) . '.cancel_flag' );
         }
         wp_send_json_success();
     }
 
-    private function check_cancelation($temp_dir) {
-        if (!$temp_dir || !is_dir($temp_dir)) return;
-        $cancel_file = trailingslashit($temp_dir) . '.cancel_flag';
-        if (file_exists($cancel_file)) {
-            $this->rmdir_r($temp_dir); 
-            throw new Exception('TERMINATED: İşlem kullanıcı tarafından durduruldu.');
-        }
-    }
+    // =========================================================================
+    // STEPS
+    // =========================================================================
 
-    public function handle_export_request() {
-        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Yetkisiz!' );
-        @ini_set('memory_limit', '2048M');
-        set_time_limit( 0 );
+    private function step_init( string $type ): array {
+        $base = trailingslashit( wp_upload_dir()['basedir'] ) . 'site_exports';
+        if ( ! is_dir( $base ) ) wp_mkdir_p( $base );
 
-        $step        = $_POST['step'] ?? 'init';
-        $temp_dir    = $_POST['temp_dir'] ?? null;
-        $zip_path    = $_POST['zip_path'] ?? null;
-        $config_data = $_POST['config_data'] ?? null;
+        $token = date( 'Ymd_His' );
+        $tmp   = $base . '/temp_' . $token;
+        wp_mkdir_p( $tmp );
 
-        $export_type = $config_data['export_mode'] ?? 'full';
-        $target_url  = $config_data[self::ACF_PUBLISH_URL_FIELD] ?? '';
-        $current_url = get_site_url();
-
-        try {
-            if($step !== 'init') $this->check_cancelation($temp_dir);
-
-            switch ( $step ) {
-                case 'init': $res = $this->step_initiate($export_type); break;
-                case 'db_dump': $res = $this->step_db($temp_dir, $current_url, $target_url, $export_type, $config_data); break;
-                case 'core_files': $res = $this->step_core($temp_dir, $config_data, $export_type); break;
-                case 'theme_export': $res = $this->step_theme($temp_dir, $current_url, $target_url, $export_type, $config_data); break;
-                case 'zip_download': $res = $this->step_finalize($temp_dir, $zip_path, $export_type); break;
-                default: throw new Exception('Adım bulunamadı.');
-            }
-            wp_send_json_success($res);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
-        }
-    }
-    
-    private function step_initiate($type) {
-        $upload_dir = wp_upload_dir();
-        $base_dir = trailingslashit($upload_dir['basedir']) . 'site_exports';
-        if (!is_dir($base_dir)) wp_mkdir_p($base_dir);
-
-        $token = date('Ymd_His');
-        $tmp = $base_dir . '/temp_' . $token;
-        wp_mkdir_p($tmp);
-    
-        $steps = ['init'];
-        if ($type === 'full' || $type === 'db') $steps[] = 'db_dump';
-        if ($type === 'full') $steps[] = 'core_files';
+        $steps = [ 'init' ];
+        if ( $type === 'full' || $type === 'db' ) $steps[] = 'db_dump';
+        if ( $type === 'full' ) $steps[] = 'core_files';
         $steps[] = 'theme_export';
         $steps[] = 'zip_download';
 
-        $next = ($type === 'theme') ? 'theme_export' : 'db_dump';
+        $next = $type === 'theme' ? 'theme_export' : 'db_dump';
 
         return [
-            'next_step' => $next,
-            'temp_dir'  => $tmp,
-            'zip_path'  => $base_dir . '/export_' . $token . '.zip',
+            'next_step'    => $next,
+            'temp_dir'     => $tmp,
+            'zip_path'     => $base . '/export_' . $token . '.zip',
             'active_steps' => $steps,
-            'log'       => "SİSTEM: Çalışma alanı hazır. Mod: $type"
+            'log'          => "SYSTEM: Workspace ready. Mode: {$type}",
         ];
     }
 
-    private function step_db($tmp, $cur, $tar, $type, $data) {
-        $theme_slug = get_stylesheet();
-        $db_filename = $theme_slug . '-' . date('Ymd-His') . '.sql';
-        $sql_path = $tmp . '/' . $db_filename;
-        
-        $target_prefix = !empty($data['table_prefix']) ? $data['table_prefix'] : 'wp_';
-        
-        $this->export_db_logic($sql_path, $cur, $tar, $tmp, $target_prefix);
-        $next = ($type === 'db') ? 'zip_download' : 'core_files';
-        return ['next_step' => $next, 'log' => "DATABASE: [OK] $db_filename oluşturuldu." . ($target_prefix ? " (Prefix: $target_prefix)" : "")];
+    private function step_db( string $tmp, string $cur, string $tar, string $type, array $cfg ): array {
+        $slug     = get_stylesheet();
+        $filename = $slug . '-' . date( 'Ymd-His' ) . '.sql';
+        $sql_path = $tmp . '/' . $filename;
+        $prefix   = $cfg['table_prefix'] ?? 'wp_';
+
+        $this->export_database( $sql_path, $cur, $tar, $tmp, $prefix );
+
+        $next = $type === 'db' ? 'zip_download' : 'core_files';
+        return [ 'next_step' => $next, 'log' => "DATABASE: {$filename} created." . ( $prefix ? " (Prefix: {$prefix})" : '' ) ];
     }
 
-    private function step_core($tmp, $data, $type) {
-        if ($type !== 'full') return ['next_step' => 'theme_export', 'log' => 'SİSTEM: Core adımı atlandı.'];
-        $abs = untrailingslashit(ABSPATH);
-        $logs = [];
-        if ( !empty($data['root_files']) && $data['root_files'] === 'true' ){
-            foreach (scandir($abs) as $f) {
-                if (is_file("$abs/$f") && !in_array($f, ['wp-config.php'])) copy("$abs/$f", "$tmp/$f");
-            }
-            $logs[] = "ROOT: Ana dizin dosyaları kopyalandı.";
+    private function step_core( string $tmp, array $cfg, string $type ): array {
+        if ( $type !== 'full' ) {
+            return [ 'next_step' => 'theme_export', 'log' => 'SYSTEM: Core step skipped.' ];
         }
-        if ( !empty($data['wp_config']) && $data['wp_config'] === 'true' ){
-            $c = file_get_contents("$abs/wp-config.php");
-            if (!empty($data['db'])) $c = preg_replace("/(define\s*\(\s*['\"]DB_NAME['\"]\s*,\s*['\"])(.*?)(['\"]\s*\)\s*;)/", "$1".$data['db']."$3", $c);
-            if (!empty($data['user'])) $c = preg_replace("/(define\s*\(\s*['\"]DB_USER['\"]\s*,\s*['\"])(.*?)(['\"]\s*\)\s*;)/", "$1".$data['user']."$3", $c);
-            if (!empty($data['pass'])) $c = preg_replace("/(define\s*\(\s*['\"]DB_PASSWORD['\"]\s*,\s*['\"])(.*?)(['\"]\s*\)\s*;)/", "$1".$data['pass']."$3", $c);
-            
-            // table_prefix Güncellemesi
-            if (!empty($data['table_prefix'])) {
-                $c = preg_replace("/(\$table_prefix\s*=\s*['\"])(.*?)(['\"]\s*;)/", "$1".$data['table_prefix']."$3", $c);
-            }
 
-            file_put_contents("$tmp/wp-config.php", $c);
-            $logs[] = "CONFIG: wp-config.php güncellendi.";
+        $abs  = untrailingslashit( ABSPATH );
+        $logs = [];
+
+        if ( ! empty( $cfg['root_files'] ) ) {
+            foreach ( scandir( $abs ) as $f ) {
+                if ( is_file( "{$abs}/{$f}" ) && $f !== 'wp-config.php' ) {
+                    copy( "{$abs}/{$f}", "{$tmp}/{$f}" );
+                }
+            }
+            $logs[] = 'ROOT: Root files copied.';
         }
-        if ( !empty($data['wp_admin']) && $data['wp_admin'] === 'true' ) {
-            $this->copy_r("$abs/wp-admin", "$tmp/wp-admin", false, '', '', $tmp);
-            $logs[] = "CORE: /wp-admin kopyalandı.";
+
+        if ( ! empty( $cfg['wp_config'] ) ) {
+            $c = file_get_contents( "{$abs}/wp-config.php" );
+            foreach ( [ 'DB_NAME' => 'db', 'DB_USER' => 'user', 'DB_PASSWORD' => 'pass' ] as $const => $key ) {
+                if ( ! empty( $cfg[ $key ] ) ) {
+                    $c = preg_replace(
+                        "/(define\s*\(\s*['\"]" . $const . "['\"]\s*,\s*['\"])(.*?)(['\"]\s*\)\s*;)/",
+                        '${1}' . addslashes( $cfg[ $key ] ) . '${3}',
+                        $c
+                    );
+                }
+            }
+            if ( ! empty( $cfg['table_prefix'] ) ) {
+                $c = preg_replace( "/(\\\$table_prefix\s*=\s*['\"])(.*?)(['\"]\s*;)/", '${1}' . $cfg['table_prefix'] . '${3}', $c );
+            }
+            file_put_contents( "{$tmp}/wp-config.php", $c );
+            $logs[] = 'CONFIG: wp-config.php updated.';
         }
-        if ( !empty($data['wp_includes']) && $data['wp_includes'] === 'true' ) {
-            $this->copy_r("$abs/wp-includes", "$tmp/wp-includes", false, '', '', $tmp);
-            $logs[] = "CORE: /wp-includes kopyalandı.";
+
+        if ( ! empty( $cfg['wp_admin'] ) ) {
+            $this->copy_recursive( "{$abs}/wp-admin", "{$tmp}/wp-admin", false, '', '', $tmp );
+            $logs[] = 'CORE: /wp-admin copied.';
         }
-        return ['next_step' => 'theme_export', 'log' => implode("\n", $logs)];
+        if ( ! empty( $cfg['wp_includes'] ) ) {
+            $this->copy_recursive( "{$abs}/wp-includes", "{$tmp}/wp-includes", false, '', '', $tmp );
+            $logs[] = 'CORE: /wp-includes copied.';
+        }
+
+        return [ 'next_step' => 'theme_export', 'log' => implode( "\n", $logs ) ];
     }
 
-    private function step_theme($tmp, $cur, $tar, $type, $data) {
+    private function step_theme( string $tmp, string $cur, string $tar, string $type, array $cfg ): array {
         $logs = [];
-        if ($type === 'full') {
-            if ( !empty($data['wp_content']) && $data['wp_content'] === 'true' ){
-                $this->copy_r(trailingslashit(WP_CONTENT_DIR), "$tmp/wp-content", true, $cur, $tar, $tmp);
-                $logs[] = "CONTENT: /wp-content ve URL değişimleri tamam.";
-            }
-        } elseif ($type === 'theme') {
+
+        if ( $type === 'full' && ! empty( $cfg['wp_content'] ) ) {
+            $this->copy_recursive( trailingslashit( WP_CONTENT_DIR ), "{$tmp}/wp-content", true, $cur, $tar, $tmp );
+            $logs[] = 'CONTENT: /wp-content copied with URL replacements.';
+        } elseif ( $type === 'theme' ) {
             $slug = get_stylesheet();
-            $this->copy_r(trailingslashit(get_stylesheet_directory()), "$tmp/$slug", true, $cur, $tar, $tmp);
-            $logs[] = "THEME: Sadece tema ($slug) kopyalandı.";
+            $this->copy_recursive( trailingslashit( get_stylesheet_directory() ), "{$tmp}/{$slug}", true, $cur, $tar, $tmp );
+            $logs[] = "THEME: {$slug} copied.";
         }
-        return ['next_step' => 'zip_download', 'log' => implode("\n", $logs)];
+
+        return [ 'next_step' => 'zip_download', 'log' => implode( "\n", $logs ) ];
     }
 
-    private function step_finalize($tmp, $zip_p, $type) {
-        if ($tmp) $this->check_cancelation($tmp); 
-        $z = new ZipArchive();
-        if ($z->open($zip_p, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw new Exception("Zip hatası.");
-        $rootPath = realpath($tmp);
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rootPath, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
-        foreach ($files as $file) {
-            if ($tmp) $this->check_cancelation($tmp); 
-            if (!$file->isReadable()) continue;
-            $filePath = $file->getRealPath();
-            $relativePath = str_replace('\\', '/', substr($filePath, strlen($rootPath) + 1));
-            $file->isDir() ? $z->addEmptyDir($relativePath) : $z->addFile($filePath, $relativePath);
+    private function step_zip( string $tmp, string $zip_path, string $type ): array {
+        if ( ! class_exists( 'ZipArchive' ) ) {
+            throw new \Exception( 'ZipArchive extension is not installed.' );
         }
+
+        $this->check_cancel( $tmp );
+
+        $z = new \ZipArchive();
+        if ( $z->open( $zip_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE ) !== true ) {
+            throw new \Exception( 'Cannot create ZIP file.' );
+        }
+
+        $root  = realpath( $tmp );
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator( $root, \RecursiveDirectoryIterator::SKIP_DOTS ),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ( $files as $file ) {
+            $this->check_cancel( $tmp );
+            if ( ! $file->isReadable() ) continue;
+            $real     = $file->getRealPath();
+            $relative = str_replace( '\\', '/', substr( $real, strlen( $root ) + 1 ) );
+            $file->isDir() ? $z->addEmptyDir( $relative ) : $z->addFile( $real, $relative );
+        }
+
         $z->close();
-        $this->rmdir_r($tmp); 
+        $this->rmdir_recursive( $tmp );
 
-        $old = get_option(self::LAST_EXPORT_OPTION);
-        if ($old && !empty($old['url'])) {
-            $old_f = str_replace(wp_upload_dir()['baseurl'], wp_upload_dir()['basedir'], $old['url']);
-            if (file_exists($old_f)) @unlink($old_f);
+        // Eski export'u sil
+        $old = get_option( self::LAST_EXPORT );
+        if ( $old && ! empty( $old['url'] ) ) {
+            $old_file = $this->url_to_path( $old['url'] );
+            if ( $old_file && file_exists( $old_file ) ) @unlink( $old_file );
         }
-        $upload_url = wp_upload_dir()['baseurl'] . '/site_exports/' . basename($zip_p);
-        update_option(self::LAST_EXPORT_OPTION, ['url' => $upload_url, 'type' => $type, 'date' => wp_date('d.m.Y H:i:s')]);
-        return ['zip_url' => $upload_url, 'next_step' => 'done', 'log' => "> ZIP: Paketleme bitti.\n> SİSTEM: Temizlik tamam."];
+
+        $url = wp_upload_dir()['baseurl'] . '/site_exports/' . basename( $zip_path );
+        update_option( self::LAST_EXPORT, [
+            'url'  => $url,
+            'type' => $type,
+            'date' => wp_date( 'd.m.Y H:i:s' ),
+            'size' => size_format( filesize( $zip_path ), 2 ),
+        ] );
+
+        return [
+            'zip_url'   => $url,
+            'next_step' => 'done',
+            'log'       => "ZIP: Package created.\nSYSTEM: Cleanup done.",
+        ];
     }
 
-    private function copy_r($s, $d, $rep=false, $cur='', $tar='', $tmp_dir='') {
-        if ($tmp_dir) $this->check_cancelation($tmp_dir); 
-        if(!is_dir($d)) wp_mkdir_p($d);
-        foreach (scandir($s) as $f) {
-            if ($tmp_dir) $this->check_cancelation($tmp_dir); 
-            if ($f === '.' || $f === '..' || $f === 'site_exports') continue;
-            $src = "$s/$f"; $dst = "$d/$f";
-            if (is_dir($src)) {
-                $this->copy_r($src, $dst, $rep, $cur, $tar, $tmp_dir);
+    // =========================================================================
+    // DATABASE EXPORT — Chunk'lı, safe replace
+    // =========================================================================
+
+    private function export_database( string $path, string $cur, string $tar, string $tmp, string $target_prefix = '' ): void {
+        global $wpdb;
+        $current_prefix = $wpdb->prefix;
+        $live_url       = ! empty( $tar ) ? $tar : $cur;
+
+        if ( ! class_exists( 'PDO' ) ) {
+            throw new \Exception( 'PDO extension is not installed.' );
+        }
+
+        $pdo = new \PDO(
+            'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
+            DB_USER, DB_PASSWORD,
+            [ \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC ]
+        );
+
+        $tables = $pdo->query( 'SHOW TABLES' )->fetchAll( \PDO::FETCH_COLUMN );
+
+        $header = "-- WordPress MySQL Export\n-- Target URL: {$live_url}\n"
+                . "-- Prefix: {$current_prefix} -> {$target_prefix}\n"
+                . "-- Date: " . date( 'Y-m-d H:i:s' ) . "\n\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
+        file_put_contents( $path, $header );
+
+        $bad_collations = [ 'utf8mb4_0900_ai_ci', 'utf8mb4_0900_as_ci', 'utf8mb4_0900_as_cs', 'utf8mb4_0900_bin' ];
+
+        foreach ( $tables as $table ) {
+            $this->check_cancel( $tmp );
+
+            $target_table = $table;
+            if ( $target_prefix && str_starts_with( $table, $current_prefix ) ) {
+                $target_table = $target_prefix . substr( $table, strlen( $current_prefix ) );
+            }
+
+            // CREATE TABLE
+            $create     = $pdo->query( "SHOW CREATE TABLE `{$table}`" )->fetch();
+            $create_sql = $create['Create Table'];
+            $create_sql = str_replace( "CREATE TABLE `{$table}`", "CREATE TABLE `{$target_table}`", $create_sql );
+            foreach ( $bad_collations as $coll ) {
+                $create_sql = str_ireplace( $coll, 'utf8mb4_unicode_ci', $create_sql );
+            }
+
+            $sql = "DROP TABLE IF EXISTS `{$target_table}`;\n{$create_sql};\n\n";
+            file_put_contents( $path, $sql, FILE_APPEND );
+
+            // DATA — chunk'lı fetch
+            $total  = (int) $pdo->query( "SELECT COUNT(*) FROM `{$table}`" )->fetchColumn();
+            $offset = 0;
+            $buffer = '';
+
+            while ( $offset < $total ) {
+                $this->check_cancel( $tmp );
+
+                $rows = $pdo->query( "SELECT * FROM `{$table}` LIMIT " . self::DB_CHUNK . " OFFSET {$offset}" )->fetchAll();
+
+                foreach ( $rows as $row ) {
+                    $values = [];
+                    foreach ( $row as $key => $val ) {
+                        if ( $val === null ) {
+                            $values[] = 'NULL';
+                            continue;
+                        }
+
+                        // Prefix replace (usermeta/options meta_key/option_name)
+                        if ( $target_prefix ) {
+                            $is_meta = str_contains( $table, 'usermeta' ) || str_contains( $table, 'options' );
+                            if ( $is_meta && is_string( $val ) && str_starts_with( $val, $current_prefix ) ) {
+                                $val = $target_prefix . substr( $val, strlen( $current_prefix ) );
+                            }
+                        }
+
+                        // URL replace (serialized/JSON safe)
+                        $val = $this->safe_replace( $cur, $tar, $val );
+                        $values[] = $pdo->quote( $val );
+                    }
+
+                    $buffer .= "INSERT INTO `{$target_table}` VALUES (" . implode( ', ', $values ) . ");\n";
+                }
+
+                // Buffer'ı diske yaz
+                if ( $buffer !== '' ) {
+                    foreach ( $bad_collations as $coll ) {
+                        $buffer = str_ireplace( $coll, 'utf8mb4_unicode_ci', $buffer );
+                    }
+                    file_put_contents( $path, $buffer, FILE_APPEND );
+                    $buffer = '';
+                }
+
+                $offset += self::DB_CHUNK;
+            }
+
+            file_put_contents( $path, "\n", FILE_APPEND );
+        }
+
+        file_put_contents( $path, "SET FOREIGN_KEY_CHECKS = 1;\n", FILE_APPEND );
+    }
+
+
+    // =========================================================================
+    // SAFE REPLACE — Serialized + JSON + plain string
+    // =========================================================================
+
+    private function safe_replace( string $search, string $replace, mixed $data ): mixed {
+        if ( empty( $data ) || is_numeric( $data ) || empty( $search ) ) return $data;
+
+        if ( is_string( $data ) ) {
+            // Serialized
+            if ( $this->is_serialized( $data ) ) {
+                $unserialized = @unserialize( $data );
+                if ( $unserialized !== false || $data === 'b:0;' ) {
+                    return serialize( $this->safe_replace( $search, $replace, $unserialized ) );
+                }
+            }
+
+            // JSON
+            $json = json_decode( $data, true );
+            if ( is_array( $json ) && json_last_error() === JSON_ERROR_NONE ) {
+                array_walk_recursive( $json, function ( &$v ) use ( $search, $replace ) {
+                    if ( is_string( $v ) ) $v = str_replace( $search, $replace, $v );
+                } );
+                return json_encode( $json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+            }
+
+            // Plain string
+            $data = str_replace( $search, $replace, $data );
+            $data = str_replace( str_replace( '/', '\\/', $search ), str_replace( '/', '\\/', $replace ), $data );
+            return $data;
+        }
+
+        if ( is_array( $data ) ) {
+            foreach ( $data as $k => $v ) {
+                $data[ $k ] = $this->safe_replace( $search, $replace, $v );
+            }
+            return $data;
+        }
+
+        if ( is_object( $data ) ) {
+            $clone = clone $data;
+            foreach ( $data as $k => $v ) {
+                $clone->$k = $this->safe_replace( $search, $replace, $v );
+            }
+            return $clone;
+        }
+
+        return $data;
+    }
+
+    private function is_serialized( string $data ): bool {
+        $data = trim( $data );
+        if ( $data === 'N;' ) return true;
+        if ( ! preg_match( '/^([adObis]):/', $data, $m ) ) return false;
+        return match ( $m[1] ) {
+            'a', 'O', 's' => (bool) preg_match( "/^{$m[1]}:[0-9]+:.*[;}]\$/s", $data ),
+            'b', 'i', 'd' => (bool) preg_match( "/^{$m[1]}:[0-9.E+-]+;\$/", $data ),
+            default        => false,
+        };
+    }
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+
+    private function verify_request(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => 'Unauthorized.' ] );
+        }
+        if ( ! check_ajax_referer( self::NONCE_ACTION, self::NONCE_FIELD, false ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid security token. Please refresh the page.' ] );
+        }
+    }
+
+    private function sanitize_config( array $raw ): array {
+        $clean = [];
+        $text_fields = [ 'export_mode', 'db', 'user', 'pass', 'url', 'table_prefix' ];
+        $bool_fields = [ 'wp_includes', 'wp_admin', 'wp_content', 'root_files', 'wp_config' ];
+
+        foreach ( $text_fields as $f ) {
+            $clean[ $f ] = isset( $raw[ $f ] ) ? sanitize_text_field( $raw[ $f ] ) : '';
+        }
+        foreach ( $bool_fields as $f ) {
+            $clean[ $f ] = ! empty( $raw[ $f ] ) && $raw[ $f ] === 'true';
+        }
+
+        return $clean;
+    }
+
+    private function sanitize_path( string $path ): string {
+        if ( empty( $path ) ) return '';
+        $path     = realpath( $path ) ?: $path;
+        $base_dir = realpath( wp_upload_dir()['basedir'] );
+        if ( $base_dir && ! str_starts_with( $path, $base_dir ) ) {
+            return ''; // uploads dışına çıkamaz
+        }
+        return $path;
+    }
+
+    private function url_to_path( string $url ): string {
+        $upload = wp_upload_dir();
+        return str_replace( $upload['baseurl'], $upload['basedir'], $url );
+    }
+
+    private function check_cancel( string $tmp ): void {
+        if ( empty( $tmp ) || ! is_dir( $tmp ) ) return;
+        $flag = trailingslashit( $tmp ) . '.cancel_flag';
+        if ( file_exists( $flag ) ) {
+            $this->rmdir_recursive( $tmp );
+            throw new \Exception( 'CANCELLED: Operation stopped by user.' );
+        }
+    }
+
+    private function copy_recursive( string $src, string $dst, bool $replace = false, string $cur = '', string $tar = '', string $tmp = '' ): void {
+        if ( $tmp ) $this->check_cancel( $tmp );
+        if ( ! is_dir( $dst ) ) wp_mkdir_p( $dst );
+
+        foreach ( scandir( $src ) as $f ) {
+            if ( $f === '.' || $f === '..' || $f === 'site_exports' ) continue;
+            if ( $tmp ) $this->check_cancel( $tmp );
+
+            $s = "{$src}/{$f}";
+            $d = "{$dst}/{$f}";
+
+            if ( is_dir( $s ) ) {
+                $this->copy_recursive( $s, $d, $replace, $cur, $tar, $tmp );
             } else {
-                copy($src, $dst);
-                if($rep && $cur && $tar) {
-                    $ext = pathinfo($dst, PATHINFO_EXTENSION);
-                    if(in_array($ext, ['php', 'css', 'json', 'sql', 'js'])) {
-                        $c = @file_get_contents($dst);
-                        if($c) {
-                            $c = str_replace([$cur, str_replace('/','\\/',$cur)], [$tar, str_replace('/','\\/',$tar)], $c);
-                            @file_put_contents($dst, $c);
+                copy( $s, $d );
+                if ( $replace && $cur && $tar ) {
+                    $ext = pathinfo( $d, PATHINFO_EXTENSION );
+                    if ( in_array( $ext, [ 'php', 'css', 'json', 'sql', 'js' ], true ) ) {
+                        $c = @file_get_contents( $d );
+                        if ( $c ) {
+                            $c = str_replace(
+                                [ $cur, str_replace( '/', '\\/', $cur ) ],
+                                [ $tar, str_replace( '/', '\\/', $tar ) ],
+                                $c
+                            );
+                            @file_put_contents( $d, $c );
                         }
                     }
                 }
@@ -208,339 +506,191 @@ class Theme_Site_Exporter {
         }
     }
 
-    /*private function export_db_logic($path, $cur, $tar, $tmp, $target_prefix = '') {
-        global $wpdb;
-        $db_host = DB_HOST; $db_name = DB_NAME; $db_user = DB_USER; $db_pass = DB_PASSWORD;
-        $current_prefix = $wpdb->prefix;
-        $live_url = !empty($tar) ? $tar : $cur;
-
-        try {
-            $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, 
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-            ]);
-            $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
-            $header = "-- WordPress MySQL Export\n-- Target URL: {$live_url}\n-- Prefix Change: {$current_prefix} -> {$target_prefix}\n-- " . date("Y-m-d H:i:s") . "\n\n";
-            file_put_contents($path, $header);
-            $unwanted = ['utf8mb4_0900_ai_ci', 'utf8mb4_0900_as_ci', 'utf8mb4_0900_as_cs', 'utf8mb4_0900_bin', 'utf8mb4_0900_ai_ci_520', 'utf8mb4_general_ci'];
-            
-            foreach ($tables as $table) {
-                $this->check_cancelation($tmp);
-                
-                // Tablo ismini değiştir (Eğer prefix değişimi istendiyse)
-                $target_table_name = $table;
-                if (!empty($target_prefix) && strpos($table, $current_prefix) === 0) {
-                    $target_table_name = $target_prefix . substr($table, strlen($current_prefix));
-                }
-
-                $create = $pdo->query("SHOW CREATE TABLE `$table`")->fetch();
-                $create_sql = $create['Create Table'];
-                
-                // CREATE TABLE içinde tablo ismini ve collation'ları düzelt
-                $table_sql = "DROP TABLE IF EXISTS `$target_table_name`;\n";
-                $create_sql = str_replace("CREATE TABLE `$table`", "CREATE TABLE `$target_table_name`", $create_sql);
-                
-                foreach($unwanted as $coll) { $create_sql = str_ireplace($coll, 'utf8mb4_unicode_ci', $create_sql); }
-                $table_sql .= $create_sql . ";\n\n";
-                
-                file_put_contents($path, $table_sql, FILE_APPEND);
-                
-                $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll();
-                foreach ($rows as $row) {
-                    $this->check_cancelation($tmp);
-                    
-                    // Buradaki array_map artık hem key hem value alıyor (Internal Prefix Fix için)
-                    $keys = array_keys($row);
-                    $values = array_map(function ($val, $key) use ($pdo, $cur, $tar, $current_prefix, $target_prefix, $table) {
-                        if ($val === null) return 'NULL';
-                        $val = (string)$val;
-
-                        //usermeta ve options tablolarında, verinin kendisi prefix ile başlıyorsa (wp_capabilities gibi)
-                        // onu yeni prefix ile değiştiriyoruz ki yetki sorunu yaşanmasın.
-                        if (!empty($target_prefix)) {
-                            $is_meta_table = (strpos($table, 'usermeta') !== false);
-                            $is_options_table = (strpos($table, 'options') !== false);
-
-                            if ($is_meta_table || $is_options_table) {
-                                // meta_key veya option_name sütunundaki veriyi kontrol et
-                                if (strpos($val, $current_prefix) === 0) {
-                                    $val = $target_prefix . substr($val, strlen($current_prefix));
-                                }
-                            }
-                        }
-
-                        // URL Değişim işlemleri (Standart ve JSON)
-                        $json = json_decode($val, true);
-                        if (is_array($json)) {
-                            array_walk_recursive($json, function (&$i) use ($cur, $tar) {
-                                if (is_string($i)) $i = str_replace($cur, $tar, $i);
-                            });
-                            $val = json_encode($json);
-                        } else {
-                            $val = str_replace($cur, $tar, $val);
-                        }
-                        $val = str_replace(str_replace('/', '\\/', $cur), str_replace('/', '\\/', $tar), $val);
-                        
-                        return $pdo->quote($val);
-                    }, $row, $keys);
-                    
-                    $insert_sql = "INSERT INTO `$target_table_name` VALUES (" . implode(", ", $values) . ");\n";
-                    foreach($unwanted as $coll) { $insert_sql = str_ireplace($coll, 'utf8mb4_unicode_ci', $insert_sql); }
-                    file_put_contents($path, $insert_sql, FILE_APPEND);
-                }
-                file_put_contents($path, "\n", FILE_APPEND);
-            }
-        } catch (Exception $e) { throw new Exception("DB: " . $e->getMessage()); }
-    }*/
-
-    private function export_db_logic($path, $cur, $tar, $tmp, $target_prefix = '') {
-        global $wpdb;
-        $db_host = DB_HOST; $db_name = DB_NAME; $db_user = DB_USER; $db_pass = DB_PASSWORD;
-        $current_prefix = $wpdb->prefix;
-        $live_url = !empty($tar) ? $tar : $cur;
-
-        try {
-            $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, 
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-            ]);
-            $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
-            $header = "-- WordPress MySQL Export\n-- Target URL: {$live_url}\n-- Prefix Change: {$current_prefix} -> {$target_prefix}\n-- " . date("Y-m-d H:i:s") . "\n\n";
-            file_put_contents($path, $header);
-            $unwanted = ['utf8mb4_0900_ai_ci', 'utf8mb4_0900_as_ci', 'utf8mb4_0900_as_cs', 'utf8mb4_0900_bin', 'utf8mb4_0900_ai_ci_520', 'utf8mb4_general_ci'];
-            
-            foreach ($tables as $table) {
-                $this->check_cancelation($tmp);
-                
-                $target_table_name = $table;
-                if (!empty($target_prefix) && strpos($table, $current_prefix) === 0) {
-                    $target_table_name = $target_prefix . substr($table, strlen($current_prefix));
-                }
-
-                $create = $pdo->query("SHOW CREATE TABLE `$table`")->fetch();
-                $create_sql = $create['Create Table'];
-                $table_sql = "DROP TABLE IF EXISTS `$target_table_name`;\n";
-                $create_sql = str_replace("CREATE TABLE `$table`", "CREATE TABLE `$target_table_name`", $create_sql);
-                foreach($unwanted as $coll) { $create_sql = str_ireplace($coll, 'utf8mb4_unicode_ci', $create_sql); }
-                $table_sql .= $create_sql . ";\n\n";
-                file_put_contents($path, $table_sql, FILE_APPEND);
-                
-                $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll();
-                foreach ($rows as $row) {
-                    $this->check_cancelation($tmp);
-                    
-                    $keys = array_keys($row);
-                    $values = array_map(function ($val, $key) use ($pdo, $cur, $tar, $current_prefix, $target_prefix, $table) {
-                        if ($val === null) return 'NULL';
-                        
-                        if (!empty($target_prefix)) {
-                            $is_meta_table = (strpos($table, 'usermeta') !== false);
-                            $is_options_table = (strpos($table, 'options') !== false);
-                            if ($is_meta_table || $is_options_table) {
-                                if (is_string($val) && strpos($val, $current_prefix) === 0) {
-                                    $val = $target_prefix . substr($val, strlen($current_prefix));
-                                }
-                            }
-                        }
-
-                        $val = $this->safe_recursive_replace_internal($cur, $tar, $val);
-                        return $pdo->quote($val);
-                    }, $row, $keys);
-                    
-                    $insert_sql = "INSERT INTO `$target_table_name` VALUES (" . implode(", ", $values) . ");\n";
-                    foreach($unwanted as $coll) { $insert_sql = str_ireplace($coll, 'utf8mb4_unicode_ci', $insert_sql); }
-                    file_put_contents($path, $insert_sql, FILE_APPEND);
-                }
-                file_put_contents($path, "\n", FILE_APPEND);
-            }
-        } catch (Exception $e) { throw new Exception("DB: " . $e->getMessage()); }
+    private function rmdir_recursive( string $dir ): void {
+        if ( ! is_dir( $dir ) ) return;
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ( $it as $f ) {
+            $f->isDir() ? @rmdir( $f->getRealPath() ) : @unlink( $f->getRealPath() );
+        }
+        @rmdir( $dir );
     }
 
-    private function safe_recursive_replace_internal($search, $replace, $data) {
-        if (empty($data) || is_numeric($data)) return $data;
+    // =========================================================================
+    // ADMIN UI — Terminal modal + progress
+    // =========================================================================
 
-        // 1. String ise Serialized veya JSON kontrolü yap
-        if (is_string($data)) {
-            // Serialized kontrolü
-            if ($this->is_serialized_internal($data)) {
-                $unserialized = @unserialize($data);
-                if ($unserialized !== false) {
-                    return serialize($this->safe_recursive_replace_internal($search, $replace, $unserialized));
-                }
-            }
-
-            // JSON kontrolü
-            $json = json_decode($data, true);
-            if (is_array($json) && (json_last_error() == JSON_ERROR_NONE)) {
-                array_walk_recursive($json, function (&$i) use ($search, $replace) {
-                    if (is_string($i)) $i = str_replace($search, $replace, $i);
-                });
-                return json_encode($json);
-            }
-
-            // Düz String ise replace yap
-            $data = str_replace($search, $replace, $data);
-            $data = str_replace(str_replace('/', '\\/', $search), str_replace('/', '\\/', $replace), $data);
-            return $data;
-        }
-
-        // 2. Array ise içini dön
-        if (is_array($data)) {
-            foreach ($data as $key => $value) {
-                $data[$key] = $this->safe_recursive_replace_internal($search, $replace, $value);
-            }
-            return $data;
-        }
-
-        // 3. Object ise (Hata buradaydı, artık nesneler json_decode'a girmeyecek)
-        if (is_object($data)) {
-            $new_data = clone $data;
-            foreach ($data as $key => $value) {
-                $new_data->$key = $this->safe_recursive_replace_internal($search, $replace, $value);
-            }
-            return $new_data;
-        }
-
-        return $data;
-    }
-
-    private function is_serialized_internal($data) {
-        if (!is_string($data)) return false;
-        $data = trim($data);
-        if ('N;' === $data) return true;
-        if (!preg_match('/^([adObis]):/', $data, $badions)) return false;
-        switch ($badions[1]) {
-            case 'a': case 'O': case 's':
-                if (preg_match("/^{$badions[1]}:[0-9]+:.*[;}]\$/s", $data)) return true;
-                break;
-            case 'b': case 'i': case 'd':
-                if (preg_match("/^{$badions[1]}:[0-9.E+-]+;\$/", $data)) return true;
-                break;
-        }
-        return false;
-    }
-
-    private function rmdir_r($d) {
-        if(!is_dir($d)) return;
-        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($d, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
-        foreach($it as $f) $f->isDir() ? @rmdir($f->getRealPath()) : @unlink($f->getRealPath());
-        @rmdir($d);
-    }
-
-    public function handle_delete_export() {
-        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error();
-        $last = get_option(self::LAST_EXPORT_OPTION);
-        if ($last && !empty($last['url'])) {
-            $f = str_replace(wp_upload_dir()['baseurl'], wp_upload_dir()['basedir'], $last['url']);
-            if (file_exists($f)) unlink($f);
-        }
-        delete_option(self::LAST_EXPORT_OPTION);
-        wp_send_json_success();
-    }
-
-    public function output_admin_scripts() {
-        $last = get_option(self::LAST_EXPORT_OPTION);
+    public function render_ui(): void {
+        $last  = get_option( self::LAST_EXPORT );
+        $nonce = wp_create_nonce( self::NONCE_ACTION );
         ?>
         <style>
-            #export-ui-wrap { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:999999; justify-content:center; align-items:center; color:#00ff00; font-family:monospace; }
-            .export-box { background:#0a0a0a; padding:30px; border:1px solid #00ff00; width:750px; }
-            .status-list { background:#000; padding:15px; border:1px solid #222; height:350px; overflow-y:auto; margin:20px 0; font-size:12px; }
-            .bar-bg { background:#111; height:8px; border:1px solid #00ff00; margin-bottom:15px; }
-            .bar-fill { width:0; height:100%; background:#00ff00; transition:0.3s; }
-            .btns { display:flex; gap:15px; justify-content: flex-end; }
-            .btn { padding:10px 25px; cursor:pointer; text-decoration:none; border:1px solid #00ff00; background:transparent; color:#00ff00; font-size:12px; font-weight:bold; }
-            .btn:hover { background:#00ff00; color:#000; }
-            .btn-cancel { border-color:#ff0000; color:#ff0000; margin-right:auto; }
-            .btn-cancel:hover { background:#ff0000; color:#fff; }
-            .last-info-box { font-size: 13px; color:#666; border-top:1px solid #333; margin-top:10px; padding-top:10px; }
+            #export-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.92);z-index:999999;justify-content:center;align-items:center;font-family:'JetBrains Mono',Consolas,monospace;color:#c8d6e5}
+            .export-terminal{background:#0d1117;border:1px solid #30363d;border-radius:12px;width:780px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+            .export-header{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid #21262d;background:#161b22;border-radius:12px 12px 0 0}
+            .export-header .dot{width:12px;height:12px;border-radius:50%}
+            .export-header .dot-red{background:#ff5f57}.export-header .dot-yellow{background:#febc2e}.export-header .dot-green{background:#28c840}
+            .export-header .title{margin-left:12px;font-size:13px;color:#8b949e;flex:1}
+            .export-header .close-x{cursor:pointer;color:#8b949e;font-size:18px;padding:0 4px;border:none;background:none;display:none}
+            .export-header .close-x:hover{color:#f85149}
+            .export-progress{padding:16px 20px 0}
+            .export-bar-bg{background:#21262d;height:6px;border-radius:3px;overflow:hidden}
+            .export-bar-fill{width:0;height:100%;background:linear-gradient(90deg,#238636,#3fb950);transition:width .4s ease;border-radius:3px}
+            .export-bar-label{font-size:11px;color:#8b949e;margin-top:6px;text-align:right}
+            .export-log{flex:1;overflow-y:auto;padding:16px 20px;font-size:12px;line-height:1.7;min-height:300px;max-height:400px}
+            .export-log .log-ok{color:#3fb950}.export-log .log-err{color:#f85149}.export-log .log-info{color:#58a6ff}.export-log .log-warn{color:#d29922}.export-log .log-sys{color:#8b949e}
+            .export-footer{display:flex;gap:12px;padding:16px 20px;border-top:1px solid #21262d;justify-content:flex-end}
+            .export-footer .ebtn{padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #30363d;background:#21262d;color:#c8d6e5;text-decoration:none;transition:all .2s}
+            .export-footer .ebtn:hover{background:#30363d}
+            .export-footer .ebtn-cancel{border-color:#f85149;color:#f85149;margin-right:auto}.export-footer .ebtn-cancel:hover{background:#f85149;color:#fff}
+            .export-footer .ebtn-dl{border-color:#238636;color:#3fb950}.export-footer .ebtn-dl:hover{background:#238636;color:#fff}
+            .export-last{font-size:12px;color:#8b949e;margin-top:8px;padding:8px 12px;background:#161b22;border-radius:6px;border:1px solid #21262d}
+            .export-last a{color:#58a6ff;text-decoration:none}.export-last a:hover{text-decoration:underline}
+            .export-last .del-link{color:#f85149;margin-left:12px}
         </style>
 
         <script>
-        jQuery(document).ready(function($) {
-            const lastHtml = <?php echo $last ? json_encode('<div class="last-info-box">> SON EXPORT: '.$last['date'].' - <a href="'.$last['url'].'" style="color:#00ff00;">İNDİR</a> | <a href="#" class="delete-last-export" style="color:#ff0000;">SİL</a></div>') : '""'; ?>;
-            if(lastHtml !== "") $('.acf-field[data-name="start"] .acf-input').append(lastHtml);
+        jQuery(document).ready(function($){
+            const NONCE = '<?php echo esc_js( $nonce ); ?>';
+            let eTmp='', eZip='', activeSteps=[];
 
-            $(document).on('click', '.delete-last-export', function(e) {
+            // Last export info
+            <?php if ( $last ) : ?>
+            const lastHtml = '<div class="export-last">Last export: <?php echo esc_js( $last['date'] ); ?> (<?php echo esc_js( $last['size'] ?? '' ); ?>) &mdash; <a href="<?php echo esc_url( $last['url'] ); ?>" target="_blank">Download</a><a href="#" class="del-link delete-last-export">Delete</a></div>';
+            $('.acf-field[data-name="start"] .acf-input').append(lastHtml);
+            <?php endif; ?>
+
+            $(document).on('click','.delete-last-export',function(e){
                 e.preventDefault();
-                if(confirm('Dosya silinsin mi?')) $.post(ajaxurl, { action: 'theme_site_export_delete' }, () => window.location.reload());
+                if(!confirm('Delete export file?')) return;
+                $.post(ajaxurl,{action:'<?php echo self::AJAX_DELETE; ?>',<?php echo self::NONCE_FIELD; ?>:NONCE},()=>$('.export-last').fadeOut(300,function(){$(this).remove()}));
             });
 
-            $(document).on('click', '.btn-cancel', function() {
-                if(confirm('İŞLEM DURDURULSUN MU?')) {
-                    $.post(ajaxurl, { action: 'theme_site_export_cancel', temp_dir: window.eTmp });
-                    $('.status-list').append('<div style="color:red">> DURDURMA EMRİ GÖNDERİLDİ...</div>');
-                }
-            });
+            function createModal(){
+                if($('#export-overlay').length) return;
+                $('body').append(`
+                <div id="export-overlay">
+                    <div class="export-terminal">
+                        <div class="export-header">
+                            <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+                            <span class="title">Site Export Terminal</span>
+                            <button class="close-x" title="Close">&times;</button>
+                        </div>
+                        <div class="export-progress">
+                            <div class="export-bar-bg"><div class="export-bar-fill"></div></div>
+                            <div class="export-bar-label">Initializing...</div>
+                        </div>
+                        <div class="export-log"></div>
+                        <div class="export-footer">
+                            <button class="ebtn ebtn-cancel">Cancel</button>
+                            <a href="#" class="ebtn ebtn-dl" target="_blank" style="display:none">Download ZIP</a>
+                        </div>
+                    </div>
+                </div>`);
+            }
 
-            $(document).on('click', '.acf-field[data-name="start"] button, .acf-field[data-name="start"] a', function(e) {
+            function log(msg, type='sys'){
+                const cls = {ok:'log-ok',err:'log-err',info:'log-info',warn:'log-warn',sys:'log-sys'}[type]||'log-sys';
+                msg.split('\n').forEach(line=>{
+                    if(!line.trim()) return;
+                    let t='sys';
+                    if(/^\[OK\]|OK|created|copied|updated|done/i.test(line)) t='ok';
+                    else if(/ERROR|HATA|CANCEL|failed/i.test(line)) t='err';
+                    else if(/SYSTEM|MODE|INIT|ZIP/i.test(line)) t='info';
+                    else if(/WARN|skip/i.test(line)) t='warn';
+                    const c = {ok:'log-ok',err:'log-err',info:'log-info',warn:'log-warn',sys:'log-sys'}[t];
+                    $('.export-log').append(`<div class="${c}"><span style="opacity:.5">$</span> ${line}</div>`);
+                });
+                $('.export-log').scrollTop(99999);
+            }
+
+            function progress(step){
+                if(!activeSteps.length) return;
+                const i = activeSteps.indexOf(step);
+                const pct = Math.round(((i+1)/activeSteps.length)*100);
+                $('.export-bar-fill').css('width',pct+'%');
+                $('.export-bar-label').text(step.replace(/_/g,' ').toUpperCase()+' — '+pct+'%');
+            }
+
+            function done(zipUrl){
+                $('.ebtn-cancel').hide();
+                $('.ebtn-dl').attr('href',zipUrl).show();
+                $('.close-x').show();
+                $('.export-bar-fill').css('width','100%');
+                $('.export-bar-label').text('COMPLETE — 100%');
+            }
+
+            function fail(msg){
+                log(msg,'err');
+                $('.ebtn-cancel').hide();
+                $('.close-x').show();
+                $('.export-bar-label').text('FAILED');
+                $('.export-bar-fill').css({'width':'100%','background':'#f85149'});
+            }
+
+            function runStep(step){
+                progress(step);
+                $.post(ajaxurl,{
+                    action:'<?php echo self::AJAX_EXPORT; ?>',
+                    <?php echo self::NONCE_FIELD; ?>:NONCE,
+                    step:step, temp_dir:eTmp, zip_path:eZip,
+                    config_data:{
+                        export_mode: $('[data-name="options"] select').val()||'full',
+                        wp_includes: $('[data-name="wp-includes"] input').is(':checked'),
+                        wp_admin:    $('[data-name="wp-admin"] input').is(':checked'),
+                        wp_content:  $('[data-name="wp-content"] input').is(':checked'),
+                        root_files:  $('[data-name="root-files"] input').is(':checked'),
+                        wp_config:   $('[data-name="wp-config"] input').is(':checked'),
+                        db:   $('[data-name="database"] input').val()||'',
+                        user: $('[data-name="user"] input').val()||'',
+                        pass: $('[data-name="pass"] input').val()||'',
+                        url:  $('[data-name="url"] input').val()||'',
+                        table_prefix: $('[data-name="table_prefix"] input').val()||''
+                    }
+                },function(r){
+                    if(r.success){
+                        if(step==='init'){activeSteps=r.data.active_steps;eTmp=r.data.temp_dir;eZip=r.data.zip_path;}
+                        if(r.data.log) log(r.data.log,'ok');
+                        if(r.data.next_step==='done') done(r.data.zip_url);
+                        else runStep(r.data.next_step);
+                    } else fail(r.data?.message||'Unknown error');
+                }).fail(()=>fail('AJAX request failed.'));
+            }
+
+            // Start button
+            $(document).on('click','.acf-field[data-name="start"] button, .acf-field[data-name="start"] a',function(e){
                 e.preventDefault();
-                if(!$('#export-ui-wrap').length) {
-                    $('body').append('<div id="export-ui-wrap"><div class="export-box"><h3>> TERMINAL_V4</h3><div class="bar-bg"><div class="bar-fill"></div></div><div class="status-list"></div><div class="btns"><button class="btn btn-cancel">CANCEL</button><a href="#" class="btn dl-link" target="_blank" style="display:none">DOWNLOAD ZIP</a><button class="btn close-ui" style="display:none">CLOSE</button></div></div></div>');
-                }
-                $('#export-ui-wrap').fadeIn(300).css('display','flex');
-                $('.btn-cancel').show(); $('.dl-link, .close-ui').hide();
-                $('.status-list').empty();
-
-                const runStep = (step) => {
-                    $.post(ajaxurl, { 
-                        action: 'theme_site_export_process', 
-                        step: step, 
-                        temp_dir: window.eTmp || '', 
-                        zip_path: window.eZip || '',
-                        config_data: {
-                            export_mode: $('[data-name="options"] select').val(),
-                            wp_includes: $('[data-name="wp-includes"] input').is(':checked'),
-                            wp_admin:    $('[data-name="wp-admin"] input').is(':checked'),
-                            wp_content:  $('[data-name="wp-content"] input').is(':checked'),
-                            root_files:  $('[data-name="root-files"] input').is(':checked'),
-                            wp_config:   $('[data-name="wp-config"] input').is(':checked'),
-                            db:   $('[data-name="database"] input').val(),
-                            user: $('[data-name="user"] input').val(),
-                            pass: $('[data-name="pass"] input').val(),
-                            url:  $('[data-name="url"] input').val(),
-                            table_prefix: $('[data-name="table_prefix"] input').val() // Yeni Alan
-                        }
-                    }, (r) => {
-                        if(r.success) {
-                            if(step === 'init') {
-                                window.activeSteps = r.data.active_steps;
-                                window.eTmp = r.data.temp_dir;
-                                window.eZip = r.data.zip_path;
-                            }
-                            if(window.activeSteps) {
-                                let currentIndex = window.activeSteps.indexOf(step);
-                                let progress = Math.round(((currentIndex + 1) / window.activeSteps.length) * 100);
-                                $('.bar-fill').css('width', progress + '%');
-                            }
-                            if(r.data.log) {
-                                r.data.log.split('\n').forEach(line => { $('.status-list').append(`<div>> ${line}</div>`); });
-                                $('.status-list').scrollTop(99999);
-                            }
-                            if(r.data.next_step === 'done') {
-                                $('.btn-cancel').hide(); $('.dl-link').attr('href', r.data.zip_url).show(); $('.close-ui').show();
-                            } else runStep(r.data.next_step);
-                        } else {
-                            $('.status-list').append(`<div style="color:red">> HATA: ${r.data.message || 'Bilinmeyen hata'}</div>`);
-                            $('.btn-cancel').hide(); $('.close-ui').show();
-                        }
-                    }).fail(() => {
-                        $('.status-list').append(`<div style="color:red">> SİSTEM HATASI: AJAX isteği başarısız.</div>`);
-                        $('.btn-cancel').hide(); $('.close-ui').show();
-                    });
-                };
+                createModal();
+                $('#export-overlay').fadeIn(200).css('display','flex');
+                $('.ebtn-cancel').show();$('.ebtn-dl,.close-x').hide();
+                $('.export-log').empty();
+                $('.export-bar-fill').css({'width':'0','background':''});
+                eTmp='';eZip='';activeSteps=[];
                 runStep('init');
             });
-            $(document).on('click', '.close-ui', function() { window.location.reload(); });
+
+            // Cancel
+            $(document).on('click','.ebtn-cancel',function(){
+                if(!confirm('Cancel export?')) return;
+                $.post(ajaxurl,{action:'<?php echo self::AJAX_CANCEL; ?>',<?php echo self::NONCE_FIELD; ?>:NONCE,temp_dir:eTmp});
+                log('CANCEL signal sent...','warn');
+            });
+
+            // Close — sadece modal'ı gizle, sayfa refresh YOK
+            $(document).on('click','.close-x',function(){
+                $('#export-overlay').fadeOut(200);
+            });
         });
         </script>
         <?php
     }
 }
 
-add_action('admin_init', function() {
-    //if ( isset($_GET['page']) && $_GET['page'] === 'development' ) {
-        if (class_exists('Theme_Site_Exporter')) {
-            new Theme_Site_Exporter();
-        }
-    //}
-});
+// Init
+add_action( 'admin_init', static function () {
+    if ( class_exists( 'Theme_Site_Exporter' ) ) {
+        new Theme_Site_Exporter();
+    }
+} );

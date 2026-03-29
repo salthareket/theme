@@ -1,12 +1,8 @@
 <?php
 $required_setting = ENABLE_CHAT;
 
-$data = [
-	"error" => false,
-	"message" => "",
-	"data" => [
-		"count" => yobro_unseen_messages_count(),
-	],
+$response['data'] = [
+    'count' => Messenger::count(),
 ];
-echo json_encode($data);
-die();
+echo json_encode($response);
+wp_die();

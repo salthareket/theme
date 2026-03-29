@@ -1,33 +1,20 @@
 <?php
 $required_setting = ENABLE_FAVORITES;
 
-$id = $vars["id"];
+$fav_id    = absint($vars['id'] ?? 0);
 $favorites = new Favorites();
-$favorites->remove($id);
-Data::set("favorites", $favorites);
-$favorite_count = get_post_meta($id, "wpcf_favorites_count", true);
-$button_text = trans("Add");
-$feedback_text = "";
-if (!empty($favorite_count)) {
-	$feedback_text =
-		"<span>" .
-			sprintf(
-				trans("%s person's favorite tour."),
-				$favorite_count
-			) .
-		"</span>";
-}
-$html = $button_text . $feedback_text;
-$data = [
-	"error" => false,
-	"message" =>
-		"<b class='d-block'>" .
-			get_the_title($id) .
-		"</b> removed from your favorites.",
-	"data" => $favorites->favorites,
-	"html" => $html,
-	"count" => $favorites->count()
-];
-echo json_encode($data);
-//echo html_entity_decode(json_encode($response));
-die();
+$favorites->remove($fav_id);
+Data::set('favorites', $favorites);
+
+$count = get_post_meta($fav_id, 'wpcf_favorites_count', true);
+$feedback = $count
+    ? '<span>' . sprintf(trans("%s person's favorite tour."), $count) . '</span>'
+    : '';
+
+$response['error']   = false;
+$response['message'] = '<b class="d-block">' . esc_html(get_the_title($fav_id)) . '</b> removed from your favorites.';
+$response['data']    = $favorites->favorites;
+$response['html']    = trans('Add') . $feedback;
+$response['count']   = $favorites->count();
+echo json_encode($response);
+wp_die();

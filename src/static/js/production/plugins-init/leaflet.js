@@ -42,9 +42,15 @@ L.tileLayer.lazyLoad = function (url, options) {
 };
 
 // ─── 2. Icon default path düzeltmesi ─────────────────────────────────────────
+// Leaflet'in CSS'ten relative path resolve etmesini tamamen devre dışı bırak,
+// ikonları JS üzerinden absolute URL ile set et.
 (function setupIcons() {
     if (typeof ajax_request_vars === 'undefined') return;
-    var base = ajax_request_vars.theme_url + '/static/js/assets/';
+    var base = ajax_request_vars.theme_url.replace(/\/$/, '') + '/static/js/assets/';
+
+    // CSS'teki _getIconUrl'yi override et — artık CSS'ten path resolve etmez
+    delete L.Icon.Default.prototype._getIconUrl;
+
     L.Icon.Default.mergeOptions({
         iconUrl:       base + 'marker-icon.png',
         iconRetinaUrl: base + 'marker-icon-2x.png',

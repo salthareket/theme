@@ -1,139 +1,107 @@
 <?php
-    
-    $query_pagination_vars = array();
-    $query_pagination_request = "";
-    if(!empty($vars["query_pagination_vars"]) || !empty($vars["query_pagination_request"])){
-        $enc = new Encrypt();
-        if(!empty($vars["query_pagination_vars"])){
-             $query_pagination_vars = $enc->decrypt($vars["query_pagination_vars"]);
-        }
-        if(!empty($vars["query_pagination_request"])){
-             $query_pagination_request = $enc->decrypt($vars["query_pagination_request"]);
-        }
+$query_pagination_vars    = [];
+$query_pagination_request = '';
+
+if (!empty($vars['query_pagination_vars']) || !empty($vars['query_pagination_request'])) {
+    $enc = new Encrypt();
+    if (!empty($vars['query_pagination_vars'])) {
+        $query_pagination_vars = $enc->decrypt($vars['query_pagination_vars']);
     }
-    $args = $query_pagination_vars;// $_SESSION['query_pagination_vars'][$vars["post_type"]];
-
-    if(isset($vars['posts_per_page'])){
-        $args["posts_per_page"] = $vars['posts_per_page'];
+    if (!empty($vars['query_pagination_request'])) {
+        $query_pagination_request = $enc->decrypt($vars['query_pagination_request']);
     }
+}
 
-    //if(isset($_SESSION['query_pagination_request'][$vars["post_type"]])){
-    if(!empty($query_pagination_request)){
+$args = $query_pagination_vars;
+if (isset($vars['posts_per_page'])) {
+    $args['posts_per_page'] = (int) $vars['posts_per_page'];
+}
 
-        //$request = $_SESSION['query_pagination_request'][$vars["post_type"]];
-        $request = $query_pagination_request;
-        $request = explode("LIMIT", $request)[0];
-        $request .= " LIMIT ".($args['posts_per_page'] * ($vars['page']-1)).", ".$args['posts_per_page'];
+$post_type = $args['post_type'] ?? 'post';
+$pt_query  = ($post_type === 'search') ? 'any' : $post_type;
 
-        //echo "<div class='col-12 alert alert-success'>".$request."</div>";
+// SQL request varsa direkt kullan, yoksa WP_Query args
+if (!empty($query_pagination_request)) {
+    global $wpdb;
+    $request  = explode('LIMIT', $query_pagination_request)[0];
+    $request .= ' LIMIT ' . ($args['posts_per_page'] * ($vars['page'] - 1)) . ', ' . $args['posts_per_page'];
+    $results  = $wpdb->get_results($request);
 
-        global $wpdb;
-        $results = $wpdb->get_results($request);
-        if ($results) {
-            $results = wp_list_pluck($results, "ID");
-            $post_args = array(
-                "post_type" => $args["post_type"]=="search"?"any":$args["post_type"],
-                "post__in" => $results,
-                "posts_per_page" => -1,
-                //"order" => "ASC",
-                "orderby" => "post__in",
-                'suppress_filters' => true
-            );
-        }
-    }else{
-        $post_args = $args;
-        $post_args['paged'] = $vars['page'];
-        $post_args['post_type'] = $args["post_type"]=="search"?"any":$args["post_type"];
-        //$post_args['page'] = $vars['page'];
-    }
-    Data::set("pagination_page", $vars['page']);
+    $post_args = $results ? [
+        'post_type'        => $pt_query,
+        'post__in'         => wp_list_pluck($results, 'ID'),
+        'posts_per_page'   => -1,
+        'orderby'          => 'post__in',
+        'suppress_filters' => true,
+    ] : ['post__in' => [0]]; // Boş sonuç
+} else {
+    $post_args              = $args;
+    $post_args['paged']     = (int) $vars['page'];
+    $post_args['post_type'] = $pt_query;
+}
 
-    unset($post_args["querystring"]);
-    unset($post_args["page"]);
-    if(isset($post_args["s"])){
-        if(empty($post_args["s"])){
-            unset($post_args["s"]);
-        }
-    }
+Data::set('pagination_page', $vars['page']);
+unset($post_args['querystring'], $post_args['page']);
+if (isset($post_args['s']) && empty($post_args['s'])) {
+    unset($post_args['s']);
+}
 
+// ─── Query & Render ─────────────────────────────────────────
+$html  = '';
+$query = new WP_Query($post_args);
 
+$folder = (is_array($pt_query) || $pt_query === 'any') ? 'search' : $pt_query;
 
-    //echo "<div class='col-12 alert alert-success'>".json_encode($post_args)."</div>";
-
-    $html = "";
-
-    $query = new WP_Query($post_args);
-
-    $folder = $post_args["post_type"];
-    if($args["post_type"] == "any" || is_array($args["post_type"])){
-        $folder = "search";
-    }
-    if($post_args["post_type"] == "any" || is_array($post_args["post_type"])){
-        $folder = "search";
-    }
-
-    //error_log(print_r($args, true));
-    //error_log(print_r($query, true));
-
-    if($args["post_type"] == "product"){
-        if ($query->have_posts()) :
-            while ($query->have_posts()) : $query->the_post();
-                ob_start(); // Çıktıyı tampona al
-                wc_get_template_part('content', 'product');
-                $html .= ob_get_clean(); // Tampondaki çıktıyı $am değişkenine ekle
-                Data::set("pagination_page", "");
-            endwhile;
-        endif;        
-    }else{
-        if ($query->have_posts()){
-
-            $index = ($vars['page'] ) * $args['posts_per_page']; // Mevcut sayfa için ofset hesaplama
-
-            $query = Timber::get_posts($query);
-
-            //foreach($query->posts as $post){
-            foreach($query as $post){
-                ob_start();
-                $context = Timber::context();
-                $index++;
-                $context['index'] = $index;
-                $context['post'] = $post;//Timber::get_post($post);
-                Timber::render([$folder."/tease.twig", "tease.twig"], $context);
-                $html .= ob_get_clean();
-                $context = null;
-                Data::set("pagination_page", "");
-            }
+if ($post_type === 'product') {
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            ob_start();
+            wc_get_template_part('content', 'product');
+            $html .= ob_get_clean();
         }
     }
-
-    wp_reset_query();
-
-    $data = $response;
-    $data["html"] = minify_html($html);
-
-    $total = (int) $vars["total"];
-    $per_page = (int) $args["posts_per_page"];
-    $current = (int) $vars["page"];
-    $initial = (int) $vars["initial"];
-
-    if (1 === $total) {
-        $data["data"] = _e('Showing the single result', 'woocommerce');
-    } elseif ($total <= $per_page || -1 === $per_page) {
-        /* translators: %d: total results */
-        $data["data"] = sprintf(_n('Showing all %d result', 'Showing all %d results', $total, 'woocommerce'), $total)." - ".$total." - ".$per_page;
-    } else {
-        $first = ($per_page * $current) - $per_page + 1;
-        $last  = min($total, $per_page * $current);
-        if(!empty($initial) && $initial > 0){
-            if($current < $initial){
-                $last = min($total, $per_page * $initial);
-            }else{
-                $first = ($per_page * $initial) - $per_page + 1;   
-            }
+} else {
+    if ($query->have_posts()) {
+        $index = (int) $vars['page'] * (int) $args['posts_per_page'];
+        foreach (Timber::get_posts($query) as $post) {
+            ob_start();
+            $ctx          = Timber::context();
+            $ctx['index'] = ++$index;
+            $ctx['post']  = $post;
+            Timber::render([$folder . '/tease.twig', 'tease.twig'], $ctx);
+            $html .= ob_get_clean();
         }
-        /* translators: 1: first result 2: last result 3: total results */
-        $data["data"] = sprintf(_nx('Showing %1$d&ndash;%2$d of %3$d result', 'Showing %1$d&ndash;%2$d of %3$d results', $total, 'with first and last result', 'woocommerce'), $first, $last, $total);
-
     }
-    echo json_encode($data);
-    wp_die();
+}
+
+wp_reset_query();
+Data::set('pagination_page', '');
+
+// ─── Result Count Text ──────────────────────────────────────
+$total    = (int) ($vars['total'] ?? 0);
+$per_page = (int) ($args['posts_per_page'] ?? 10);
+$current  = (int) ($vars['page'] ?? 1);
+$initial  = (int) ($vars['initial'] ?? 0);
+
+if ($total === 1) {
+    $count_text = __('Showing the single result', 'woocommerce');
+} elseif ($total <= $per_page || $per_page === -1) {
+    $count_text = sprintf(_n('Showing all %d result', 'Showing all %d results', $total, 'woocommerce'), $total);
+} else {
+    $first = ($per_page * $current) - $per_page + 1;
+    $last  = min($total, $per_page * $current);
+    if ($initial > 0) {
+        if ($current < $initial) {
+            $last = min($total, $per_page * $initial);
+        } else {
+            $first = ($per_page * $initial) - $per_page + 1;
+        }
+    }
+    $count_text = sprintf(_nx('Showing %1$d&ndash;%2$d of %3$d result', 'Showing %1$d&ndash;%2$d of %3$d results', $total, 'with first and last result', 'woocommerce'), $first, $last, $total);
+}
+
+$response['html'] = function_exists('minify_html') ? minify_html($html) : $html;
+$response['data'] = $count_text;
+echo json_encode($response);
+wp_die();

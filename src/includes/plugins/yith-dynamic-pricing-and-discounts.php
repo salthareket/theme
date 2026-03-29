@@ -1,19 +1,18 @@
 <?php
 
 function ywdpd_discount_post_type_args( $args, $post_type ) {
-    if ( 'ywdpd_discount' === $post_type ) {
-    	global $wp_post_types, $wp_rewrite;
-    	//print_r($args);
-    	$args['labels'] = Array ( 
-    		   "name" => "Kampanyalar",//Discounts & Price Rules
-    		   "singular_name" => "Kampanya" //Discounts & Price Rule
-        );
-    	$args['public'] = true;
-        $args['has_archive'] = true;
-        $args['query_var'] = true;
-        $args['rewrite'] =  array('slug' => 'kampanyalar','with_front' => true);
-        add_post_type_support('ywdpd_discount',array('editor', 'post-thumbnails'));
-    }
+    if ( 'ywdpd_discount' !== $post_type ) return $args;
+
+    $args['labels'] = [
+        'name'          => 'Kampanyalar',
+        'singular_name' => 'Kampanya',
+    ];
+    $args['public']      = true;
+    $args['has_archive'] = true;
+    $args['query_var']   = true;
+    $args['rewrite']     = ['slug' => 'kampanyalar', 'with_front' => true];
+    add_post_type_support('ywdpd_discount', ['editor', 'post-thumbnails']);
+
     return $args;
 }
 add_filter( 'register_post_type_args', 'ywdpd_discount_post_type_args', 10, 2 );

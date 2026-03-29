@@ -1,77 +1,49 @@
 <?php
+/**
+ * FeaturedImage
+ * Auto-sets featured image from ACF 'media' field group on post/term save.
+ * Supports: image, gallery, video_gallery (poster frame extraction).
+ */
 class FeaturedImage {
 
-    private $post_id = 0;
+    private $current_object_id = 0;
 
     public function __construct() {
         add_action('acf/save_post', [$this, 'setFeaturedImageForPost'], 20);
-        add_action('edited_terms', [$this, 'setFeaturedImageForTerm'], 20, 2);
+        add_action('edited_term', [$this, 'setFeaturedImageForTerm'], 20, 3);
     }
 
     public function setFeaturedImageForPost($post_id) {
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-            return;
-        }
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+        if (!class_exists("ACF")) return;
 
-        if (!class_exists("ACF")) {
-            return;
-        }
-
-        $this->post_id = $post_id;
-
+        $this->current_object_id = $post_id;
         $media_field = get_field('media', $post_id);
 
-        // ✅ Hiçbir data yoksa direkt çık
-        if (empty($media_field) || !is_array($media_field)) {
-            return;
-        }
-
-        // ✅ Eğer hem image, hem gallery, hem video boşsa → işlem yapma
-        if (
-            empty($media_field['image']) &&
-            empty($media_field['gallery']) &&
-            empty($media_field['video_gallery'])
-        ) {
-            return;
-        }
+        if (!$this->has_media_data($media_field)) return;
 
         $featured_image_id = $this->determineFeaturedImage($media_field);
+        $featured_image_id = $this->normalize_image_id($featured_image_id);
 
         if ($featured_image_id) {
-            if (is_array($featured_image_id) && isset($featured_image_id["ID"])) {
-                $featured_image_id = $featured_image_id["ID"];
-            }
             set_post_thumbnail($post_id, $featured_image_id);
         } else {
-            // ✅ Sadece gerçekten media eklenmişti ama uygun görsel bulunamadıysa sil
             delete_post_thumbnail($post_id);
         }
     }
 
-    public function setFeaturedImageForTerm($term_id, $taxonomy) {
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-            return;
-        }
+    public function setFeaturedImageForTerm($term_id, $tt_id = 0, $taxonomy = '') {
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+        if (!class_exists("ACF")) return;
 
-        if (!class_exists("ACF")) {
-            return;
-        }
-
+        $this->current_object_id = $term_id;
         $media_field = get_field('media', 'term_' . $term_id);
 
-        if (empty($media_field) || !is_array($media_field)) {
-            return;
-        }
-
-        if (
-            empty($media_field['image']) &&
-            empty($media_field['gallery']) &&
-            empty($media_field['video_gallery'])
-        ) {
-            return;
-        }
+        if (!$this->has_media_data($media_field)) return;
 
         $featured_image_id = $this->determineFeaturedImage($media_field);
+        $featured_image_id = $this->normalize_image_id($featured_image_id);
+
         if ($featured_image_id) {
             update_term_meta($term_id, '_thumbnail_id', $featured_image_id);
         } else {
@@ -79,93 +51,96 @@ class FeaturedImage {
         }
     }
 
+    /**
+     * Check if media field has any usable data
+     */
+    private function has_media_data($media_field) {
+        if (empty($media_field) || !is_array($media_field)) return false;
+        return !empty($media_field['image'])
+            || !empty($media_field['gallery'])
+            || !empty($media_field['video_gallery']);
+    }
+
+    /**
+     * Normalize any image value to integer ID
+     * Handles: int, numeric string, array with ID key
+     */
+    private function normalize_image_id($value) {
+        if (empty($value)) return 0;
+        if (is_array($value) && isset($value['ID'])) return (int) $value['ID'];
+        if (is_numeric($value)) return (int) $value;
+        return 0;
+    }
+
+    /**
+     * Determine featured image based on media_type
+     */
     private function determineFeaturedImage($media_field) {
-        $featured_image_id = null;
+        $media_type = $media_field['media_type'] ?? '';
 
-        switch ($media_field['media_type']) {
+        switch ($media_type) {
             case 'image':
-                $featured_image_id = $this->getImageField($media_field);
-                break;
+                return $this->getFromImage($media_field);
             case 'gallery':
-                $featured_image_id = $this->getGalleryField($media_field);
-                break;
+                return $this->getFromGallery($media_field);
+            case 'video':
+            case 'video_gallery':
+                return $this->getFromVideoGallery($media_field);
+            default:
+                // Fallback: try image first, then gallery, then video
+                return $this->getFromImage($media_field)
+                    ?: $this->getFromGallery($media_field)
+                    ?: $this->getFromVideoGallery($media_field);
         }
-
-        return $featured_image_id;
     }
 
-    /*private function getImageField($media_field) {
+    private function getFromImage($media_field) {
         if (!empty($media_field['image'])) {
             return $media_field['image'];
         }
-
         if (!empty($media_field['use_responsive_image']) && !empty($media_field['image_responsive']['url'])) {
             return attachment_url_to_postid($media_field['image_responsive']['url']);
         }
-
-        return null;
-    }*/
-
-    private function getImageField($media_field) {
-        // 1. Ana Görsel Kontrolü
-        if (!empty($media_field['image'])) {
-            
-            // Burayı kontrol et: Gelen değer array ise ve ID içeriyorsa sadece ID'yi döndür.
-            if (is_array($media_field['image']) && isset($media_field['image']['ID'])) {
-                return $media_field['image']['ID']; // ARTIK SADECE ID DÖNDÜRÜLÜYOR
-            }
-            
-            // Eğer Image Return Format ID ise, zaten direkt ID dönecektir.
-            return $media_field['image'];
-        }
-
-        // 2. Responsive Görsel Kontrolü (Zaten ID'yi döndürüyor, doğru)
-        if (!empty($media_field['use_responsive_image']) && !empty($media_field['image_responsive']['url'])) {
-            return attachment_url_to_postid($media_field['image_responsive']['url']);
-        }
-
         return null;
     }
 
-    private function getGalleryField($media_field) {
-        /*if (!empty($media_field['gallery'])) {
-            return $media_field['gallery'][0]; // İlk görseli al
-        }*/
-        if (!empty($media_field['gallery'])) {
-            $first_item = $media_field['gallery'][0]; 
-
-            if (is_array($first_item) && isset($first_item['ID'])) {
-                return $first_item['ID']; // Galeri nesnesinin ID'sini döndür
-            }
-
-            return $first_item; // ID olarak ayarlıysa ID'yi döndür
+    private function getFromGallery($media_field) {
+        if (!empty($media_field['gallery']) && is_array($media_field['gallery'])) {
+            return $media_field['gallery'][0]; // First image — normalize_image_id handles array/int
         }
+        // Gallery empty → try video gallery as fallback
+        return $this->getFromVideoGallery($media_field);
+    }
 
-        if (!empty($media_field['video_gallery'])) {
-            foreach ($media_field['video_gallery'] as $item) {
-                if ($item['type'] === 'embed' && !empty($item['url'])) {
-                    $poster_image_id = $this->getPosterFrameFromEmbed($item['url']);
-                    if ($poster_image_id) {
-                        return $poster_image_id;
-                    }
-                } elseif ($item['type'] === 'file' && !empty($item['image'])) {
-                    return $item['image'];
-                }
+    private function getFromVideoGallery($media_field) {
+        if (empty($media_field['video_gallery']) || !is_array($media_field['video_gallery'])) {
+            return null;
+        }
+        foreach ($media_field['video_gallery'] as $item) {
+            if (!is_array($item)) continue;
+            $type = $item['type'] ?? '';
+
+            if ($type === 'embed' && !empty($item['url'])) {
+                $poster_id = $this->getPosterFrameFromEmbed($item['url']);
+                if ($poster_id) return $poster_id;
+            } elseif ($type === 'file' && !empty($item['image'])) {
+                return $item['image'];
             }
         }
-
         return null;
     }
 
-    private function getPosterFrameFromEmbed($embed_url = "", $post_id = 0) {
+    private function getPosterFrameFromEmbed($embed_url) {
+        if (!class_exists('OembedVideo')) return null;
+
         $embed = new OembedVideo($embed_url);
         $embed_data = $embed->get();
-        $image_url = $embed_data["src"];
-        if (!empty($image_url)) {
-            $file_name = md5($image_url);
-            return featured_image_from_url($image_url, $this->post_id, false, $file_name);
-        }
-        return null;
+        $image_url = $embed_data['src'] ?? '';
+
+        if (empty($image_url) || !function_exists('featured_image_from_url')) return null;
+
+        $file_name = md5($image_url);
+        return featured_image_from_url($image_url, $this->current_object_id, false, $file_name);
     }
 }
 

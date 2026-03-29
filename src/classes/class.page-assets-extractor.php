@@ -51,6 +51,7 @@ class PageAssetsExtractor{
     public $mass_total = 0;
     public $disable_hooks = false;
     public $force_rebuild = false;
+    public $grouped_fetch = false;
 
     public $debug = false; // Production'da kapalı — error_log'u patlatma
 
@@ -112,7 +113,7 @@ class PageAssetsExtractor{
         $this->upload_url_encoded = str_replace("/","\/", $this->upload_url);
 
         $cache_root = rtrim(defined('STATIC_PATH') ? STATIC_PATH : __DIR__.'/', '/').'/cache-manifest/';
-        if (!is_dir($cache_root)) { @mkdir($cache_root, 0755, true); }
+        if (!is_dir($cache_root)) { wp_mkdir_p($cache_root); }
         $this->manifest_path = $cache_root . 'assets-manifest.json';
         $this->manifest_read();
 
@@ -152,7 +153,6 @@ class PageAssetsExtractor{
 
         add_action('acf/render_field/name=page_assets', [$this, 'update_page_assets_message_field']);
         add_action('wp_ajax_page_assets_update', [$this,'page_assets_update']);
-        add_action('wp_ajax_nopriv_page_assets_update', [$this,'page_assets_update']);
 
         // 2. CRON GÖREVİ KANCALARI
         // Dün oluşturduğumuz statik metodları burası tetikleyecek.
@@ -444,7 +444,10 @@ class PageAssetsExtractor{
 
     public function fetch($url, $id, $forceType = null) {
 
-        $this->start_heavy_process();
+        if (!$this->start_heavy_process()) {
+            $this->error_log('[PAE] fetch SKIP: heavy process lock active');
+            return false;
+        }
 
         // En başta: sadece site içi URL’leri fetch et
         $parsed_url = parse_url($url);
@@ -665,7 +668,7 @@ class PageAssetsExtractor{
     private function remove_unused_css_cached($html, $input, $whitelist) {
         $key = sha1($this->structure_fp . '|' . json_encode($whitelist));
         $cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
-        if (!is_dir($cache_dir)) { @mkdir($cache_dir, 0755, true); }
+        if (!is_dir($cache_dir)) { wp_mkdir_p($cache_dir); }
         $cache_file = $cache_dir . 'purge-' . $key . '.css';
         if (file_exists($cache_file) && !$this->force_rebuild) {
             return @file_get_contents($cache_file);
@@ -1419,7 +1422,7 @@ class PageAssetsExtractor{
                 $css_page_raw = $this->remove_unused_css_cached($html_content, "", $plugin_files_whitelist);
 
                 $cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
-                if (!is_dir($cache_dir)) { @mkdir($cache_dir, 0755, true); }
+                if (!is_dir($cache_dir)) { wp_mkdir_p($cache_dir); }
 
                 $css_page_hash = $this->content_hash($css_page_raw, 'css');
                 $css_page_file = $cache_dir . $css_page_hash . '.css';
@@ -1605,7 +1608,7 @@ class PageAssetsExtractor{
         $combined_content = "";
 
         $cache_dir = rtrim(STATIC_PATH,'/').'/'.$type . '/cache/';
-        if (!file_exists($cache_dir)) { @mkdir($cache_dir, 0755, true); }
+        if (!file_exists($cache_dir)) { wp_mkdir_p($cache_dir); }
 
         foreach($plugins as $plugin){
             $combined_content .= "import '" . STATIC_URL . "js/modules/plugins/" . $plugin . ".js';" . PHP_EOL;
@@ -1659,7 +1662,7 @@ class PageAssetsExtractor{
         }
 
         $cache_dir = rtrim(STATIC_PATH,'/').'/'.$type . '/cache/';
-        if (!file_exists($cache_dir)) { @mkdir($cache_dir, 0755, true); }
+        if (!file_exists($cache_dir)) { wp_mkdir_p($cache_dir); }
 
         $combined_content = '';
         foreach ($files as $file) {
@@ -2081,11 +2084,126 @@ class PageAssetsExtractor{
     }
 
 
+    /* ===================== GROUPED FETCH ===================== */
+
+    private function find_richest_post($post_type): ?int {
+        global $wpdb;
+        return ($id = $wpdb->get_var($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish' ORDER BY CHAR_LENGTH(post_content) DESC LIMIT 1", $post_type
+        ))) ? (int) $id : null;
+    }
+
+    private function find_richest_term($taxonomy): ?int {
+        global $wpdb;
+        return ($id = $wpdb->get_var($wpdb->prepare(
+            "SELECT t.term_id FROM {$wpdb->terms} t INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND tt.count > 0 ORDER BY tt.count DESC LIMIT 1", $taxonomy
+        ))) ? (int) $id : null;
+    }
+
+    public function grouped_apply_assets($source_id, $post_type, $context = 'post'): int {
+        $source_assets = $this->meta_get($context, $source_id);
+        if (!$source_assets || !is_array($source_assets)) return 0;
+
+        $shared_keys = ['plugins', 'plugin_js', 'plugin_css', 'plugin_css_rtl', 'css_page', 'css_page_rtl', 'wp_js', 'structure_fp', 'css', 'js'];
+        $shared_data = array_intersect_key($source_assets, array_flip($shared_keys));
+        if (empty($shared_data)) return 0;
+
+        // Manifest: mark this group as using the plugin bundle (orphan protection)
+        $content_usage_key = "grouped:{$context}:{$post_type}";
+        if (!empty($source_assets['structure_fp'])) {
+            $this->manifest['content_usage'][$content_usage_key] = [
+                'structure_fp' => $source_assets['structure_fp'],
+                'plugins_key'  => '',
+                'source_id'    => $source_id,
+                'last_fetched' => time(),
+            ];
+            // Find and mark plugins_key
+            foreach ($this->manifest['plugins'] as $pk => $pm) {
+                if (in_array("{$context}:{$source_id}", $pm['contents'] ?? [])) {
+                    $this->manifest['content_usage'][$content_usage_key]['plugins_key'] = $pk;
+                    if (!in_array($content_usage_key, $pm['contents'])) {
+                        $this->manifest['plugins'][$pk]['contents'][] = $content_usage_key;
+                    }
+                    break;
+                }
+            }
+            $this->manifest_write();
+        }
+
+        global $wpdb;
+        if ($context === 'post') {
+            $ids = $wpdb->get_col($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish' AND ID != %d", $post_type, $source_id));
+        } elseif ($context === 'term') {
+            $ids = $wpdb->get_col($wpdb->prepare("SELECT t.term_id FROM {$wpdb->terms} t INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND t.term_id != %d", $post_type, $source_id));
+        } else {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($ids as $item_id) {
+            $existing = $this->meta_get($context, $item_id) ?: [];
+            $merged = array_merge($existing, $shared_data);
+            if (!isset($merged['meta'])) $merged['meta'] = ['type' => $context, 'id' => $item_id];
+            if (!isset($merged['lcp'])) $merged['lcp'] = ['desktop' => [], 'mobile' => []];
+            $this->meta_update($context, $item_id, $merged);
+
+            // Polylang: copy to translations
+            if (function_exists('pll_default_language')) {
+                $prev_type = $this->type;
+                $this->type = $context;
+                $this->maybe_copy_meta_to_translations((int) $item_id, $merged);
+                $this->type = $prev_type;
+            }
+
+            $count++;
+        }
+        $this->error_log("[PAE] grouped_apply_assets: {$count} items updated from #{$source_id} ({$post_type})");
+        return $count;
+    }
+
+    private function get_grouped_urls(): array {
+        global $wpdb;
+        $groups = [];
+
+        foreach (get_post_types(['public' => true], 'objects') as $pt) {
+            if ($this->is_post_type_excluded($pt->name)) continue;
+            $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish'", $pt->name));
+            if (!$count) continue;
+            $rid = $this->find_richest_post($pt->name);
+            $url = $rid ? get_permalink($rid) : '';
+            $groups[] = ['id' => $rid ?: $pt->name, 'type' => 'post', 'post_type' => $pt->name, 'label' => $pt->labels->name, 'count' => $count, 'url' => $url, 'url_short' => $url ? str_replace(home_url(), '', $url) : '', 'context' => 'post'];
+            if ($pt->has_archive && ($au = get_post_type_archive_link($pt->name))) {
+                $lang = $this->pae_lang_from_url($au);
+                $groups[] = ['id' => $pt->name.'_archive_'.$lang, 'type' => 'archive', 'post_type' => $pt->name, 'label' => $pt->labels->name.' Archive', 'count' => 1, 'url' => $au, 'url_short' => str_replace(home_url(), '', $au), 'context' => 'archive'];
+            }
+        }
+
+        foreach (get_taxonomies(['public' => true], 'objects') as $tax) {
+            if ($this->is_taxonomy_excluded($tax->name)) continue;
+            $count = (int) wp_count_terms(['taxonomy' => $tax->name, 'hide_empty' => true]);
+            if (!$count) continue;
+            $rid = $this->find_richest_term($tax->name);
+            $url = $rid ? get_term_link($rid, $tax->name) : '';
+            if (is_wp_error($url)) $url = '';
+            $groups[] = ['id' => $rid ?: $tax->name, 'type' => 'term', 'post_type' => $tax->name, 'label' => $tax->labels->name, 'count' => $count, 'url' => $url, 'url_short' => $url ? str_replace(home_url(), '', $url) : '', 'context' => 'term'];
+        }
+
+        $groups[] = ['id' => 'search', 'type' => 'dynamic', 'post_type' => 'search', 'label' => 'Search', 'count' => 1, 'url' => get_search_link('turbo-cache-warmup'), 'url_short' => '/?s=turbo-cache-warmup', 'context' => 'dynamic'];
+        $groups[] = ['id' => '404', 'type' => 'dynamic', 'post_type' => '404', 'label' => '404', 'count' => 1, 'url' => site_url('/404-css-cache-trigger'), 'url_short' => '/404-css-cache-trigger', 'context' => 'dynamic'];
+        return $groups;
+    }
+
+
 
 
     /* ===================== SİTEMAP & DİĞERLERİ ===================== */
 
     public function get_all_urls($sitemap_url = null, &$urls = []) {
+        // Grouped fetch mode: return grouped URLs instead
+        if ($this->grouped_fetch) {
+            return $this->get_grouped_urls();
+        }
+
         // 1. ADIM: Başlangıç Ayarları ve Sanal Sayfaların Enjeksiyonu
         if ($sitemap_url === null) {
             $sitemap_url = function_exists('site_url') ? site_url('/sitemap_index.xml') : '/sitemap_index.xml';
@@ -2178,36 +2296,43 @@ class PageAssetsExtractor{
         return $urls;
     }
     public function display_page_assets_table() {
-        $raw = $this->get_all_urls();
+        $this->grouped_fetch = true; // Default: grouped mode
+        $raw = $this->grouped_fetch ? $this->get_grouped_urls() : $this->get_all_urls();
         $rows = [];
 
-        foreach ($raw as $key => $item) {
-            $url = (string)($item['url'] ?? '');
-            if (!$url || !$this->pae_is_default_lang_url($url)) continue;
+        if ($this->grouped_fetch) {
+            $rows = $raw; // Already formatted
+        } else {
+            foreach ($raw as $key => $item) {
+                $url = (string)($item['url'] ?? '');
+                if (!$url || !$this->pae_is_default_lang_url($url)) continue;
 
-            $type      = $item['type']      ?? 'post';
-            $post_type = $item['post_type'] ?? $type;
-            $id        = $key;
+                $type      = $item['type']      ?? 'post';
+                $post_type = $item['post_type'] ?? $type;
+                $id        = $key;
 
-            // Arşiv, Search ve 404 kontrolü ile ID/Key yapılandırması
-            if ($type == "archive") {
-                $lang = $this->pae_lang_from_url($url);
-                $id = $key . '_archive_' . $lang;
+                if ($type == "archive") {
+                    $lang = $this->pae_lang_from_url($url);
+                    $id = $key . '_archive_' . $lang;
+                }
+                if($type == "dynamic"){
+                    $lang = $this->pae_lang_from_url($url);
+                    $id = $post_type.'_' . $lang;
+                }
+
+                $url_short = str_replace(home_url(), "", $url);
+
+                $rows[] = [
+                    'id'        => $id,
+                    'type'      => $type,
+                    'post_type' => $post_type,
+                    'url'       => $url,
+                    'url_short' => $url_short,
+                    'label'     => $post_type,
+                    'count'     => 1,
+                    'context'   => $type,
+                ];
             }
-            if($type == "dynamic"){
-                $lang = $this->pae_lang_from_url($url);
-                $id = $post_type.'_' . $lang;
-            }
-
-            $url_short = str_replace(home_url(), "", $url);
-
-            $rows[] = [
-                'id'        => $id,
-                'type'      => $type,
-                'post_type' => $post_type,
-                'url'       => $url,
-                'url_short' => $url_short
-            ];
         }
 
         $total   = count($rows);
@@ -2223,14 +2348,19 @@ class PageAssetsExtractor{
             echo '<thead><tr style="background-color:#f2f2f2; text-align:left;">';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">ID / Key</th>';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Type</th>';
+            echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Items</th>';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Url</th>';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Actions</th>';
             echo '</tr></thead><tbody>';
 
             foreach ($rows as $i => $row) {
+                $label = $row['label'] ?? $row['post_type'];
+                $count = $row['count'] ?? 1;
+                $context = $row['context'] ?? $row['type'];
                 echo '<tr id="'.esc_attr($row["type"].'_'.$row["id"]).'" data-index="'.$i.'" style="vertical-align:middle;">';
                 echo '<td data-id="'.esc_attr($row["id"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["id"]).'</td>';
-                echo '<td data-type="'.esc_attr($row["type"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["post_type"]).'</td>';
+                echo '<td data-type="'.esc_attr($row["type"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($label).'</td>';
+                echo '<td style="padding:10px; border-bottom:1px solid #ddd; font-weight:600;">'.esc_html($count).'</td>';
                 echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">'.esc_html($row["url_short"]).' <a href="'.esc_attr($row["url"]).'" target="_blank"><i class="fa-solid fa-link"></i></a></td>';
                 echo '<td class="actions" style="width:80px;padding:10px; border-bottom:1px solid #ddd;"><a href="#" class="btn-page-assets-single btn btn-success btn-sm">Fetch</a></td>';
                 echo '</tr>';
@@ -2272,18 +2402,24 @@ class PageAssetsExtractor{
                     dataType: 'json',
                     data: { 
                         action:'page_assets_update',
+                        _ajax_nonce: '<?php echo wp_create_nonce("page_assets_nonce"); ?>',
                         data: {
                             id: urls[i].id,
                             type: urls[i].type,
+                            post_type: urls[i].post_type || '',
+                            context: urls[i].context || urls[i].type,
                             url: urls[i].url,
                             index: (i + 1), 
                             total: urls.length,
-                            mass: single?false:true
+                            mass: single?false:true,
+                            grouped: true
                         }
                     },
                     success: function(res){
+                        var msg = "OK";
+                        if(res.grouped_count > 0) msg = "OK (" + res.grouped_count + " applied)";
                         $row.find("td").addClass("bg-success text-white");
-                        $row.find(".actions").removeClass("loading loading-xs").html("<strong>OK</strong>");
+                        $row.find(".actions").removeClass("loading loading-xs").html("<strong>" + msg + "</strong>");
                         if(!single){
                             var percent = ((i+1) * 100) / urls.length;
                             jQuery(".progress-page-assets .progress-bar").css("width", percent+"%");
@@ -2313,6 +2449,11 @@ class PageAssetsExtractor{
         return $field;
     }
     public function page_assets_update(){
+        check_ajax_referer('page_assets_nonce', '_ajax_nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
         $row = isset($_POST["data"]) ? (array) $_POST["data"] : [];
         $id   = $row["id"]   ?? 0;
         $type = $row["type"] ?? 'post';
@@ -2320,6 +2461,7 @@ class PageAssetsExtractor{
         $index = intval($row["index"] ?? 0);
         $total = intval($row["total"] ?? 0);
         $mass = isset($row["mass"]) ? filter_var($row["mass"], FILTER_VALIDATE_BOOLEAN) : false;
+        $grouped = isset($row["grouped"]) ? filter_var($row["grouped"], FILTER_VALIDATE_BOOLEAN) : false;
 
         $this->type = $type;
         $this->mass = $mass;
@@ -2335,14 +2477,25 @@ class PageAssetsExtractor{
 
         $data = $this->fetch($url, $id, $type);
 
+        // Grouped mode: after fetching the richest item, apply its assets to all siblings
+        $grouped_count = 0;
+        if ($grouped && $data && !empty($row["post_type"]) && !empty($row["context"])) {
+            $context = $row["context"];
+            $source_id = is_numeric($id) ? (int) $id : 0;
+            if ($source_id > 0) {
+                $grouped_count = $this->grouped_apply_assets($source_id, $row["post_type"], $context);
+            }
+        }
+
         if($end_process){
             $this->end_heavy_process();
         }
         wp_send_json([
             "error"   => false,
-            "message" => "",
+            "message" => $grouped_count > 0 ? "Fetched + applied to {$grouped_count} items" : "",
             "html"    => "",
             "data"    => $data,
+            "grouped_count" => $grouped_count,
         ]);
     }
 

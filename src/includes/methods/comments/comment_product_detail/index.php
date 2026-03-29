@@ -1,4 +1,4 @@
 <?php
-$salt = \Salt::get_instance();//new Salt();
-            echo $salt->comment_product_detail($vars);
-            die();
+$salt = \Salt::get_instance();
+echo $salt->comment_product_detail($vars);
+wp_die();

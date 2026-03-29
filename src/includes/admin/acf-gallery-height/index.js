@@ -1,18 +1,12 @@
-
-    function acfGalleryHeight(){
-        if($(".acf-field.acf-field-gallery").length > 0){
-            $(".acf-field.acf-field-gallery").each(function(){
-                if($(this).find('.acf-gallery-attachments').children().length == 0){
-                    $(this).find(".acf-gallery.ui-resizable").css("height", "0px");
-                }else{
-                    $(this).find(".acf-gallery.ui-resizable").css("height", "400px");
-                }
-            });
-        } 
-    }
-    document.addEventListener('click', function() {
-        setTimeout(function(){
-            acfGalleryHeight();
-        }, 1000);
+function acfGalleryHeight() {
+    $('.acf-field.acf-field-gallery').each(function() {
+        var $gallery = $(this).find('.acf-gallery.ui-resizable');
+        var hasItems = $(this).find('.acf-gallery-attachments').children().length > 0;
+        $gallery.css('height', hasItems ? '400px' : '0px');
     });
-    acfGalleryHeight();
+}
+
+document.addEventListener('click', function() {
+    setTimeout(acfGalleryHeight, 1000);
+});
+acfGalleryHeight();

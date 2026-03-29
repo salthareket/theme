@@ -1,16 +1,5 @@
 <?php
 
-/*add_filter( 'woocommerce_bundled_item_discount_from_regular', 'wc_pb_bundled_item_discount_from_regular', 10, 2 );
-
-function wc_pb_bundled_item_discount_from_regular( $from_regular, $bundled_item ) {
-	return true;
-}
-
-
-add_filter( 'woocommerce_bundle_force_old_style_price_html', '__return_true' );
-*/
-
-
 function bundle_product_price($price, $product) {
     global $post;
     if(isset($post->ID)){
@@ -78,22 +67,19 @@ function bundled_product_price($product, $info=0){
 }
 
 function get_bundled_product_ids($bundle_id){
-	global $wpdb; 
-	$query = "SELECT product_id FROM wp_woocommerce_bundled_items WHERE bundle_id=%s order by menu_order asc";
-	$result = $wpdb->prepare($query, [$bundle_id]);
-	$result = $wpdb->get_results($result);
-	$response = array();
-	if($result){
-		foreach($result as $item){
-            $response[] = $item->product_id;
-		}
-	}
-	return $response;
+	global $wpdb;
+	$table = $wpdb->prefix . 'woocommerce_bundled_items';
+	$results = $wpdb->get_results($wpdb->prepare(
+		"SELECT product_id FROM {$table} WHERE bundle_id = %d ORDER BY menu_order ASC",
+		$bundle_id
+	));
+	return $results ? wp_list_pluck($results, 'product_id') : [];
 }
 
 function get_bundle_product_id($product_id){
-	global $wpdb; 
-	return $wpdb->get_var( $wpdb->prepare("SELECT bundle_id FROM wp_woocommerce_bundled_items WHERE product_id=%s", $product_id ) );
+	global $wpdb;
+	$table = $wpdb->prefix . 'woocommerce_bundled_items';
+	return $wpdb->get_var($wpdb->prepare("SELECT bundle_id FROM {$table} WHERE product_id = %d", $product_id));
 }
 
 
@@ -145,77 +131,3 @@ function update_bundled_product_price($product_id){
         }
         add_action( 'pre_get_posts', 'query_all_posts' ); 
 }
-
-
-
-
-
-
-
-
-
-/*
-add_filter('woocommerce_product_get_price', "bundled_product_price_sort", 10, 2);
-function bundled_product_price_sort($price, $product ){
-	$regular_price = 0;
-	$sale_price = 0;
-	if(is_int($product)){
-	   $product = wc_get_product($product);	
-	}
-	if($product->get_type() == "bundle"){
-		$items = $product->get_bundled_items();
-		foreach($items as $item){
-			$bundle = $item->get_product();
-			$bundle_data = $item->get_data();
-			if($bundle_data["optional"] == "no"){
-				$quantity = $bundle_data["quantity_default"];
-				if(empty($quantity)){
-				  $quantity = 0;
-				}
-				$price = $bundle->get_regular_price() * $quantity;
-				if($bundle->get_sale_price() != $price && $bundle->get_sale_price() > 0){
-					$price_discounted = $bundle->get_sale_price() * $quantity;
-				}else{
-					$price_discounted = 0;
-			    }
-				$regular_price += $price;
-				if($price_discounted == 0 || empty($price_discounted)){
-		           $sale_price += $regular_price;
-				}else{
-		           $sale_price += $price_discounted;
-				}			
-			}
-		}
-		return $regular_price;
-	}else{
-		return $price;
-	}
-}
-*/
-
-/*
-// Generating dynamically the product "regular price"
-add_filter( 'woocommerce_product_get_regular_price', 'custom_dynamic_regular_price', 10, 2 );
-add_filter( 'woocommerce_product_variation_get_regular_price', 'custom_dynamic_regular_price', 10, 2 );
-function custom_dynamic_regular_price( $regular_price, $product ) {
-	if($product->get_type() == "bundle" && (empty($regular_price) || $regular_price == 0)){
-	   $prices = bundled_product_price($product, 1);
-	   return $prices["regular_price"];
-	}else{
-		return $regular_price;
-	}     
-}
-
-
-// Generating dynamically the product "sale price"
-add_filter( 'woocommerce_product_get_sale_price', 'custom_dynamic_sale_price', 10, 2 );
-add_filter( 'woocommerce_product_variation_get_sale_price', 'custom_dynamic_sale_price', 10, 2 );
-function custom_dynamic_sale_price( $sale_price, $product ) {
-	if($product->get_type() == "bundle" && (empty($sale_price) || $sale_price == 0)){
-	   $prices = bundled_product_price($product, 1);
-	   return $prices["sale_price"];
-	}else{
-		return $sale_price;
-	}   
-};
-*/

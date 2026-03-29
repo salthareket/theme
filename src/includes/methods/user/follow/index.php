@@ -1,7 +1,6 @@
 <?php
 $required_setting = ENABLE_FOLLOW;
 
-    $salt = \Salt::get_instance();//new Salt();
-    $response = $salt->follow($vars["id"]);
-    echo json_encode($response);
-    die();
+$salt = \Salt::get_instance();
+echo json_encode($salt->follow($vars['id']));
+wp_die();

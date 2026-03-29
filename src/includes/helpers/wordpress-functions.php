@@ -211,92 +211,6 @@ function get_parent_menu_item($menu, $id, $type="post_parent") {
     }
     return null;
 }
-/*function get_root_menu_for_page($menu, $page_id=-1) {
-    $menu_items = ["nodes" => [], "items" => []];
-
-    $initial_menu_name = $menu;
-    if (empty($initial_menu_name)) $initial_menu_name = "header-menu";
-
-    $locations = get_nav_menu_locations();
-    $menu_id_or_name = $locations[$initial_menu_name] ?? $initial_menu_name;
-
-    if (is_numeric($menu_id_or_name)) {
-        $menu_obj = wp_get_nav_menu_object($menu_id_or_name);
-        if ($menu_obj) $menu_id_or_name = $menu_obj->name;
-    }
-    
-    global $post, $wp_query;
-    $menu = Timber::get_menu($menu_id_or_name);
-    if (!$menu || empty($menu->get_items())) {
-        return $menu_items;
-    }
-
-    $all_menu_items = $menu->get_items(); // Tüm üst seviye menü öğeleri
-    $current_menu_name = $menu->name; // get_leafnode_object için menü adını al
-
-    if ($page_id < 0) $page_id = $post->ID;
-
-    // Page 0 fallback (Ana sayfa)
-    if ($page_id === 0) {
-        $menu_items["nodes"] = [$post->ID];
-        $menu_items["items"] = $all_menu_items; // Tüm üst seviyeyi döndür
-        return $menu_items;
-    }
-    if (is_post_type_archive() || is_single()) {
-        $post_type = $wp_query->query_vars['post_type'] ?? $post->post_type ?? null;
-        if ($post_type) {
-            $nodes = get_leafnode_object($current_menu_name, $post_type);
-            if (is_array($nodes) && count($nodes) > 0) {
-                $last_node = end($nodes);
-                $menu_items["nodes"] = wp_list_pluck($nodes, "db_id"); 
-                $root_menu_item = get_root_menu_item($all_menu_items, $last_node->db_id, "db_id");
-                $children = safe_children($root_menu_item) ?? [];
-                if($children){
-                    $menu_items["items"] = $children;
-                }else{
-                    $menu_items["items"] = $all_menu_items;
-                }
-            }else{
-                $menu_items["items"] = $all_menu_items;
-            }
-        }
-        return $menu_items;
-    }
-
-    if (is_tax()) {
-        $taxonomy = $wp_query->query_vars['taxonomy'] ?? null;
-        $term = $wp_query->query_vars['term'] ?? null;
-        if ($taxonomy && $term) {
-            $term_obj = get_term_by("slug", $term, $taxonomy);
-            $nodes = get_leafnode_object($current_menu_name, ["object"=>$taxonomy, "object_id" => $term_obj->term_id]);
-            if ($nodes) {
-                $last_node = end($nodes);
-                $menu_items["nodes"] = wp_list_pluck($nodes, "object_id"); 
-                $root_menu_item = get_root_menu_item($all_menu_items, $last_node->db_id, "db_id"); 
-                $menu_items["items"] = safe_children($root_menu_item) ?? [];
-            }
-        }
-        return $menu_items;
-    }
-
-    $menu_item = get_page_menu_child($all_menu_items, $page_id);        
-    if ($menu_item) {
-        $ancestors = get_post_ancestors($menu_item->object_id);
-        if ($ancestors) {
-            $root_page_id = end($ancestors); 
-            $menu_items["nodes"] = $ancestors;
-            $root_menu_item = get_root_menu_item($all_menu_items, $root_page_id, "object_id"); 
-            $menu_items["items"] = safe_children($root_menu_item) ?? [];
-        } else {
-            $menu_items["nodes"] = [$page_id];
-            $menu_items["items"] = safe_children($menu_item) ?? [];
-        }
-    } else {
-        $menu_items["nodes"] = [];
-        $menu_items["items"] = $all_menu_items ?? [];
-    }
-    return $menu_items;
-}*/
 function get_root_menu_for_page($menu, $page_id=-1) {
     $menu_items = ["nodes" => [], "items" => []];
 
@@ -512,7 +426,7 @@ function post2Breadcrumb($post_id = 0, $link = 1){
 			'<ul class="breadcrumb">';
 			$index = 1;
             foreach($nodes as $key => $node){
-				$breadcrumb .= '<li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem" class="'.($key = count($nodes)-1?"breadcrumb_last":"").'">' .
+				$breadcrumb .= '<li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem" class="'.($key === count($nodes)-1?"breadcrumb_last":"").'">' .
 							        '<a href="'.get_permalink($node["ID"]).'">' .
 							            '<span itemprop="name">'.qtranxf_use($GLOBALS["language"], $node["post_title"], false).'</span>' .
 							            '<meta itemprop="position" content="'.$index.'">' .
@@ -534,11 +448,13 @@ function generate_breadcrumb($nodes=array(), $link=1){
             '<ul class="breadcrumb">';
             $index = 1;
             foreach($nodes as $key => $node){
-                $breadcrumb .= '<li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem" class="'.($key = count($nodes)-1?"breadcrumb_last":"").'">';
+                $node_url = esc_url(isset($node["link"]) ? $node["link"] : get_permalink($node["ID"]));
+                $node_title = ENABLE_MULTILANGUAGE ? qtranxf_use($language, $node["post_title"], false) : $node["post_title"];
+                $breadcrumb .= '<li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem" class="'.($key === count($nodes)-1?"breadcrumb_last":"").'">';
                                 if($link){
-                                    $breadcrumb .= '<a href="'.(isset($node["link"])?$node["link"]:get_permalink($node["ID"])).'">';
+                                    $breadcrumb .= '<a href="'.$node_url.'">';
                                 }
-                                $breadcrumb .= '<span itemprop="name">'.(ENABLE_MULTILANGUAGE?qtranxf_use($language, $node["post_title"], false):$node["post_title"]).'</span>' .
+                                $breadcrumb .= '<span itemprop="name">'.esc_html($node_title).'</span>' .
                                         '<meta itemprop="position" content="'.$index.'">';
                                 if($link){
                                     $breadcrumb .='</a>';
@@ -685,8 +601,10 @@ function wp_count_posts_by_query($args) {
 
 function get_page_id_by_slug($slug){
     global $wpdb;
-    $query = "SELECT ID FROM $wpdb->posts WHERE post_name = '$slug' AND post_type = 'page'";
-    return $wpdb->get_var($query);
+    return $wpdb->get_var( $wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'page'",
+        sanitize_title( $slug )
+    ) );
 }
 
 
@@ -741,54 +659,6 @@ function get_menu_locations() {
     }
     return $formatted_locations;
 }
-/*
-function get_menu_populate(){
-    $arr = [];
-    $value = QueryCache::get_field("menu_populate", "options");//get_cached_field("menu_populate", "option");
-    if($value){
-        foreach($value as $item){
-            $menu = $item["menu"];
-            $post_type = [];
-            $taxonomy = [];
-            
-            if(!empty($item["menu_item_post_type"])){
-                $post_type["post_type"] = $item["menu_item_post_type"];
-                $post_type["posts_per_page"] = $item["all_post_type"] ? -1 : $item["post_per_page"];
-                $post_type["orderby"] = $item["orderby_post_type"];
-                $post_type["order"] = $item["order_post_type"];
-                $post_type["replace"] = $item["replace"];
-            }
-
-            if(!empty($item["menu_item_taxonomy"])){
-                $taxonomy["taxonomy"] = $item["menu_item_taxonomy"];
-                $taxonomy["number"] = $item["all_taxonomy"] ? 0 : $item["number"];
-                $taxonomy["orderby"] = $item["orderby_taxonomy"];
-                $taxonomy["order"] = $item["order_taxonomy"];
-            }
-
-            $menu_item = [];
-            if(isset($post_type["posts_per_page"]) && $post_type["posts_per_page"] != 0){
-                $menu_item["post_type"] = $post_type;
-            }else{
-                $menu_item["post_type"] = ["post_type" => $post_type["post_type"], "replace" => $post_type["replace"]];
-            }
-            if(isset($taxonomy["taxonomy"])){
-                $menu_item["taxonomy"] = $taxonomy;
-            }
-
-            // Eğer aynı menu isminde daha önce bir item eklenmişse, array'e ekleyelim.
-            if(isset($arr[$menu])){
-                $arr[$menu][] = $menu_item;
-            } else {
-                // Eğer yoksa, yeni bir array oluşturup ekleyelim.
-                $arr[$menu][] = $menu_item;
-            }
-        }
-    }
-    return $arr;
-}
-*/
-
 function wp_query_to_sql($type = "post", $query = [], $helper = []) {
     global $wpdb;
 

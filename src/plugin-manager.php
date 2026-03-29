@@ -39,6 +39,26 @@ class Silent_Upgrader_Skin extends WP_Upgrader_Skin {
     }
 }
 
+/**
+ * PluginManager — WP + local plugin install/update/activate/deactivate.
+ *
+ * KULLANIM:
+ *   // Admin'de otomatik init (theme.php):
+ *   PluginManager::init();
+ *
+ *   // Repo update / composer install sonrasi (update.php):
+ *   PluginManager::check_and_install_required_plugins($types);
+ *   PluginManager::check_and_update_local_plugins($types);
+ *
+ *   // Plugin listesi plugins.php'de tanimlanir:
+ *   Data::set("plugins", [...]);        // WP repo pluginleri
+ *   Data::set("plugins_local", [...]);  // Local zip pluginleri (content/plugins/)
+ *
+ *   // Local plugin guncelleme: plugins.php'de "v" degerini artir,
+ *   // yeni zip'i content/plugins/'a koy, composer update calistir.
+ *
+ * @package SaltHareket
+ */
 class PluginManager {
 
     public static $plugin_dir =  __DIR__ . '/content/plugins';
@@ -241,6 +261,7 @@ class PluginManager {
 
             wp_localize_script('plugin-manager-script', 'pluginManagerAjax', [
                 'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce'    => wp_create_nonce( 'plugin_manager_nonce' ),
                 'plugins' => $plugins,
                 'plugins_local' => $plugins_local,
             ]);
@@ -251,14 +272,22 @@ class PluginManager {
     // Plugin işlemini AJAX üzerinden yap
     public static function process_plugin() {
 
-        ob_start(); // Tamponlamayı başlat
+        ob_start();
 
         try {
-            $plugin_slug = $_POST['plugin_slug'] ?? '';
-            $action_type = $_POST['action_type'] ?? '';
-            $local = $_POST['local'];
-            if (!$plugin_slug || !$action_type) {
-                wp_send_json_error(['message' => 'Eksik parametreler!']);
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error( [ 'message' => 'Unauthorized.' ] );
+            }
+            if ( ! check_ajax_referer( 'plugin_manager_nonce', '_pm_nonce', false ) ) {
+                wp_send_json_error( [ 'message' => 'Invalid security token.' ] );
+            }
+
+            $plugin_slug = sanitize_text_field( $_POST['plugin_slug'] ?? '' );
+            $action_type = sanitize_key( $_POST['action_type'] ?? '' );
+            $local       = sanitize_text_field( $_POST['local'] ?? 'false' );
+
+            if ( ! $plugin_slug || ! $action_type ) {
+                wp_send_json_error(['message' => 'Missing parameters.']);
             }
 
             // İşlem türüne göre ayrım
@@ -497,8 +526,10 @@ class PluginManager {
 
     // Check if a plugin version is outdated
     private static function is_version_outdated($new_version, $plugin_name) {
-        $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_name, false, false);
-        return version_compare($plugin_data['Version'], $new_version, '<');
+        $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_name;
+        if ( ! file_exists( $plugin_path ) ) return true; // dosya yoksa outdated say
+        $plugin_data = get_plugin_data( $plugin_path, false, false );
+        return version_compare( $plugin_data['Version'] ?? '0', $new_version, '<' );
     }
 
     // Utility function to delete a directory

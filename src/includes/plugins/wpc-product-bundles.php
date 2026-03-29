@@ -1,30 +1,47 @@
 <?php
 
-function woo_wpc_bundle_images($product){
-	$items = $product->meta("woosb_ids");
-	foreach ($items as $key => $item) {
-		$item = wc_get_product($item["id"]);
-		$type = $item->get_type();
-		switch($type){
-			case "simple" :
+/**
+ * WPC Product Bundles — Bundle image helper.
+ */
 
-			break;
+function woo_wpc_bundle_images($product) {
+    $items = $product->meta('woosb_ids');
+    if (!is_array($items)) return [];
 
-			case "variable" :
+    $images = [];
+    foreach ($items as $item) {
+        $bundled = wc_get_product($item['id'] ?? 0);
+        if (!$bundled) continue;
 
-			break;
+        $type = $bundled->get_type();
+        $thumb = $bundled->get_image_id();
 
-			case "grouped" :
+        switch ($type) {
+            case 'simple':
+                // Simple product image
+                break;
+            case 'variable':
+                // Variable product — default image
+                break;
+            case 'grouped':
+                // Grouped product
+                break;
+            case 'external':
+                // External/affiliate product
+                break;
+            case 'woosg':
+                // Smart grouped product
+                break;
+        }
 
-			break;
+        if ($thumb) {
+            $images[] = [
+                'id'   => $thumb,
+                'url'  => wp_get_attachment_url($thumb),
+                'type' => $type,
+            ];
+        }
+    }
 
-			case "external" :
-
-			break;
-
-			case "woosg" : //smart grouped
-
-			break;
-		}
-	}
+    return $images;
 }

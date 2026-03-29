@@ -1,18 +1,18 @@
 <?php
+$error   = true;
+$message = 'Content not found';
+$html    = '';
 
-$error = true;
-$message = "Content not found";
-$html = "";
-if (isset($vars["url"])) {
-    $error = false;
-    $message = "";
-    $html = "<iframe src='" .$vars["url"]. "' width='100%' height='" .$vars["height"] . "'/>";
+if (!empty($vars['url'])) {
+    $error   = false;
+    $message = '';
+    $url     = esc_url($vars['url']);
+    $height  = (int) ($vars['height'] ?? 500);
+    $html    = "<iframe src=\"{$url}\" width=\"100%\" height=\"{$height}\" frameborder=\"0\" allowfullscreen></iframe>";
 }
-$output = [
-    "error" => $error,
-    "message" => $message,
-    "data" => "",
-    "html" => $html,
-];
-echo json_encode($output);
-die();
+
+$response['error']   = $error;
+$response['message'] = $message;
+$response['html']    = $html;
+echo json_encode($response);
+wp_die();

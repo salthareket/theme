@@ -1,39 +1,43 @@
 <?php
 
-function yabe_get_fonts(){
-	global $wpdb;
-	$fonts = array();
-	$table_name = $wpdb->prefix . 'yabe_webfont_fonts';
-	$query = "
-	    SELECT title, family, metadata, font_faces
-	    FROM $table_name
-	    WHERE status = 1 AND deleted_at IS NULL
-	";
-    $results = $wpdb->get_results($query);
-	if ($results) {
-	    foreach ($results as $result) {
-	    	$font_faces = json_decode($result->font_faces, true);
-	    	$metadata = json_decode($result->metadata, true);
-	        $item = array(
-	        	"family" => $result->family,
-	        	"title"  => $result->title,
-	        	"selector"  => isset($metadata["selector"]) ? $metadata["selector"] : "",
-	        	"files"  => array()
-	        );
-	        if($font_faces){
-	        	foreach($font_faces as $font_face){
-	        		if($font_face["files"]){
-		        		$item["files"][] =  array(
-		        			"title"  => $font_face["files"][0]["name"],
-		        			"weight" => $font_face["weight"],
-		        			"style"  => $font_face["style"],
-		        			"file"   => $font_face["files"][0]["attachment_url"]    			
-		        		);
-		        	}
-	        	}
-	        }
-	        $fonts[] = $item;
-	    }
-	}
-	return $fonts;
+/**
+ * Yabe Webfont — Aktif fontları ve font-face bilgilerini döndürür.
+ */
+
+function yabe_get_fonts() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'yabe_webfont_fonts';
+
+    $results = $wpdb->get_results($wpdb->prepare(
+        "SELECT title, family, metadata, font_faces FROM %i WHERE status = 1 AND deleted_at IS NULL",
+        $table
+    ));
+
+    if (!$results) return [];
+
+    $fonts = [];
+    foreach ($results as $row) {
+        $faces    = json_decode($row->font_faces, true) ?: [];
+        $meta     = json_decode($row->metadata, true) ?: [];
+        $files    = [];
+
+        foreach ($faces as $face) {
+            if (empty($face['files'][0])) continue;
+            $files[] = [
+                'title'  => $face['files'][0]['name'],
+                'weight' => $face['weight'],
+                'style'  => $face['style'],
+                'file'   => $face['files'][0]['attachment_url'],
+            ];
+        }
+
+        $fonts[] = [
+            'family'   => $row->family,
+            'title'    => $row->title,
+            'selector' => $meta['selector'] ?? '',
+            'files'    => $files,
+        ];
+    }
+
+    return $fonts;
 }

@@ -574,16 +574,12 @@ add_action('wp_ajax_nopriv_save_lcp_results', 'save_lcp_results');
 function save_lcp_results() {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
+    $url = isset($_POST['url']) ? esc_url_raw($_POST['url']) : '';
+    $lang = isset($_POST['lang']) ? sanitize_text_field($_POST['lang']) : '';
 
     if (!$id || !$type || !isset($_POST['lcp_data'])) {
         wp_send_json_error(['message' => 'Eksik veya geçersiz parametre!']);
     }
-
-    //$id = intval($_POST['id']);
-    //$type = trim($_POST['type']);
-    $url = trim($_POST['url']);
-    $lang = trim($_POST['lang']);
-    //$lcp_data = json_decode(stripslashes($_POST['lcp_data']), true);
 
     $lcp_raw = stripslashes($_POST['lcp_data']);
     $lcp_data = json_decode($lcp_raw, true);
@@ -683,7 +679,7 @@ function save_lcp_results() {
         }
     }
 
-    wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return]);
+    wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return ?? false]);
 }
 
 // 2️⃣ send_headers'de option'dan oku

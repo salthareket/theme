@@ -15,153 +15,62 @@ class User extends Timber\User {
         $this->logged = $logged;
     }
 
-
-    public function is_online(){ // opt
-        //if($this->online){
-            //return $this->online;
-        //}else{
-            $this->online = Data::get("salt")->user_is_online($this->ID);
-            return $this->online;
-        //}
+    public function is_online(){
+        $this->online = Data::get("salt")->user_is_online($this->ID);
+        return $this->online;
     }
+    public function get_last_login($type = 'text', $format = 'Y-m-d H:i:s') {
+        $last_login = get_user_meta($this->ID, 'last_login', true);
+        if (empty($last_login)) return '';
 
-    /*public function __get( $key ){
-
-    }
-
-    public function __set( $key, $value ){
-        if(isset($GLOBALS["salt"]->user) && !is_admin()){
-            $GLOBALS["salt"]->update_user();
-        }
-    }*/
-    /*public function get_person_id(){
-        return get_user_meta($this->id, '_person_id', true);
-    }*/
-    /*public function get_last_login($type="text", $format=""){ // opt
-        if($this->last_login){
-            return $this->last_login;
-        }else{
-            $last_login = get_user_meta( $this->ID, 'last_login', true );
-            if($last_login){
-                switch($type){
-                    case "text":
-                        $last_login = human_time_diff($last_login);
-                        break;
-                    case "date":
-                        $last_login = $this->get_local_date(date('Y-m-d H:i:s', $last_login), $this->get_timezone(), $GLOBALS["user"]->get_timezone(), $format) ;
-                        break;
-                }            
+        if ($type === 'text') return human_time_diff($last_login);
+        if ($type === 'date') {
+            $user = Data::get('user');
+            if ($this->get_timezone() && $user && $user->get_timezone()) {
+                return $this->get_local_date(date('Y-m-d H:i:s', $last_login), $this->get_timezone(), $user->get_timezone(), $format);
             }
-            $this->last_login = $last_login; 
-            return $last_login;       
+            return date($format, $last_login);
         }
+        return $last_login;
     }
-    public function get_last_logout($type="text", $format=""){ // opt
-        if($this->last_logout){
-            return $this->last_logout;
-        }else{
-            $last_logout = get_user_meta( $this->ID, 'last_logout', true );
-            if($last_logout){
-                switch($type){
-                    case "text":
-                        $last_logout = human_time_diff($last_logout);
-                        break;
-                    case "date":
-                        $last_logout = $this->get_local_date(date('Y-m-d H:i:s', $last_logout), $this->get_timezone(), $GLOBALS["user"]->get_timezone(), $format) ;
-                        break;
-                }            
+
+    public function get_last_logout($type = 'text', $format = 'Y-m-d H:i:s') {
+        $last_logout = get_user_meta($this->ID, 'last_logout', true);
+        if (empty($last_logout)) return '';
+
+        if ($type === 'text') return human_time_diff($last_logout);
+        if ($type === 'date') {
+            $user = Data::get('user');
+            if ($this->get_timezone() && $user && $user->get_timezone()) {
+                return $this->get_local_date(date('Y-m-d H:i:s', $last_logout), $this->get_timezone(), $user->get_timezone(), $format);
             }
-            $this->last_logout = $last_logout;   
-            return $last_logout; 
+            return date($format, $last_logout);
         }
+        return $last_logout;
     }
-    public function get_last_seen($type="date", $format="Y-m-d H:i"){ // opt
-        if($this->last_seen){
-           return $this->last_seen;
-        }else{
-            $last_seen = $this->get_last_logout($type, $format);
-            if(empty($last_seen)){
-                $last_seen = $this->get_last_login($type, $format);
-            }
-            $this->last_seen = $last_seen;
-            return $last_seen;            
-        }
-    }*/
-    public function get_last_login($type="text", $format="Y-m-d H:i:s"){
-        $last_login = get_user_meta( $this->ID, 'last_login', true );//get_the_author_meta('last_login');
-        if(!empty($last_login)){
-            switch($type){
-                case "text":
-                    $last_login = human_time_diff($last_login);
-                    break;
-                case "date":
-                    $user = Data::get("user");
-                    if($this->get_timezone() && $user->get_timezone()){
-                        $last_login = $this->get_local_date(date('Y-m-d H:i:s', $last_login), $this->get_timezone(), $user->get_timezone(), $format);
-                    }else{
-                        $last_login = date($format, $last_login);
-                    }
-                    break;
-            }            
-        }
-        return $last_login; 
-    }
-    public function get_last_logout($type="text", $format="Y-m-d H:i:s"){
-        $last_logout = get_user_meta( $this->ID, 'last_logout', true );//get_the_author_meta('last_login');
-        if($last_logout){
-            switch($type){
-                case "text":
-                    $last_logout = human_time_diff($last_logout);
-                    break;
-                case "date":
-                    $user = Data::get("user");
-                    if($this->get_timezone() && $user->get_timezone()){
-                        $last_logout = $this->get_local_date(date('Y-m-d H:i:s', $last_logout), $this->get_timezone(), $user->get_timezone(), $format) ;
-                    }else{
-                        $last_login = date($format, $last_logout);
-                    }
-                    break;
-            }            
-        }
-        return $last_logout; 
-    }
-    public function get_last_seen($type="text", $format=""){
-        $last_seen = $this->get_last_logout($type, $format);
-        if(empty($last_seen)){
-            $last_seen = $this->get_last_login($type, $format);
-        }
-        return $last_seen;
+
+    public function get_last_seen($type = 'text', $format = '') {
+        return $this->get_last_logout($type, $format) ?: $this->get_last_login($type, $format);
     }
     public function get_status(){
-        $user_status = true;
-        if(ENABLE_MEMBERSHIP_ACTIVATION){
-            $user_status = intval(get_user_meta( $this->ID, 'user_status', true ));
+        if (ENABLE_MEMBERSHIP_ACTIVATION) {
+            $status = (int) get_user_meta($this->ID, 'user_status', true);
+        } else {
+            $status = 1;
         }
-        return is_user_logged_in() && ($user_status || $this->get_role()=="administrator")?true:false;
+        return is_user_logged_in() && ($status || $this->get_role() === 'administrator');
     }
-    /*public function is_waiting_upgrade(){
-        $status = false;
-        if($this->get_role() == "expert"){
-            $profile_upgrade = get_field('profile_upgrade', "user_".$this->ID);
-            if($profile_upgrade == "requested"){
-               $status = true;
-            }
-        }
-        return $status;
-    }*/
     public function is_profile_completed(){
-        if($this->get_role() == "administrator"){
-            return true;
-        }else{
-            $status = get_user_meta($this->ID, 'profile_completed', true);//get_field('profile_completed', "user_".$this->ID);
-            return boolval($status);
-        }
+        if ($this->get_role() === 'administrator') return true;
+        return boolval(get_user_meta($this->ID, 'profile_completed', true));
     }
 
     public function get_social_login_providers(){
         global $wpdb;
-        $query = "select type from {$wpdb->prefix}social_users where ID = $this->ID";
-        return $wpdb->get_col($query);
+        return $wpdb->get_col($wpdb->prepare(
+            "SELECT type FROM {$wpdb->prefix}social_users WHERE ID = %d",
+            $this->ID
+        ));
     }
 
     public function generate_url_slug(){
@@ -175,77 +84,63 @@ class User extends Timber\User {
         return $nickname;
     }
     
-    public function get_role(){ //opt
-        if($this->role){
-            return $this->role;
-        }else{
-            if(isset($this->roles)){
-               $this->role = array_keys($this->roles)[0]; 
-               return $this->role;
-            }else{
-               return "";
-            }
-        }
+    public function get_role(){
+        if ($this->role) return $this->role;
+        $this->role = isset($this->roles) ? array_keys($this->roles)[0] ?? '' : '';
+        return $this->role;
     }
-    public function get_role_name(){ // opt
-        if($this->role_name){
-            return $this->role_name;
-        }else{
-            $this->role_name = $this->roles[$this->get_role()];
-            return $this->role_name;
-        }
+
+    public function get_role_name(){
+        if ($this->role_name) return $this->role_name;
+        $this->role_name = $this->roles[$this->get_role()] ?? '';
+        return $this->role_name;
     }
-    public function get_title() { // opt
-        if($this->title){
-             return $this->title;
-        }else{
-            if(empty($this->meta("first_name")) && empty($this->meta("last_name"))){
-               $title = $this->user_email;
-            }else{
-               $title = $this->meta("first_name") ." ". $this->meta("last_name"); 
-            }
-            if(empty($title)){
-               $title = "<span class='name'>".$this->display_name."</span> <small class='username d-block'>".$this->user_login."</small>";
-            }
-            $this->title = $title;
-            return $this->title;  
+
+    public function get_title() {
+        if ($this->title) return $this->title;
+
+        $first = $this->meta('first_name');
+        $last  = $this->meta('last_name');
+
+        if (!empty($first) || !empty($last)) {
+            $this->title = trim($first . ' ' . $last);
+        } elseif (!empty($this->display_name)) {
+            $this->title = $this->display_name;
+        } else {
+            $this->title = $this->user_email;
         }
+        return $this->title;
     }
-    public function get_avatar($width = 120, $class="") { // opt
-        if($this->avatar){
-            return $this->avatar;
-        }else{
-            $profile_image = get_field('profile_image', "user_".$this->ID);
-            if($profile_image){
-                $avatar_url = wp_get_attachment_image_src($profile_image, "thumbnail")[0];
-                $avatar = "<img data-src='".$avatar_url."' class='avatar img-fluid lazy .".$class."' alt='".$this->display_name."'/>";
-            }else{
-                $avatar = get_avatar( $this->id, $width, 'mystery', $this->display_name, array( 'class' => $class ));
-            }
-            $this->avatar = $avatar;
-            return $avatar;    
+
+    public function get_avatar($width = 120, $class = '') {
+        if ($this->avatar) return $this->avatar;
+
+        $profile_image = get_field('profile_image', 'user_' . $this->ID);
+        if ($profile_image) {
+            $url = wp_get_attachment_image_src($profile_image, 'thumbnail')[0] ?? '';
+            $this->avatar = '<img data-src="' . esc_url($url) . '" class="avatar img-fluid lazy ' . esc_attr($class) . '" alt="' . esc_attr($this->display_name) . '"/>';
+        } else {
+            $this->avatar = get_avatar($this->id, $width, 'mystery', $this->display_name, ['class' => $class]);
         }
+        return $this->avatar;
     }
-    public function get_avatar_url($width = 120) { // opt
-        if($this->avatar_url){
-            return $this->avatar_url;
-        }else{
-            $profile_image = get_field('profile_image', "user_".$this->ID);
-            if($profile_image){
-                $avatar_url = wp_get_attachment_image_src($profile_image, "thumbnail")[0];
-            }else{
-                $avatar_url = get_avatar_url( $this->id, array('size' => $width, 'scheme' => 'mystery') );
-            }
-            $this->avatar_url = $avatar_url;
-            return $avatar_url;   
-        }
+
+    public function get_avatar_url($width = 120) {
+        if ($this->avatar_url) return $this->avatar_url;
+
+        $profile_image = get_field('profile_image', 'user_' . $this->ID);
+        $this->avatar_url = $profile_image
+            ? (wp_get_attachment_image_src($profile_image, 'thumbnail')[0] ?? '')
+            : get_avatar_url($this->id, ['size' => $width, 'default' => 'mystery']);
+        return $this->avatar_url;
     }
     public function get_social_media(){
-        $social_media = array();
-        foreach($GLOBALS['wp_social_media'] as $item){
-            $data = get_field($item["slug"], "user_".$this->id);
-            if(!empty($data)){
-                $social_media[$item["slug"]] = $data;
+        $social_media = [];
+        $providers = $GLOBALS['wp_social_media'] ?? [];
+        foreach ($providers as $item) {
+            $data = get_field($item['slug'], 'user_' . $this->id);
+            if (!empty($data)) {
+                $social_media[$item['slug']] = $data;
             }
         }
         return $social_media;
@@ -353,16 +248,16 @@ class User extends Timber\User {
         $map_data = $this->get_map_data();
         return  "<div class='row gx-3 gy-2'>" .
                     "<div class='col-auto'>" .
-                         "<img src='" . $map_data["avatar"] . "' class='img-fluid rounded' style='max-width:50px;'/>" .
+                         "<img src='" . esc_url($map_data["avatar"] ?? '') . "' class='img-fluid rounded' style='max-width:50px;'/>" .
                     "</div>" .
                     "<div class='col'>" .
                         "<ul class='list-unstyled m-0'>" .
-                            "<li class='fw-bold'>" . $map_data["title"] . "</li>" .
-                            "<li class='text-muted' style='font-size:12px;'>" . $this->get_location() . "</li>" .
+                            "<li class='fw-bold'>" . esc_html($map_data["title"] ?? '') . "</li>" .
+                            "<li class='text-muted' style='font-size:12px;'>" . esc_html($this->get_location()) . "</li>" .
                         "</ul>" .
                     "</div>" .
                     "<div class='col-12 text-primary' style='font-size:12px;'>" .
-                        $this->get_local_date("", "", $user->get_timezone()) . " GMT" . $this->get_gmt() . "</span>" .
+                        ($user ? $this->get_local_date("", "", $user->get_timezone()) . " GMT" . $this->get_gmt() : '') .
                     "</div>" .
                 "</div>";
     }
@@ -372,86 +267,57 @@ class User extends Timber\User {
 
 
 
-    //reviews
-    //comment_type : review
-    //user_id : writer
-    //meta.comment_profile : review yapılan id
-    //meta.rating : rating
+    // ── REVIEWS (Reviews class'ına delegate) ──
 
-    public function get_rating(){
-        return get_star_votes_profile($this->ID, 1);
+    /**
+     * Kullanıcının ortalama rating'i.
+     * @return array{total: int, average: float}  veya eski uyumluluk için object
+     */
+    public function get_rating() {
+        $data = Reviews::rating( $this->ID, 'user' );
+        // Eski kod $rating->point ve $rating->total kullanıyordu — uyumluluk
+        return (object) [ 'total' => $data['total'], 'point' => $data['average'] ];
     }
 
-    /*$args = "SELECT SQL_CALC_FOUND_ROWS
-                    count(*)
-                FROM
-                    ".$wpdb->prefix."comments AS wpc
-                INNER JOIN ".$wpdb->prefix."commentmeta AS wpcm
-                        ON
-                            wpcm.comment_id = wpc.comment_id AND wpc.comment_type = 'review' and wpcm.meta_key = 'comment_profile' AND wpcm.meta_value = $this->ID
-                INNER JOIN ".$wpdb->prefix."commentmeta AS wpcm2
-                        ON
-                            wpcm2.comment_id = wpc.comment_id AND wpcm2.meta_key = 'rating'
-                WHERE 
-                    wpc.comment_approved = $approved";*/
+    public function get_reviews_count(): int {
+        return Reviews::rating( $this->ID, 'user' )['total'];
+    }
 
-    public function get_reviews_count($approved=1){
-        global $wpdb;
-        $args = "SELECT SQL_CALC_FOUND_ROWS
-                    count(*)
-                FROM
-                    ".$wpdb->prefix."comments AS wpc
-                INNER JOIN ".$wpdb->prefix."commentmeta AS wpcm
-                        ON
-                            wpcm.comment_id = wpc.comment_id AND wpc.comment_type = 'review' and wpcm.meta_key = 'comment_profile' AND wpcm.meta_value = $this->ID
-                WHERE 
-                    wpc.comment_approved = $approved";
-        return $wpdb->get_var($args);
+    public function set_review_approve( int $id = 0 ): array {
+        $reviews = new Reviews();
+        return $reviews->approve( $id );
     }
-    public function set_review_approve($id=0){
-        $salt = $salt = Salt::get_instance();//new Salt();
-        return $salt->sessions(["action"=>"review_approve", "id" => $id]);
-    }
-    public function get_application_review($post_id=0){
-        $query = array( 
-            //'status' => $vars["status"], 
-            'type' => 'review',
-            'meta_key' => 'comment_profile', 
-            'meta_value' => $this->ID,
-            'post_id' => $post_id,
-            'no_found_rows' => false 
-        );
-        $paginate = new Paginate($query);
-        $result = $paginate->get_results("comment");
-        if($result["posts"]){
-            return $result["posts"][0];
-        }else{
-            return array();
+
+    public function get_application_review( int $post_id = 0 ) {
+        $reviews = new Reviews();
+        $result  = $reviews->get_for_user( $this->ID, [ 'per_page' => 1 ] );
+        // post_id filtresi varsa post bazlı çek
+        if ( $post_id > 0 ) {
+            $result = $reviews->get_for_post( $post_id, [ 'per_page' => 1 ] );
         }
+        return ! empty( $result['reviews'] ) ? $result['reviews'][0] : [];
     }
 
 
 
-    //following
-    public function is_following($id=0){
-        $salt = Salt::get_instance();//new Salt();
-        $id = $id==0?$this->ID:$id;
-        return $salt->is_following($id, "user");
+    public function is_following($id = 0){
+        $salt = Salt::get_instance();
+        return $salt->is_following($id ?: $this->ID, 'user');
     }
-    public function is_follows($id=0){
-        $salt = Salt::get_instance();//new Salt();
-        $id = $id==0?$this->ID:$id;
-        return $salt->is_follows($id, "user");
+
+    public function is_follows($id = 0){
+        $salt = Salt::get_instance();
+        return $salt->is_follows($id ?: $this->ID, 'user');
     }
-    public function get_followers($id=0){
-        $salt = Salt::get_instance();//new Salt();
-        $id = $id==0?$this->ID:$id;
-        return $salt->get_followers($id, "user");
+
+    public function get_followers($id = 0){
+        $salt = Salt::get_instance();
+        return $salt->get_followers($id ?: $this->ID, 'user');
     }
-    public function get_followers_count($id=0){
-        $salt = Salt::get_instance();//new Salt();
-        $id = $id==0?$this->ID:$id;
-        return $salt->get_followers_count($id, "user");
+
+    public function get_followers_count($id = 0){
+        $salt = Salt::get_instance();
+        return $salt->get_followers_count($id ?: $this->ID, 'user');
     }
 
 

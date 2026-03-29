@@ -12,7 +12,7 @@ $lazy_breakpoints = array(
     'xxl'   => '(min-width: 1400px) and (max-width: 1599px)',
     'xxxl'  => '(min-width: 1600px)'
 );
-Data::set("user", $lazy_breakpoints);
+Data::set("lazy_breakpoints", $lazy_breakpoints);
 
 function dateEstToPst($date){
 	$time = new DateTime($date, new DateTimeZone('America/New_York'));
@@ -48,32 +48,9 @@ function get_blog_tag_cloud(){
     return wp_tag_cloud($args);	
 }
 
-/*
-function updateSearchRank($id, $type){
-	if($type == "post"){
-		$value = get_post_meta( $id, 'wpcf_search_rank', true );
-	    $value = empty($value)||$value==null?0:$value;
-	    update_post_meta($id, 'wpcf_search_rank', $value + 1 ); 		
-	}else{
-		$value = get_term_meta( $id, 'wpcf_search_rank', true );
-	    $value = empty($value)||$value==null?0:$value;
-	    update_term_meta($id, 'wpcf_search_rank', $value + 1 ); 	
-	}
-}
-*/
-
-
-function dateIsPast($date){
-	$result = false;
-	if(!is_object($date)){
-        $date = strtotime($date);
-	}else{
-		$date = date_timestamp_get($date);
-	}
-    if(intval($date) < intval(time())) {
-      $result = true;
-    }
-	return $result;
+function dateIsPast($date) {
+    $ts = is_object($date) ? date_timestamp_get($date) : strtotime($date);
+    return (int) $ts < time();
 }
 function datesHasWeekend($start, $end) {
 	if(!is_object($start)){
@@ -200,7 +177,7 @@ function change_user_login($user_id, $user_login=""){
 }
 
 function secure_string($string, $base){
-   $ajax_nonce = wp_create_nonce( $string . "-" . $base );
+   return wp_create_nonce( $string . "-" . $base );
 }
 
 function isBase64Encoded_old(string $s) : bool{
@@ -274,7 +251,7 @@ function get_map_embed_url_v1($type="leaflet", $location=[]) {
 			}else{*/
 		
 				if (!empty($location["map_url"])) {
-			        $url = str_replace("!1sen", "!1s" . $language, $location["url"]) . "&hl=".$language;
+			        $url = str_replace("!1sen", "!1s" . $language, $location["map_url"]) . "&hl=".$language;
 			    }else{
 			    	$url = "https://maps.google.com/maps?q=" . $lat . "," . $lng . "&hl=" . $language . "&z=" . $zoom . "&output=embed";
 			   }				
@@ -519,7 +496,7 @@ function get_map_config($fields = array(), $block_meta = array()) {
             ];
 
             // Marker İkon Mantığı
-            $marker = $settings['marker'] ?? get_field("map_marker") ?? get_field("logo_marker");
+            $marker = $settings['marker'] ?? QueryCache::get_field("map_marker", "options") ?? QueryCache::get_field("logo_marker", "options");
             
             if ($marker) {
                 $data["marker"] = [

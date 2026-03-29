@@ -1,20 +1,14 @@
 <?php
 $required_setting = ENABLE_CHAT;
 
-$messages = yobro_messages();
-            $templates = [$template . ".twig"];
-            $context = Timber::context();
-            $context["type"] = "messages";
-            $context["posts"] = $messages;
-            $data = [
-                "error" => false,
-                "message" => "",
-                "data" => [
-                    "count" => yobro_unseen_messages_count(),
-                ],
-            ];
-            if (!$template) {
-                $template = "partials/offcanvas/archive";
-                //$template = "product/dropdown/archive";
-                $templates = [$template . ".twig"];
-            }
+$messages = Messenger::notifications();
+$tpl      = !empty($template) ? $template : 'partials/offcanvas/archive';
+
+$context          = Timber::context();
+$context['type']  = 'messages';
+$context['posts'] = $messages;
+$templates        = [$tpl . '.twig'];
+
+$response['data'] = [
+    'count' => Messenger::count(),
+];

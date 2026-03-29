@@ -1,253 +1,225 @@
 <?php
-add_action( 'acf/include_fields', function() {
-    if ( ! function_exists( 'acf_add_local_field_group' ) ) {
-        return;
-    }
 
-    $regional_post_settings = get_option("options_regional_post_settings");//get_field("regional_post_settings", "option");
-    if($regional_post_settings){
-        $regional_post_types = array_map(function($item) {
-            return $item["post_type"];
-        }, $regional_post_settings);
-        
-        if($regional_post_types){
-            register_taxonomy('region', $regional_post_types, array(
-                'public'        => true,
-                'single_value' => false,
-                'show_admin_column' => true,
-                'labels'        =>array(
-                    'name'                      =>'Regions',
-                    'singular_name'             =>'Region',
-                    'menu_name'                 =>'Regions',
-                    'search_items'              =>'Search Regions',
-                    'popular_items'             =>'Popular Regions',
-                    'all_items'                 =>'All Regions',
-                    'edit_item'                 =>'Edit Region',
-                    'update_item'               =>'Update Region',
-                    'add_new_item'              =>'Add New Proficiency Level',
-                    'new_item_name'             =>'New Region',
-                    'separate_items_with_commas'=>'Separate Regions with commas',
-                    'add_or_remove_items'       =>'Add or remove Region',
-                    'choose_from_most_used'     =>'Choose from the most popular Region',
-                ),
-                'rewrite'       =>array(
-                    'with_front'                => false
-                ),
-                'capabilities'  => array(
-                    'manage_terms'              =>'edit_posts',
-                    'edit_terms'                =>'edit_posts',
-                    'delete_terms'              =>'edit_posts',
-                    'assign_terms'              =>'read',
-                ),
-            ));     
-     
-            acf_add_local_field_group( array(
-                'key' => 'group_646230ff021b6',
-                'title' => 'Region Settings',
-                'fields' => array(
-                    array(
-                        'key' => 'field_646230ff1262b',
-                        'label' => 'Country',
-                        'name' => 'country',
-                        'aria-label' => '',
-                        'type' => 'select',
-                        'instructions' => '',
-                        'required' => 0,
-                        'conditional_logic' => 0,
-                        'wrapper' => array(
-                            'width' => '',
-                            'class' => '',
-                            'id' => '',
-                        ),
-                        'acfe_save_meta' => 0,
-                        'choices' => array(),
-                        'default_value' => array(
-                        ),
-                        'return_format' => 'value',
-                        'multiple' => 1,
-                        'allow_null' => 0,
-                        'ui' => 1,
-                        'ajax' => 0,
-                        'placeholder' => '',
-                        'allow_custom' => 0,
-                        'search_placeholder' => '',
-                    ),
-                ),
-                'location' => array(
-                    array(
-                        array(
-                            'param' => 'taxonomy',
-                            'operator' => '==',
-                            'value' => 'region',
-                        ),
-                    ),
-                ),
-                'menu_order' => 0,
-                'position' => 'acf_after_title',
-                'style' => 'default',
-                'label_placement' => 'top',
-                'instruction_placement' => 'label',
-                'hide_on_screen' => array(
-                    0 => 'block_editor',
-                    1 => 'the_content',
-                    2 => 'excerpt',
-                    3 => 'discussion',
-                    4 => 'comments',
-                    5 => 'format',
-                    6 => 'featured_image',
-                    7 => 'categories',
-                    8 => 'tags',
-                    9 => 'send-trackbacks',
-                ),
-                'active' => true,
-                'description' => '',
-                'show_in_rest' => 0,
-                'acfe_display_title' => '',
-                'acfe_autosync' => array(
-                    0 => 'json',
-                ),
-                'acfe_form' => 0,
-                'acfe_meta' => '',
-                'acfe_note' => '',
-            ));
-        }        
-    }
+/**
+ * Regional Posts Module
+ *
+ * Kullanıcının bölgesine göre post/term filtreleme.
+ * - "region" taxonomy'sini register eder
+ * - pre_get_posts ile query'lere region filtresi ekler
+ * - get_terms ile bölgesiz term'leri gizler
+ * - Country code → Region ID çözümlemesi
+ *
+ * Yükleme: variables.php → if (ENABLE_REGIONAL_POSTS) include
+ */
 
+// ─── Ayarları Tek Noktadan Çek (Her request'te 1 kez) ──────
+
+function _regional_posts_settings() {
+    static $settings = null;
+    if ($settings === null) {
+        $settings = get_option('options_regional_post_settings') ?: [];
+    }
+    return $settings;
+}
+
+function _regional_post_types() {
+    static $types = null;
+    if ($types === null) {
+        $types = array_column(_regional_posts_settings(), 'post_type');
+    }
+    return $types;
+}
+
+function _regional_taxonomies() {
+    static $taxes = null;
+    if ($taxes === null) {
+        $taxes = array_column(_regional_posts_settings(), 'taxonomy');
+    }
+    return $taxes;
+}
+
+// ─── Taxonomy & ACF Field Group Register ────────────────────
+
+add_action('acf/include_fields', function() {
+    if (!function_exists('acf_add_local_field_group')) return;
+
+    $post_types = _regional_post_types();
+    if (empty($post_types)) return;
+
+    register_taxonomy('region', $post_types, [
+        'public'            => true,
+        'single_value'      => false,
+        'show_admin_column' => true,
+        'labels' => [
+            'name'                       => 'Regions',
+            'singular_name'              => 'Region',
+            'menu_name'                  => 'Regions',
+            'search_items'               => 'Search Regions',
+            'popular_items'              => 'Popular Regions',
+            'all_items'                  => 'All Regions',
+            'edit_item'                  => 'Edit Region',
+            'update_item'                => 'Update Region',
+            'add_new_item'               => 'Add New Region',
+            'new_item_name'              => 'New Region',
+            'separate_items_with_commas' => 'Separate Regions with commas',
+            'add_or_remove_items'        => 'Add or remove Region',
+            'choose_from_most_used'      => 'Choose from the most popular Region',
+        ],
+        'rewrite' => [
+            'with_front' => false,
+        ],
+        'capabilities' => [
+            'manage_terms' => 'edit_posts',
+            'edit_terms'   => 'edit_posts',
+            'delete_terms' => 'edit_posts',
+            'assign_terms' => 'read',
+        ],
+    ]);
+
+    acf_add_local_field_group([
+        'key'                   => 'group_646230ff021b6',
+        'title'                 => 'Region Settings',
+        'fields' => [[
+            'key'               => 'field_646230ff1262b',
+            'label'             => 'Country',
+            'name'              => 'country',
+            'type'              => 'select',
+            'required'          => 0,
+            'choices'           => [],
+            'return_format'     => 'value',
+            'multiple'          => 1,
+            'allow_null'        => 0,
+            'ui'                => 1,
+            'ajax'              => 0,
+        ]],
+        'location' => [[[
+            'param'    => 'taxonomy',
+            'operator' => '==',
+            'value'    => 'region',
+        ]]],
+        'position'              => 'acf_after_title',
+        'style'                 => 'default',
+        'label_placement'       => 'top',
+        'instruction_placement' => 'label',
+        'hide_on_screen' => [
+            'block_editor', 'the_content', 'excerpt', 'discussion',
+            'comments', 'format', 'featured_image', 'categories',
+            'tags', 'send-trackbacks',
+        ],
+        'active'         => true,
+        'acfe_autosync'  => ['json'],
+    ]);
 });
 
-function regional_posts_prequery($query){
+// ─── Pre Get Posts — Region Filtresi ────────────────────────
 
-    if (is_admin()) {
-        return $query;
+add_action('pre_get_posts', 'regional_posts_prequery');
+
+function regional_posts_prequery($query) {
+    if (is_admin() || !$query->is_main_query()) return;
+
+    $post_type  = $query->get('post_type');
+    $user_region = Data::get('site_config.user_region');
+
+    // Boş region varsa filtre ekleme
+    if (empty($user_region)) return;
+
+    $should_filter = false;
+
+    // Search query'leri her zaman filtrele
+    if ($query->is_search) {
+        $should_filter = true;
     }
 
-    $post_type = $query->get("post_type");
-
-    if ($query->is_search && $query->is_main_query()) {
-        if(ENABLE_REGIONAL_POSTS){
-            //regions
-            $tax_query = $query->get( 'tax_query' );
-            if ( ! is_array( $tax_query ) ) {
-                $tax_query = array();
-            }
-            $tax_query["relation"] = "AND";
-            $tax_query[] = array(
-                'taxonomy' => 'region',
-                'field' => 'term_id',
-                'terms' => Data::get("site_config.user_region"),
-                'operator' => 'IN'
-            );
-            $query->set( 'tax_query', $tax_query );
-        }
+    // Post type regional listede mi?
+    if (in_array($post_type, _regional_post_types())) {
+        $should_filter = true;
     }
 
-    if(!is_admin() && $query->is_main_query() && ENABLE_REGIONAL_POSTS){
-        $regional_post_settings = get_option("options_regional_post_settings");//get_field("regional_post_settings", "option");
-
-        $regional_post_types = array_map(function($item) {
-            return $item["post_type"];
-        }, $regional_post_settings);
-
-        $regional_taxonomies = array_map(function($item) {
-            return $item["taxonomy"];
-        }, $regional_post_settings);
-        
-        $hasMatchingTaxonomy = false;
-        foreach ($regional_taxonomies as $regional_taxonomy) {
-            if (is_tax($regional_taxonomy)) {
-                $hasMatchingTaxonomy = true;
+    // Archive sayfasında regional taxonomy mi gösteriliyor?
+    if (is_archive()) {
+        foreach (_regional_taxonomies() as $tax) {
+            if (is_tax($tax)) {
+                $should_filter = true;
                 break;
             }
         }
+    }
 
-        if( in_array($post_type, $regional_post_types) || ($regional_taxonomies && (is_archive() && $hasMatchingTaxonomy)) ){
-            $tax_query = $query->get( 'tax_query' );
-            if ( ! is_array( $tax_query ) ) {
-                $tax_query = array();
-            }
-            $tax_query["relation"] = "AND";
-            $tax_query[] = array(
-                'taxonomy' => 'region',
-                'field' => 'term_id',
-                'terms' => Data::get("site_config.user_region"),
-                'operator' => 'IN'
-            );
-            $query->set( 'tax_query', $tax_query );
+    if (!$should_filter) return;
+
+    $tax_query = $query->get('tax_query') ?: [];
+    $tax_query['relation'] = 'AND';
+    $tax_query[] = [
+        'taxonomy' => 'region',
+        'field'    => 'term_id',
+        'terms'    => $user_region,
+        'operator' => 'IN',
+    ];
+    $query->set('tax_query', $tax_query);
+}
+
+// ─── Get Terms Filter — Bölgesiz Term'leri Gizle ────────────
+
+add_filter('get_terms', 'regional_posts_filter_terms', 10, 4);
+
+function regional_posts_filter_terms($terms, $taxonomies, $args, $term_query) {
+    if (is_admin() || empty($terms)) return $terms;
+
+    $regional_taxes = _regional_taxonomies();
+    if (empty($regional_taxes)) return $terms;
+
+    // Bu sorgu regional taxonomy'lerden birini içeriyor mu?
+    $has_match = false;
+    foreach ($regional_taxes as $tax) {
+        if (in_array($tax, $taxonomies)) {
+            $has_match = true;
+            break;
+        }
+    }
+    if (!$has_match) return $terms;
+
+    // Sonsuz döngüyü önle: filtreyi geçici kaldır
+    remove_filter('get_terms', 'regional_posts_filter_terms', 10);
+
+    $remove_keys = [];
+    foreach ($terms as $key => $term) {
+        $term_obj = new Term($term);
+        if (!$term_obj->get_country_post_count()) {
+            $remove_keys[] = $key;
         }
     }
 
-    return $query;
-}
-add_action("pre_get_posts", "regional_posts_prequery");
-
-
-
-function after_get_terms($terms, $taxonomies, $args, $term_query) {
-    if(!is_admin() && ENABLE_REGIONAL_POSTS){
-
-        $regional_post_settings = get_option("options_regional_post_settings");//get_field("regional_post_settings", "option");
-
-        $regional_taxonomies = array_map(function($item) {
-            return $item["taxonomy"];
-        }, $regional_post_settings);
-
-        $hasMatchingTaxonomy = false;
-        foreach ($regional_taxonomies as $regional_taxonomy) {
-            if (in_array($regional_taxonomy, $taxonomies)) {
-                $hasMatchingTaxonomy = true;
-                break;
-            }
-        }
-
-        if($hasMatchingTaxonomy){
-            $remove = array();
-            //remove_action("pre_get_posts", "query_all_posts");
-            remove_filter( "get_terms", "after_get_terms", 10, 4 );
-            foreach($terms as $key => $term){
-                $term = new Term($term);
-                if(!$term->get_country_post_count()){
-                   $remove[] = $key;
-                }
-            }
-            if($remove){
-                foreach($remove as $item){
-                    unset($terms[$item]);
-                }
-            }
-            //add_action("pre_get_posts", "query_all_posts");
-            add_filter( "get_terms", "after_get_terms", 10, 4 );
-        }        
+    foreach ($remove_keys as $k) {
+        unset($terms[$k]);
     }
-    return $terms; 
+
+    // Filtreyi geri ekle
+    add_filter('get_terms', 'regional_posts_filter_terms', 10, 4);
+
+    return $terms;
 }
-add_filter( "get_terms", "after_get_terms", 10, 4 );
 
+// ─── Country Code → Region ID ───────────────────────────────
 
-function get_region_by_country_code($code=""){
-    if(!ENABLE_REGIONAL_POSTS){
-        return;
-    }
-    $args = array(
-        "taxonomy" => "region",
+function get_region_by_country_code($code = '') {
+    if (empty($code)) return [];
+
+    $fallback = (array) get_option('options_region_main');
+
+    $regions = Timber::get_terms([
+        'taxonomy'   => 'region',
         'hide_empty' => false,
-        "meta_query" => array(
-            array(
-                "key" => "country",
-                "value" => serialize(strval(strtoupper($code))),
-                "compare" => "LIKE"
-            )
-        )
-    );
-    $region = Timber::get_terms($args);
-    //print_r($region);
-    if ( $region ) {
-        if (!is_wp_error($region)){
-            $region_id = wp_list_pluck($region, "ID");
-        }else{
-           $region_id = array(get_option("options_region_main")); 
-        }
-    }else{
-        $region_id = array(get_option("options_region_main"));
+        'meta_query' => [[
+            'key'     => 'country',
+            'value'   => serialize(strtoupper($code)),
+            'compare' => 'LIKE',
+        ]],
+    ]);
+
+    if ($regions && !is_wp_error($regions)) {
+        return wp_list_pluck($regions, 'ID');
     }
-    return $region_id;
+
+    return $fallback;
 }

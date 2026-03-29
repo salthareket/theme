@@ -155,7 +155,7 @@ class StarterSite extends Timber\Site{
 
         if(!$ajax_process){
 
-            if (function_exists("yoast_breadcrumb") && get_option('wpseo_titles')['breadcrumbs-enable']){// && !is_front_page()) {
+            if (function_exists("yoast_breadcrumb") && !empty(get_option('wpseo_titles', [])['breadcrumbs-enable'])){// && !is_front_page()) {
                 $breadcrumb = WPSEO_Breadcrumbs::breadcrumb("" , "", 0);
                 if($breadcrumb){
                     $breadcrumb = yoast_breadcrumb(
@@ -467,7 +467,6 @@ class StarterSite extends Timber\Site{
         $context["post_pagination"] = Data::get("post_pagination", []);
 
         if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
-            error_log("add_to_context on startsite.php site_assets var");
             if(!empty(SITE_ASSETS["js"])){
                 $js_data = SITE_ASSETS["js"];
                 $code = str_replace("{upload_url}", $this->upload_url, $js_data);
@@ -503,7 +502,7 @@ class StarterSite extends Timber\Site{
         $plugins_file = get_stylesheet_directory() ."/static/js/js_files_all.json";
         if(file_exists($plugins_file)){
             $plugins = file_get_contents($plugins_file);
-            $plugins = json_encode($plugins, true);
+            $plugins = json_decode($plugins, true);
         }else{
             $plugins = [];
         }

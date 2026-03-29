@@ -1,16 +1,16 @@
 <?php
 
-add_filter( 'manage_pages_columns', 'table_template_columns', 10, 1 );
-add_action( 'manage_pages_custom_column', 'table_template_column', 10, 2 );
-function table_template_columns( $columns ) {
-    $custom_columns = array(
-        'col_template' => 'Template'
-    );
-    $columns = array_merge( $columns, $custom_columns );
+/**
+ * Admin Pages Table — Template column.
+ */
+
+add_filter('manage_pages_columns', function($columns) {
+    $columns['col_template'] = 'Template';
     return $columns;
-}
-function table_template_column( $column, $post_id ) {
-    if ( $column == 'col_template' ) {
-        echo basename( get_page_template() );
+}, 10, 1);
+
+add_action('manage_pages_custom_column', function($column, $post_id) {
+    if ($column === 'col_template') {
+        echo esc_html(basename(get_page_template()));
     }
-}
+}, 10, 2);

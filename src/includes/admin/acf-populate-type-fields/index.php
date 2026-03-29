@@ -2,60 +2,44 @@
 
 add_action('wp_ajax_get_post_type_taxonomies', 'get_post_type_taxonomies');
 add_action('wp_ajax_nopriv_get_post_type_taxonomies', 'get_post_type_taxonomies');
-function get_post_type_taxonomies(){
-    $response = array(
-        "error" => false,
-        "message" => "",
-        "html" => "",
-        "data" => ""
-    );
-    $count = 0;
-    $options = "";
-    $ids = array();
-    $selected = $_POST["selected"];
-    //switch ($_POST["name"]) {
 
-        //case 'menu_item_post_type':
-            if( empty($_POST["value"])){
-                $taxonomies = get_taxonomies(array(), 'objects' );
-            }else{
-                $taxonomies = get_object_taxonomies( array( 'post_type' => $_POST["value"] ), 'objects' );
-            }
-            if($taxonomies){
-                $taxonomies = array_filter($taxonomies, function($taxonomy) {
-                    return $taxonomy->public;
-                });
-                $options .= "<option value='' ".(empty($selected)?"sekected":"").">".($taxonomies?"Don't add Taxonomies":"Not found any taxonomy")."</option>"; 
-                foreach( $taxonomies as $taxonomy ){
-                    $ids[] = $taxonomy;
-                    $options .= "<option value='".$taxonomy->name."' ".($selected && $selected == $taxonomy->name?"selected":"").">".$taxonomy->label."</option>";        
-                }                
-            }  
-        //break;
+function get_post_type_taxonomies() {
+    $response = ['error' => false, 'message' => '', 'html' => '', 'data' => ''];
 
-    //}
-    $response["html"] = $options;
-    $values = array();
-    $values["selected"] = $selected;
-    $values["ids"] = $ids;
-    $values["count"] = $count;
-    $response["data"] = $values;
+    $selected   = sanitize_text_field($_POST['selected'] ?? '');
+    $post_type  = sanitize_text_field($_POST['value'] ?? '');
+
+    $taxonomies = empty($post_type)
+        ? get_taxonomies([], 'objects')
+        : get_object_taxonomies(['post_type' => $post_type], 'objects');
+
+    $taxonomies = array_filter($taxonomies ?? [], fn($t) => $t->public);
+
+    $options = '<option value=""' . (empty($selected) ? ' selected' : '') . '>'
+        . ($taxonomies ? "Don't add Taxonomies" : 'Not found any taxonomy')
+        . '</option>';
+
+    $ids = [];
+    foreach ($taxonomies as $taxonomy) {
+        $ids[]    = $taxonomy;
+        $sel      = ($selected === $taxonomy->name) ? ' selected' : '';
+        $options .= '<option value="' . esc_attr($taxonomy->name) . '"' . $sel . '>' . esc_html($taxonomy->label) . '</option>';
+    }
+
+    $response['html'] = $options;
+    $response['data']  = ['selected' => $selected, 'ids' => $ids, 'count' => 0];
     echo json_encode($response);
-    die;
+    wp_die();
 }
 
 function post_type_ui_render_field($field) {
-    $js_code = 'if (typeof acf !== "undefined" && typeof acf.add_action !== "undefined") {';
-        $js_code .= 'acf.addAction("new_field/key='.$field["key"].'", function(e){';
-            $js_code .= 'if(e.$el.closest(".acf-clone").length == 0){';
-                 $js_code .= 'debugJS(e);';
-                 $js_code .= 'e.$el.attr("data-val", "%s");';
-            $js_code .= '}';
-        $js_code .= '});';
-    $js_code .= '}';
-    if(!empty($field["value"])){
-        printf('<script>' . $js_code . '</script>', esc_js($field["value"]));        
-    }
+    if (empty($field['value'])) return;
 
+    $js = 'if(typeof acf!=="undefined"&&typeof acf.add_action!=="undefined"){'
+        . 'acf.addAction("new_field/key=' . esc_js($field['key']) . '",function(e){'
+        . 'if(e.$el.closest(".acf-clone").length==0){e.$el.attr("data-val","%s")}'
+        . '});}';
+
+    printf('<script>' . $js . '</script>', esc_js($field['value']));
 }
 add_action('acf/render_field/name=menu_item_taxonomy', 'post_type_ui_render_field');

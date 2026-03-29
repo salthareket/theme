@@ -1,223 +1,271 @@
 <?php
 
-function trans( $text="", $theme="" ) {
-	if($theme == ""){
-		if(defined("TEXT_DOMAIN")){
-			$theme = TEXT_DOMAIN;
-		}
-	}
-	return __($text, $theme);
-}
-function trans_n_noop( $singular="", $plural="", $theme="" ) {
-	if($theme==""){
-		if(defined("TEXT_DOMAIN")){
-			$theme = TEXT_DOMAIN;
-		}
-	}
-	return _n_noop($singular, $plural, $theme);
-}
-function trans_plural($singular="", $plural="", $null="", $count=1, $theme=""){
-	if($theme==""){
-		global $text_domain;
-	}else{
-		$text_domain = $theme;
-	}
-	if($count == 0 && !empty($null)){
-        return $null;
-	}else{
-		$pluralized = _n( $singular, $plural, $count, $text_domain );
-	    return str_replace('{}', $count, $pluralized);
-	}
+/**
+ * String Helper Functions
+ *
+ * Çeviri, Türkçe karakter desteği, truncate, maskeleme, HTML/XML temizleme,
+ * case dönüşüm ve format yardımcıları.
+ */
+
+// ─── Çeviri (i18n) ──────────────────────────────────────────────
+
+/**
+ * WordPress __() wrapper'ı. TEXT_DOMAIN tanımlıysa otomatik kullanır.
+ */
+function trans($text = '', $theme = '') {
+    if ($theme === '' && defined('TEXT_DOMAIN')) {
+        $theme = TEXT_DOMAIN;
+    }
+    return __($text, $theme);
 }
 
-function trans_static($text){
-	$text =  preg_replace_callback(
+function trans_n_noop($singular = '', $plural = '', $theme = '') {
+    if ($theme === '' && defined('TEXT_DOMAIN')) {
+        $theme = TEXT_DOMAIN;
+    }
+    return _n_noop($singular, $plural, $theme);
+}
+
+/**
+ * Çoğul çeviri. $count 0 ise $null döner. {} placeholder'ı sayıyla replace edilir.
+ */
+function trans_plural($singular = '', $plural = '', $null = '', $count = 1, $theme = '') {
+    $domain = $theme ?: (defined('TEXT_DOMAIN') ? TEXT_DOMAIN : 'default');
+
+    if ($count == 0 && !empty($null)) return $null;
+
+    $pluralized = _n($singular, $plural, $count, $domain);
+    return str_replace('{}', $count, $pluralized);
+}
+
+/**
+ * sprintf ile çeviri. Array'deki değerler sırayla yerleştirilir.
+ */
+function trans_arr($text, $arr) {
+    if (empty($arr)) return $text;
+    return call_user_func_array('sprintf', array_merge([trans($text)], $arr));
+}
+
+function printf_array($text, $arr) {
+    return call_user_func_array('sprintf', array_merge((array) $text, $arr));
+}
+
+/**
+ * Belirli bir locale ile çeviri yapar, sonra eski locale'e döner.
+ */
+function trans_lang($text, $domain = 'default', $the_locale = 'en_US') {
+    global $locale;
+    $old    = $locale;
+    $locale = $the_locale;
+    $result = __($text, $domain);
+    $locale = $old;
+    return $result;
+}
+
+/**
+ * Statik HTML içindeki {{translate('...')}} ve {{function('...')}} ifadelerini çözümler.
+ */
+function trans_static($text) {
+    $text = preg_replace_callback(
         "/\{\{translate\('([^']+)'\)\}\}/",
-        function($matches) {
-            return trans($matches[1]);
-        },
+        fn($m) => trans($m[1]),
         $text
     );
     return trans_functions($text);
 }
 
+/**
+ * {{function('funcName')}} ifadelerini çalıştırır.
+ * Güvenlik: Sadece mevcut fonksiyonlar çağrılır.
+ */
 function trans_functions($text) {
     return preg_replace_callback(
         "/\{\{function\('([^']+)'\)\}\}/",
-        function($matches) {
-            $funcName = $matches[1];
-            if (function_exists($funcName)) {
-                return $funcName();
-            } else {
-                return '';
-            }
-        },
+        fn($m) => function_exists($m[1]) ? $m[1]() : '',
         $text
     );
 }
 
+// ─── Türkçe Karakter Desteği ────────────────────────────────────
 
-function printf_array($text, $arr){
-    return call_user_func_array('sprintf', array_merge((array)$text, $arr));
-} 
-function trans_arr($text, $arr){
-	if(count($arr)>0){
-		return printf_array(trans($text), $arr); 
-	}else{
-		return $text;
-	}
-}
-function trans_lang( $text, $domain = 'default', $the_locale = 'en_US' ){
-    global $locale;
-    $old_locale = $locale;
-    $locale = $the_locale;
-    $translated = __( $text, $domain );
-    $locale = $old_locale;
-    return $translated;
+/**
+ * Türkçe uyumlu uppercase. i→İ dönüşümünü doğru yapar.
+ */
+function uppertr($text) {
+    if (_is_turkish_locale()) {
+        $text = str_replace('i', 'İ', $text);
+    }
+    return mb_convert_case($text, MB_CASE_UPPER, 'UTF-8');
 }
 
-function uppertr($text){
-	if(function_exists('qtranxf_getLanguage')){
-	   if(qtranxf_getLanguage()=="tr"){
-	     $text =  str_replace('i','İ',$text); 
-	   }
-	}
-	if(function_exists('icl_get_languages')){
-	   if(ICL_LANGUAGE_CODE=="tr"){
-	     $text =  str_replace('i','İ',$text); 
-	   }
-	}
-	return mb_convert_case($text, MB_CASE_UPPER, "UTF-8");	
+/**
+ * Türkçe uyumlu lowercase. I→ı dönüşümünü doğru yapar.
+ */
+function lowertr($text) {
+    if (_is_turkish_locale()) {
+        $text = str_replace('I', 'ı', $text);
+    }
+    return mb_convert_case($text, MB_CASE_LOWER, 'UTF-8');
 }
-function lowertr($text){
-	if(function_exists('qtranxf_getLanguage')){
-	   if(qtranxf_getLanguage()=="tr"){
-	     $text = str_replace('I','ı',$text);
-	   }
-	}
-	if(function_exists('icl_get_languages')){
-	   if(ICL_LANGUAGE_CODE=="tr"){
-	     $text = str_replace('I','ı',$text);
-	   }
-	}
-    return mb_convert_case($text, MB_CASE_LOWER, "UTF-8");
-}
+
+/**
+ * Türkçe uyumlu ucwords (her kelimenin ilk harfi büyük).
+ */
 function ucwordstr($text) {
-	if(function_exists('qtranxf_getLanguage')){
-	   if(qtranxf_getLanguage()=="tr"){
-	     $text = str_replace(array(' I',' ı', ' İ', ' i'),array(' I',' I',' İ',' İ'),' '.$text);
-	   }
-	}
-    return ltrim(mb_convert_case($text, MB_CASE_TITLE, "UTF-8"));
-}  
+    if (_is_turkish_locale()) {
+        $text = str_replace([' I', ' ı', ' İ', ' i'], [' I', ' I', ' İ', ' İ'], ' ' . $text);
+    }
+    return ltrim(mb_convert_case($text, MB_CASE_TITLE, 'UTF-8'));
+}
+
+/**
+ * Türkçe uyumlu ucfirst (sadece ilk harf büyük).
+ */
 function ucfirsttr($text) {
-    $metin = in_array(crc32($text[0]),array(1309403428, -797999993, 957143474)) ? array(uppertr(substr($text,0,2)),substr($text,2)) : array(uppertr($text[0]),substr($text,1));
-    return $text[0].$text[1];
-} 
-
-function ptobr($text){
-       $paragraphs = array("<p>","</p>","[p-filter]");
-       $noparagraphs = array("","<br>","");
-       $text = str_replace( $paragraphs, $noparagraphs, $text );
-       return preg_replace('/(<br>)+$/', '', $text);
+    if (empty($text)) return $text;
+    $first = mb_substr($text, 0, 1, 'UTF-8');
+    $rest  = mb_substr($text, 1, null, 'UTF-8');
+    return uppertr($first) . $rest;
 }
 
-function stripTagsByClass($array_of_id_or_class, $text){
-   $name = implode('|', $array_of_id_or_class);
-   $regex = '#<(\w+)\s[^>]*(class|id)\s*=\s*[\'"](' . $name .
-            ')[\'"][^>]*>.*</\\1>#isU';
-   return(preg_replace($regex, '', $text));
+/**
+ * Aktif dilin Türkçe olup olmadığını kontrol eder.
+ * @internal
+ */
+function _is_turkish_locale() {
+    if (function_exists('qtranxf_getLanguage') && qtranxf_getLanguage() === 'tr') return true;
+    if (function_exists('icl_get_languages') && defined('ICL_LANGUAGE_CODE') && ICL_LANGUAGE_CODE === 'tr') return true;
+    if (function_exists('pll_current_language') && pll_current_language() === 'tr') return true;
+    return false;
 }
 
+// ─── Truncate & Maskeleme ───────────────────────────────────────
+
+/**
+ * Metni kelime sınırına göre kırpar, sonuna ... ekler.
+ */
 function truncate($text, $chars = 25) {
-    if (strlen($text) <= $chars) {
-        return $text;
-    }
-    $text = $text." ";
-    $text = substr($text,0,$chars);
-    $text = substr($text,0,strrpos($text,' '));
-    $text = $text."...";
-    return $text;
+    if (mb_strlen($text) <= $chars) return $text;
+
+    $text = mb_substr($text, 0, $chars);
+    $last = mb_strrpos($text, ' ');
+
+    return ($last !== false ? mb_substr($text, 0, $last) : $text) . '...';
 }
 
+/**
+ * Metni ortadan kırpar: "başlangıç...son"
+ */
 function truncate_middle($text, $chars = 25) {
-	if (strlen($text) <= $chars) {
-        return $text;
-    }
-	$separator = '...';
-	$separatorlength = strlen($separator) ;
-	$maxlength = $chars - $separatorlength;
-	$start = $maxlength / 2 ;
-	$trunc =  strlen($text) - $maxlength;
-	return substr_replace($text, $separator, $start, $trunc);
+    if (mb_strlen($text) <= $chars) return $text;
+
+    $sep    = '...';
+    $max    = $chars - mb_strlen($sep);
+    $start  = (int) ceil($max / 2);
+    $end    = (int) floor($max / 2);
+
+    return mb_substr($text, 0, $start) . $sep . mb_substr($text, -$end);
 }
 
-function removeUrls($text=""){
-	$text = preg_replace('/\b((https?|ftp|file):\/\/|www\.)[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$]/i', ' ', $text);
-    return $text;
+/**
+ * Metnin son N karakteri hariç hepsini * ile maskeler.
+ */
+function masked_text($text = '', $visible_digits = 4) {
+    $len = mb_strlen($text);
+    if ($len <= $visible_digits) return $text;
+
+    return str_repeat('*', $len - $visible_digits) . mb_substr($text, -$visible_digits);
 }
 
-function remove_html_comments($content = '') {
-	return preg_replace('/<!--(.|\s)*?-->/', '', $content);
-}
-function remove_xml_declaration($content = '') {
-    // XML tanımlamasını kaldır
-    return preg_replace('/^\s*<\?xml[^>]*\?>\s*/', '', $content);
+// ─── HTML / XML Temizleme ───────────────────────────────────────
+
+/**
+ * <p> tag'lerini <br>'ye çevirir, sondaki <br>'leri temizler.
+ */
+function ptobr($text) {
+    $text = str_replace(['<p>', '</p>', '[p-filter]'], ['', '<br>', ''], $text);
+    return preg_replace('/(<br>)+$/', '', $text);
 }
 
-function masked_text($text="", $visible_digits = 4) {
-    $masked_number = '';
-    $text_length = strlen($text);
-    if ($text_length <= $visible_digits) {
-        return $text;
-    }
-    $masked_chars = $text_length - $visible_digits;
-    $masked_number = str_repeat('*', $masked_chars);
-    $visible_part = substr($text, -$visible_digits);
-    return $masked_number . $visible_part;
+/**
+ * Belirli class/id'ye sahip HTML elementlerini siler.
+ */
+function stripTagsByClass($array_of_id_or_class, $text) {
+    $name  = implode('|', array_map('preg_quote', $array_of_id_or_class));
+    $regex = '#<(\w+)\s[^>]*(class|id)\s*=\s*[\'"](' . $name . ')[\'"][^>]*>.*</\\1>#isU';
+    return preg_replace($regex, '', $text);
 }
 
-function extract_urls($string) {
-    $urlPattern = '/\b((?:https?:\/\/|www\.)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/)))/i';
-    preg_match_all($urlPattern, $string, $matches);
-    return $matches[0];
-}
-
+/**
+ * Belirtilen tag'lerin içeriğini (tag dahil) siler. strip_tags'in tersi.
+ */
 function strip_tags_opposite($content, $tags) {
-    $tagsArray = explode('><', trim($tags, '<>'));
-    foreach ($tagsArray as $tag) {
-        $content = preg_replace('/<'.$tag.'[^>]*>.*?< *\/'.$tag.'>/is', '', $content);
+    foreach (explode('><', trim($tags, '<>')) as $tag) {
+        $tag     = preg_quote($tag, '/');
+        $content = preg_replace('/<' . $tag . '[^>]*>.*?<\s*\/' . $tag . '>/is', '', $content);
     }
     return $content;
 }
 
-
-function json_attr($json){
-	$json = wp_json_encode($json);
-	return esc_attr($json);
+function remove_html_comments($content = '') {
+    return preg_replace('/<!--(.|\s)*?-->/', '', $content);
 }
 
-
-function camel2Dashes($str, $separator = "-"){
-    if (empty($str)) {
-        return $str;
-    }
-    $str = lcfirst($str);
-    $str = preg_replace("/[A-Z]/", $separator . "$0", $str);
-    return strtolower($str);
+function remove_xml_declaration($content = '') {
+    return preg_replace('/^\s*<\?xml[^>]*\?>\s*/', '', $content);
 }
+
+// ─── URL Temizleme ──────────────────────────────────────────────
+
+/**
+ * Metindeki tüm URL'leri boşlukla değiştirir.
+ */
+function removeUrls($text = '') {
+    return preg_replace('/\b((https?|ftp|file):\/\/|www\.)[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$]/i', ' ', $text);
+}
+
+/**
+ * Metindeki tüm URL'leri bulup array olarak döndürür.
+ */
+function extract_urls($string) {
+    preg_match_all('/\b((?:https?:\/\/|www\.)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/)))/i', $string, $m);
+    return $m[0] ?? [];
+}
+
+// ─── Case Dönüşüm ──────────────────────────────────────────────
+
+/**
+ * camelCase → kebab-case
+ */
+function camel2Dashes($str, $separator = '-') {
+    if (empty($str)) return $str;
+    return strtolower(preg_replace('/[A-Z]/', $separator . '$0', lcfirst($str)));
+}
+
+/**
+ * kebab-case veya snake_case → camelCase
+ */
 function dashes2Camel($string, $capitalizeFirstCharacter = false) {
-	if (empty($string)) {
-        return $string;
-    }
-    $seperator = instr("-", $string)?"-":"_";
-    $str = str_replace($seperator, '', ucwords($string, $seperator));
-    if (!$capitalizeFirstCharacter) {
-        $str = lcfirst($str);
-    }
-    return $str;
+    if (empty($string)) return $string;
+
+    $sep = str_contains($string, '-') ? '-' : '_';
+    $str = str_replace($sep, '', ucwords($string, $sep));
+
+    return $capitalizeFirstCharacter ? $str : lcfirst($str);
 }
 
+// ─── Doğrulama & Format ─────────────────────────────────────────
+
+/**
+ * Geçerli hex renk kodu mu kontrol eder (#fff veya #ffffff).
+ */
 function is_hex_color($val): bool {
-    return is_string($val) && preg_match('/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/', $val);
+    return is_string($val) && (bool) preg_match('/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/', $val);
+}
+
+/**
+ * JSON verisini HTML attribute'a güvenli şekilde encode eder.
+ */
+function json_attr($json) {
+    return esc_attr(wp_json_encode($json));
 }

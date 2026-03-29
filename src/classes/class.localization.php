@@ -1,5 +1,42 @@
 <?php 
 
+/**
+ * Localization — Country/State/City/District veritabani + IP geolocation.
+ *
+ * KULLANIM:
+ *   $loc = new Localization();
+ *
+ *   // Ulkeler
+ *   $countries = $loc->countries(['region' => 'Europe']);
+ *   $country   = $loc->get_country_name('iso2', 'TR');  // "Turkey"
+ *
+ *   // Sehirler / Ilceler
+ *   $states    = $loc->states(['country_code' => 'TR']);
+ *   $city      = $loc->get_city_name('id', 34);
+ *   $districts = $loc->get_districts_list('34');
+ *
+ *   // WooCommerce uyumlu sehirler
+ *   $loc->woocommerce_support(true);
+ *   $woo_data = $loc->get_state_woo_data(34);
+ *
+ *   // IP Geolocation
+ *   $info = $loc->ip_info(null, 'location');
+ *   $country_code = $loc->ip2Country();
+ *
+ *   // Timezone
+ *   $tz = $loc->get_timezone(41.0, 29.0, 'TR', 'Istanbul');
+ *
+ *   // Global wrapper fonksiyonlar (backward compat):
+ *   get_country_name('iso2', 'TR')
+ *   get_city_name('id', 34)
+ *   get_countries('Europe')
+ *   get_cities('TR')
+ *   get_states('TR')
+ *   get_districts('34')
+ *
+ * @package SaltHareket
+ */
+
 Class Localization{
 
 	    private $country;
@@ -52,9 +89,8 @@ Class Localization{
 
 	    Private function remove_table($table) {
 		    global $wpdb;
-		    $table_name = $table;
-		    $sql = "DROP TABLE IF EXISTS $table_name;";
-		    $wpdb->query($sql);
+		    $table_name = $wpdb->prefix . $table;
+		    $wpdb->query("DROP TABLE IF EXISTS `{$table_name}`");
 		}
 
 		public function where($vars){
@@ -74,9 +110,6 @@ Class Localization{
 			        $index++;
 			    }
 			    if (trim($where) === 'where') $where = "";
-			}
-			return $where;
-		}
 			}
 			return $where;
 		}
@@ -185,8 +218,8 @@ Class Localization{
         public function cities($vars=array()){
 			global $wpdb;
 			$where = $this->where($vars);
-			$query = "SELECT id, name, state_id, state_code, latitude, longitude FROM cities $where order by name";
-			$result =  $wpdb->get_results($query);
+			$query = "SELECT id, name, state_id, state_code, latitude, longitude FROM {$wpdb->prefix}cities $where order by name";
+			$result = $wpdb->get_results($query);
 			return json_decode(json_encode($result), true);
         }
 
@@ -195,15 +228,16 @@ Class Localization{
 
         public function get_state_woo_data($id=0){
         	global $wpdb; 
-            $query = "SELECT name, woo FROM states WHERE id = '$id'";
-            return $wpdb->get_results($query, ARRAY_A);
+            return $wpdb->get_results($wpdb->prepare(
+                "SELECT name, woo FROM {$wpdb->prefix}states WHERE id = %d", $id
+            ), ARRAY_A);
         }
 
         public function has_state($country_code=""){
         	global $wpdb;
-        	$query = "SELECT count(*) FROM states where country_code='$country_code'";
+        	$query = $wpdb->prepare("SELECT count(*) FROM {$wpdb->prefix}states WHERE country_code = %s", $country_code);
         	if($this->woocommerce_support){
-				$query .= " and woo IS NOT NULL ";
+				$query .= " AND woo IS NOT NULL";
 			}
 			return $wpdb->get_var($query);
         }
@@ -459,7 +493,7 @@ Class Localization{
 
 		function get_gmt($timezone=""){
 			if(empty($timezone)){
-				$thimezone = $GLOBAL["user"]->get_timezone();
+				$timezone = $GLOBALS["user"]->get_timezone();
 			}
 			$origin_tz = $timezone;
 			$remote_tz = "UTC";
@@ -536,7 +570,10 @@ Class Localization{
 		    		$country = "";
 		    	}else{
 			    	global $wpdb;
-	                $country = $wpdb->get_row( "select countries.name, countries.iso2 from ip2country, countries where ".$ipLong." >= ip2country.ipfrom and ".$ipLong." <= ip2country.ipto and ip2country.country = countries.iso2");		    		
+	                $country = $wpdb->get_row($wpdb->prepare(
+	                    "SELECT c.name, c.iso2 FROM {$wpdb->prefix}ip2country i, {$wpdb->prefix}countries c WHERE %d >= i.ipfrom AND %d <= i.ipto AND i.country = c.iso2",
+	                    $ipLong, $ipLong
+	                ));		    		
 		    	}
                 $output = $country;
 		    }
@@ -560,7 +597,7 @@ Class Localization{
 
 		    if (filter_var($ip, FILTER_VALIDATE_IP) && in_array($purpose, $support)) {
 		    	if(!$this->ipdat){
-					$ipdat = @json_decode(file_get_contents("http://www.geoplugin.net/json.gp?ip=" . $ip));
+					$ipdat = @json_decode(file_get_contents("https://www.geoplugin.net/json.gp?ip=" . $ip));
 					//$ipdat = @json_decode(file_get_contents("https://ipinfo.io/".$ip."?token=b157881ab7b6eb"));
 					$this->ipdat = $ipdat;	    		
 		    	}else{
@@ -637,228 +674,152 @@ Class Localization{
 		    }
 		    return ($negative?"-":"").str_pad($num, 2, 0, STR_PAD_LEFT);
 		}*/
+
+		// ─── HELPER METHODS (moved from standalone functions) ─────
+
+		public function get_country_name($key = "", $value = "") {
+		    if (empty($key)) {
+		        $key = is_numeric($value) ? "id" : "iso2";
+		    }
+		    if (ENABLE_ECOMMERCE) {
+		        return WC()->countries->countries[$value] ?? $value;
+		    }
+		    $result = $this->countries([$key => $value]);
+		    return $result ? $result[0]["name"] : $value;
+		}
+
+		public function get_city_name($by = "id", $id = 0) {
+		    $allowed = ['id', 'iso2', 'state_code', 'country_code'];
+		    if (!in_array($by, $allowed, true)) $by = 'id';
+		    global $wpdb;
+
+		    if (ENABLE_ECOMMERCE) {
+		        $result = $wpdb->get_row($wpdb->prepare(
+		            "SELECT country_code, iso2 FROM {$wpdb->prefix}states WHERE {$by} = %s ORDER BY name ASC", $id
+		        ), ARRAY_A);
+		        if ($result) {
+		            $states = WC()->countries->get_states($result["country_code"]);
+		            return $states[$result["iso2"]] ?? '';
+		        }
+		        return '';
+		    }
+		    return $wpdb->get_var($wpdb->prepare(
+		        "SELECT name FROM {$wpdb->prefix}states WHERE {$by} = %s ORDER BY name ASC", $id
+		    )) ?: '';
+		}
+
+		public function get_district_name($by = "id", $id = 0) {
+		    $allowed = ['id', 'state_id', 'state_code'];
+		    if (!in_array($by, $allowed, true)) $by = 'id';
+		    global $wpdb;
+		    return $wpdb->get_var($wpdb->prepare(
+		        "SELECT name FROM {$wpdb->prefix}cities WHERE {$by} = %s ORDER BY name ASC", $id
+		    )) ?: '';
+		}
+
+		public function get_countries_list($continent_value = "", $selected = "", $all = false) {
+		    if (!ENABLE_ECOMMERCE) {
+		        return $this->hierarchy(false, $selected, $all);
+		    }
+		    $data = [];
+		    $WC_Countries = new \WC_Countries();
+		    $country_list = $WC_Countries->__get("countries");
+		    $continent_list = $WC_Countries->get_continents();
+		    if (!empty($continent_value)) {
+		        if ($all) {
+		            $data[] = ["name" => "All " . $continent_list[$continent_value]["name"], "slug" => "", "selected" => true];
+		        }
+		        foreach ($continent_list[$continent_value]["countries"] as $country) {
+		            $data[] = ["name" => $country_list[$country], "slug" => $country, "selected" => ($country == $selected)];
+		        }
+		    } else {
+		        foreach ($continent_list as $continent) {
+		            $countries = [];
+		            foreach ($continent["countries"] as $country) {
+		                $countries[] = ["name" => $country_list[$country], "slug" => $country];
+		            }
+		            $data[] = ["name" => $continent["name"], "children" => $countries];
+		        }
+		    }
+		    return $data;
+		}
+
+		public function get_cities_list($country_value = "", $selected = "") {
+		    global $wpdb;
+		    $result = $wpdb->get_results($wpdb->prepare(
+		        "SELECT id as slug, name FROM {$wpdb->prefix}states WHERE country_code = %s ORDER BY name ASC",
+		        $country_value
+		    ));
+		    if ($result) {
+		        if (!empty($selected)) {
+		            foreach ($result as $key => $city) {
+		                if ($city->slug == $selected) $result[$key]->selected = true;
+		            }
+		        }
+		        return $result;
+		    }
+		    return [["name" => $this->get_country_name("code", $country_value), "slug" => $country_value]];
+		}
+
+		public function get_states_list($country = "") {
+		    $states = [];
+		    if (!ENABLE_ECOMMERCE) {
+		        $result = $this->states(["country_code" => $country]);
+		        if ($result) {
+		            foreach ($result as $item) {
+		                $states[$item["country_code"] . $item["iso2"]] = $item["name"];
+		            }
+		        }
+		    } else {
+		        $states = WC()->countries->get_states($country) ?: [];
+		    }
+		    return $states;
+		}
+
+		public function get_districts_list($state = "") {
+		    $districts = [];
+		    $state_code = substr($state, -2);
+		    $country_code = substr($state, 0, -2);
+		    $result = $this->cities(["country_code" => $country_code, "state_code" => $state_code]);
+		    if ($result) {
+		        foreach ($result as $item) {
+		            $districts[$item["id"]] = $item["name"];
+		        }
+		    }
+		    return $districts;
+		}
+
+		public function get_languages() {
+		    return $this->get_country_iso_list();
+		}
 }
 
 
-// get location names
-function get_country_name($key="", $value=""){
-    if(empty($key)){
-        $key = is_numeric($var)?"id":"iso2";
-    }
-    if(ENABLE_ECOMMERCE){
-        /*$WC_Countries = new WC_Countries();
-        $country_list = $WC_Countries->__get( "countries" );
-        if(isset($country_list[$iso2])){
-           return $country_list[$iso2];
-        }else{
-           return $iso2;       
-        }*/
-        return WC()->countries->countries[$value];
-    }else{
-        $localization = new Localization();
-        $args = array(
-            $key => $value
-        );
-        $result = $localization->countries($args);
-        if($result){
-            return $result[0]["name"];
-        }else{
-            return $value;
-        }
-    }
+// ─── GLOBAL WRAPPER FUNCTIONS (backward compatibility) ───
+
+function get_country_name($key = "", $value = "") {
+    return (new Localization())->get_country_name($key, $value);
 }
-function get_city_name($by="id", $id = 0){
-    if(ENABLE_ECOMMERCE){
-        global $wpdb; 
-        $query = "SELECT country_code, iso2  FROM states 
-                         WHERE $by = %s 
-                         order by name ASC";
-        $result = $wpdb->prepare($query, [$id]);
-        $data = $wpdb->get_results($result);
-        return WC()->countries->get_states( $data["country_code"] )[$data["iso2"]];
-    }else{
-        global $wpdb; 
-        $query = "SELECT name FROM states 
-                         WHERE $by = %s 
-                         order by name ASC";
-        $result = $wpdb->prepare($query, [$id]);
-        $result = $wpdb->get_var($result);
-        if($result){
-            return $result;
-        }        
-    }
+function get_city_name($by = "id", $id = 0) {
+    return (new Localization())->get_city_name($by, $id);
 }
-function get_district_name($by="id", $id = 0){
-    global $wpdb; 
-    $query = "SELECT name FROM cities 
-                     WHERE $by = %s 
-                     order by name ASC";
-    $result = $wpdb->prepare($query, [$id]);
-    $result = $wpdb->get_var($result);
-    if($result){
-        return $result;
-    }
+function get_district_name($by = "id", $id = 0) {
+    return (new Localization())->get_district_name($by, $id);
 }
-
-
-
-
-function get_countries($continent_value="", $selected = "", $all = false){
-    $data = array();
-    if(!ENABLE_ECOMMERCE){
-        $loc = new Localization();
-        $loc->woocommerce_support = true;
-        $data = $loc->hierarchy(false, $selected , $all);
-    }else{
-        $data = array();
-        $WC_Countries = new WC_Countries();
-        $country_list = $WC_Countries->__get( "countries" );
-        $continent_list = $WC_Countries->get_continents();
-        if(!empty($continent_value)){
-            if($all){
-               $data[] = array(
-                    "name" => "All ".$continent_list[$continent_value]["name"],
-                    "slug" => "",
-                    "selected" => true
-                );
-            }
-            foreach ($continent_list[$continent_value]["countries"] as $country) {
-                $data[] = array(
-                    "name" => $country_list[$country],
-                    "slug" => $country,
-                    "selected" => ($country == $selected? true : false)
-                );
-            }
-        }else{
-            foreach ($continent_list as $key => $continent) {
-                $countries = array();
-                foreach ($continent["countries"] as $country) {
-                    $countries[] = array(
-                        "name" => $country_list[$country],
-                        "slug" => $country
-                    );
-                }
-                $continent = array(
-                    "name" => $continent["name"],
-                    "children" => $countries
-                );
-                $data[] = $continent;
-            }
-        }
-        return $data;
-    }         
+function get_countries($continent_value = "", $selected = "", $all = false) {
+    $loc = new Localization();
+    $loc->woocommerce_support = true;
+    return $loc->get_countries_list($continent_value, $selected, $all);
 }
-function get_cities($country_value="", $selected = ""){
-    global $wpdb; 
-    $query = "SELECT id as slug, name FROM states 
-                     WHERE country_code = %s 
-                     order by name ASC";
-    $result = $wpdb->prepare($query, [$country_value]);
-    $result = $wpdb->get_results($result);
-    if($result){
-        if(!empty($selected)){
-          $result_selected = array();
-          foreach($result as $key => $city){
-             if($city->slug == $selected){
-                $result[$key]->selected = true;
-             }
-          }
-       }
-       return $result;      
-    }else{
-        return array(array(
-            "name" => get_country_name("code", $country_value),
-            "slug" => $country_value
-        ));
-    }
+function get_cities($country_value = "", $selected = "") {
+    return (new Localization())->get_cities_list($country_value, $selected);
 }
-function get_states($country=""){
-    $states = array();
-    if(!ENABLE_ECOMMERCE){
-        $localization = new Localization();
-        $args = array(
-            "country_code" => $country
-        );
-        $result = $localization->states($args);
-        if($result){
-            foreach($result as $item){
-                $key = $item["country_code"].$item["iso2"];
-                $states[$key] = $item["name"];
-            }
-        }
-    }else{
-        $states = WC()->countries->get_states( $country );
-    }
-    return $states;
+function get_states($country = "") {
+    return (new Localization())->get_states_list($country);
 }
-function get_districts($state=""){
-    $states = array();
-    //if(!ENABLE_ECOMMERCE){
-        $localization = new Localization();
-        $state_code = substr($state, -2); // Son iki karakteri al
-        $country_code = substr($state, 0, -2); 
-        $args = array(
-            "country_code" => $country_code,
-            "state_code" => $state_code
-        );
-        
-        $result = $localization->cities($args);
-        if($result){
-            foreach($result as $item){
-                $key = $item["id"];
-                $states[$key] = $item["name"];
-            }
-        }
-    /*}else{
-        $states = WC()->countries->get_cities( $state );
-    }*/
-    return $states;
+function get_districts($state = "") {
+    return (new Localization())->get_districts_list($state);
 }
-
-/*
-function get_wp_states_city_match($country=0, $city=0){
-    $code = "";
-    global $wpdb; 
-    $query = "SELECT name, iso2 FROM states WHERE id = '$city'";
-    $city_data = $wpdb->get_results($query, ARRAY_A);
-    
-    if($city_data){
-        $city = strtolower($city_data[0]["name"]);
-        $city = str_replace("district", "", $city);
-        $city = str_replace("county", "", $city);
-        $city = sanitize_title(trim($city));
-        $iso2 = $city_data[0]["iso2"];
-        $states = get_states($country);
-        if($states){
-            $found = false;
-            $code = $iso2;
-            foreach($states as $key => $state){
-                $state = strtolower($state);
-                if($city == sanitize_title($state)){
-                    $found = true;
-                    if($key == $country.$iso2){
-                        $code = $country.$iso2;
-                    }
-                    if($key == $country."-".$iso2){
-                        $code = $country."-".$iso2;
-                    }
-                    if($key == $iso2){
-                        $code = $iso2;
-                    }
-                    break;
-                }
-            }
-        }        
-    }
-    return $code;
-}
-*/
-
-
-
-
-function get_languages_list(){
-    $localization = new Localization();
-    $country_list = $localization->get_country_iso_list();
-    return $country_list;
+function get_languages_list() {
+    return (new Localization())->get_languages();
 }

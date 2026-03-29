@@ -6,6 +6,15 @@ use Irmmr\RTLCss\Parser as RTLParser;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
+/**
+ * SaltMinifier — CSS/JS minification, RTL conversion, file combining.
+ *
+ * KULLANIM:
+ *   $minifier = new SaltMinifier();
+ *   $minifier->compile();  // tum CSS/JS dosyalarini minify + combine eder
+ *
+ * @package SaltHareket
+ */
 class SaltMinifier{
     
     public $enable_production = false;
@@ -65,7 +74,7 @@ class SaltMinifier{
 
 
         if (!file_exists($this->rules["config"]["locale"])){
-            mkdir($this->rules["config"]["locale"], 0777, true);
+            wp_mkdir_p($this->rules["config"]["locale"]);
         }
 
         if (is_dir($this->output["plugins"])) {
@@ -76,19 +85,16 @@ class SaltMinifier{
                 }
             }
         } else {
-            mkdir($this->output["plugins"], 0777, true); 
+            wp_mkdir_p($this->output["plugins"]);
         }
 
         $this->functions = array_slice(scandir($this->prod_folder . 'functions/'), 2);
-        if(!ENABLE_ECOMMERCE){
-           if (isset($this->functions["wp-wc.js"])){
-               unset($this->functions["wp-wc.js"]);
-           }
-        }else{
-           if (!ENABLE_CART && isset($this->functions["wp-wc.js"])){
-               unset($function_files["wp-wc.js"]);
-           }
+        if(!defined('ENABLE_ECOMMERCE') || !ENABLE_ECOMMERCE){
+           $this->functions = array_filter($this->functions, fn($f) => $f !== 'wp-wc.js');
+        }elseif(defined('ENABLE_CART') && !ENABLE_CART){
+           $this->functions = array_filter($this->functions, fn($f) => $f !== 'wp-wc.js');
         }
+        $this->functions = array_values($this->functions);
         
         $this->pre_js_files = array_slice(scandir($this->prod_folder . 'pre/') , 2);
         $this->main_js_files = array_slice(scandir($this->prod_folder . 'main/') , 2);
@@ -114,7 +120,7 @@ class SaltMinifier{
     public function locale_css(){
         if ($this->rules["css"]["locale"]){
             foreach ($this->rules["config"]["languages"] as $language){
-                $minify = new Minify\JS(" ");
+                $minify = new Minify\CSS();
                 foreach ($this->rules["css"]["locale"] as $item){
                     if (isset($item[$language])){
                         $minify->add($item[$language]);
@@ -159,10 +165,6 @@ class SaltMinifier{
                 $parser = new Sabberworm\CSS\Parser($css);
                 $tree = $parser->parse();
 
-                /*$rtlcss = new PrestaShop\RtlCss\RtlCss($tree);
-                $rtlcss->flip();
-                $css = $tree->render();*/
-
                 $rtlcss = new RTLParser($tree);
                 $rtlcss->flip();
                 $css = $tree->render();
@@ -201,7 +203,6 @@ class SaltMinifier{
             $this->output["pre-combined.min.js"]
         );
         $this->mergeJs([
-                //$this->output["functions.min.js"],
                 $this->output["plugins.min.js"],
                 $this->output["main.min.js"],
             ], 
@@ -267,36 +268,18 @@ class SaltMinifier{
                     file_put_contents($this->rules["config"]["locale"] . $language . '.js', "");
                 }
             }else{
-                file_put_contents($minify->minify($this->rules["config"]["locale"] . $this->rules["config"]["language"] . '.js') , "");
+                file_put_contents($this->rules["config"]["locale"] . $this->rules["config"]["language"] . '.js', "");
             }
         }
     }
     public function functions_js(){
-        $minify = false;
-        if (file_exists($this->output["functions.min.js"])){
-            if ($this->functions){
-                foreach ($this->functions as $key => $filename){
-                    $minify = true;
-                }
-            }
-        }else{
-            $minify = true;
-        }
+        $minify = !file_exists($this->output["functions.min.js"]) || !empty($this->functions);
         if ($this->functions && $minify){
             $this->minify_js($this->functions, $this->output["functions.min.js"], $this->prod_folder . 'functions/');
         }
     }
     public function pre_js(){
-        $minify = false;
-        if (file_exists($this->output["pre.min.js"])){
-            if ($this->pre_js_files){
-                foreach ($this->pre_js_files as $key => $filename){
-                    $minify = true;
-                }
-            }
-        }else{
-            $minify = true;
-        }
+        $minify = !file_exists($this->output["pre.min.js"]) || !empty($this->pre_js_files);
         if ($this->pre_js_files && $minify){
             $this->minify_js($this->pre_js_files, $this->output["pre.min.js"], $this->prod_folder . 'pre/');
         }
@@ -347,27 +330,19 @@ class SaltMinifier{
             foreach ($this->rules["js"]["plugins"] as $key => $item) {
                 
                 $content = "";
-                //$is_min = false;
                 foreach ($item["url"] as $url_key => $url) {
-                    //error_log($url);
                     $url = str_replace(STATIC_URL, STATIC_PATH, $url);
                     if (!file_exists($url)) {
                         continue;
                     }
-                    //error_log("added");
-                    if (strpos($url, '.min.js') !== false) {
-                    //    $is_min = true;
-                    }
-                    //$url = $this->removeComments($url);
                     $content .= file_get_contents($url);
                 }
-                $ext = "";//$is_min ? '.min' : '';
-                $file_path = $this->output["plugins"] . $key . $ext . '.js';
+                $file_path = $this->output["plugins"] . $key . '.js';
                 file_put_contents($file_path, $content);
 
-                $item_local = $this->save_as_local($key, $file_path); //
+                $item_local = $this->save_as_local($key, $file_path);
                 if(!$item["c"]){
-                    $plugin_min_files[] = $file_path;//$item_local;
+                    $plugin_min_files[] = $file_path;
                 }
 
                 $item_init = $this->output["plugins_init"] . $key . '.js';
@@ -376,7 +351,7 @@ class SaltMinifier{
                 }
                 $this->minify_js([$item_init], $this->output["plugins"] . $key . '-init.js');
                 if(!$item["c"]){
-                    $plugin_min_files[] = $this->output["plugins"] . $key . '-init.js';//$item_local;
+                    $plugin_min_files[] = $this->output["plugins"] . $key . '-init.js';
                     if($item["css"] && $item["css_only_local"]){
                         $this->minify_css($item["css"], $this->output["plugins"] . $key . '.css', $key);
                     }
@@ -403,10 +378,8 @@ class SaltMinifier{
                 $combined .= file_get_contents($file_path)."\n\r";
             }
         }
-        //$target_file = $this->output["main-combined.min.js"];
         file_put_contents($target_file, $combined);
         @chmod($target_file, 0644);
-       // return content_url(str_replace(WP_CONTENT_DIR, '', $target_file));
     }
 
 
@@ -477,64 +450,6 @@ class SaltMinifier{
         }
     }
 
-    /*public function compile_nested_css($css, $save = false) {
-        if (!is_string($css)) {
-            throw new \InvalidArgumentException("CSS parametresi string olmalı.");
-        }
-
-        $isFile = is_file($css);
-        $content = $isFile ? file_get_contents($css) : $css;
-        if ($isFile && $content === false) {
-            throw new \RuntimeException("CSS dosyası okunamadı: " . $css);
-        }
-        $path = $isFile ? $css : null;
-
-        // Nested CSS kontrolü
-        if (!preg_match('/\{[^}]*[&>]\s*[\w.#:]/m', $content)) {
-            return $content; // zaten normal CSS
-        }
-
-        // Temp dosya oluştur
-        $tmpIn  = tempnam(sys_get_temp_dir(), 'css_in_') . '.css';
-        $tmpOut = tempnam(sys_get_temp_dir(), 'css_out_') . '.css';
-        $tmpIn  = str_replace('\\', '/', $tmpIn);
-        $tmpOut = str_replace('\\', '/', $tmpOut);
-        file_put_contents($tmpIn, $content);
-
-        try {
-            // Symfony Process ayarları
-            $workingDir = get_stylesheet_directory();
-            $currentUser = getenv('USERNAME') ?: getenv('USER');
-            $nodeJsPath = 'C:\Program Files\nodejs';
-            $npmPath = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
-
-            $command = ['npx', 'postcss', $tmpIn, '--use', 'postcss-nested', '-o', $tmpOut];
-            $process = new Process($command, $workingDir);
-            $process->setEnv([
-                'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath,
-            ]);
-            $process->setTimeout(null);
-            $process->mustRun();
-
-            $compiled = file_get_contents($tmpOut);
-
-            // Kaydetme opsiyonu sadece dosya için geçerli
-            if ($save && $path) {
-                file_put_contents($path, $compiled);
-                return true;
-            }
-
-            return $compiled;
-
-        } catch (ProcessFailedException $e) {
-            throw new \RuntimeException("CSS compile hatası: " . $e->getMessage());
-        } finally {
-            // Temp dosya temizliği
-            @unlink($tmpIn);
-            @unlink($tmpOut);
-        }
-    }*/
-
     public function compile_nested_css($css, $save = false) {
         if (!is_string($css)) {
             throw new \InvalidArgumentException("CSS parametresi string olmalı.");
@@ -589,36 +504,11 @@ class SaltMinifier{
     }
 
     public function save_as_local($plugin="", $item=""){
-        /*if(strpos($item, ".min.") === false){
-            //error_log("save_as_local 1.");
-            $minify_individual = new Minify\JS($item);
-            $minify_individual->minify($this->output["plugins"] . $plugin . '.js');
-            $this->removeSourceMap($this->output["plugins"] . $plugin . '.js', "file");
-        }else{*/
-             //error_log("save_as_local 2.");
-            $content = file_get_contents($item);
-            $content = $this->removeSourceMap($content, "source");
-            file_put_contents($this->output["plugins"] . $plugin . '.js', $content);
-        //}
-
+        $content = file_get_contents($item);
+        $content = $this->removeSourceMap($content, "source");
+        file_put_contents($this->output["plugins"] . $plugin . '.js', $content);
         return $this->output["plugins"] . $plugin . '.js';
     }
-    /*public function save_as_local($plugin = "", $item = "") {
-        if (strpos($item, ".min.") === false) {
-            // Eğer min değilse → .min.js olarak kaydet
-            $minified_path = $this->output["plugins"] . $plugin . '.min.js';
-            $minify_individual = new Minify\JS($item);
-            $minify_individual->minify($minified_path);
-            $this->removeSourceMap($minified_path, "file");
-            return $minified_path;
-        } else {
-            // Zaten .min.js ise sadece temizle ve aynısını kullan
-            $content = file_get_contents($item);
-            $content = $this->removeSourceMap($content, "source");
-            file_put_contents($this->output["plugins"] . $plugin . '.min.js', $content);
-            return $this->output["plugins"] . $plugin . '.min.js';
-        }
-    }*/
 
 
     public function plugin_settings(){
@@ -669,9 +559,7 @@ class SaltMinifier{
         $existing_meta = get_option("assets_plugins_conditional"); // Var olan option'u kontrol et
         if ($existing_meta) {
             $updates_plugins = $this->check_plugin_updates($existing_meta, $js_list_conditional_version);
-            ////error_log("updates_plugins:".json_encode($updates_plugins));
             $updates_init = $this->check_plugin_init_updates($this->plugins_update);
-            ////error_log("updates_init:".json_encode($updates_init));
             $updates = array_merge($updates_plugins, $updates_init);
             $updates = array_unique($updates);
             update_option("assets_plugins_conditional", $js_list_conditional_version); // Güncelle
@@ -722,13 +610,6 @@ class SaltMinifier{
     }
 
     public function plugin_assets($css_file = "") {
-        ////error_log("plugin_assets-----------------------------------");
-        //$enable_publish = get_option("options_enable_publish");
-        //$publish_url = "";
-        //if($enable_publish){
-            //$publish_url = get_option("options_publish_url");
-        //} 
-        ////error_log($css_file);
         $css = file_get_contents($css_file);
 
         $css_dir = dirname($css_file);
@@ -763,17 +644,13 @@ class SaltMinifier{
             }
             if ($assets) {
                 if (!is_dir($this->output["plugin_assets"])) {
-                    mkdir($this->output["plugin_assets"], 0755, true); 
+                    wp_mkdir_p($this->output["plugin_assets"]);
                 }
                 foreach ($assets as $key => $asset) {
                     if (file_exists($asset["clean_url"]) && !is_dir($asset["clean_url"])) {
                         copy($asset["clean_url"], $this->output["plugin_assets"] . $asset["file"]);
                         $query = parse_url($asset["url"], PHP_URL_QUERY);
                         $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                        //if (!empty($publish_url)) {
-                            //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                        //}
-                    //    $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
                         $final_url = wp_make_link_relative($final_url);
                         $css = str_replace($asset["url"], $final_url, $css);
                     }else{
@@ -782,10 +659,6 @@ class SaltMinifier{
                             $clean_url = explode('?', $asset["url"])[0];
                             $query = parse_url($asset["url"], PHP_URL_QUERY);
                             $final_url = $this->output["plugin_assets_uri"] . $asset["file"] . ($query ? '?' . $query : '');
-                            //if(!empty($publish_url)){
-                                //$final_url = str_replace(home_url(), $publish_url, $final_url);
-                            //}
-                    //        $final_url = str_replace(STATIC_URL, "[STATIC_URL]", $final_url);
                             $final_url = wp_make_link_relative($final_url);
                             $css = str_replace($asset["url"], $final_url, $css);
                         }
@@ -841,30 +714,6 @@ class SaltMinifier{
         return $updates;
     }
 
-    public function removeSourceMap_v1($input, $type) {
-        if($type == "file"){
-            $source = file_get_contents($input);
-            $source = preg_replace('/\/\/# sourceMappingURL=.*\.map\s*/', '', $source);
-            file_put_contents($input, $source);
-        }else if($type == "source"){
-            return preg_replace('/\/\/# sourceMappingURL=.*\.map\s*/', '', $input);
-        }else{
-            return $input;
-        }
-    }
-    public function removeSourceMap_v2($input, $type) {
-        if ($type === "file") {
-            $source = file_get_contents($input);
-            // Sadece "//# sourceMappingURL=" ile başlayan satırları sil
-            $source = preg_replace('/^[ \t]*\/\/# sourceMappingURL=.*\.map\s*$/m', '', $source);
-            file_put_contents($input, $source);
-        } else if ($type === "source") {
-            // Sadece "//# sourceMappingURL=" ile başlayan satırları sil
-            return preg_replace('/^[ \t]*\/\/# sourceMappingURL=.*\.map\s*$/m', '', $input);
-        } else {
-            return $input;
-        }
-    }
     public function removeSourceMap($input, $type) {
         $pattern = '/\/\/[#@]\s*sourceMappingURL=.*?(\r?\n|$|(?=[;!]))/i';
 
@@ -893,37 +742,8 @@ class SaltMinifier{
 
         $css_content = file_get_contents($icons_css_path);
 
-        // font-face bloklarını yakala
-        /*preg_match_all('/@font-face\s*{[^}]+}/i', $css_content, $matches);
-        $font_faces = $matches[0] ?? [];
-
-        if (!empty($font_faces)) {
-            $cleaned_faces = array_map(function ($face) {
-                // URL'leri düzelt: Windows path → URL path
-                return preg_replace_callback('/url\((["\']?)([^)]+?)\1\)/i', function ($m) {
-                    $url = str_replace('\\', '/', $m[2]); // ters slash düzelt
-                    // Dosya sistemindeki path'ten site kökü çıkar
-                    $theme_path = str_replace('\\', '/', get_template_directory());
-                    $site_subfolder = getSiteSubfolder();
-                    $relative_path = str_replace($theme_path, '', $url);
-                    return "url('{$site_subfolder}wp-content/themes/" . get_template() . "{$relative_path}')";
-                }, $face);
-            }, $font_faces);
-
-            // font-faces.css olarak kaydet
-            file_put_contents($font_faces_css_path, implode("\n\n", $cleaned_faces));
-
-            // icons.css içinden font-face'leri çıkar
-            $icons_css_clean = str_replace($font_faces, '', $css_content);
-            file_put_contents($icons_css_path, $icons_css_clean);
-        }*/
-        // 1. Regex'i modernize et: 
-        // [^}] yerine (?U).+ (Ungreedy) kullanarak daha güvenli yakalarız.
-        // /s flag'i ekleyerek (dotall) satır atlamalarını da kapsarız.
         preg_match_all('/@font-face\s*\{(?U).+\}/i', $css_content, $matches);
         $font_faces = $matches[0] ?? [];
-
-        //error_log(print_r($matches, true));
 
         if (!empty($font_faces)) {
             $cleaned_faces = array_map(function ($face) {
@@ -964,9 +784,6 @@ class SaltMinifier{
     }
     public function relocateFontFaces($font_faces_css_path) {
         if (file_exists($font_faces_css_path)) {
-            //echo "font-faces.css bulunamadı: $font_faces_css_path";
-            //return;
-
             $css_content = file_get_contents($font_faces_css_path);
 
             $theme_path = str_replace('\\', '/', get_template_directory());

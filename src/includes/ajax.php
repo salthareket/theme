@@ -14,14 +14,16 @@ class TurboApi {
         add_action('init', [$this, 'add_rewrite_rules']);
         add_filter('query_vars', [$this, 'add_query_vars']);
         add_action('template_redirect', [$this, 'handle_api_request'], 1);
-        
-        // Rewrite rule'ları aktif etmek için (Sadece bir kez gerekir)
-        register_activation_hook(__FILE__, [$this, 'refresh_rules']);
+
+        // Rewrite rule'ları flush et — sadece henüz yoksa (her request'te flush yapmaz)
+        add_action('init', [$this, 'maybe_flush_rules'], 99);
     }
 
-    public function refresh_rules() {
-        $this->add_rewrite_rules();
-        flush_rewrite_rules();
+    public function maybe_flush_rules() {
+        $rules = get_option('rewrite_rules', []);
+        if ( ! is_array( $rules ) || ! isset( $rules['^' . $this->prefix . '/([^/]+)/?$'] ) ) {
+            flush_rewrite_rules( false ); // false = .htaccess'e dokunma, sadece DB
+        }
     }
 
     public function add_query_vars($vars) {
@@ -107,7 +109,11 @@ class TurboApi {
     }
 
     private function minify_output($html) {
-        return preg_replace(['/\s+/s', '//s'], [' ', ''], $html);
+        if ( empty( $html ) ) return '';
+        // HTML comment'leri sil, ardışık whitespace'i tek boşluğa çevir
+        $html = preg_replace( '/<!--(?!\[if).*?-->/s', '', $html );
+        $html = preg_replace( '/\s+/', ' ', $html );
+        return trim( $html );
     }
 }
 new TurboApi();

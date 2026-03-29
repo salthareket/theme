@@ -1,124 +1,64 @@
 <?php
 $required_setting = ENABLE_MEMBERSHIP;
 
-$user = new WP_User(get_current_user_id());
-            $files = $_FILES["profile_photo_main"];
-            if (!empty($files) && $user->ID > 0) {
-                $attachments = [];
-                foreach ($files["name"] as $key => $value) {
-                    if ($files["name"][$key]) {
-                        $file = [
-                            "name" => $files["name"][$key],
-                            "type" => $files["type"][$key],
-                            "tmp_name" => $files["tmp_name"][$key],
-                            "error" => $files["error"][$key],
-                            "size" => $files["size"][$key],
-                        ];
-                        $attachments[] = $file;
-                    }
-                }
+$user_id = get_current_user_id();
+if (!$user_id) {
+    $response['error']   = true;
+    $response['message'] = 'Not logged in';
+    echo json_encode($response);
+    wp_die();
+}
 
-                foreach ($attachments as $file) {
-                    if (is_uploaded_file($file["tmp_name"])) {
-                        $remove_these = [" ", "", '\"', "\\", "\/"];
+$files = $_FILES['profile_photo_main'] ?? null;
+if (empty($files)) {
+    $response['error']   = true;
+    $response['message'] = 'No file uploaded';
+    echo json_encode($response);
+    wp_die();
+}
 
-                        $newname = str_replace(
-                            $remove_these,
-                            "",
-                            $file["name"]
-                        );
-                        $newname = time() . "-" . $newname;
-                        $uploads = wp_upload_dir();
-                        $upload_path = "{$uploads["path"]}/$newname";
-                        move_uploaded_file($file["tmp_name"], $upload_path);
-                        $upload_file_url = "{$uploads["url"]}/$newname";
+require_once ABSPATH . 'wp-admin/includes/image.php';
 
-                        $wp_filetype = wp_check_filetype(
-                            basename($upload_path),
-                            null
-                        );
-                        $attachment = [
-                            "guid" => $upload_file_url,
-                            "post_mime_type" => $wp_filetype["type"],
-                            "post_title" => preg_replace(
-                                '/\.[^.]+$/',
-                                "",
-                                basename($upload_path)
-                            ),
-                            "post_content" => "",
-                            "post_status" => "inherit",
-                        ];
-                        $attachment_id = wp_insert_attachment(
-                            $attachment,
-                            $upload_path,
-                            0
-                        );
+$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-                        if (is_wp_error($attachment_id)) {
-                            $json["error"] = "Error.";
-                        } else {
-                            //delete current
-                            $profile_image = get_field(
-                                "profile_image",
-                                "user_" . $user->ID
-                            ); //get_user_meta($user->ID, 'profile_image', true);
-                            if ($profile_image) {
-                                /*$profile_image = json_decode($profile_image);
-                                                if (isset($profile_image->attachment_id)) {
-                                                    wp_delete_attachment($profile_image->attachment_id, true);
-                                                }*/
-                                wp_delete_attachment($profile_image, true);
-                            }
+foreach ($files['name'] as $key => $name) {
+    if (empty($name) || !is_uploaded_file($files['tmp_name'][$key])) continue;
+    if (!in_array($files['type'][$key], $allowed_types)) continue;
 
-                            if (!function_exists("wp_crop_image")) {
-                                include ABSPATH . "wp-admin/includes/image.php";
-                            }
+    $uploads   = wp_upload_dir();
+    $safe_name = time() . '-' . sanitize_file_name($name);
+    $file_path = $uploads['path'] . '/' . $safe_name;
+    $file_url  = $uploads['url'] . '/' . $safe_name;
 
-                            //Generate attachment in the media library
-                            $attachment_file_path = get_attached_file(
-                                $attachment_id
-                            );
-                            $data = wp_generate_attachment_metadata(
-                                $attachment_id,
-                                $attachment_file_path
-                            );
+    if (!move_uploaded_file($files['tmp_name'][$key], $file_path)) continue;
 
-                            //Get the attachment entry in media library
-                            $image_full_attributes = wp_get_attachment_image_src(
-                                $attachment_id,
-                                "full"
-                            );
-                            $image_thumb_attributes = wp_get_attachment_image_src(
-                                $attachment_id,
-                                "smallthumb"
-                            );
+    $filetype = wp_check_filetype(basename($file_path), null);
+    $attach_id = wp_insert_attachment([
+        'guid'           => $file_url,
+        'post_mime_type' => $filetype['type'],
+        'post_title'     => sanitize_file_name($safe_name),
+        'post_content'   => '',
+        'post_status'    => 'inherit',
+    ], $file_path, 0);
 
-                            $arr = [
-                                "attachment_id" => $attachment_id,
-                                "url" => $image_full_attributes[0],
-                                "thumb" => $image_thumb_attributes[0],
-                            ];
+    if (is_wp_error($attach_id)) continue;
 
-                            //Save the image in the user metadata
-                            update_post_meta(
-                                $attachment_id,
-                                "_wp_attachment_wp_user_avatar",
-                                $user->ID
-                            );
-                            update_field(
-                                "profile_image",
-                                $attachment_id,
-                                "user_" . $user->ID
-                            );
+    // Eski profil resmini sil
+    $old_image = get_field('profile_image', 'user_' . $user_id);
+    if ($old_image) {
+        wp_delete_attachment($old_image, true);
+    }
 
-                            $response["message"] = "Image has been uploaded";
-                            $response["data"] = $arr["thumb"];
-                        }
-                    }
-                }
-            } else {
-                $response["error"] = true;
-                $response["message"] = "Error";
-            }
-            echo json_encode($response);
-            die();
+    wp_generate_attachment_metadata($attach_id, $file_path);
+    update_post_meta($attach_id, '_wp_attachment_wp_user_avatar', $user_id);
+    update_field('profile_image', $attach_id, 'user_' . $user_id);
+
+    $thumb = wp_get_attachment_image_src($attach_id, 'smallthumb');
+
+    $response['message'] = 'Image has been uploaded';
+    $response['data']    = $thumb[0] ?? $file_url;
+    break; // Sadece ilk dosya
+}
+
+echo json_encode($response);
+wp_die();

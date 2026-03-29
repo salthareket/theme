@@ -5,7 +5,7 @@
 // $variables_media_query_set : Özeleştirilmiş olarak mobile dışındaki media query'lere
 
 class FluidCss {
-    public $css;
+    public $css = '';
 
     private $variables;
     private $variables_mobile;
@@ -27,7 +27,7 @@ class FluidCss {
         $this->breakpoint_keys = array_keys($this->breakpoints);
     }
 
-    public function generate(){
+    public function generate(): string {
         $this->root_variables();
         $this->root_media_query();
         $this->root_media_query_set();
@@ -96,33 +96,12 @@ class FluidCss {
             if (!empty($this->variables_mobile) && $key === 'xs') {
                 $this->variables_mobile_added = true;
                 foreach ($this->variables_mobile as $k => $v) {
-                    //$css .= "        --{$k}: {$v};\n";
-                    if (is_hex_color($v)) {
-                        $rgb = hex2rgb($v);
-                        $css .= "        --{$k}-rgb: " . implode(', ', $rgb) . ";\n";
-                    }elseif(strpos($k, 'hero-height') === 0){
-                        $css .= "        --{$k}:{$v};\n";
-                        $v = str_replace("vh", "dvh", $v);
-                        $css .= "        --{$k}-min:{$v};\n";
-                    }else{
-                        $css .= "        --{$k}: {$v};\n";
-                    }
+                    $css .= $this->write_var($k, $v);
                 }
             }
 
             foreach ($vars as $var_name => $value) {
-                $var_name = str_replace("_", "-", $var_name);
-                //$css .= "        --{$var_name}: {$value};\n";
-                if (is_hex_color($value)) {
-                    $rgb = hex2rgb($value);
-                    $css .= "        --{$var_name}-rgb: " . implode(', ', $rgb) . ";\n";
-                }elseif(strpos($var_name, 'hero-height') === 0){
-                    $css .= "        --{$var_name}: {$value};\n";
-                    $value = str_replace("vh", "dvh", $value);
-                    $css .= "        --{$var_name}-min:{$value};\n";
-                }else{
-                    $css .= "        --{$var_name}: {$value};\n";
-                }
+                $css .= $this->write_var($var_name, $value);
             }
 
             $css .= "    }\n";
@@ -133,18 +112,7 @@ class FluidCss {
             $css .= "@media (max-width: {$this->breakpoints['xs']}px) {\n";
             $css .= "    :root {\n";
             foreach ($this->variables_mobile as $key => $value) {
-                $key = str_replace("_", "-", $key);
-                //$css .= "        --{$key}: {$value};\n";
-                if (is_hex_color($value)) {
-                    $rgb = hex2rgb($value);
-                    $css .= "        --{$key}-rgb: " . implode(', ', $rgb) . ";\n";
-                }elseif(strpos($key, 'hero-height') === 0){
-                    $css .= "        --{$key}: {$value};\n";
-                    $value = str_replace("vh", "dvh", $value);
-                    $css .= "        --{$key}-min:{$value};\n";
-                }else{
-                    $css .= "        --{$key}: {$value};\n";
-                }
+                $css .= $this->write_var($key, $value);
             }
             $css .= "    }\n";
             $css .= "}\n\n";
@@ -152,6 +120,27 @@ class FluidCss {
 
         $this->css .= $css;
     }
+
+    /**
+     * Write a single CSS variable line with hex-rgb and hero-height support
+     */
+    private function write_var($key, $value, $indent = "        ") {
+        $key = str_replace("_", "-", $key);
+        $css = '';
+        if (is_hex_color($value)) {
+            $css .= "{$indent}--{$key}: {$value};\n";
+            $rgb = hex2rgb($value);
+            $css .= "{$indent}--{$key}-rgb: " . implode(', ', $rgb) . ";\n";
+        } elseif (strpos($key, 'hero-height') === 0) {
+            $css .= "{$indent}--{$key}: {$value};\n";
+            $dvh = str_replace("vh", "dvh", $value);
+            $css .= "{$indent}--{$key}-min: {$dvh};\n";
+        } else {
+            $css .= "{$indent}--{$key}: {$value};\n";
+        }
+        return $css;
+    }
+
     private function root_media_query_set() {
  
         // min_vw: xs + 1
@@ -199,7 +188,7 @@ class FluidCss {
                         if(strpos($type."-".$val_name, 'hero-height') === 0){
                             $css .= "    --{$type}-{$val_name}-{$size_key}: {$curr_val};\n";
                             $curr_val = str_replace("vh", "dvh", $curr_val);
-                            $css .= "        --{$type}-{$val_name}-{$size_key}-min:{$curr_val};\n";
+                            $css .= "    --{$type}-{$val_name}-{$size_key}-min: {$curr_val};\n";
                         }else{
                             $css .= "    --{$type}-{$val_name}-{$size_key}: {$curr_val};\n";
                         }

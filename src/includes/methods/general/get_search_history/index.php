@@ -1,25 +1,24 @@
 <?php
 $required_setting = ENABLE_SEARCH_HISTORY;
 
-$user = array();
-if(!isset($vars["user"])){
-    $user = wp_get_current_user();
-}
+$user = is_user_logged_in() ? wp_get_current_user() : null;
 $search_history = new SearchHistory();
-if($vars["history"] == "popular"){
-    $title = translate("Popular search terms"); 
-    $result = $search_history->get_popular_terms($vars["post_type"]);
-}else{
-    $title = translate("Your last searches");
-    $result = $search_history->get_user_terms($user->ID, $vars["post_type"]);
+
+if (($vars['history'] ?? '') === 'popular') {
+    $title  = trans('Popular search terms');
+    $result = $search_history->get_popular_terms($vars['post_type'] ?? '');
+} else {
+    $title  = trans('Your last searches');
+    $result = $user ? $search_history->get_user_terms($user->ID, $vars['post_type'] ?? '') : [];
 }
-if($result){
-    $template = "partials/snippets/search-field-history.twig";
+
+if ($result) {
     $context = Timber::context();
-    $context["title"] = $title;
-    $context["search_terms"] = $result;
-    $context["vars"] = $vars;
-    $response["html"] = Timber::compile($template, $context);                
-} 
+    $context['title']        = $title;
+    $context['search_terms'] = $result;
+    $context['vars']         = $vars;
+    $response['html'] = Timber::compile('partials/snippets/search-field-history.twig', $context);
+}
+
 echo json_encode($response);
-die();
+wp_die();

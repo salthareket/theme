@@ -1,28 +1,23 @@
-if ( typeof acf !== 'undefined' ) {
-    // show event description on select2 field options
-    acf.addAction('select2_init', function( $select, args, settings, field ){
-        var field_name = field.$el.data("name");
-        if(field_name == "notification_event"){
+if (typeof acf !== 'undefined') {
+    acf.addAction('select2_init', function($select, args, settings, field) {
+        if (field.$el.data('name') !== 'notification_event') return;
 
-            $select.find("option").each(function(){
-                let option = jQuery(this);
-                let text   = option.text().split("|");
-                    option.text(text[0]);
-                    option.attr("data-description", text[1])
-            });
+        $select.find('option').each(function() {
+            var $opt  = jQuery(this);
+            var parts = $opt.text().split('|');
+            $opt.text(parts[0]);
+            if (parts[1]) $opt.attr('data-description', parts[1]);
+        });
 
-            args['templateResult'] = function (state) {
-                debugJS(state);
-                if (!state.id) {
-                    return state.text;
-                } else {
-                    let title = state.text;
-                    let description = $(state.element).data("description");
-                    let $state = '<div><strong>' + title + '</strong></div><div style="font-size:12px;color:#888;">' + description + '</div>'
-                    return jQuery($state);
-                }
-            };
-            $select.select2(args); 
-        }
+        args.templateResult = function(state) {
+            if (!state.id) return state.text;
+            var desc = $(state.element).data('description') || '';
+            return jQuery(
+                '<div><strong>' + state.text + '</strong></div>' +
+                '<div style="font-size:12px;color:#888">' + desc + '</div>'
+            );
+        };
+
+        $select.select2(args);
     });
 }

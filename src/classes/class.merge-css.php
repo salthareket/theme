@@ -9,6 +9,15 @@ use Sabberworm\CSS\CSSList\AtRuleBlockList;
 use MatthiasMullie\Minify\CSS as Minifier;
 use Irmmr\RTLCss\Parser as RTLParser;
 
+/**
+ * MergeCSS — Birden fazla CSS dosyasini birlestir, minify et, RTL cevir.
+ *
+ * KULLANIM:
+ *   $merger = new MergeCSS($files, $output_path, true, true);
+ *   $merger->merge();  // CSS dosyalarini birlestirip minify eder
+ *
+ * @package SaltHareket
+ */
 class MergeCSS {
     private $files;
     private $output_path;
@@ -64,7 +73,7 @@ class MergeCSS {
         // 2. Çıktı Yönetimi
         if (!empty($this->output_path)) {
             $dir = dirname($this->output_path);
-            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            if (!is_dir($dir)) wp_mkdir_p($dir);
 
             // --- LTR DOSYASI ---
             $ltrOutput = $finalCSS;
@@ -78,15 +87,14 @@ class MergeCSS {
             // --- RTL DOSYASI ---
             if ($this->rtl) {
                 try {
-                    // RTL için tekrar parse et (Nesne üzerinden işlem yapmalıyız)
-                    $rtl_parser = new CSSParser($finalCSS, $oSettings);
+                    // Re-parse the deduplicated LTR output for RTL flip
+                    $rtl_parser = new CSSParser($finalCSS, CSSSettings::create()->withMultibyteSupport(true));
                     $rtl_tree = $rtl_parser->parse();
-                    
+
                     $rtl_css_processor = new RTLParser($rtl_tree);
                     $rtl_css_processor->flip();
-                    $rtl_output = $rtl_tree->render(); // Sabberworm çıktısı (Minify değil)
+                    $rtl_output = $rtl_tree->render();
 
-                    // RTL çıktısını da minify et
                     if ($this->minify) {
                         $rtl_minifier = new Minifier();
                         $rtl_minifier->add($rtl_output);
@@ -96,7 +104,7 @@ class MergeCSS {
                     $rtl_path = str_replace('.css', '-rtl.css', $this->output_path);
                     file_put_contents($rtl_path, $rtl_output);
                 } catch (\Exception $e) {
-                    //error_log("RTL Dönüştürme Hatası: " . $e->getMessage());
+                    // RTL conversion failed — LTR file still saved
                 }
             }
 
@@ -128,7 +136,7 @@ class MergeCSS {
     }
 
     private function buildFinalCSS() {
-        $css = "/* Merged by MergeCSS Class */\n";
+        $css = "";
         foreach ($this->mRules as $selector => $props) {
             $css .= "$selector {\n";
             foreach ($props as $name => $val) { $css .= "  $name: $val;\n"; }
