@@ -114,13 +114,13 @@ Data::set("plugins", $required_plugins);
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.7.1",
+    "v" => "6.8.0.1",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.20.3",
+    "v" => "3.21.0.1",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
@@ -194,7 +194,7 @@ $required_plugins_local[] = array(
 
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.2.1",
+    "v" => "2.0.0",
     "name" => "acf-bs-breakpoints/acf-bs-breakpoints.php",
     "file" => "acf-bs-breakpoints"
 );
@@ -206,7 +206,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.0.4",
+    "v" => "1.1.0",
     "name" => "acf-unit-field/acf-unit-field.php",
     "file" => "acf-unit-field"
 );
@@ -233,5 +233,11 @@ $required_plugins_local[] = array(
     "v" => "1.0.7",
     "name" => "salt-ai-translator/salt-ai-translator.php",
     "file" => "salt-ai-translator"
+);
+$required_plugins_local[] = array(
+    "type" => ["multilanguage"],
+    "v" => "1.0.3",
+    "name" => "acf-polylang-text-field/acf-polylang-text-field.php",
+    "file" => "acf-polylang-text-field"
 );
 Data::set("plugins_local", $required_plugins_local);
