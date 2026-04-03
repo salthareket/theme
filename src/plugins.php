@@ -200,7 +200,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.2.1",
+    "v" => "1.2.2",
     "name" => "acf-query-field/acf-query-field.php",
     "file" => "acf-query-field"
 );
