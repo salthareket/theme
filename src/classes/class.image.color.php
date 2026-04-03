@@ -5,6 +5,12 @@
  * Extract average/dominant color from images. Ultra-fast 1px resize method.
  * Supports: jpg, png, gif, webp, avif (with Imagick/GD fallbacks).
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * // From file path (fastest — recommended)

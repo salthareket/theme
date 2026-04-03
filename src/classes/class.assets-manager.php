@@ -1,8 +1,23 @@
 <?php
 
 /**
- * Class AssetManager
+ * AssetManager
  * Orijinal mantık korunmuş, performans darboğazları giderilmiş tam versiyon.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $am = AssetManager::instance();
+ *   // Hook'lar otomatik register edilir (wp_head, wp_enqueue_scripts, admin_enqueue_scripts).
+ *   // Preload, font queue, delay CSS, script attributes otomatik çalışır.
+ *
+ * Examples:
+ *   // Tema içinde doğrudan çağrı gerekmez, constructor'da hook'lar bağlanır.
+ *   // Manuel purge: /?purge_assets query param ile tetiklenir.
  */
 
 class AssetManager {

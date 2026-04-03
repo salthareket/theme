@@ -15,6 +15,12 @@ use Peast\Formatter\PrettyPrint;
  * - Resolves cross-file dependencies via 2-pass placeholder system
  * - Detects and prevents circular dependencies
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * $folders = [

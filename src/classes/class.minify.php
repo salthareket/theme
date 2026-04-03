@@ -9,7 +9,13 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 /**
  * SaltMinifier — CSS/JS minification, RTL conversion, file combining.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   $minifier = new SaltMinifier();
  *   $minifier->compile();  // tum CSS/JS dosyalarini minify + combine eder
  *

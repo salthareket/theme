@@ -3,7 +3,13 @@
 /**
  * Localization — Country/State/City/District veritabani + IP geolocation.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   $loc = new Localization();
  *
  *   // Ulkeler
@@ -26,6 +32,7 @@
  *   // Timezone
  *   $tz = $loc->get_timezone(41.0, 29.0, 'TR', 'Istanbul');
  *
+ * Examples:
  *   // Global wrapper fonksiyonlar (backward compat):
  *   get_country_name('iso2', 'TR')
  *   get_city_name('id', 34)

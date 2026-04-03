@@ -6,6 +6,27 @@ use FFMpeg\Filters\Video\ResizeFilter;
 use FFMpeg\Coordinate\Dimension;
 
 class VideoProcessor{
+    /**
+     * VideoProcessor
+     * FFMpeg wrapper for video processing in WordPress.
+     *
+     * @version 1.0.0
+     *
+     * @changelog
+     *   1.0.0 - 2026-04-03
+     *     - Add: Initial versioned release
+     *
+     * How to use:
+     *   $vp = new VideoProcessor();
+     *   if ($vp->available) {
+     *       $vp->update_video_task($post_id, $task);
+     *   }
+     *
+     * Examples:
+     *   $vp = new VideoProcessor();
+     *   $vp->available;   // true/false - FFMpeg binary mevcut mu
+     *   $vp->supported;   // true/false - OS destekli mi (Win/Linux)
+     */
     private $ffmpegPath;
     private $ffprobePath;
     private $ffmpeg;

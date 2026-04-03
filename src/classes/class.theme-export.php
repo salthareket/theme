@@ -5,26 +5,22 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 /**
  * Theme_Site_Exporter — Admin'den site/tema/DB export sistemi.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   // Otomatik — admin_init'te instantiate edilir.
  *   // ACF Options Page "Development" sayfasındaki "Export" butonuna basılınca
  *   // terminal UI açılır ve step-by-step export başlar.
  *
+ * Examples:
  *   // Export modları:
- *   //   full  — DB + WP Core + Theme + wp-content → tek ZIP
- *   //   db    — Sadece DB dump → ZIP
- *   //   theme — Sadece aktif tema → ZIP
- *
- *   // Özellikler:
- *   //   - URL replace (current → target)
- *   //   - Table prefix değiştirme
- *   //   - wp-config.php DB credentials güncelleme
- *   //   - Serialized data safe replace
- *   //   - JSON data safe replace
- *   //   - Cancel desteği (async flag dosyası)
- *   //   - Chunk'lı DB export (memory koruması)
- *   //   - Nonce + capability koruması
- *   //   - Path traversal koruması
+ *   //   full  — DB + WP Core + Theme + wp-content -> tek ZIP
+ *   //   db    — Sadece DB dump -> ZIP
+ *   //   theme — Sadece aktif tema -> ZIP
  *
  * @package SaltHareket
  * @since   2.0.0

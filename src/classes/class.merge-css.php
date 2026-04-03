@@ -12,9 +12,15 @@ use Irmmr\RTLCss\Parser as RTLParser;
 /**
  * MergeCSS — Birden fazla CSS dosyasini birlestir, minify et, RTL cevir.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   $merger = new MergeCSS($files, $output_path, true, true);
- *   $merger->merge();  // CSS dosyalarini birlestirip minify eder
+ *   $merger->run();  // CSS dosyalarini birlestirip minify eder
  *
  * @package SaltHareket
  */

@@ -6,7 +6,13 @@
  * Custom DB tablosu (wp_search_terms) kullanır.
  * Kullanıcı bazlı geçmiş user_meta + cookie ile saklanır.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   $sh = new SearchHistory();
  *
  *   // Arama terimi kaydet (arama sonucu varsa)
@@ -16,12 +22,11 @@
  *
  *   // Kullanıcının son aramaları
  *   $terms = $sh->get_user_terms($user_id, 'search', 5);
- *   // ['laptop', 'istanbul otelleri', ...]
  *
  *   // Popüler aramalar
  *   $popular = $sh->get_popular_terms('product', 10);
- *   // ['iphone', 'samsung', ...]
  *
+ * Examples:
  *   // "Bunu mu demek istediniz?" önerisi
  *   $suggestion = $sh->did_you_mean('iphne', 2);
  *   // 'iphone'

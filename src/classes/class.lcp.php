@@ -5,14 +5,27 @@
  *
  * Detects and optimizes the LCP element per page, per device (desktop/mobile).
  *
- * Flow:
- * 1. Page loads → check SITE_ASSETS["lcp"] for saved LCP data
- * 2. Data EXISTS → inject <link rel="preload"> + inline critical CSS for LCP element
- * 3. Data MISSING for this device → inject measurement script (web-vitals.js)
- * 4. JS detects LCP → sends data via AJAX (save_lcp_results)
- * 5. Next visit → preload + CSS active, page loads faster
+ * @version 1.0.0
  *
- * LCP is NOT always an image — can be text, video, background-image, any element.
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $lcp = Lcp::getInstance();
+ *   // Hook'lar otomatik register edilir.
+ *   // Sayfa yüklendiğinde SITE_ASSETS["lcp"] verisi kontrol edilir.
+ *   // Veri varsa preload + critical CSS inject edilir.
+ *   // Veri yoksa measurement script (web-vitals.js) inject edilir.
+ *
+ * Flow:
+ * 1. Page loads -> check SITE_ASSETS["lcp"] for saved LCP data
+ * 2. Data EXISTS -> inject <link rel="preload"> + inline critical CSS for LCP element
+ * 3. Data MISSING for this device -> inject measurement script (web-vitals.js)
+ * 4. JS detects LCP -> sends data via AJAX (save_lcp_results)
+ * 5. Next visit -> preload + CSS active, page loads faster
+ *
+ * LCP is NOT always an image - can be text, video, background-image, any element.
  */
 class Lcp {
     private static $instance = null;

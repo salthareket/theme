@@ -6,6 +6,12 @@
  * Format: base64(encrypted_data):salt
  * Salt is stored alongside the encrypted data, IV is derived from salt.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * // Basic encrypt/decrypt

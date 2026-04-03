@@ -3,19 +3,19 @@
 /**
  * Schema_Breadcrumbs — Yoast SEO breadcrumb markup'ını Schema.org + Bootstrap uyumlu hale getirir.
  *
- * Yoast'ın default breadcrumb HTML'ini <ul class="breadcrumb"><li> yapısına çevirir,
- * Schema.org BreadcrumbList / ListItem markup'ı ekler, btn-loading-page class'ı ile
- * SPA-style sayfa geçişi destekler.
+ * @version 1.0.0
  *
- * KULLANIM:
- *   // theme.php veya functions.php'de:
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   if ( function_exists( 'yoast_breadcrumb' ) && class_exists( 'Schema_Breadcrumbs' ) ) {
  *       Schema_Breadcrumbs::instance();
  *   }
  *
  * NOT: Yoast SEO 20+ zaten JSON-LD Schema.org breadcrumb üretiyor.
  *      Bu class sadece GÖRSEL HTML markup'ı için gerekli.
- *      Eğer Yoast'ın default HTML'i yeterliyse bu class devre dışı bırakılabilir.
  *
  * @package SaltHareket
  * @since   1.0.0

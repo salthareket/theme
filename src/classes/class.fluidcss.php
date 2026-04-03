@@ -1,8 +1,27 @@
 <?php
-// $variables                 : Direkt root'a yazılır.
-// $variables_mobile          : Max width 575'e yazılır (mobile).
-// $variables_media_query     : Tüm media query^lere yazılır.
-// $variables_media_query_set : Özeleştirilmiş olarak mobile dışındaki media query'lere
+/**
+ * FluidCss
+ * Generates responsive CSS custom properties with media query breakpoints.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $fluid = new FluidCss($variables, $variables_mobile, $variables_media_query, $variables_media_query_set);
+ *   $css = $fluid->generate();
+ *
+ * Examples:
+ *   $fluid = new FluidCss(
+ *       ['primary' => '#ff0000', 'font-size' => '16px'],
+ *       ['font-size' => '14px'],
+ *       ['container-width' => ['sm' => '540px', 'md' => '720px', 'lg' => '960px']],
+ *       []
+ *   );
+ *   echo $fluid->generate();  // :root + @media query CSS çıktısı
+ */
 
 class FluidCss {
     public $css = '';

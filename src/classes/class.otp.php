@@ -26,6 +26,12 @@ define('SMS_APP', $sms_app_keys);
  * SMS & OTP Service
  * D7 Networks API integration for SMS messaging and OTP verification.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * $sms = new Sms(['recipients' => ['+905551234567'], 'content' => 'Hello!']);

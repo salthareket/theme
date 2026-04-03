@@ -1,5 +1,20 @@
 <?php
 
+/**
+ * RemoveUnusedCss
+ * Removes unused CSS selectors from HTML pages.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $remover = new RemoveUnusedCss();
+ *   // HTML ve CSS set edildikten sonra kullanılmayan selector'lar temizlenir.
+ */
+
 use MatthiasMullie\Minify;
 use voku\helper\HtmlDomParser;
 use Sabberworm\CSS\Parser;

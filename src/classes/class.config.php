@@ -5,7 +5,13 @@ namespace SaltHareket;
  * SaltConfig — PHP file-based config cache.
  * ACF options'lari PHP dosyasina cache'ler, DB sorgusunu atlar.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   $val = SaltConfig::get('options_enable_object_cache');
  *   SaltConfig::set('my_key', 'my_value');
  *   SaltConfig::rebuild();  // tum cache'i yeniden olustur

@@ -9,25 +9,28 @@ use ScssPhp\ScssPhp\ValueConverter;
  * SCSS dosyalarını CSS'e derler. scssphp/scssphp ^1.13 kullanır.
  * Otomatik compile YOKTUR — sadece açıkça çağrıldığında çalışır.
  *
- * KULLANIM:
+ * @version 1.0.0
  *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   // Tam compile (dizin bazlı)
  *   $compiler = new SCSSCompiler(
  *       [SH_STATIC_PATH . 'scss/'],   // SCSS kaynak dizinleri
  *       STATIC_PATH . 'css/',          // CSS çıktı dizini
- *       'SOURCE_MAP_NONE',             // sourcemap: SOURCE_MAP_NONE | SOURCE_MAP_INLINE | SOURCE_MAP_FILE
- *       'compressed'                   // output: compressed | expanded | nested | compact
+ *       'SOURCE_MAP_NONE',             // sourcemap
+ *       'compressed'                   // output style
  *   );
  *   $compiler->set_variables(['primary' => '#ff0000', 'font-size' => '16px']);
  *   $compiler->compile();
  *   $errors = $compiler->get_compile_errors();
  *
+ * Examples:
  *   // String compile (tek seferlik)
  *   $compiler = new SCSSCompiler();
  *   $css = $compiler->compile_string('.btn { color: darken(#fff, 10%); }');
- *
- *   // Theme entegrasyonu (admin'den tetiklenir)
- *   Theme::scss_compile();
  *
  * @package SaltHareket
  * @since   1.0.0

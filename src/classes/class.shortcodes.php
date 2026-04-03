@@ -1,29 +1,31 @@
 <?php
-    /**
-     * KULLANIM:
-     *   $sc = customShortcodes::getInstance();
-     *   $sc->add([[ 'shortcode' => 'my_sc', 'name' => 'My SC', 'callback' => 'my_fn',
-     *       'atts' => [
-     *           'title'     => ['label' => 'Title', 'ui' => 'text', 'value' => ''],
-     *           'post_type' => ['label' => 'Type', 'ui' => 'select', 'value' => [], 'func' => 'post_types'],
-     *           'style'     => ['label' => 'Style', 'ui' => 'radio', 'value' => ['*a' => 'A', 'b' => 'B']],
-     *           // * prefix = default selected
-     *           // visibility: 'visibility' => ['show' => ['style' => ['compare'=>'==','value'=>'b']]]
-     *       ],
-     *   ]]);
-     *
-     *   // TinyMCE popup (otomatik):
-     *   $shortcodes->get_shortcodes();          // select dropdown HTML
-     *   $shortcodes->get_fields('my_sc');        // form fields HTML
-     *   $shortcodes->get_all();                  // tum kayitli shortcode array
-     *
-     *   // UI types: text|email|number|textarea|select|checkbox|radio|note|seperator
-     *   // func options: post_types|user_roles|image_sizes|animations_in|animations_out|cf7_forms
-     */
 /**
  * customShortcodes — Shortcode registry + TinyMCE UI builder.
  *
  * Class adı backward compat için değiştirilmedi (tinymce plugin bağımlı).
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $sc = customShortcodes::getInstance();
+ *   $sc->add([[ 'shortcode' => 'my_sc', 'name' => 'My SC', 'callback' => 'my_fn',
+ *       'atts' => [
+ *           'title'     => ['label' => 'Title', 'ui' => 'text', 'value' => ''],
+ *           'post_type' => ['label' => 'Type', 'ui' => 'select', 'value' => [], 'func' => 'post_types'],
+ *           'style'     => ['label' => 'Style', 'ui' => 'radio', 'value' => ['*a' => 'A', 'b' => 'B']],
+ *       ],
+ *   ]]);
+ *
+ * Examples:
+ *   $shortcodes->get_shortcodes();          // select dropdown HTML
+ *   $shortcodes->get_fields('my_sc');        // form fields HTML
+ *   $shortcodes->get_all();                  // tum kayitli shortcode array
+ *   // UI types: text|email|number|textarea|select|checkbox|radio|note|seperator
+ *   // func options: post_types|user_roles|image_sizes|animations_in|animations_out|cf7_forms
  *
  * @package SaltHareket
  * @since   1.0.0

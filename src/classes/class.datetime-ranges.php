@@ -5,6 +5,12 @@
  *
  * Originally based on hakre's gist, fully rewritten and extended.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * Works with both TIME-ONLY and FULL DATE+TIME.

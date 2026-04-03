@@ -1,9 +1,19 @@
 <?php
 /**
- * Admin Listelerine Thumbnail Sütunu Ekleyen Sınıf
- *
+ * AdminThumbnailColumns
  * Tüm public post type ve taxonomy listelerine otomatik thumbnail sütunu ekler.
  * Yeni post type/taxonomy eklendiğinde değişiklik gerektirmez.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   new AdminThumbnailColumns();
+ *   // Hook'lar otomatik register edilir. Tüm public post type ve taxonomy
+ *   // admin listelerine checkbox'tan sonra thumbnail sütunu eklenir.
  */
 class AdminThumbnailColumns {
 

@@ -5,11 +5,18 @@ namespace SaltHareket;
 /**
  * Image — Responsive image set, srcset, lazy loading, breakpoint-based image generation.
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   $img = new Image();
  *   $html = $img->get_image_set_post(['src' => 123, 'class' => 'img-fluid']);
  *   $html = $img->get_image_set_multiple($args, true);
  *
+ * Examples:
  *   // Twig'de:
  *   {{ img({'src': post.thumbnail.id, 'class': 'img-fluid'}) }}
  *

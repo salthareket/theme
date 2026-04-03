@@ -3,6 +3,20 @@
 namespace SaltHareket;
 use MatthiasMullie\Minify;
 
+/**
+ * MethodClass — Frontend/Admin method dosyalarını otomatik birleştirir.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $mc = new MethodClass();
+ *   $mc->createFiles(false, 'frontend');  // Frontend method dosyalarını birleştir
+ *   $mc->createFiles(false, 'admin');     // Admin method dosyalarını birleştir
+ */
 class MethodClass {
     public function createFiles($includeParentFolderName = false, $platform = 'frontend') {
         

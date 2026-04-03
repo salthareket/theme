@@ -5,6 +5,12 @@
  * Event-driven notification system with email, in-app alert, and SMS carriers.
  * Events are configured via ACF Options Page and stored as JSON.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * // Trigger a notification event

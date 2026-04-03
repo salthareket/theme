@@ -7,6 +7,12 @@
  * On login/register, cookie favorites are merged into user account.
  * Supports post, term, and user object types.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * // Get current user's favorites (auto-detects logged in vs guest)

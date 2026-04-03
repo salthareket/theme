@@ -6,7 +6,13 @@
  * Author: A. Utku Sipahioglu | License: MIT
  * https://github.com/SiisOfficial/turkish-suffixes
  *
- * KULLANIM:
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
  *   Turkce::accusativeCase('Istanbul')    // Istanbul'u     (belirtme hali -i)
  *   Turkce::dativeCase('Istanbul')        // Istanbul'a     (yonelme hali -e)
  *   Turkce::locativeCase('Istanbul')      // Istanbul'da    (bulunma hali -de)
@@ -17,20 +23,11 @@
  *   Turkce::ordinalNumber('5')            // 5'inci         (sira sayisi)
  *   Turkce::distributive('3')             // 3'er           (ulestirme)
  *
- *   // Yabanci kelimeler icin fake pronounce:
+ * Examples:
  *   Turkce::dativeCase('Apple')           // Apple'a  (otomatik pronounce)
  *   Turkce::dativeCase('view', 'yiv')     // view'a   (manuel fake)
- *
- *   // Turkce alias'lar:
  *   Turkce::belirtmeHali('Ankara')        // Ankara'yi
  *   Turkce::yonelmeHali('Ankara')         // Ankara'ya
- *   Turkce::bulunmaHali('Ankara')         // Ankara'da
- *   Turkce::ayrilmaHali('Ankara')         // Ankara'dan
- *   Turkce::sahiplikHali('Ankara')        // Ankara'nin
- *   Turkce::vasitaHali('Ankara')          // Ankara'yla
- *   Turkce::dahiBaglac('Ankara')          // Ankara da
- *   Turkce::siraSayi('1')                 // 1'inci
- *   Turkce::ulestirme('5')                // 5'er
  *
  * @package SaltHareket
  */

@@ -3,6 +3,18 @@
  * FeaturedImage
  * Auto-sets featured image from ACF 'media' field group on post/term save.
  * Supports: image, gallery, video_gallery (poster frame extraction).
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   new FeaturedImage();
+ *   // Hook'lar otomatik register edilir (acf/save_post, edited_term).
+ *   // Post veya term kaydedildiğinde ACF 'media' field grubundan
+ *   // otomatik olarak featured image set edilir.
  */
 class FeaturedImage {
 

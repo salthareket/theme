@@ -7,6 +7,12 @@
  *
  * Originally based on tisuchi's WebBotChecker, fully rewritten.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * // Quick check (static)

@@ -1,14 +1,17 @@
 <?php
 
 /**
- * ============================================================
- *  Reviews Engine v1.0
- * ============================================================
- *
+ * Reviews Engine
  * WP Comments tabanlı review/rating sistemi.
  * Post'lara veya kullanıcılara review yazılabilir.
  * Notification, permission, duplicate koruması, hook sistemi,
  * QueryCache entegrasyonu dahil.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
  *
  * ─── KULLANIM ─────────────────────────────────────────────
  *

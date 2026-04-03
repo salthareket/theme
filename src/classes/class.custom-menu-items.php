@@ -1,10 +1,21 @@
 <?php
 
 /**
- * Class custom_menu_items
+ * custom_menu_items
+ * Creating and managing dynamic menu items in a WordPress menu.
  *
- * This class is for creating and managing dynamic menu items in a WordPress
- * menu.
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $cmi = custom_menu_items::get_instance();
+ *   $cmi->add_item('primary', [
+ *       'title' => 'Dynamic Item',
+ *       'url'   => '/custom-page',
+ *   ]);
  */
 class custom_menu_items {
 	/**

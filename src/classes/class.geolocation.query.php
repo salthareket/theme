@@ -5,6 +5,12 @@
  * Find posts near a lat/lng coordinate within a given radius.
  * Uses Haversine formula for distance calculation.
  *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
  * ─── HOW TO USE ───────────────────────────────────────────
  *
  * // Basic: find published posts within 10 km of a point

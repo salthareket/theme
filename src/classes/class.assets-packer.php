@@ -7,6 +7,21 @@ use MatthiasMullie\Minify\JS as JSMinifier;
 /**
  * AssetPacker - CSS ve JS dosyalarını birleştirir, minify eder ve akıllıca cache'ler.
  * Mükerrer bundle oluşumunu engellemek için dosya listesini stabilize eder.
+ *
+ * @version 1.0.0
+ *
+ * @changelog
+ *   1.0.0 - 2026-04-03
+ *     - Add: Initial versioned release
+ *
+ * How to use:
+ *   $packer = new AssetPacker([], 'css', 'main-bundle');  // Otomatik tema CSS'lerini toplar
+ *   $packer = new AssetPacker(['/path/file1.js', '/path/file2.js'], 'js', 'vendor');
+ *   $packer = new AssetPacker(['handle1', 'handle2'], 'css', 'custom');  // WP handle bazlı
+ *
+ * Examples:
+ *   $packer = new AssetPacker([], 'css', 'theme-styles');
+ *   $url = $packer->get_url();  // Birleştirilmiş + minify edilmiş CSS URL'i
  */
 class AssetPacker {
     private $files = [];
