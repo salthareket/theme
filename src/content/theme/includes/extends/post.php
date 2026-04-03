@@ -287,7 +287,10 @@ class ThemeProduct extends Timber\Post{
 	protected $product = null;
 
     public function get_title(){
-        return qtranxf_use(Data::get("language"), $this->get_title(), false, false );
+        if (function_exists('qtranxf_use')) {
+            return qtranxf_use(Data::get("language"), parent::title(), false, false );
+        }
+        return parent::title();
     }
 
 	public function product( $post = null ) {
@@ -317,7 +320,9 @@ class ThemeProduct extends Timber\Post{
 	}
 
 	public function category() {
-		$categories = $this->product->get_category_ids();
+		$product = $this->product();
+		if (!$product) return false;
+		$categories = $product->get_category_ids();
 		if ( $categories ) {
 			$category = reset( $categories );
 			$category = Timber::get_term( $category );
@@ -337,7 +342,9 @@ class ThemeProduct extends Timber\Post{
 	 * @return array|false
 	 */
 	public function get_product_attribute( $slug, $convert_terms = true ) {
-		$attributes = $this->product->get_attributes();
+		$product = $this->product();
+		if (!$product) return false;
+		$attributes = $product->get_attributes();
 
 		if ( ! $attributes || empty( $attributes ) ) {
 			return false;
@@ -357,7 +364,7 @@ class ThemeProduct extends Timber\Post{
 
 		if ( $attribute->is_taxonomy() ) {
 			$terms = wc_get_product_terms(
-				$this->product->get_id(),
+				$product->get_id(),
 				$attribute->get_name(),
 				array(
 					'fields' => 'all',
@@ -386,18 +393,16 @@ class ThemeProduct extends Timber\Post{
 	}
 
     public function is_in_grouped(){
-	    $grouped_products = wc_get_products(array(
-	        'type'     => 'grouped',
-	        'limit'    => -1,
-	    ));
-	    $grouped_product_ids = array();
-	    foreach ($grouped_products as $grouped_product) {
-	        $children_ids = $grouped_product->get_children();
-	        if (in_array($this->ID, $children_ids)) {
-	            $grouped_product_ids[] = $grouped_product->get_id();
-	        }
-	    }
-        return $grouped_product_ids;
+        global $wpdb;
+        return $wpdb->get_col($wpdb->prepare("
+            SELECT DISTINCT p.ID
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = 'product'
+            AND p.post_status = 'publish'
+            AND pm.meta_key = '_children'
+            AND pm.meta_value LIKE %s
+        ", '%"' . (int) $this->ID . '"%'));
     }
     
 }

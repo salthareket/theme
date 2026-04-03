@@ -81,26 +81,23 @@ function get_free_shipping_amount( $multiply_by = 1 ) {
 function average_rating() {
     global $wpdb;
     $post_id = get_the_ID();
-    $ratings = $wpdb->get_results("
-        SELECT $wpdb->commentmeta.meta_value
-        FROM $wpdb->commentmeta
-        INNER JOIN $wpdb->comments on $wpdb->comments.comment_id=$wpdb->commentmeta.comment_id and $wpdb->comments.meta_key='comment_profile' and  $wpdb->comments.meta_value=36
-        WHERE $wpdb->commentmeta.meta_key='rating' 
-        AND $wpdb->comments.comment_post_id=$post_id 
-        AND $wpdb->comments.comment_approved=1");
-    $counter = 0;
-    $average_rating = 0;    
+    $ratings = $wpdb->get_results($wpdb->prepare("
+        SELECT cm.meta_value
+        FROM {$wpdb->commentmeta} cm
+        INNER JOIN {$wpdb->comments} c ON c.comment_id = cm.comment_id
+        INNER JOIN {$wpdb->commentmeta} cm2 ON cm2.comment_id = c.comment_id AND cm2.meta_key = 'comment_profile' AND cm2.meta_value = '36'
+        WHERE cm.meta_key = 'rating' 
+        AND c.comment_post_ID = %d 
+        AND c.comment_approved = 1", $post_id));
     if ($ratings) {
+        $total = 0;
+        $counter = count($ratings);
         foreach ($ratings as $rating) {
-            $average_rating = $average_rating + $rating->meta_value;
-            $counter++;
+            $total += (float) $rating->meta_value;
         } 
-        //round the average to the nearast 1/2 point
-        return (round(($average_rating/$counter)*2,0)/2);  
-    } else {
-        //no ratings
-        return 'no rating';
+        return (round(($total / $counter) * 2, 0) / 2);
     }
+    return 'no rating';
 }
 
 
@@ -688,13 +685,10 @@ function woo_get_cart_object(){
     $items = $woocommerce->cart->get_cart();
     $items_list = array();
     foreach($items as $item => $values) {
-            $id = $values['data']->get_id();
-            $_product = wc_get_product($id);
+            $_product = $values['data'];
+            $id = $_product->get_id();
             
-            //$image = $_product->get_image("thumbnail");//wp_get_attachment_image_url($_product->get_image_id(), "thumbnail");//get_the_post_thumbnail_url($id, "shop_thumbnail"); 
-            //$image = wp_get_attachment_image_src( get_post_thumbnail_id( $id ), 'shop-thumbnail' );
-            //$image = $_product->get_image("shop_thumbnail");
-            $image =wp_get_attachment_image_url($_product->get_image_id(), "thumbnail");
+            $image = wp_get_attachment_image_url($_product->get_image_id(), "thumbnail");
             $title = $_product->get_title();
             $url = get_permalink($id);
             $quantity = $values['quantity'];
@@ -702,21 +696,21 @@ function woo_get_cart_object(){
             foreach($values['variation'] as $key => $variation) {
                 array_push($variations, attribute_slug_to_title( $key, $variation));
             }
-            $price = $_product->get_price();//$values['data']->price;//get_post_meta($values['product_id'] , '_price', true);
-            $price_regular = $_product->get_regular_price();//$_product->_regular_price;//$values['data']->regular_price;//get_post_meta($values['product_id'] , '_regular_price', true);
-            $price_sale = $_product->get_sale_price();//$values['data']->sale_price;//get_post_meta($values['product_id'] , '_sale_price', true);
+            $price = $_product->get_price();
+            $price_regular = $_product->get_regular_price();
+            $price_sale = $_product->get_sale_price();
             $cart_item = array(
                  "key"           => $values['key'],
-                 "id"            => $values['product_id'],//$getProductDetail->id,
+                 "id"            => $values['product_id'],
                  "image"         => $image,
                  "title"         => $title,
                  "url"           => $url,
                  "quantity"      => $quantity,
-                 "backorders"    => $_product->get_backorders(),//$values['data']->backorders,
-                 "price"         => $_product->get_price(),//get_post_meta($id, '_price', true),// ($price),
+                 "backorders"    => $_product->get_backorders(),
+                 "price"         => $price,
                  "price_regular" => $price_regular,
                  "price_sale"    => $price_sale,
-                 "stock"         => $_product->get_stock_quantity(),//$values['data']->stock_quantity,
+                 "stock"         => $_product->get_stock_quantity(),
                  "variations"    => $variations
             );
             array_push($items_list, $cart_item);
@@ -745,13 +739,13 @@ function wc_cart_item_remove($key){
 }
 
 function woo_get_price($id){
-    $product = new WC_Product($id);
-    return $product->get_price_html();
+    $product = wc_get_product($id);
+    return $product ? $product->get_price_html() : '';
 }
 
 function woo_get_price_only($id){
-    $product = new WC_Product($id);
-    return $product->get_price();
+    $product = wc_get_product($id);
+    return $product ? $product->get_price() : 0;
 }
 
 function woo_get_currency(){
@@ -770,8 +764,8 @@ function woo_get_product_type($id){
 }
 
 function woo_get_variations($id){
-    $product =  wc_get_product($id);
-    if($product->product_type == "variable"){
+    $product = wc_get_product($id);
+    if($product && $product->get_type() === "variable"){
        return $product->get_available_variations();
     }
 }
@@ -795,10 +789,10 @@ function woo_get_product_attributes($arr){
 // attribute slug to title
 if ( ! function_exists( 'attribute_slug_to_title' ) ) {
     function attribute_slug_to_title( $attribute ,$slug ) {
-        global $woocommerce;
+        $value = $slug;
         if ( taxonomy_exists( esc_attr( str_replace( 'attribute_', '', $attribute ) ) ) ) {
             $term = get_term_by( 'slug', $slug, esc_attr( str_replace( 'attribute_', '', $attribute ) ) );
-            if ( ! is_wp_error( $term ) && $term->name )
+            if ( ! is_wp_error( $term ) && $term && $term->name )
                 $value = $term->name;
         } else {
             $value = apply_filters( 'woocommerce_variation_option_name', $value );
@@ -906,8 +900,9 @@ function woo_get_product_variations_unique($arr){
 
 function woo_get_product_low_stock_amount($product){
     if (!is_object($product)) {
-        $product = new WC_Product($product);
+        $product = wc_get_product($product);
     }
+    if (!$product) return 0;
    return wc_get_low_stock_amount( $product );
 }
 
@@ -1052,8 +1047,8 @@ function woo_get_product_default_variation_id( $product ) {
 function get_best_selling_products( $limit = '-1' ){
     global $wpdb;
 
-    $limit_clause = intval($limit) <= 0 ? '' : 'LIMIT '. intval($limit);
-    $curent_month = date('Y-m-01 00:00:00');
+    $limit_val = intval($limit);
+    $limit_clause = $limit_val <= 0 ? '' : $wpdb->prepare('LIMIT %d', $limit_val);
 
     return (array) $wpdb->get_results("
         SELECT p.ID as id, COUNT(oim2.meta_value) as count
@@ -1068,8 +1063,7 @@ function get_best_selling_products( $limit = '-1' ){
             ON o.ID = oi.order_id
         WHERE p.post_type = 'product'
         AND p.post_status = 'publish'
-        AND o.post_status IN ('wc-prodcessing','wc-completed')
-        /*AND o.post_date >= '$curent_month'*/
+        AND o.post_status IN ('wc-processing','wc-completed')
         AND oim.meta_key = '_product_id'
         AND oim2.meta_key = '_qty'
         GROUP BY p.ID
@@ -1131,17 +1125,19 @@ function get_filtered_price() {
 
 function get_orders_by_product_id( $product_id, $order_status = array( 'wc-completed' ) ){
     global $wpdb;
-    $results = $wpdb->get_col("
+    $placeholders = implode( ', ', array_fill( 0, count( $order_status ), '%s' ) );
+    $params = array_merge( $order_status, array( (int) $product_id ) );
+    $results = $wpdb->get_col($wpdb->prepare("
         SELECT order_items.order_id
         FROM {$wpdb->prefix}woocommerce_order_items as order_items
         LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta as order_item_meta ON order_items.order_item_id = order_item_meta.order_item_id
         LEFT JOIN {$wpdb->posts} AS posts ON order_items.order_id = posts.ID
         WHERE posts.post_type = 'shop_order'
-        AND posts.post_status IN ( '" . implode( "','", $order_status ) . "' )
+        AND posts.post_status IN ( $placeholders )
         AND order_items.order_item_type = 'line_item'
         AND order_item_meta.meta_key = '_product_id'
-        AND order_item_meta.meta_value = '$product_id'
-    ");
+        AND order_item_meta.meta_value = %d
+    ", ...$params));
     return $results;
 }
 
@@ -1198,22 +1194,23 @@ function get_products_by_order_id($order_id){
 function get_orders_ids_by_product_id( $product_id ) {
     global $wpdb;
     
-    // Define HERE the orders status to include in  <==  <==  <==  <==  <==  <==  <==
-    $orders_statuses = "'wc-completed', 'wc-processing', 'wc-on-hold', 'wc-partially-paid', 'wc-pending'";
+    $orders_statuses = array('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-partially-paid', 'wc-pending');
+    $placeholders = implode( ', ', array_fill( 0, count( $orders_statuses ), '%s' ) );
+    $params = array_merge( $orders_statuses, array( (int) $product_id ) );
 
-    # Get All defined statuses Orders IDs for a defined product ID (or variation ID)
-    return $wpdb->get_col( "
+    return $wpdb->get_col( $wpdb->prepare("
         SELECT DISTINCT woi.order_id
         FROM {$wpdb->prefix}woocommerce_order_itemmeta as woim, 
              {$wpdb->prefix}woocommerce_order_items as woi, 
              {$wpdb->prefix}posts as p
         WHERE  woi.order_item_id = woim.order_item_id
         AND woi.order_id = p.ID
-        AND p.post_status IN ( $orders_statuses )
+        AND p.post_status IN ( $placeholders )
         AND woim.meta_key IN ( '_product_id', '_variation_id' )
-        AND woim.meta_value LIKE '$product_id'
-        ORDER BY woi.order_item_id DESC"
-    );
+        AND woim.meta_value = %d
+        ORDER BY woi.order_item_id DESC",
+        ...$params
+    ));
 }
 
 
@@ -1428,15 +1425,13 @@ function product_payment_is_complete($product_id, $forced=false){ //forced tamam
 
 function get_continents(){
     $data = array();
-    $WC_Countries = new WC_Countries();
-    $continent_list = $WC_Countries->get_continents();
+    $continent_list = WC()->countries->get_continents();
     foreach ($continent_list as $key => $continent) {
         if($key != "AN"){
-            $continent = array(
+            $data[] = array(
                 "name" => $continent["name"],
                 "slug" => $key
             );
-            $data[] = $continent;            
         }
     }
     return $data;
@@ -1450,13 +1445,11 @@ function wc_get_country_name($short_name){
 }*/
 
 function wc_get_base_country(){
-    $WC_Countries = new WC_Countries();
-    return $WC_Countries->get_base_country();
+    return WC()->countries->get_base_country();
 }
 
 function wc_get_base_city(){
-    $WC_Countries = new WC_Countries();
-    return $WC_Countries->get_base_city();
+    return WC()->countries->get_base_city();
 }
 
 
@@ -1637,90 +1630,64 @@ function get_orders_by_user_products($user_id, $query=false) {
 
 //satıcının toplam kazancı
 function get_user_total_income($user_id) {
-    // Önce WooCommerce ödeme sınıfını dahil edelim
     if ( ! class_exists( 'WC_Order' ) ) {
-        return 0; // WooCommerce yüklü değilse, toplam geliri 0 olarak döndürelim
+        return 0;
     }
 
-    $total_income = 0;
+    global $wpdb;
+    
+    // Completed orders total
+    $completed_total = (float) $wpdb->get_var($wpdb->prepare("
+        SELECT COALESCE(SUM(pm.meta_value), 0)
+        FROM {$wpdb->prefix}posts p
+        INNER JOIN {$wpdb->prefix}postmeta pm ON p.ID = pm.post_id AND pm.meta_key = '_order_total'
+        INNER JOIN {$wpdb->prefix}postmeta pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_product_author_id' AND pm2.meta_value = %d
+        WHERE p.post_type = 'shop_order'
+        AND p.post_status = 'wc-completed'
+    ", (int) $user_id));
+    
+    // Refunded orders — subtract refunded amounts
+    $refunded_total = (float) $wpdb->get_var($wpdb->prepare("
+        SELECT COALESCE(SUM(pm.meta_value), 0)
+        FROM {$wpdb->prefix}posts p
+        INNER JOIN {$wpdb->prefix}postmeta pm ON p.ID = pm.post_id AND pm.meta_key = '_order_total'
+        INNER JOIN {$wpdb->prefix}postmeta pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_product_author_id' AND pm2.meta_value = %d
+        WHERE p.post_type = 'shop_order'
+        AND p.post_status = 'wc-refunded'
+    ", (int) $user_id));
 
-    $args = array(
-            'numberposts' => -1,
-            'post_type'   => 'shop_order',
-            'post_status' => array( 'wc-completed', 'wc-refunded' ),
-            'meta_query'  => array(
-                array(
-                    'key'     => '_product_author_id',
-                    'value'   => $user_id,
-                    'compare' => '='
-                ),
-                /*array(
-                    'key'     => '_product_id',
-                    'value'   => $product->ID,
-                    'compare' => '='
-                )*/
-            )
-    );
-
-    $orders = get_posts( $args );
-
-    foreach ( $orders as $order ) {
-            $order_id      = $order->ID;
-            $order         = wc_get_order( $order_id );
-            $order_status  = $order->get_status();
-            $payment_total = $order->get_total();
-
-            // Refund işlemi varsa, total gelirden düşelim
-            if ( $order_status === 'refunded' ) {
-                $refunded_amount = $order->get_total_refunded();
-                $total_income -= $refunded_amount;
-            }
-
-            // Toplam geliri artıralım
-            $total_income += $payment_total;
-    }
-
-    return $total_income;
+    return $completed_total - $refunded_total;
 }
 
 //alıcının toplam harcaması
 function get_user_total_expenditure($user_id) {
-    // Önce WooCommerce ödeme sınıfını dahil edelim
     if ( ! class_exists( 'WC_Order' ) ) {
-        return 0; // WooCommerce yüklü değilse, toplam harcama tutarını 0 olarak döndürelim
+        return 0;
     }
 
-    // Kullanıcının yaptığı orderları çekelim
-    $args = array(
-        'numberposts' => -1,
-        'post_type'   => 'shop_order',
-        'post_status' => array( 'wc-completed', 'wc-processing', 'wc-on-hold', 'wc-refunded' ),
-        'meta_key'    => '_customer_user',
-        'meta_value'  => $user_id,
-    );
+    global $wpdb;
+    
+    // Active orders total (completed + processing + on-hold)
+    $active_total = (float) $wpdb->get_var($wpdb->prepare("
+        SELECT COALESCE(SUM(pm.meta_value), 0)
+        FROM {$wpdb->prefix}posts p
+        INNER JOIN {$wpdb->prefix}postmeta pm ON p.ID = pm.post_id AND pm.meta_key = '_order_total'
+        INNER JOIN {$wpdb->prefix}postmeta pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_customer_user' AND pm2.meta_value = %d
+        WHERE p.post_type = 'shop_order'
+        AND p.post_status IN ('wc-completed', 'wc-processing', 'wc-on-hold')
+    ", (int) $user_id));
+    
+    // Refunded orders — subtract
+    $refunded_total = (float) $wpdb->get_var($wpdb->prepare("
+        SELECT COALESCE(SUM(pm.meta_value), 0)
+        FROM {$wpdb->prefix}posts p
+        INNER JOIN {$wpdb->prefix}postmeta pm ON p.ID = pm.post_id AND pm.meta_key = '_order_total'
+        INNER JOIN {$wpdb->prefix}postmeta pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_customer_user' AND pm2.meta_value = %d
+        WHERE p.post_type = 'shop_order'
+        AND p.post_status = 'wc-refunded'
+    ", (int) $user_id));
 
-    $orders = get_posts( $args );
-
-    // Toplam harcama tutarını saklayacak bir değişken oluşturalım
-    $total_expenditure = 0;
-
-    foreach ( $orders as $order ) {
-        $order_id      = $order->ID;
-        $order         = wc_get_order( $order_id );
-        $order_status  = $order->get_status();
-        $payment_total = $order->get_total();
-
-        // Refund işlemi varsa, toplam harcama tutarından düşelim
-        if ( $order_status === 'refunded' ) {
-            $refunded_amount = $order->get_total_refunded();
-            $total_expenditure -= $refunded_amount;
-        }
-
-        // Toplam harcama tutarını artıralım
-        $total_expenditure += $payment_total;
-    }
-
-    return $total_expenditure;
+    return $active_total - $refunded_total;
 }
 
 
@@ -1730,24 +1697,33 @@ function get_user_total_expenditure($user_id) {
 
 function user_order_count($user_id=0, $user_meta_key="_customer_user", $status=array()){
     global $wpdb;
+    
+    $allowed_meta_keys = array('_customer_user', '_product_author_id');
+    if (!in_array($user_meta_key, $allowed_meta_keys)) {
+        $user_meta_key = '_customer_user';
+    }
+    
     $query = "SELECT COUNT(ID) as count
         FROM {$wpdb->prefix}posts
         WHERE post_type = 'shop_order' ";
-        if($status){
-            $query .= ' AND (';
-            foreach($status as $key => $item){
-               $query .=  " post_status = 'wc-".$item."'";
-               if($key < count($status)-1){
-                $query .=  " or ";
-               }
-            }
-            $query .= ")";
+    $params = array();
+    
+    if($status){
+        $status_placeholders = array();
+        foreach($status as $item){
+            $status_placeholders[] = '%s';
+            $params[] = 'wc-' . sanitize_text_field($item);
         }
-    $query .=" AND ID IN (
+        $query .= ' AND post_status IN (' . implode(',', $status_placeholders) . ')';
+    }
+    
+    $query .= " AND ID IN (
                     SELECT post_id
                     FROM {$wpdb->prefix}postmeta
-                    WHERE meta_key = '$user_meta_key' AND meta_value = ".$user_id.")";
-    return $wpdb->get_var($query);
+                    WHERE meta_key = '" . esc_sql($user_meta_key) . "' AND meta_value = %d)";
+    $params[] = (int) $user_id;
+    
+    return $wpdb->get_var($wpdb->prepare($query, ...$params));
 }
 
 
@@ -2078,12 +2054,6 @@ function woo_archive_grid($min_col=2, $desired=array()){
     $cols = intval(get_option("woocommerce_catalog_columns", 4));
     $rows = intval(get_option("woocommerce_catalog_rows", 3));
     $diff = round(($cols - $min_col)/4);
-    function woo_archive_grid_checker($val){
-        if($val < $min_col){
-           $val = $min_col;
-        }
-        return $val;
-    }
     $steps = array();
     $breakpoints = ["xxl", "xl", "lg", "md", "sm", ""];
     $start = $cols;
