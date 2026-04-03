@@ -56,7 +56,8 @@
             },
             "choices": {
                 "default": "Default",
-                "static": "Static"
+                "static": "Static",
+                "6992": "Footer Test 001"
             },
             "default_value": false,
             "return_format": "value",
@@ -201,7 +202,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302491,
+    "modified": 1774822200,
     "acfe_categories": {
         "general": "General"
     }

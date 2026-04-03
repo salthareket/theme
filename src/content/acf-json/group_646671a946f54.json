@@ -1047,7 +1047,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "message": "",
@@ -1099,7 +1099,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "message": "",
@@ -1503,7 +1503,8 @@
                 "id": ""
             },
             "choices": {
-                "looks": "Looks"
+                "looks": "Looks",
+                "product": "Ürünler"
             },
             "default_value": false,
             "return_format": "value",
@@ -1539,6 +1540,7 @@
                 "page": "Sayfalar",
                 "attachment": "Ortam",
                 "looks": "Looks",
+                "product": "Ürünler",
                 "contact": "Contacts",
                 "template": "Templates"
             },
@@ -1575,6 +1577,10 @@
                 "category": "category",
                 "post_tag": "post_tag",
                 "post_format": "post_format",
+                "product_brand": "product_brand",
+                "product_cat": "product_cat",
+                "product_tag": "product_tag",
+                "product_shipping_class": "product_shipping_class",
                 "template-types": "template-types",
                 "contact-type": "contact-type"
             },
@@ -2281,7 +2287,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "message": "",
@@ -2303,7 +2309,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "message": "",
@@ -2431,7 +2437,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "hidden",
+                "class": "",
                 "id": ""
             },
             "message": "",
@@ -3222,7 +3228,8 @@
                 "id": ""
             },
             "choices": {
-                "static": "Static"
+                "static": "Static",
+                "6992": "Footer Test 001"
             },
             "default_value": false,
             "return_format": "value",
@@ -3927,7 +3934,7 @@
     "pll_display_field_instructions": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302504,
+    "modified": 1774822223,
     "acfe_categories": {
         "general": "General"
     }

@@ -3821,14 +3821,13 @@
             "acfe_flexible_layouts_previews": false,
             "acfe_flexible_layouts_state": false,
             "acfe_flexible_modal_settings": {
-                "acfe_flexible_modal_settings_enabled": 0,
+                "acfe_flexible_modal_settings_enabled": false,
                 "acfe_flexible_modal_settings_size": "large",
                 "acfe_flexible_modal_settings_close": true,
                 "acfe_flexible_modal_settings_close_label": ""
             },
             "acfe_flexible_close_button_label": "",
-            "acfe_flexible_remove_top_actions": [],
-            "acfe_flexible_layouts_settings": false
+            "acfe_flexible_remove_top_actions": []
         }
     ],
     "location": [
@@ -3856,7 +3855,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302572,
+    "modified": 1774822327,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

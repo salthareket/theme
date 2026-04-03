@@ -2151,7 +2151,9 @@
                                 "id": ""
                             },
                             "choices": {
-                                "post\/tease": "Post Tease (Predefined)"
+                                "post\/tease": "Post Tease (Predefined)",
+                                "theme\/templates\/_custom\/6995_default": "6995_default",
+                                "theme\/templates\/_custom\/footer-test-001_default": "footer-test-001_default"
                             },
                             "default_value": false,
                             "return_format": "value",
@@ -2190,7 +2192,9 @@
                             "ui_off_text": "",
                             "ui": 1,
                             "choices": {
-                                "post\/tease": "Post Tease (Predefined)"
+                                "post\/tease": "Post Tease (Predefined)",
+                                "theme\/templates\/_custom\/6995_default": "6995_default",
+                                "theme\/templates\/_custom\/footer-test-001_default": "footer-test-001_default"
                             },
                             "pll_default_value": 0
                         },
@@ -2636,14 +2640,13 @@
             "acfe_flexible_layouts_previews": false,
             "acfe_flexible_layouts_state": false,
             "acfe_flexible_modal_settings": {
-                "acfe_flexible_modal_settings_enabled": 0,
+                "acfe_flexible_modal_settings_enabled": false,
                 "acfe_flexible_modal_settings_size": "large",
                 "acfe_flexible_modal_settings_close": true,
                 "acfe_flexible_modal_settings_close_label": ""
             },
             "acfe_flexible_close_button_label": "",
-            "acfe_flexible_remove_top_actions": [],
-            "acfe_flexible_layouts_settings": false
+            "acfe_flexible_remove_top_actions": []
         }
     ],
     "location": [
@@ -2672,7 +2675,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302565,
+    "modified": 1774822317,
     "acfe_categories": {
         "block": "Block"
     }

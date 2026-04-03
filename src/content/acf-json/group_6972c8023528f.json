@@ -60,7 +60,9 @@
                 "class": "acf-template-custom-modal",
                 "id": ""
             },
-            "choices": [],
+            "choices": {
+                "6995": "Merhaba"
+            },
             "default_value": false,
             "return_format": "value",
             "multiple": 0,
@@ -379,10 +381,9 @@
                 "id": ""
             },
             "choices": {
-                "4172": "Schon International Kozmetik San. ve Tic. A.Ş. (contact)",
-                "1649": "Schon International Kozmetik San. ve Tic. A.Ş. (contact)"
+                "4172": "Schon International Kozmetik San. ve Tic. A.Ş. (contact)"
             },
-            "default_value": false,
+            "default_value": [],
             "return_format": "value",
             "multiple": 1,
             "translations": "sync",
@@ -823,7 +824,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302577,
+    "modified": 1774822334,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

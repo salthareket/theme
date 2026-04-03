@@ -385,7 +385,8 @@
                                 "bg-light": "bg-light",
                                 "bg-dark": "bg-dark",
                                 "16": "##Body Classes",
-                                "17": "##Body Classes"
+                                "17": "##Body Classes",
+                                "18": "##Body Classes"
                             },
                             "default_value": [],
                             "return_format": "value",
@@ -1045,7 +1046,9 @@
                                 "class": "",
                                 "id": ""
                             },
-                            "choices": [],
+                            "choices": {
+                                "default-preset": "Default preset"
+                            },
                             "default_value": false,
                             "return_format": "value",
                             "multiple": 0,
@@ -1111,7 +1114,8 @@
                     },
                     "choices": {
                         "default": "Default",
-                        "static": "Static"
+                        "static": "Static",
+                        "6992": "Footer Test 001"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -1187,7 +1191,7 @@
     "pll_display_field_instructions": 1,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302498,
+    "modified": 1774822213,
     "acfe_categories": {
         "general": "General"
     }

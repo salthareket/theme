@@ -642,7 +642,9 @@
                     },
                     "choices": {
                         "default": "Default",
-                        "post\/tease": "Post Tease (Predefined)"
+                        "post\/tease": "Post Tease (Predefined)",
+                        "theme\/templates\/_custom\/6995_default": "6995_default",
+                        "theme\/templates\/_custom\/footer-test-001_default": "footer-test-001_default"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -762,7 +764,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302523,
+    "modified": 1774822255,
     "acfe_categories": {
         "block": "Block"
     }

@@ -88,10 +88,8 @@
                         "id": ""
                     },
                     "choices": {
-                        "footer_en": "footer_en",
-                        "header": "header",
-                        "header_tr": "header_tr",
-                        "header-menu-tr": "header-menu-tr"
+                        "footer": "footer",
+                        "header": "header"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -515,6 +513,64 @@
                     "append": "",
                     "parent_repeater": "field_66b94a30a4d93",
                     "pll_default_value": 1
+                },
+                {
+                    "key": "field_69cf6b005cc75",
+                    "label": "Hide Empty",
+                    "name": "hide_empty",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_66b94a87a4d95",
+                                "operator": "!=empty"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1,
+                    "parent_repeater": "field_66b94a30a4d93"
+                },
+                {
+                    "key": "field_69cd828bcbff8",
+                    "label": "Show Posts",
+                    "name": "show_posts",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": [
+                        [
+                            {
+                                "field": "field_66b94a87a4d95",
+                                "operator": "!=empty"
+                            }
+                        ]
+                    ],
+                    "wrapper": {
+                        "width": "20",
+                        "class": "",
+                        "id": ""
+                    },
+                    "message": "",
+                    "default_value": 0,
+                    "allow_in_bindings": 0,
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "ui": 1,
+                    "parent_repeater": "field_66b94a30a4d93"
                 }
             ]
         }
@@ -544,7 +600,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302555,
+    "modified": 1775201071,
     "acfe_categories": {
         "general": "General"
     }

@@ -188,8 +188,7 @@
                 "id": ""
             },
             "choices": {
-                "4172": "Schon International Kozmetik San. ve Tic. A.Ş.",
-                "1649": "Schon International Kozmetik San. ve Tic. A.Ş."
+                "4172": "Schon International Kozmetik San. ve Tic. A.Ş."
             },
             "default_value": false,
             "return_format": "value",
@@ -347,7 +346,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302536,
+    "modified": 1774822274,
     "acfe_categories": {
         "block": "Block"
     }

@@ -309,6 +309,7 @@
                 "page": "Sayfalar",
                 "attachment": "Ortam",
                 "looks": "Looks",
+                "product": "Ürünler",
                 "contact": "Contacts",
                 "template": "Templates"
             },
@@ -556,7 +557,7 @@
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774302527,
+    "modified": 1774822261,
     "acfe_categories": {
         "block": "Block"
     }
