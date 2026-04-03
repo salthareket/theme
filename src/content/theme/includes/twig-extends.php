@@ -13,7 +13,11 @@ add_filter('timber/post/classmap', function ($classmap) {
     $post_types = array_diff($post_types, array('attachment'));
     $custom_classmap = [];
     foreach ($post_types as $post_type) {
-        $custom_classmap[$post_type] = ThemePost::class;
+        if ($post_type === 'product' && defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE) {
+            $custom_classmap[$post_type] = ThemeProduct::class;
+        } else {
+            $custom_classmap[$post_type] = ThemePost::class;
+        }
     }
     $custom_classmap["attachment"] = ThemeImage::class;
     return array_merge($classmap, $custom_classmap);
