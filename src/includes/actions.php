@@ -572,12 +572,13 @@ function ns_filter_avatar($avatar, $id_or_email, $size, $default, $alt, $args) {
 add_action('wp_ajax_save_lcp_results', 'save_lcp_results');
 add_action('wp_ajax_nopriv_save_lcp_results', 'save_lcp_results');
 function save_lcp_results() {
-    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $id_raw = isset($_POST['id']) ? sanitize_text_field($_POST['id']) : '';
+    $id = is_numeric($id_raw) ? intval($id_raw) : $id_raw; // archive için string ID olabilir
     $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
     $url = isset($_POST['url']) ? esc_url_raw($_POST['url']) : '';
     $lang = isset($_POST['lang']) ? sanitize_text_field($_POST['lang']) : '';
 
-    if (!$id || !$type || !isset($_POST['lcp_data'])) {
+    if (empty($id) || !$type || !isset($_POST['lcp_data'])) {
         wp_send_json_error(['message' => 'Eksik veya geçersiz parametre!']);
     }
 
@@ -588,7 +589,7 @@ function save_lcp_results() {
         wp_send_json_error(['message' => 'JSON formatı bozuk!']);
     }
 
-    if (!$id || !$type || !$lcp_data) {
+    if (empty($id) || !$type || !$lcp_data) {
         wp_send_json_error(['message' => 'Geçersiz veri!']);
     }
 
@@ -610,7 +611,8 @@ function save_lcp_results() {
         $meta_function_get = "get_{$type}_meta";
         $existing_meta = call_user_func($meta_function_get, $id, 'assets', true);
     } else {
-        $option_name = $id . '_archive_'.$lang.'_assets'; 
+        // id zaten "product_archive_tr" formatında — direkt _assets ekle
+        $option_name = $id . '_assets'; 
         $existing_meta = get_option($option_name);
     }
     
@@ -668,7 +670,8 @@ function save_lcp_results() {
             $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta); // Güncelle
         } // Add mantığı eksik, ama update'i kullanıyoruz.
     }else{
-        $option_name = $id . '_archive_'.$lang.'_assets';
+        // id zaten "product_archive_tr" formatında — direkt _assets ekle
+        $option_name = $id . '_assets';
         
         if ($existing_meta) {
             $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);

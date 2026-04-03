@@ -664,12 +664,18 @@ function get_video($video_args=array()){
     $config = array();
     $settings = isset($args["video_settings"])?$args["video_settings"]:[];
     if($lazy){
-        //$code = str_replace("{{lazy}}", "loading='lazy'", $code);
-        $code = str_replace("{{preload}}", "none", $code);
-        if($type == "embed"){
-            $class .= " lazy-container "; 
-        }else{
-            $class .= "lazy";
+        // Autoplay video'lar lazy olmamalı — çakışma yaratır
+        $is_autoplay = isset($settings["autoplay"]) && $settings["autoplay"];
+        if ($is_autoplay) {
+            $lazy = false;
+            $code = str_replace("{{preload}}", "metadata", $code);
+        } else {
+            $code = str_replace("{{preload}}", "none", $code);
+            if($type == "embed"){
+                $class .= " lazy-container "; 
+            }else{
+                $class .= "lazy";
+            }
         }
     }
     $code = str_replace("{{lazy}}", "", $code);

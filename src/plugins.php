@@ -175,7 +175,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["ecommerce"],
-    "v" => "8.4.0",
+    "v" => "8.5.6",
     "name" => "woocommerce-product-bundles/woocommerce-product-bundles.php",
     "file" => "woocommerce-product-bundles"
 );
@@ -195,7 +195,7 @@ $required_plugins_local[] = array(
 $required_plugins_local[] = array(
     "type" => ["main"],
     "v" => "1.2.1",
-    "name" => "acf-bs-breakpoints/index.php",
+    "name" => "acf-bs-breakpoints/acf-bs-breakpoints.php",
     "file" => "acf-bs-breakpoints"
 );
 $required_plugins_local[] = array(
@@ -207,13 +207,13 @@ $required_plugins_local[] = array(
 $required_plugins_local[] = array(
     "type" => ["main"],
     "v" => "1.0.4",
-    "name" => "acf-unit-field/index.php",
+    "name" => "acf-unit-field/acf-unit-field.php",
     "file" => "acf-unit-field"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
     "v" => "1.0.2",
-    "name" => "tinymce-shortcut-plugin/index.php",
+    "name" => "tinymce-shortcut-plugin/tinymce-shortcut-plugin.php",
     "file" => "tinymce-shortcut-plugin"
 );
 $required_plugins_local[] = array(

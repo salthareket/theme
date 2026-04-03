@@ -2,6 +2,7 @@ function typeahead(){
 	//dependencies: bootstrap-4-autocomplete
 	var token_init = "typeahead-init";
     if($(".typeahead").not("."+token_init).length>0){
+        requirePlugin("twig", function() {
         typeahead.log($('.typeahead'));
 	    var search_request;
 		var templates = {
@@ -162,6 +163,7 @@ function typeahead(){
 				}
 			}
 
+		});
 		});
 	}	
 }

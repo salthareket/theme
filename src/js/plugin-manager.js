@@ -46,6 +46,7 @@ jQuery(document).ready(function ($) {
 
         $.post(pluginManagerAjax.ajax_url, {
             action: 'plugin_manager_process',
+            _pm_nonce: pluginManagerAjax.nonce,
             plugin_slug: pluginSlug,
             action_type: actionType,
             local: local
@@ -84,6 +85,7 @@ jQuery(document).ready(function ($) {
 
         $.post(pluginManagerAjax.ajax_url, {
             action: 'plugin_manager_process',
+            _pm_nonce: pluginManagerAjax.nonce,
             plugin_slug: pluginSlug,
             action_type: actionType,
             local: local

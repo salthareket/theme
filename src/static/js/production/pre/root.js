@@ -418,7 +418,10 @@ class ajax_query {
         // 1. GLOBAL START: İstek başlar başlamaz tetikle
         $(document).trigger('ajax_query:start', [obj]);
 
-        if (!await this.ensureMethodsLoaded()) return;
+        if (!await this.ensureMethodsLoaded()) {
+            console.error('[ajax_query] ensureMethodsLoaded FAILED for', obj.method);
+            return;
+        }
         
         obj.cacheEnabled = (obj.vars && obj.vars.cache === true);
         const cacheKey = obj.getCacheKey();
@@ -505,6 +508,7 @@ class ajax_query {
             await this.handleHooksAndCheck(result, obj, hooks);
 
         } catch (error) {
+            console.error('[ajax_query] ERROR in', obj.method, ':', error.message, error.stack);
             if (error.name !== 'AbortError') {
                 this.check(null);
             }

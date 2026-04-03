@@ -2227,7 +2227,7 @@ function block_css($block, $fields, $block_column){
     }
 
     if(!empty($code)){
-        $code = "<style type='text/css'>".$code."</style>";
+        $code = "<style>".$code."</style>";
     }
 
     return $code;
@@ -2400,7 +2400,7 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
                        $css_tmp = str_replace("</style>", $css."</style>", $css_tmp);
                     }else{
                         if(empty($css_tmp)){
-                            $css_tmp = "<style type='text/css'>".$css."</style>";
+                            $css_tmp = "<style>".$css."</style>";
                         }else{
                             $css_tmp .= $css; 
                         }

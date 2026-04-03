@@ -119,20 +119,40 @@ function get_menu_populate(): array {
                 'number'   => $item['all_taxonomy'] ? 0 : ( $item['number'] ?? 10 ),
                 'orderby'  => $item['orderby_taxonomy'] ?? 'name',
                 'order'    => $item['order_taxonomy'] ?? 'ASC',
+                'show_posts' => ! empty( $item['show_posts'] ),
+                'hide_empty' => ! empty( $item['hide_empty'] ),
             ];
         }
 
         $menu_item = [];
-        if ( ! empty( $post_type['posts_per_page'] ) && $post_type['posts_per_page'] != 0 ) {
+        if ( ! empty( $taxonomy['taxonomy'] ) ) {
+            // Taxonomy secilmisse, post_type bilgisini koru ama posts_per_page'i
+            // sadece leaf term'lerde post gostermek icin kullan
+            $menu_item['taxonomy'] = $taxonomy;
+            // show_posts aktifse leaf term'lerde post goster
+            $leaf_posts_per_page = 0;
+            if ( ! empty( $taxonomy['show_posts'] ) ) {
+                $leaf_posts_per_page = (int) ( $item['post_per_page'] ?? 0 );
+                if ( $leaf_posts_per_page === 0 && ! empty( $item['all_post_type'] ) ) {
+                    $leaf_posts_per_page = -1;
+                } elseif ( $leaf_posts_per_page === 0 ) {
+                    $leaf_posts_per_page = -1; // show_posts aktif, en az -1 olmali
+                }
+            }
+            $menu_item['post_type'] = [
+                'post_type' => $post_type['post_type'] ?? '',
+                'replace'   => $post_type['replace'] ?? false,
+                'posts_per_page' => $leaf_posts_per_page,
+                'orderby'   => $post_type['orderby'] ?? 'menu_order',
+                'order'     => $post_type['order'] ?? 'ASC',
+            ];
+        } elseif ( ! empty( $post_type['posts_per_page'] ) && $post_type['posts_per_page'] != 0 ) {
             $menu_item['post_type'] = $post_type;
         } else {
             $menu_item['post_type'] = [
                 'post_type' => $post_type['post_type'] ?? '',
                 'replace'   => $post_type['replace'] ?? false,
             ];
-        }
-        if ( ! empty( $taxonomy['taxonomy'] ) ) {
-            $menu_item['taxonomy'] = $taxonomy;
         }
 
         $arr[ $menu ][] = $menu_item;
@@ -161,14 +181,34 @@ if ( QueryCache::get_option( 'options_menu_populate' ) > 0 ) {
         $dynamic_config = $dynamic_menus[ $menu_obj->slug ];
 
         foreach ( $items as $key => $item ) {
+            // ACF object_type field'i - menu item'a atanan post type
+            $acf_object_type = get_field( 'object_type', $item->ID );
+
+            // ACF field yoksa otomatik tespit
+            if ( empty( $acf_object_type ) ) {
+                $item_object = $item->object;
+
+                // WooCommerce magaza sayfasi gibi post type archive sayfalari
+                if ( $item->object === 'page' && ! empty( $item->object_id ) ) {
+                    // WooCommerce shop page
+                    if ( function_exists( 'wc_get_page_id' ) && (int) $item->object_id === wc_get_page_id( 'shop' ) ) {
+                        $item_object = 'product';
+                    } else {
+                        // Diger post type'larin archive sayfalari (page_for_posts vs.)
+                        if ( (int) $item->object_id === (int) get_option( 'page_for_posts' ) ) {
+                            $item_object = 'post';
+                        }
+                    }
+                }
+            } else {
+                $item_object = $acf_object_type;
+            }
+
             foreach ( $dynamic_config as $config ) {
                 $pt = $config['post_type']['post_type'] ?? '';
                 if ( empty( $pt ) ) continue;
 
-                // object veya object_type eşleşmesi (object_type array olabilir)
-                $object_match = ( $item->object === $pt )
-                    || ( is_array( $item->object_type ) && in_array( $pt, $item->object_type, true ) )
-                    || ( is_string( $item->object_type ) && $item->object_type === $pt );
+                $object_match = ( $item_object === $pt );
 
                 if ( ! $object_match ) continue;
 
@@ -179,11 +219,14 @@ if ( QueryCache::get_option( 'options_menu_populate' ) > 0 ) {
                 // Taxonomy bazlı doldurma
                 if ( ! empty( $config['taxonomy']['taxonomy'] ) ) {
                     $term_args = array_merge( $config['taxonomy'], [
-                        'hide_empty' => true,
+                        'hide_empty' => ! empty( $config['taxonomy']['hide_empty'] ),
                         'parent'     => 0,
                     ] );
+                    // show_posts gibi WP'nin tanimadigi key'leri temizle
+                    unset( $term_args['show_posts'] );
 
-                    // QueryCache ile cache'li — post/term değişikliğinde otomatik invalidate
+                    error_log('[MENU_POP] term_args: ' . json_encode($term_args));
+
                     $terms = class_exists( 'QueryCache' )
                         ? QueryCache::get_timber_terms( $term_args )
                         : Timber::get_terms( $term_args );
@@ -191,12 +234,12 @@ if ( QueryCache::get_option( 'options_menu_populate' ) > 0 ) {
                     if ( $terms ) {
                         foreach ( $terms as $term ) {
                             $menu_order++;
+                            $term->db_id = 1000000 + $menu_order;
                             custom_menu_items::add_object(
                                 $menu_obj->name, $term->term_id, 'term',
                                 $menu_order, (int) $item->db_id,
-                                $term->term_id, '', '', $term->name
+                                $term->db_id, '', '', $term->name, $term->term_id
                             );
-                            $term->db_id = 1000000 + $menu_order;
                             $menu_order  = bric_custom_menu_loop( $menu_obj, $item, $term, $menu_order, $config );
                         }
                     }
@@ -229,9 +272,10 @@ if ( QueryCache::get_option( 'options_menu_populate' ) > 0 ) {
         if ( ! isset( $parent->taxonomy ) ) return $menu_order;
 
         $term_args = array_merge( $config['taxonomy'], [
-            'hide_empty' => false,
+            'hide_empty' => ! empty( $config['taxonomy']['hide_empty'] ),
             'parent'     => $parent->term_id,
         ] );
+        unset( $term_args['show_posts'] );
 
         $children = class_exists( 'QueryCache' )
             ? QueryCache::get_timber_terms( $term_args )
@@ -240,20 +284,25 @@ if ( QueryCache::get_option( 'options_menu_populate' ) > 0 ) {
         if ( $children ) {
             foreach ( $children as $child ) {
                 $menu_order++;
+                $child->db_id = 1000000 + $menu_order;
                 custom_menu_items::add_object(
                     $menu->name, $child->term_id, 'term',
                     $menu_order, (int) $parent->db_id,
-                    $child->term_id, '', '', $child->name
+                    $child->db_id, '', '', $child->name, $child->term_id
                 );
-                $child->db_id = 1000000 + $menu_order;
                 $menu_order   = bric_custom_menu_loop( $menu, $item, $child, $menu_order, $config );
             }
-        } elseif ( ( $config['post_type']['posts_per_page'] ?? 0 ) != 0 ) {
+        }
+
+        // show_posts aktifse her term'in altina postlarini ekle
+        $show_posts = ! empty( $config['taxonomy']['show_posts'] );
+        if ( $show_posts && ( $config['post_type']['posts_per_page'] ?? 0 ) != 0 ) {
             $post_args              = $config['post_type'];
             $post_args['tax_query'] = [ [
                 'taxonomy' => $parent->taxonomy,
                 'field'    => 'term_id',
                 'terms'    => [ $parent->term_id ],
+                'include_children' => false,
             ] ];
 
             $posts = class_exists( 'QueryCache' )

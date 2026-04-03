@@ -12,7 +12,8 @@ function calendar(){
 	            $calendar.addClass(token_init);
 	       	var $template = $calendar.data("template");
 	       	if(!IsBlank($template)){
-	        	twig({
+	        	requirePlugin("twig", function() {
+	        		twig({
 						href : ajax_request_vars.theme_url+"static/templates/"+$template+".twig",
 						async : true,
 						allowInlineIncludes : true,
@@ -88,6 +89,7 @@ function calendar(){
 							});
 						}
 				});
+			});
 	        }
 	    });
 	}

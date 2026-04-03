@@ -1208,8 +1208,8 @@ Class Theme{
                 'post'    => get_post_meta($meta['id'], 'assets', true),
                 'term'    => get_term_meta($meta['id'], 'assets', true),
                 'user'    => get_user_meta($meta['id'], 'assets', true),
-                'archive' => get_option($meta['id'] . "_assets", true),
-                'dynamic' => get_option($meta['id'] . "_assets", true),
+                'archive' => get_option($meta['id'] . "_assets", null),
+                'dynamic' => get_option($meta['id'] . "_assets", null),
                 default   => null
             };
         }

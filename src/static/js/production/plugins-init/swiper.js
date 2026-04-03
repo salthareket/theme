@@ -209,7 +209,24 @@ function getRenderedLuminance(element) {
             }
             // ------------------------------------
 
-            if (typeof htmlToImage === 'undefined') return resolve(getComputedLuminance(element));
+            if (typeof htmlToImage === 'undefined') {
+                requirePlugin("html-to-image", function() {
+                    htmlToImage.toCanvas(element, {
+                        pixelRatio: 0.1,
+                        skipFonts: true,
+                        backgroundColor: bgColor
+                    }).then(canvas => {
+                        const ctx = canvas.getContext("2d");
+                        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                        let total = 0;
+                        for (let i = 0; i < data.length; i += 4) {
+                            total += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+                        }
+                        resolve(total / (data.length / 4));
+                    }).catch(() => resolve(getComputedLuminance(element)));
+                });
+                return;
+            }
 
             htmlToImage.toCanvas(element, {
                 pixelRatio: 0.1,

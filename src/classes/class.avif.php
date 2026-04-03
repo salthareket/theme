@@ -1,6 +1,17 @@
 <?php
 /**
  * Optimized Avif & WebP Converter Class
+ *
+ * @version 1.1.0
+ *
+ * Changelog:
+ * -----------
+ * 1.1.0 — 2026-03-31
+ *   - Fix: wp_update_post yerine $wpdb->update — save_post hook tetiklenmez, metadata bozulmaz
+ *   - Fix: update_attached_file yerine update_post_meta — hook zinciri kırılmaz
+ *   - Fix: Thumbnail metadata (.png/.jpg) artık doğru şekilde .avif/.webp olarak güncelleniyor
+ *
+ * 1.0.0 — Önceki stabil versiyon
  */
 class AvifConverter {
 
@@ -108,13 +119,20 @@ class AvifConverter {
         }
 
         // Veritabanı Güncelleme
-        // GUID değiştirilmez — orijinal dosyaya guid üzerinden erişilebilir kalır
-        // Orijinal dosya (.jpg/.png) diskte korunur
-        update_attached_file($attachment_id, $new_main_path);
-        wp_update_post([
-            'ID' => $attachment_id,
-            'post_mime_type' => $main_conversion['mime'],
-        ]);
+        // wp_update_post kullanmıyoruz — save_post hook'u tetikleyip metadata'yı bozabilir
+        // Doğrudan DB update ile sadece mime type güncelliyoruz
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->posts,
+            ['post_mime_type' => $main_conversion['mime']],
+            ['ID' => $attachment_id],
+            ['%s'],
+            ['%d']
+        );
+        clean_post_cache($attachment_id);
+
+        // _wp_attached_file meta'sını güncelle (hook tetiklemez)
+        update_post_meta($attachment_id, '_wp_attached_file', _wp_relative_upload_path($new_main_path));
 
         return $metadata;
     }

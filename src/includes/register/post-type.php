@@ -273,12 +273,43 @@ add_action('save_post', function($post_id, $post, $update) {
         $timber_post = Timber::get_post($post_id);
         if (!$timber_post) return;
 
-        $blocks_raw = '';
-        if (method_exists($timber_post, 'get_blocks')) {
-            $blocks_raw = $timber_post->get_blocks(['seperate_css' => false, 'seperate_js' => false])['html'];
+        // Frontend'den fetch et - admin'de render_block bazı block'ların CSS'ini uretmiyor
+        $fetch_url = get_permalink($post_id);
+        if ($fetch_url) {
+            $fetch_url = add_query_arg('fetch', '1', $fetch_url);
+            $response = wp_remote_get($fetch_url, [
+                'timeout'   => 30,
+                'sslverify' => false,
+                'headers'   => ['X-Internal-Fetch' => '1'],
+            ]);
+            $fetch_body = wp_remote_retrieve_body($response);
+        }
+
+        if (!empty($fetch_body)) {
+            // Fetch'ten gelen tam sayfa HTML'inden sadece block content'i al
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $fetch_body, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            $xpath = new \DOMXPath($dom);
+
+            // main veya .entry-content icerigini al
+            $main = $xpath->query('//main');
+            if ($main && $main->length > 0) {
+                $blocks_raw = '';
+                foreach ($main as $node) {
+                    $blocks_raw .= $dom->saveHTML($node);
+                }
+            } else {
+                $blocks_raw = $fetch_body;
+            }
         } else {
-            foreach (parse_blocks($timber_post->post_content ?? '') as $b) {
-                $blocks_raw .= render_block($b);
+            // Fallback: admin render
+            if (method_exists($timber_post, 'get_blocks')) {
+                $blocks_raw = $timber_post->get_blocks(['seperate_css' => false, 'seperate_js' => false])['html'];
+            } else {
+                $blocks_raw = '';
+                foreach (parse_blocks($timber_post->post_content ?? '') as $b) {
+                    $blocks_raw .= render_block($b);
+                }
             }
         }
 

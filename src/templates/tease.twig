@@ -2,8 +2,10 @@
 	{% block content %}
 		<{{heading|default("h2")}}><a href="{{post.link}}">{{post.title}}</a></{{heading|default("h2")}}>
 		<p>{{post.get_preview}}</p>
-		{% if post.thumbnail %}
-			<img data-src="{{post.thumbnail.src}}" alt="{{post.thumbnail.alt}}" class="lazy img-fluid"/>
-		{% endif %}
+		<a href="{{post.link}}" title="{{ post.title }}" class="img-placeholder ratio ratio-16x9 mb-3 d-block rounded-4 overflow-hidden {% if post.thumbnail and not is_preview %}loading{% else %}img-not-found{% endif %} btn-loading-page" {% if post.thumbnail %}style="background-color:{{post.thumbnail.average_color}}"{% endif %}>
+		    {% if post.thumbnail %}
+		    	{{post.get_thumbnail({class : "object-fit-cover w-100 h-100", preview: is_preview})}}
+			{% endif %}
+		</a>
 	{% endblock %}
 </article>

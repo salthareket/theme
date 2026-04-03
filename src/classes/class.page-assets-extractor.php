@@ -1,4 +1,35 @@
 <?php
+/**
+ * Page Assets Extractor - CSS/JS asset extraction, caching & optimization
+ *
+ * @version 1.5.0
+ *
+ * @changelog
+ *   1.5.0 - 2026-04-01
+ *     - Fix: normalize_content JS yorum silme devre dışı - minified kütüphanelerdeki string/regex
+ *          literal'leri bozuyordu (// ve comment regex'leri + console.error manipülasyonu kaldırıldı)
+ *     - Fix: combine_and_cache_files - dosya ;/}/} ile bitiyorsa ekstra ; eklemiyor (;; sorunu)
+ *     - Add: collectTwigLoadedHtml - data-ajax-method attribute'u olan elementlerin template'leri
+ *          plugin detection'dan hariç tutuluyor (modal/offcanvas JS'leri sayfa yüklemesini şişirmez)
+ *     - Fix: executePostQuery - Timber pagination güvenilmez, her zaman WP_Query found_posts kullanılıyor
+ *   1.4.0 - 2026-04-01
+ *     - Add: Pagination CSS whitelist - arşiv/term/search sayfalarında pagination class'ları purge'den korunuyor
+ *   1.3.0 - 2026-03-31
+ *     - Add: ASSETS_STRUCTURE constant - tüm asset meta'ları tutarlı default key'lerle
+ *     - Add: Manifest'te plugins_list - her bundle hangi plugin'leri içerdiğini biliyor
+ *     - Add: EARLY RETURN mtime kontrolü - plugin kaynak dosyası değişmişse cache bypass
+ *     - Add: cascade_rebuild_bundles - bir plugin güncellenince o plugin'i içeren tüm bundle'lar
+ *          otomatik yeniden oluşturulup ilgili content meta'ları güncelleniyor
+ *   1.2.0 - 2026-03-31
+ *     - Add: ASSETS_STRUCTURE constant - eksik key'ler default ile dolduruluyor
+ *     - Fix: EARLY RETURN ve grouped_apply_assets'te eksik js/css key'leri
+ *   1.1.0 - 2026-03-31
+ *     - Add: Debug sistemi (set_debug, error_log context'li)
+ *     - Add: is_fetch_available, on_save_post, fetch, extract_assets, save_meta debug log'ları
+ *     - Fix: normalize_meta_type - page, product vs. post type'lar post_meta'ya doğru yazılıyor
+ *     - Fix: Mass AJAX lock sorunu - her fetch kendi lock'unu alıp bırakıyor
+ *   1.0.0 - Önceki stabil versiyon
+ */
 use MatthiasMullie\Minify;
 use voku\helper\HtmlDomParser;
 use Irmmr\RTLCss\Parser as RTLParser;
@@ -12,6 +43,20 @@ class PageAssetsExtractor{
     private static $instance = null;
 
     /* ======= Sabitler ======= */
+    const ASSETS_STRUCTURE = [
+        'js'             => [],
+        'css'            => [],
+        'css_page'       => '',
+        'css_page_rtl'   => '',
+        'plugins'        => [],
+        'plugin_js'      => '',
+        'plugin_css'     => '',
+        'plugin_css_rtl' => '',
+        'wp_js'          => '',
+        'structure_fp'   => '',
+        'meta'           => ['type' => '', 'id' => 0],
+        'lcp'            => ['desktop' => [], 'mobile' => []],
+    ];
     const META_KEY = 'assets';
     const HTML_HASH_META_KEY = '_page_assets_last_html_hash';
 
@@ -53,7 +98,23 @@ class PageAssetsExtractor{
     public $force_rebuild = false;
     public $grouped_fetch = false;
 
-    public $debug = false; // Production'da kapalı — error_log'u patlatma
+    public $debug = true;
+
+    public function error_log($msg, $context = ''){
+        if($this->debug){
+            $prefix = '[PAE]';
+            if ($context) $prefix .= "[{$context}]";
+            $msg = is_array($msg) || is_object($msg) ? print_r($msg, true) : $msg;
+            error_log("{$prefix} {$msg}");
+        }
+    }
+
+    /**
+     * Debug modunu aç/kapa.
+     */
+    public function set_debug(bool $enabled): void {
+        $this->debug = $enabled;
+    }
 
     public $home_url = "";
     public $home_url_encoded = "";
@@ -72,34 +133,28 @@ class PageAssetsExtractor{
     protected $manifest = [
         'version'        => 2,
         'global'         => [],
-        'templates'      => [],       // key = structure_fp
-        'plugins'        => [],       // key = plugins_key (sha1 of sorted plugin list + source mtimes)
-        'content_usage'  => [],       // key = "type:id" => ['plugins_key'=>..., 'structure_fp'=>...]
+        'templates'      => [],
+        'plugins'        => [],
+        'content_usage'  => [],
         'last_css_mtime' => 0,
     ];
 
     private string $twig_attr = 'data-template';
-    private array $twig_template_paths = [];   // Timber template paths (override edilebilir)
-    private bool $twig_scan_includes = true;   // {% include %} yakala, rekürsif tara
-    private array $twig_seen_templates = []; // 'magazalar/single-modal.twig' => true
-    private array $twig_locate_cache   = []; // 'magazalar/single-modal.twig' => '/abs/path/...'
-    private array $twig_approx_cache   = []; // '/abs/path/...' => '<div>...</div>'
-
+    private array $twig_template_paths = [];
+    private bool $twig_scan_includes = true;
+    private array $twig_seen_templates = [];
+    private array $twig_locate_cache   = [];
+    private array $twig_approx_cache   = [];
 
     // lazy init için:
     private bool   $twig_paths_initialized = false;
-    private array  $twig_options = []; // dışarıdan gelen opsiyonlar saklansın
-
-    public function error_log($msg){
-        if($this->debug){
-            $msg = is_array($msg)?print_r($msg, true):$msg;
-            error_log($msg);
-        }
-    }
+    private array  $twig_options = [];
 
 
-    public function __construct() {
-        $this->error_log("PageAssetsExtractor initialized in admin.");
+    public function __construct(bool $debug = false) {
+        // Property'de true set edildiyse onu koru, parametre true ise de aç
+        if ($debug) $this->debug = true;
+        $this->error_log("Initialized.", 'init');
 
         $this->source_css = STATIC_PATH ."css/main-combined.css";
 
@@ -167,10 +222,12 @@ class PageAssetsExtractor{
      *
      * @return PageAssetsExtractor
     */
-    public static function get_instance()
+    public static function get_instance(bool $debug = false)
     {
         if (null === self::$instance) {
-            self::$instance = new self();
+            self::$instance = new self($debug);
+        } elseif ($debug && !self::$instance->debug) {
+            self::$instance->set_debug(true);
         }
         return self::$instance;
     }
@@ -249,61 +306,61 @@ class PageAssetsExtractor{
      * @return bool
      */
     public function is_fetch_available($post_id, $post = null) {
-        // 1. Autosave kontrolü
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            $this->error_log("is_fetch_available SKIP: DOING_AUTOSAVE | post #{$post_id}", 'check');
             return false;
         }
 
-        // 2. Revision kontrolü (Revizyonlar için asset üretilmez)
         if (function_exists('wp_is_post_revision') && wp_is_post_revision($post_id)) {
+            $this->error_log("is_fetch_available SKIP: revision | post #{$post_id}", 'check');
             return false;
         }
 
-        // 3. Post objesi kontrolü
         $post = empty($post) && function_exists('get_post') ? get_post($post_id) : $post;
         if (!$post) {
+            $this->error_log("is_fetch_available SKIP: post not found | post #{$post_id}", 'check');
             return false;
         }
 
-        // 4. Durum kontrolü (Sadece yayında olanlar)
         if ($post->post_status !== 'publish') {
+            $this->error_log("is_fetch_available SKIP: status={$post->post_status} | post #{$post_id}", 'check');
             return false;
         }
 
-        // 5. Desteklenen Post Type kontrolü
         if (method_exists($this, 'is_supported_post_type') && !$this->is_supported_post_type($post->post_type)) {
+            $this->error_log("is_fetch_available SKIP: unsupported type={$post->post_type} | post #{$post_id}", 'check');
             return false;
         }
 
-        // 6. Hook engelleme kontrolü (Sınıf içindeki genel disable bayrağı)
         if (isset($this->disable_hooks) && $this->disable_hooks) {
+            $this->error_log("is_fetch_available SKIP: disable_hooks=true | post #{$post_id}", 'check');
             return false;
         }
 
-        // 7. Hariç tutulan (Exclude) Post Type kontrolü
         if (method_exists($this, 'is_post_type_excluded') && $this->is_post_type_excluded($post->post_type)) {
-            $this->error_log("[PAE] Post {$post_id} excluded from cache generation.");
+            $this->error_log("is_fetch_available SKIP: excluded type={$post->post_type} | post #{$post_id}", 'check');
             return false;
         }
 
-        // Tüm engelleri aştıysa vizeyi veriyoruz
+        $this->error_log("is_fetch_available OK: post #{$post_id} ({$post->post_type})", 'check');
         return true;
     }
 
     public function on_save_post($post_id, $post, $update) {
 
         if (!$this->is_fetch_available($post_id, $post)) {
-            // BURASI ÖNEMLİ: Kabul edilmediği durumda çalışmasını istediğin func'ı buraya yaz.
-            // $this->baska_bi_islem($post_id);
+            $this->error_log("on_save_post SKIP: post #{$post_id} ({$post->post_type}) - is_fetch_available=false", 'save');
             $wp_rocket = WP_Rocket_Manifest_Manager::getInstance();
             $wp_rocket->catch_post_for_shutdown($post_id);
             return; 
         }
 
-        $this->error_log("Saved post : {$post_id} | type: " . $post->post_type);
+        $this->error_log("on_save_post START: post #{$post_id} | type: {$post->post_type} | update: " . ($update ? 'yes' : 'no'), 'save');
 
         $this->type = "post";
         $ok = $this->fetch_post_url($post_id);
+
+        $this->error_log("on_save_post FETCH result: " . ($ok !== false ? 'OK' : 'FAIL') . " | html length: " . strlen($this->html ?? ''), 'save');
 
         if ($ok !== false && !empty($this->html)) {
             $this->check_and_handle_html_change(
@@ -312,19 +369,15 @@ class PageAssetsExtractor{
                 'post'
             );
 
-            // <<< KRİTİK GÜNCELLEME BAŞLANGIÇ: Finalize Etme >>>
             if (is_array($ok) && isset($ok['css_hash'])) {
+                $this->error_log("on_save_post FINALIZE: css_hash={$ok['css_hash']}", 'save');
                 $this->finalize_assets_and_cleanup($post_id, $ok);
             }
-            // <<< GÜNCELLEME SONU >>>
         }
 
-        // arşivleri güncelle
         $this->fetch_and_save_archives_assets($post->post_type);
 
-        // build_related_assets zaten fetch_and_save_archives_assets içinde arşivleri hallediyor.
-        // Burada tekrar çağırmak çift iş — kaldırıldı.
-
+        $this->error_log("on_save_post END: post #{$post_id}", 'save');
         return $ok;
     }
 
@@ -387,7 +440,7 @@ class PageAssetsExtractor{
                 update_term_meta($id, self::HTML_HASH_META_KEY, $current_html_hash);
             }
 
-            // Tüm manifest'i patlatma lan — sadece bu içeriğin structure_fp'sini sıfırla.
+            // Tüm manifest'i patlatma lan - sadece bu içeriğin structure_fp'sini sıfırla.
             // Diğer sayfaların purge cache'i gidiyordu, artık gitmiyor.
             $content_key = $context . ':' . $id;
             if (isset($this->manifest['content_usage'][$content_key])) {
@@ -402,7 +455,7 @@ class PageAssetsExtractor{
 
     /* ===================== FİLTRELER ===================== */
 
-    // Static cache — her çağrıda DB'ye gitme lan
+    // Static cache - her çağrıda DB'ye gitme lan
     private static $cached_public_post_types = null;
     private static $cached_public_taxonomies = null;
 
@@ -444,8 +497,10 @@ class PageAssetsExtractor{
 
     public function fetch($url, $id, $forceType = null) {
 
+        $this->error_log("fetch START: url={$url} | id={$id} | type={$forceType}", 'fetch');
+
         if (!$this->start_heavy_process()) {
-            $this->error_log('[PAE] fetch SKIP: heavy process lock active');
+            $this->error_log('fetch SKIP: heavy process lock active', 'fetch');
             return false;
         }
 
@@ -620,9 +675,8 @@ class PageAssetsExtractor{
             $this->release_lock($id);
             $this->error_log('[PAE] fetch EXIT id=' . $id);
             if ($forceType) $this->type = $prevType;
-            if(!$this->mass){
-                $this->end_heavy_process();
-            }
+            // Mass AJAX: her request ayrı PHP process - lock'u her seferinde bırak
+            $this->end_heavy_process();
         }
     }
 
@@ -743,27 +797,19 @@ class PageAssetsExtractor{
     }
 
     private function normalize_content(string $content, string $type): string {
-        $content = preg_replace_callback(
-            '/console\.error\(\s*(["\'])(.*?)\1\s*\)/s',
-            function($m) {
-                $quote = $m[1];
-                $text  = str_replace('//', '', $m[2]); // sadece // işaretini temizle
-                return 'console.error(' . $quote . $text . $quote . ')';
-            },
-            $content
-        );
+        if ($type === 'js') {
+            // JS dosyaları için sadece BOM ve \r temizliği yap, yorum silme yapma
+            // Minified kodlarda string/regex literal'lerin içindeki pattern'ler bozuluyordu
+            $normalized = preg_replace("/\xEF\xBB\xBF/", '', $content);
+            $normalized = str_replace("\r", "", $normalized);
+            $normalized = preg_replace("/\n+/", "\n", $normalized);
+            return trim($normalized);
+        }
 
         $normalized = $content;
-        //$normalized = str_replace([$this->upload_url, $this->upload_url_encoded], '{upload_url}', $content);
-        //$normalized = str_replace([$this->home_url, $this->home_url_encoded], '{home_url}', $normalized);
         $normalized = preg_replace("/\xEF\xBB\xBF/", '', $normalized);
         $normalized = str_replace("\r", "", $normalized);
-        if ($type === 'css') {
-            $normalized = preg_replace('!/\*.*?\*/!s', '', $normalized);
-        } else {
-            $normalized = preg_replace('~(^|\s)//[^\n]*~m', '$1', $normalized);
-            $normalized = preg_replace('!/\*.*?\*/!s', '', $normalized);
-        }
+        $normalized = preg_replace('!/\*.*?\*/!s', '', $normalized);
         $normalized = preg_replace("/[ \t]+/", " ", $normalized);
         $normalized = preg_replace("/\n+/", "\n", $normalized);
         return trim($normalized);
@@ -810,7 +856,7 @@ class PageAssetsExtractor{
     }*/
     private function manifest_write() {
         @file_put_contents($this->manifest_path, json_encode($this->manifest, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
-        // Orphan temizliği %2 ihtimalle çalışsın — her yazımda dosya sistemi taraması yapma lan
+        // Orphan temizliği %2 ihtimalle çalışsın - her yazımda dosya sistemi taraması yapma lan
         if ( mt_rand(1, 100) <= 2 ) {
             $this->purge_orphan_assets();
         }
@@ -939,6 +985,7 @@ class PageAssetsExtractor{
     }
 
     public function extract_assets($html_content, $id) {
+        $this->error_log("extract_assets START: id={$id} | html length: " . strlen($html_content), 'extract');
         $js = [];
         $css = [];
         //$css_rtl = [];
@@ -956,7 +1003,7 @@ class PageAssetsExtractor{
 
             $this->error_log('[PAE] collected extra html length=' . strlen($extra_html));
 
-            // Devasa HTML'yi DOM'a ekleme — sadece class ve attr'leri çıkar, skeleton div yap
+            // Devasa HTML'yi DOM'a ekleme - sadece class ve attr'leri çıkar, skeleton div yap
             $all_classes = [];
             $all_attrs   = [];
 
@@ -1254,6 +1301,76 @@ class PageAssetsExtractor{
             $plugin_files_whitelist = array_values(array_unique($plugin_files_whitelist));
         }
 
+        // Pagination whitelist: arşiv/search/term sayfalarında pagination class'larını koru
+        $post_type_for_pagination = $this->detect_post_type($id);
+        $pagination_config = class_exists('Data') ? \Data::get("post_pagination") : [];
+        // Admin context'te Data boş olabilir - doğrudan option'dan oku
+        if (empty($pagination_config) && function_exists('get_field')) {
+            $raw = get_field('post_pagination', 'options');
+            if (is_array($raw)) {
+                $pagination_config = [];
+                foreach ($raw as $item) {
+                    if (!isset($item['post_type'])) continue;
+                    $pt = $item['post_type'];
+                    unset($item['post_type']);
+                    $pagination_config[$pt] = $item;
+                }
+                // Search pagination
+                $search = get_field('search_pagination', 'options');
+                if ($search && !empty($search['paged'])) {
+                    $pagination_config['search'] = $search;
+                }
+            }
+        }
+        if (is_array($pagination_config)) {
+            $needs_pagination = false;
+
+            // Archive sayfası
+            if (in_array($this->type, ['archive', 'dynamic'], true)) {
+                $needs_pagination = true;
+            }
+            // Term sayfası
+            elseif ($this->type === 'term') {
+                $needs_pagination = true;
+            }
+            // Search
+            elseif ($this->type === 'dynamic' || (is_string($id) && strpos($id, 'search') !== false)) {
+                $needs_pagination = !empty($pagination_config['search']['paged']);
+            }
+            // Post type (single değil, archive context'te)
+            elseif (!empty($post_type_for_pagination) && !empty($pagination_config[$post_type_for_pagination]['paged'])) {
+                $needs_pagination = true;
+            }
+
+            // WooCommerce: Mağaza sayfası page olarak gelir ama product arşivi
+            if (!$needs_pagination && is_numeric($id)) {
+                if (function_exists('wc_get_page_id')) {
+                    $shop_page_id = wc_get_page_id('shop');
+                    $this->error_log("[PAE] WC shop check: id={$id} shop_page_id={$shop_page_id} product_paged=" . (!empty($pagination_config['product']['paged']) ? 'yes' : 'no'), 'extract');
+                    if ($shop_page_id && (int) $id === (int) $shop_page_id && !empty($pagination_config['product']['paged'])) {
+                        $needs_pagination = true;
+                        $this->error_log("[PAE] WooCommerce shop page detected as product archive: id={$id}", 'extract');
+                    }
+                } else {
+                    $this->error_log("[PAE] wc_get_page_id not available", 'extract');
+                }
+            }
+
+            $this->error_log("[PAE] Pagination check: type={$this->type} post_type={$post_type_for_pagination} needs_pagination=" . ($needs_pagination ? 'yes' : 'no'), 'extract');
+
+            if ($needs_pagination) {
+                $pagination_whitelist = [
+                    '.pagination', '.pagination-container', '.page-item', '.page-link',
+                    '.page-item-ajax', '.btn-pagination-ajax', '.card-footer',
+                    '.page-item.active', '.page-item.prev', '.page-item.next',
+                    '.page-item.invisible', '.btn-loading-page',
+                ];
+                $plugin_files_whitelist = array_merge($plugin_files_whitelist, $pagination_whitelist);
+                $plugin_files_whitelist = array_values(array_unique($plugin_files_whitelist));
+                $this->error_log("[PAE] Pagination whitelist eklendi: type={$this->type} post_type={$post_type_for_pagination}", 'extract');
+            }
+        }
+
         $post_type_val = $this->detect_post_type($id);
         $template = '';
         if ($this->type === 'post' && $post_type_val === 'page' && function_exists('get_page_template_slug')) {
@@ -1289,14 +1406,31 @@ class PageAssetsExtractor{
                 $pk  = $prev_usage['plugins_key'];
                 $pm  = $this->manifest['plugins'][$pk] ?? null;
                 $tm  = $this->manifest['templates'][$this->structure_fp] ?? null;
-                $all_files_ok = $pm && $tm
+
+                // Mtime kontrolü: plugin kaynak dosyaları değişmiş mi?
+                $mtime_ok = true;
+                if ($pm && !empty($pm['plugins_list'])) {
+                    $check_files = [];
+                    foreach ($pm['plugins_list'] as $p) {
+                        $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '.js';
+                        $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '-init.js';
+                        $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '.css';
+                    }
+                    $current_mtime = $this->source_files_mtime_hash($check_files);
+                    $expected_key = sha1(json_encode($pm['plugins_list']) . '|' . $current_mtime);
+                    if ($expected_key !== $pk) {
+                        $mtime_ok = false;
+                        $this->error_log("[PAE] EARLY RETURN BLOCKED - plugin source files changed. id={$id} old_key={$pk} new_key={$expected_key}");
+                    }
+                }
+
+                $all_files_ok = $mtime_ok && $pm && $tm
                     && $this->file_exists_rel($pm['css']  ?? '')
                     && $this->file_exists_rel($pm['js']   ?? '')
                     && $this->file_exists_rel($tm['css']  ?? '')
                     && $this->file_exists_rel($tm['css_rtl'] ?? '');
                 if ($all_files_ok) {
                     $this->error_log("[PAE] EARLY RETURN – içerik değişmedi, dosyalar mevcut. id={$id}");
-                    // Meta'yı mevcut değerlerle yeniden kaydet (LCP vs. korunur)
                     $existing_meta = $this->meta_get($this->type, $id) ?: [];
                     return $this->save_meta(array_merge($existing_meta, [
                         'plugins'       => $plugins,
@@ -1357,8 +1491,9 @@ class PageAssetsExtractor{
                 $this->error_log("[PAE] Plugin bundle REBUILD: {$plugins_key}");
 
                 // Eski plugins_key'i kullanan başka content var mı? Yoksa eski dosyaları sil
+                // Mass mode'da silme - mass bitince orphan cleanup temizler
                 $old_plugins_key = $this->manifest['content_usage'][$content_usage_key]['plugins_key'] ?? '';
-                if ($old_plugins_key && $old_plugins_key !== $plugins_key) {
+                if ($old_plugins_key && $old_plugins_key !== $plugins_key && !$this->mass) {
                     $this->_maybe_delete_plugin_bundle($old_plugins_key);
                 }
 
@@ -1379,12 +1514,19 @@ class PageAssetsExtractor{
                 }
 
                 $this->manifest['plugins'][$plugins_key] = [
-                    'css'      => $plugin_css ?? '',
-                    'css_rtl'  => $plugin_css_rtl ?? '',
-                    'js'       => $plugin_js ?? '',
-                    'contents' => [], // bu bundle'ı kullanan content_id'ler
+                    'css'          => $plugin_css ?? '',
+                    'css_rtl'      => $plugin_css_rtl ?? '',
+                    'js'           => $plugin_js ?? '',
+                    'plugins_list' => $plugins, // hangi plugin'leri içerdiği
+                    'contents'     => [],
                 ];
                 $this->manifest_write();
+
+                // CASCADE: bu plugin'lerden herhangi birini içeren diğer bundle'ları da yeniden oluştur
+                // Mass mode'da cascade gereksiz - her sayfa kendi bundle'ını zaten oluşturacak
+                if (!$this->mass) {
+                    $this->cascade_rebuild_bundles($plugins, $plugins_key);
+                }
             }
 
             // Bu content'i bundle'ın kullanıcı listesine ekle
@@ -1686,7 +1828,11 @@ class PageAssetsExtractor{
                     $content = str_replace("[STATIC_URL]", "../../", $content);
                     $combined_content .= $content . "\n";
                 } else {
-                    $combined_content .= $content . ";\n";
+                    $content = rtrim($content);
+                    if ($content !== '' && !preg_match('/[;\}\)]$/', $content)) {
+                        $content .= ';';
+                    }
+                    $combined_content .= $content . "\n";
                 }
             }
         }
@@ -1802,7 +1948,10 @@ class PageAssetsExtractor{
     /* ===================== META KAYIT ===================== */
     public function save_meta($result, $id) {
 
+        $this->error_log("save_meta START: id={$id} | type={$this->type} | result keys: " . (is_array($result) ? implode(',', array_keys($result)) : 'not-array'), 'meta');
+
         if (!$id || !$this->type) {
+            $this->error_log("save_meta SKIP: id={$id} type={$this->type}", 'meta');
             return false;
         }
 
@@ -1900,8 +2049,8 @@ class PageAssetsExtractor{
             $result['lcp'] = (isset($existing['lcp']) && is_array($existing['lcp'])) ? $existing['lcp'] : $default_lcp;
         }
 
-        // Diğer alanlar: merge
-        $merged = array_replace_recursive($existing, $result);
+        // Diğer alanlar: merge - önce default structure ile birleştir, eksik key'ler dolsun
+        $merged = array_replace_recursive(self::ASSETS_STRUCTURE, $existing, $result);
 
         if (!empty($existing_raw) || $existing_raw === '0') {
             $this->meta_update($this->type, $id, $merged);
@@ -1915,6 +2064,7 @@ class PageAssetsExtractor{
 
         $this->disable_hooks = false;
         $this->error_log("META SAVED | type={$this->type} id={$id} | key=assets | css_page=" . ($merged['css_page'] ?? '') . " | plugin_js=" . ($merged['plugin_js'] ?? ''));
+
         $this->maybe_copy_meta_to_translations($id, $merged);
 
         return $merged;
@@ -2018,7 +2168,7 @@ class PageAssetsExtractor{
                 return [];
             }
 
-            // Term fetch'lerini shutdown'a ertele — admin response'unu bloklama lan
+            // Term fetch'lerini shutdown'a ertele - admin response'unu bloklama lan
             // Her term için ayrı HTTP isteği atılıyor, bunu request içinde yapma
             add_action('shutdown', function() use ($post_id, $tax_objects) {
                 $prev_disable        = $this->disable_hooks;
@@ -2049,28 +2199,21 @@ class PageAssetsExtractor{
 
 
     public function delete_existing_assets($id) {
+        $norm_type = $this->normalize_meta_type($this->type);
         $existing = null;
-        switch ($this->type) {
+        switch ($norm_type) {
             case "post":    $existing = $this->meta_get('post', $id);    $this->meta_delete('post', $id);    break;
             case "term":    $existing = $this->meta_get('term', $id);    $this->meta_delete('term', $id);    break;
             case "user":    $existing = $this->meta_get('user', $id);    $this->meta_delete('user', $id);    break;
             case "comment": $existing = $this->meta_get('comment', $id); $this->meta_delete('comment', $id); break;
-            case "archive": 
-            case "dynamic": $option_name = $id . '_assets'; $existing = get_option($option_name); if ($existing !== false) delete_option($option_name); break;
             default:        $existing = null;
         }
-
-        /*$this->error_log("[PAE] delete_existing_assets(".$this->type.", ".$id);
-
-        if (is_array($existing)) {
-            foreach (['plugin_js','plugin_css','plugin_css_rtl'] as $k) {
-                if (!empty($existing[$k])) {
-                    $abs = rtrim(STATIC_PATH,'/').'/'.ltrim($existing[$k],'./');
-                    $this->error_log("...siliniyor: ".$abs);
-                    if (file_exists($abs)) @unlink($abs);
-                }
-            }
-        }*/
+        // archive/dynamic → option
+        if (in_array($this->type, ['archive', 'dynamic'], true)) {
+            $option_name = $id . '_assets';
+            $existing = get_option($option_name);
+            if ($existing !== false) delete_option($option_name);
+        }
     }
     
     public function purge_page_assets_manifest() {
@@ -2142,7 +2285,7 @@ class PageAssetsExtractor{
         $count = 0;
         foreach ($ids as $item_id) {
             $existing = $this->meta_get($context, $item_id) ?: [];
-            $merged = array_merge($existing, $shared_data);
+            $merged = array_replace_recursive(self::ASSETS_STRUCTURE, $existing, $shared_data);
             if (!isset($merged['meta'])) $merged['meta'] = ['type' => $context, 'id' => $item_id];
             if (!isset($merged['lcp'])) $merged['lcp'] = ['desktop' => [], 'mobile' => []];
             $this->meta_update($context, $item_id, $merged);
@@ -2169,6 +2312,24 @@ class PageAssetsExtractor{
             if ($this->is_post_type_excluded($pt->name)) continue;
             $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish'", $pt->name));
             if (!$count) continue;
+
+            // Page'ler gruplanmaz - her biri ayrı template kullanabilir
+            if ($pt->name === 'page') {
+                // WooCommerce shop page ID - page listesinden çıkar, archive olarak zaten var
+                $wc_shop_id = function_exists('wc_get_page_id') ? wc_get_page_id('shop') : 0;
+
+                $pages = $wpdb->get_results("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status = 'publish' ORDER BY menu_order ASC, post_title ASC");
+                foreach ($pages as $p) {
+                    // WC shop page'i atla - product archive olarak listeleniyor
+                    if ($wc_shop_id && (int) $p->ID === (int) $wc_shop_id) continue;
+
+                    $url = get_permalink($p->ID);
+                    $title = get_the_title($p->ID);
+                    $groups[] = ['id' => $p->ID, 'type' => 'page', 'post_type' => 'page', 'label' => $title, 'count' => 1, 'url' => $url, 'url_short' => $url ? str_replace(home_url(), '', $url) : '', 'context' => 'page'];
+                }
+                continue;
+            }
+
             $rid = $this->find_richest_post($pt->name);
             $url = $rid ? get_permalink($rid) : '';
             $groups[] = ['id' => $rid ?: $pt->name, 'type' => 'post', 'post_type' => $pt->name, 'label' => $pt->labels->name, 'count' => $count, 'url' => $url, 'url_short' => $url ? str_replace(home_url(), '', $url) : '', 'context' => 'post'];
@@ -2348,7 +2509,6 @@ class PageAssetsExtractor{
             echo '<thead><tr style="background-color:#f2f2f2; text-align:left;">';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">ID / Key</th>';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Type</th>';
-            echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Items</th>';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Url</th>';
             echo '<th style="padding:10px; border-bottom:1px solid #ddd;">Actions</th>';
             echo '</tr></thead><tbody>';
@@ -2357,11 +2517,21 @@ class PageAssetsExtractor{
                 $label = $row['label'] ?? $row['post_type'];
                 $count = $row['count'] ?? 1;
                 $context = $row['context'] ?? $row['type'];
+                $is_grouped = ($count > 1 && !in_array($context, ['page', 'dynamic', 'archive']));
+
                 echo '<tr id="'.esc_attr($row["type"].'_'.$row["id"]).'" data-index="'.$i.'" style="vertical-align:middle;">';
                 echo '<td data-id="'.esc_attr($row["id"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($row["id"]).'</td>';
                 echo '<td data-type="'.esc_attr($row["type"]).'" style="padding:10px; border-bottom:1px solid #ddd;">'.esc_html($label).'</td>';
-                echo '<td style="padding:10px; border-bottom:1px solid #ddd; font-weight:600;">'.esc_html($count).'</td>';
-                echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">'.esc_html($row["url_short"]).' <a href="'.esc_attr($row["url"]).'" target="_blank"><i class="fa-solid fa-link"></i></a></td>';
+
+                // URL cell: grouped → "34 Products", tekil → URL + link
+                echo '<td data-url="'.esc_attr($row["url"]).'" style="padding:10px; border-bottom:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:900px;">';
+                if ($is_grouped) {
+                    echo '<span class="badge" style="background-color:#fff3cd; color:#664d03; font-size:13px; font-weight:600; padding:5px 10px;"><i class="fa-solid fa-layer-group me-1"></i>' . esc_html($count) . ' ' . esc_html($label) . '</span>';
+                } else {
+                    echo esc_html($row["url_short"]) . ' <a href="'.esc_attr($row["url"]).'" target="_blank"><i class="fa-solid fa-link"></i></a>';
+                }
+                echo '</td>';
+
                 echo '<td class="actions" style="width:80px;padding:10px; border-bottom:1px solid #ddd;"><a href="#" class="btn-page-assets-single btn btn-success btn-sm">Fetch</a></td>';
                 echo '</tr>';
             }
@@ -2487,9 +2657,6 @@ class PageAssetsExtractor{
             }
         }
 
-        if($end_process){
-            $this->end_heavy_process();
-        }
         wp_send_json([
             "error"   => false,
             "message" => $grouped_count > 0 ? "Fetched + applied to {$grouped_count} items" : "",
@@ -2510,17 +2677,29 @@ class PageAssetsExtractor{
     }
 
     // evrensel meta get/set/delete
+    /**
+     * Type normalize: page, product vs. gibi post type'lar → 'post' olarak işlenir
+     * Sadece 'term', 'user', 'comment' ayrı kalır
+     */
+    private function normalize_meta_type($type) {
+        if (in_array($type, ['term', 'user', 'comment', 'archive', 'dynamic'], true)) {
+            return $type;
+        }
+        return 'post'; // page, product, custom post types → hepsi post_meta
+    }
+
     private function meta_get($type, $id) {
+        $type = $this->normalize_meta_type($type);
         switch ($type) {
             case 'post':    return get_post_meta($id, self::META_KEY, true);
             case 'term':    return get_term_meta($id, self::META_KEY, true);
             case 'user':    return get_user_meta($id, self::META_KEY, true);
             case 'comment': return get_comment_meta($id, self::META_KEY, true);
         }
-
         return null;
     }
     private function meta_update($type, $id, $val) {
+        $type = $this->normalize_meta_type($type);
         switch ($type) {
             case 'post':    update_post_meta($id, self::META_KEY, $val);    break;
             case 'term':    update_term_meta($id, self::META_KEY, $val);    break;
@@ -2528,7 +2707,8 @@ class PageAssetsExtractor{
             case 'comment': update_comment_meta($id, self::META_KEY, $val); break;
         }
     }
-    private function meta_add($type, $id, $val) { 
+    private function meta_add($type, $id, $val) {
+        $type = $this->normalize_meta_type($type);
         switch ($type) {
             case 'post':    add_post_meta($id, self::META_KEY, $val, true);    break;
             case 'term':    add_term_meta($id, self::META_KEY, $val, true);    break;
@@ -2537,6 +2717,7 @@ class PageAssetsExtractor{
         }
     }
     private function meta_delete($type, $id) {
+        $type = $this->normalize_meta_type($type);
         switch ($type) {
             case 'post':    delete_post_meta($id, self::META_KEY);    break;
             case 'term':    delete_term_meta($id, self::META_KEY);    break;
@@ -2805,6 +2986,25 @@ class PageAssetsExtractor{
 
         $this->ensureTwigPaths();
 
+        // AJAX ile yüklenecek template'leri hariç tut (modal, offcanvas vs.)
+        $ajax_method_nodes = $dom->find("*[data-ajax-method]");
+        $ajax_templates = [];
+        if ($ajax_method_nodes && count($ajax_method_nodes) > 0) {
+            foreach ($ajax_method_nodes as $anode) {
+                $tplVal = trim((string) $anode->getAttribute($this->twig_attr));
+                if ($tplVal === '') continue;
+                foreach (preg_split('/[,;]+/', $tplVal) as $p) {
+                    $p = trim($p);
+                    if ($p === '') continue;
+                    if (!str_ends_with($p, '.twig')) $p .= '.twig';
+                    $ajax_templates[$p] = true;
+                }
+            }
+            if (!empty($ajax_templates)) {
+                $this->error_log('[PAE] AJAX templates excluded: ' . json_encode(array_keys($ajax_templates)));
+            }
+        }
+
         // 1) DOM’daki TÜM data değerlerini topla ve normalize et
         $uniqueTemplates = [];
         foreach ($nodes as $node) {
@@ -2815,6 +3015,7 @@ class PageAssetsExtractor{
                 $p = trim($p);
                 if ($p === '') continue;
                 if (!str_ends_with($p, '.twig')) $p .= '.twig';
+                if (isset($ajax_templates[$p])) continue;
                 $uniqueTemplates[$p] = true;
             }
         }
@@ -2934,6 +3135,165 @@ class PageAssetsExtractor{
         }
         unset($this->manifest['plugins'][$plugins_key]);
         $this->error_log("[PAE] Plugin bundle manifest'ten kaldırıldı: {$plugins_key}");
+    }
+
+    /**
+     * CASCADE REBUILD: Güncellenen plugin'leri içeren diğer bundle'ları yeniden oluştur.
+     * Bir bundle rebuild olduğunda, o bundle'daki plugin'lerden herhangi birini içeren
+     * diğer bundle'ları bulur, yeniden oluşturur ve meta'ları günceller.
+     *
+     * @param array  $updated_plugins  Güncellenen bundle'daki plugin listesi
+     * @param string $skip_key         Az önce rebuild edilen key (tekrar rebuild etme)
+     */
+    private function cascade_rebuild_bundles(array $updated_plugins, string $skip_key): void {
+        if (empty($updated_plugins)) return;
+
+        // Hangi plugin'lerin mtime'ı değişmiş? Hepsini kontrol et
+        $changed_plugins = [];
+        foreach ($updated_plugins as $p) {
+            $files = [
+                STATIC_PATH . 'js/plugins/' . $p . '.js',
+                STATIC_PATH . 'js/plugins/' . $p . '-init.js',
+                STATIC_PATH . 'js/plugins/' . $p . '.css',
+            ];
+            // Mevcut mtime'ı hesapla - eğer manifest'teki key ile uyuşmuyorsa değişmiş demektir
+            $changed_plugins[] = $p; // Basitlik için hepsini "değişmiş" say
+        }
+
+        $affected_keys = [];
+        foreach ($this->manifest['plugins'] as $pk => $pm) {
+            if ($pk === $skip_key) continue;
+            $list = $pm['plugins_list'] ?? [];
+            if (empty($list)) continue;
+
+            // Bu bundle güncellenen plugin'lerden herhangi birini içeriyor mu?
+            $intersection = array_intersect($list, $changed_plugins);
+            if (!empty($intersection)) {
+                // Mtime kontrolü: bu bundle'ın key'i hala geçerli mi?
+                $check_files = [];
+                foreach ($list as $p) {
+                    $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '.js';
+                    $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '-init.js';
+                    $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '.css';
+                }
+                $current_mtime = $this->source_files_mtime_hash($check_files);
+                $expected_key = sha1(json_encode($list) . '|' . $current_mtime);
+
+                if ($expected_key !== $pk) {
+                    $affected_keys[$pk] = [
+                        'plugins_list' => $list,
+                        'new_key'      => $expected_key,
+                        'contents'     => $pm['contents'] ?? [],
+                        'old_css'      => $pm['css'] ?? '',
+                        'old_css_rtl'  => $pm['css_rtl'] ?? '',
+                        'old_js'       => $pm['js'] ?? '',
+                    ];
+                }
+            }
+        }
+
+        if (empty($affected_keys)) {
+            $this->error_log("[PAE] CASCADE: etkilenen bundle yok.", 'cascade');
+            return;
+        }
+
+        $this->error_log("[PAE] CASCADE: " . count($affected_keys) . " bundle yeniden oluşturulacak.", 'cascade');
+
+        foreach ($affected_keys as $old_pk => $info) {
+            $list = $info['plugins_list'];
+
+            // Kaynak dosyaları topla
+            $css_src = [];
+            $css_rtl_src = [];
+            $js_src = [];
+            foreach ($list as $p) {
+                $css_file = STATIC_PATH . 'js/plugins/' . $p . '.css';
+                if (file_exists($css_file)) {
+                    $css_src[] = $css_file;
+                    $css_rtl_src[] = STATIC_PATH . 'js/plugins/' . $p . '-rtl.css';
+                }
+                $js_src[] = STATIC_PATH . 'js/plugins/' . $p . '.js';
+                $js_src[] = STATIC_PATH . 'js/plugins/' . $p . '-init.js';
+            }
+
+            // Yeni bundle oluştur
+            $new_css = '';
+            $new_css_rtl = '';
+            $new_js = '';
+
+            if (!empty($css_src)) {
+                $new_css = $this->combine_and_cache_files('css', $css_src);
+                $new_css = str_replace(STATIC_URL, '', $new_css);
+            }
+            if (!empty($css_rtl_src)) {
+                $new_css_rtl = $this->combine_and_cache_files('css', $css_rtl_src);
+                $new_css_rtl = str_replace(STATIC_URL, '', $new_css_rtl);
+            }
+            $js_src = array_filter($js_src, 'file_exists');
+            if (!empty($js_src)) {
+                $new_js = $this->combine_and_cache_files('js', array_values($js_src));
+                $this->combine_and_cache_modules($list, $new_js);
+                $new_js = str_replace(STATIC_URL, '', $new_js);
+            }
+
+            $new_key = $info['new_key'];
+
+            // Manifest güncelle
+            $this->manifest['plugins'][$new_key] = [
+                'css'          => $new_css,
+                'css_rtl'      => $new_css_rtl,
+                'js'           => $new_js,
+                'plugins_list' => $list,
+                'contents'     => $info['contents'],
+            ];
+
+            // Eski key'i sil (dosyaları da)
+            $this->_maybe_delete_plugin_bundle_files($old_pk);
+            unset($this->manifest['plugins'][$old_pk]);
+
+            // Content meta'larını güncelle
+            foreach ($info['contents'] as $content_key) {
+                // content_key format: "post:123" veya "term:45"
+                $parts = explode(':', $content_key, 2);
+                if (count($parts) !== 2) continue;
+                $ctx = $parts[0];
+                $cid = $parts[1];
+                if (!is_numeric($cid)) continue;
+
+                $meta = $this->meta_get($ctx, (int) $cid);
+                if (!is_array($meta)) continue;
+
+                $meta['plugin_js']      = $new_js;
+                $meta['plugin_css']     = $new_css;
+                $meta['plugin_css_rtl'] = $new_css_rtl;
+                $this->meta_update($ctx, (int) $cid, $meta);
+
+                // content_usage manifest'ini de güncelle
+                if (isset($this->manifest['content_usage'][$content_key])) {
+                    $this->manifest['content_usage'][$content_key]['plugins_key'] = $new_key;
+                }
+
+                $this->error_log("[PAE] CASCADE META UPDATE: {$content_key} → new bundle {$new_key}", 'cascade');
+            }
+
+            $this->error_log("[PAE] CASCADE DONE: old={$old_pk} → new={$new_key} | " . count($info['contents']) . " content güncellendi", 'cascade');
+        }
+
+        $this->manifest_write();
+    }
+
+    /**
+     * Bundle dosyalarını sil (manifest entry'yi silmeden, sadece dosyalar)
+     */
+    private function _maybe_delete_plugin_bundle_files(string $plugins_key): void {
+        $pm = $this->manifest['plugins'][$plugins_key] ?? null;
+        if (!$pm) return;
+        foreach (['css', 'css_rtl', 'js'] as $k) {
+            if (!empty($pm[$k]) && $this->file_exists_rel($pm[$k])) {
+                $abs = rtrim(STATIC_PATH, '/') . '/' . ltrim($pm[$k], '/');
+                @unlink($abs);
+            }
+        }
     }
 
     /**

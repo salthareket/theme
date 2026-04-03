@@ -268,9 +268,11 @@ class StarterSite extends Timber\Site{
                 global $wp_query;
                 $post_type = $wp_query->query_vars['post_type'] ?? null;
                 if ($post_type) {
-                    $custom_settings = QueryCache::get_field('custom_settings', $post_type.'_options');
+                    // post_type array olabilir (örn: ['product', 'product_variation'])
+                    $pt_key = is_array($post_type) ? $post_type[0] : $post_type;
+                    $custom_settings = QueryCache::get_field('custom_settings', $pt_key.'_options');
                     if($custom_settings){
-                        $page_settings = QueryCache::get_field('page_settings', $post->post_type.'_options');
+                        $page_settings = QueryCache::get_field('page_settings', $pt_key.'_options');
                         $page_settings["classes"]["body"] = implode(" ", $page_settings["classes"]["body"] );
                         $page_settings["classes"]["main"] = implode(" ", $page_settings["classes"]["main"] );
                         $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);

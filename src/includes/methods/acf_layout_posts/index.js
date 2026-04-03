@@ -1,19 +1,27 @@
 {
     before: function(response, vars, form, objs) {
-        if(isset(objs[0])){
-            var obj = $(objs[0]);
+        var obj = null;
+        if(isset(objs.btn)){
+            obj = $(objs.btn);
+        }else if(isset(objs[0])){
+            obj = $(objs[0]);
         }else if(isset(objs.obj)){
-            var obj = $(objs.obj);
+            obj = $(objs.obj);
         }
-        debugJS("acf layout posts çalıştı");
-        obj.find(".item-total").html("SEARCHING...");
+        if(obj && obj.length > 0){
+            obj.find(".item-total").html("SEARCHING...");
+        }
     },
     after: function(response, vars, form, objs) {
-        if(isset(objs[0])){
-            var obj = $(objs[0]);
+        var obj = null;
+        if(isset(objs.btn)){
+            obj = $(objs.btn);
+        }else if(isset(objs[0])){
+            obj = $(objs[0]);
         }else if(isset(objs.obj)){
-            var obj = $(objs.obj);
+            obj = $(objs.obj);
         }
+        if(!obj || obj.length === 0) return;
 
         var btn = obj.find(".btn-next-page");
         btn.removeClass("loading processing");

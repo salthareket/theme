@@ -250,21 +250,23 @@ function form_validate(){
                                         }
                                         data.push({title:title,value:value});
                                     }
-                                    twig({
-                                        href : host+"assets/templates/form-review.twig",
-                                        async : true,
-                                        allowInlineIncludes : true,
-                                        load: function(template) {
-                                            var html = template.render({data:data});
-                                            var callback = function(){
-                                                $(form).addClass("form-reviewed").submit();
+                                    requirePlugin("twig", function() {
+                                        twig({
+                                            href : host+"assets/templates/form-review.twig",
+                                            async : true,
+                                            allowInlineIncludes : true,
+                                            load: function(template) {
+                                                var html = template.render({data:data});
+                                                var callback = function(){
+                                                    $(form).addClass("form-reviewed").submit();
+                                                }
+                                                var title = "";
+                                                if(!IsBlank($(form).data("form-review-title"))){
+                                                    title = $(form).data("form-review-title");
+                                                }
+                                                _confirm(title, html, "lg", "modal-form-review modal-fullscreen", "Submit", "Back", callback);
                                             }
-                                            var title = "";
-                                            if(!IsBlank($(form).data("form-review-title"))){
-                                                title = $(form).data("form-review-title");
-                                            }
-                                            _confirm(title, html, "lg", "modal-form-review modal-fullscreen", "Submit", "Back", callback);
-                                        }
+                                        });
                                     });
                                     return false;
                                 }else{

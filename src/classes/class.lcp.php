@@ -147,7 +147,7 @@ class Lcp {
 
     public function inject_measurement_script() {
         // web-vitals.js ve measure-lcp.js'i inline olarak yükle
-        $web_vitals_url = defined('SH_STATIC_URL') ? SH_STATIC_URL . 'js/plugins/web-vitals.js' : '';
+        $web_vitals_url = defined('STATIC_URL') ? STATIC_URL . 'js/plugins/web-vitals.js' : '';
         $measure_lcp_url = defined('SH_STATIC_URL') ? SH_STATIC_URL . 'js/measure-lcp.js' : '';
 
         if (empty($web_vitals_url) || empty($measure_lcp_url)) return;

@@ -215,6 +215,13 @@ class QueryCache {
         add_action( 'delete_term',  [ $c, 'on_term_change' ], 99, 3 );
 
         add_action( 'wp_update_nav_menu', [ $c, 'on_menu_change' ] );
+
+        // Menu populate etkilenen olaylar - post/term degisince menu cache de temizlenmeli
+        add_action( 'save_post',   [ $c, 'on_menu_change' ], 99 );
+        add_action( 'delete_post', [ $c, 'on_menu_change' ], 99 );
+        add_action( 'created_term', function() use ($c) { $c::on_menu_change(); }, 100 );
+        add_action( 'edited_term',  function() use ($c) { $c::on_menu_change(); }, 100 );
+        add_action( 'delete_term',  function() use ($c) { $c::on_menu_change(); }, 100 );
     }
 
     // =========================================================================
@@ -895,6 +902,11 @@ class QueryCache {
             || $option === self::WP_OPTIONS_BULK_KEY
         ) {
             self::_invalidate_options_bulks();
+
+            // Menu icerigini etkileyen option'lar degistiginde menu cache'ini de temizle
+            self::purge_type( 'menu' );
+            // ACF field cache'ini de temizle - get_field eski deger donmesin
+            self::purge_type( 'get_field' );
         }
     }
 

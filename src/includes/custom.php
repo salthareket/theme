@@ -156,7 +156,7 @@ class SaltBase{
             return;
         }
 
-
+error_log("111");
 
 
         if (get_transient('salt_purge_lock_' . $post_id)) {
@@ -175,15 +175,19 @@ class SaltBase{
             return; 
         }
 
-
+error_log("222");
 
 
         if (function_exists('rocket_is_crawling') && rocket_is_crawling()) return;
+
+        error_log("333");
 
         // 2. WP Rocket Preload botu geldiyse ağır işleri yapma
         if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket/Preload') !== false) {
             return; 
         }
+
+        error_log("444");
 
         // 3. Gutenberg'in o meşhur ikinci isteğini (Meta Box Loader) engelle
         if (isset($_GET['meta-box-loader']) || isset($_GET['meta-box-loader-nonce'])) {
@@ -191,7 +195,11 @@ class SaltBase{
             return;
         }
 
+        error_log("555");
+
         if (isset($_GET['action']) && $_GET['action'] == 'as_async_request_queue_runner') return;
+
+        error_log("666");
 
 
         /*if (defined('REST_REQUEST') && REST_REQUEST) {
@@ -204,11 +212,15 @@ class SaltBase{
             //return;
         }
 
+        error_log("777");
+
         $current_hook = current_filter();
-        if (!in_array($current_hook, ['save_post'])) {
+        if (!in_array($current_hook, ['save_post', 'save_post_product'])) {
             //error_log("❌ Hook $current_hook tarafından çağrıldı. İşlem yapılmadı.");
             return;
         }
+
+        error_log("888");
 
         if (
             defined('DOING_AJAX') && DOING_AJAX &&
@@ -217,12 +229,16 @@ class SaltBase{
             return;
         }
 
+        error_log("999");
+
         if (
             defined('DOING_CRON') && DOING_CRON &&
             (!isset($GLOBALS['salt_ai_doing_translate']) || !$GLOBALS['salt_ai_doing_translate'])
         ) {
             return;
         }
+
+        error_log("10");
 
 
         remove_action('save_post', [ $this, 'on_post_published'], 100);

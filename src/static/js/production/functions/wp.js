@@ -127,6 +127,13 @@ function isLoadedJS($name, $load = false, $callback = null) {
     }
     return false;
 }
+function requirePlugin(name, callback) {
+    if (isLoadedJS(name)) {
+        callback();
+    } else {
+        isLoadedJS(name, true, callback);
+    }
+}
 function function_secure($plugin, $name, $params) {
     debugJS($plugin, $name, $params)
     if (isLoadedJS($plugin)) {
@@ -137,7 +144,13 @@ function function_secure($plugin, $name, $params) {
             console.error($name + ' is not a function...');
         }
     } else {
-        console.error($plugin + ' is not loaded...');
+        // Plugin yüklü değilse dinamik yükle, sonra init çağır
+        isLoadedJS($plugin, true, function() {
+            if (typeof window[$name] === 'function') {
+                if (Array.isArray($params)) { window[$name].apply(null, $params); }
+                else { window[$name]($params); }
+            }
+        });
     }
 }
 

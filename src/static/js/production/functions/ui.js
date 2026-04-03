@@ -238,7 +238,9 @@ function btn_ajax_method(){ /// ***new*** updated function
 			        		"btn" : $obj
 			        	}
 		        	}else{
-		        		query.objs = $obj;
+		        		query.objs = {
+			        		"btn" : $obj
+			        	}
 		        	}
 					query.request();				
 			}
@@ -264,13 +266,9 @@ function btn_ajax_method(){ /// ***new*** updated function
 	    
 	    var callback = function(){
 	        var query = new ajax_query();
-	        query.method = currentMethod; // Direkt attribute'dan oku, risk alma
+	        query.method = currentMethod;
 	        query.vars = $data;
-	        
-	        // Pagination için butonun kendisi lazım, paketleme yapma direkt gönder
-	        query.objs = $obj; 
-	        
-	        console.log("Giden Sorgu:", query.method, query.vars); // Buraya bak abi ne gidiyor?
+	        query.objs = { "btn": $obj };
 	        query.request();
 	    }
 	    

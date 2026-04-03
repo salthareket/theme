@@ -147,18 +147,20 @@ class GoogleMaps{
 		                infowindow.open(map, marker_item);
 		            } else {
 		                // Template-based popup content
-		                twig({
-		                    href: ajax_request_vars.theme_url + config.popup.template,
-		                    async: true,
-		                    allowInlineIncludes: false,
-		                    load: function (template) {
-		                        var html = template.render(locations[i]);
-		                        infowindow.setContent(html);
-		                        infowindow.setOptions({
-		                            maxWidth: config.popup.width
-		                        });
-		                        infowindow.open(map, marker_item);
-		                    }
+		                requirePlugin("twig", function() {
+		                    twig({
+		                        href: ajax_request_vars.theme_url + config.popup.template,
+		                        async: true,
+		                        allowInlineIncludes: false,
+		                        load: function (template) {
+		                            var html = template.render(locations[i]);
+		                            infowindow.setContent(html);
+		                            infowindow.setOptions({
+		                                maxWidth: config.popup.width
+		                            });
+		                            infowindow.open(map, marker_item);
+		                        }
+		                    });
 		                });
 		            }
 		        } else if (["mouseover", "click"].indexOf(config.popup.type) > -1) {
@@ -205,18 +207,20 @@ class GoogleMaps{
 		                        });
 		                        infowindow.open(map, marker_item);
 		                    } else {
-		                        twig({
-		                            href: ajax_request_vars.theme_url + config.popup.template,
-		                            async: true,
-		                            allowInlineIncludes: false,
-		                            load: function (template) {
-		                                var html = template.render(locations[i]);
-		                                infowindow.setContent(html);
-		                                infowindow.setOptions({
-		                                    maxWidth: config.popup.width
-		                                });
-		                                infowindow.open(map, marker_item);
-		                            }
+		                        requirePlugin("twig", function() {
+		                            twig({
+		                                href: ajax_request_vars.theme_url + config.popup.template,
+		                                async: true,
+		                                allowInlineIncludes: false,
+		                                load: function (template) {
+		                                    var html = template.render(locations[i]);
+		                                    infowindow.setContent(html);
+		                                    infowindow.setOptions({
+		                                        maxWidth: config.popup.width
+		                                    });
+		                                    infowindow.open(map, marker_item);
+		                                }
+		                            });
 		                        });
 		                    }
 		                }

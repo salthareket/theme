@@ -1,75 +1,62 @@
 <?php
 
 /**
- * Paginate — WP_Query, WP_User_Query, WP_Comment_Query, WP_Term_Query ve
- * ham SQL sorguları için sayfalama (pagination) yöneticisi.
+ * Paginate - WP_Query, WP_User_Query, WP_Comment_Query, WP_Term_Query ve
+ * ham SQL sorgulari icin sayfalama (pagination) yoneticisi.
  *
- * Kullanım:
- *   // Post query (WP_Query array)
+ * @package SaltHareket
+ * @version 1.1.0
+ * @since   1.0.0
+ *
+ * @changelog
+ *   1.1.0 - 2026-04-01
+ *     - Fix: executePostQuery - Timber pagination guvenilmez, her zaman WP_Query found_posts kullaniliyor
+ *   1.0.0 - Onceki stabil versiyon
+ *
+ * How to use:
  *   $paginate = new Paginate( $wp_query_args, ['type' => 'post', 'posts_per_page' => 12] );
  *   $result   = $paginate->get_results();
  *
- *   // Taxonomy query — type vars'tan veya get_results parametresinden
  *   $paginate = new Paginate( $term_query_args, ['type' => 'taxonomy', 'number' => 20] );
  *   $result   = $paginate->get_results();
- *   // veya eski stil:
- *   $result   = $paginate->get_results( 'taxonomy' );
  *
- *   // SQL query (string)
- *   $paginate = new Paginate( "SELECT * FROM ...", $vars );
+ *   $paginate = new Paginate( "SELECT ...", $vars );
  *   $result   = $paginate->get_results();
  *
- *   // Encrypted query (tek kelime, boşluksuz string)
  *   $paginate = new Paginate( $encrypted_string, $vars );
- *
- *   // Option ID query (numeric string/int)
  *   $paginate = new Paginate( 42, $vars );
  *
- * Return yapısı:
- *   $result['posts'] — sorgu sonuçları (Timber Post/User/Comment/Term veya stdClass)
- *   $result['data']  — sayfalama meta verisi:
- *     - count            : int — gösterilen sonuç sayısı (max_posts ile sınırlı)
- *     - count_total      : int — toplam sonuç sayısı
- *     - page             : int — mevcut sayfa numarası
- *     - page_total       : int — toplam sayfa sayısı
- *     - page_count_total : int — max_posts ile sınırlı toplam sayfa sayısı
- *     - loader           : string — yükleme tipi (button, scroll, vb.)
+ * Return:
+ *   $result['posts'] - sorgu sonuclari (Timber Post/User/Comment/Term veya stdClass)
+ *   $result['data']  - sayfalama meta verisi:
+ *     - count            : int - gosterilen sonuc sayisi
+ *     - count_total      : int - toplam sonuc sayisi
+ *     - page             : int - mevcut sayfa numarasi
+ *     - page_total       : int - toplam sayfa sayisi
+ *     - page_count_total : int - max_posts ile sinirli toplam sayfa sayisi
+ *     - loader           : string - yukleme tipi (button, scroll, vb.)
  *
- * $vars key haritası (constructor'a ikinci parametre):
- *   ┌─────────────────────────┬──────────┬──────────────────────────────────────────────────┐
- *   │ Key                     │ Tip      │ Açıklama                                         │
- *   ├─────────────────────────┼──────────┼──────────────────────────────────────────────────┤
- *   │ posts_per_page          │ int      │ Sayfa başına post (WP_Query). paged=true yapar.  │
- *   │ number                  │ int      │ Sayfa başına öğe (comment/term/user). >0 ise     │
- *   │                         │          │ posts_per_page'e map'lenir, paged=true yapar.    │
- *   │ page                    │ int      │ Mevcut sayfa numarası (min 1)                    │
- *   │ paged                   │ bool     │ Sayfalama aktif mi (posts_per_page/number varsa  │
- *   │                         │          │ otomatik true olur, bununla override edilebilir) │
- *   │ max_posts               │ int      │ Maksimum gösterilecek toplam sonuç sayısı        │
- *   │ posts_per_page_default  │ int      │ Varsayılan posts_per_page (referans değer)       │
- *   │ type                    │ string   │ Sorgu tipi: post, taxonomy, user, comment        │
- *   │ post_type               │ string   │ WordPress post type slug'ı                       │
- *   │ taxonomy                │ string   │ Taxonomy slug'ı (terms ile birlikte)             │
- *   │ terms                   │ string   │ JSON array veya tekil term ID. "0" = tümü.       │
- *   │ parent                  │ int      │ Parent post/term ID                              │
- *   │ roles                   │ string   │ Kullanıcı rolü filtresi                          │
- *   │ orderby                 │ string   │ Sıralama kolonu (whitelist: ID, date, title, vb.)│
- *   │ order                   │ string   │ Sıralama yönü: ASC veya DESC                     │
- *   │ filters                 │ string   │ JSON encoded filtre objesi (dışarıdan okunur)    │
- *   │ loader                  │ string   │ Yükleme tipi: button, scroll, default            │
- *   │ load_type               │ string   │ Yükleme modu: default, ajax, preload             │
- *   │ has_thumbnail           │ bool     │ Sadece thumbnail'lı postları filtrele            │
- *   │ query                   │ mixed    │ $query parametresi boşsa buradan alınır          │
- *   └─────────────────────────┴──────────┴──────────────────────────────────────────────────┘
+ * $vars key haritasi:
+ *   posts_per_page    int      Sayfa basina post. paged=true yapar.
+ *   number            int      Sayfa basina oge (comment/term/user).
+ *   page              int      Mevcut sayfa numarasi (min 1)
+ *   paged             bool     Sayfalama aktif mi
+ *   max_posts         int      Maksimum gosterilecek toplam sonuc sayisi
+ *   type              string   Sorgu tipi: post, taxonomy, user, comment
+ *   post_type         string   WordPress post type slug'i
+ *   taxonomy          string   Taxonomy slug'i
+ *   terms             string   JSON array veya tekil term ID
+ *   orderby           string   Siralama kolonu (whitelist: ID, date, title, vb.)
+ *   order             string   Siralama yonu: ASC veya DESC
+ *   loader            string   Yukleme tipi: button, scroll, default
+ *   load_type         string   Yukleme modu: default, ajax, preload
+ *   has_thumbnail     bool     Sadece thumbnail'li postlari filtrele
  *
  * Query type tespiti (otomatik):
- *   - array        → 'wp'        (WP_Query/WP_User_Query/WP_Term_Query args)
- *   - numeric      → 'id'        (wp_options.option_id → QueryCache'den çözülür)
- *   - boşluklu str → 'sql'       (ham SQL sorgusu)
- *   - tek kelime   → 'encrypted' (Encrypt::decrypt ile çözülür)
- *
- * @package SaltHareket
- * @since   1.0.0
+ *   - array        -> 'wp'        (WP_Query args)
+ *   - numeric      -> 'id'        (wp_options.option_id)
+ *   - bosluklu str -> 'sql'       (ham SQL sorgusu)
+ *   - tek kelime   -> 'encrypted' (Encrypt::decrypt ile cozulur)
  */
 
 class Paginate {
@@ -376,28 +363,10 @@ class Paginate {
         $total      = 0;
         $page_total = -1;
 
-        // Timber v2: PostQuery → iç WP_Query'den found_posts al
-        if ( $result instanceof \Timber\PostQuery ) {
-            try {
-                // PostQuery, Countable implement eder ama found_posts için
-                // underlying WP_Query'ye erişmek lazım
-                $pagination = $result->pagination();
-                if ( $pagination !== null && isset( $pagination->total ) ) {
-                    $total = (int) $pagination->total;
-                }
-            } catch ( \Throwable ) {
-                // pagination() bazı durumlarda exception fırlatabilir
-            }
-
-            if ( isset( $result->max_num_pages ) ) {
-                $page_total = (int) $result->max_num_pages;
-            }
-        }
-
-        // Fallback: Timber pagination çalışmadıysa WP_Query ile count
-        // fields=ids ile sadece ID çeker — hafif
-        if ( $total === 0 && isset( $query['post_type'] ) ) {
-            $count_query = new WP_Query( array_merge( $query, [
+        // Timber v2 pagination'dan found_posts almak güvenilir değil,
+        // her zaman WP_Query fallback kullan
+        if ( isset( $query['post_type'] ) ) {
+            $count_query = new \WP_Query( array_merge( $query, [
                 'posts_per_page' => -1,
                 'fields'         => 'ids',
                 'no_found_rows'  => false,

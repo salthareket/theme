@@ -1,6 +1,7 @@
 {% if menu_buttons %}
 <div class="nav-item {{menu_class}}">
-    <ul class="list-inline m-0">
+    {% include "blocks/_button.twig" with { buttons: menu_buttons.buttons}  %}
+    {#<ul class="list-inline m-0">
         {% for item in menu_buttons.buttons %}
 
             {% if item.link_type == "modal" %}
@@ -102,6 +103,6 @@
             </li>
 
         {% endfor %}
-    </ul>
+    </ul>#}
 </div>
 {% endif %}

@@ -214,9 +214,7 @@ function compile_files_config($enable_production=false){
 			".swiper",
 			".swiper-*"
 		],
-		"required" => [
-			"html-to-image"
-		]
+		"required" => []
 	];
 	$plugins['html-to-image'] = [
 		"c"   => true,
@@ -422,7 +420,7 @@ function compile_files_config($enable_production=false){
 		],
 		"css" => [],
 		"css_only_local" => false,
-		"class" => ["leaflet-custom", "googlemaps-custom", "container-story"],
+		"class" => [],
 		"attrs" => [],
 		"condition" => get_option("options_map_view") == "js" ? 1: 0,
 		"init"     => "init_twig",

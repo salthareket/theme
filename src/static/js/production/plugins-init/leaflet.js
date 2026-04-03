@@ -266,18 +266,20 @@ function _addStaticPopup(map, latlng, loc, popup_cfg, markerList) {
         popup.addTo(map).openPopup();
         markerList.push(popup);
     } else {
-        twig({
-            href: ajax_request_vars.theme_url + popup_cfg.template,
-            async: true,
-            allowInlineIncludes: false,
-            load: function (template) {
-                var html  = template.render(loc);
-                var popup = L.popup({ autoPan: false, closeButton: false, autoClose: false, closeOnClick: false, className: 'leaflet-popup-custom' })
-                    .setLatLng(latlng)
-                    .setContent(html);
-                popup.addTo(map).openPopup();
-                markerList.push(popup);
-            }
+        requirePlugin("twig", function() {
+            twig({
+                href: ajax_request_vars.theme_url + popup_cfg.template,
+                async: true,
+                allowInlineIncludes: false,
+                load: function (template) {
+                    var html  = template.render(loc);
+                    var popup = L.popup({ autoPan: false, closeButton: false, autoClose: false, closeOnClick: false, className: 'leaflet-popup-custom' })
+                        .setLatLng(latlng)
+                        .setContent(html);
+                    popup.addTo(map).openPopup();
+                    markerList.push(popup);
+                }
+            });
         });
     }
 }
@@ -340,21 +342,23 @@ function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
                 marker_item.on('mouseout', function () { this.closePopup(); });
             }
         } else {
-            twig({
-                href: ajax_request_vars.theme_url + popup_cfg.template,
-                async: true,
-                allowInlineIncludes: false,
-                load: function (template) {
-                    var html = template.render(loc);
-                    marker_item.bindPopup(html, popupOpts);
-                    marker_item.on(popup_cfg.type, function () {
-                        if (this.isPopupOpen()) { this.closePopup(); return; }
-                        this.openPopup();
-                    });
-                    if (popup_cfg.type === 'mouseover') {
-                        marker_item.on('mouseout', function () { this.closePopup(); });
+            requirePlugin("twig", function() {
+                twig({
+                    href: ajax_request_vars.theme_url + popup_cfg.template,
+                    async: true,
+                    allowInlineIncludes: false,
+                    load: function (template) {
+                        var html = template.render(loc);
+                        marker_item.bindPopup(html, popupOpts);
+                        marker_item.on(popup_cfg.type, function () {
+                            if (this.isPopupOpen()) { this.closePopup(); return; }
+                            this.openPopup();
+                        });
+                        if (popup_cfg.type === 'mouseover') {
+                            marker_item.on('mouseout', function () { this.closePopup(); });
+                        }
                     }
-                }
+                });
             });
         }
     }

@@ -320,10 +320,10 @@ if (defined("WPSEO_FILE")) {
     include_once SH_INCLUDES_PATH . "plugins/yoast-seo.php";
 }
 if (class_exists("Loco_Locale")) include_once SH_INCLUDES_PATH . "plugins/loco-translate.php";
-if (function_exists("yasr_fs")) include_once SH_INCLUDES_PATH . "plugins/yasr-star-rating.php";
-if (class_exists("APSS_Class")) include_once SH_INCLUDES_PATH . "plugins/apps.php";
-if (class_exists("Redq_YoBro")) include_once SH_INCLUDES_PATH . "plugins/yobro.php";
-if (class_exists("Newsletter")) include_once SH_INCLUDES_PATH . "plugins/newsletter.php";
+if (function_exists("yasr_fs")) include_once SH_INCLUDES_PATH .  "plugins/yasr-star-rating.php";
+if (class_exists("APSS_Class")) include_once SH_INCLUDES_PATH .  "plugins/apps.php";
+if (class_exists("Redq_YoBro")) include_once SH_INCLUDES_PATH .  "plugins/yobro.php";
+if (class_exists("Newsletter")) include_once SH_INCLUDES_PATH .  "plugins/newsletter.php";
 
 // E-Ticaret Eklenti Kontrolleri
 if (ENABLE_ECOMMERCE) {
@@ -362,14 +362,14 @@ if ($is_admin ) {
 }
 
 
-    // Genel Sınıflar ve Helperlar
-    //include 'classes/class.geolocation.query.php';
-    include_once SH_CLASSES_PATH . "class.oembed-video.php";
-    include_once SH_CLASSES_PATH . "class.image.php";
-    include_once SH_CLASSES_PATH . "class.shortcodes.php";
-    include_once SH_CLASSES_PATH . "class.logger.php";    
+// Genel Sınıflar ve Helperlar
+//include_once SH_CLASSES_PATH 'classes/class.geolocation.query.php';
+include_once SH_CLASSES_PATH . "class.oembed-video.php";
+include_once SH_CLASSES_PATH . "class.image.php";
+include_once SH_CLASSES_PATH . "class.shortcodes.php";
+include_once SH_CLASSES_PATH . "class.logger.php";    
 
-    include_once SH_INCLUDES_PATH . "rewrite.php";
+include_once SH_INCLUDES_PATH . "rewrite.php";
 
 if(get_sh_config('sh_theme_tasks_status')){
     include_once SH_CLASSES_PATH . "class.encrypt.php";
@@ -413,7 +413,6 @@ if (SH_THEME_EXISTS && $is_admin) {
 include_once SH_INCLUDES_PATH . "shortcodes.php";
 include_once SH_INCLUDES_PATH . "actions.php";
 
-
 /*
 $GLOBALS["base_urls"] = array();
 //if (ENABLE_MEMBERSHIP) {
@@ -430,7 +429,6 @@ if(isLocalhost()){
 }else{
     define('NODE_MODULES_PATH', SH_STATIC_PATH .'node_modules/'); 
 }
-
 
 if (defined('SH_THEME_EXISTS') && SH_THEME_EXISTS) {
     if (class_exists('\Salt')) {

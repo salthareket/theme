@@ -1,91 +1,150 @@
-{% set will_release = url_query_vars.action == "siradakiler" or date(post.meta("book_release_date")) > date('now') %}
+{#
+  Product Tease — Default WooCommerce product card
+  
+  Context:
+    post       : Timber\Post (product)
+    size       : string (xs, sm, md, lg) — optional
+    lazy       : bool — override lazy loading
+    index      : int — loop index (for LCP paint optimization)
+    page       : int — current page number
+#}
 
-{% set paint_index_max = 5 %}
-{% set lazy = true %}
-{% if page == 1 and index < paint_index_max %}
-    {% set lazy = false %}
+{% set product_link = post.link|variation_url_rewrite %}
+{% set product_type = post.get_product_type() %}
+{% set wc_product = post.product() %}
+
+{# Lazy loading — ilk sayfa ilk 4 urun LCP icin eager #}
+{% if lazy is not defined %}
+    {% set lazy = true %}
+    {% if page is defined and index is defined %}
+        {% if page == 1 and index < 4 %}
+            {% set lazy = false %}
+        {% endif %}
+    {% endif %}
 {% endif %}
 
-<article class="tease-product card {% if size == "sm" %}sm{% endif %}" itemscope="" itemtype="https://schema.org/Book" {% if not size in ["sm", "xs"] %}data-aos="fade-up"{% endif %}>
-    {#<div class="card-body p-0 overflow-hidden">
-        {% do action('woocommerce_before_shop_loop_item_title') %}
-    </div>#}
-    <div class="card-body border {% if lazy %}loading{% endif %}" style="background-color:{{post.thumbnail.meta('average_color')|default('#000')}};">
-        <a href="{{ post.link }}" title="{{post.title}}" class="d-block img-placeholder btn-loading-page">
-            {% if not size in ["sm", "xxs"] %}
-            <div class="info" style="background-color:{{function('make_rgba', post.thumbnail.meta('average_color')|default('#000'), '.95')}};">
-                <h2 class="card-title" style="color:{{post.thumbnail.meta('contrast_color')|default('#fff')}}!important;">
-                    {{ post.title }}
-                    <small style="color:{{post.thumbnail.meta('contrast_color')|default('#fff')}}!important;">{{ post.meta("book_author_name") }}</small>
-                </h2>
-                {% if not size in ["xs", "xxs"] %}
-                <div class="release-date mt-4 {% if will_release %}next bg-danger p-3{% endif %}" style="color:{% if will_release %}#fff{% else %}{{post.thumbnail.meta('contrast_color')|default('#fff')}}{% endif %}!important;">
-                    {% if will_release %}
-                        <i class="icon fa-light fa-timer mx-0"></i>
-                        <div class="title">{{ translate("Yayımlanacağı Tarihi") }}</div>
-                    {% else %}
-                        <div class="title">{{ translate("Yayımlanma Tarihi") }}</div>
-                    {% endif %}
-                    <date class="date">{{ post.meta("book_release_date")|date('F Y') }}</date>
-                </div>
+{# Sale / New badge #}
+{% set is_on_sale = wc_product.is_on_sale() %}
+{% set is_featured = wc_product.is_featured() %}
+
+{{ post.setup() }}
+
+<article class="tease tease-product card product type-product product-{{ product_type }} {{ size ?? '' }}" 
+    itemscope itemtype="https://schema.org/Product"
+    {% if not size in ["sm", "xs"] %}data-aos="fade-up"{% endif %}>
+
+    {# ── IMAGE ── #}
+    <div class="card-img">
+        <a href="{{ product_link }}" class="d-block btn-loading-page" title="{{ post.title }}" itemprop="url">
+
+            {# Badges #}
+            {% if is_on_sale or is_featured %}
+            <div class="product-badges">
+                {% if is_on_sale %}
+                    <span class="badge badge-sale">{{ translate("İndirim") }}</span>
+                {% endif %}
+                {% if is_featured %}
+                    <span class="badge badge-new">{{ translate("Yeni") }}</span>
                 {% endif %}
             </div>
             {% endif %}
+
+            {{wc_product.thumbnail}}
+
+            {# Product Image #}
             {% if post.thumbnail %}
-                {{img({
-                    post : post,
-                    lazy : lazy,
+                {{ img({
+                    post   : post,
+                    lazy   : lazy,
                     srcset : {
-                        xs : 260,
-                        sm_ls : 260,
-                        sm : 260,
-                        md : 260,
-                        lg : 300,
-                        xl : 360,
-                        xxl : 300,
-                        xxxl : 360
+                        xs   : 400,
+                        sm   : 400,
+                        md   : 400,
+                        lg   : 400,
+                        xl   : 400,
+                        xxl  : 400,
+                        xxxl : 400
                     }
-                })}}
+                }) }}
             {% else %}
-             <div class="img-placeholder"></div>
+                <div class="img-placeholder no-image"></div>
             {% endif %}
         </a>
-        <meta itemprop="name" content="{{post.title}}"/>
-        <meta itemprop="image" content="{{post.thumbnail}}"/>
     </div>
 
-    {# if querystring.orderby in ["release_date", "author_name"] or url_query_vars.action in ["siradakiler", "yeni"] #}
-    {% if not size in ["xs", "xxs"] %}
-    <div class="card-footer py-3 flex-column" data-mh="product-{% if size %}{{size}}-{% endif %}footer">
-        
-        {# if querystring.orderby == "author_name" #}
-            <h2 class="card-title">
-                <a href="{{ post.link }}" class="btn-loading-page" title="{{ post.title }}">
-                    {{ post.title }}
-                    <small>{{ post.meta("book_author_name") }}</small>
-                </a>
-            </h2>
-            {# if post.title %}
-                <h3 class="card-title"><a href="{{ post.link|variation_url_rewrite }}">{{ post.title }}</a></h3>
-            {% else %}
-                <h3 class="card-title"><a href="{{ post.link|variation_url_rewrite }}">{{ fn('the_title') }}</a></h3>
-            {% endif #}
-            {% do action( 'woocommerce_after_shop_loop_item_title' ) %}
-            {# do action( 'woocommerce_after_shop_loop_item' ) #}
-        {# endif #}
+    {# ── INFO ── #}
+    <div class="card-body">
 
-        {# if querystring.orderby == "release_date" or url_query_vars.action in ["siradakiler", "yeni"] #}
-        {% if size != "sm" %}
-            <div class="release-date {% if url_query_vars.action == "siradakiler" or date(post.meta("book_release_date")) > date('now') %}next{% endif %}">
-                <span>
-                    <i class="fa-regular fa-timer"></i>
-                    {{ post.meta("book_release_date")|date('F Y') }}
-                </span>
+        {# Category #}
+        {% if not size in ["xs", "xxs"] %}
+            {% set categories = post.terms('product_cat') %}
+            {% if categories %}
+                <div class="product-category text-muted">
+                    <a href="{{ categories[0].link }}" class="btn-loading-page">{{ categories[0].name }}</a>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {# Title #}
+        <h3 class="card-title product-title" itemprop="name">
+            <a href="{{ product_link }}" class="btn-loading-page" title="{{ post.title }}">
+                {{ post.title }}
+            </a>
+        </h3>
+
+        {# Price #}
+        {% if not size in ["xxs"] %}
+            <div class="product-price" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+                <meta itemprop="priceCurrency" content="{{ function('get_woocommerce_currency') }}">
+                <meta itemprop="availability" content="https://schema.org/InStock">
+                {% do action('woocommerce_after_shop_loop_item_title') %}
             </div>
         {% endif %}
-        {# endif #}
 
+        {# Short Description — sadece buyuk kartlarda #}
+        {% if size in ["lg"] and post.post_excerpt %}
+            <div class="product-excerpt text-muted">
+                {{ post.post_excerpt|truncate(80) }}
+            </div>
+        {% endif %}
     </div>
+
+    {# ── ACTIONS ── #}
+    {% if enable_cart or enable_favorites %}
+        {% if not size in ["xxs"] %}
+        <div class="card-footer product-actions">
+            {% if enable_cart %}
+                {% if product_type == "simple" %}
+                    <a href="#" 
+                       class="btn btn-sm btn-add-to-cart btn-product-action" 
+                       data-method="add_to_cart" 
+                       {{ function("get_add_to_cart_attrs", post.id) }}
+                       aria-label="{{ translate('Sepete Ekle') }}">
+                        <i class="fa-regular fa-cart-plus"></i>
+                        <span class="btn-text d-none d-md-inline">{{ translate("Sepete Ekle") }}</span>
+                    </a>
+                {% else %}
+                    <a href="{{ product_link }}" 
+                       class="btn btn-sm btn-select-options btn-loading-page"
+                       aria-label="{{ translate('Seçenekleri Gör') }}">
+                        <i class="fa-regular fa-eye"></i>
+                        <span class="btn-text d-none d-md-inline">{{ translate("Seçenekleri Gör") }}</span>
+                    </a>
+                {% endif %}
+            {% endif %}
+
+            {% if enable_favorites %}
+                <a href="#" 
+                   class="btn btn-sm btn-favorite btn-product-action {% if function('in_array', post.id, favorites) %}active{% endif %}" 
+                   data-id="{{ post.id }}"
+                   aria-label="{{ translate('Favorilere Ekle') }}">
+                    <i class="fa-regular fa-heart"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
     {% endif %}
-    {# endif #}
+
+    {# Schema.org meta #}
+    <meta itemprop="image" content="{{ post.thumbnail.src ?? '' }}">
 </article>

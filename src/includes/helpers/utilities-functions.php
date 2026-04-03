@@ -1,595 +1,1037 @@
 <?php
 
-/**
- * Utility Functions
- *
- * Boolean, renk, link, tarih, dosya, koordinat ve genel amaçlı yardımcılar.
- */
-
-// ─── Boolean & Tip Yardımcıları ─────────────────────────────────
-
 if (!function_exists('boolval')) {
-    function boolval($val) { return (bool) $val; }
+	function boolval($val) {
+	   return (bool) $val;
+	}
 }
 
-function boolstr($val = false) {
-    return filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+function boolstr($val = false){
+    return filter_var($val, FILTER_VALIDATE_BOOLEAN)?"true":"false";
 }
 
-function is_true($val, $return_null = false) {
-    $boolval = is_string($val)
-        ? filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
-        : (bool) $val;
-    return ($boolval === null && !$return_null) ? false : $boolval;
+function is_true($val, $return_null=false){
+    $boolval = ( is_string($val) ? filter_var($val, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : (bool) $val );
+    return ( $boolval===null && !$return_null ? false : $boolval );
 }
 
-function isJson($string) {
-    json_decode($string);
-    return json_last_error() === JSON_ERROR_NONE;
+function get_random_number($min,$max){
+	return rand($min,$max);
 }
 
-function is_odd($num)  { return (bool) ($num & 1); }
-function is_even($num) { return !($num & 1); }
-
-// ─── Rastgele & Unique ──────────────────────────────────────────
-
-function get_random_number($min, $max) {
-    return rand($min, $max);
-}
-
-function unique_code($limit) {
+function unique_code($limit){
     return substr(base_convert(sha1(uniqid(mt_rand())), 16, 36), 0, $limit);
 }
 
 function unicode_decode($str) {
-    return preg_replace_callback(
-        '/\\\\u([0-9a-fA-F]{4})/',
-        fn($m) => mb_convert_encoding(pack('H*', $m[1]), 'UTF-8', 'UCS-2BE'),
-        $str
-    );
+    return preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($match) {
+    return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UCS-2BE');
+}, $str);
 }
 
-// ─── Renk Yardımcıları ──────────────────────────────────────────
-
-/**
- * Hex renk kodunu [r, g, b] array'ine çevirir.
- * 3 veya 6 karakterli hex ve "transparent" destekler.
- */
+/*function hex2rgb($hex) {
+   $hex = trim(str_replace("#", "", $hex));
+   if(strlen($hex) == 3) {
+      $r = hexdec(substr($hex,0,1).substr($hex,0,1));
+      $g = hexdec(substr($hex,1,1).substr($hex,1,1));
+      $b = hexdec(substr($hex,2,1).substr($hex,2,1));
+   } else {
+    //error_log($hex);
+      $r = hexdec(substr($hex,0,2));
+      $g = hexdec(substr($hex,2,2));
+      $b = hexdec(substr($hex,4,2));
+   }
+   $rgb = array($r, $g, $b);
+   //return implode(",", $rgb); // returns the rgb values separated by commas
+   return $rgb; // returns an array with the rgb values
+}*/
 function hex2rgb($hex) {
-    $hex = trim(str_replace('#', '', strtolower($hex)));
+    $hex = trim(str_replace("#", "", strtolower($hex)));
 
-    if ($hex === 'transparent') return [0, 0, 0];
-
-    if (strlen($hex) === 3) {
-        return [
-            hexdec(str_repeat($hex[0], 2)),
-            hexdec(str_repeat($hex[1], 2)),
-            hexdec(str_repeat($hex[2], 2)),
-        ];
+    // "transparent" gibi özel CSS renk değerleri kontrolü
+    if ($hex === 'transparent') {
+        return [0, 0, 0]; // rgba(0, 0, 0, 0) gibi davranır
     }
 
-    if (strlen($hex) === 6) {
-        return [
-            hexdec(substr($hex, 0, 2)),
-            hexdec(substr($hex, 2, 2)),
-            hexdec(substr($hex, 4, 2)),
-        ];
+    // 3 karakterli hex (örn: #fff)
+    if(strlen($hex) === 3) {
+        $r = hexdec(str_repeat(substr($hex, 0, 1), 2));
+        $g = hexdec(str_repeat(substr($hex, 1, 1), 2));
+        $b = hexdec(str_repeat(substr($hex, 2, 1), 2));
+    }
+    // 6 karakterli hex (örn: #ffffff)
+    elseif(strlen($hex) === 6) {
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+    }
+    else {
+        //error_log("hex2rgb() geçersiz renk: " . $hex);
+        return null;
     }
 
-    return null;
+    return [$r, $g, $b];
 }
 
-function hex2rgbValues($hex) {
-    $rgb = hex2rgb($hex);
-    return $rgb ? implode(',', $rgb) : '0,0,0';
+function make_rgba($hex, $alpha) {
+	  $alpha = !isset($alpha)?1:$alpha;
+	  return 'rgba('.implode(",",hex2rgb($hex)).','.$alpha.')';
+}
+function hex2rgbValues($hex){
+    return implode(",", hex2rgb($hex));
 }
 
-function make_rgba($hex, $alpha = 1) {
-    $rgb = hex2rgb($hex);
-    if (!$rgb) return "rgba(0,0,0,{$alpha})";
-    return 'rgba(' . implode(',', $rgb) . ',' . $alpha . ')';
+function make_gradient_vertical($color_1,$color_2,$color_1_alpha,$color_2_alpha){
+	if(isset($color_1_alpha)){
+	   $color_1=make_rgba($color_1,$color_1_alpha);
+	}
+	if(isset($color_2_alpha)){
+	   $color_2=make_rgba($color_2,$color_2_alpha);
+	}
+	 return 'background: '.$color_1.';' .
+			'background: -moz-linear-gradient(top, '.$color_1.' 0%, '.$color_2.' 100%);'.
+			'background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,'.$color_1.'), color-stop(100%,'.$color_2.'));' .
+			'background: -webkit-linear-gradient(top, '.$color_1.' 0%,'.$color_2.' 100%);' .
+			'background: -o-linear-gradient(top, '.$color_1.' 0%,'.$color_2.' 100%);' .
+			'background: -ms-linear-gradient(top, '.$color_1.' 0%,'.$color_2.' 100%);' .
+			'background: linear-gradient(to bottom, '.$color_1.' 0%,'.$color_2.' 100%);' .
+			'filter: progid:DXImageTransform.Microsoft.gradient( startColorstr="'.$color_1.'", endColorstr="'.$color_2.'",GradientType=0 );';
+}
+function phpcolors($color, $method="getRgb", $amount=0){
+	$color = new Mexitek\PHPColors\Color($color);
+    return $color->$method();
 }
 
-/**
- * Dikey gradient CSS üretir. Modern tarayıcılar için sadece standard syntax.
- */
-function make_gradient_vertical($color_1, $color_2, $color_1_alpha = null, $color_2_alpha = null) {
-    $c1 = ($color_1_alpha !== null) ? make_rgba($color_1, $color_1_alpha) : $color_1;
-    $c2 = ($color_2_alpha !== null) ? make_rgba($color_2, $color_2_alpha) : $color_2;
-    return "background: {$c1}; background: linear-gradient(to bottom, {$c1} 0%, {$c2} 100%);";
-}
 
-function phpcolors($color, $method = 'getRgb', $amount = 0) {
-    $c = new Mexitek\PHPColors\Color($color);
-    return $c->$method();
-}
+
 
 function get_image_average_color($image_path) {
-    return class_exists('ImageColor') ? ImageColor::fromFile($image_path) : false;
-}
+    // Dosya uzantısını kontrol et
+    $extension = strtolower(pathinfo($image_path, PATHINFO_EXTENSION));
 
-function calculate_contrast_color($color) {
-    [$r, $g, $b] = sscanf($color, "#%02x%02x%02x");
-    if (class_exists('ImageColor')) return ImageColor::contrastColor($r, $g, $b);
-    return ((0.299 * $r + 0.587 * $g + 0.114 * $b) > 128) ? '#000000' : '#ffffff';
-}
-
-function calculate_contrast_color_mode($color) {
-    return calculate_contrast_color($color) === '#000000' ? 'light' : 'dark';
-}
-
-// ─── Link Üretici Yardımcıları ──────────────────────────────────
-
-function phone_link($phone, $class = '', $title = '') {
-    $display = (!empty($title)) ? $title : $phone;
-    $href    = filter_var($phone, FILTER_SANITIZE_NUMBER_INT);
-    $class   = esc_attr($class);
-    return "<a href=\"tel:{$href}\" class=\"{$class}\">{$display}</a>";
-}
-
-function email_link($email, $class = '', $title = '') {
-    $display = (!empty($title)) ? $title : $email;
-    $email   = esc_attr($email);
-    $class   = esc_attr($class);
-    return "<a href=\"mailto:{$email}\" class=\"{$class}\">{$display}</a>";
-}
-
-function url_link($link = '', $target = '_self', $title = '', $remove_protocol = false, $remove_www = false, $class = '', $text = '', $domain_only = false) {
-    $link  = rtrim($link, '/');
-    $label = (!empty($title)) ? $title : $link;
-
-    if ($remove_protocol) $label = preg_replace('#^https?://#', '', $label);
-    if ($remove_www)      $label = str_replace('www.', '', $label);
-    if ($domain_only)     $label = parse_url($link, PHP_URL_HOST) ?: $label;
-
-    $rel = ($target === '_blank') ? ' rel="nofollow noopener"' : '';
-    return sprintf('<a href="%s" class="%s" target="%s"%s>%s%s</a>',
-        esc_url($link), esc_attr($class), esc_attr($target), $rel, $label, $text
-    );
-}
-
-/**
- * Sosyal medya hesaplarını liste olarak render eder.
- */
-function list_social_accounts($accounts = [], $class = '', $hover = false) {
-    if (empty($accounts)) return '';
-
-    $items = '';
-    foreach ($accounts as $acc) {
-        $link = $acc['url'];
-        $name = $acc['name'];
-
-        if ($name === 'whatsapp') {
-            $link = 'https://wa.me/' . str_replace('+', '', filter_var($link, FILTER_SANITIZE_NUMBER_INT));
-        }
-
-        $icon_suffix = ($name === 'facebook') ? '-f' : '';
-        $hover_class = $hover ? "btn-social-{$name}-hover" : '';
-
-        $items .= sprintf(
-            '<li class="list-inline-item"><a href="%s" class="%s" title="%s" target="_blank" rel="nofollow" itemprop="sameAs"><i class="fab fa-%s%s fa-fw"></i></a></li>',
-            esc_url($link), esc_attr($hover_class), esc_attr($name), esc_attr($name), $icon_suffix
-        );
+    // Görüntüyü oluştur
+    switch ($extension) {
+        case 'webp':
+            if (function_exists('imagecreatefromwebp')) {
+                $image = @imagecreatefromwebp($image_path);
+            } else {
+                return false;
+            }
+            break;
+        case 'jpeg':
+        case 'jpg':
+            $image = @imagecreatefromjpeg($image_path);
+            break;
+        case 'png':
+            $image = @imagecreatefrompng($image_path);
+            break;
+        case 'avif':
+            if (class_exists('Imagick')) {
+                try {
+                    $imagick = new Imagick($image_path);
+                    $imagick->transformImageColorspace(Imagick::COLORSPACE_RGB);
+                    $image = imagecreatefromstring($imagick->getImageBlob());
+                    $imagick->destroy();
+                } catch (Exception $e) {
+                    //error_log('AVIF renk alma hatası: ' . $e->getMessage());
+                    return false;
+                }
+            } elseif (function_exists('imageavif')) {
+                $image = imagecreatefromstring(file_get_contents($image_path));
+                if (!$image) return false;
+            } elseif (shell_exec('which avifdec')) {
+                $temp_png = str_replace('.avif', '.png', $image_path);
+                shell_exec("avifdec $image_path $temp_png");
+                if (file_exists($temp_png)) {
+                    $image = imagecreatefrompng($temp_png);
+                    unlink($temp_png);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            break;
+        default:
+            return false;
     }
 
-    return "<ul class=\"" . esc_attr($class) . " list-social list-inline\">{$items}</ul>";
+    if (!$image) {
+        return false;
+    }
+
+    $width = imagesx($image);
+    $height = imagesy($image);
+
+    $total_red = $total_green = $total_blue = 0;
+
+    for ($x = 0; $x < $width; $x++) {
+        for ($y = 0; $y < $height; $y++) {
+            $rgb = imagecolorat($image, $x, $y);
+            $total_red += ($rgb >> 16) & 0xFF;
+            $total_green += ($rgb >> 8) & 0xFF;
+            $total_blue += $rgb & 0xFF;
+        }
+    }
+
+    $total_pixels = $width * $height;
+    $average_red = round($total_red / $total_pixels);
+    $average_green = round($total_green / $total_pixels);
+    $average_blue = round($total_blue / $total_pixels);
+
+    $average_color = sprintf('#%02x%02x%02x', $average_red, $average_green, $average_blue);
+    $contrast_color = calculate_contrast_color($average_color);
+
+    return array(
+        'average_color' => $average_color,
+        'contrast_color' => $contrast_color,
+    );
+}
+function calculate_contrast_color($color) {
+    // Renk kodunu parçala
+    list($r, $g, $b) = sscanf($color, "#%02x%02x%02x");
+
+    // Luminance hesapla
+    $luminance = 0.299 * $r + 0.587 * $g + 0.114 * $b;
+
+    // Kontrast oranına göre siyah veya beyaz rengi seç
+    return ($luminance > 128) ? '#000000' : '#FFFFFF';
+}
+function calculate_contrast_color_mode($color) {
+    return calculate_contrast_color($color) == "#000000" ? "light" : "dark";
 }
 
-/**
- * Metnin son kelimesini belirtilen tag ile sarar.
- */
-function wrap_last($text, $tag) {
-    if (empty($text)) return $text;
 
-    $words = preg_split('/\s+/', trim($text));
-    if (count($words) <= 1) return $text;
 
-    $last = array_pop($words);
-    return implode(' ', $words) . " <{$tag}>{$last}</{$tag}>";
+
+
+function phone_link($phone, $class="", $title=""){
+	$title = !isset($title)||empty($title)?$phone:$title;
+	$phone_url=filter_var($phone, FILTER_SANITIZE_NUMBER_INT);
+	return "<a href='tel:".$phone_url."' class='".$class."'>".$title."</a>";
 }
 
+function email_link($email, $class="", $title=""){
+	$title = !isset($title)||empty($title)?$email:$title;
+	return "<a href='mailto:".$email."' class='".$class."'>".$title."</a>";
+}
 
-// ─── Tarih & Zaman ──────────────────────────────────────────────
+function url_link($link= "", $target="_self", $title="", $remove_protocol=false, $remove_www=false, $class="", $text="", $domain_only=false){
+	$attr = "";
+    $link = rtrim($link, '/');
+	$title = !isset($title)||empty($title)?$link:$title;
 
-function date_to_iso8601($date = '', $timezone = '') {
-    $dt = date_create($date);
-    if (!$dt) return '';
-    if (!empty($timezone)) $dt->setTimezone(new DateTimeZone($timezone));
-    return $dt->format('c');
+	if($remove_protocol){
+	   $title = str_replace("https://", "", $title);
+	   $title = str_replace("http://", "", $title);
+	}
+	if($remove_www){
+	   $title = str_replace("www.", "", $title);
+	}
+    if($domain_only){
+        $parsed = parse_url($link);
+        $title = $parsed["host"];
+    }
+	if($target == "_blank"){
+	   $attr = " rel='nofollow' ";
+	}
+	return "<a href='".$link."' class='".$class."' target='".$target."' ".$attr.">".$title.$text."</a>";
+}
+
+function list_social_accounts($accounts=array(), $class="", $hover=false){
+	$code = "";
+	if(isset($accounts) && $accounts){
+		$code = '<ul class="'.$class.' list-social list-inline">';
+	    foreach($accounts as $account){
+	    	$link = $account["url"];
+	    	if($account["name"] == "whatsapp"){
+	    		$link = "https://wa.me/".str_replace("+", "", filter_var($link, FILTER_SANITIZE_NUMBER_INT));
+	    	}
+	    	$code .= '<li class="list-inline-item"><a href="'.$link.'" class="'.($hover?'btn-social-'.$account["name"].'-hover':'').'" title="'.$account["name"].'" target="_blank" rel="nofollow" itemprop="sameAs"><i class="fab fa-'.$account["name"].($account["name"]=="facebook"?"-f":"").' fa-fw"></i></a></li>';
+		}
+		$code .= "</ul>";
+	}
+	return $code;
+}
+
+function wrap_last($text, $tag){
+	if(isset($text)){
+		$code = str_replace("  ", " ", $text);
+		$arr = explode(" ", $code);
+		if(count($arr)>1){
+			$text = "";
+		    foreach($arr as $key => $item){
+		    	if($key == count($arr)-1){
+	               $text .= "<".$tag.">".$item."</".$tag.">";
+		    	}else{
+	               $text .= " ".$item;
+		    	}
+			}			
+		}
+	}
+	return $text;
+}
+
+function date_to_iso8601($date="", $timezone="") {
+    $date = date_create($date);
+    if(!empty($timezone)){
+        $date = $date->setTimezone(new DateTimeZone($timezone));
+    }
+    return date_format($date, 'c');
 }
 
 function time_to_iso8601_duration($time) {
-    $seconds = strtotime($time, 0);
-    if ($seconds === false) return 'PT0S';
+	$time=strtotime($time, 0);
+    $units = array(
+        "Y" => 365*24*3600,
+        "D" =>     24*3600,
+        "H" =>        3600,
+        "M" =>          60,
+        "S" =>           1,
+    );
 
-    $units = ['Y' => 365*86400, 'D' => 86400, 'H' => 3600, 'M' => 60, 'S' => 1];
-    $str   = 'P';
-    $inT   = false;
+    $str = "P";
+    $istime = false;
 
-    foreach ($units as $name => $divisor) {
-        $qty      = intval($seconds / $divisor);
-        $seconds -= $qty * $divisor;
-        if ($qty > 0) {
-            if (!$inT && in_array($name, ['H', 'M', 'S'])) { $str .= 'T'; $inT = true; }
-            $str .= $qty . $name;
+    foreach ($units as $unitName => &$unit) {
+        $quot  = intval($time / $unit);
+        $time -= $quot * $unit;
+        $unit  = $quot;
+        if ($unit > 0) {
+            if (!$istime && in_array($unitName, array("H", "M", "S"))) { // There may be a better way to do this
+                $str .= "T";
+                $istime = true;
+            }
+            $str .= strval($unit) . $unitName;
         }
     }
 
     return $str;
 }
 
-function hour_to_timestamp($hour = '00:00') {
-    [$h, $m] = explode(':', $hour);
-    return mktime((int)$h, (int)$m, 0, 0, 0, 0);
+
+function array2List($array=array(), $class="", $tag="ul"){
+	$list = "";
+	if($array){
+	   $list = "<".$tag." class='".$class."'>";
+	   foreach($array as $item){
+          $list .= "<li class='".($class?$class."-item":"")."'>".$item."</li>";
+	   }
+	   $list .= "</".$tag.">";
+	}
+	return $list;
 }
 
-function hour_to_date($hour = '00:00') {
-    return date('Y-m-d H:i', hour_to_timestamp($hour));
-}
 
-function hour_to_number($time) {
-    [$h, $m] = explode(':', $time);
-    return (int)$h * 60 + (int)$m;
-}
+function mime2ext($mime) {
+        $mime_map = [
+            'video/3gpp2'                                                               => '3g2',
+            'video/3gp'                                                                 => '3gp',
+            'video/3gpp'                                                                => '3gp',
+            'application/x-compressed'                                                  => '7zip',
+            'audio/x-acc'                                                               => 'aac',
+            'audio/ac3'                                                                 => 'ac3',
+            'application/postscript'                                                    => 'ai',
+            'audio/x-aiff'                                                              => 'aif',
+            'audio/aiff'                                                                => 'aif',
+            'audio/x-au'                                                                => 'au',
+            'video/x-msvideo'                                                           => 'avi',
+            'video/msvideo'                                                             => 'avi',
+            'video/avi'                                                                 => 'avi',
+            'application/x-troff-msvideo'                                               => 'avi',
+            'application/macbinary'                                                     => 'bin',
+            'application/mac-binary'                                                    => 'bin',
+            'application/x-binary'                                                      => 'bin',
+            'application/x-macbinary'                                                   => 'bin',
+            'image/bmp'                                                                 => 'bmp',
+            'image/x-bmp'                                                               => 'bmp',
+            'image/x-bitmap'                                                            => 'bmp',
+            'image/x-xbitmap'                                                           => 'bmp',
+            'image/x-win-bitmap'                                                        => 'bmp',
+            'image/x-windows-bmp'                                                       => 'bmp',
+            'image/ms-bmp'                                                              => 'bmp',
+            'image/x-ms-bmp'                                                            => 'bmp',
+            'application/bmp'                                                           => 'bmp',
+            'application/x-bmp'                                                         => 'bmp',
+            'application/x-win-bitmap'                                                  => 'bmp',
+            'application/cdr'                                                           => 'cdr',
+            'application/coreldraw'                                                     => 'cdr',
+            'application/x-cdr'                                                         => 'cdr',
+            'application/x-coreldraw'                                                   => 'cdr',
+            'image/cdr'                                                                 => 'cdr',
+            'image/x-cdr'                                                               => 'cdr',
+            'zz-application/zz-winassoc-cdr'                                            => 'cdr',
+            'application/mac-compactpro'                                                => 'cpt',
+            'application/pkix-crl'                                                      => 'crl',
+            'application/pkcs-crl'                                                      => 'crl',
+            'application/x-x509-ca-cert'                                                => 'crt',
+            'application/pkix-cert'                                                     => 'crt',
+            'text/css'                                                                  => 'css',
+            'text/x-comma-separated-values'                                             => 'csv',
+            'text/comma-separated-values'                                               => 'csv',
+            'application/vnd.msexcel'                                                   => 'csv',
+            'application/x-director'                                                    => 'dcr',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'   => 'docx',
+            'application/x-dvi'                                                         => 'dvi',
+            'message/rfc822'                                                            => 'eml',
+            'application/x-msdownload'                                                  => 'exe',
+            'video/x-f4v'                                                               => 'f4v',
+            'audio/x-flac'                                                              => 'flac',
+            'video/x-flv'                                                               => 'flv',
+            'image/gif'                                                                 => 'gif',
+            'application/gpg-keys'                                                      => 'gpg',
+            'application/x-gtar'                                                        => 'gtar',
+            'application/x-gzip'                                                        => 'gzip',
+            'application/mac-binhex40'                                                  => 'hqx',
+            'application/mac-binhex'                                                    => 'hqx',
+            'application/x-binhex40'                                                    => 'hqx',
+            'application/x-mac-binhex40'                                                => 'hqx',
+            'text/html'                                                                 => 'html',
+            'image/x-icon'                                                              => 'ico',
+            'image/x-ico'                                                               => 'ico',
+            'image/vnd.microsoft.icon'                                                  => 'ico',
+            'text/calendar'                                                             => 'ics',
+            'application/java-archive'                                                  => 'jar',
+            'application/x-java-application'                                            => 'jar',
+            'application/x-jar'                                                         => 'jar',
+            'image/jp2'                                                                 => 'jp2',
+            'video/mj2'                                                                 => 'jp2',
+            'image/jpx'                                                                 => 'jp2',
+            'image/jpm'                                                                 => 'jp2',
+            'image/jpeg'                                                                => 'jpg',
+            'image/pjpeg'                                                               => 'jpg',
+            'application/x-javascript'                                                  => 'js',
+            'application/json'                                                          => 'json',
+            'text/json'                                                                 => 'json',
+            'application/vnd.google-earth.kml+xml'                                      => 'kml',
+            'application/vnd.google-earth.kmz'                                          => 'kmz',
+            'text/x-log'                                                                => 'log',
+            'audio/x-m4a'                                                               => 'm4a',
+            'application/vnd.mpegurl'                                                   => 'm4u',
+            'audio/midi'                                                                => 'mid',
+            'application/vnd.mif'                                                       => 'mif',
+            'video/quicktime'                                                           => 'mov',
+            'video/x-sgi-movie'                                                         => 'movie',
+            'audio/mpeg'                                                                => 'mp3',
+            'audio/mpg'                                                                 => 'mp3',
+            'audio/mpeg3'                                                               => 'mp3',
+            'audio/mp3'                                                                 => 'mp3',
+            'video/mp4'                                                                 => 'mp4',
+            'video/mpeg'                                                                => 'mpeg',
+            'application/oda'                                                           => 'oda',
+            'audio/ogg'                                                                 => 'ogg',
+            'video/ogg'                                                                 => 'ogg',
+            'application/ogg'                                                           => 'ogg',
+            'application/x-pkcs10'                                                      => 'p10',
+            'application/pkcs10'                                                        => 'p10',
+            'application/x-pkcs12'                                                      => 'p12',
+            'application/x-pkcs7-signature'                                             => 'p7a',
+            'application/pkcs7-mime'                                                    => 'p7c',
+            'application/x-pkcs7-mime'                                                  => 'p7c',
+            'application/x-pkcs7-certreqresp'                                           => 'p7r',
+            'application/pkcs7-signature'                                               => 'p7s',
+            'application/pdf'                                                           => 'pdf',
+            'application/octet-stream'                                                  => 'pdf',
+            'application/x-x509-user-cert'                                              => 'pem',
+            'application/x-pem-file'                                                    => 'pem',
+            'application/pgp'                                                           => 'pgp',
+            'application/x-httpd-php'                                                   => 'php',
+            'application/php'                                                           => 'php',
+            'application/x-php'                                                         => 'php',
+            'text/php'                                                                  => 'php',
+            'text/x-php'                                                                => 'php',
+            'application/x-httpd-php-source'                                            => 'php',
+            'image/png'                                                                 => 'png',
+            'image/x-png'                                                               => 'png',
+            'application/powerpoint'                                                    => 'ppt',
+            'application/vnd.ms-powerpoint'                                             => 'ppt',
+            'application/vnd.ms-office'                                                 => 'ppt',
+            'application/msword'                                                        => 'doc',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+            'application/x-photoshop'                                                   => 'psd',
+            'image/vnd.adobe.photoshop'                                                 => 'psd',
+            'audio/x-realaudio'                                                         => 'ra',
+            'audio/x-pn-realaudio'                                                      => 'ram',
+            'application/x-rar'                                                         => 'rar',
+            'application/rar'                                                           => 'rar',
+            'application/x-rar-compressed'                                              => 'rar',
+            'audio/x-pn-realaudio-plugin'                                               => 'rpm',
+            'application/x-pkcs7'                                                       => 'rsa',
+            'text/rtf'                                                                  => 'rtf',
+            'text/richtext'                                                             => 'rtx',
+            'video/vnd.rn-realvideo'                                                    => 'rv',
+            'application/x-stuffit'                                                     => 'sit',
+            'application/smil'                                                          => 'smil',
+            'text/srt'                                                                  => 'srt',
+            'image/svg+xml'                                                             => 'svg',
+            'application/x-shockwave-flash'                                             => 'swf',
+            'application/x-tar'                                                         => 'tar',
+            'application/x-gzip-compressed'                                             => 'tgz',
+            'image/tiff'                                                                => 'tiff',
+            'text/plain'                                                                => 'txt',
+            'text/x-vcard'                                                              => 'vcf',
+            'application/videolan'                                                      => 'vlc',
+            'text/vtt'                                                                  => 'vtt',
+            'audio/x-wav'                                                               => 'wav',
+            'audio/wave'                                                                => 'wav',
+            'audio/wav'                                                                 => 'wav',
+            'application/wbxml'                                                         => 'wbxml',
+            'video/webm'                                                                => 'webm',
+            'audio/x-ms-wma'                                                            => 'wma',
+            'application/wmlc'                                                          => 'wmlc',
+            'video/x-ms-wmv'                                                            => 'wmv',
+            'video/x-ms-asf'                                                            => 'wmv',
+            'application/xhtml+xml'                                                     => 'xhtml',
+            'application/excel'                                                         => 'xl',
+            'application/msexcel'                                                       => 'xls',
+            'application/x-msexcel'                                                     => 'xls',
+            'application/x-ms-excel'                                                    => 'xls',
+            'application/x-excel'                                                       => 'xls',
+            'application/x-dos_ms_excel'                                                => 'xls',
+            'application/xls'                                                           => 'xls',
+            'application/x-xls'                                                         => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'         => 'xlsx',
+            'application/vnd.ms-excel'                                                  => 'xlsx',
+            'application/xml'                                                           => 'xml',
+            'text/xml'                                                                  => 'xml',
+            'text/xsl'                                                                  => 'xsl',
+            'application/xspf+xml'                                                      => 'xspf',
+            'application/x-compress'                                                    => 'z',
+            'application/x-zip'                                                         => 'zip',
+            'application/zip'                                                           => 'zip',
+            'application/x-zip-compressed'                                              => 'zip',
+            'application/s-compressed'                                                  => 'zip',
+            'multipart/x-zip'                                                           => 'zip',
+            'text/x-scriptzsh'                                                          => 'zsh',
+        ];
 
-function getMonthName($month, $format = 'MMM') {
-    try {
-        $dt   = new DateTime("2024-{$month}-01");
-        $fmt  = new IntlDateFormatter(get_locale(), IntlDateFormatter::FULL, IntlDateFormatter::NONE);
-        $fmt->setPattern($format);
-        return $fmt->format($dt);
-    } catch (Exception $e) { return ''; }
+        return isset($mime_map[$mime]) === true ? $mime_map[$mime] : false;
 }
-
-function getDayName($day, $format = 'EEEE') {
-    try {
-        $dt   = new DateTime("2024-01-{$day}");
-        $fmt  = new IntlDateFormatter(get_locale(), IntlDateFormatter::FULL, IntlDateFormatter::NONE);
-        $fmt->setPattern($format);
-        return $fmt->format($dt);
-    } catch (Exception $e) { return ''; }
-}
-
-// ─── Dosya & Dizin ──────────────────────────────────────────────
 
 /**
- * Byte cinsinden dosya boyutunu okunabilir formata çevirir.
- */
-function convert_filesize($bytes = 0, $decimals = 2) {
-    $bytes = (int) $bytes;
-    if ($bytes <= 0) return '0 B';
-
-    $units  = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
-    $factor = (int) floor(log($bytes, 1024));
-    $factor = min($factor, count($units) - 1);
-
-    return sprintf("%.{$decimals}f %s", $bytes / pow(1024, $factor), $units[$factor]);
+* Grab all iframe src from a string
+*/
+function get_iframe_src( $input ) {
+	preg_match_all('/<iframe[^>]+src="([^"]+)"/', $input, $output );
+	$return = array();
+	if( isset( $output[1][0] ) ) {
+	   $return = $output[1][0];
+	}
+	return $return;
 }
 
 function get_extension($file) {
-    if (empty($file) || !is_string($file)) return false;
-    return strtolower(pathinfo($file, PATHINFO_EXTENSION)) ?: false;
+	if(!empty($file) && is_string($file)){
+		$extension = explode(".", mb_strtolower($file));
+		$extension = end($extension);
+		return $extension ? $extension : false;	 	
+	}
 }
 
-function get_iframe_src($input) {
-    preg_match('/<iframe[^>]+src="([^"]+)"/', $input, $m);
-    return $m[1] ?? '';
-}
-
-/**
- * Dizini recursive olarak siler.
- */
+// ACHTUNG : Klasor içindeki herşeyi siler!
 function rmdir_all($dir) {
-    if (!is_dir($dir)) return;
-    $it    = new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS);
-    $files = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
-    foreach ($files as $file) {
-        $file->isDir() ? rmdir($file->getRealPath()) : unlink($file->getRealPath());
-    }
-    rmdir($dir);
-}
-
-function deleteFolder($dir) {
-    if (!is_dir($dir)) return;
-    foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
-        $path = $dir . DIRECTORY_SEPARATOR . $item;
-        is_dir($path) ? deleteFolder($path) : unlink($path);
-    }
-    rmdir($dir);
-}
-
-function copyFolder($src, $dest, $exclude = []) {
-    if (!is_dir($dest)) mkdir($dest, 0755, true);
-
-    $dir = opendir($src);
-    while (false !== ($file = readdir($dir))) {
-        if ($file === '.' || $file === '..') continue;
-        if (in_array($file, $exclude)) continue;
-
-        $srcPath  = $src . DIRECTORY_SEPARATOR . $file;
-        $destPath = $dest . DIRECTORY_SEPARATOR . $file;
-
-        is_dir($srcPath) ? copyFolder($srcPath, $destPath, $exclude) : copy($srcPath, $destPath);
-    }
-    closedir($dir);
-}
-
-function copyFile($source, $destination) {
-    if (!file_exists($source)) return;
-    $dir = dirname($destination);
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
-    copy($source, $destination);
-}
-
-function moveFolder($src, $dst) {
-    if (!is_dir($src)) return false;
-    try {
-        copyFolder($src, $dst);
-        deleteFolder($src);
-        return true;
-    } catch (Exception $e) {
-        return false;
+    if (file_exists($dir)) {
+        $it = new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS);
+        $files = new RecursiveIteratorIterator($it,
+                     RecursiveIteratorIterator::CHILD_FIRST);
+        foreach($files as $file) {
+            if ($file->isDir()){
+                rmdir($file->getRealPath());
+            } else {
+                unlink($file->getRealPath());
+            }
+        }
+        rmdir($dir);
     }
 }
 
-// ─── MIME & Dosya Tipi ──────────────────────────────────────────
-
-function mime2ext($mime) {
-    static $map = null;
-    if ($map === null) {
-        $map = [
-            'video/3gpp2' => '3g2', 'video/3gp' => '3gp', 'video/3gpp' => '3gp',
-            'application/x-compressed' => '7zip', 'audio/x-acc' => 'aac', 'audio/ac3' => 'ac3',
-            'application/postscript' => 'ai', 'audio/x-aiff' => 'aif', 'audio/aiff' => 'aif',
-            'video/x-msvideo' => 'avi', 'video/msvideo' => 'avi', 'video/avi' => 'avi',
-            'image/bmp' => 'bmp', 'image/x-bmp' => 'bmp', 'image/x-ms-bmp' => 'bmp',
-            'text/css' => 'css', 'text/x-comma-separated-values' => 'csv',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
-            'application/msword' => 'doc', 'image/gif' => 'gif',
-            'application/x-gzip' => 'gzip', 'text/html' => 'html',
-            'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico',
-            'text/calendar' => 'ics', 'application/java-archive' => 'jar',
-            'image/jp2' => 'jp2', 'image/jpeg' => 'jpg', 'image/pjpeg' => 'jpg',
-            'application/x-javascript' => 'js', 'application/json' => 'json', 'text/json' => 'json',
-            'audio/x-m4a' => 'm4a', 'audio/midi' => 'mid', 'video/quicktime' => 'mov',
-            'audio/mpeg' => 'mp3', 'audio/mp3' => 'mp3', 'video/mp4' => 'mp4', 'video/mpeg' => 'mpeg',
-            'audio/ogg' => 'ogg', 'video/ogg' => 'ogg', 'application/ogg' => 'ogg',
-            'application/pdf' => 'pdf', 'application/octet-stream' => 'pdf',
-            'image/png' => 'png', 'image/x-png' => 'png',
-            'application/vnd.ms-powerpoint' => 'ppt',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
-            'image/vnd.adobe.photoshop' => 'psd',
-            'application/x-rar' => 'rar', 'application/rar' => 'rar',
-            'application/x-rar-compressed' => 'rar',
-            'text/rtf' => 'rtf', 'image/svg+xml' => 'svg',
-            'application/x-tar' => 'tar', 'image/tiff' => 'tiff', 'text/plain' => 'txt',
-            'text/vtt' => 'vtt', 'audio/x-wav' => 'wav', 'audio/wav' => 'wav',
-            'video/webm' => 'webm', 'audio/x-ms-wma' => 'wma',
-            'video/x-ms-wmv' => 'wmv', 'video/x-ms-asf' => 'wmv',
-            'application/xhtml+xml' => 'xhtml',
-            'application/vnd.ms-excel' => 'xlsx',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
-            'application/xml' => 'xml', 'text/xml' => 'xml',
-            'application/x-zip' => 'zip', 'application/zip' => 'zip',
-            'application/x-zip-compressed' => 'zip',
-        ];
+function is_odd($num){
+    if ( $num & 1 ) { 
+       return true;
+    } else { 
+       return false;
     }
-    return $map[$mime] ?? false;
+}
+
+function is_even($num){
+    if ( $num & 1 ) { 
+       return false;
+    } else { 
+       return true;
+    }
+}
+
+function vars_fix($vars=array(), $var = "", $is_array = false, $seperator=""){
+    $var = isset($vars[$var])?$vars[$var]:"";
+    if(!empty($var)){
+        if($is_array){
+            if(!is_array($var)){
+                $var = [$var];
+            }        
+        }else{
+            if(!empty($seperator)){
+                $var = explode($seperator, $var);
+            }
+        }        
+    }
+    return $var;
 }
 
 
-// ─── Koordinat Dönüşümleri ──────────────────────────────────────
+function hour_to_timestamp($hour="00:00"){
+    $hour = explode(":", $hour);
+    return mktime($hour[0], $hour[1], 0, 0, 0, 0);
+}
+function hour_to_date($hour="00:00"){
+    return date('Y-m-d H:i', hour_to_timestamp($hour));
+}
 
-/**
- * DMS (Derece°Dakika'Saniye") formatını decimal'e çevirir.
- */
+
+function convert_filesize($bytes="", $decimals = 2){
+    $bytes_len = 0;
+    if(!empty($bytes)){
+        $bytes_len = strlen($bytes);
+    }
+    $size = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+    $factor = floor(($bytes_len - 1) / 3);
+    return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$size[$factor];
+}
+
+
+
 function convertCoordinate($coordinates) {
-    $parts = explode(' ', $coordinates);
+    // Koordinatı boşluk karakterinden ayır
+    $parts = explode(" ", $coordinates);
+
+    // Latitude ve Longitude değerlerini ayrı ayrı işle
+    $latitude = $parts[0];
+    $longitude = $parts[1];
+
+    // Latitude ve Longitude'u ayrı ayrı dönüştür
+    $latitude = convertToDecimal($latitude);
+    $longitude = convertToDecimal($longitude);
+
+    // Sonuçları bir dizi olarak döndür
     return [
-        'lat' => convertToDecimal($parts[0]),
-        'lng' => convertToDecimal($parts[1] ?? $parts[0]),
+        'lat' => $latitude,
+        'lng' => $longitude
     ];
 }
 
 function convertToDecimal($coordinate) {
-    if (!preg_match('/(\d+)°(\d+)\'([\d.]+)"/', $coordinate, $m)) return 0.0;
-    return (int)$m[1] + ((int)$m[2] / 60) + ((float)$m[3] / 3600);
+    // Derece, dakika, saniye değerlerini ayır
+    preg_match('/(\d+)°(\d+)\'([\d\.]+)"/', $coordinate, $matches);
+
+    $degree = intval($matches[1]);
+    $minute = intval($matches[2]);
+    $second = floatval($matches[3]);
+
+    // Derece, dakika, saniye değerlerini decimal dereceye dönüştür
+    $decimalDegree = $degree + ($minute / 60) + ($second / 3600);
+
+    return $decimalDegree;
 }
+
 
 function decimalToDMS($lat, $lon) {
-    $fmt = function($val, $pos, $neg) {
-        $dir = ($val >= 0) ? $pos : $neg;
-        $abs = abs($val);
-        $deg = floor($abs);
-        $min = floor(($abs - $deg) * 60);
-        $sec = ($abs - $deg - $min / 60) * 3600;
-        return sprintf("%02d°%02d'%04.1f\"%s", $deg, $min, $sec, $dir);
-    };
-    return $fmt($lat, 'N', 'S') . ' ' . $fmt($lon, 'E', 'W');
+    $latDirection = ($lat >= 0) ? 'N' : 'S';
+    $lonDirection = ($lon >= 0) ? 'E' : 'W';
+
+    $latAbs = abs($lat);
+    $lonAbs = abs($lon);
+
+    $latDegrees = floor($latAbs);
+    $latMinutes = floor(($latAbs - $latDegrees) * 60);
+    $latSeconds = ($latAbs - $latDegrees - ($latMinutes / 60)) * 3600;
+
+    $lonDegrees = floor($lonAbs);
+    $lonMinutes = floor(($lonAbs - $lonDegrees) * 60);
+    $lonSeconds = ($lonAbs - $lonDegrees - ($lonMinutes / 60)) * 3600;
+
+    $dms = sprintf(
+        "%02d°%02d'%04.1f\"%s %03d°%02d'%04.1f\"%s",
+        $latDegrees, $latMinutes, $latSeconds, $latDirection,
+        $lonDegrees, $lonMinutes, $lonSeconds, $lonDirection
+    );
+
+    return $dms;
 }
 
-// ─── Sıralama ───────────────────────────────────────────────────
+function isJson($string) {
+    // JSON veriyi d8önüştürmeye çalış
+    $decoded = json_decode($string);
 
-/**
- * Object array'i belirli bir property'ye göre sıralar.
- * Türkçe locale desteği ile.
- */
-function objectSort($obj, $sortBy, $sort = 'desc', $numeric = false) {
-    $dir = ($sort === 'asc') ? 1 : -1;
+    // JSON hatalarını kontrol et
+    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+        return false; // Geçerli bir JSON değil
+    }
 
-    usort($obj, function($a, $b) use ($sortBy, $dir, $numeric) {
+    return true; // JSON formatında
+}
+
+function objectSort($obj, $sortBy, $sort = "desc", $numeric = false) {
+    $sorted = array();
+    $direction = ($sort === "asc") ? 1 : -1;
+
+    usort($obj, function ($a, $b) use ($sortBy, $direction, $numeric) {
         if ($numeric) {
-            $av = is_numeric($a->$sortBy) ? $a->$sortBy : 0;
-            $bv = is_numeric($b->$sortBy) ? $b->$sortBy : 0;
-            return ($av - $bv) * $dir;
-        }
+            // Eğer sayısal sıralama yapılacaksa, sayısal karşılaştırma yapın
+            $aValue = is_numeric($a->$sortBy) ? $a->$sortBy : 0;
+            $bValue = is_numeric($b->$sortBy) ? $b->$sortBy : 0;
 
-        setlocale(LC_COLLATE, 'tr_TR.utf8', 'tr_TR.utf-8', 'tr_TR', 'turkish', 'en_US.utf8');
-        $result = strcoll(mb_strtolower($a->$sortBy, 'UTF-8'), mb_strtolower($b->$sortBy, 'UTF-8'));
-        return ($result <=> 0) * $dir;
+            return ($aValue - $bValue) * $direction;
+        } else {
+            $collation = setlocale(LC_COLLATE, 'tr_TR.utf8', 'tr_TR.utf-8', 'tr_TR', 'turkish');
+        
+            if ($collation === false) {
+                $collation = 'en_US.utf8';
+            }
+        
+            $result = strcoll(mb_strtolower($a->$sortBy, 'UTF-8'), mb_strtolower($b->$sortBy, 'UTF-8'));
+        
+            if ($result === 0) {
+                return 0;
+            }
+        
+            return ($result < 0) ? -1 * $direction : 1 * $direction;
+        }
     });
 
     return $obj;
 }
 
-// ─── Zaman Aralığı Yardımcıları ─────────────────────────────────
 
-/**
- * Günden belirtilen zaman aralıklarını çıkarır, kalan aralıkları döndürür.
- */
-function removeRangesFromDay($specifiedIntervals = []) {
-    // Tüm dakikaları set olarak oluştur
-    $all = [];
-    for ($m = 0; $m < 1440; $m++) $all[$m] = true;
+function removeRangesFromDay($specifiedIntervals = array()) {// array[{start:,end:}, {start:, end:}]
+    $allIntervals = array();
+    $result = array();
 
-    // Belirtilen aralıkları çıkar
+    // Tüm saat aralıklarını oluştur
+    for ($hour = 0; $hour < 24; $hour++) {
+        for ($minute = 0; $minute < 60; $minute++) {
+            $time = sprintf("%02d:%02d", $hour, $minute);
+            $allIntervals[] = $time;
+        }
+    }
+
+    // Belirtilen saat aralıklarını çıkar
     foreach ($specifiedIntervals as $interval) {
-        $start = (int) strtotime($interval['start']);
-        $end   = (int) strtotime($interval['end']);
-        for ($t = $start; $t <= $end; $t += 60) {
-            $min = ((int) date('H', $t)) * 60 + (int) date('i', $t);
-            unset($all[$min]);
+        $start = strtotime($interval["start"]);
+        $end = strtotime($interval["end"]);
+
+        for ($time = $start; $time <= $end; $time += 60) {
+            $index = date("H:i", $time);
+            unset($allIntervals[array_search($index, $allIntervals)]);
         }
     }
 
-    // Kalan dakikaları aralıklara dönüştür
-    $result  = [];
-    $current = null;
-    foreach ($all as $min => $_) {
-        $time = sprintf('%02d:%02d', intdiv($min, 60), $min % 60);
-        if ($current === null) {
-            $current = ['start' => $time, 'end' => $time];
-        } elseif ($min === hour_to_number($current['end']) + 1) {
-            $current['end'] = $time;
+    // Kalan saat aralıklarını oluştur
+    $currentInterval = null;
+    foreach ($allIntervals as $interval) {
+        if ($currentInterval === null) {
+            $currentInterval = array("start" => $interval, "end" => $interval);
         } else {
-            $result[] = $current;
-            $current  = ['start' => $time, 'end' => $time];
+            $currentTime = strtotime($interval);
+            $endTime = strtotime($currentInterval["end"]);
+
+            if ($currentTime == $endTime + 60) {
+                $currentInterval["end"] = $interval;
+            } else {
+                $result[] = $currentInterval;
+                $currentInterval = array("start" => $interval, "end" => $interval);
+            }
         }
     }
-    if ($current) $result[] = $current;
+
+    if ($currentInterval !== null) {
+        $result[] = $currentInterval;
+    }
 
     return $result;
 }
 
-/**
- * Çakışan/bitişik zaman aralıklarını birleştirir.
- */
-function mergeRangeConflicts($ranges) {
-    // start == end olanları filtrele
-    $ranges = array_values(array_filter($ranges, fn($r) => $r['start'] !== $r['end']));
-    if (count($ranges) <= 1) return $ranges;
 
-    $result = [$ranges[0]];
-    for ($i = 1; $i < count($ranges); $i++) {
-        $prev = &$result[count($result) - 1];
-        $curr = $ranges[$i];
+function mergeRangeConflicts($zaman_araligi){
 
-        if ($prev['end'] >= $curr['start']) {
-            $prev['end'] = max($prev['end'], $curr['end']);
-        } else {
-            $result[] = $curr;
+    $unique = array();
+    foreach ($zaman_araligi as $zaman) {
+        if ($zaman["start"] != $zaman["end"]) {
+            $unique[] = $zaman;
         }
     }
-    return $result;
-}
+    $zaman_araligi = $unique;
 
-// ─── Değişken Yardımcıları ──────────────────────────────────────
+    $sonuc = [];
+    $item_sayisi = count($zaman_araligi);
 
-/**
- * Array'den güvenli değer çıkarır, opsiyonel olarak array'e veya explode'a çevirir.
- */
-function vars_fix($vars = [], $var = '', $is_array = false, $seperator = '') {
-    $val = $vars[$var] ?? '';
-    if (empty($val)) return $val;
-
-    if ($is_array && !is_array($val)) return [$val];
-    if (!empty($seperator) && !$is_array) return explode($seperator, $val);
-
-    return $val;
-}
-
-// ─── HTML Üretici ───────────────────────────────────────────────
-
-function array2List($array = [], $class = '', $tag = 'ul') {
-    if (empty($array)) return '';
-
-    $items = '';
-    $item_class = $class ? "{$class}-item" : '';
-    foreach ($array as $item) {
-        $items .= "<li class=\"{$item_class}\">{$item}</li>";
+    if ($item_sayisi > 1) {
+        $sonuc[] = $zaman_araligi[0]; // İlk öğeyi direk ekleyelim
+        for ($index = 1; $index < $item_sayisi; $index++) {
+            $onceki_zaman = end($sonuc);
+            $zaman = $zaman_araligi[$index];
+            if ($onceki_zaman['end'] == $zaman['start'] || $onceki_zaman['end'] > $zaman['start']) {
+                // Birleştir
+                $sonuc[count($sonuc) - 1]['end'] = $zaman['end'];
+            } else {
+                // Birleştirme gerekmiyor, doğrudan sonuca ekle
+                $sonuc[] = $zaman;
+            }
+        }
+    } else {
+        // Sadece bir item varsa direkt sonuca ekle
+        if($zaman_araligi[0]["start"] != $zaman_araligi[0]["end"]){
+           $sonuc = $zaman_araligi;            
+        }
     }
-    return "<{$tag} class=\"{$class}\">{$items}</{$tag}>";
+    return $sonuc;
 }
 
-/**
- * Metin içindeki dosya linkini icon'lu HTML link'e çevirir.
- */
+
+
+function hour_to_number($time) {
+    // Saati parçala
+    list($hour, $minute) = explode(':', $time);
+
+    // Saat ve dakikayı birleştirerek bir tam sayı elde et
+    $value = intval($hour) * 60 + intval($minute);
+
+    return $value;
+}
+
+
+function getMonthName($ayRakami, $format="MMM") {
+    $locale = get_locale();
+    setlocale(LC_TIME, $locale);
+    try {
+        $date = new DateTime("2024-$ayRakami-01");
+        $formatter = new IntlDateFormatter($locale, IntlDateFormatter::FULL, IntlDateFormatter::NONE);
+        $formatter->setPattern($format);
+        return $formatter->format($date);
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
+function getDayName($gunRakami, $format = "EEEE") {
+    $locale = get_locale();
+    setlocale(LC_TIME, $locale);
+    try {
+        $date = new DateTime("2024-01-$gunRakami"); // Burada sabit bir ay (Ocak) kullanıldı, günlük ismi almak istediğiniz ayı belirtmek için gerekirse değiştirebilirsiniz.
+        $formatter = new IntlDateFormatter($locale, IntlDateFormatter::FULL, IntlDateFormatter::NONE);
+        $formatter->setPattern($format);
+        return $formatter->format($date);
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
 function convertToLink($inputString) {
-    if (!preg_match('/\b(?:https?|ftp):\/\/\S+\.(jpg|jpeg|png|gif|pdf|docx|xlsx)\b/i', $inputString, $m)) {
+    // Dosya linkini bulmak için düzenli ifade kullanılır
+    $pattern = '/\b(?:https?|ftp):\/\/\S+\.(jpg|jpeg|png|gif|pdf|docx|xlsx)\b/i';
+    preg_match($pattern, $inputString, $matches);
+
+    // Eğer dosya linki bulunduysa
+    if (!empty($matches)) {
+        $link = $matches[0];
+        $extension = $matches[1];
+
+        // Bağlantıyı oluştur
+        $outputString = '<a href="' . $link . '" target="_blank" class="text-primary"><i class="icon fal fa-file-' . $extension . ' fa-2x"></i></a>';
+        
+        return $outputString;
+    } else {
+        // Dosya linki bulunamazsa orijinal metni döndür
         return $inputString;
     }
-    $url = esc_url($m[0]);
-    $ext = strtolower($m[1]);
-    return "<a href=\"{$url}\" target=\"_blank\" class=\"text-primary\"><i class=\"icon fal fa-file-{$ext} fa-2x\"></i></a>";
 }
 
-// ─── İçerik Yardımcıları ────────────────────────────────────────
+function get_post_read_time($icerik = "", $birim = "min") {
+    $kelime_sayisi = str_word_count(strip_tags($icerik));
+    $okuma_hizi = 250; // Ortalama dakikada okunan kelime sayısı
+    
+    if(!in_array($birim, ["sec", "min"])){
+        $birim = "min";
+    }
+    if(ceil($kelime_sayisi / $okuma_hizi) <= 1){
+        $birim = "sec";
+    }
 
-function get_post_read_time($content = '', $unit = 'min') {
-    $words = str_word_count(strip_tags($content));
-    $wpm   = 250;
-
-    if (!in_array($unit, ['sec', 'min'])) $unit = 'min';
-    if (ceil($words / $wpm) <= 1) $unit = 'sec';
-
-    return ($unit === 'sec')
-        ? ceil(($words * 60) / $wpm) . ' sec'
-        : ceil($words / $wpm) . ' min';
+    if ($birim === "sec") {
+        return ceil(($kelime_sayisi * 60) / $okuma_hizi) . " sec"; // Saniyeye dönüştürme
+    } else {
+        return ceil($kelime_sayisi / $okuma_hizi) . " min";
+    }
 }
+
+
+function update_dynamic_css_whitelist($arr = array()){
+    $file_path = get_template_directory() . '/theme/static/data/css_safelist.json';
+    if(!file_exists($file_path)){
+        $json_data = json_encode(['dynamicSafelist' => []], JSON_PRETTY_PRINT);
+        file_put_contents($file_path, $json_data); 
+    }
+    if(file_exists($file_path)){
+        $data = file_get_contents($file_path);
+        $data = json_decode($data, true);
+        $data = $data["dynamicSafelist"];
+        $data = array_merge($data, $arr);
+        $data = remove_duplicated_items($data);
+        $json_data = json_encode(['dynamicSafelist' => $data], JSON_PRETTY_PRINT);
+        file_put_contents($file_path, $json_data); 
+    }   
+}
+
 
 function get_page_number($link) {
-    return preg_match('/page\/(\d+)/', $link, $m) ? (int) $m[1] : null;
+    if (preg_match('/page\/([0-9]+)/', $link, $matches)) {
+        return intval($matches[1]);
+    }
 }
 
-// ─── CSS Safelist ───────────────────────────────────────────────
 
-function update_dynamic_css_whitelist($arr = []) {
-    $path = get_template_directory() . '/theme/static/data/css_safelist.json';
+function did_you_mean_search($input = "", $max_distance = 2) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'search_terms';
+    $terms = $wpdb->get_results("SELECT name FROM $table_name ORDER BY rank DESC", ARRAY_A);
+    
+    $closest = '';
+    $shortest = $max_distance + 1; // Başlangıçta en yüksek mesafeyi ayarla
 
-    $data = [];
-    if (file_exists($path)) {
-        $json = json_decode(file_get_contents($path), true);
-        $data = $json['dynamicSafelist'] ?? [];
+    foreach ($terms as $term) {
+        // Levenshtein mesafesini hesapla
+        $lev = levenshtein($input, $term['name']);
+
+        // Tam eşleşmeleri atla
+        if ($lev == 0) {
+            continue;
+        }
+
+        // En kısa mesafeyi bul ve yakın terimi ata
+        if ($lev <= $max_distance && $lev < $shortest) {
+            $closest = $term['name'];
+            $shortest = $lev;
+        }
     }
 
-    $data = array_values(array_unique(array_merge($data, $arr)));
-    file_put_contents($path, json_encode(['dynamicSafelist' => $data], JSON_PRETTY_PRINT));
+    return $closest;
 }
 
-// ─── SearchHistory Delegasyonu ──────────────────────────────────
+function search_suggestions($term = "", $count = 5) {
+    global $wpdb;
 
-function did_you_mean_search($input = '', $max_distance = 2) {
-    if (!class_exists('SearchHistory')) return '';
-    return (new SearchHistory())->did_you_mean($input, $max_distance) ?? '';
+    // Arama terimi boş ise geri dön
+    if (empty($term)) {
+        return [];
+    }
+
+    // Term'i küçük harfe çevir ve boşlukları temizle
+    $term = trim(strtolower($term));
+    $table_name = $wpdb->prefix . 'search_terms';
+
+    // Tüm terimleri veritabanından çek
+    $results = $wpdb->get_results("SELECT name FROM $table_name");
+
+    $suggestions = [];
+    foreach ($results as $row) {
+        $name = strtolower($row->name);
+        if ($name !== $term) {
+            $distance = levenshtein($term, $name);
+            // Mesafe kriterine göre öneri ekle
+            if ($distance <= 6) { // Mesafeyi buradaki değere göre ayarlayabilirsin
+                $suggestions[$name] = $distance;
+            }
+        }
+    }
+
+    // Mesafeye göre sıralama ve sonuçları döndür
+    asort($suggestions);
+    return array_slice(array_keys($suggestions), 0, $count);
 }
-
-function search_suggestions($term = '', $count = 5) {
-    if (empty($term) || !class_exists('SearchHistory')) return [];
-    return (new SearchHistory())->suggestions($term, $count);
-}
-
-// ─── Çeviri Yükleme ────────────────────────────────────────────
 
 function check_and_load_translation($textdomain, $locale = null) {
-    $locale = $locale ?: determine_locale();
-    $paths  = [
-        WP_LANG_DIR . "/themes/{$textdomain}-{$locale}.mo",
-        get_template_directory() . "/languages/{$locale}.mo",
-        get_stylesheet_directory() . "/languages/{$locale}.mo",
+    //error_log("check_and_load_translation");
+    if (!$locale) {
+        $locale = determine_locale(); // WordPress 5.0+ için
+    }
+    $paths = [
+        WP_LANG_DIR . "/themes/$textdomain-$locale.mo", // Global languages dizini
+        get_template_directory() . "/languages/$locale.mo", // Tema languages dizini
+        get_stylesheet_directory() . "/languages/$locale.mo", // Child tema dizini
     ];
     foreach ($paths as $path) {
-        if (file_exists($path)) load_textdomain($textdomain, $path);
+        if (file_exists($path)) {
+            load_textdomain($textdomain, $path);
+        }
     }
+}
+
+
+
+
+function copyFolder($src, $dest, $exclude = []){
+    $dir = opendir($src);
+
+    if (!is_dir($dest)) {
+        mkdir($dest, 0755, true);
+    }
+
+    while (false !== ($file = readdir($dir))) {
+        if ($file == '.' || $file == '..') {
+            continue; // Geçerli ve üst dizini atla
+        }
+
+        $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+        $destPath = $dest . DIRECTORY_SEPARATOR . $file;
+            // Hariç tutulacak klasör kontrolü
+        if (is_dir($srcPath) && in_array($file, $exclude)) {
+            continue; // Hariç tutulan klasörü atla
+        }
+
+        if (is_dir($srcPath)) {
+            copyFolder($srcPath, $destPath, $exclude);
+        } else {
+            copy($srcPath, $destPath);
+        }
+    }
+    closedir($dir);
+}
+function copyFile($source, $destination) {
+        if (!file_exists($source)) {
+            return;
+        }
+        $destinationDir = dirname($destination);
+        if (!file_exists($destinationDir)) {
+            if (!mkdir($destinationDir, 0777, true)) {
+                return;
+            }
+        }
+        if (copy($source, $destination)) {
+
+        } else {
+            return;
+        }
+}
+function moveFolder($src, $dst) {
+    if (!is_dir($src)) {
+        //error_log("Kaynak klasör bulunamadı: $src");
+        return false;
+    }
+    try {
+        copyFolder($src, $dst);
+        deleteFolder($src);
+        return true;
+    } catch (Exception $e) {
+        //error_log("Taşıma işlemi başarısız: " . $e->getMessage());
+        return false;
+    }
+}
+function deleteFolder($dir) {
+    if (!is_dir($dir)) return;
+    $items = array_diff(scandir($dir), ['.', '..']);
+    foreach ($items as $item) {
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        is_dir($path) ? deleteFolder($path) : unlink($path);
+    }
+    rmdir($dir);
 }
 
 /**
@@ -650,4 +1092,106 @@ function modal_json_output( string $html, array $plugins_req = [], array $vars =
         'data'    => $data,
     ]);
     die();
+}
+
+/**
+ * modal_build_attrs
+ * Modal ayarlarından data-attribute string'i oluşturur.
+ * Twig template'lerinde tekrar eden modal attr bloğunu tek noktaya toplar.
+ *
+ * @param array $modal_settings  ACF modal_settings sub-field değerleri
+ * @return string                HTML data-attribute string'i
+ */
+function modal_build_attrs( array $modal_settings ): string {
+    if ( empty( $modal_settings['type'] ) ) {
+        return '';
+    }
+
+    $type  = $modal_settings['type'];
+    $attrs = [];
+
+    $attrs[] = sprintf( "data-ajax-method='%s'", esc_attr( $type ) );
+
+    // custom_modal → template'ten attrs al
+    if ( $type === 'custom_modal' && ! empty( $modal_settings['template'] ) ) {
+        $post = get_post( $modal_settings['template'] );
+        if ( $post ) {
+            $timber_post = Timber::get_post( $post->ID );
+            if ( $timber_post && method_exists( $timber_post, 'get_custom_template_data' ) ) {
+                $template_attrs = $timber_post->get_custom_template_data( 'modal' );
+                if ( $template_attrs ) {
+                    $attrs[] = $template_attrs;
+                }
+            }
+        }
+        return implode( ' ', $attrs );
+    }
+
+    // Ortak attrs
+    if ( isset( $modal_settings['close'] ) ) {
+        $attrs[] = sprintf( "data-close='%s'", esc_attr( $modal_settings['close'] ) );
+    }
+    if ( isset( $modal_settings['scrollable'] ) ) {
+        $attrs[] = sprintf( "data-scrollable='%s'", esc_attr( $modal_settings['scrollable'] ) );
+    }
+    if ( ! empty( $modal_settings['class'] ) ) {
+        $attrs[] = sprintf( "data-class='%s'", esc_attr( $modal_settings['class'] ) );
+    }
+    if ( ! empty( $modal_settings['title'] ) ) {
+        $attrs[] = sprintf( "data-title='%s'", esc_attr( $modal_settings['title'] ) );
+    }
+    if ( ! empty( $modal_settings['size'] ) ) {
+        if ( $modal_settings['size'] === 'fullscreen' ) {
+            $attrs[] = "data-fullscreen='true'";
+        } else {
+            $attrs[] = sprintf( "data-size='%s'", esc_attr( $modal_settings['size'] ) );
+        }
+    }
+
+    // page_modal, form_modal → id
+    if ( in_array( $type, [ 'page_modal', 'form_modal' ], true ) && ! empty( $modal_settings['id'] ) ) {
+        $attrs[] = sprintf( "data-id='%s'", esc_attr( $modal_settings['id'] ) );
+    }
+
+    // iframe_modal → height + url/file
+    if ( $type === 'iframe_modal' ) {
+        if ( ! empty( $modal_settings['height'] ) ) {
+            $attrs[] = sprintf( "data-height='%s'", esc_attr( $modal_settings['height'] ) );
+        }
+        $content_type = $modal_settings['content_type'] ?? '';
+        if ( $content_type === 'url' && ! empty( $modal_settings['url'] ) ) {
+            $attrs[] = sprintf( "data-url='%s'", esc_attr( $modal_settings['url'] ) );
+        } elseif ( $content_type === 'file' && ! empty( $modal_settings['file'] ) ) {
+            $attrs[] = sprintf( "data-url='%s'", esc_attr( $modal_settings['file'] ) );
+        }
+    }
+
+    // map_modal → lat/lng, ids, popup
+    if ( $type === 'map_modal' ) {
+        $ratio = $modal_settings['ratio'] ?? '16x9';
+        $modal_args = wp_json_encode( [ [ 'modal-body' => 'ratio ratio-' . $ratio . ' overflow-hidden' ] ] );
+        $attrs[] = sprintf( "data-modal='%s'", esc_attr( $modal_args ) );
+
+        $location_type = $modal_settings['location_type'] ?? '';
+        if ( $location_type === 'static' ) {
+            if ( ! empty( $modal_settings['lat'] ) ) {
+                $attrs[] = sprintf( "data-lat='%s'", esc_attr( $modal_settings['lat'] ) );
+            }
+            if ( ! empty( $modal_settings['lng'] ) ) {
+                $attrs[] = sprintf( "data-lng='%s'", esc_attr( $modal_settings['lng'] ) );
+            }
+        } elseif ( $location_type === 'dynamic' && ! empty( $modal_settings['posts'] ) ) {
+            $attrs[] = sprintf( "data-ids='%s'", esc_attr( wp_json_encode( $modal_settings['posts'] ) ) );
+        }
+
+        if ( ! empty( $modal_settings['marker_popup'] ) ) {
+            $popup = wp_json_encode( [
+                'type'  => $modal_settings['marker_popup_type']  ?? '',
+                'title' => $modal_settings['marker_popup_title'] ?? '',
+            ] );
+            $attrs[] = sprintf( "data-popup='%s'", esc_attr( $popup ) );
+        }
+    }
+
+    return implode( ' ', $attrs );
 }

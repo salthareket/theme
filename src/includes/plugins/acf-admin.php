@@ -1123,6 +1123,7 @@ function on_acf_post_pagination_saved($post_id) {
 
     // Değeri güvenle al
     $pagination_items = get_field('post_pagination', 'options');
+    //error_log(print_r($pagination_items, true));
 
     if (is_array($pagination_items)) {
         foreach ($pagination_items as $item) {

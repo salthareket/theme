@@ -1,5 +1,15 @@
 <?php
-$paginate = new Paginate([], $vars);
+// Encrypted query'yi decrypt et
+$query = [];
+if (!empty($vars['query'])) {
+    $enc = new \Encrypt();
+    $decrypted = $enc->decrypt($vars['query']);
+    if (is_array($decrypted)) {
+        $query = $decrypted;
+    }
+}
+
+$paginate = new Paginate($query, $vars);
 $result   = $paginate->get_results($vars['type'] ?? 'post');
 
 $tpl_list = $vars['templates'] ?? [];

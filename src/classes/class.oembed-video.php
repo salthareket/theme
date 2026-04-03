@@ -2,73 +2,29 @@
 
 /**
  * OembedVideo
- * Parse YouTube, Vimeo, Dailymotion URLs → extract video data, poster, title.
+ * Parse YouTube, Vimeo, Dailymotion URLs - extract video data, poster, title.
  * Poster images are downloaded and cached in WP Media Library.
  *
- * ─── HOW TO USE ───────────────────────────────────────────
+ * @version 1.1.0
  *
- * // Basic usage
- * $video = new OembedVideo('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
- * $data = $video->get();
- * // Returns:
- * // [
- * //   'type'      => 'youtube',
- * //   'id'        => 'dQw4w9WgXcQ',
- * //   'embed_url' => 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?...',
- * //   'watch'     => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
- * //   'src'       => 'https://site.com/wp-content/uploads/poster.jpg',
- * //   'title'     => 'Rick Astley - Never Gonna Give You Up',
- * // ]
+ * @changelog
+ *   1.1.0 - 2026-04-01
+ *     - Fix: $image_size type hint int -> string|int (ACF'den "1600x900" gibi string gelebiliyor)
+ *   1.0.0 - Onceki stabil versiyon
  *
- * // With autoplay + muted
- * $data = $video->get(['autoplay' => 1, 'muted' => 1]);
+ * How to use:
+ *   $video = new OembedVideo('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+ *   $data = $video->get();
+ *   $data = $video->get(['autoplay' => 1, 'muted' => 1]);
+ *   $video = new OembedVideo('https://vimeo.com/123456789', 1280);
  *
- * // Vimeo with custom poster size
- * $video = new OembedVideo('https://vimeo.com/123456789', 1280);
- * $data = $video->get();
- *
- * // Dailymotion
- * $video = new OembedVideo('https://www.dailymotion.com/video/x8abc123');
- * $data = $video->get();
- *
- * // TikTok
- * $video = new OembedVideo('https://www.tiktok.com/@user/video/7123456789');
- * $data = $video->get();
- *
- * // Kick
- * $video = new OembedVideo('https://kick.com/video/abc123');
- * $data = $video->get();
- *
- * // Loom
- * $video = new OembedVideo('https://www.loom.com/share/abc123def456');
- * $data = $video->get();
- *
- * // Wistia
- * $video = new OembedVideo('https://fast.wistia.com/medias/abc123');
- * $data = $video->get();
- *
- * // Supported URL formats:
- * // YouTube:     youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID,
- * //              youtube.com/shorts/ID, youtube.com/live/ID, youtube.com/v/ID
- * // Vimeo:       vimeo.com/ID, player.vimeo.com/video/ID
- * // Dailymotion: dailymotion.com/video/ID, geo.dailymotion.com/player.html?video=ID, dai.ly/ID
- * // TikTok:      tiktok.com/@user/video/ID, vm.tiktok.com/ID
- * // Kick:        kick.com/video/ID, kick.com/channel/clip/ID
- * // Loom:        loom.com/share/ID
- * // Wistia:      fast.wistia.com/medias/ID, company.wistia.com/medias/ID
- * // Twitch:      twitch.tv/videos/ID, clips.twitch.tv/SLUG
- * // TED:         ted.com/talks/SLUG
- * // Reddit:      reddit.com/r/sub/comments/ID (v.redd.it videos)
- * // Vevo:        vevo.com/watch/ARTIST/TITLE/ID
- * //
- * // Any other URL with oEmbed support is auto-detected via Noembed fallback.
- *
- * ──────────────────────────────────────────────────────────
+ * Supported: YouTube, Vimeo, Dailymotion, TikTok, Kick, Loom, Wistia, Twitch, TED, Reddit, Vevo
+ * Any other URL with oEmbed support is auto-detected via Noembed fallback.
  */
 class OembedVideo {
 
     private string $url;
-    private int $image_size;
+    private string|int $image_size;
     private array $attrs;
     private $api = null;
     private string $type = '';
@@ -76,7 +32,7 @@ class OembedVideo {
 
     private static array $poster_cache = [];
 
-    public function __construct(string $url = '', int $image_size = 0, array $attrs = []) {
+    public function __construct(string $url = '', string|int $image_size = 0, array $attrs = []) {
         $this->url = $url;
         $this->image_size = $image_size;
         $this->attrs = $attrs;

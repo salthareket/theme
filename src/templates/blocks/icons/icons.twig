@@ -38,9 +38,10 @@
 
                 {% set link_start = "" %}
                 {% if item.content.modal %}
-                    {% set modal_settings = item.content.modal_settings %}
+                    {# set modal_settings = item.content.modal_settings #}
+                    {% set attrs = function("modal_build_attrs", item.content.modal_settings) %}
 
-                    {{ modal_settings|print_r }}
+                    {# modal_settings|print_r }}
 
                     {% set attrs = " data-ajax-method='" ~ modal_settings.type ~ "' " ~ (modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ modal_settings.size ~ "' ") %}
                     {% set attrs = attrs ~ " data-close='" ~ modal_settings.close ~ "' " %}
@@ -84,7 +85,7 @@
                             {% set popup_args = {"type": modal_settings.marker_popup_type, "title": modal_settings.marker_popup_title }|json_attr %}
                             {% set attrs = attrs ~ " data-popup='" ~ popup_args ~ "' " %}
                         {% endif %}
-                    {% endif %}
+                    {% endif #}
 
                     {% set link_start = "<a href='#' class='w-100' "  ~ attrs ~ " title='" ~ (item.link_text|default(item.title)) ~"'>" %}
 

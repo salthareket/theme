@@ -215,6 +215,11 @@ class Theme_Site_Exporter {
             throw new \Exception( 'ZipArchive extension is not installed.' );
         }
 
+        // zip_path boşsa otomatik oluştur
+        if ( empty( $zip_path ) ) {
+            $zip_path = $tmp . '.zip';
+        }
+
         $this->check_cancel( $tmp );
 
         $z = new \ZipArchive();
@@ -400,8 +405,16 @@ class Theme_Site_Exporter {
         }
 
         if ( is_object( $data ) ) {
+            // Timber\PostArrayObject gibi readonly objeler için array'e çevir
+            if ( $data instanceof \Timber\PostArrayObject || $data instanceof \ArrayObject ) {
+                $arr = (array) $data;
+                foreach ( $arr as $k => $v ) {
+                    $arr[ $k ] = $this->safe_replace( $search, $replace, $v );
+                }
+                return $arr;
+            }
             $clone = clone $data;
-            foreach ( $data as $k => $v ) {
+            foreach ( get_object_vars($data) as $k => $v ) {
                 $clone->$k = $this->safe_replace( $search, $replace, $v );
             }
             return $clone;
@@ -451,12 +464,21 @@ class Theme_Site_Exporter {
 
     private function sanitize_path( string $path ): string {
         if ( empty( $path ) ) return '';
-        $path     = realpath( $path ) ?: $path;
+        // realpath sadece mevcut dosyalar için çalışır — zip henüz oluşturulmamış olabilir
+        $resolved = realpath( $path );
+        $check    = $resolved ?: $path;
         $base_dir = realpath( wp_upload_dir()['basedir'] );
-        if ( $base_dir && ! str_starts_with( $path, $base_dir ) ) {
-            return ''; // uploads dışına çıkamaz
+        // Mevcut dosya yoksa parent dir'i kontrol et
+        if ( ! $resolved ) {
+            $parent = realpath( dirname( $path ) );
+            if ( $base_dir && $parent && str_starts_with( $parent, $base_dir ) ) {
+                return $path; // Parent uploads içinde, path güvenli
+            }
         }
-        return $path;
+        if ( $base_dir && $resolved && ! str_starts_with( $resolved, $base_dir ) ) {
+            return '';
+        }
+        return $check;
     }
 
     private function url_to_path( string $url ): string {
