@@ -1,0 +1,161 @@
+// ─────────────────────────────────────────────────────────────
+// BUTTONS
+// ─────────────────────────────────────────────────────────────
+
+// ── Utility classes ──────────────────────────────────────────
+.btn-unlinked {
+    cursor: default;
+    pointer-events: none;
+}
+
+.btn-ellipsis {
+    @include ellipsis();
+    text-align: left;
+}
+
+.btn-load-more { position: relative; }
+
+.btn-loading,
+.btn-loading-self {
+    position: relative;
+    &.loading {
+        text-indent: -99999px;
+        overflow: hidden;
+        pointer-events: none;
+        &.btn-base:after { border-color: #fff; }
+    }
+}
+
+.btn:not(.dropdown-toggle) i { line-height: 100%; }
+
+// ── Reverse variants ─────────────────────────────────────────
+@each $color, $value in $theme-colors {
+    .btn-#{$color}.btn-reverse:not(:hover) {
+        color: $value;
+        background: transparent;
+        background-color: color-contrast($value);
+        border-color: $value;
+        @include button-outline-variant($value);
+    }
+
+    .btn-outline-#{$color}.btn-reverse:not(:hover) {
+        color: initial;
+        border-color: $value;
+        @include button-variant(
+            $value, $value,
+            $hover-background: shade-color($value, $btn-hover-bg-shade-amount),
+            $hover-border:     shade-color($value, $btn-hover-border-shade-amount),
+            $active-background: shade-color($value, $btn-active-bg-shade-amount),
+            $active-border:    shade-color($value, $btn-active-border-shade-amount)
+        );
+    }
+}
+
+// ── Button groups with gaps ───────────────────────────────────
+.btn-group {
+    &.btn-gap    .btn:not(:last-child) { margin-right: 20px; border-radius: 4px; }
+    &.btn-gap-sm .btn:not(:last-child) { margin-right: 10px; border-radius: 4px; }
+    &.btn-gap-xs .btn:not(:last-child) { margin-right: 5px;  border-radius: 4px; }
+
+    &.btn-group-stretch {
+        display: flex;
+        &.btn-group-stretch-fit {
+            .btn:first-child { padding-left: 0;  text-align: left; }
+            .btn:last-child  { padding-right: 0; text-align: right; }
+        }
+    }
+}
+
+// ── Font Awesome icon buttons ─────────────────────────────────
+@if variable-exists("use-fontawesome") {
+    @if $use-fontawesome {
+        @import '../../fonts/fontawesome/scss/variables';
+    }
+}
+
+// Base: icon positioned left by default
+[class*="btn-fa"]:not(.btn-favorite) {
+    position: relative;
+    &:before {
+        content: "";
+        font-family: var(--icon-font);
+        position: absolute;
+        font-size: 22px;
+        line-height: 1;
+        font-weight: 400;
+        left: 16px;
+        font-style: normal;
+    }
+}
+
+.btn-fa-start {
+    &:not(.btn-fa-end):not(.btn-fa-anim):before { left: 16px; }
+    &.btn-fa-anim {
+        &:before { opacity: 0; left: 32px; @include transition(all .3s ease-out); }
+        &:hover:before { opacity: 1; left: 16px; }
+    }
+}
+
+.btn-fa-end {
+    &:not(.btn-fa-start):not(.btn-fa-anim):before { left: auto; right: 16px; }
+    &.btn-fa-anim {
+        &:before { opacity: 0; left: auto; right: 32px; @include transition(all .3s ease-out); }
+        &:hover:before { opacity: 1; right: 16px; }
+    }
+}
+
+[dir="rtl"] .btn-fa:before { transform: scaleX(-1); }
+
+// ── Social buttons ────────────────────────────────────────────
+// Uses $brand-colors from _bootstrap-variables.scss
+@each $name, $color in $brand-colors {
+    .btn-social-#{$name} {
+        color: contrastText($color) !important;
+        background-color: $color !important;
+        border-color: darken($color, 5%) !important;
+
+        span { display: flex; align-items: center; }
+
+        &:hover, &:focus, &:active {
+            color: #fff !important;
+            background-color: darken($color, 8%) !important;
+            border-color: darken($color, 10%) !important;
+        }
+
+        &.btn-reverse {
+            color: $color !important;
+            background-color: #fff !important;
+            border-color: darken($color, 5%) !important;
+            &:hover, &:focus, &:active {
+                color: darken($color, 8%) !important;
+                background-color: #fff !important;
+                border-color: darken($color, 10%) !important;
+            }
+        }
+    }
+}
+
+// ── Dynamic button sizes (from PHP via $button-sizes) ─────────
+@if variable-exists(button-sizes) {
+    @each $button in $button-sizes {
+        $size:          map-get($button, size);
+        $padding-x:     map-get($button, padding_x);
+        $padding-y:     map-get($button, padding_y);
+        $font-size:     map-get($button, font-size);
+        $border-radius: map-get($button, border-radius);
+        $btn-class:     if($size == "default", "btn", "btn-#{$size}");
+
+        .#{$btn-class} {
+            @include button-size($padding-y, $padding-x, $font-size, $border-radius);
+
+            &[class*="btn-fa-"] {
+                &:not(.btn-fa-end)  { padding-left: #{$padding-x + 10px} !important; }
+                &.btn-fa-end:not(.btn-fa-start) {
+                    padding-left: $padding-x !important;
+                    padding-right: #{$padding-x + 10px} !important;
+                }
+                &:before { font-size: #{$font-size + 2px}; }
+            }
+        }
+    }
+}

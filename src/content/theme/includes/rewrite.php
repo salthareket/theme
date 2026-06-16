@@ -1,4 +1,30 @@
-<?php 
+<?php
+/**
+ * Custom Rewrite Rules & Author Link Filter
+ *
+ * @package SaltHareket\Theme
+ * @version 1.1.0
+ * @author  SaltHareket
+ * @since   1.0.0
+ *
+ * CHANGELOG:
+ * 1.1.0 - 2026-04-30
+ * - Fix: wpse17106_author_link() - get_user_role() array dönünce str_replace fatal error düzeltildi
+ * - Fix: PHP 8.3 uyumluluğu - str_replace() ikinci argüman string olmalı
+ *
+ * 1.0.0 - Initial release
+ *
+ * HOW TO USE:
+ * Bu dosya custom rewrite kuralları ve author link filter'ı içerir.
+ * Author URL'lerinde /author/ yerine kullanıcı rolü kullanılır.
+ *
+ * @example Author link filter:
+ * // /author/username/ → /editor/username/ (role = editor ise)
+ * // get_user_role() array dönebilir, ilk rol alınır
+ *
+ * @example Custom rewrite:
+ * // custom_rewrite_rules() init hook'unda çalışır
+ */
 
 function custom_rewrite_rules() {
     //flush_rewrite_rules();
@@ -32,9 +58,12 @@ add_action('init', 'custom_rewrite_rules');
 
 add_filter( 'author_link', 'wpse17106_author_link', 10, 2 );
 function wpse17106_author_link( $link, $author_id ){
-    //$user = new User($author_id);
-    //$link = str_replace( 'author', $user->get_role(), $link );
     $role = get_user_role($author_id);
+    // get_user_role array dönebilir - ilk rolü al
+    if (is_array($role)) {
+        $role = !empty($role) ? reset($role) : 'author';
+    }
+    if (empty($role)) $role = 'author';
     $link = str_replace( 'author', $role, $link );
     return $link;
 }

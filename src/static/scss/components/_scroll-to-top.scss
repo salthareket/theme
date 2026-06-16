@@ -1,0 +1,49 @@
+// ─────────────────────────────────────────────────────────────
+// SCROLL TO TOP
+// ─────────────────────────────────────────────────────────────
+
+a.scroll-to-top {
+    // Visibility controlled by JS adding/removing .show class
+    // CSS variable --scroll-to-top-show used as fallback for non-JS
+    display: none;
+    position: fixed;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width:            var(--scroll-to-top-width, 40px);
+    height:           var(--scroll-to-top-height, 40px);
+    border-radius:    var(--scroll-to-top-radius, 50%);
+    color:            var(--scroll-to-top-color) !important;
+    background-color: var(--scroll-to-top-bg-color);
+    font-size:        var(--scroll-to-top-font-size, 22px);
+    z-index: 999;
+    transition: all .3s ease-out;
+    will-change: opacity;
+
+    // Position from PHP variables
+    @if variable-exists(scroll-to-top-hr) {
+        @if $scroll-to-top-hr == "left"   { left:  var(--scroll-to-top-gap); }
+        @if $scroll-to-top-hr == "center" { left:  calc(50vw - var(--scroll-to-top-width) / 2); }
+        @if $scroll-to-top-hr == "right"  { right: var(--scroll-to-top-gap); }
+    } @else {
+        right: var(--scroll-to-top-gap, 35px);
+    }
+
+    @if variable-exists(scroll-to-top-vr) {
+        @if $scroll-to-top-vr == "top"    { top:    var(--scroll-to-top-gap); }
+        @if $scroll-to-top-vr == "center" { top:    calc(50vh - var(--scroll-to-top-height) / 2); }
+        @if $scroll-to-top-vr == "bottom" { bottom: var(--scroll-to-top-gap); }
+    } @else {
+        bottom: var(--scroll-to-top-gap, 35px);
+    }
+
+    // Visible state
+    &.show {
+        display: flex;
+    }
+
+    &:hover {
+        color:            var(--scroll-to-top-color-hover) !important;
+        background-color: var(--scroll-to-top-bg-color-hover) !important;
+    }
+}

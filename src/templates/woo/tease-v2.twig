@@ -1,0 +1,148 @@
+{#
+  Product Tease — Default WooCommerce product card
+  
+  Context:
+    post       : Timber\Post (product)
+    size       : string (xs, sm, md, lg) — optional
+    lazy       : bool — override lazy loading
+    index      : int — loop index (for LCP paint optimization)
+    page       : int — current page number
+#}
+
+{% set product_link = post.link|variation_url_rewrite %}
+{% set product_type = post.get_product_type() %}
+{% set wc_product = post.product() %}
+
+{# Lazy loading — ilk sayfa ilk 4 urun LCP icin eager #}
+{% if lazy is not defined %}
+    {% set lazy = true %}
+    {% if page is defined and index is defined %}
+        {% if page == 1 and index < 4 %}
+            {% set lazy = false %}
+        {% endif %}
+    {% endif %}
+{% endif %}
+
+{# Sale / New badge #}
+{% set is_on_sale = wc_product.is_on_sale() %}
+{% set is_featured = wc_product.is_featured() %}
+
+{% do post.setup() %}
+
+<article class="tease tease-product card product type-product product-{{ product_type }} {{ size ?? '' }}" 
+    itemscope itemtype="https://schema.org/Product">
+
+    {# ── IMAGE ── #}
+    <div class="card-img">
+        <a href="{{ product_link }}" class="d-block btn-loading-page" title="{{ post.title }}" itemprop="url">
+
+            {# Badges #}
+            {% if is_on_sale or is_featured %}
+            <div class="product-badges">
+                {% if is_on_sale %}
+                    <span class="badge badge-sale">{{ translate("İndirim") }}</span>
+                {% endif %}
+                {% if is_featured %}
+                    <span class="badge badge-new">{{ translate("Yeni") }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {{wc_product.thumbnail}}
+
+            {# Product Image #}
+            {% if post.thumbnail %}
+                {{ img({
+                    post   : post,
+                    lazy   : lazy,
+                    srcset : {
+                        xs   : 400,
+                        sm   : 400,
+                        md   : 400,
+                        lg   : 400,
+                        xl   : 400,
+                        xxl  : 400,
+                        xxxl : 400
+                    }
+                }) }}
+            {% else %}
+                <div class="img-placeholder no-image"></div>
+            {% endif %}
+            {# Schema.org meta #}
+            <meta itemprop="image" content="{{ post.thumbnail.src ?? '' }}">
+        </a>
+    </div>
+
+    {# ── INFO ── #}
+    <div class="card-body">
+
+        {# Category #}
+
+            {% set categories = post.terms('product_cat') %}
+            {% if categories %}
+                <div class="product-category text-muted">
+                    <a href="{{ categories[0].link }}" class="btn-loading-page">{{ categories[0].name }}</a>
+                </div>
+            {% endif %}
+ 
+
+        {# Title #}
+        <h3 class="card-title product-title" itemprop="name">
+            <a href="{{ product_link }}" class="btn-loading-page" title="{{ post.title }}">
+                {{ post.title }}
+            </a>
+        </h3>
+
+        {# Price #}
+
+            <div class="product-price" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+                <meta itemprop="priceCurrency" content="{{ function('get_woocommerce_currency') }}">
+                <meta itemprop="availability" content="https://schema.org/InStock">
+                {% do action('woocommerce_after_shop_loop_item_title') %}
+            </div>
+
+
+        {# Short Description — sadece buyuk kartlarda #}
+        {% if post.post_excerpt %}
+            <div class="product-excerpt text-muted">
+                {{ post.post_excerpt|truncate(80) }}
+            </div>
+        {% endif %}
+    </div>
+
+    {# ── ACTIONS ── #}
+    {% if enable_cart or enable_reactions %}
+
+        <div class="card-footer product-actions">
+            {% if enable_cart %}
+                {% if product_type == "simple" %}
+                    <a href="#" 
+                       class="btn btn-sm btn-add-to-cart btn-product-action" 
+                       data-ajax-method="add_to_cart" 
+                       {{ function("get_add_to_cart_attrs", post.id) }}
+                       aria-label="{{ translate('Sepete Ekle') }}">
+                        <i class="fa-regular fa-cart-plus"></i>
+                        <span class="btn-text d-none d-md-inline">{{ translate("Sepete Ekle") }}</span>
+                    </a>
+                {% else %}
+                    <a href="{{ product_link }}" 
+                       class="btn btn-sm btn-select-options btn-loading-page"
+                       aria-label="{{ translate('Seçenekleri Gör') }}">
+                        <i class="fa-regular fa-eye"></i>
+                        <span class="btn-text d-none d-md-inline">{{ translate("Seçenekleri Gör") }}</span>
+                    </a>
+                {% endif %}
+            {% endif %}
+
+            {% if enable_reactions is defined and enable_reactions %}
+                {{ function('salt_reaction_button', post.id, 'post', 'favorite', {
+                    'style': 'icon-only',
+                    'class': 'btn-product-action',
+                    'show_count': false
+                }) }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    
+</article>

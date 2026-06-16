@@ -1,0 +1,23 @@
+{
+    "name": "acf/archive",
+    "title": "Archive",
+    "description": "Post, Taxonomy, Term, Comment ve User listeleme — filtre ve sayfalama destegi",
+    "category": "saltblocks",
+    "icon": "grid-view",
+    "keywords": ["archive", "list", "post", "taxonomy", "filter", "pagination"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Archive Duzenle"
+    }
+}

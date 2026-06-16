@@ -1,0 +1,51 @@
+/**
+ * Breadcrumb Module Preview Styles
+ * 
+ * @version 2.0.0
+ */
+
+/* Preview Container */
+.ts-breadcrumb-preview {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 40px 20px;
+    margin-top: 20px;
+}
+
+#ts-breadcrumb-demo {
+    display: flex;
+    justify-content: flex-start;
+}
+
+#ts-breadcrumb-demo .breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 8px;
+    align-items: center;
+}
+
+#ts-breadcrumb-demo .breadcrumb-item {
+    display: flex;
+    align-items: center;
+}
+
+#ts-breadcrumb-demo .breadcrumb-item a {
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+#ts-breadcrumb-demo .breadcrumb-item.active {
+    pointer-events: none;
+}
+
+#ts-breadcrumb-demo .breadcrumb-item + .breadcrumb-item::before {
+    display: inline-flex;
+    align-items: center;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    margin-right: 8px;
+}

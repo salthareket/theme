@@ -1,51 +1,128 @@
-{% extends "base.twig" %}
+{#
+  Order Received / Thank You sayfası içeriği.
+  Bu template the_content filter'ı ile inject edilir.
+  base.twig extend etmez — sadece içerik HTML'i döndürür.
+#}
 
-{% set  page_settings = {
-            full : true,
-            classes : {
-                body : "pb-5",
-                main : "d-flex align-items-center",
-                container : "",
-                gap : "",
-            },
-            offcanvas : {
-                individual : false,
-                size : "md",
-                width : 3,
-                position : "start",
-                template : ""
-            },
-            alert : {
-                type : "danger",
-                title : "",
-                message : "",
-                position : "bottom",
-                fixed : false,
-                class : "",
-                html : ""
-            },
-            paging : {
-                posts_per_page : 10,
-                page : 1
-            }
-        }
-%}
+{% if is_failed %}
 
-
-{% block hero %}
-{% endblock %}
-
-
-{% block sidebar %}
-{% endblock %}
-
-{% block content %}
-    <div class="container-xxl">
-        {{ post.content }}
+    {# ── BAŞARISIZ SİPARİŞ ──────────────────────────────── #}
+    <div class="py-5 text-center">
+        <div class="mb-4">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger text-white"
+                  style="width:72px;height:72px;">
+                <i class="fa-solid fa-xmark fa-2x"></i>
+            </span>
+        </div>
+        <h2 class="fw-bold mb-2">{{ translate("Ödeme Başarısız") }}</h2>
+        <p class="text-muted mb-4">
+            {{ translate("Maalesef ödemeniz işlenemedi. Lütfen tekrar deneyin.") }}
+        </p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{{ order.get_checkout_payment_url() }}" class="btn btn-primary btn-lg px-5">
+                <i class="fa-solid fa-credit-card me-2"></i>{{ translate("Tekrar Öde") }}
+            </a>
+            {% if is_logged_in %}
+            <a href="{{ account_url }}" class="btn btn-outline-secondary btn-lg px-5">
+                {{ translate("Hesabım") }}
+            </a>
+            {% endif %}
+        </div>
     </div>
-{% endblock %}
 
+{% else %}
 
-{% block after_main %}
+    {# ── BAŞARILI SİPARİŞ ────────────────────────────────── #}
+    <div class="row justify-content-center py-5">
+        <div class="col-lg-7">
 
-{% endblock %}
+            {# Başlık #}
+            <div class="text-center mb-5">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success text-white mb-3"
+                      style="width:72px;height:72px;">
+                    <i class="fa-solid fa-check fa-2x"></i>
+                </span>
+                <h2 class="fw-bold mb-1">{{ translate("Siparişiniz Alındı!") }}</h2>
+                <p class="text-muted">
+                    {{ translate("Teşekkürler") }}, <strong>{{ order.get_billing_first_name() }}</strong>.
+                    {{ translate("Siparişiniz başarıyla oluşturuldu.") }}
+                </p>
+            </div>
+
+            {# Sipariş Özeti #}
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="row g-3 text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small mb-1">{{ translate("Sipariş No") }}</div>
+                            <div class="fw-bold">#{{ order.get_order_number() }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small mb-1">{{ translate("Tarih") }}</div>
+                            <div class="fw-bold">{{ order.get_date_created()|date("d.m.Y") }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small mb-1">{{ translate("Toplam") }}</div>
+                            <div class="fw-bold">{{ order.get_formatted_order_total()|raw }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small mb-1">{{ translate("Ödeme") }}</div>
+                            <div class="fw-bold">{{ order.get_payment_method_title() }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Ürünler #}
+            {% if items %}
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0">
+                    <h6 class="fw-bold mb-0">{{ translate("Sipariş Detayı") }}</h6>
+                </div>
+                <div class="card-body p-4">
+                    {% for item in items %}
+                    <div class="d-flex align-items-center gap-3 {{ not loop.last ? 'mb-3 pb-3 border-bottom' : '' }}">
+                        {% if item.image %}
+                        <a href="{{ item.link }}" class="flex-shrink-0">
+                            <img src="{{ item.image }}" alt="{{ item.name }}"
+                                 style="width:56px;height:56px;object-fit:cover;border-radius:8px;">
+                        </a>
+                        {% endif %}
+                        <div class="flex-grow-1 min-w-0">
+                            <a href="{{ item.link }}" class="text-dark text-decoration-none fw-semibold d-block"
+                               style="font-size:14px;">{{ item.name }}</a>
+                            <span class="text-muted" style="font-size:13px;">× {{ item.qty }}</span>
+                        </div>
+                        <div class="fw-bold flex-shrink-0" style="font-size:14px;">{{ item.total|raw }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# E-posta bildirimi #}
+            <div class="alert alert-light border rounded-4 d-flex align-items-center gap-3 mb-4">
+                <i class="fa-regular fa-envelope fa-lg text-muted flex-shrink-0"></i>
+                <span style="font-size:14px;">
+                    {{ translate("Sipariş onayı") }}
+                    <strong>{{ order.get_billing_email() }}</strong>
+                    {{ translate("adresine gönderildi.") }}
+                </span>
+            </div>
+
+            {# CTA Butonları #}
+            <div class="d-flex gap-3 flex-wrap">
+                <a href="{{ shop_url }}" class="btn btn-primary px-5">
+                    <i class="fa-solid fa-bag-shopping me-2"></i>{{ translate("Alışverişe Devam Et") }}
+                </a>
+                {% if is_logged_in %}
+                <a href="{{ orders_url }}" class="btn btn-outline-secondary px-5">
+                    {{ translate("Siparişlerim") }}
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+{% endif %}

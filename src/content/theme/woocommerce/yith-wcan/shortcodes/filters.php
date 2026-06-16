@@ -24,14 +24,20 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 	<div class="yith-wcan-filters <?php echo esc_attr( $preset->get_additional_classes() ); ?>" id="preset_<?php echo esc_attr( $preset->get_id() ); ?>" data-preset-id="<?php echo esc_attr( $preset->get_id() ); ?>" data-target="<?php echo esc_attr( $selector ); ?>">
 		<div class="filters-container">
 			<form method="POST">
+				
 				<?php
 				/**
-				 * Hook: yith_wcan_before_preset_filters.
+				 * DO_ACTION: yith_wcan_before_preset_filters.
 				 *
+				 * Triggered before preset filters.
+				 *
+				 * @param YITH_WCAN_Preset $preset   Current preset object.
+				 * @param string           $selector Selector used to locate DOM node containing products fo filter.
 				 * @hooked \YITH_WCAN_Frontend::filters_title - 10
 				 */
 				do_action( 'yith_wcan_before_preset_filters', $preset, $selector );
 				?>
+
 				<?php foreach ( $preset->get_filters() as $filter_id => $filter ) : ?>
 					<?php
 					if ( ! $filter->is_enabled() ) {
@@ -47,8 +53,12 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 
 				<?php
 				/**
-				 * Hook: yith_wcan_after_preset_filters.
+				 * DO_ACTION: yith_wcan_after_preset_filters.
 				 *
+				 * Triggered before preset filters.
+				 *
+				 * @param YITH_WCAN_Preset $preset   Current preset object.
+				 * @param string           $selector Selector used to locate DOM node containing products fo filter.
 				 * @hooked \YITH_WCAN_Frontend::apply_filters_button - 10
 				 */
 				do_action( 'yith_wcan_after_preset_filters', $preset, $selector );

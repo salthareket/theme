@@ -1,4 +1,42 @@
 <?php
+
+/**
+ * User — Timber\User extend'i.
+ *
+ * @version 1.2.0
+ * @changelog
+ *   1.2.0 - 2026-05-08
+ *     - Add: reaction_count() — user'in reaction sayisi (kac kisi follow etti vs)
+ *     - Add: has_reaction() — mevcut kullanici bu user'a reaction yapti mi
+ *     - Add: reaction_button() — reaction button HTML'i render et
+ *     - Add: reaction_ids() — kullanicinin reaction yaptigi object ID listesi
+ *   1.0.0 — Initial release
+ *
+ * ─── HOW TO USE ───────────────────────────────────────────
+ *
+ * // Twig'de:
+ * {{ user.reaction_count('follow') }}
+ * {% if user.has_reaction('follow') %}...{% endif %}
+ * {{ user.reaction_button('follow', {'style': 'pill'})|raw }}
+ * {% set fav_ids = user.reaction_ids('favorite', 'post') %}
+ *
+ * ──────────────────────────────────────────────────────────
+ *
+ * @example
+ *   {{ user.reaction_count('follow') }} takipci
+ *
+ * @example
+ *   {% if user.has_reaction('follow') %}Takip Ediliyor{% endif %}
+ *
+ * @example
+ *   {{ user.reaction_button('follow', {'style': 'pill'})|raw }}
+ *
+ * @example
+ *   {% set fav_ids = user.reaction_ids('favorite', 'post') %}
+ *
+ * @example
+ *   {% set following = user.reaction_ids('follow', 'user') %}
+ */
 class User extends Timber\User {
     public $logged;
     public $role;
@@ -10,6 +48,10 @@ class User extends Timber\User {
     public $last_login;
     public $last_logout;
     public $last_seen;
+
+    public function __construct($user = null) {
+        parent::__construct($user);
+    }
 
     public function logged($logged=0){
         $this->logged = $logged;
@@ -53,6 +95,10 @@ class User extends Timber\User {
         return $this->get_last_logout($type, $format) ?: $this->get_last_login($type, $format);
     }
     public function get_status(){
+        // MembershipManager'a delegate — geriye dönük uyumluluk korunuyor
+        if ( class_exists( '\SaltHareket\Membership\MembershipManager' ) ) {
+            return \SaltHareket\Membership\MembershipManager::getInstance()->isUserActive( $this->ID );
+        }
         if (ENABLE_MEMBERSHIP_ACTIVATION) {
             $status = (int) get_user_meta($this->ID, 'user_status', true);
         } else {
@@ -60,6 +106,130 @@ class User extends Timber\User {
         }
         return is_user_logged_in() && ($status || $this->get_role() === 'administrator');
     }
+
+    /**
+     * Aktivasyon durumunu döndür.
+     * Twig: {{ user.activation_status }} → 'pending'|'activated'|'approved'|'rejected'
+     */
+    public function get_activation_status(): string {
+        if ( class_exists( '\SaltHareket\Membership\MembershipManager' ) ) {
+            return \SaltHareket\Membership\MembershipManager::getInstance()->getActivationStatus( $this->ID );
+        }
+        return get_user_meta( $this->ID, 'user_status', true ) ? 'approved' : 'pending';
+    }
+
+    /**
+     * Profil tamamlama skoru.
+     * Twig: {{ user.profile_completion.score }}%
+     *       {{ user.profile_completion.missing|join(', ') }}
+     */
+    public function get_profile_completion(): array {
+        if ( class_exists( '\SaltHareket\Membership\MembershipManager' ) ) {
+            return \SaltHareket\Membership\MembershipManager::getInstance()->getProfileCompletion( $this->ID );
+        }
+        return [ 'score' => 0, 'missing' => [], 'completed' => [] ];
+    }
+
+    /**
+     * Bağlı sosyal login provider'ları.
+     * Twig: {% if user.social_providers %}...{% endif %}
+     */
+    public function get_social_providers(): array {
+        if ( class_exists( '\SaltHareket\Membership\MembershipManager' ) ) {
+            return \SaltHareket\Membership\MembershipManager::getInstance()->getSocialProviders( $this->ID );
+        }
+        return $this->get_social_login_providers();
+    }
+
+    /**
+     * Hesap silme talebi var mı?
+     * Twig: {% if user.deletion_pending %}...{% endif %}
+     */
+    public function get_deletion_pending(): bool {
+        return (bool) get_user_meta( $this->ID, 'deletion_requested_at', true );
+    }
+
+    // ── LOCATION ──────────────────────────────────────────────────────────────
+
+    /**
+     * Kullanıcının ülke adı.
+     * Twig: {{ user.country_name }}
+     */
+    public function get_country_name(): string {
+        if ( empty( $this->billing_country ) ) return '';
+        return function_exists( 'get_country_name' )
+            ? get_country_name( 'iso2', $this->billing_country )
+            : $this->billing_country;
+    }
+
+    /**
+     * Kullanıcının şehir adı.
+     * Twig: {{ user.city_name }}
+     */
+    public function get_city_name(): string {
+        if ( empty( $this->city ) ) return '';
+        return function_exists( 'get_city_name' )
+            ? get_city_name( 'id', $this->city )
+            : '';
+    }
+
+    /**
+     * Kullanıcının timezone'u.
+     * Twig: {{ user.timezone }}
+     */
+    public function get_timezone(): string {
+        $tz = get_user_meta( $this->ID, '_wp_utz_opts', true );
+        if ( is_array( $tz ) && ! empty( $tz['timezone'] ) ) {
+            return $tz['timezone'];
+        }
+        return get_option( 'timezone_string', 'UTC' );
+    }
+
+    /**
+     * Kullanıcının GMT offset'i.
+     * Twig: {{ user.gmt }}
+     */
+    public function get_gmt(): string {
+        return get_user_meta( $this->ID, 'gmt', true ) ?: '';
+    }
+
+    /**
+     * Kullanıcının region term'leri.
+     * Twig: {% for region in user.regions %}{{ region.name }}{% endfor %}
+     */
+    public function get_regions(): array {
+        if ( ! taxonomy_exists( 'region' ) ) return [];
+        $terms = get_terms( [
+            'taxonomy'   => 'region',
+            'hide_empty' => false,
+            'meta_query' => [ [
+                'key'     => 'country',
+                'value'   => serialize( strtoupper( $this->billing_country ?? '' ) ),
+                'compare' => 'LIKE',
+            ] ],
+        ] );
+        return ( $terms && ! is_wp_error( $terms ) ) ? $terms : [];
+    }
+
+    /**
+     * Tarih/saati kullanıcının timezone'una göre formatla.
+     * Twig: {{ user.get_local_date(post.date, 'UTC', user.timezone) }}
+     */
+    public function get_local_date( string $date = '', string $from_tz = 'UTC', string $to_tz = '', string $format = 'Y-m-d H:i:s' ): string {
+        if ( empty( $date ) ) return '';
+        if ( empty( $to_tz ) ) $to_tz = $this->get_timezone();
+
+        try {
+            $dt = new \DateTime( $date, new \DateTimeZone( $from_tz ) );
+            $dt->setTimezone( new \DateTimeZone( $to_tz ) );
+            return $dt->format( $format );
+        } catch ( \Exception $e ) {
+            return $date;
+        }
+    }
+
+    // ── END LOCATION ──────────────────────────────────────────────────────────
+
     public function is_profile_completed(){
         if ($this->get_role() === 'administrator') return true;
         return boolval(get_user_meta($this->ID, 'profile_completed', true));
@@ -191,7 +361,7 @@ class User extends Timber\User {
            $location[] = get_city_name("id", $this->city);
         }
         if($this->billing_country){
-           $location[] = get_country_name("code", $this->billing_country);
+           $location[] = function_exists( 'get_country_name' )?get_country_name("code", $this->billing_country):"";
         }
         $location = implode(", ", $location);
 
@@ -214,24 +384,35 @@ class User extends Timber\User {
            }
         }
         if(isset($this->billing_country)){
-           $location[] = get_country_name("code", $this->billing_country);
+           $location[] = function_exists( 'get_country_name' )?get_country_name("code", $this->billing_country):"";
         }
         $location = implode(", ", $location);
         return $location;//mb_convert_encoding($location, "UTF-8", "auto"); 
     }
     public function get_location_data(){
-        $vars = array(
-            "id" => $this->city
-        );
-        $localization = new Localization();
-        return $localization->states($vars)[0];
+        $lm = class_exists( '\SaltHareket\Localization\LocationManager' )
+            ? \SaltHareket\Localization\LocationManager::getInstance()
+            : null;
+
+        if ( $lm ) {
+            $result = $lm->states( [ 'id' => $this->city ] );
+            return $result[0] ?? null;
+        }
+
+        // Fallback — eski Localization class
+        if ( class_exists( 'Localization' ) ) {
+            $localization = new Localization();
+            return $localization->states( [ 'id' => $this->city ] )[0] ?? null;
+        }
+
+        return null;
     }
     public function get_map_data($popup=false){
         $location_data = $this->get_location_data();
         $data = array(
             "title"        => $this->get_title(),
             "avatar"       => $this->get_avatar_url(60),
-            "country"      => get_country_name("code", $this->billing_country),
+            "country"      => function_exists( 'get_country_name' )?get_country_name("code", $this->billing_country):"",
             "country_code" => $this->billing_country,
             "city"         => get_city_name("id", $this->city),
             "city_code"    => $this->city,
@@ -274,24 +455,26 @@ class User extends Timber\User {
      * @return array{total: int, average: float}  veya eski uyumluluk için object
      */
     public function get_rating() {
+        if ( ! class_exists( 'Reviews' ) ) return (object) [ 'total' => 0, 'point' => 0 ];
         $data = Reviews::rating( $this->ID, 'user' );
-        // Eski kod $rating->point ve $rating->total kullanıyordu — uyumluluk
         return (object) [ 'total' => $data['total'], 'point' => $data['average'] ];
     }
 
     public function get_reviews_count(): int {
+        if ( ! class_exists( 'Reviews' ) ) return 0;
         return Reviews::rating( $this->ID, 'user' )['total'];
     }
 
     public function set_review_approve( int $id = 0 ): array {
+        if ( ! class_exists( 'Reviews' ) ) return [];
         $reviews = new Reviews();
         return $reviews->approve( $id );
     }
 
     public function get_application_review( int $post_id = 0 ) {
+        if ( ! class_exists( 'Reviews' ) ) return [];
         $reviews = new Reviews();
         $result  = $reviews->get_for_user( $this->ID, [ 'per_page' => 1 ] );
-        // post_id filtresi varsa post bazlı çek
         if ( $post_id > 0 ) {
             $result = $reviews->get_for_post( $post_id, [ 'per_page' => 1 ] );
         }
@@ -322,6 +505,46 @@ class User extends Timber\User {
 
 
 
+
+    // ── REACTIONS ────────────────────────────────────────────────────────────
+
+    /**
+     * Bu kullanicinin belirli bir reaction sayisi (kac kisi follow etti vs).
+     * Twig: {{ user.reaction_count('follow') }}
+     */
+    public function reaction_count( string $type = 'follow' ): int {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return 0;
+        return \SaltHareket\Reactions\Reactions::count( $type, $this->ID, 'user' );
+    }
+
+    /**
+     * Mevcut kullanici bu user'a reaction yapti mi?
+     * Twig: {% if user.has_reaction('follow') %}
+     */
+    public function has_reaction( string $type = 'follow' ): bool {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return false;
+        return \SaltHareket\Reactions\Reactions::has( $type, $this->ID, 'user' );
+    }
+
+    /**
+     * Reaction button HTML'i render et.
+     * Twig: {{ user.reaction_button('follow', {'style': 'pill'}) }}
+     */
+    public function reaction_button( string $type = 'follow', array $options = [] ): string {
+        if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
+        return \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->ID, 'user', $type, $options );
+    }
+
+    /**
+     * Bu kullanicinin yaptigi reaction'larin object ID listesi.
+     * Twig: {% set fav_ids = user.reaction_ids('favorite', 'post') %}
+     */
+    public function reaction_ids( string $type = 'favorite', string $object_type = 'post' ): array {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return [];
+        return \SaltHareket\Reactions\Reactions::getByUser( $this->ID, $type, $object_type );
+    }
+
+    // ── END REACTIONS ─────────────────────────────────────────────────────────
 
     public function cart(){
         if(ENABLE_ECOMMERCE){

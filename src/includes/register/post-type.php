@@ -257,115 +257,200 @@ add_action('save_post', function($post_id, $post, $update) {
     $render_dir = trailingslashit($theme_dir) . 'theme/templates/_custom/';
     if (!file_exists($render_dir)) wp_mkdir_p($render_dir);
 
-    $post_slug   = get_post_field('post_name', $post_id) ?: sanitize_title($post->post_title);
-    $html_output = '';
-    $final_css   = '';
+    $post_slug = get_post_field('post_name', $post_id) ?: sanitize_title($post->post_title);
 
+    // ── CUSTOM: ACF content field ──
     if ($term_slug === 'custom') {
-        // Custom: ACF content field
         $content = get_field('content', $post_id);
         if (empty($content)) return;
-        $html_output = $content;
-        $filename    = $post_slug . '.twig';
-    } else {
-        // Block editor: header, footer, modal, offcanvas
-        if (!class_exists('Timber')) return;
-        $timber_post = Timber::get_post($post_id);
-        if (!$timber_post) return;
-
-        // Frontend'den fetch et - admin'de render_block bazı block'ların CSS'ini uretmiyor
-        $fetch_url = get_permalink($post_id);
-        if ($fetch_url) {
-            $fetch_url = add_query_arg('fetch', '1', $fetch_url);
-            $response = wp_remote_get($fetch_url, [
-                'timeout'   => 30,
-                'sslverify' => false,
-                'headers'   => ['X-Internal-Fetch' => '1'],
-            ]);
-            $fetch_body = wp_remote_retrieve_body($response);
-        }
-
-        if (!empty($fetch_body)) {
-            // Fetch'ten gelen tam sayfa HTML'inden sadece block content'i al
-            $dom = new \DOMDocument();
-            @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $fetch_body, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-            $xpath = new \DOMXPath($dom);
-
-            // main veya .entry-content icerigini al
-            $main = $xpath->query('//main');
-            if ($main && $main->length > 0) {
-                $blocks_raw = '';
-                foreach ($main as $node) {
-                    $blocks_raw .= $dom->saveHTML($node);
-                }
-            } else {
-                $blocks_raw = $fetch_body;
-            }
-        } else {
-            // Fallback: admin render
-            if (method_exists($timber_post, 'get_blocks')) {
-                $blocks_raw = $timber_post->get_blocks(['seperate_css' => false, 'seperate_js' => false])['html'];
-            } else {
-                $blocks_raw = '';
-                foreach (parse_blocks($timber_post->post_content ?? '') as $b) {
-                    $blocks_raw .= render_block($b);
-                }
-            }
-        }
-
-        // CSS'i HTML'den ayıkla
-        $html_output = preg_replace_callback('/<style\b[^>]*>(.*?)<\/style>/is', function($m) use (&$final_css) {
-            $final_css .= $m[1] . "\n";
-            return '';
-        }, $blocks_raw);
-        $html_output = $timber_post->strip_tags($html_output, '<style>');
-
-        // Unused CSS temizliği
-        if (class_exists('RemoveUnusedCss') && defined('STATIC_PATH')) {
-            $main_css = @file_get_contents(STATIC_PATH . 'css/main-combined.css');
-            if ($main_css) {
-                $remover = new RemoveUnusedCss($html_output, $main_css, '', [], false, [
-                    'ignore_whitelist'      => true,
-                    'black_list'            => ['html', 'body', 'footer'],
-                    'scope'                 => '.' . $post_slug,
-                    'ignore_root_variables' => true,
-                ]);
-                $final_css = $remover->process() . $final_css;
-            }
-        }
-
-        file_put_contents($render_dir . $post_id . '.css', $final_css);
-        $html_output .= "<style type='text/css'>" . $final_css . '</style>';
-
-        // Dil suffix'i
-        $file_lang = 'default';
-        if (function_exists('pll_get_post_language'))  $file_lang = pll_get_post_language($post_id);
-        elseif (function_exists('qtranxf_getLanguage')) $file_lang = qtranxf_getLanguage();
-
-        $filename = sprintf('%s_%s.twig', $post_id, $file_lang);
+        $filename = $post_slug . '.twig';
+        _template_save_file($render_dir, $filename, $content, $post_id);
+        return;
     }
 
-    // Hash kontrolü — değişiklik yoksa yazma
+    // ── BLOCK EDITOR: header, footer, modal, offcanvas, sidebar ──
+    if (!class_exists('Timber')) return;
+    $timber_post = Timber::get_post($post_id);
+    if (!$timber_post) return;
+
+    // Admin cookie'leri — logged fetch icin
+    $auth_cookies = [];
+    foreach ($_COOKIE as $name => $value) {
+        if (strpos($name, 'wordpress_logged_in') === 0 || strpos($name, 'wordpress_sec') === 0) {
+            $auth_cookies[] = new WP_Http_Cookie(['name' => $name, 'value' => $value]);
+        }
+    }
+
+    // ── 1. LOGOUT FETCH (cookie'siz) ──
+    $logout_result = _template_fetch_and_process($post_id, $timber_post, $post_slug, []);
+
+    // ── 2. LOGGED FETCH (cookie ile) ──
+    $logged_result = !empty($auth_cookies)
+        ? _template_fetch_and_process($post_id, $timber_post, $post_slug, $auth_cookies)
+        : null;
+
+    // ── 3. MERGE — iki fetch'in CSS'ini birlestir ──
+    $final_css = '';
+    $html_output = '';
+
+    if ($logout_result) {
+        $final_css .= $logout_result['css'];
+        $html_output = $logout_result['html'];
+    }
+    if ($logged_result) {
+        $final_css .= "\n" . $logged_result['css'];
+        if (empty($html_output)) $html_output = $logged_result['html'];
+    }
+
+    if (empty($html_output) && empty($final_css)) return;
+
+    // CSS minify
+    if (!empty($final_css) && class_exists('MatthiasMullie\Minify\CSS')) {
+        $css_minifier = new \MatthiasMullie\Minify\CSS();
+        $css_minifier->add($final_css);
+        $final_css = $css_minifier->minify();
+    }
+
+    // Tek CSS dosyasi
+    file_put_contents($render_dir . $post_id . '.css', $final_css);
+
+    // Twig dosyasi
+    $html_output .= "<style type='text/css'>" . $final_css . '</style>';
+
+    $file_lang = 'default';
+    if (function_exists('pll_get_post_language'))  $file_lang = pll_get_post_language($post_id);
+    elseif (function_exists('qtranxf_getLanguage')) $file_lang = qtranxf_getLanguage();
+
+    $filename = sprintf('%s_%s.twig', $post_id, $file_lang);
+    _template_save_file($render_dir, $filename, $html_output, $post_id);
+
+    update_post_meta($post_id, 'template', $filename);
+    update_post_meta($post_id, 'css', $post_id . '.css');
+}, 20, 3);
+
+/**
+ * Template fetch + CSS process helper.
+ * @return array|false ['html' => string, 'css' => string]
+ */
+function _template_fetch_and_process($post_id, $timber_post, $post_slug, $cookies = []) {
+    $fetch_url = get_permalink($post_id);
+    $fetch_body = '';
+    $final_css = '';
+
+    if ($fetch_url) {
+        $fetch_url = add_query_arg('fetch', '1', $fetch_url);
+        $args = [
+            'timeout'   => 30,
+            'sslverify' => false,
+            'headers'   => ['X-Internal-Fetch' => '1'],
+        ];
+        if (!empty($cookies)) {
+            $args['cookies'] = $cookies;
+        }
+        $response = wp_remote_get($fetch_url, $args);
+        $fetch_body = wp_remote_retrieve_body($response);
+    }
+
+    $blocks_raw = '';
+    if (!empty($fetch_body)) {
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $fetch_body, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $xpath = new \DOMXPath($dom);
+        $main = $xpath->query('//main');
+        if ($main && $main->length > 0) {
+            foreach ($main as $node) {
+                $blocks_raw .= $dom->saveHTML($node);
+            }
+        } else {
+            $blocks_raw = $fetch_body;
+        }
+    } else {
+        // Fallback: admin render
+        if (method_exists($timber_post, 'get_blocks')) {
+            $blocks_raw = $timber_post->get_blocks(['seperate_css' => false, 'seperate_js' => false])['html'];
+        } else {
+            foreach (parse_blocks($timber_post->post_content ?? '') as $b) {
+                $blocks_raw .= render_block($b);
+            }
+        }
+    }
+
+    if (empty($blocks_raw)) return false;
+
+    // CSS'i HTML'den ayikla
+    $html_output = preg_replace_callback('/<style\b[^>]*>(.*?)<\/style>/is', function($m) use (&$final_css) {
+        $final_css .= $m[1] . "\n";
+        return '';
+    }, $blocks_raw);
+    $html_output = $timber_post->strip_tags($html_output, '<style>');
+
+    // Unused CSS temizligi
+    if (class_exists('SaltHareket\AssetManager\RemoveUnusedCss') && defined('STATIC_PATH')) {
+        $main_css = @file_get_contents(STATIC_PATH . 'css/main-combined.css');
+        if ($main_css) {
+            $remover = new \SaltHareket\AssetManager\RemoveUnusedCss($html_output, $main_css, '', [], false, [
+                'ignore_whitelist'      => true,
+                'black_list'            => ['html', 'body', 'footer'],
+                'scope'                 => '.' . $post_slug,
+                'ignore_root_variables' => true,
+            ]);
+            $final_css = $remover->process() . $final_css;
+        }
+    }
+
+    // PAE inline CSS
+    $pae_assets = get_post_meta($post_id, 'assets', true);
+    if (is_array($pae_assets) && !empty($pae_assets['css'])) {
+        $pae_css = is_array($pae_assets['css']) ? implode("\n", $pae_assets['css']) : $pae_assets['css'];
+        if (!empty(trim($pae_css))) {
+            $final_css .= "\n" . $pae_css;
+        }
+    }
+
+    // Head style tag'lari
+    if (!empty($fetch_body)) {
+        $head_css = '';
+        if (preg_match('/<head[^>]*>(.*?)<\/head>/is', $fetch_body, $head_match)) {
+            preg_replace_callback('/<style\b[^>]*>(.*?)<\/style>/is', function($m) use (&$head_css) {
+                $head_css .= $m[1] . "\n";
+                return '';
+            }, $head_match[1]);
+        }
+        if (!empty(trim($head_css))) {
+            $final_css .= "\n" . $head_css;
+        }
+    }
+
+    // Minify
+    if (!empty($final_css) && class_exists('MatthiasMullie\Minify\CSS')) {
+        $css_minifier = new \MatthiasMullie\Minify\CSS();
+        $css_minifier->add($final_css);
+        $final_css = $css_minifier->minify();
+    }
+
+    return ['html' => $html_output, 'css' => $final_css];
+}
+
+/**
+ * Template dosyasini hash kontrolu ile kaydet.
+ */
+function _template_save_file($render_dir, $filename, $content, $post_id) {
     $filepath = $render_dir . $filename;
-    $new_hash = md5($html_output);
+    $new_hash = md5($content);
     $old_hash = get_post_meta($post_id, '_rendered_html_hash', true);
 
     if ($old_hash === $new_hash && file_exists($filepath)) return;
 
-    // Güvenli yazma
     $tmp = wp_tempnam($filepath);
     if ($tmp) {
-        file_put_contents($tmp, $html_output);
+        file_put_contents($tmp, $content);
         rename($tmp, $filepath);
         @chmod($filepath, 0644);
     } else {
-        file_put_contents($filepath, $html_output);
+        file_put_contents($filepath, $content);
     }
-
     update_post_meta($post_id, '_rendered_html_hash', $new_hash);
-    update_post_meta($post_id, 'template', $filename);
-    update_post_meta($post_id, 'css', $post_id . '.css');
-}, 20, 3);
+}
 
 // ─── Template: Term Ataması (Save) ──────────────────────────
 

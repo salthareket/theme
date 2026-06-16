@@ -40,15 +40,13 @@ class StarterSite extends Timber\Site{
         $context["enable_membership"] = boolval(ENABLE_MEMBERSHIP);
         $context["enable_membership_activation"] = boolval(ENABLE_MEMBERSHIP_ACTIVATION);
         $context["membership_activation_type"] = MEMBERSHIP_ACTIVATION_TYPE;
-        $context["enable_favorites"] = boolval(ENABLE_FAVORITES);
-        $context["favorite_types"] = FAVORITE_TYPES;
-        $context["enable_follow"] = boolval(ENABLE_FOLLOW);
-        $context["follow_types"] = FOLLOW_TYPES;
+        $context["enable_reactions"] = boolval(ENABLE_REACTIONS);
         $context["enable_cart"] = boolval(ENABLE_CART);
         $context["enable_filters"] = boolval(ENABLE_FILTERS);
         $context["enable_chat"] = boolval(ENABLE_CHAT);
         $context["enable_notifications"] = boolval(ENABLE_NOTIFICATIONS);
         $context["enable_sms_notifications"] = boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_SMS_NOTIFICATIONS);
+        $context["enable_web_push"] = boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_WEB_PUSH);
         $context["enable_search_history"] = boolval(ENABLE_SEARCH_HISTORY);
         $context["disable_review_approve"] = boolval(DISABLE_REVIEW_APPROVE);
         $context["enable_postcode_validation"] = boolval(ENABLE_POSTCODE_VALIDATION);
@@ -118,25 +116,34 @@ class StarterSite extends Timber\Site{
         }
         $context["site_config"] = $GLOBALS["site_config"];*/
             
-        if (ENABLE_FAVORITES) {
-            $context["favorites"] = Data::get("favorites");
-        }
-
         if (ENABLE_SEARCH_HISTORY) {
             $context["search_history"] = Data::get("search_history");
         }
 
         $context["woocommerce"] = boolval(ENABLE_ECOMMERCE);
 
+        // Aktif plugin listesi — Twig'de is_plugin_active() yerine kullan (performans)
+        // Tüm aktif plugin'ler slug → true map olarak tutulur
+        // Kullanım: {% if active_plugins['woo-variation-swatches'] is defined %}
+        $raw_plugins = get_option('active_plugins', []);
+        $active_plugins = [];
+        foreach ($raw_plugins as $plugin_path) {
+            // 'woo-variation-swatches/woo-variation-swatches.php' → 'woo-variation-swatches'
+            $slug = strpos($plugin_path, '/') !== false
+                ? explode('/', $plugin_path)[0]
+                : basename($plugin_path, '.php');
+            $active_plugins[$slug] = true;
+        }
+        $context["active_plugins"] = $active_plugins;
+
         if (ENABLE_MEMBERSHIP) {
-            if ($this->is_user_logged_in) {
-                $context["avatar"] = $user->get_avatar(); //$avatar;
+            if ($this->is_user_logged_in && $user && is_object($user)) {
+                $context["avatar"] = method_exists($user, 'get_avatar') ? $user->get_avatar() : '';
                 $context["avatar_url"] = str_replace(
                     "wp_user_avatar",
                     "mm",
-                    $user->get_avatar_url()
+                    method_exists($user, 'get_avatar_url') ? $user->get_avatar_url() : ''
                 );
-                //$context["main"] = new TimberMenu($user->role);
             }
         }
 
@@ -205,7 +212,7 @@ class StarterSite extends Timber\Site{
             }
 
             $post_under_construction = false;
-            if(ACTIVATE_UNDER_CONSTRUCTION && !$this->is_user_logged_in && $user->role != "administrator"){
+            if(ACTIVATE_UNDER_CONSTRUCTION && !$this->is_user_logged_in && (!$user || ($user->role ?? '') !== 'administrator')){
                 if(isset($post->ID) && in_array($post->ID, WHITE_PAGES_UNDER_CONSTRUCTION)){
                     $post = Timber::get_post($post);//new Timber\Post($post);     
                 }else{
@@ -278,6 +285,14 @@ class StarterSite extends Timber\Site{
                         $page_settings["classes"]["container"] = block_container($page_settings["classes"]["container"]);
                         if($page_settings["add_offcanvas"] && !$page_settings["offcanvas"]["archive"]){
                             unset($page_settings["offcanvas"]);
+                        }
+                        if($page_settings["add_offcanvas"] && !empty($page_settings["offcanvas"])){
+                            $page_settings["offcanvas"]["id"] = $pt_key;
+                            if(!empty($page_settings["offcanvas"]["filter_preset"])){
+                                $preset_id = slug2Id($page_settings["offcanvas"]["filter_preset"]);
+                                $preset_layout = get_post_meta($preset_id, "_layout", true);
+                                $page_settings["offcanvas"]["layout"] = $preset_layout ?: "default";
+                            }
                         }
                         $context["page_settings"] = $page_settings;
                     }
@@ -364,7 +379,7 @@ class StarterSite extends Timber\Site{
             $block_search_results_posts_per_page = 10;
             
             // check blocks
-            if(!IS_INTERNAL_FETCH && isset($page_settings["login_required"]) && $page_settings["login_required"] && (!$user->logged || (is_array($page_settings["allowed_roles"]) && !in_array($user->get_role(), $page_settings["allowed_roles"]) ))){
+            if(!IS_INTERNAL_FETCH && isset($page_settings["login_required"]) && $page_settings["login_required"] && (!($user->logged ?? false) || (is_array($page_settings["allowed_roles"]) && $user && method_exists($user, 'get_role') && !in_array($user->get_role(), $page_settings["allowed_roles"]) ))){
 
                 // login required & blocks not render
                 // only render bloks in fetch for create css
@@ -567,7 +582,6 @@ class StarterSite extends Timber\Site{
                 "url_link",
                 "list_social_accounts",
                 "json_decode",
-                "woo_product",
                 "wrap_last",
                 "variation_url_rewrite",
                 "_addClass",

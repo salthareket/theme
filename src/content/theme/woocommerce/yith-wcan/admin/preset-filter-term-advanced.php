@@ -13,7 +13,6 @@
  * @var $id           int
  * @var $term         WP_Term
  * @var $term_id      int
- * @var $term_name    string
  * @var $term_options array
  * @var $taxonomy     string
  */
@@ -24,7 +23,7 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 ?>
 
 <div id="term_<?php echo esc_attr( $id ); ?>_<?php echo esc_attr( $term_id ); ?>" class="term-box" data-term_id="<?php echo esc_attr( $term_id ); ?>">
-	<h4><?php echo esc_html( $term_name ); ?></h4>
+	<h4><?php echo esc_html( $term_options['name'] ); ?></h4>
 
 	<p class="yith-plugin-fw-field-wrapper yith-plugin-fw-text-field-wrapper term-label">
 		<label for="filters_<?php echo esc_attr( $id ); ?>_terms_<?php echo esc_attr( $term_id ); ?>_label"><?php echo esc_html_x( 'Label', '[Admin] Term edit field label (preset edit page)', 'yith-woocommerce-ajax-navigation' ); ?></label>
@@ -87,12 +86,9 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 			</div>
 
 			<div class="selected-image" <?php echo empty( $term_options['image'] ) ? 'style="display:none"' : ''; ?> >
-				<?php
-				if ( ! empty( $term_options['image'] ) ) :
-					$image = wp_get_attachment_image( $term_options['image'], 'thumbnail' );
-					echo $image; // phpcs:ignore
-				endif;
-				?>
+				<?php if ( ! empty( $term_options['image_url'] ) ) : ?>
+					<img src="<?php echo esc_attr( $term_options['image_url'] ); ?>" class="attachment-thumbnail size-thumbnail">
+				<?php endif; ?>
 				<a href="#" class="clear-image"><?php echo esc_html_x( 'Clear', '[Admin] Term edit field label (preset edit page)', 'yith-woocommerce-ajax-navigation' ); ?></a>
 			</div>
 

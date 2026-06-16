@@ -1,0 +1,59 @@
+// ─────────────────────────────────────────────────────────────
+// SIDEBAR
+// Offcanvas CSS variable'larını paylaşır
+// ─────────────────────────────────────────────────────────────
+
+.navbar-sidebar {
+    display: flex;
+    flex-direction: column;
+    font-family:  var(--offcanvas-item-font, var(--font-primary));
+    font-size:    var(--offcanvas-item-font-size, 16px);
+    font-weight:  var(--offcanvas-item-font-weight, 400);
+    color:        var(--offcanvas-item-color, #333);
+    background-color: var(--offcanvas-bg-color, #fff);
+    padding:      var(--offcanvas-padding, 20px);
+    width:        $sidebar-width;
+
+    li {
+        display: block;
+
+        a {
+            display: flex;
+            align-items: center;
+            color: var(--offcanvas-item-color, #333);
+            padding: 8px 0;
+            transition: color .3s ease-out, background-color .3s ease-out;
+
+            &:hover { color: var(--offcanvas-item-color-hover, #000); }
+
+            .caret {
+                margin-left: auto;
+                &:before { font-family: var(--icon-font); }
+            }
+
+            + ul {
+                display: flex;
+                flex-direction: column;
+                padding-left: 15px;
+                font-size:   var(--offcanvas-dropdown-item-font-size, 14px);
+                font-weight: var(--offcanvas-dropdown-item-font-weight, 400);
+                color:       var(--offcanvas-dropdown-item-font-color, #666);
+
+                a {
+                    color: var(--offcanvas-dropdown-item-font-color, #666);
+                    &:hover { color: var(--offcanvas-dropdown-item-font-color-hover, #333); }
+                }
+
+                &.collapsing {
+                    display: block !important;
+                    > li { display: block !important; }
+                }
+            }
+        }
+    }
+}
+
+// Offcanvas sidebar variant
+.offcanvas-sidebar {
+    width: $sidebar-width-offcanvas;
+}

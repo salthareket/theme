@@ -114,19 +114,19 @@ Data::set("plugins", $required_plugins);
 $required_plugins_local = array();
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "6.8.0.1",
+    "v" => "6.8.4",
     "name" => "advanced-custom-fields-pro/acf.php",
     "file" => "advanced-custom-fields-pro"
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "3.21.0.1",
+    "v" => "3.20.3",
     "name" => "wp-rocket/wp-rocket.php",
     "file" => 'wp-rocket'
 );
 $required_plugins_local[] = array(
     "type" => ["multilanguage"],
-    "v" => "3.7.6",
+    "v" => "3.21.3",
     "name" => "polylang-pro/polylang.php",
     "file" => "polylang-pro"
 );
@@ -138,7 +138,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["ecommerce", "multilanguage"],
-    "v" => "2.1",
+    "v" => "2.2.2",
     "name" => "polylang-wc/polylang-wc.php",
     "file" => "polylang-wc"
 );
@@ -150,19 +150,25 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["ecommerce"],
-    "v" => "2.3.2",
+    "v" => "2.3.3",
     "name" => "woocommerce-additional-variation-images/woocommerce-additional-variation-images.php",
     "file" => "woocommerce-additional-variation-images"
 );
 $required_plugins_local[] = array(
     "type" => ["ecommerce"],
-    "v" => "1.0",
-    "name" => "woocommerce-variation-links/plugin.php",
+    "v" => "1.1",
+    "name" => "woocommerce-variation-links/woocommerce-variation-links.php",
     "file" => "woocommerce-variation-links"
 );
 $required_plugins_local[] = array(
+    "type" => ["ecommerce"],
+    "v" => "2.3.0",
+    "name" => "woo-variation-swatches-pro/woo-variation-swatches-pro.php",
+    "file" => "woo-variation-swatches-pro"
+);
+$required_plugins_local[] = array(
     "type" => ["membership"],
-    "v" => "3.1.18",
+    "v" => "3.1.25",
     "name" => "nextend-social-login-pro/nextend-social-login-pro.php",
     "file" => "nextend-social-login-pro",
     "depency" => 'nextend-facebook-connect/nextend-facebook-connect.php'
@@ -175,21 +181,34 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["ecommerce"],
-    "v" => "8.5.6",
+    "v" => "8.5.8",
     "name" => "woocommerce-product-bundles/woocommerce-product-bundles.php",
     "file" => "woocommerce-product-bundles"
 );
-$required_plugins_local[] = array(
+/*$required_plugins_local[] = array(
     "type" => ["ecommerce"],
-    "v" => "1.25.0",
+    "v" => "1.26.0",
     "name" => "iconic-woo-show-single-variations/iconic-woo-show-single-variations.php",
     "file" => "iconic-woo-show-single-variations"
+);*/
+$required_plugins_local[] = array(
+    "type" => ["main", "ecommerce"],
+    "v" => "1..1",
+    "name" => "yith-activator/yith-activator.php",
+    "file" => "yith-activator"
 );
 $required_plugins_local[] = array(
     "type" => ["search", "ecommerce"],
-    "v" => "5.5.0",
+    "v" => "5.19.0",
     "name" => "yith-woocommerce-ajax-product-filter-premium/init.php",
     "file" => "yith-woocommerce-ajax-product-filter-premium"
+);
+
+$required_plugins_local[] = array(
+    "type" => ["seo", "ecommerce"],
+    "v" => "16.8",
+    "name" => "wpseo-woocommerce/wpseo-woocommerce.php",
+    "file" => "wpseo-woocommerce"
 );
 
 $required_plugins_local[] = array(
@@ -200,7 +219,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["main"],
-    "v" => "1.2.2",
+    "v" => "1.2.4",
     "name" => "acf-query-field/acf-query-field.php",
     "file" => "acf-query-field"
 );
@@ -230,7 +249,7 @@ $required_plugins_local[] = array(
 );
 $required_plugins_local[] = array(
     "type" => ["multilanguage", "ai"],
-    "v" => "1.0.7",
+    "v" => "3.4.0",
     "name" => "salt-ai-translator/salt-ai-translator.php",
     "file" => "salt-ai-translator"
 );
@@ -240,4 +259,11 @@ $required_plugins_local[] = array(
     "name" => "acf-polylang-text-field/acf-polylang-text-field.php",
     "file" => "acf-polylang-text-field"
 );
+$required_plugins_local[] = array(
+    "type" => ["ecommerce"],
+    "v" => "1.2.5",
+    "name" => "xt-woo-variations-as-singles/xt-woo-variations-as-singles.php",
+    "file" => "xt-woo-variations-as-singles"
+);
+
 Data::set("plugins_local", $required_plugins_local);

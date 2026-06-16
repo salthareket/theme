@@ -1,0 +1,170 @@
+// ─────────────────────────────────────────────────────────────
+// LOADING
+// ─────────────────────────────────────────────────────────────
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes load8 {
+    to { transform: rotate(360deg); }
+}
+
+// ── Base loading spinner ──────────────────────────────────────
+.loading {
+    &:after {
+        content: '';
+        box-sizing: border-box;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: #{$loading-size-default}px;
+        height: #{$loading-size-default}px;
+        margin-top: #{-$loading-size-default / 2}px;
+        margin-left: #{-$loading-size-default / 2}px;
+        border-radius: 50%;
+        border-top: 2px solid $loading-color-dark;
+        border-right: 2px solid transparent;
+        animation: spinner .6s linear infinite;
+    }
+
+    @each $screen-size in $base-screen-sizes {
+        $index: index($base-screen-sizes, $screen-size);
+        $size: nth($loading-sizes, $index);
+        &.loading-#{$screen-size}:after {
+            width: #{$size}px;
+            height: #{$size}px;
+            margin-top: #{-$size / 2}px !important;
+            margin-left: #{-$size / 2}px !important;
+        }
+    }
+
+    &.loading-light:after { border-top-color: $loading-color-light !important; }
+    &.loading-dark:after  { border-top-color: $loading-color-dark !important; }
+
+    &.loading-fade {
+        &:before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-color: rgba($loading-color-bg-light, .8);
+        }
+        &.loading-light:before { background-color: rgba($loading-color-bg-dark, .8); }
+        &.loading-base:before  { background-color: rgba(var(--primary-color-rgb), .8); }
+    }
+
+    &.loaded:before,
+    &.loaded:after,
+    &.lazyloaded:after,
+    &.lazy-loaded:after {
+        overflow-y: auto !important;
+        opacity: 0;
+        transform: scale(0);
+        @include transition(opacity .3s ease-out, transform .3s ease-out .3s);
+    }
+
+    &.bootstrap-select { pointer-events: none; }
+}
+
+// ── Loading process overlay ───────────────────────────────────
+.loading-process {
+    @extend .loading;
+
+    &:after { z-index: 100; }
+
+    &.ratio {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        &:before {
+            content: "";
+            position: static !important;
+            padding-bottom: 100% !important;
+            width: 100% !important;
+            background-color: rgba(var(--body-bg-color-rgb), .9);
+            z-index: 100 !important;
+        }
+        &:after {
+            z-index: 2 !important;
+            margin: auto !important;
+            inset: auto !important;
+            padding-bottom: 0 !important;
+        }
+    }
+
+    &:not(.ratio):before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-color: rgba(var(--body-bg-color-rgb), .9);
+        z-index: 100;
+    }
+
+    &.loading-process-solid:before,
+    &.loading-process-white:before { background-color: rgba(var(--body-bg-color-rgb), .9); }
+
+    &.loading-dark {
+        &:before { background-color: rgba(0, 0, 0, .8); }
+        &.loading-process-solid:before,
+        &.loading-process-white:before { background-color: rgba(0, 0, 0, 1); }
+    }
+
+    .btn-loading-page { pointer-events: none; opacity: .6; }
+}
+
+// ── Loading hide ──────────────────────────────────────────────
+.loading-hide:not(.loaded) {
+    @extend .loading;
+    * { visibility: hidden !important; }
+
+    &.ratio {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        &:before {
+            content: "";
+            position: static !important;
+            padding-bottom: 100% !important;
+            width: 100% !important;
+            background-color: rgba(var(--body-bg-color-rgb), .8);
+            z-index: 2 !important;
+        }
+        &:after {
+            z-index: 2 !important;
+            margin: auto !important;
+            inset: auto !important;
+            padding-bottom: 0 !important;
+        }
+    }
+
+    &.show, .show { opacity: 0 !important; }
+}
+
+// ── Body loading ──────────────────────────────────────────────
+body.loading:not(.loaded) {
+    overflow-y: hidden;
+    @extend .loading-lg;
+    &:after { z-index: 101; position: fixed; }
+    &:before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-color: rgba(var(--body-bg-color-rgb), .8);
+        z-index: 100;
+    }
+}
+
+// ── Circle loader ─────────────────────────────────────────────
+.loading-circle {
+    border-radius: 50%;
+    width: 10em;
+    height: 10em;
+    margin: 60px auto;
+    font-size: 10px;
+    position: relative;
+    text-indent: -9999em;
+    border: 1.1em solid rgba(255, 255, 255, .2);
+    border-left-color: #fff;
+    transform: translateZ(0);
+    animation: load8 1.1s infinite linear;
+}

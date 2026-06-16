@@ -1,0 +1,188 @@
+{% set show_block = true %}
+{% if block_main_field != "" %}
+	{% if block_main_field is iterable %}
+		{% if block_main_field|length > 1 %}
+			{% set show_block = false %}
+			{% for item in block_main_field %}
+				{% if fields[item] %}
+					{% set show_block = true %}
+				{% endif %}
+			{% endfor %}
+		{% endif %}
+	{% else %}
+		{% if not fields[block_main_field] %}
+			{% set show_block = false %}
+		{% endif %}
+	{% endif %}
+{% endif %}
+
+
+{% if block_required_js %}
+	{% set not_found_js = {} %}
+	{% for item in block_required_js %}
+		{% if item not in all_js %}
+			{% set not_found_js = not_found_js|merge({item}) %}
+		{% endif %}
+	{% endfor %}
+	{% if not_found_js %}
+		{% set show_block = false %}
+		{% if is_preview %}
+			{% block block_error_content %}
+				<div class="alert alert-danger my-5 rounded-0 text-center">
+					Please install plugins:<br><strong>{{ not_found_js|join(", ") }}</strong>
+				</div>
+			{% endblock %}
+		{% endif %}
+	{% endif %}
+{% endif %}
+
+{% if not is_preview and fields.block_settings.visibility.display == "none" %}
+	{% set show_block = false %}
+{% endif %}
+
+
+{% if show_block %}
+
+	{% if fields.block_settings.hero %}
+		{% if not block_extras %}
+			{% set block_extras = {} %}
+		{% endif %}
+		{% if block_extras.classes %}
+			{% set classes = block_extras.classes %}
+		{% endif %}
+		{% set block_extras = block_extras|merge({ "classes": classes }) %}
+	{% endif %}
+
+	{% if block_column %}
+		{% if fields.query.values %}
+			{% set fields = fields|merge({slider : fields.query.values.slider|default(0) }) %}
+		{% endif %}
+	{% endif %}
+    
+
+    {% if is_preview or fetch %}
+       {% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
+    {% else %}
+    	{# get block from db #}
+		{% set block_meta = function("get_option", fields.block_settings.custom_id) %}
+		{% if not block_meta or block_meta == "" %}
+		    {% set block_meta = function("block_meta", _context["block"], fields, block_extras, block_column, block_column_index) %}
+		{% endif %}
+	{% endif %}
+
+	
+	{% set nested = false %}
+	{% if not block_column and is_column %}
+		{% set nested = true %}
+	{% endif %}
+
+	{% set block_meta_classes = block_meta.classes %}
+	{% if block_column or nested %}
+		{% set block_meta_classes = block_meta_classes|replace({"block-bootstrap-columns" : ""}) %}
+		{% if row_cols %}
+			<div class="col">
+		{% else %}
+			{# set block_meta_classes = block_meta_classes ~ " " ~ function("block_bs_columns_col_classes", fields) #}
+			<div class="{{function("block_bs_columns_col_classes", fields)|default("col-12")}}">
+		{% endif %}
+	{% endif %}
+
+   {% set is_hidden = false %}
+   {% if is_preview and fields.block_settings.visibility.display == "none" %}
+   	{% set block_meta_classes = block_meta.classes  ~ " opacity-25 " %}
+   	{% set is_hidden = true %}
+   {% endif %}
+
+
+	{% if is_preview and block_meta.lock %}
+	    <div class="{{block_meta.container}}">
+			<div class="alert alert-danger">
+				<div class="row align-items-center">
+					<div class="col col-auto">
+                   <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
+					</div>
+					<div class="col">
+						<h4 class="fw-bold mb-1">Attention</h4>
+						<p class="text-xs lh-sm mb-0">
+						The video(s) within this block are currently being processed in the background. Please refrain from making any edits to this block during this time. You can check the progress of the processing and review the status by visiting this link.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<style>
+		#{{block_meta.id|replace({"_":"-"})}}{
+			pointer-events:none!important;
+		}
+		</style>
+    {% endif %}
+
+
+   {% if is_hidden %}
+		<div style="background-color:red;color:#fff;padding:8px 22px;top:0;left:0;position:absolute;z-index:10;">Admin Preview</div>
+	{% endif %}
+
+	<div class="{{block_meta_classes}} block-salt-theme {% if is_preview %}is-preview{% endif %}" {{block_meta.attrs}}>
+
+	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
+		<div class="sticky-top">
+	{% endif %}
+
+	    {% if block_extra_html.top != "" %}
+	    	{{ block_extra_html.top }}
+	    {% endif %}
+        
+       {% if block('block_content_outer')|trim == "" %}
+	    {{ block_meta.bg_image }}
+	    {% endif %}
+
+		{% if block_meta.container and (not block_column and not nested) %}
+			<div class="{{block_meta.container}} {% if block_meta.bg_image %}z-2{% endif %} {% if block_meta.settings.stretch_height %}d-flex flex-fill flex-column{% endif %}">
+		{% endif %}
+
+		    {% if fields.block_settings.wrapper_class %}
+		    <div class="{{fields.block_settings.wrapper_class}} h-100 min-h-inherit position-relative">
+		    {% endif %}
+
+			{% if block_meta.settings.column.active and "column_active" not in block_iterable %}
+			<div class="row justify-content-{{block_meta.settings.column.align}} w-100">
+				<div class="col-{{block_meta.settings.column.breakpoint}}-{{block_meta.settings.column.width}}">
+			{% endif %}
+
+				{% block block_content %}{% endblock %}
+
+			{% if block_meta.settings.column.active and "column_active" not in block_iterable %}
+				</div>
+			</div>
+			{% endif %}
+
+			{% if fields.block_settings.wrapper_class %}
+		    </div>
+		    {% endif %}
+
+		    {% block block_content_inner %}{% endblock %}
+
+		{% if block_meta.container and not block_column %}
+		    </div>
+		{% endif %}
+
+		{% block block_content_outer %}{% endblock %}
+
+	{% if (fields.block_settings.sticky_top and not (block_column or nested)) or (fields.block_settings.sticky_top and fields.block_settings.vertical_align == "center" and (block_column or nested)) %}
+		</div>
+	{% endif %}
+
+	{% if block_meta.css and (fetch or enable_production or is_preview) %}
+       {{ block_meta.css }}
+   {% endif %}
+
+   {% if block_extra_html.bottom != "" %}
+	    {{ block_extra_html.bottom }}
+	{% endif %}
+		
+	</div>
+
+	{% if block_column %}
+		</div>
+	{% endif %}
+{% endif %}

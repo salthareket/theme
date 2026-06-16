@@ -28,7 +28,7 @@ $id_suffix = wp_unique_id();
   <?php endif; ?>
     <select
       name="orderby"
-      class="orderby"
+      class="orderby form-select"
       <?php if ( $use_label ) : ?>
         id="woocommerce-orderby-<?php echo esc_attr( $id_suffix ); ?>"
       <?php else : ?>

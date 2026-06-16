@@ -1,0 +1,11 @@
+// ─────────────────────────────────────────────────────────────
+// HERO
+// --hero-height-{bp} root.css'den gelir (utilities processor)
+// --hero-height base değeri xxxl'den alınır
+// ─────────────────────────────────────────────────────────────
+
+.hero-fluid {
+    min-height: var(--hero-height, 500px);
+    max-height: var(--hero-height, 500px);
+    height:     var(--hero-height, 500px);
+}

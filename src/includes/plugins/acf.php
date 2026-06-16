@@ -62,42 +62,41 @@ if (ENABLE_MULTILANGUAGE){
     $cached_styles = $theme_styles;
     return $theme_styles;
 }*/
+if (!function_exists('acf_get_theme_styles')) {
 function acf_get_theme_styles() {
-    // 1. STATİK CACHE: Aynı request içinde 2. kez çağırmayı engeller.
+    // 1. STATİK CACHE
     static $cached_styles = null;
-    if ($cached_styles !== null) {
-        return $cached_styles;
-    }
+    if ($cached_styles !== null) return $cached_styles;
 
-    // 2. TRANSIENT: Veritabanı Cache'i (Disk okumasından çok daha hızlıdır)
-    // JSON dosyası değişmediği sürece diske hiç bakmayacağız.
+    // 2. TRANSIENT
     $cached_styles = get_transient('sh_theme_styles_cache');
-    if ($cached_styles !== false) {
-        return $cached_styles;
-    }
+    if ($cached_styles !== false) return $cached_styles;
 
-    // --- Buradan aşağısı cache patladığında veya ilk kez çalışır ---
+    // 3. Yeni sistem varsa oradan oku
+ /*   if (class_exists('Theme_Styles_New')) {
+        $data = Theme_Styles_New::init()->get_data();
+        if (!empty($data)) {
+            set_transient('sh_theme_styles_cache', $data, DAY_IN_SECONDS);
+            $cached_styles = $data;
+            return $cached_styles;
+        }
+    }*/
 
-    $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
-    $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
+    // 4. Eski sistem fallback
+    $theme_styles_latest   = get_template_directory() . '/theme/static/data/theme-styles/latest.json';
+    $theme_styles_defaults = SH_STATIC_PATH . 'data/theme-styles-default.json';
     $theme_styles = [];
 
-    // Önce güncel JSON
     if (file_exists($theme_styles_latest)) {
         $theme_styles = json_decode(file_get_contents($theme_styles_latest), true);
     }
-
-    // Fallback: DB (get_option zaten WP tarafından cache'lenir, iyidir)
     if (empty($theme_styles)) {
-        $theme_styles = get_option("options_theme_styles");
+        $theme_styles = get_option('options_theme_styles');
     }
-
-    // Son çare: Default JSON
     if (empty($theme_styles) && file_exists($theme_styles_defaults)) {
         $theme_styles = json_decode(file_get_contents($theme_styles_defaults), true);
     }
 
-    // 3. CACHE YAZMA: Sonucu 24 saatliğine cache'le
     if (!empty($theme_styles)) {
         set_transient('sh_theme_styles_cache', $theme_styles, DAY_IN_SECONDS);
     }
@@ -105,6 +104,7 @@ function acf_get_theme_styles() {
     $cached_styles = $theme_styles;
     return $theme_styles;
 }
+} // end if (!function_exists)
 
 // contact main location
 function acf_main_location($locations){

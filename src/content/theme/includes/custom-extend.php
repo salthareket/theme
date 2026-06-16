@@ -5,14 +5,19 @@
 class Salt extends SaltBase {
 
     private static $already_ran = false;
+    private static $salt_instance = null;
 
     public static function get_instance() {
-        return parent::get_instance();
+        if (!self::$salt_instance) {
+            self::$salt_instance = new self();
+        }
+        return self::$salt_instance;
     }
 
-    public function update_profile($vars=array(), $callback=""){
+    public function update_profile($vars=array(), $callback=""): array {
         $response = $this->response();
-        $user_id = $this->user->ID;
+        $user_id = $this->user ? $this->user->ID : 0;
+        if (!$user_id) return $response;
 
         $membership_roles = Data::get("membership_roles");
 
@@ -457,6 +462,7 @@ class Salt extends SaltBase {
             }
             return $response;           
         }
+        return $response;
     }
 
     public function on_post_pre_update($data){
@@ -494,11 +500,7 @@ class Salt extends SaltBase {
             }
 
             self::$already_ran = true; // Flag'i ayarla*/
-
-            $project = new Project();
-            $project->campaign_published($post_id, $post, $update );
-
-
+            
             parent::on_post_published($post_id, $post, $update);
 
            /* self::$already_ran = false; // Flag'i ayarla

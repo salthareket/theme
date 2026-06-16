@@ -23,22 +23,19 @@
         <div class="image-wrap d-flex flex-column">
             {% if photo_edit %}
                 <form class="form form-validate m-0" id="form-profile-photo" autocomplete="off" method="post" enctype="multipart/form-data" data-ajax-method="update_profile_photo">
-                    <div class="profile-photo-main image-uploader-single">
+                    <div class="profile-photo-main image-uploader-single sh-uploader">
                         {{"<script>"}}
-                        $( document ).ready(function() {
-                            var preloaded = [
-                                {id: 1, src: "{{user_item.get_avatar_url}}"}
-                            ];
-                            $('.profile-photo-main').imageUploader({
-                                                    preloaded: preloaded,
-                                                    imagesInputName: 'profile_photo_main',
-                                                    preloadedInputName: 'old',
-                                                    extensions : ['.jpg', '.jpeg', '.JPG', '.JPEG', '.PNG', '.png'],
-                                                    maxSize: 2 * 1024 * 1024,
-                                                    maxFiles: 1
-                            });
-                            $("input[name='profile_photo_main[]']").on("change", function(){
-                                $("#form-profile-photo").submit();
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const uploader = new ImageUploader('.profile-photo-main', {
+                                preloaded: [{ id: 1, src: "{{user_item.get_avatar_url}}" }],
+                                imagesInputName: 'profile_photo_main',
+                                preloadedInputName: 'old',
+                                extensions: ['.jpg', '.jpeg', '.png'],
+                                maxSize: 2 * 1024 * 1024,
+                                maxFiles: 1,
+                                onChange: function() {
+                                    document.getElementById('form-profile-photo').submit();
+                                }
                             });
                         });
                         {{"</script>"}}
@@ -97,7 +94,7 @@
     </div>
 
     {% set show_follow     = show_follow|boolval     and enable_follow    and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
-    {% set show_favorite   = show_favorite   and enable_favorites and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
+    {% set show_favorite   = show_favorite   and enable_reactions and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
     {% set show_message    = show_message    and enable_chat      and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
     {% set review_approve  = review_approve  and not disable_review_approve and user.id == user_item.id and user.logged %}
 
@@ -112,7 +109,7 @@
             {% endif %}
 
             {% if show_favorite %}
-                <a href="#" class="btn-favorite {% if user_item.id in favorites %}active{% endif %}" data-id="{{user_item.id}}" data-type="user"></a>
+                {{ function('salt_reaction_button', user_item.id, 'user', 'follow', {'style': 'pill'}) }}
             {% endif %}
 
             {% if show_message %}

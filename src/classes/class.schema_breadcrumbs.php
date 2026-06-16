@@ -1,11 +1,13 @@
 <?php
 
 /**
- * Schema_Breadcrumbs — Yoast SEO breadcrumb markup'ını Schema.org + Bootstrap uyumlu hale getirir.
+ * Schema_Breadcrumbs — Yoast SEO breadcrumb markup'ini Schema.org + Bootstrap uyumlu hale getirir.
  *
- * @version 1.0.0
+ * @version 1.1.0
  *
  * @changelog
+ *   1.1.0 - 2026-04-09
+ *     - Fix: modify_output inner-span trick ile ic ice span/ul sorunu cozuldu
  *   1.0.0 - 2026-04-03
  *     - Add: Initial versioned release
  *
@@ -14,110 +16,67 @@
  *       Schema_Breadcrumbs::instance();
  *   }
  *
- * NOT: Yoast SEO 20+ zaten JSON-LD Schema.org breadcrumb üretiyor.
- *      Bu class sadece GÖRSEL HTML markup'ı için gerekli.
- *
  * @package SaltHareket
  * @since   1.0.0
  */
 
 class Schema_Breadcrumbs {
 
-    private static ?self $instance = null;
-    private int $position = 0;
-    private bool $bold_last = false;
+    private static $instance = null;
+    private $breadcrumb_link_counter = 0;
 
-    public static function instance(): self {
+    public static function instance() {
         if ( self::$instance === null ) {
-            self::$instance = new self();
+            self::$instance = new self;
         }
         return self::$instance;
     }
 
     private function __construct() {
-        // boldlast ayarını bir kez çek — her element'te DB'ye gitme
-        $titles = get_option( 'wpseo_titles', [] );
-        $this->bold_last = ! empty( $titles['breadcrumbs-boldlast'] );
-
-        add_filter( 'wpseo_breadcrumb_single_link', [ $this, 'modify_element' ], 10, 2 );
-        add_filter( 'wpseo_breadcrumb_output', [ $this, 'modify_output' ] );
+        add_filter( 'wpseo_breadcrumb_single_link', array( $this, 'modify_breadcrumb_element' ), 10, 2 );
+        add_filter( 'wpseo_breadcrumb_output', array( $this, 'modify_breadcrumb_output' ) );
     }
 
-    /**
-     * Tekil breadcrumb element'ini Schema.org ListItem markup'ına çevirir.
-     */
-    public function modify_element( string $link_output, array $link ): string {
-        $this->position++;
+    public function modify_breadcrumb_element( $link_output, $link ) {
+        $output = '';
 
-        $url  = esc_url( $link['url'] ?? '' );
-        $text = esc_html( $link['text'] ?? '' );
+        if ( isset( $link['url'] ) && substr_count( $link_output, 'rel="v:url"' ) > 0 ) {
+            $output .= '<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">'
+                     . '<a href="' . esc_attr( $link['url'] ) . '" class="btn-loading-page">'
+                     . '<inner-span itemprop="name">' . $link['text'] . '</inner-span>'
+                     . '<meta itemprop="position" content="' . ( $this->breadcrumb_link_counter + 1 ) . '" />'
+                     . '</a></li>';
+        } else {
+            $bold_last = false;
+            $titles = get_option( 'wpseo_titles', [] );
+            if ( ! empty( $titles['breadcrumbs-boldlast'] ) ) {
+                $bold_last = true;
+            }
 
-        if ( empty( $text ) ) {
-            return $link_output;
+            $url = ! empty( $link['url'] ) ? $link['url'] : ( function_exists( 'current_url' ) ? current_url() : '' );
+            $text = $bold_last ? '<strong>' . $link['text'] . '</strong>' : $link['text'];
+
+            $output .= '<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="breadcrumb_last">'
+                     . '<a href="' . esc_attr( $url ) . '" class="btn-loading-page">'
+                     . '<inner-span itemprop="name">' . $text . '</inner-span>'
+                     . '<meta itemprop="position" content="' . ( $this->breadcrumb_link_counter + 1 ) . '" />'
+                     . '</a></li>';
         }
 
-        $is_link = ! empty( $url ) && str_contains( $link_output, 'rel="v:url"' );
-
-        // Son element (current page) — link yoksa current URL kullan
-        if ( ! $is_link && empty( $url ) ) {
-            $url = esc_url( $this->current_url() );
-        }
-
-        $name_html = $text;
-        if ( ! $is_link && $this->bold_last ) {
-            $name_html = '<strong>' . $text . '</strong>';
-        }
-
-        $last_class = $is_link ? '' : ' breadcrumb_last';
-
-        return sprintf(
-            '<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="%s">'
-            . '<a href="%s" class="btn-loading-page">'
-            . '<span itemprop="name">%s</span>'
-            . '<meta itemprop="position" content="%d" />'
-            . '</a></li>',
-            ltrim( $last_class ),
-            $url,
-            $name_html,
-            $this->position
-        );
-    }
-
-    /**
-     * Breadcrumb wrapper'ını Schema.org BreadcrumbList + <ul> yapısına çevirir.
-     */
-    public function modify_output( string $output ): string {
-        // Yoast'ın RDFa namespace'ini Schema.org ile değiştir
-        $output = str_replace(
-            [ ' xmlns:v="http://rdf.data-vocabulary.org/#"', ' prefix="v: http://rdf.data-vocabulary.org/#"' ],
-            ' itemscope itemtype="https://schema.org/BreadcrumbList"',
-            $output
-        );
-
-        // Wrapper <span> → <ul class="breadcrumb">
-        // Sadece açılış ve kapanış span'ını hedefle — içerideki span'lara dokunma
-        $output = preg_replace(
-            '/<span\s+([^>]*(?:itemscope|itemprop)[^>]*)>/',
-            '<ul class="breadcrumb" $1>',
-            $output,
-            1 // sadece ilk match
-        );
-
-        // Kapanış — son </span>'ı </ul> yap
-        $last_span_pos = strrpos( $output, '</span>' );
-        if ( $last_span_pos !== false ) {
-            $output = substr_replace( $output, '</ul>', $last_span_pos, 7 );
-        }
-
+        $this->breadcrumb_link_counter++;
         return $output;
     }
 
-    private function current_url(): string {
-        if ( function_exists( 'current_url' ) ) {
-            return current_url();
-        }
-        // Fallback
-        $protocol = is_ssl() ? 'https' : 'http';
-        return $protocol . '://' . ( $_SERVER['HTTP_HOST'] ?? '' ) . ( $_SERVER['REQUEST_URI'] ?? '' );
+    public function modify_breadcrumb_output( $full_output ) {
+        $string_to_replace = ' xmlns:v="http://rdf.data-vocabulary.org/#"';
+        $output = str_replace( $string_to_replace, ' itemprop="breadcrumb" itemscope itemtype="https://schema.org/BreadcrumbList"', $full_output );
+        $output = str_replace( '<span', '<ul class="breadcrumb"', $output );
+        $output = str_replace( '</span>', '</ul>', $output );
+        $output = str_replace( 'inner-span', 'span', $output );
+
+        // Counter sifirla
+        $this->breadcrumb_link_counter = 0;
+
+        return $output;
     }
 }

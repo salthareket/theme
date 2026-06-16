@@ -10,12 +10,12 @@
     {% endif %}
 
     <div class="nav-item {{class}}" data-type="account">
-        <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}">
+        <a href="#{{target}}" role="button" data-bs-toggle="{{toggle}}" aria-controls="{{target}}" title="{{ user.logged ? user.get_title() : translate("My Account") }}">
             {% if avatar %}
                 {{avatar}}
             {% else %}
                 {% if not user.logged and enable_registration %}
-                <div class="btn btn-outline-dark">SIGNUP</div>
+                <div class="btn btn-outline-dark">{{ translate("Sign Up") }}</div>
                 {% endif %}
             {% endif %}
         </a>
@@ -27,11 +27,11 @@
                     {% if user.logged %}
                         {{user.get_title()}}
                     {% else %}
-                        {{'YOUR ACCOUNT'|trans}}
+                        {{ translate("Your Account") }}
                     {% endif %}
                 </div>
                 <div class="action">
-                    <a href="#" data-dismiss="dropdown">{{'Close'|trans}}</a>
+                    <a href="#" data-dismiss="dropdown">{{ translate("Close") }}</a>
                 </div>
             </div>
             <div class="dropdown-container has-dropdown-item">
@@ -42,11 +42,11 @@
                                 <a class="dropdown-item" href="{{item.url}}">{{item.title}}</a>
                             {% endfor %}
                         {% endif %}
-                        <a class="dropdown-item" href="{{function('get_account_endpoint_url', 'customer-logout')}}">Logout</a>
+                        <a class="dropdown-item" href="{{function('get_account_endpoint_url', 'customer-logout')}}">{{ translate("Logout") }}</a>
                     {% else %}
                         <div class="content-block">
                             <i class="icon-account"></i>
-                            {{'Not logged'|trans}}
+                            {{ translate("Not logged in") }}
                         </div>
                     {% endif %}
                 </div>
@@ -54,8 +54,8 @@
                     {% set login_url = function('get_login_url') %}
                     <div class="dropdown-footer no-border">
                         <div class="btn-group input-group-gap">
-                            <a href="{{login_url}}" class="btn btn-primary">{{'SIGNUP'|trans}}</a>
-                            <a href="{{login_url}}" class="btn btn-primary">{{'LOGIN'|trans}}</a>
+                            <a href="{{login_url}}" class="btn btn-primary">{{ translate("Sign Up") }}</a>
+                            <a href="{{login_url}}" class="btn btn-primary">{{ translate("Login") }}</a>
                         </div>
                     </div>
                 {% endif %}

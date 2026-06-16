@@ -2,6 +2,43 @@
 
 use SaltHareket\Image;
 
+/**
+ * Term — Timber\Term extend'i.
+ * Kategori, tag ve custom taxonomy terimleri icin.
+ *
+ * @version 1.1.0
+ * @changelog
+ *   1.1.0 - 2026-05-08
+ *     - Add: reaction_count() — term'in reaction sayisi
+ *     - Add: has_reaction() — mevcut kullanici bu term'e reaction yapti mi
+ *     - Add: reaction_button() — reaction button HTML'i render et
+ *   1.0.0 — Initial release
+ *
+ * ─── HOW TO USE ───────────────────────────────────────────
+ *
+ * // Twig'de:
+ * {{ term.reaction_count('follow') }}
+ * {% if term.has_reaction('follow') %}...{% endif %}
+ * {{ term.reaction_button('follow', {'style': 'pill'})|raw }}
+ *
+ * ──────────────────────────────────────────────────────────
+ *
+ * @example
+ *   {{ term.reaction_count('follow') }} takipci
+ *
+ * @example
+ *   {% if term.has_reaction('follow') %}Takip Ediliyor{% endif %}
+ *
+ * @example
+ *   {{ term.reaction_button('follow', {'style': 'pill'})|raw }}
+ *
+ * @example
+ *   {{ term.reaction_button('favorite', {'style': 'icon-only'})|raw }}
+ *
+ * @example
+ *   {% set count = term.reaction_count('follow') %}{{ count }} kisi takip ediyor
+ */
+
 class Term extends Timber\Term{
     protected $post_count;
 
@@ -164,28 +201,76 @@ class Term extends Timber\Term{
         }
         return $desc;
     }
-    public function get_country_post_count(){
-        if (!defined('ENABLE_REGIONAL_POSTS') || !ENABLE_REGIONAL_POSTS) return true;
+    public function get_country_post_count( string $post_type = '' ): int {
+        if ( ! defined( 'ENABLE_REGIONAL_POSTS' ) || ! ENABLE_REGIONAL_POSTS ) return 1;
 
-        $my_posts = get_posts([
-            'post_type'   => 'urun',
-            'numberposts' => -1,
-            'tax_query'   => [
-                [
-                    'taxonomy'         => 'urun-kategorisi',
-                    'field'            => 'id',
-                    'terms'            => $this->ID,
-                    'include_children' => true,
-                ],
-                [
-                    'taxonomy' => 'region',
-                    'field'    => 'term_id',
-                    'terms'    => Data::get('site_config.user_region'),
-                    'operator' => 'IN',
-                ],
+        $user_region = \Data::get( 'site_config.user_region' );
+        if ( empty( $user_region ) ) return 1; // Region yoksa filtre yok, göster
+
+        // Post type belirtilmemişse regional settings'den bu taxonomy'ye ait post type'ı bul
+        if ( empty( $post_type ) ) {
+            $post_type = $this->resolvePostTypeForTaxonomy( $this->taxonomy );
+        }
+
+        // Hâlâ bulunamadıysa bu taxonomy'nin bağlı olduğu ilk public post type'ı kullan
+        if ( empty( $post_type ) ) {
+            $object_types = get_taxonomy( $this->taxonomy )->object_type ?? [];
+            $post_type    = ! empty( $object_types ) ? $object_types[0] : 'post';
+        }
+
+        $tax_query = [
+            'relation' => 'AND',
+            [
+                'taxonomy'         => $this->taxonomy,
+                'field'            => 'term_id',
+                'terms'            => $this->term_id,
+                'include_children' => true,
             ],
-        ]);
-        return count($my_posts);
+            [
+                'taxonomy' => 'region',
+                'field'    => 'term_id',
+                'terms'    => (array) $user_region,
+                'operator' => 'IN',
+            ],
+        ];
+
+        $count = get_posts( [
+            'post_type'      => $post_type,
+            'posts_per_page' => 1,          // Sadece var mı yok mu — performans
+            'fields'         => 'ids',
+            'no_found_rows'  => false,
+            'tax_query'      => $tax_query,
+        ] );
+
+        return count( $count );
+    }
+
+    /**
+     * Regional settings'den bu taxonomy'ye ait post type'ı bul.
+     * LocationManager aktifse oradan, değilse options'dan okur.
+     */
+    private function resolvePostTypeForTaxonomy( string $taxonomy ): string
+    {
+        // LocationManager varsa oradan al
+        if ( class_exists( '\SaltHareket\Localization\LocationManager' ) ) {
+            $lm       = \SaltHareket\Localization\LocationManager::getInstance();
+            $settings = \SaltHareket\Localization\LocationSettings::get();
+            foreach ( $settings['regional_post_settings'] ?? [] as $mapping ) {
+                if ( ( $mapping['taxonomy'] ?? '' ) === $taxonomy ) {
+                    return $mapping['post_type'] ?? '';
+                }
+            }
+        }
+
+        // Fallback: eski options key
+        $settings = get_option( 'options_regional_post_settings', [] );
+        foreach ( (array) $settings as $mapping ) {
+            if ( ( $mapping['taxonomy'] ?? '' ) === $taxonomy ) {
+                return $mapping['post_type'] ?? '';
+            }
+        }
+
+        return '';
     }
     public function get_posts_2($post_type="post"){
         return Timber::get_posts(
@@ -238,5 +323,36 @@ class Term extends Timber\Term{
     public function get_term_root(){
         return get_term_root($this->term_id, $this->taxonomy);
     }
+
+    // ── REACTIONS ────────────────────────────────────────────────────────────
+
+    /**
+     * Bu term'in belirli bir reaction sayisi.
+     * Twig: {{ term.reaction_count('follow') }}
+     */
+    public function reaction_count( string $type = 'follow' ): int {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return 0;
+        return \SaltHareket\Reactions\Reactions::count( $type, $this->term_id, 'term' );
+    }
+
+    /**
+     * Mevcut kullanici bu term'e reaction yapti mi?
+     * Twig: {% if term.has_reaction('follow') %}
+     */
+    public function has_reaction( string $type = 'follow' ): bool {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return false;
+        return \SaltHareket\Reactions\Reactions::has( $type, $this->term_id, 'term' );
+    }
+
+    /**
+     * Reaction button HTML'i render et.
+     * Twig: {{ term.reaction_button('follow', {'style': 'pill'}) }}
+     */
+    public function reaction_button( string $type = 'follow', array $options = [] ): string {
+        if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
+        return \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->term_id, 'term', $type, $options );
+    }
+
+    // ── END REACTIONS ─────────────────────────────────────────────────────────
 
 }

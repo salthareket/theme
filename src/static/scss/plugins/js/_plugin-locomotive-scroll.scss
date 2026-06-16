@@ -1,0 +1,127 @@
+/*! purgecss start ignore */
+@mixin dynamic-filter($property, $progress-var) {
+    @if $property=="grayscale" {
+
+        filter: unquote("grayscale(#{$progress-var})");
+
+    }@else if $property=="invert" {
+
+        filter: unquote("invert(#{$progress-var})"); 
+
+    }@else if $property=="blur" {
+
+        filter: blur(calc(#{$progress-var} * 5px)); // calc ile kullan
+
+    }@else if $property=="brightness" {
+
+        filter: brightness(calc(#{$progress-var} + 1));
+
+    }@else if $property=="background-color" {
+
+        $r: calc(#{$progress-var} * 255); // Kırmızı kanal
+        $g: calc(#{$progress-var} * 100); // Yeşil kanal
+        $b: calc(#{$progress-var} * 50); // Mavi kanal
+        background-color: rgba(#{$r}, #{$g}, #{$b}, 1); // Renk hesaplama
+
+    }@else {
+
+        @warn "Unknown filter property: #{$property}";
+
+    }
+}
+
+[data-scroll-css-progress] {
+
+    &[data-scroll-event-property="opacity"] {
+        opacity: calc(1 - var(--progress));
+    }
+
+    &[data-scroll-event-property="scale"] {
+        transform: scale(calc(1 + var(--progress)));
+    }
+
+    &[data-scroll-event-property="rotate"] {
+        transform: rotate(calc(var(--progress) * 360deg));
+    }
+
+    &[data-scroll-event-property="translateX"] {
+        transform: translateX(calc(var(--progress) * 100%));
+    }
+
+    &[data-scroll-event-property="translateY"] {
+        transform: translateY(calc(var(--progress) * 100%));
+    }
+
+    &[data-scroll-event-property="skew"] {
+        transform: skew(calc(var(--progress) * 20deg));
+    }
+
+    &[data-scroll-event-property="blur"] {
+        //filter: blur(calc(var(--progress) * 5px));
+        @include dynamic-filter("blur", "var(--progress)");
+    }
+
+    &[data-scroll-event-property="brightness"] {
+         //filter: brightness(calc(var(--progress) + 1));
+         @include dynamic-filter("brightness", "var(--progress)");
+    }
+
+    &[data-scroll-event-property="grayscale"] {
+        //filter: grayscale(var(--progress));
+        //@include dynamic-filter("grayscale", "var(--progress)");
+    }
+
+    &[data-scroll-event-property="invert"] {
+         //filter: invert(var(--progress));
+         @include dynamic-filter("invert", "var(--progress)");
+    }
+
+    &[data-scroll-event-property="border-radius"] {
+        border-radius: calc(var(--progress) * 50%);
+    }
+
+    &[data-scroll-event-property="clippath-circle"] {
+        clip-path: circle(calc(var(--progress) * 50%) at center);
+    }
+
+    &[data-scroll-event-property="clippath-ellipse"] {
+        clip-path: ellipse(calc(var(--progress) * 50%) calc(var(--progress) * 30%) at center);
+    }
+
+    &[data-scroll-event-property="clippath-polygon"] {
+        clip-path: polygon(50% 0%,
+            100% calc(var(--progress) * 100%),
+            0% calc(var(--progress) * 100%));
+    }
+
+    &[data-scroll-event-property="clippath-star"] {
+        clip-path: polygon(50% 0%,
+            61% calc(var(--progress) * 30%),
+            98% calc(var(--progress) * 30%),
+            68% calc(var(--progress) * 60%),
+            79% 100%,
+            50% calc(var(--progress) * 80%),
+            21% 100%,
+            32% calc(var(--progress) * 60%),
+            2% calc(var(--progress) * 30%),
+            39% calc(var(--progress) * 30%));
+    }
+
+    &[data-scroll-event-property="background-color"] {
+        @include dynamic-filter("background-color", var(--progress));
+    }
+
+    &[data-scroll-event-property="font-size"] {
+        font-size: calc(var(--progress) * 3rem + 1rem);
+    }
+
+    &[data-scroll-event-property="letter-spacing"] {
+        letter-spacing: calc(var(--progress) * 5px);
+    }
+
+    &[data-scroll-event-property="padding"] {
+        padding: calc(var(--progress) * 20px);
+    }
+}
+
+/*! purgecss end ignore */

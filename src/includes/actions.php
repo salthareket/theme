@@ -34,7 +34,7 @@ function pagination_query_request() {
     $output = ["vars" => [], "request" => []];
 
     // Ana sorgu geçerli mi?
-    $is_valid_main = (is_shop() || is_post_type_archive() || is_search() || is_home()) && $wp_query->is_main_query();
+    $is_valid_main = (is_shop() || is_post_type_archive() || is_tax() || is_category() || is_tag() || is_search() || is_home()) && $wp_query->is_main_query();
     
     if ($is_valid_main || isset($wp_query->query_vars["post_type"]) || isset($wp_query->query_vars["qpt"])) {
 
@@ -59,9 +59,21 @@ function pagination_query_request() {
             $query_vars["post_type"] = "post";
         }
 
+        // Taxonomy sayfasında post_type boş gelir — taxonomy'den post type'ı çıkar
+        if ((is_tax() || is_category() || is_tag()) && empty($query_vars["post_type"])) {
+            $queried = get_queried_object();
+            if ($queried instanceof \WP_Term) {
+                $tax_obj = get_taxonomy($queried->taxonomy);
+                if ($tax_obj && !empty($tax_obj->object_type)) {
+                    $query_vars["post_type"] = $tax_obj->object_type[0];
+                }
+            }
+        }
+
         $post_type = is_search() ? "search" : $query_vars["post_type"];
 
-        if (isset($wp_query->query_vars["post_type"])) {
+        // qpt sadece arama/custom query context'inde geçerli — taxonomy sayfasında uygulama
+        if (!is_tax() && !is_category() && !is_tag() && isset($wp_query->query_vars["post_type"])) {
             $qpt = get_query_var("qpt", $post_type);
             $qpt = (is_array($qpt) || empty($qpt) || $qpt == "search" || is_numeric($qpt)) ? "any" : $qpt;
             
@@ -70,7 +82,7 @@ function pagination_query_request() {
                 foreach ((array)EXCLUDE_FROM_SEARCH as $ex_type) {
                     unset($post_types[$ex_type]);
                 }
-                $qpt = array_values($post_types); // İndisleri sıfırla
+                $qpt = array_values($post_types);
             }
             $post_type = $qpt;
             $query_vars["post_type"] = $post_type;
@@ -114,9 +126,23 @@ function pagination_query() {
     }
 
     if (is_search()) $post_type = "search";
+
+    // Taxonomy sayfasında post_type'ı taxonomy'den çıkar
+    if ((is_tax() || is_category() || is_tag()) && !is_search()) {
+        $queried = get_queried_object();
+        if ($queried instanceof \WP_Term) {
+            $tax_obj = get_taxonomy($queried->taxonomy);
+            if ($tax_obj && !empty($tax_obj->object_type)) {
+                $post_type = $tax_obj->object_type[0];
+            }
+        }
+    }
     
-    $qpt = get_query_var("qpt");
-    if (!empty($qpt)) $post_type = $qpt;
+    // qpt sadece taxonomy dışı sayfalarda geçerli
+    if (!is_tax() && !is_category() && !is_tag()) {
+        $qpt = get_query_var("qpt");
+        if (!empty($qpt)) $post_type = $qpt;
+    }
 
     $post_type = is_array($post_type) ? $post_type[0] : (empty($post_type) ? "post" : $post_type);
     
@@ -607,13 +633,15 @@ function save_lcp_results() {
     $existing_meta = [];
 
     // 1. Existing meta verisini çekin (structure_fp'yi almak için)
-    if ($type !== "archive") {
+    if ($type === "archive" || $type === "dynamic") {
+        // archive ve dynamic type'lar option'da saklanir
+        $option_name = $id . '_assets'; 
+        $existing_meta = get_option($option_name);
+    } elseif (in_array($type, ['post', 'term', 'user', 'comment'])) {
         $meta_function_get = "get_{$type}_meta";
         $existing_meta = call_user_func($meta_function_get, $id, 'assets', true);
     } else {
-        // id zaten "product_archive_tr" formatında — direkt _assets ekle
-        $option_name = $id . '_assets'; 
-        $existing_meta = get_option($option_name);
+        wp_send_json_error(['message' => 'Geçersiz type: ' . $type]);
     }
     
     // structure_fp'yi al
@@ -630,23 +658,41 @@ function save_lcp_results() {
     if($selectors){
         $cache_dir = STATIC_PATH . 'css/cache/';
         
-        // YENİ KOD: Dosya adını structure_fp ile belirleyin
+        // Dosya adını structure_fp ile belirle
         $output = $cache_dir . $structure_fp . '-critical.css'; 
 
+        // Input CSS'i topla (plugin + page CSS)
         $input = "";
-        /*if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
-            $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["plugin_css"]);
-            $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["css_page"]);
-        }else{
-            $input .= file_get_contents(STATIC_PATH ."css/main-combined.css");
+        if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
+            if(!empty(SITE_ASSETS["plugin_css"]) && file_exists(STATIC_PATH . SITE_ASSETS["plugin_css"])){
+                $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["plugin_css"]);
+            }
+            if(!empty(SITE_ASSETS["css_page"]) && file_exists(STATIC_PATH . SITE_ASSETS["css_page"])){
+                $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["css_page"]);
+            }
+        }
+        
+        // Fallback: main-combined.css
+        if(empty($input) && file_exists(STATIC_PATH . "css/main-combined.css")){
+            $input = file_get_contents(STATIC_PATH . "css/main-combined.css");
         }
 
-        
-        >>> We decided to use wp rockets's critical css function...
-        $remover = new RemoveUnusedCss($url, $input, $output, [], true);
-        $remover->generate_critical_css($selectors);
-        $critical_css = $output;
-        $critical_css = str_replace(STATIC_PATH, '', $critical_css);*/
+        // Critical CSS oluştur (RemoveUnusedCss class'ı kullan)
+        if(!empty($input) && class_exists('SaltHareket\AssetManager\RemoveUnusedCss')){
+            try {
+                $remover = new \SaltHareket\AssetManager\RemoveUnusedCss($url, $input, $output, [], true);
+                $remover->generate_critical_css($selectors);
+                
+                if(file_exists($output)){
+                    $critical_css = str_replace(STATIC_PATH, '', $output);
+                    error_log("[LCP] Critical CSS oluşturuldu: {$critical_css}");
+                } else {
+                    error_log("[LCP] Critical CSS dosyası oluşturulamadı: {$output}");
+                }
+            } catch (Exception $e) {
+                error_log("[LCP] Critical CSS hatası: " . $e->getMessage());
+            }
+        }
     }
 
     // LCP verilerini ve Critical CSS yolunu meta veriye kaydetme (Mevcut mantık)
@@ -658,27 +704,26 @@ function save_lcp_results() {
         }
     }
 
-    if($type != "archive"){
-        $meta_function_update = "update_{$type}_meta";
-        $meta_function_add = "add_{$type}_meta";
-        
-        if ($existing_meta) {
-            $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
-            if($critical_css){
-                $existing_meta["css_critical"] = $critical_css;
-            }
-            $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta); // Güncelle
-        } // Add mantığı eksik, ama update'i kullanıyoruz.
-    }else{
-        // id zaten "product_archive_tr" formatında — direkt _assets ekle
+    if($type === "archive" || $type === "dynamic"){
+        // archive ve dynamic type'lar option'da saklanir
         $option_name = $id . '_assets';
         
         if ($existing_meta) {
-            $existing_meta["lcp"] = array_merge($existing_meta["lcp"], $lcp_data);
+            $existing_meta["lcp"] = array_merge((array)($existing_meta["lcp"] ?? []), $lcp_data);
             if($critical_css){
                 $existing_meta["css_critical"] = $critical_css;
             }
-            $return = update_option($option_name, $existing_meta); // Güncelle
+            $return = update_option($option_name, $existing_meta);
+        }
+    } elseif (in_array($type, ['post', 'term', 'user', 'comment'])) {
+        $meta_function_update = "update_{$type}_meta";
+        
+        if ($existing_meta) {
+            $existing_meta["lcp"] = array_merge((array)($existing_meta["lcp"] ?? []), $lcp_data);
+            if($critical_css){
+                $existing_meta["css_critical"] = $critical_css;
+            }
+            $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta);
         }
     }
 
@@ -757,6 +802,14 @@ function add_cache_control_headers() {
     // Admin panelinde veya header zaten gönderildiyse dokunma
     if ( is_admin() || headers_sent() ) {
         return;
+    }
+
+    // Temel güvenlik header'ları
+    if (!is_admin()) {
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
     }
 
     $request_uri = $_SERVER['REQUEST_URI'] ?? '';

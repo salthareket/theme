@@ -81,3 +81,45 @@ function my_account_custom_content_profile() {
 
 
 
+
+function my_account_custom_content_notifications() {
+    login_required();
+
+    if ( ! defined('ENABLE_NOTIFICATIONS') || ! ENABLE_NOTIFICATIONS ) {
+        return;
+    }
+
+    $context          = Timber::context();
+    $context['title'] = trans('Bildirimler');
+
+    Timber::render( ['my-account/notifications.twig'], $context );
+}
+
+function my_account_custom_content_reviews() {
+    login_required();
+
+    $user_id  = get_current_user_id();
+    $context  = Timber::context();
+    $context['title'] = trans( 'Yorumlarım' );
+
+    // Status filter
+    global $wpdb;
+    $approved_count = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->comments} WHERE user_id = %d AND comment_type = 'review' AND comment_approved = '1'",
+        $user_id
+    ) );
+    $pending_count = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->comments} WHERE user_id = %d AND comment_type = 'review' AND comment_approved = '0'",
+        $user_id
+    ) );
+
+    $context['statuses'] = [
+        [ 'slug' => 'approved', 'name' => trans('Onaylı'),        'count' => $approved_count ],
+        [ 'slug' => 'pending',  'name' => trans('Onay Bekleyen'), 'count' => $pending_count ],
+    ];
+
+    $action = get_query_var('reviews') ?: 'approved';
+    $context['action'] = $action;
+
+    Timber::render( ['my-account/my-reviews.twig'], $context );
+}

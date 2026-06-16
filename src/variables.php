@@ -8,14 +8,14 @@ if (!function_exists("get_home_path")) {
     include_once ABSPATH . "/wp-admin/includes/file.php";
 }
 
-// Performans için yolları bir kez alalım
+// Performans iÃ§in yolları bir kez alalım
 $template_uri  = get_template_directory_uri();
 $template_path = get_template_directory();
 $is_admin      = is_admin() || (defined('REST_REQUEST') && REST_REQUEST) || (defined('DOING_AJAX') && DOING_AJAX);
 
 define('IS_INTERNAL_FETCH', !empty($_SERVER['HTTP_X_INTERNAL_FETCH']));
 
-// SaltHareket/Theme paths - Dinamik URİ'ler değişken üzerinden
+// SaltHareket/Theme paths - Dinamik URÄ°'ler değişken üzerinden
 define('SH_PATH',           __DIR__ . '/');
 define('SH_INCLUDES_PATH',  __DIR__ . '/includes/');
 define('SH_CLASSES_PATH',   __DIR__ . '/classes/');
@@ -36,13 +36,27 @@ define('THEME_INCLUDES_URL',  $template_uri . '/theme/includes/');
 define('THEME_STATIC_URL',    $template_uri . "/theme/static/");
 
 // TODO: Bu token ve secret key environment variable'a tasinmali (wp-config.php veya .env)
-// Repo'da acik metin olarak tutulmamali — guvenlik riski.
+// Repo'da acik metin olarak tutulmamali â€” guvenlik riski.
 define("SALTHAREKET_TOKEN", "ghp"."_"."vF6wmC6wai3WMgZutFgJiIlYJJO8Ac0a1cja");
 define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
 
 // Gerekli sınıflar
 include_once SH_CLASSES_PATH . "class.config.php";
 include_once SH_CLASSES_PATH."class.query-cache.php";
+
+// App Settings — define()'lardan ÖNCE yüklenmeli
+include_once SH_INCLUDES_PATH . 'apps/membership/MembershipSettings.php';
+include_once SH_INCLUDES_PATH . 'apps/notifications/NotificationsSettings.php';
+include_once SH_INCLUDES_PATH . 'apps/reactions/ReactionsAppSettings.php';
+include_once SH_INCLUDES_PATH . 'apps/search-history/SearchHistorySettings.php';
+include_once SH_INCLUDES_PATH . 'apps/reviews/ReviewsSettings.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/LocationSettings.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/Schema/LocationSchema.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/Concerns/HandlesGeo.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/Concerns/HandlesIpGeo.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/Concerns/HandlesRegionalPosts.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/Concerns/HandlesGeoQuery.php';
+include_once SH_INCLUDES_PATH . 'apps/localization/LocationManager.php';
 
 function get_sh_config($key, $default = false) {
     return \SaltHareket\SaltConfig::get($key, $default);
@@ -63,64 +77,52 @@ define("INLINE_JS",             SEPERATE_JS && (bool) get_sh_config("options_inl
 
 $exclude_from_search = get_sh_config("options_exclude_from_search", []);
 define("EXCLUDE_FROM_SEARCH", is_array($exclude_from_search) ? $exclude_from_search : []);
-define("DISABLE_COMMENTS",      true);
-define("DISABLE_REVIEW_APPROVE", get_sh_config("options_disable_review_approve"));
-define("ENABLE_SEARCH_HISTORY", get_sh_config("options_enable_search_history"));
+define("DISABLE_COMMENTS",      false);
 define("ENABLE_ECOMMERCE",      class_exists("WooCommerce"));
 
 
 // Üyelik Ayarları
-define("ENABLE_MEMBERSHIP",             get_sh_config("options_enable_membership"));
-define("ENABLE_MEMBERSHIP_ACTIVATION",  ENABLE_MEMBERSHIP && get_sh_config("options_enable_membership_activation"));
-define("MEMBERSHIP_ACTIVATION_TYPE",    ENABLE_MEMBERSHIP_ACTIVATION ? get_sh_config("options_membership_activation_settings") : "");
-define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? get_sh_config("options_enable_activation_email_autologin") : false);
+// Uyelik Ayarlari — MembershipSettings okuyor (ACF fallback dahil)
+define("ENABLE_MEMBERSHIP",             \SaltHareket\Membership\MembershipSettings::getSetting("enable_membership"));
+define("ENABLE_MEMBERSHIP_ACTIVATION",  ENABLE_MEMBERSHIP && \SaltHareket\Membership\MembershipSettings::getSetting("enable_membership_activation"));
+define("MEMBERSHIP_ACTIVATION_TYPE",    ENABLE_MEMBERSHIP_ACTIVATION ? \SaltHareket\Membership\MembershipSettings::getSetting("membership_activation_type") : "");
+define("ENABLE_ACTIVATION_EMAIL_AUTOLOGIN", MEMBERSHIP_ACTIVATION_TYPE == "email" ? \SaltHareket\Membership\MembershipSettings::getSetting("enable_activation_email_autologin") : false);
 $enable_registration = true;
 if (ENABLE_MEMBERSHIP) {
     if (ENABLE_ECOMMERCE) {
         $enable_registration = get_sh_config("woocommerce_enable_myaccount_registration") == "yes";
     } else {
-        $enable_registration = get_sh_config("options_enable_registration");
+        $enable_registration = \SaltHareket\Membership\MembershipSettings::getSetting("enable_registration");
     }
 }
 define("ENABLE_REGISTRATION", $enable_registration);
-define("ENABLE_REMEMBER_LOGIN", ENABLE_MEMBERSHIP && get_sh_config("options_enable_remember_login"));
-define("ENABLE_SOCIAL_LOGIN",   ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && get_sh_config("options_enable_social_login"));
-define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && get_sh_config("options_enable_lost_password"));
-define("ENABLE_PASSWORD_RECOVER", ENABLE_MEMBERSHIP && get_sh_config("options_enable_password_recover"));
-define("PASSWORD_RECOVER_TYPE", (ENABLE_LOST_PASSWORD || ENABLE_PASSWORD_RECOVER) ? get_sh_config("options_password_recover_settings", []) : []);
+define("ENABLE_REMEMBER_LOGIN", ENABLE_MEMBERSHIP && \SaltHareket\Membership\MembershipSettings::getSetting("enable_remember_login"));
+define("ENABLE_SOCIAL_LOGIN",   ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && \SaltHareket\Membership\MembershipSettings::getSetting("enable_social_login"));
+define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && \SaltHareket\Membership\MembershipSettings::getSetting("enable_lost_password"));
+define("ENABLE_PASSWORD_RECOVER", ENABLE_MEMBERSHIP && \SaltHareket\Membership\MembershipSettings::getSetting("enable_password_recover"));
+$_pw_recover_type = \SaltHareket\Membership\MembershipSettings::getSetting("password_recover_type");
+define("PASSWORD_RECOVER_TYPE", (ENABLE_LOST_PASSWORD || ENABLE_PASSWORD_RECOVER) ? $_pw_recover_type : []);
 
 
-// Favori ve Takip Sistemleri
-define("ENABLE_FAVORITES", ENABLE_MEMBERSHIP && get_sh_config("options_enable_favorites"));
-$favorite_types = [
-    "post_types" => get_sh_config("options_favorite_types_post_types", []),
-    "taxonomies" => get_sh_config("options_favorite_types_taxonomies", []),
-    "roles"      => get_sh_config("options_favorite_types_user_roles", [])
-];
-define("FAVORITE_TYPES", $favorite_types);
-define("ENABLE_FOLLOW", ENABLE_MEMBERSHIP && get_sh_config("options_enable_follow"));
-$follow_types = [
-    "post_types" => get_sh_config("options_follow_types_post_types", []),
-    "taxonomies" => get_sh_config("options_follow_types_taxonomies", []),
-    "roles"      => get_sh_config("options_follow_types_user_roles", [])
-];
-define("FOLLOW_TYPES", $follow_types);
-define("ENABLE_CHAT",           ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && get_sh_config("options_enable_chat"));
-define("ENABLE_NOTIFICATIONS",  ENABLE_MEMBERSHIP && get_sh_config("options_enable_notifications"));
-define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && get_sh_config("options_enable_sms_notifications"));
-define("ENABLE_ROLE_THEMES",    ENABLE_MEMBERSHIP && get_sh_config("options_role_themes") && is_user_logged_in());
+// SaltReactions — Unified Favorite + Follow + Like + Bookmark sistemi
+define("ENABLE_REACTIONS", ENABLE_MEMBERSHIP && \SaltHareket\Reactions\ReactionsAppSettings::getSetting("enable_reactions"));
+define("ENABLE_CHAT",           ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") && \SaltHareket\Membership\MembershipSettings::getSetting("enable_chat"));
+define("ENABLE_NOTIFICATIONS",  ENABLE_MEMBERSHIP && \SaltHareket\Notifications\NotificationsSettings::getSetting("enable_notifications"));
+define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && \SaltHareket\Notifications\NotificationsSettings::getSetting("enable_sms_notifications"));
+define("ENABLE_WEB_PUSH", ENABLE_MEMBERSHIP && ENABLE_NOTIFICATIONS && \SaltHareket\Notifications\NotificationsSettings::getSetting("enable_web_push"));
+
+define("ENABLE_SEARCH_HISTORY", \SaltHareket\SearchHistory\SearchHistorySettings::getSetting("enable_search_history"));
+define("DISABLE_REVIEW_APPROVE", \SaltHareket\Reviews\ReviewsSettings::isApproveDisabled());
+define("ENABLE_POSTCODE_VALIDATION", \SaltHareket\Membership\MembershipSettings::getSetting("enable_postcode_validation"));
 
 
 // Lokasyon ve Bölgesel Ayarlar
-define("ENABLE_IP2COUNTRY",     get_sh_config("options_enable_ip2country"));
-define("ENABLE_IP2COUNTRY_DB",  get_sh_config("options_ip2country_settings") == "db");
-define("ENABLE_REGIONAL_POSTS", ENABLE_IP2COUNTRY && get_sh_config("options_enable_regional_posts"));
-define("ENABLE_LOCATION_DB",    get_sh_config("options_enable_location_db"));
-$regional_post_settings = [];
-if (ENABLE_REGIONAL_POSTS) {
-    $regional_post_settings = \SaltHareket\get_option('options_regional_post_settings');
-}
-define("REGIONAL_POST_SETTINGS", $regional_post_settings);
+// Localization — LocationSettings + LocationManager okuyor
+define("ENABLE_IP2COUNTRY",     \SaltHareket\Localization\LocationSettings::getSetting("enable_ip2country"));
+define("ENABLE_IP2COUNTRY_DB",  \SaltHareket\Localization\LocationSettings::getSetting("ip2country_source") === "db");
+define("ENABLE_REGIONAL_POSTS", \SaltHareket\Localization\LocationManager::isRegionalActive());
+define("ENABLE_LOCATION_DB",    \SaltHareket\Localization\LocationSettings::getSetting("enable_location_db"));
+define("REGIONAL_POST_SETTINGS", \SaltHareket\Localization\LocationSettings::getSetting("regional_post_settings", []));
 
 
 // Under Construction Ayarları
@@ -134,7 +136,6 @@ define("ENABLE_WOO_API",        get_sh_config("options_enable_woo_api"));
 define("ENABLE_CART",           ENABLE_ECOMMERCE && get_sh_config("options_enable_cart"));
 define("ENABLE_FILTERS",        defined('YITH_WCAN'));
 define("DISABLE_DEFAULT_CAT",   get_sh_config("options_disable_default_cat"));
-define("ENABLE_POSTCODE_VALIDATION", get_sh_config("options_enable_postcode_validation"));
 
 
 /**
@@ -143,21 +144,21 @@ define("ENABLE_POSTCODE_VALIDATION", get_sh_config("options_enable_postcode_vali
 function visibility_under_construction() {
     if (defined("VISIBILITY_UNDER_CONSTRUCTION")) return;
 
-    // 1. ÖNCE PLUGIN AKTİF Mİ ONA BAKALIM
+    // 1. Ã–NCE PLUGIN AKTÄ°F MÄ° ONA BAKALIM
     // ACTIVATE_UNDER_CONSTRUCTION zaten yukarıda bir yerlerde get_option ile tanımlanmış olmalı.
-    // Eğer plugin pasifse, hiç post_id veya whitelist kontrolüne girmeden çıkalım.
+    // Eğer plugin pasifse, hiÃ§ post_id veya whitelist kontrolüne girmeden Ã§ıkalım.
     if (!ACTIVATE_UNDER_CONSTRUCTION) {
         define("VISIBILITY_UNDER_CONSTRUCTION", true);
         return;
     }
 
-    // 2. ADMIN KONTROLÜ (Çok hızlıdır, DB yormaz)
+    // 2. ADMIN KONTROLÜ (Ã‡ok hızlıdır, DB yormaz)
     if (current_user_can("administrator")) {
         define("VISIBILITY_UNDER_CONSTRUCTION", true);
         return;
     }
 
-    // 3. WHITELIST KONTROLÜ (Sadece gerekliyse url_to_postid çalıştır)
+    // 3. WHITELIST KONTROLÜ (Sadece gerekliyse url_to_postid Ã§alıştır)
     // Eğer whitelist boşsa veya ana sayfadaysak url_to_postid'ye gerek kalmayabilir
     $visible = false;
     
@@ -275,6 +276,11 @@ Data::set("is_admin", $is_admin);
 Data::set("language", ml_get_current_language());
 Data::set("language_default", ml_get_default_language());
 
+// Membership helpers â€” WC endpoint registration iÃ§in erken yüklenmeli
+if ( defined( 'SH_INCLUDES_PATH' ) && file_exists( SH_INCLUDES_PATH . 'apps/membership/helpers.php' ) ) {
+    include_once SH_INCLUDES_PATH . 'apps/membership/helpers.php';
+}
+
 // Dahili Dosyalar
 include_once SH_INCLUDES_PATH . "helpers/index.php";
 if (SH_THEME_EXISTS){// || file_exists(THEME_INCLUDES_PATH . "globals.php")) {
@@ -282,9 +288,8 @@ if (SH_THEME_EXISTS){// || file_exists(THEME_INCLUDES_PATH . "globals.php")) {
 }
 include_once SH_INCLUDES_PATH . "blocks.php";
 
-if (ENABLE_MEMBERSHIP) {
-    include_once SH_CLASSES_PATH . "class.otp.php";
-}
+// class.otp.php — SmsManager yuklendikten sonra yuklenir (notifications bootstrap sonrasi)
+// Bkz: notifications/bootstrap.php sonrasinda yukleniyor
 
 // Güvenlik: Giriş yapmış normal kullanıcıları admin panelinden uzak tut
 if (!ENABLE_ECOMMERCE) {
@@ -299,9 +304,29 @@ if (!ENABLE_ECOMMERCE) {
 
 
 // Sınıf Yüklemeleri
-if (ENABLE_FAVORITES) include_once SH_CLASSES_PATH . "class.favorites.php";
-if (ENABLE_SEARCH_HISTORY) include_once SH_CLASSES_PATH . "class.search-history.php";
-if (ENABLE_NOTIFICATIONS) include_once SH_CLASSES_PATH . "class.notifications.php";
+if (ENABLE_REACTIONS || $is_admin) {
+    include_once SH_INCLUDES_PATH . 'apps/reactions/bootstrap.php';
+}
+if (ENABLE_SEARCH_HISTORY) include_once SH_INCLUDES_PATH . "apps/search-history/SearchHistory.php";
+include_once SH_INCLUDES_PATH . "apps/reviews/bootstrap.php";
+// Notifications bootstrap: aktifse her zaman, pasifse sadece admin'de yükle (menü görünsün)
+if ( ENABLE_NOTIFICATIONS || $is_admin ) {
+    include_once SH_INCLUDES_PATH . "apps/notifications/bootstrap.php";
+}
+// Membership bootstrap: her zaman yükle â€” global fonksiyonlar (salt_my_account_links vs.)
+// tema dosyaları tarafından kullanılıyor. Hook'lar ENABLE_MEMBERSHIP kontrolüne bakıyor.
+include_once SH_INCLUDES_PATH . "apps/membership/bootstrap.php";
+// Theme Export bootstrap: sadece admin'de yükle
+if ( $is_admin ) {
+    include_once SH_INCLUDES_PATH . "apps/theme-export/bootstrap.php";
+}
+// Download Log bootstrap
+include_once SH_INCLUDES_PATH . 'apps/download-log/bootstrap.php';
+
+// Localization + Regional Posts bootstrap
+if ( (defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOCATION_DB') && ENABLE_LOCATION_DB) || (defined('ENABLE_REGIONAL_POSTS') && ENABLE_REGIONAL_POSTS) || $is_admin ) {
+    include_once SH_INCLUDES_PATH . "apps/localization/bootstrap.php";
+}
 if (!empty($GLOBALS["pagenow"]) && $GLOBALS["pagenow"] === "wp-login.php") include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 
 // ACF ve Plugin Entegrasyonları
@@ -334,32 +359,57 @@ if (ENABLE_ECOMMERCE) {
     if (class_exists('DGWT_WC_Ajax_Search')) include_once SH_INCLUDES_PATH . "plugins/ajax-search-for-woocommerce.php";
     if (class_exists("WC_Bundles")) include_once SH_INCLUDES_PATH . "plugins/product-bundles.php";
     if (function_exists('woosb_init')) include_once SH_INCLUDES_PATH . "plugins/wpc-product-bundles.php";
+    if (class_exists("Iconic_WSSV")) include_once SH_INCLUDES_PATH . "plugins/iconic-woo-show-single-variations.php";
+    if (class_exists("XT_WOOVAS")) include_once SH_INCLUDES_PATH . "plugins/xt-woo-variations-as-singles.php";
 }
 
 if (function_exists("mt_profile_img")) include_once SH_INCLUDES_PATH . "plugins/metronet-profile-picture.php";
 if (defined("WP_ROCKET_VERSION")) include_once SH_INCLUDES_PATH . "plugins/wp-rocket.php";
 if (class_exists("WP_Socializer")) include_once SH_INCLUDES_PATH . "plugins/wpsr.php";
-if (ENABLE_SOCIAL_LOGIN) include_once SH_INCLUDES_PATH . "plugins/nsl.php";
+//if (ENABLE_SOCIAL_LOGIN) include_once SH_INCLUDES_PATH . "plugins/nsl.php";
 if (class_exists("YABE_WEBFONT") && $is_admin) include_once SH_INCLUDES_PATH . "plugins/yabe-font.php";
 
 if (ENABLE_PRODUCTION) include_once SH_INCLUDES_PATH . "minify-rules.php";
 
+if(get_sh_config('sh_theme_tasks_status')){
+    include_once SH_CLASSES_PATH . "class.encrypt.php";
+    include_once SH_CLASSES_PATH . "class.paginate.php";
+    include_once SH_CLASSES_PATH . "class.lcp.php";
+    include_once SH_INCLUDES_PATH . "apps/asset-manager/bootstrap.php";
+}
+
 // Admin Tarafı Sınıfları
-if ($is_admin ) {
+if ($is_admin) {
     include_once SH_INCLUDES_PATH . "notices.php";
     include_once SH_CLASSES_PATH . "class.avif.php";
-    include_once SH_CLASSES_PATH . "class.scss-compiler.php";
-    include_once SH_CLASSES_PATH . "class.merge-css.php";
-    include_once SH_CLASSES_PATH . "class.remove-unused-css.php";
-    include_once SH_CLASSES_PATH . "class.page-assets-extractor.php";
+    // SCSSCompiler, MergeCSS, RemoveUnusedCss, AssetPacker -> asset-manager bootstrap'ta yukleniyor
+    include_once SH_INCLUDES_PATH . "apps/page-assets-extractor/PageAssetsExtractor.php";
     include_once SH_CLASSES_PATH . "class.featured-image.php";
     include_once SH_CLASSES_PATH . "class.ffmpeg.php";
-    include_once SH_CLASSES_PATH . "class.assets-packer.php";
     include_once SH_CLASSES_PATH . "class.fluidcss.php";
     include_once SH_CLASSES_PATH . "class.columns-thumbnail.php";
-    include_once SH_CLASSES_PATH . "class.theme-export.php";
+    //include_once SH_CLASSES_PATH . "class.theme-export.php";
     include_once SH_INCLUDES_PATH . "actions-admin.php";  
 }
+
+// REST API save (Gutenberg) — PAE'yi lazy yükle
+// REST_REQUEST variables.php yüklenirken henüz define edilmemiş olabilir
+// Bu yüzden rest_api_init hook'unda yüklüyoruz
+add_action('rest_api_init', function() {
+    // asset-manager tools: bootstrap include_once ile yüklendiği için
+    // REST_REQUEST o an false'tı ve RemoveUnusedCss atlandı — burada direkt yüklüyoruz
+    if (!class_exists('SaltHareket\AssetManager\RemoveUnusedCss')) {
+        $am_base = SH_INCLUDES_PATH . 'apps/asset-manager/';
+        require_once $am_base . 'MergeCSS.php';
+        require_once $am_base . 'AssetPacker.php';
+        require_once $am_base . 'SaltMinifier.php';
+        require_once $am_base . 'RemoveUnusedCss.php';
+        require_once $am_base . 'SCSSCompiler.php';
+    }
+    if (!class_exists('PageAssetsExtractor')) {
+        include_once SH_INCLUDES_PATH . "apps/page-assets-extractor/PageAssetsExtractor.php";
+    }
+}, 1);
 
 
 // Genel Sınıflar ve Helperlar
@@ -371,26 +421,30 @@ include_once SH_CLASSES_PATH . "class.logger.php";
 
 include_once SH_INCLUDES_PATH . "rewrite.php";
 
-if(get_sh_config('sh_theme_tasks_status')){
+/*if(get_sh_config('sh_theme_tasks_status')){
     include_once SH_CLASSES_PATH . "class.encrypt.php";
     include_once SH_CLASSES_PATH . "class.paginate.php";
     include_once SH_CLASSES_PATH . "class.lcp.php";
-    include_once SH_CLASSES_PATH . "class.assets-manager.php";
-}
+    // Asset Manager â€” apps/asset-manager/ altına taşındı
+    include_once SH_INCLUDES_PATH . "apps/asset-manager/bootstrap.php";
+    // TODO: class.assets-manager.php silinecek
+}*/
 
 include_once SH_INCLUDES_PATH . "ajax.php";
 include_once SH_INCLUDES_PATH . "custom.php";
 
-if ((defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOCATION_DB') && ENABLE_LOCATION_DB)) {
-    include_once SH_CLASSES_PATH . "class.localization.php";
-}
+// Download Log bootstrap
+include_once SH_INCLUDES_PATH . 'apps/download-log/bootstrap.php';
+
+// Localization + Regional Posts bootstrap â€” yukarıda zaten yüklendi
+// Eski dosyalar devre dışı:
+// TODO: Silinecekler: class.localization.php, class.geolocation.query.php,
+//       regional-posts/index.php, admin/regional-posts/index.php, methods/localization/
 
 if (!$is_admin) {
     include_once SH_CLASSES_PATH . "class.custom-menu-items.php";
     include_once SH_INCLUDES_PATH . "menu.php"; 
 }
-
-if (ENABLE_REGIONAL_POSTS) include_once SH_INCLUDES_PATH . "regional-posts/index.php";
 
 // Tema ve Admin Genişletmeleri
 if (SH_THEME_EXISTS){// || file_exists($template_path . "/theme/index.php")) {

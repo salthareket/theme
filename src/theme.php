@@ -190,7 +190,7 @@ class_alias('\SaltHareket\Data', 'Data');
 
 
 /**
- * Theme — Ana tema class'i. Singleton.
+ * Theme â€” Ana tema class'i. Singleton.
  *
  * Post type/taxonomy register, language settings, global variables,
  * site config, query modifications, admin menu, SCSS compile.
@@ -285,7 +285,8 @@ Class Theme{
             remove_action( 'wp_head', 'wc_oembed_add_admin_links' ); // WooCommerce oEmbed linkleri
             remove_action( 'wp_head', 'wc_oembed_add_discovery_links' ); // WooCommerce oEmbed discovery linkleri
             add_filter('woocommerce_template_path', [$this, 'wc_custom_template_path']);
-            //add_filter('woocommerce_locate_template', [$this, 'wc_multiple_template_paths'], 10, 3);  
+            ////add_filter('woocommerce_locate_template', [$this, 'wc_multiple_template_paths'], 10, 3);
+            add_filter('wc_get_template', [$this, 'wc_smart_template_path'], 10, 5);
         }
         
         if(is_admin()){
@@ -387,7 +388,7 @@ Class Theme{
 
         // Bu fonksiyon zaten admin_menu hook'u içinde çalışıyor.
         // $submenu burada dolu olduğundan doğrudan unset yapabiliriz.
-        // İç içe add_action('admin_menu') açmaya gerek yok — döngü yaratır.
+        // İç içe add_action('admin_menu') açmaya gerek yok â€” döngü yaratır.
         global $submenu;
         if ( isset( $submenu['theme-settings'] ) ) {
             unset( $submenu['theme-settings'][0] );
@@ -402,14 +403,14 @@ Class Theme{
                     "Header",
                     "Footer",
                     "Menu",
-                    "Theme Styles",
+                    //"Theme Styles",
                     "Ayarlar",
-                    "Page Assets Update",
+                    //"Page Assets Update",
                     "Development",
                 ];
-                if(ENABLE_SEARCH_HISTORY){
+                /*if(ENABLE_SEARCH_HISTORY){
                     $menu[] = "Search Ranks";
-                }
+                }*/
                 $options_menu = [
                     "title" => get_bloginfo("name"),
                     "redirect" => true,
@@ -422,7 +423,7 @@ Class Theme{
                     create_options_menu($options_menu);
                 }
             
-                if(ENABLE_NOTIFICATIONS && is_admin()){
+                /*if(ENABLE_NOTIFICATIONS && is_admin()){
                     $notifications_menu = [
                         "title" => "Notifications",
                         "redirect" => false,
@@ -433,7 +434,7 @@ Class Theme{
                     if(function_exists("create_options_menu")){
                         create_options_menu($notifications_menu);
                     }          
-                }
+                }*/
                 if(is_admin()){
                     add_action('admin_init', function () use ($menu) {
                         if (!function_exists('pll_current_language')) return;
@@ -634,7 +635,7 @@ Class Theme{
         $site_config = Data::get("site_config");//$GLOBALS["site_config"];
 
 
-        // 4. IP ve Ülke Bilgileri (Sadece Frontend)
+        // 4. IP ve Ãœlke Bilgileri (Sadece Frontend)
         if (!$this->is_admin && ENABLE_IP2COUNTRY) {
             $user->user_country = $site_config["user_country"] ?? '';
             $user->user_country_code = $site_config["user_country_code"] ?? '';
@@ -642,7 +643,7 @@ Class Theme{
         }
 
         // 5. Favoriler ve Arama Geçmişi (Global atamalar)
-        if (ENABLE_FAVORITES) {
+        if (ENABLE_REACTIONS) {
             $favs = $site_config["favorites"] ?? [];
             //$GLOBALS["favorites"] = is_string($favs) ? json_decode($favs, true) : (is_array($favs) ? $favs : []);
             $favorites = is_string($favs) ? json_decode($favs, true) : (is_array($favs) ? $favs : []);
@@ -653,11 +654,11 @@ Class Theme{
             Data::set("search_history", $site_config["search_history"] ?? []);
         }
 
-        // 6. Üyelik ve Lokasyon Mantığı (Sadece Frontend ve Login durumunda)
+        // 6. Ãœyelik ve Lokasyon Mantığı (Sadece Frontend ve Login durumunda)
         if (!$this->is_admin && ENABLE_MEMBERSHIP && $this->is_logged) {
             
             // Eğer fatura bilgileri eksikse ve IP değişmişse DB/API sorgusu yap
-            if ((empty($user->billing_country) || empty($user->billing_state)) && $salt->is_ip_changed() && ENABLE_IP2COUNTRY) {
+            if ((empty($user->billing_country) || empty($user->billing_state)) && $salt && $salt->is_ip_changed() && ENABLE_IP2COUNTRY) {
                 $login_location = $salt->localization->ip_info("visitor", "Location");
                 
                 if ($login_location) {
@@ -680,16 +681,17 @@ Class Theme{
 
             // Newsletter ve Mesaj Sayıları
             if (class_exists("Newsletter")) {
-                $user->newsletter = \SaltBase::newsletter("status", $user->user_email);
+                $user->newsletter = $salt->newsletter("status", $user->user_email);
             }
 
             $user->messages_count = (ENABLE_CHAT && class_exists('Messenger')) ? Messenger::count() : 0;
-            $user->notification_count = (ENABLE_NOTIFICATIONS) ? $salt->notification_count() : 0;
+            $user->notification_count  = (ENABLE_NOTIFICATIONS && $salt) ? $salt->notification_count() : 0;
+            $user->notifications_count = $user->notification_count; // twig uyumu
             $user->menu = function_exists('get_account_menu') ? get_account_menu() : [];
         }
 
         // 9. Final Global Atamaları
-        $salt->user = $user;
+        if ($salt) $salt->user = $user;
         //$GLOBALS["user"] = $user;
         //$GLOBALS["salt"] = $salt;
         Data::set("user", $user);
@@ -751,11 +753,75 @@ Class Theme{
             $language_rtl   = false;
 
             // Cache key: post_type + queried_object_id + language
-            // URL bazlı değil — aynı post_type'taki sayfalar aynı dil listesini paylaşır.
+            // URL bazlı değil â€” aynı post_type'taki sayfalar aynı dil listesini paylaşır.
+            // My-account endpoint'leri için endpoint da key'e dahil edilir.
             $queried_obj_id = get_queried_object_id();
             $post_type      = get_post_type() ?: get_query_var('post_type') ?: 'general';
-            $cache_key      = 'sh_lang_cache_' . $language . '_' . $post_type . '_' . $queried_obj_id;
-            $cached_data    = get_transient($cache_key);
+
+            // My-account virtual endpoint algıla â€” cache key'e ekle
+            $current_ep = '';
+            if ( defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP ) {
+                // WC query var üzerinden dene
+                if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && function_exists('WC') && WC()->query ) {
+                    $wc_ep = WC()->query->get_current_endpoint();
+                    $virtual_eps = ['notifications','favorites','messages','reviews','security','profile','not-activated','renew-password'];
+                    if ( $wc_ep && in_array($wc_ep, $virtual_eps, true) ) {
+                        $current_ep = $wc_ep;
+                    }
+                }
+                // WC bulamazsa URL'den çıkar
+                if ( ! $current_ep ) {
+                    $ma_page_id = 0;
+                    if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && function_exists('wc_get_page_id') ) {
+                        $ma_page_id = wc_get_page_id('myaccount');
+                    }
+                    if ( ! $ma_page_id ) $ma_page_id = (int) get_option('options_myaccount_page_id', 0);
+                    if ( $ma_page_id && $queried_obj_id === $ma_page_id ) {
+                        // WP'nin ayrıştırdığı path'den endpoint'i çıkar
+                        $wp_request  = isset($GLOBALS['wp']->request) ? $GLOBALS['wp']->request : '';
+                        // query var üzerinden dene (add_rewrite_endpoint ile eklenenler)
+                        $virtual_eps = ['notifications','favorites','messages','reviews','security','profile','not-activated','renew-password'];
+                        foreach ( $virtual_eps as $ep ) {
+                            if ( get_query_var($ep, null) !== null && strpos($wp_request, $ep) !== false ) {
+                                $current_ep = $ep;
+                                break;
+                            }
+                        }
+                        // HÃ¢lÃ¢ bulunamadıysa raw path'den çıkar
+                        if ( ! $current_ep && function_exists('pll_get_post') ) {
+                            $current_lang   = ml_get_current_language();
+                            $current_ma_id  = pll_get_post($ma_page_id, $current_lang) ?: $ma_page_id;
+                            $current_ma_url = trailingslashit(get_permalink($current_ma_id));
+                            $request_uri    = trailingslashit(home_url($wp_request));
+                            if ( $current_ma_url && strpos($request_uri, $current_ma_url) === 0 ) {
+                                $remainder  = trim(substr($request_uri, strlen($current_ma_url)), '/');
+                                $ep_parts   = explode('/', $remainder);
+                                $candidate  = $ep_parts[0] ?? '';
+                                if ( $candidate && in_array($candidate, $virtual_eps, true) ) {
+                                    $current_ep = $candidate;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            $cache_key = 'sh_lang_cache_' . $language . '_' . $post_type . '_' . $queried_obj_id . ($current_ep ? '_' . $current_ep : '');
+
+            // WC shop/archive sayfalarında get_the_ID() loop'taki ürünü döndürebilir — cache bypass
+            $bypass_cache = false;
+            if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE ) {
+                if ( function_exists('is_shop') && is_shop() ) {
+                    $bypass_cache = true;
+                } elseif ( is_product_category() || is_product_tag() || is_post_type_archive('product') ) {
+                    $bypass_cache = true;
+                }
+            }
+            // PAE internal fetch sırasında transient'a yazma — yanlış cache üretir
+            $is_internal_fetch = defined('IS_INTERNAL_FETCH') && IS_INTERNAL_FETCH;
+            $skip_write_cache  = $is_internal_fetch || $bypass_cache;
+
+            $cached_data = $skip_write_cache ? false : get_transient($cache_key);
 
             if (false !== $cached_data) {
                 Data::set("language",  $cached_data['language']);
@@ -819,12 +885,59 @@ Class Theme{
                     $paged = get_query_var('paged');
                     $lang_hide_default = PLL()->options['hide_default'];
 
+                    // My-account virtual endpoint tespiti
+                    // notifications, profile, favorites gibi slug'lar WP sayfası değil
+                    $current_ma_endpoint = '';
+                    if ( defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP ) {
+                        $virtual_endpoints = ['notifications','favorites','messages','reviews','security','profile','not-activated','renew-password'];
+                        // WC varsa WC query üzerinden dene
+                        if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && function_exists('WC') && WC()->query ) {
+                            $wc_ep = WC()->query->get_current_endpoint();
+                            if ( in_array($wc_ep, $virtual_endpoints, true) ) {
+                                $current_ma_endpoint = $wc_ep;
+                            }
+                        }
+                        // WC'den bulunamadıysa query vars üzerinden dene
+                        if ( empty($current_ma_endpoint) ) {
+                            foreach ( $virtual_endpoints as $_ep ) {
+                                if ( get_query_var($_ep, null) !== null && get_query_var($_ep, '__not_set__') !== '__not_set__' ) {
+                                    $current_ma_endpoint = $_ep;
+                                    break;
+                                }
+                            }
+                        }
+                        // HÃ¢lÃ¢ bulunamadıysa URL karşılaştırması yap
+                        if ( empty($current_ma_endpoint) ) {
+                            $ma_page_id = 0;
+                            if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && function_exists('wc_get_page_id') ) {
+                                $ma_page_id = wc_get_page_id('myaccount');
+                            }
+                            if ( ! $ma_page_id ) $ma_page_id = (int) get_option('options_myaccount_page_id', 0);
+                            if ( $ma_page_id ) {
+                                $ma_url     = trailingslashit( get_permalink($ma_page_id) );
+                                $wp_request = isset($GLOBALS['wp']->request) ? $GLOBALS['wp']->request : '';
+                                $req_url    = trailingslashit( home_url($wp_request) );
+                                if ( $ma_url && strpos($req_url, $ma_url) === 0 ) {
+                                    $remainder = trim( substr($req_url, strlen($ma_url)), '/' );
+                                    $candidate = explode('/', $remainder)[0] ?? '';
+                                    if ( in_array($candidate, $virtual_endpoints, true) ) {
+                                        $current_ma_endpoint = $candidate;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     foreach (pll_the_languages(['raw' => 1]) as $lang) {
                         $url = '';
-                        if (function_exists('is_shop') && is_shop()) {
-                            $shop_page_id = wc_get_page_id('shop');
+                        $is_shop_now = function_exists('is_shop') && is_shop();
+                        $wc_shop_id  = function_exists('wc_get_page_id') ? (int) wc_get_page_id('shop') : 0;
+                        $is_shop_by_id = $wc_shop_id > 0 && $queried_obj_id === $wc_shop_id;
+
+                        if ( $is_shop_now || $is_shop_by_id ) {
+                            $shop_page_id = $wc_shop_id ?: (function_exists('wc_get_page_id') ? wc_get_page_id('shop') : 0);
                             $translated_shop_page_id = pll_get_post($shop_page_id, $lang['slug']);
-                            $url = get_permalink($translated_shop_page_id);
+                            $url = get_permalink($translated_shop_page_id ?: $shop_page_id);
                         } elseif (is_post_type_archive()) {
                             $post_type = get_query_var('post_type');
                             if ($post_type) {
@@ -863,6 +976,21 @@ Class Theme{
                         } else {
                             $post_language = pll_get_post(get_the_ID(), $lang['slug']);
                             $url = $post_language ? get_permalink($post_language) : pll_home_url($language_default);
+
+                            // $current_ep cache key hesaplanirken zaten set edildi (yukarda)
+                            // My-account virtual endpoint varsa hedef dil URL'sine ekle
+                            if ( ! empty($current_ep) && $url ) {
+                                $ma_page_id_ep = 0;
+                                if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && function_exists('wc_get_page_id') ) {
+                                    $ma_page_id_ep = wc_get_page_id('myaccount');
+                                }
+                                if ( ! $ma_page_id_ep ) $ma_page_id_ep = (int) get_option('options_myaccount_page_id', 0);
+                                if ( $ma_page_id_ep ) {
+                                    $target_ma_id  = pll_get_post($ma_page_id_ep, $lang['slug']) ?: $ma_page_id_ep;
+                                    $target_ma_url = trailingslashit(get_permalink($target_ma_id));
+                                    $url = $target_ma_url . trailingslashit($current_ep);
+                                }
+                            }
                         }
 
                         if ($url && $paged && $paged > 1) {
@@ -889,7 +1017,7 @@ Class Theme{
             Data::set("language_url_view",  $language_url_view);
             Data::set("language_rtl",  $language_rtl);
 
-            // 💾 SONRAKİ SEFER İÇİN SAKLA (1 Saatlik cache)
+            // ðŸ’¾ SONRAKİ SEFER İÃ‡İN SAKLA (1 Saatlik cache)
             $data_to_cache = [
                 "language" => $language,
                 "languages" => $languages,
@@ -898,13 +1026,16 @@ Class Theme{
                 "language_rtl" => $language_rtl
             ];
 
-            set_transient($cache_key, $data_to_cache, HOUR_IN_SECONDS);
+            // PAE internal fetch veya bypass durumunda cache'e yazma
+            if ( ! $skip_write_cache ) {
+                set_transient($cache_key, $data_to_cache, HOUR_IN_SECONDS);
+            }
             //error_log("full langıages ayarlandı......");
         }
     }
 
     public function query_all_posts($query) {
-        // 1. ERKEN ÇIKIŞ (PERFORMANS): Admin sorguları veya filtreleri bastırılmış sorgulara dokunma
+        // 1. ERKEN Ã‡IKIŞ (PERFORMANS): Admin sorguları veya filtreleri bastırılmış sorgulara dokunma
         if (is_admin() || (isset($query->query_vars['suppress_filters']) && $query->query_vars['suppress_filters'])) {
             return $query;
         }
@@ -964,13 +1095,30 @@ Class Theme{
 
             // GENEL PAGINATION (Shop değilse)
             if (!is_shop() && !empty($post_type)) {
+                // Taxonomy sayfasında post_type boş gelebilir â€” taxonomy'den çıkar
+                if ((is_tax() || is_category() || is_tag()) && ($post_type === 'post' || empty($post_type))) {
+                    $queried = get_queried_object();
+                    if ($queried instanceof \WP_Term) {
+                        $tax_obj = get_taxonomy($queried->taxonomy);
+                        if ($tax_obj && !empty($tax_obj->object_type)) {
+                            $post_type = $tax_obj->object_type[0];
+                        }
+                    }
+                }
                 // get_post_type_pagination fonksiyonun varsa onu çağırıyoruz
                 $pagination = function_exists('get_post_type_pagination') ? get_post_type_pagination($post_type) : null;
-                $ppp = (isset($pagination["posts_per_page"])) ? $pagination["posts_per_page"] : -1;
+                $ppp = (!empty($pagination["paged"]) && isset($pagination["posts_per_page"])) ? intval($pagination["posts_per_page"]) : -1;
 
-                if ($ppp == -1 || $ppp > 0) {
+                // WooCommerce ürün sayfalarında (product_cat vb.) posts_per_page'e dokunma
+                // WooCommerce kendi loop_shop_per_page filter'ını kullansın
+                $is_woo_product_query = function_exists('is_woocommerce') && is_woocommerce() && $post_type === 'product';
+                if ($ppp > 0) {
                     $query->set("posts_per_page", $ppp);
+                } elseif (!$is_woo_product_query) {
+                    // WooCommerce dışı sayfalarda -1 set et (tüm postlar)
+                    $query->set("posts_per_page", -1);
                 }
+                // WooCommerce ürün sayfasında ppp=-1 ise hiç dokunma
             }
 
             // Q PARAMETRESİ VE FOOTER ACTION (Eski yapın)
@@ -1019,7 +1167,7 @@ Class Theme{
         return $query;
     }
     public function query_all_terms($args, $taxonomies) {
-        // 1. ERKEN ÇIKIŞ: Admin panelindeysek veya özellik kapalıysa PHP'yi yorma, direkt dön.
+        // 1. ERKEN Ã‡IKIŞ: Admin panelindeysek veya özellik kapalıysa PHP'yi yorma, direkt dön.
         if (is_admin() || !defined('DISABLE_DEFAULT_CAT') || !DISABLE_DEFAULT_CAT) {
             return $args;
         }
@@ -1042,7 +1190,7 @@ Class Theme{
                 $excluded_ids[] = function_exists('pll_get_term') ? (int)pll_get_term($default_cat) : (int)$default_cat;
             }
 
-            // WooCommerce Ürün Kategorisi (Uncategorized product cat vb.)
+            // WooCommerce Ãœrün Kategorisi (Uncategorized product cat vb.)
             if (class_exists('WooCommerce')) {
                 $default_prod_cat = get_option('default_product_cat');
                 if ($default_prod_cat) {
@@ -1054,7 +1202,7 @@ Class Theme{
             $excluded_ids = array_values(array_filter(array_unique($excluded_ids)));
         }
 
-        // 3. TAKSONOMİ KONTROLÜ VE FİLTRELEME
+        // 3. TAKSONOMİ KONTROLÃœ VE FİLTRELEME
         // Sadece 'category' veya 'product_cat' sorgulanıyorsa işlem yapalım.
         $target_taxonomies = ['category', 'product_cat'];
         $current_taxonomies = (array)$taxonomies;
@@ -1134,7 +1282,7 @@ Class Theme{
             return SITE_ASSETS;
         }
 
-        // Erken Çıkış — admin, cron, REST
+        // Erken Ã‡ıkış â€” admin, cron, REST
         if (
             $this->is_admin ||
             (defined("SH_THEME_EXISTS") && !SH_THEME_EXISTS) ||
@@ -1174,7 +1322,24 @@ Class Theme{
         if (empty($meta['id'])) {
             $obj = get_queried_object();
             
-            if (is_singular()) {
+            // WooCommerce shop sayfasi â€” archive olarak fetch edilip kaydediliyor, aynı key'den oku
+            if (function_exists('is_shop') && is_shop()) {
+                $meta['type'] = 'archive';
+                $lang         = Data::get("language");
+                $meta['id']   = $lang ? "product_archive_{$lang}" : "product_archive";
+            } elseif (function_exists('is_account_page') && is_account_page() && is_user_logged_in()) {
+                // WC My Account endpoint sayfasi
+                $endpoint = function_exists('WC') ? WC()->query->get_current_endpoint() : '';
+                if (!empty($endpoint)) {
+                    $lang = Data::get("language");
+                    $meta['type'] = 'dynamic';
+                    $meta['id']   = "woo_account_{$endpoint}_{$lang}";
+                } else {
+                    // Dashboard (endpoint yok) â€” normal page olarak isle
+                    $meta['type'] = 'post';
+                    $meta['id']   = get_queried_object_id();
+                }
+            } elseif (is_singular()) {
                 $meta['type'] = 'post';
                 $meta['id']   = $obj->ID;
             } elseif ($obj instanceof \WP_Term) {
@@ -1202,7 +1367,7 @@ Class Theme{
             }
         }
 
-        // 3. Asset Çekimi (Meta tipine göre tek noktadan)
+        // 3. Asset Ã‡ekimi (Meta tipine göre tek noktadan)
         if (!empty($meta['id'])) {
             $site_assets = match($meta['type']) {
                 'post'    => get_post_meta($meta['id'], 'assets', true),
@@ -1214,7 +1379,7 @@ Class Theme{
             };
         }
 
-        // 4. Asset Yoksa Yeniden Üret (Extractor)
+        // 4. Asset Yoksa Yeniden Ãœret (Extractor)
         if (empty($site_assets) && !isset($_GET["fetch"]) && (SEPERATE_CSS || SEPERATE_JS) && class_exists("PageAssetsExtractor")) {
             $extractor = \PageAssetsExtractor::get_instance();
             error_log("assets bulunamadı theme.php de bastan uretiliyor PageAssetsExtractor ile...");
@@ -1236,7 +1401,7 @@ Class Theme{
         // 5. Global Tanımlama ve LCP Başlatma
         define("SITE_ASSETS", $site_assets);
 
-        if (!isset($_GET["fetch"]) && class_exists("Lcp")) {
+        if (!isset($_GET["fetch"]) && class_exists("Lcp") && !is_user_logged_in()) {
             \Lcp::getInstance();
         }
     }
@@ -1294,19 +1459,19 @@ Class Theme{
         }
         error_log("site config is_cached => ".$is_cached);*/
 
-        // --- A. TÜM ÖZELLİK BAYRAKLARI (FLAGS) ---
-        $enable_favs    = defined('ENABLE_FAVORITES') && ENABLE_FAVORITES;
-        $enable_follow  = defined('ENABLE_FOLLOW') && ENABLE_FOLLOW;
-        $enable_history = defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY;
-        $enable_ip      = defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY;
-        $enable_reg     = defined('ENABLE_REGIONAL_POSTS') && ENABLE_REGIONAL_POSTS;
-        $path           = function_exists('getSiteSubfolder') ? getSiteSubfolder() : '/';
+        // --- A. TÃœM ÖZELLİK BAYRAKLARI (FLAGS) ---
+        $enable_reactions = defined('ENABLE_REACTIONS') && ENABLE_REACTIONS;
+        $enable_history   = defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY;
+        $enable_ip        = defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY;
+        $enable_reg       = defined('ENABLE_REGIONAL_POSTS') && ENABLE_REGIONAL_POSTS;
+        $path             = function_exists('getSiteSubfolder') ? getSiteSubfolder() : '/';
 
-            // --- B. ANA KONFİGÜRASYON DİZİSİ ---
+            // --- B. ANA KONFİGÃœRASYON DİZİSİ ---
             $config = [
                 "enable_membership"     => defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP,
-                "enable_favorites"      => $enable_favs,
-                "enable_follow"         => $enable_follow,
+                "enable_reactions"      => $enable_reactions,
+                "enable_favorites"      => $enable_reactions, // backward compat â€” JS favorites objesi hala kullanıyor
+                "enable_follow"         => $enable_reactions, // backward compat
                 "enable_search_history" => $enable_history,
                 "enable_ip2country"     => $enable_ip,
                 "enable_cart"           => defined('ENABLE_CART') && ENABLE_CART,
@@ -1319,8 +1484,8 @@ Class Theme{
                 "logged"                => is_user_logged_in(),
                 "cached"                => false,
                 "debug"                 => defined('ENABLE_CONSOLE_LOGS') && ENABLE_CONSOLE_LOGS,
-                "language_default"      => Data::get("language_default"),//$GLOBALS['language_default'] ?? 'en',
-                "base_urls"             => Data::get("base_urls") ?? [],//$GLOBALS['base_urls'] ?? [],
+                "language_default"      => Data::get("language_default"),
+                "base_urls"             => Data::get("base_urls") ?? [],
                 "lcp" => [
                     "d" => (defined('SITE_ASSETS') && !empty(SITE_ASSETS["lcp"]["desktop"])) ? 1 : 0,
                     "m" => (defined('SITE_ASSETS') && !empty(SITE_ASSETS["lcp"]["mobile"])) ? 1 : 0
@@ -1331,30 +1496,25 @@ Class Theme{
                 $config['cached'] = true;
             }
 
-            // --- C. FAVORİLER VE TAKİP SİSTEMİ ---
-            if ($enable_favs && class_exists('Favorites')) {
-                $fav_obj = new \Favorites();
-                $fav_obj->update();
-                $config["favorites"] = $fav_obj->favorites;
-                $config["favorite_types"] = defined('FAVORITE_TYPES') ? FAVORITE_TYPES : [];
+            // --- C. REACTİONS (Favorites + Follow unified) ---
+            if ( $enable_reactions && is_user_logged_in() && class_exists('\SaltHareket\Reactions\Reactions') ) {
+                $uid = get_current_user_id();
+                // site_config.favorites â€” eski JS favorites objesi backward compat icin
+                $config["favorites"] = \SaltHareket\Reactions\Reactions::getByUser( $uid, 'favorite', 'post' );
             }
 
-            if ($enable_follow) {
-                $config["follow_types"] = defined('FOLLOW_TYPES') ? FOLLOW_TYPES : [];
-            }
-
-            // --- D. ARAMA GEÇMİŞİ ---
+            // --- D. ARAMA GEÃ‡MİŞİ ---
             if ($enable_history && class_exists('SearchHistory')) {
                 $sh_obj = new \SearchHistory();
                 $config["search_history"] = $sh_obj->get_user_terms();
             }
 
-            // --- E. GÜVENLİK (NONCE) ---
+            // --- E. GÃœVENLİK (NONCE) ---
             if (!$config["logged"]) {
                 $config["nonce"] = wp_create_nonce('ajax');
             }
 
-            // --- F. IP TABANLI LOKALİZASYON VE ÇEREZLER ---
+            // --- F. IP TABANLI LOKALİZASYON VE Ã‡EREZLER ---
             if ($enable_ip) {
                 $user_data = [
                     'country' => $_COOKIE['user_country'] ?? '',
@@ -1366,14 +1526,12 @@ Class Theme{
 
                 // Çerezler eksikse IP'den bul
                 if (empty($user_data['city']) || empty($user_data['code'])) {
-                    $salt = Data::get("salt");
-                    if($salt){
-                        $data = (isset($salt->localization)) ? $salt->localization->ip_info() : null;
-                        if ($data) {
-                            $user_data['country'] = $data->name ?? ($data['name'] ?? 'Unknown');
-                            $user_data['code']    = $data->iso2 ?? ($data['iso2'] ?? '');
-                            $user_data['city']    = $data->state ?? ($data['state'] ?? 'Unknown');
-                        }
+                    $lm = \SaltHareket\Localization\LocationManager::getInstance();
+                    $data = $lm->ipInfo();
+                    if ($data) {
+                        $user_data['country'] = $data['name'] ?? 'Unknown';
+                        $user_data['code']    = $data['iso2'] ?? ($data['country_code'] ?? '');
+                        $user_data['city']    = $data['state'] ?? ($data['city'] ?? 'Unknown');
                     }
                 }
 
@@ -1387,7 +1545,7 @@ Class Theme{
                     $user_data['region'] = function_exists('get_region_by_country_code') ? get_region_by_country_code($user_data['code']) : '';
                 }
 
-                // Çerezleri sadece değişmişse yaz (Performans ve Header güvenliği için)
+                // Ã‡erezleri sadece değişmişse yaz (Performans ve Header güvenliği için)
                 $cookie_time = time() + (86400 * 365);
                 foreach ($user_data as $key => $val) {
                     $c_name = "user_" . ($key == 'lang' ? 'language' : $key);
@@ -1415,7 +1573,7 @@ Class Theme{
             //$config["theme_includes_url"] = defined("SH_INCLUDES_URL") ? SH_INCLUDES_URL : '';
             $config["theme_url"]          = defined("THEME_URL") ? THEME_URL : '';
 
-            // --- I. ÇEVİRİ SÖZLÜĞÜ ---
+            // --- I. Ã‡EVİRİ SÖZLÃœĞÃœ ---
             $config["dictionary"] = [];
             if (class_exists("TranslationDictionary")) {
                 $dictionary = new \TranslationDictionary();
@@ -1522,10 +1680,6 @@ Class Theme{
         }
     }
 
-
-
-
-
     public function remove_comments() {
         // 1. Sadece admin panelinde ve gerekli sabit tanımlıysa çalış
         if (!is_admin() || !defined('DISABLE_COMMENTS')) {
@@ -1569,32 +1723,61 @@ Class Theme{
                     unlink($destination_path);
                 }
             }
+
+            // Eklenti tüm post'ları 'closed' yapmış olabilir â€” toplu aç
+            // Sadece bir kez çalışsın (transient ile)
+            if ( ! get_transient( 'sh_comments_reopened' ) ) {
+                global $wpdb;
+                $wpdb->query(
+                    "UPDATE {$wpdb->posts} 
+                     SET comment_status = 'open' 
+                     WHERE post_status = 'publish' 
+                     AND post_type NOT IN ('attachment','revision','nav_menu_item')"
+                );
+                set_transient( 'sh_comments_reopened', 1, YEAR_IN_SECONDS );
+            }
         }
     }
 
     public function wc_custom_template_path($path) {
         return '/theme/woocommerce/'; // yani artık şu klasöre bakacak: your-theme/theme/woocommerce/
     }
+    public function wc_smart_template_path( $located, $template_name, $args, $template_path, $default_path ) {
+        /*error_log(print_r([
+            "located" => $located,
+            "template_name" => $template_name,
+            "args" => $args,
+            "template_path" => $template_path,
+            "default_path" => $default_path
+        ], true));*/
+
+        $root_path = get_stylesheet_directory() . '/theme/woocommerce/' . $template_name;
+        if ( file_exists( $root_path ) ) {
+            //error_log("Found in ROOT : ".$root_path);
+            return $root_path;
+        }
+        
+        $theme_path = SH_PATH . 'woocommerce/' . $template_name;
+        if ( file_exists( $theme_path ) ) {
+            //error_log("Found in SH-THEME : ".$theme_path);
+            return $theme_path;
+        }
+
+        return $located;
+    }
     public function wc_multiple_template_paths($template, $template_name, $template_path) {
-        // 1. Bakılacak klasörleri tanımla
         $paths = [
-            get_template_directory() . '/woocommerce/',
             get_template_directory() . '/theme/woocommerce/',
+            get_template_directory() . '/vendor/salthareket/theme/src/woocommerce/',
         ];
-
-        // 2. Dosya ismindeki alt çizgileri tireye çevir (Standartlaştırma)
-        $clean_template_name = str_replace("_", "-", $template_name);
-
-        // 3. Hiyerarşik kontrol (Hangi klasörde varsa onu çek)
+        $target_file = str_replace("_", "-", $template_name);
         foreach ($paths as $dir) {
-            $full_path = trailingslashit($dir) . $clean_template_name;
-            
-            if (file_exists($full_path)) {
+            $full_path = trailingslashit($dir) . $target_file;
+            if ( file_exists( $full_path ) ) {
+                //error_log("BULDU -> ".$full_path);
                 return $full_path; 
             }
         }
-
-        // 4. Hiçbirinde yoksa orijinal template yoluna dön
         return $template;
     }
 
@@ -1616,7 +1799,7 @@ Class Theme{
 
     public static function scss_compile(){
         global $wpscss_compiler;
-        $wpscss_compiler = new \SCSSCompiler(
+        $wpscss_compiler = new \SaltHareket\AssetManager\SCSSCompiler(
             [
                 SH_STATIC_PATH."scss/"
             ],

@@ -1,0 +1,25 @@
+<div class="notification-item d-flex align-items-start py-3 border-bottom {% if post.status == 'read' %}seen opacity-75{% endif %}" data-id="{{ post.id }}">
+    {% if post.sender.image %}
+        <div class="notification-avatar me-3 flex-shrink-0">
+            {{ post.sender.image }}
+        </div>
+    {% endif %}
+    <div class="notification-content flex-grow-1">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            {% if post.sender.name %}
+                <strong class="notification-sender small">{{ post.sender.name }}</strong>
+            {% endif %}
+            <small class="text-muted ms-auto">{{ post.time ?? '' }}</small>
+        </div>
+        <p class="notification-message mb-0 small">
+            {% if post.url and post.url != '#' %}
+                <a href="{{ post.url }}" class="text-reset">{{ post.message }}</a>
+            {% else %}
+                {{ post.message }}
+            {% endif %}
+        </p>
+    </div>
+    {% if post.status == 'unread' %}
+        <span class="notification-dot bg-primary rounded-circle ms-2 flex-shrink-0" style="width:8px;height:8px;margin-top:6px;display:inline-block"></span>
+    {% endif %}
+</div>

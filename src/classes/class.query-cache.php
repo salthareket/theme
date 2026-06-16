@@ -55,7 +55,7 @@ class QueryCache {
     // SABİTLER
     // =========================================================================
 
-    private const VERSION     = '11.0';
+    private const VERSION     = '11.1';
     private const PREFIX      = 'qcache_';
     private const DEFAULT_TTL = 30 * DAY_IN_SECONDS;
     private const NOT_FOUND   = '__QC_NF__';
@@ -219,9 +219,9 @@ class QueryCache {
         // Menu populate etkilenen olaylar - post/term degisince menu cache de temizlenmeli
         add_action( 'save_post',   [ $c, 'on_menu_change' ], 99 );
         add_action( 'delete_post', [ $c, 'on_menu_change' ], 99 );
-        add_action( 'created_term', function() use ($c) { $c::on_menu_change(); }, 100 );
-        add_action( 'edited_term',  function() use ($c) { $c::on_menu_change(); }, 100 );
-        add_action( 'delete_term',  function() use ($c) { $c::on_menu_change(); }, 100 );
+        add_action( 'created_term', [ $c, 'on_menu_change' ], 100 );
+        add_action( 'edited_term',  [ $c, 'on_menu_change' ], 100 );
+        add_action( 'delete_term',  [ $c, 'on_menu_change' ], 100 );
     }
 
     // =========================================================================
@@ -764,22 +764,32 @@ class QueryCache {
         // RAM
         if ( array_key_exists( $full_key, self::$runtime_cache ) ) {
             $cached = self::$runtime_cache[ $full_key ];
-            return ( $cached === self::NOT_FOUND ) ? null : $cached;
+            if ( $cached === self::NOT_FOUND ) return null;
+            // Cache'te menu term_id var — objeyi yeniden oluştur
+            return class_exists( 'Timber\\Menu' ) ? new \Timber\Menu( $cached ) : null;
         }
 
-        // Transient
+        // Transient — menu term_id saklanıyor (obje değil)
         $transient = get_transient( $full_key );
         if ( $transient !== false ) {
             self::$runtime_cache[ $full_key ]  = $transient;
-            self::$initial_hashes[ $full_key ] = md5( serialize( $transient ) );
-            return ( $transient === self::NOT_FOUND ) ? null : $transient;
+            self::$initial_hashes[ $full_key ] = md5( (string) $transient );
+            if ( $transient === self::NOT_FOUND ) return null;
+            return class_exists( 'Timber\\Menu' ) ? new \Timber\Menu( $transient ) : null;
         }
 
-        // Miss
-        $menu = class_exists( 'Timber\\Menu' ) ? new \Timber\Menu( $location ) : null;
-        $to_store = $menu ?: self::NOT_FOUND;
+        // Miss — menu oluştur, term_id'yi cache'le
+        if ( ! class_exists( 'Timber\\Menu' ) ) return null;
+
+        $menu = new \Timber\Menu( $location );
+
+        // Timber\Menu'nun term_id'sini al — serialize yerine sadece ID cache'lenir
+        $term_id = $menu->term_id ?? $menu->ID ?? null;
+        $to_store = $term_id ? (int) $term_id : self::NOT_FOUND;
+
         self::$runtime_cache[ $full_key ] = $to_store;
         self::$dirty_keys[ $full_key ]    = true;
+
         return $menu;
     }
 
@@ -859,7 +869,7 @@ class QueryCache {
         // --- 2. Manifest güncelle ---
         if ( ! empty( self::$pending_deps ) ) {
             $manifest = self::_load_manifest();
-            $old_hash = md5( serialize( $manifest ) );
+            $old_hash = md5( json_encode( $manifest ) );
 
             foreach ( self::$pending_deps as $dep_key => $cache_keys ) {
                 $manifest[ $dep_key ] = array_values( array_unique(
@@ -872,7 +882,7 @@ class QueryCache {
                 $manifest = self::_cleanup_stale_manifest( $manifest );
             }
 
-            if ( $old_hash !== md5( serialize( $manifest ) ) ) {
+            if ( $old_hash !== md5( json_encode( $manifest ) ) ) {
                 update_option( self::MANIFEST_KEY, $manifest, false );
             }
         }
@@ -903,9 +913,17 @@ class QueryCache {
         ) {
             self::_invalidate_options_bulks();
 
-            // Menu icerigini etkileyen option'lar degistiginde menu cache'ini de temizle
-            self::purge_type( 'menu' );
-            // ACF field cache'ini de temizle - get_field eski deger donmesin
+            // Sadece menu'yu doğrudan etkileyen option'lar değişince menu cache'i temizle
+            static $menu_affecting = [
+                'options_header_start', 'options_header_center', 'options_header_end',
+                'options_footer_menu', 'options_footer_template',
+                'nav_menu_options', 'widget_nav_menu',
+            ];
+            if ( in_array( $option, $menu_affecting, true ) || str_contains( $option, 'menu' ) ) {
+                self::purge_type( 'menu' );
+            }
+
+            // ACF field cache'ini temizle - get_field eski deger donmesin
             self::purge_type( 'get_field' );
         }
     }
@@ -1112,24 +1130,29 @@ class QueryCache {
 
         if ( empty( $all_keys ) ) return $manifest;
 
-        // Tek SQL ile hangi key'ler hâlâ DB'de var kontrol et
+        // 100'er batch'ler halinde kontrol et — çok büyük IN() sorgusunu önle
         $key_list    = array_keys( $all_keys );
-        $check_names = [];
-        foreach ( $key_list as $k ) {
-            $check_names[] = '_transient_' . $k;
-            $check_names[] = $k; // option olarak da saklanmış olabilir
+        $existing_set = [];
+
+        $chunks = array_chunk( $key_list, 100 );
+        foreach ( $chunks as $chunk ) {
+            $check_names = [];
+            foreach ( $chunk as $k ) {
+                $check_names[] = '_transient_' . $k;
+                $check_names[] = $k;
+            }
+            $placeholders = implode( ',', array_fill( 0, count( $check_names ), '%s' ) );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            $rows = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT option_name FROM {$wpdb->options} WHERE option_name IN ({$placeholders})",
+                    ...$check_names
+                )
+            );
+            foreach ( $rows as $row ) {
+                $existing_set[ $row ] = true;
+            }
         }
-
-        $placeholders = implode( ',', array_fill( 0, count( $check_names ), '%s' ) );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        $existing = $wpdb->get_col(
-            $wpdb->prepare(
-                "SELECT option_name FROM {$wpdb->options} WHERE option_name IN ({$placeholders})",
-                ...$check_names
-            )
-        );
-
-        $existing_set = array_flip( $existing );
 
         // Manifest'ten artık DB'de olmayan key'leri çıkar
         foreach ( $manifest as $dep_key => $cache_keys ) {

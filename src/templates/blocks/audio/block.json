@@ -1,0 +1,23 @@
+{
+    "name": "acf/audio",
+    "title": "Audio",
+    "description": "Plyr tabanli audio oynatici — MP3, podcast ve ses dosyasi destegi",
+    "category": "saltblocks",
+    "icon": "audio-alt3",
+    "keywords": ["audio", "sound", "music", "player", "plyr", "mp3", "podcast"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Audio Duzenle"
+    }
+}

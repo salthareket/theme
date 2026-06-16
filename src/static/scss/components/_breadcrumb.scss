@@ -1,0 +1,84 @@
+.breadcrumb-container {
+    display: flex;
+    gap: var(--breadcrumb-gap, 0);
+    &:empty { display: none !important; }
+}
+
+.breadcrumb {
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    font-family:      var(--breadcrumb-item-font-family);
+    font-weight:      var(--breadcrumb-item-font-weight);
+    font-size:        var(--breadcrumb-item-font-size);
+    color:            var(--breadcrumb-item-color);
+    text-transform:   var(--breadcrumb-item-text-transform, none);
+    letter-spacing:   var(--breadcrumb-item-letter-spacing, 0);
+    align-items: center;
+
+    > li {
+        ~ li {
+            display: flex;
+            align-items: center;
+            &:before {
+                content: var(--breadcrumb-sep, '\f105') !important;
+                font-family: var(--icon-font);
+                color: var(--breadcrumb-sep-color);
+                font-size: var(--breadcrumb-sep-size, 12px);
+                font-weight: 600;
+                opacity: .6;
+                margin: 0 5px;
+            }
+        }
+
+        a {
+            color: var(--breadcrumb-item-color) !important;
+            text-decoration: var(--breadcrumb-item-text-decoration, none);
+            font-weight: var(--breadcrumb-item-font-weight);
+            @include transition(color .3s ease-out);
+            &:hover {
+                color: var(--breadcrumb-item-color-hover) !important;
+                text-decoration: var(--breadcrumb-item-text-decoration-hover, none);
+                font-weight: var(--breadcrumb-item-font-weight-hover, var(--breadcrumb-item-font-weight));
+            }
+        }
+
+        &.active {
+            color: var(--breadcrumb-item-color-active, var(--breadcrumb-item-color));
+            font-weight: var(--breadcrumb-item-font-weight-active, var(--breadcrumb-item-font-weight));
+            text-decoration: var(--breadcrumb-item-text-decoration-active, none);
+        }
+
+        // Truncation
+        @if variable-exists(breadcrumb-max-width) {
+            a span,
+            > span {
+                display: inline-block;
+                max-width: var(--breadcrumb-max-width, 200px);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                vertical-align: middle;
+            }
+        }
+    }
+}
+
+@include media-breakpoint-down(md) {
+    .breadcrumb-container .breadcrumb {
+        text-align: center;
+        justify-content: center;
+        > li {
+            font-size: 14px;
+            a span {
+                display: inline-block;
+                vertical-align: middle;
+                max-width: 170px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 1.4;
+            }
+        }
+    }
+}

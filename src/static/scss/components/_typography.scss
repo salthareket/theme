@@ -1,0 +1,55 @@
+// ─────────────────────────────────────────────────────────────
+// TYPOGRAPHY
+// ─────────────────────────────────────────────────────────────
+
+// Font utility classes
+.font-primary       { font-family: var(--font-primary); }
+.font-secondary     { font-family: var(--font-secondary); }
+.font-header        { font-family: var(--header-font); }
+.font-nav           { font-family: var(--nav-font); }
+.font-icon          { font-family: var(--icon-font); }
+.font-icon-brands   { font-family: var(--icon-font-brands); }
+
+// Headings font
+@for $i from 1 through 6 {
+    h#{$i} { font-family: var(--header-font); }
+}
+
+// Font weight utilities
+@for $i from 1 through 9 {
+    .fw-#{$i * 100} { font-weight: $i * 100; }
+}
+
+// Fluid title/text classes (uses CSS variables from root.css)
+.title-fluid {
+    font-size:   var(--title-fs) !important;
+    line-height: var(--title-lh);
+}
+.text-fluid {
+    font-size:   var(--text-fs) !important;
+    line-height: var(--text-lh);
+}
+
+// Per-breakpoint title/text classes
+@if variable-exists(grid-breakpoints) {
+    @each $bp, $val in $grid-breakpoints {
+        .title-#{$bp} {
+            font-size:   var(--title-fs-#{$bp}) !important;
+            line-height: var(--title-lh-#{$bp});
+        }
+        .text-#{$bp} {
+            font-size:   var(--text-fs-#{$bp}) !important;
+            line-height: var(--text-lh-#{$bp});
+        }
+    }
+}
+
+// Heading sizes from CSS variables
+@for $i from 1 through 6 {
+    h#{$i} {
+        font-size:   var(--typography-h#{$i}-size);
+        font-weight: var(--typography-h#{$i}-weight);
+    }
+}
+
+.lh-md { line-height: 1.7 !important; }

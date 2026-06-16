@@ -15,6 +15,9 @@ function compile_files_config($enable_production=false){
 	}
 	if(count($languages) == 0){
 		$language = strtolower( substr( get_locale(), 0, 2 ) );
+		// Güvenlik: dil kodu sadece harf içermeli, path traversal önle
+		$language = preg_replace('/[^a-z]/', '', $language);
+		if (empty($language)) $language = 'tr';
 		array_push($languages, $language);
 	}
 
@@ -83,39 +86,32 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
-	$plugins['plyr'] = [
-		"c"	=> true,
-		"admin" => false,
-		"url" => [
-			$node_path . 'plyr/dist/plyr.min.js'
-		],
-		"css" => [
-			$node_path . 'plyr/dist/plyr.css'
-		],
-		"css_only_local" => false,
-		"class" => ["player"],
-		"attrs" => [],
-		"init"     => "init_plyr",
-		"whitelist" => [
-			".plyr",
-			".plyr-*"
-		],
-		"required" => []
-	];
-	$plugins['vanilla-lazyload'] = [
-		"c"   => false,
+	$plugins['html-to-image'] = [
+		"c"   => true,
 		"admin" => true,
 		"url" => [
-			$node_path . 'vanilla-lazyload/dist/lazyload.min.js'
+			$node_path . 'html-to-image/dist/html-to-image.js'
 		],
 		"css" => [],
 		"css_only_local" => false,
 		"class" => [],
 		"attrs" => [],
-		"init"  => "init_vanilla_lazyload",
-		"whitelist" => [
-			".lazy"
+		"init"     => "",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['twig'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'twig/twig.min.js'
 		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => ["data-template"],
+		"init"     => "init_twig",
+		"whitelist" => [],
 		"required" => []
 	];
 	$plugins['bootstrap'] = [
@@ -134,6 +130,125 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
+	$plugins['vanilla-lazyload'] = [
+		"c"   => false,
+		"admin" => true,
+		"url" => [
+			$node_path . 'vanilla-lazyload/dist/lazyload.min.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"  => "init_vanilla_lazyload",
+		"whitelist" => [
+			".lazy"
+		],
+		"required" => []
+	];
+	$plugins['scrollposstyler'] = [
+		"c"	=> false,
+		"admin" => false,
+		"url" => [
+			$js_sh_path . 'plugins/scrollposstyler/scrollposstyler.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [
+			"affixed"
+		],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [
+			".affix",
+			".affixed"
+		],
+		"required" => []
+	];
+	// is-in-viewport plugin'i kaldırıldı - $.fn.inViewport() / observeViewport() ile replace edildi (utility.js)
+	$plugins['lenis'] = [
+   		"c"	=> false,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'lenis/dist/lenis.min.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['jarallax'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'jarallax/dist/jarallax.min.js'
+		],
+		"css" => [
+			$node_path .'jarallax/dist/jarallax.min.css'
+		],
+		"css_only_local" => false,
+		"class" => ["jarallax", "jarallax-video"],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['locomotive-scroll'] = [
+		"c"	=> true,
+		"admin" => false,
+		"url" => [
+			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.min.js'
+		],
+		"css" => [
+			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.css',
+		],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => ["data-scroll-event-property"],
+		"init"     => "init_locomotive_scroll",
+		"whitelist" => [],
+		"required" => ["lenis"] 
+	];
+	$plugins['jquery-match-height'] = [
+		"c" => false,
+		"admin" => true,
+		"url" => [
+			$node_path . 'jquery-match-height/dist/jquery.matchHeight-min.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [
+			"data-mh", 
+			"data-mh-all"
+		],
+		"init"     => "init_match_height",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['plyr'] = [
+		"c"	=> true,
+		"admin" => false,
+		"url" => [
+			$node_path . 'plyr/dist/plyr.min.js'
+		],
+		"css" => [
+			$node_path . 'plyr/dist/plyr.css'
+		],
+		"css_only_local" => false,
+		"class" => ["player"],
+		"attrs" => [],
+		"init"     => "init_plyr",
+		"whitelist" => [
+			".plyr",
+			".plyr-*",
+			"plyr_*"
+		],
+		"required" => []
+	];
 	$plugins['jquery-slinky'] = [
 		"c"   => true,
 		"admin" => false,
@@ -150,7 +265,7 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [
 			".slinky-*",
 		],
-		"required" => []
+		"required" => ["bootstrap"]
 	];
 	$plugins['bootbox'] = [
 		"c"   => true,
@@ -177,7 +292,7 @@ function compile_files_config($enable_production=false){
 			".modal",
 			".modal-*"
 		],
-		"required" => []
+		"required" => ["bootstrap"]
 	];
 	$plugins['aos'] = [
 		"c"   => true,
@@ -214,20 +329,6 @@ function compile_files_config($enable_production=false){
 			".swiper",
 			".swiper-*"
 		],
-		"required" => []
-	];
-	$plugins['html-to-image'] = [
-		"c"   => true,
-		"admin" => true,
-		"url" => [
-			$node_path . 'html-to-image/dist/html-to-image.js'
-		],
-		"css" => [],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => [],
-		"init"     => "",
-		"whitelist" => [],
 		"required" => []
 	];
 	$plugins['justifiedGallery'] = [
@@ -267,54 +368,26 @@ function compile_files_config($enable_production=false){
 		],
 		"required" => []
 	];
-	$plugins['jquery-match-height'] = [
-		"c" => false,
-		"admin" => true,
-		"url" => [
-			$node_path . 'jquery-match-height/dist/jquery.matchHeight-min.js'
-		],
-		"css" => [],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => [
-			"data-mh", 
-			"data-mh-all"
-		],
-		"init"     => "init_match_height",
-		"whitelist" => [],
-		"required" => []
-	];
-	$plugins['scrollposstyler'] = [
-		"c"	=> false,
+	$plugins['image-uploader'] = [
+		"c"	=> true,
 		"admin" => false,
 		"url" => [
-			$js_sh_path . 'plugins/scrollposstyler/scrollposstyler.js'
+			$js_sh_path . 'plugins/image-uploader/dist/image-uploader.min.js'
 		],
-		"css" => [],
+		"css" => [
+			$js_sh_path . 'plugins/image-uploader/dist/image-uploader.min.css'
+		],
 		"css_only_local" => false,
 		"class" => [
-			".affixed"
+			"sh-uploader"
 		],
 		"attrs" => [],
 		"init"     => "",
 		"whitelist" => [
-			".affix",
-			".affixed"
+			".image-uploader",
+			".uploaded",
+			".uploaded-*"
 		],
-		"required" => []
-	];
-	$plugins['is-in-viewport'] = [
-		"c"	=> false,
-		"admin" => true,
-		"url" => [
-			$node_path . 'is-in-viewport/lib/isInViewport.min.js'
-		],
-		"css" => [],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => [],
-		"init"     => "",
-		"whitelist" => [],
 		"required" => []
 	];
 	$plugins['letteringjs'] = [
@@ -345,37 +418,7 @@ function compile_files_config($enable_production=false){
 		"attrs" => [],
 		"init"     => "text_effect",
 		"whitelist" => [],
-		"required" => []
-	];
-    $plugins['jarallax'] = [
-   		"c"	=> true,
-   		"admin" => false,
-		"url" => [
-			$node_path . 'jarallax/dist/jarallax.min.js'
-		],
-		"css" => [
-			$node_path .'jarallax/dist/jarallax.min.css'
-		],
-		"css_only_local" => false,
-		"class" => ["jarallax", "jarallax-video"],
-		"attrs" => [],
-		"init"     => "",
-		"whitelist" => [],
-		"required" => []
-	];
-    $plugins['lenis'] = [
-   		"c"	=> false,
-   		"admin" => false,
-		"url" => [
-			$node_path . 'lenis/dist/lenis.min.js'
-		],
-		"css" => [],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => [],
-		"init"     => "",
-		"whitelist" => [],
-		"required" => []
+		"required" => ["letteringjs"]
 	];
     $plugins['jquery.simple-text-rotator'] = [
    		"c"	=> true,
@@ -409,21 +452,6 @@ function compile_files_config($enable_production=false){
 		"class" => [],
 		"attrs" => ["data-masonry"],
 		"init"     => "",
-		"whitelist" => [],
-		"required" => []
-	];
-	$plugins['twig'] = [
-   		"c"	=> true,
-   		"admin" => false,
-		"url" => [
-			$node_path . 'twig/twig.min.js'
-		],
-		"css" => [],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => [],
-		"condition" => get_option("options_map_view") == "js" ? 1: 0,
-		"init"     => "init_twig",
 		"whitelist" => [],
 		"required" => []
 	];
@@ -468,7 +496,6 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
-
 	$plugins['smarquee'] = [
 		"c"	=> true,
 		"admin" => false,
@@ -483,24 +510,6 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => [] 
 	];
-
-	$plugins['locomotive-scroll'] = [
-		"c"	=> true,
-		"admin" => false,
-		"url" => [
-			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.min.js'
-		],
-		"css" => [
-			$node_path . 'locomotive-scroll/bundled/locomotive-scroll.css',
-		],
-		"css_only_local" => false,
-		"class" => [],
-		"attrs" => ["data-scroll-event-property"],
-		"init"     => "init_locomotive_scroll",
-		"whitelist" => [],
-		"required" => [] 
-	];
-
 	$plugins['jquery-zoom'] = [
 		"c"	=> true,
 		"admin" => false,
@@ -515,7 +524,6 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []  
 	];
-
 	$plugins['panzoom'] = [
    		"c"	=> true,
    		"admin" => false,
@@ -532,7 +540,6 @@ function compile_files_config($enable_production=false){
 		],
 		"required" => []
 	];
-
 	$plugins['simplebar'] = [
    		"c"	=> true,
    		"admin" => false,
@@ -551,7 +558,25 @@ function compile_files_config($enable_production=false){
 		],
 		"required" => []
 	];
-
+	$plugins['toastify-js'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'toastify-js/src/toastify.js'
+		],
+		"css" => [
+			$node_path . 'toastify-js/src/toastify.css'
+		],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [
+			".toastify",
+			".toastify-*"
+		],
+		"required" => []
+	];
 	$plugins['web-vitals'] = [
    		"c"	=> true,
    		"admin" => false,
@@ -566,7 +591,6 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [],
 		"required" => []
 	];
-
 	$plugins['bs-tab-collapse'] = [
    		"c"	=> true,
    		"admin" => false,
@@ -600,7 +624,7 @@ function compile_files_config($enable_production=false){
 		    "whitelist" => [
 		    	".highlighted"
 		    ],
-			"required" => []
+			"required" => ["bootstrap"]
 		];
 	}
     
@@ -613,40 +637,30 @@ function compile_files_config($enable_production=false){
 		}    	
     }
 
-    ////error_log(print_r($plugins, true));
+    $header_css = array();
+    //$header_css['animate.css'] = [$node_path . 'animate.css/animate.compat.css'];
+    if($plugins){
+	   	foreach($plugins as $key => $plugin){
+	   		if(!$plugin["c"] && $plugin["css"] && !$plugin["css_only_local"]){
+	   			$header_css[$key] = $plugin["css"];
+	   		}
+	   	}
+    }
 
+    $header_css_admin = array();
+    if($plugins){
+	   	foreach($plugins as $key => $plugin){
+	   		if($plugin["admin"] && $plugin["css"] && !$plugin["css_only_local"]){
+	   			$header_css_admin[$key] = $plugin["css"];
+	   		}
+	   	}
+    }
 
-   $header_css = array();
-   //$header_css['animate.css'] = [$node_path . 'animate.css/animate.compat.css'];
-   if($plugins){
-   	foreach($plugins as $key => $plugin){
-   		if(!$plugin["c"] && $plugin["css"] && !$plugin["css_only_local"]){
-   			$header_css[$key] = $plugin["css"];
-   		}
-   	}
-   }
-
-
-   $header_css_admin = array();
-   if($plugins){
-   	foreach($plugins as $key => $plugin){
-   		if($plugin["admin"] && $plugin["css"] && !$plugin["css_only_local"]){
-   			$header_css_admin[$key] = $plugin["css"];
-   		}
-   	}
-   }
-
-
-
-   $jquery_js = array();
-   $jquery_js['jquery'] = $node_path . 'jquery/dist/jquery.min.js';
-
-
+    $jquery_js = array();
+    $jquery_js['jquery'] = $node_path . 'jquery/dist/jquery.min.js';
 
 	$header_js = array();
 	//$header_js['enquire'] = $node_path . 'enquire.js/dist/enquire.min.js';
-
-
 
 	//$header_js['defaults'] = $prod_path .'defaults.js';
 	
@@ -654,9 +668,6 @@ function compile_files_config($enable_production=false){
 	//$header_js['modernizr'] = $plugin_path . 'modernizr/2.8.3/modernizr.min.js';
 	//$header_js['current-device'] = $node_path . 'current-device/umd/current-device.min.js';
 	//$header_js['jquery-ui'] = $plugin_path .'jquery-ui/jquery-ui.min.js';
-	
-	
-
 	
 
 	$locale = array();

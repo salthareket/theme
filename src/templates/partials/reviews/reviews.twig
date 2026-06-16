@@ -1,0 +1,151 @@
+{#
+    Reviews bölümü — bir post'un tüm review'larını gösterir.
+
+    Gerekli context değişkenleri:
+        reviews        : Review[]   — review listesi
+        reviews_data   : array      — pagination meta (total, page, page_total, per_page)
+        reviews_stats  : array      — rating istatistikleri (total, average, breakdown, percentage)
+        has_reviewed   : false|int  — kullanıcı daha önce yazmış mı (comment_id veya false)
+        can_review     : bool       — kullanıcı review yazabilir mi
+        post           : Timber\Post
+
+    Kullanım:
+        {% include "partials/reviews/reviews.twig" %}
+#}
+
+<style>
+.sh-review-item{padding:16px 0;border-bottom:1px solid #f0f0f1}
+.sh-review-item:last-child{border-bottom:none}
+.sh-review-item-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.sh-review-item-author{display:flex;align-items:center;gap:10px}
+.sh-review-item-author img{border-radius:50%}
+.sh-review-item-meta{display:flex;flex-direction:column;gap:2px}
+.sh-review-item-meta strong{font-size:14px}
+.sh-review-item-meta time{font-size:12px;color:#9ca3af}
+.sh-verified-badge{font-size:11px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:10px;font-weight:600}
+.sh-review-item-rating{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.sh-star{font-size:18px;line-height:1}
+.sh-star-full{color:#f59e0b}
+.sh-star-empty{color:#d1d5db}
+.sh-rating-val{font-size:12px;color:#6b7280;margin-left:4px}
+.sh-criteria-scores{display:flex;flex-direction:column;gap:6px;margin:10px 0;padding:10px 14px;background:#f9fafb;border-radius:8px}
+.sh-criterion-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sh-criterion-label{font-size:13px;font-weight:600;color:#374151;min-width:100px}
+.sh-criterion-stars{display:flex;gap:2px}
+.sh-criterion-stars .sh-star{font-size:16px}
+.sh-review-item-title{font-size:15px;font-weight:600;margin:0 0 6px}
+.sh-review-item-content{font-size:14px;color:#374151;line-height:1.6;margin-bottom:10px}
+.sh-review-item-media{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.sh-review-media-thumb img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb}
+.sh-review-item-footer{display:flex;align-items:center;gap:16px;margin-top:8px}
+.sh-review-votes{display:flex;align-items:center;gap:8px}
+.sh-votes-label{font-size:12px;color:#9ca3af}
+.sh-vote-btn{background:none;border:1px solid #e5e7eb;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px}
+.sh-vote-btn:hover{border-color:#2271b1;color:#2271b1}
+.sh-vote-btn.active{background:#dbeafe;border-color:#2271b1;color:#2271b1}
+.sh-review-replies{margin-top:12px;padding-left:16px;border-left:3px solid #f0f0f1}
+.sh-review-reply{padding:8px 0;border-bottom:1px solid #f9fafb}
+.sh-review-reply:last-child{border-bottom:none}
+.sh-reply-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:13px}
+.sh-reply-header img{border-radius:50%}
+.sh-reply-header time{font-size:11px;color:#9ca3af}
+.sh-review-reply p{font-size:13px;color:#374151;margin:0}
+.sh-reply-form{margin-top:10px;padding:12px;background:#f9fafb;border-radius:8px}
+.sh-review-pending{opacity:.8;background:#fef9c3;padding:12px;border-radius:8px}
+.sh-reviews-summary{display:flex;gap:24px;padding:16px;background:#f9fafb;border-radius:8px;margin-bottom:20px;flex-wrap:wrap}
+.sh-reviews-average{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px}
+.sh-reviews-score{font-size:36px;font-weight:700;color:#374151;line-height:1}
+.sh-reviews-stars{display:flex;gap:2px;font-size:20px}
+.sh-reviews-count{font-size:12px;color:#9ca3af}
+.sh-reviews-breakdown{flex:1;display:flex;flex-direction:column;gap:4px;min-width:160px}
+.sh-breakdown-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.sh-breakdown-label{width:24px;text-align:right;color:#6b7280}
+.sh-breakdown-bar{flex:1;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden}
+.sh-breakdown-fill{height:100%;background:#f59e0b;border-radius:4px;transition:width .3s}
+.sh-breakdown-pct{width:32px;color:#9ca3af}
+.sh-review-notice{padding:10px 14px;background:#f9fafb;border-radius:6px;font-size:13px;margin-bottom:12px}
+.sh-review-notice-info{background:#dbeafe;color:#1d4ed8}
+</style>
+
+<div class="sh-reviews" id="sh-reviews" data-post-id="{{ post.ID }}">
+
+    {# ── İstatistik Özeti ── #}
+    {% if reviews_stats.total > 0 %}
+    <div class="sh-reviews-summary">
+        <div class="sh-reviews-average">
+            <span class="sh-reviews-score">{{ reviews_stats.average }}</span>
+            <div class="sh-reviews-stars">
+                {% for i in 1..5 %}
+                    <i class="sh-star {% if i <= reviews_stats.average %}sh-star-full{% elseif i - 0.5 <= reviews_stats.average %}sh-star-half{% else %}sh-star-empty{% endif %}">
+                        {% if i <= reviews_stats.average %}★{% elseif i - 0.5 <= reviews_stats.average %}⯨{% else %}☆{% endif %}
+                    </i>
+                {% endfor %}
+            </div>
+            <span class="sh-reviews-count">{{ reviews_stats.total }} {{ "değerlendirme"|trans }}</span>
+        </div>
+        <div class="sh-reviews-breakdown">
+            {% for star in [5,4,3,2,1] %}
+            <div class="sh-breakdown-row">
+                <span class="sh-breakdown-label">{{ star }}★</span>
+                <div class="sh-breakdown-bar">
+                    <div class="sh-breakdown-fill" style="width:{{ reviews_stats.percentage[star] ?? 0 }}%"></div>
+                </div>
+                <span class="sh-breakdown-pct">{{ reviews_stats.percentage[star] ?? 0 }}%</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Review Formu ── #}
+    {% if can_review %}
+        {% include "partials/reviews/review-form.twig" %}
+    {% elseif has_reviewed %}
+        <div class="sh-review-notice sh-review-notice-info">
+            {{ "Bu içeriği zaten değerlendirdiniz."|trans }}
+            <a href="#review-{{ has_reviewed }}" class="sh-review-notice-link">{{ "Yorumunuzu görün"|trans }}</a>
+        </div>
+    {% elseif not user.logged %}
+        <div class="sh-review-notice">
+            <a href="{{ function('get_account_endpoint_url', 'my-account') }}">{{ "Değerlendirme yazmak için giriş yapın"|trans }}</a>
+        </div>
+    {% endif %}
+
+    {# ── Review Listesi ── #}
+    {% if reviews %}
+    <div class="sh-reviews-list" id="sh-reviews-list">
+        {% for review in reviews %}
+            {% include "partials/reviews/review-item.twig" with { review: review } %}
+        {% endfor %}
+    </div>
+
+    {# ── Pagination ── #}
+    {% if reviews_data.page_total > 1 %}
+    <div class="sh-reviews-pagination">
+        {% if reviews_data.page > 1 %}
+            <button type="button" class="btn btn-outline-secondary btn-sm sh-reviews-prev"
+                    data-page="{{ reviews_data.page - 1 }}"
+                    data-post-id="{{ post.ID }}">
+                ← {{ "Önceki"|trans }}
+            </button>
+        {% endif %}
+        <span class="sh-reviews-page-info">
+            {{ reviews_data.page }} / {{ reviews_data.page_total }}
+        </span>
+        {% if reviews_data.page < reviews_data.page_total %}
+            <button type="button" class="btn btn-outline-secondary btn-sm sh-reviews-next"
+                    data-page="{{ reviews_data.page + 1 }}"
+                    data-post-id="{{ post.ID }}">
+                {{ "Sonraki"|trans }} →
+            </button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="sh-reviews-empty">
+        <p>{{ "Henüz değerlendirme yok. İlk değerlendirmeyi siz yapın!"|trans }}</p>
+    </div>
+    {% endif %}
+
+</div>

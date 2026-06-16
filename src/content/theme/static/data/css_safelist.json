@@ -3,6 +3,7 @@
         "fa-solid",
         "fa-chevron-up",
         "fa",
-        "light-theme"
+        "light-theme",
+        "has-hero"
     ]
 }

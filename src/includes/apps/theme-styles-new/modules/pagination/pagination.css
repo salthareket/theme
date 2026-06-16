@@ -1,0 +1,108 @@
+/**
+ * Pagination Module Preview Styles
+ * 
+ * @version 2.0.0
+ */
+
+/* Preview Container */
+.ts-pagination-preview {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 40px 20px;
+    margin-top: 20px;
+}
+
+#ts-pagination-demo {
+    display: flex;
+    justify-content: center; /* Default center */
+}
+
+/* Alignment classes will be applied dynamically to nav */
+#ts-pagination-demo[data-align="left"] {
+    justify-content: flex-start;
+}
+
+#ts-pagination-demo[data-align="center"] {
+    justify-content: center;
+}
+
+#ts-pagination-demo[data-align="right"] {
+    justify-content: flex-end;
+}
+
+#ts-pagination-demo[data-align="justify"] .pagination {
+    width: 100%;
+    justify-content: space-between;
+}
+
+#ts-pagination-demo .pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 4px;
+}
+
+#ts-pagination-demo .page-item {
+    display: flex;
+}
+
+#ts-pagination-demo .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+#ts-pagination-demo .page-link:hover {
+    text-decoration: none;
+}
+
+#ts-pagination-demo .page-item.disabled .page-link {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#ts-pagination-demo .page-item.active .page-link {
+    pointer-events: none;
+}
+
+/* Icons */
+.pagination-icon-prev,
+.pagination-icon-next {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Subsection Styles */
+.ts-subsection {
+    margin-top: 30px;
+}
+
+.ts-subsection:first-child {
+    margin-top: 0;
+}
+
+.ts-subsection-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ts-gray-700);
+    margin: 0 0 20px 0;
+    padding: 0;
+}
+
+/* Colors Grid */
+.ts-colors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.ts-color-field {
+    display: flex;
+    flex-direction: column;
+}

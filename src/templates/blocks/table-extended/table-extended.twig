@@ -78,24 +78,22 @@
                                 {% if type == "text" and cell.text != "" %}
                                     {{ cell.text }}
                                 {% elseif type == "image" and cell.image.id %}
-                                    {% if cell.image.id %}
-                                        {% if function('get_extension', cell.image.url) == "svg" %}
-                                            {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
-                                        {% else %}
-                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
-                                        {% endif %}
+                                    {% if function('get_extension', cell.image.url) == "svg" %}
+                                        {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
+                                    {% else %}
+                                        <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                     {% endif %}
                                 {% elseif type == "file" and cell.file.id %}
                                     <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
                                 {% elseif type == "boolean" %}
                                     <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
                                 {% elseif type == "text_image" %}
-                                    {{ cell.text}}
+                                    {{ cell.text }}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
                                             {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
-                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                         {% endif %}
                                     {% endif %}
                                 {% elseif type == "text_file" %}
@@ -127,30 +125,28 @@
                                 {% if type == "text" and cell.text != "" %}
                                     {{ cell.text }}
                                 {% elseif type == "image" and cell.image.id %}
-                                    {% if cell.image.id %}
-                                        {% if function('get_extension', cell.image.url) == "svg" %}
-                                            {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
-                                        {% else %}
-                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
-                                        {% endif %}
+                                    {% if function('get_extension', cell.image.url) == "svg" %}
+                                        {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
+                                    {% else %}
+                                        <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                     {% endif %}
                                 {% elseif type == "file" and cell.file.id %}
-                                    <a href="{{ cell.file.url }}" class="btn btn-primary"  target="_blank">{{ "Download" }}</a>
+                                    <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
                                 {% elseif type == "boolean" %}
                                     <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
                                 {% elseif type == "text_image" %}
-                                    {{ cell.text}}
+                                    {{ cell.text }}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
                                             {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
-                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
                                         {% endif %}
                                     {% endif %}
                                 {% elseif type == "text_file" %}
                                     {{ cell.text }}
                                     {% if cell.file.id %}
-                                        <a href="{{ cell.file.url }}" class="btn btn-primary"  target="_blank">{{ "Download" }}</a>
+                                        <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
                                     {% endif %}
                                 {% elseif type == "text_boolean" %}
                                     {{ cell.text }}

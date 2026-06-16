@@ -20,7 +20,7 @@ class Image extends TimberImage {
     }
 
     public function get_aspect_ratio(){
-        return getAspectRatio($this->width, $this->height);
+        return \getAspectRatio($this->width, $this->height);
     }
 
 }

@@ -15,7 +15,7 @@
 
 
     {% if posts %}
-        <ul class="notifications list-unstyled">
+        <ul class="notifications list-unstyled flex-column">
             {% for post in posts %}
                 {% include 'partials/offcanvas/'~type~'.twig' with { type : type } %}
             {% endfor %}
@@ -41,6 +41,10 @@
                     <i class="far fa-envelope"></i>
                     {{'No new messages.'|trans}}
                 {% endif %}
+                {% if type == "notifications" %}
+                    <i class="far fa-bell"></i>
+                    {{'No new notifications.'|trans}}
+                {% endif %}
             </div>
         </div>
     {% endif %}
@@ -49,8 +53,8 @@
 
 {% if type == "cart" %}
     {% if posts %}
-        <div class="offcanvas-footer">
-            {{function('free_shipping_remaining_amount')}}
+        <div lass="offcanvas-footer">
+            {#function('free_shipping_remaining_amount')#}
             <table class="table-total table table-sm">
                 <tbody>
                     <tr class="quantity">

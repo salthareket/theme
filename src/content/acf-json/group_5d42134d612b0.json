@@ -185,13 +185,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774822200,
+    "modified": 1778257369,
     "acfe_categories": {
         "general": "General"
     }

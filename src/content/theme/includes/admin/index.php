@@ -417,7 +417,7 @@ add_filter('acf/update_value/name=enable_membership', 'acf_general_settings_rewr
 add_filter('acf/update_value/name=enable_membership_activation', 'acf_general_settings_rewrite', 10, 4);
 add_filter('acf/update_value/name=enable_chat', 'acf_general_settings_rewrite', 10, 4);
 add_filter('acf/update_value/name=enable_notifications', 'acf_general_settings_rewrite', 10, 4);
-add_filter('acf/update_value/name=enable_favorites', 'acf_general_settings_rewrite', 10, 4);
+add_filter('acf/update_value/name=enable_reactions', 'acf_general_settings_rewrite', 10, 4);
 function acf_general_settings_enable_membership( $value, $post_id, $field, $original ) {
 $old = get_field($field["name"], "option");
 if( $value ) {
@@ -542,32 +542,90 @@ delete_option('under-construction-page');
 add_filter('activated_plugin', 'plugins_activated', 10, 2);
 add_filter('deactivated_plugin', 'plugins_deactivated', 10, 2);
 function create_my_account_page(){
-$my_account_page = class_exists("WooCommerce")?get_option("woocommerce_myaccount_page_id"):get_option("options_myaccount_page_id");//get_page_by_path('my-account');
-if (!$my_account_page) {
-$args = array(
-'post_title'    => 'My Account',
-'post_content'  => '[salt_my_account]',
-'post_status'   => 'publish',
-'post_type'     => 'page',
-'page_template' => 'template-my-account.php'
-//'page_template' => 'template-my-account-native.php'
-);
-if(class_exists("WooCommerce")){
-$args["post_content"] = "[woocommerce_my_account]";
-//$args["page_template"] = 'template-my-account.php';
-}
-$my_account_page = wp_insert_post($args);
-if (!is_wp_error($my_account_page)) {
-if(class_exists("WooCommerce")){
-update_option('woocommerce_myaccount_page_id', $my_account_page);
-}else{
-update_option('options_myaccount_page_id', $my_account_page);
-}
-}
-return $my_account_page;
-}else{
-return $my_account_page;//$my_account_page->ID;
-}
+    $my_account_page = class_exists("WooCommerce")?get_option("woocommerce_myaccount_page_id"):get_option("options_myaccount_page_id");
+    
+    // Sayfa ID'si varsa ve sayfa gerçekten mevcutsa, yeni sayfa oluşturma
+    if ($my_account_page && get_post_status($my_account_page) !== false) {
+        return $my_account_page;
+    }
+    
+    // Eğer sayfa ID'si var ama sayfa silinmişse, option'ı temizle
+    if ($my_account_page && get_post_status($my_account_page) === false) {
+        if(class_exists("WooCommerce")){
+            delete_option('woocommerce_myaccount_page_id');
+        } else {
+            delete_option('options_myaccount_page_id');
+        }
+    }
+    
+    // template-my-account.php kullanan TÜM sayfaları bul (publish + draft + trash)
+    $existing_pages = get_posts(array(
+        'post_type'      => 'page',
+        'post_status'    => array('publish', 'draft', 'private'),
+        'posts_per_page' => -1,
+        'meta_query'     => array(
+            array(
+                'key'     => '_wp_page_template',
+                'value'   => 'template-my-account.php',
+                'compare' => '='
+            )
+        )
+    ));
+
+    // Birden fazla varsa en eskisini koru, diğerlerini çöpe taşı
+    if ( count( $existing_pages ) > 1 ) {
+        usort( $existing_pages, fn($a, $b) => $a->ID - $b->ID );
+        $keep = array_shift( $existing_pages );
+        foreach ( $existing_pages as $dup ) {
+            wp_trash_post( $dup->ID );
+        }
+        $existing_pages = array( $keep );
+    }
+    
+    // Mevcut sayfa varsa onu kullan
+    if (!empty($existing_pages)) {
+        $page_id = $existing_pages[0]->ID;
+        if(class_exists("WooCommerce")){
+            update_option('woocommerce_myaccount_page_id', $page_id);
+        } else {
+            update_option('options_myaccount_page_id', $page_id);
+        }
+        return $page_id;
+    }
+
+    // Slug'a göre ara
+    $existing_page = get_page_by_path('my-account');
+    if ( $existing_page ) {
+        $page_id = $existing_page->ID;
+        if(class_exists("WooCommerce")){
+            update_option('woocommerce_myaccount_page_id', $page_id);
+        } else {
+            update_option('options_myaccount_page_id', $page_id);
+        }
+        return $page_id;
+    }
+    
+    // Hiç sayfa yoksa yeni oluştur
+    $args = array(
+        'post_title'    => 'My Account',
+        'post_content'  => '[salt_my_account]',
+        'post_status'   => 'publish',
+        'post_type'     => 'page',
+        'post_name'     => 'my-account',
+        'page_template' => 'template-my-account.php'
+    );
+    if(class_exists("WooCommerce")){
+        $args["post_content"] = "[woocommerce_my_account]";
+    }
+    $my_account_page = wp_insert_post($args);
+    if (!is_wp_error($my_account_page)) {
+        if(class_exists("WooCommerce")){
+            update_option('woocommerce_myaccount_page_id', $my_account_page);
+        }else{
+            update_option('options_myaccount_page_id', $my_account_page);
+        }
+    }
+    return $my_account_page;
 }
 function set_my_account_page($enabled_ecommerce=true){
 // Create My Account Page if membership is enabled but woocommerce is not exist

@@ -1,0 +1,317 @@
+{#
+    Review yazma formu — settings'e göre dinamik.
+    rating_type: stars | thumbs | nps | multi
+
+    Gerekli context:
+        post           : Timber\Post
+        user           : Timber\User
+        reviews_settings : array  (ReviewsSettings::all())
+#}
+
+{% set rs = reviews_settings ?? {} %}
+{% set rating_type    = rs.rating.type ?? 'stars' %}
+{% set max_rating     = rs.rating.max_rating ?? 5 %}
+{% set allow_half     = rs.rating.allow_half ?? false %}
+{% set criteria       = reviews_criteria ?? rs.rating.criteria.default ?? [] %}
+{% set enable_media   = rs.media.enable_media ?? true %}
+{% set max_images     = rs.media.max_images ?? 5 %}
+{% set enable_replies = rs.reply.enable_replies ?? true %}
+
+<div class="sh-review-form-wrap" id="sh-review-form-wrap">
+    <h3 class="sh-review-form-title">{{ "Değerlendirme Yaz"|trans }}</h3>
+
+    <form class="sh-review-form" id="sh-review-form"
+          data-post-id="{{ post.ID }}"
+          data-rating-type="{{ rating_type }}">
+
+        {# ── STARS ── #}
+        {% if rating_type == 'stars' %}
+        <div class="sh-review-form-field">
+            <label>{{ "Puanınız"|trans }} *</label>
+            <div class="sh-star-picker" id="sh-star-picker">
+                {% for i in 1..max_rating %}
+                    <button type="button" class="sh-star-pick" data-value="{{ i }}" onclick="shSetRating({{ i }})">☆</button>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="rating" id="sh-rating-input" value="0" required>
+        </div>
+
+        {# ── THUMBS ── #}
+        {% elseif rating_type == 'thumbs' %}
+        <div class="sh-review-form-field">
+            <label>{{ "Değerlendirmeniz"|trans }} *</label>
+            <div class="sh-thumbs-picker">
+                <button type="button" class="sh-thumb-btn" data-value="5" onclick="shSetThumb(this, 5)">
+                    👍 {{ "Beğendim"|trans }}
+                </button>
+                <button type="button" class="sh-thumb-btn" data-value="1" onclick="shSetThumb(this, 1)">
+                    👎 {{ "Beğenmedim"|trans }}
+                </button>
+            </div>
+            <input type="hidden" name="rating" id="sh-rating-input" value="0" required>
+        </div>
+
+        {# ── NPS ── #}
+        {% elseif rating_type == 'nps' %}
+        <div class="sh-review-form-field">
+            <label>{{ "0-10 arası puan verin"|trans }} *</label>
+            <div class="sh-nps-picker">
+                {% for i in 0..10 %}
+                    <button type="button" class="sh-nps-btn" data-value="{{ i }}" onclick="shSetNps(this, {{ i }})">{{ i }}</button>
+                {% endfor %}
+            </div>
+            <div class="sh-nps-labels">
+                <span>{{ "Hiç önermem"|trans }}</span>
+                <span>{{ "Kesinlikle öneririm"|trans }}</span>
+            </div>
+            <input type="hidden" name="rating" id="sh-rating-input" value="-1" required>
+        </div>
+
+        {# ── MULTI CRITERIA ── #}
+        {% elseif rating_type == 'multi' and criteria %}
+        <div class="sh-review-form-field">
+            <label>{{ "Kriterler"|trans }} *</label>
+            {% for criterion in criteria %}
+            <div class="sh-criteria-row">
+                <span class="sh-criteria-label">{{ criterion.label }}</span>
+                <div class="sh-star-picker sh-criteria-stars" data-key="{{ criterion.key }}">
+                    {% for i in 1..5 %}
+                        <button type="button" class="sh-star-pick" data-value="{{ i }}"
+                                onclick="shSetCriteria('{{ criterion.key }}', {{ i }}, this)">☆</button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="criteria[{{ criterion.key }}]" id="sh-criteria-{{ criterion.key }}" value="0">
+            </div>
+            {% endfor %}
+            <input type="hidden" name="rating" id="sh-rating-input" value="0">
+        </div>
+        {% endif %}
+
+        {# ── Başlık ── #}
+        <div class="sh-review-form-field">
+            <label for="sh-review-title">{{ "Başlık"|trans }}</label>
+            <input type="text" id="sh-review-title" name="title"
+                   class="form-control"
+                   placeholder="{{ 'Kısaca özetle...'|trans }}"
+                   maxlength="100">
+        </div>
+
+        {# ── İçerik ── #}
+        <div class="sh-review-form-field">
+            <label for="sh-review-content">{{ "Yorumunuz"|trans }} *</label>
+            <textarea id="sh-review-content" name="content"
+                      class="form-control" rows="4"
+                      placeholder="{{ 'Deneyiminizi paylaşın...'|trans }}"
+                      required></textarea>
+        </div>
+
+        {# ── Medya ── #}
+        {% if enable_media %}
+        <div class="sh-review-form-field">
+            <label>{{ "Fotoğraf Ekle"|trans }} <small>({{ "max %s"|trans|format(max_images) }})</small></label>
+            <input type="file" name="review_images[]" id="sh-review-images"
+                   accept="image/jpeg,image/png,image/webp"
+                   multiple
+                   max="{{ max_images }}"
+                   class="form-control">
+        </div>
+        {% endif %}
+
+        <div class="sh-review-form-error" id="sh-review-error" style="display:none"></div>
+
+        <button type="submit" class="btn btn-primary sh-review-submit mt-3">
+            {{ "Değerlendirmeyi Gönder"|trans }}
+        </button>
+
+    </form>
+</div>
+
+<style>
+.sh-star-picker{display:flex;gap:4px;margin-top:6px}
+.sh-star-pick{background:none;border:none;font-size:28px;cursor:pointer;color:#f59e0b;padding:0;line-height:1;transition:transform .1s}
+.sh-star-pick:hover,.sh-star-pick.active{transform:scale(1.2)}
+.sh-thumbs-picker{display:flex;gap:12px;margin-top:6px}
+.sh-thumb-btn{padding:10px 20px;border:2px solid #e5e7eb;border-radius:8px;background:#fff;font-size:16px;cursor:pointer;transition:all .2s}
+.sh-thumb-btn.active{border-color:#2271b1;background:#dbeafe}
+.sh-nps-picker{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.sh-nps-btn{width:40px;height:40px;border:2px solid #e5e7eb;border-radius:6px;background:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.sh-nps-btn:hover{border-color:#2271b1}
+.sh-nps-btn.active{background:#2271b1;color:#fff;border-color:#2271b1}
+.sh-nps-labels{display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-top:4px}
+.sh-criteria-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.sh-criteria-label{min-width:100px;font-size:13px;font-weight:500}
+.sh-criteria-stars .sh-star-pick{font-size:22px}
+.sh-review-form-field{margin-bottom:16px}
+.sh-review-form-field label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151}
+</style>
+
+<script>
+(function(){
+    var ratingType = document.getElementById('sh-review-form')?.dataset.ratingType || 'stars';
+
+    // ── Stars ──
+    window.shSetRating = function(val) {
+        document.getElementById('sh-rating-input').value = val;
+        document.querySelectorAll('#sh-star-picker .sh-star-pick').forEach(function(btn, i) {
+            btn.textContent = i < val ? '★' : '☆';
+            btn.classList.toggle('active', i < val);
+        });
+    };
+
+    // ── Thumbs ──
+    window.shSetThumb = function(btn, val) {
+        document.getElementById('sh-rating-input').value = val;
+        document.querySelectorAll('.sh-thumb-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+    };
+
+    // ── NPS ──
+    window.shSetNps = function(btn, val) {
+        document.getElementById('sh-rating-input').value = val;
+        document.querySelectorAll('.sh-nps-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+    };
+
+    // ── Multi criteria ──
+    window.shSetCriteria = function(key, val, btn) {
+        document.getElementById('sh-criteria-' + key).value = val;
+        var picker = btn.closest('.sh-criteria-stars');
+        picker.querySelectorAll('.sh-star-pick').forEach(function(b, i) {
+            b.textContent = i < val ? '★' : '☆';
+            b.classList.toggle('active', i < val);
+        });
+        // Genel rating = kriterlerin ortalaması
+        var inputs = document.querySelectorAll('[name^="criteria["]');
+        var sum = 0, count = 0;
+        inputs.forEach(function(inp) {
+            var v = parseInt(inp.value);
+            if (v > 0) { sum += v; count++; }
+        });
+        if (count > 0) document.getElementById('sh-rating-input').value = Math.round(sum / count);
+    };
+
+    // ── Form submit ──
+    var form = document.getElementById('sh-review-form');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var rating = document.getElementById('sh-rating-input').value;
+        if (ratingType !== 'nps' && (!rating || parseInt(rating) < 1)) {
+            shReviewError('{{ "Lütfen bir puan seçin."|trans }}');
+            return;
+        }
+        if (ratingType === 'nps' && (rating === '-1' || rating === '')) {
+            shReviewError('{{ "Lütfen bir puan seçin."|trans }}');
+            return;
+        }
+
+        var btn = form.querySelector('.sh-review-submit');
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        var fd = new FormData(form);
+        fd.append('action',   'sh_review_create');
+        fd.append('post_id',  form.dataset.postId);
+        fd.append('_wpnonce', '{{ function("wp_create_nonce", "sh_review_create") }}');
+
+        fetch('{{ function("admin_url", "admin-ajax.php") }}', { method: 'POST', body: fd })
+            .then(function(r){ return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    document.getElementById('sh-review-form-wrap').innerHTML =
+                        '<div class="alert alert-success">' + res.message + '</div>';
+                } else {
+                    shReviewError(res.message || '{{ "Bir hata oluştu."|trans }}');
+                    btn.disabled = false;
+                    btn.textContent = '{{ "Değerlendirmeyi Gönder"|trans }}';
+                }
+            })
+            .catch(function() {
+                shReviewError('{{ "Bağlantı hatası."|trans }}');
+                btn.disabled = false;
+                btn.textContent = '{{ "Değerlendirmeyi Gönder"|trans }}';
+            });
+    });
+
+    function shReviewError(msg) {
+        var el = document.getElementById('sh-review-error');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    // ── Vote ──
+    window.shReviewVote = function(btn) {
+        if (!btn) return;
+        var id   = btn.dataset.id;
+        var type = btn.dataset.type;
+        fetch('{{ function("admin_url", "admin-ajax.php") }}', {
+            method: 'POST',
+            body: new URLSearchParams({
+                action:   'sh_review_vote',
+                id:       id,
+                type:     type,
+                _wpnonce: '{{ function("wp_create_nonce", "sh_review_vote") }}'
+            })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                var card = btn.closest('.sh-review-item');
+                var helpfulBtn   = card.querySelector('.sh-vote-btn[data-type="helpful"]');
+                var unhelpfulBtn = card.querySelector('.sh-vote-btn[data-type="unhelpful"]');
+
+                // Önce ikisini de deaktif et
+                if (helpfulBtn)   helpfulBtn.classList.remove('active');
+                if (unhelpfulBtn) unhelpfulBtn.classList.remove('active');
+
+                // Count'ları güncelle
+                if (helpfulBtn)   helpfulBtn.querySelector('.sh-vote-count').textContent   = res.helpful   !== undefined ? res.helpful   : 0;
+                if (unhelpfulBtn) unhelpfulBtn.querySelector('.sh-vote-count').textContent = res.unhelpful !== undefined ? res.unhelpful : 0;
+
+                // Sadece voted olan aktif olsun
+                if (res.voted === 'helpful'   && helpfulBtn)   helpfulBtn.classList.add('active');
+                if (res.voted === 'unhelpful' && unhelpfulBtn) unhelpfulBtn.classList.add('active');
+            }
+        });
+    };
+
+    // ── Reply toggle ──
+    window.shToggleReply = function(btn) {
+        if (!btn) return;
+        var id  = btn.dataset.id;
+        var box = document.getElementById('sh-reply-' + id);
+        if (!box) return;
+        box.style.display = box.style.display === 'none' ? '' : 'none';
+    };
+
+    // ── Reply submit ──
+    window.shSubmitReply = function(btn) {
+        var id      = btn.dataset.id;
+        var box     = document.getElementById('sh-reply-' + id);
+        var content = box.querySelector('.sh-reply-text').value.trim();
+        if (!content) return;
+
+        btn.disabled = true;
+        fetch('{{ function("admin_url", "admin-ajax.php") }}', {
+            method: 'POST',
+            body: new URLSearchParams({
+                action:     'sh_review_reply',
+                comment_id: id,
+                content:    content,
+                _wpnonce:   '{{ function("wp_create_nonce", "sh_review_reply") }}'
+            })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                box.style.display = 'none';
+                box.querySelector('.sh-reply-text').value = '';
+                location.reload();
+            }
+            btn.disabled = false;
+        });
+    };
+})();
+</script>

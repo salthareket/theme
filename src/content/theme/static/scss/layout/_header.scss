@@ -1,0 +1,51 @@
+// ─────────────────────────────────────────────────────────────
+// HEADER - Tema spesifik override'lar
+// ─────────────────────────────────────────────────────────────
+
+header#header {
+
+    // Nav item active underline indicator
+    .navbar-nav-main > li {
+
+        &.active > a > span:not(.sub-arrow) {
+            position: relative;
+            &:after {
+                content: "";
+                position: absolute;
+                left: 0; right: 0;
+                bottom: -8px;
+                height: 2px;
+                background-color: var(--yellow, var(--primary-color));
+                border-radius: 3px;
+            }
+        }
+
+        &:not(.active) > a > span:not(.sub-arrow) {
+            position: relative;
+            &:after {
+                content: "";
+                position: absolute;
+                left: 0; right: 0;
+                bottom: -8px;
+                height: 2px;
+                background-color: #fff;
+                border-radius: 3px;
+                opacity: 0;
+                @include transition(opacity .3s ease-out);
+            }
+            &:hover:after { opacity: .6; }
+        }
+
+        > a:hover > span:not(.sub-arrow):after { opacity: .6; }
+    }
+
+    &.affix .navbar-nav-main > li > a > span:not(.sub-arrow):after {
+        background-color: var(--yellow, var(--primary-color));
+    }
+}
+
+body:not(.has-hero) header#header:not(.affix) {
+    .navbar-nav-main > li > a > span:not(.sub-arrow):after {
+        background-color: var(--yellow, var(--primary-color));
+    }
+}

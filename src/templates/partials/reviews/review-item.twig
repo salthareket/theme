@@ -1,0 +1,188 @@
+{#
+    Tek review item — settings'e göre dinamik.
+
+    Gerekli context:
+        review          : SaltComment | Timber\Comment
+        user            : Timber\User
+        reviews_settings : array
+        reviews_criteria : array
+#}
+
+{% set rs             = reviews_settings ?? {} %}
+{% set rating_type    = rs.rating.type ?? 'stars' %}
+{% set max_rating     = rs.rating.max_rating ?? 5 %}
+{% set criteria       = reviews_criteria ?? rs.rating.criteria.default ?? [] %}
+{% set enable_helpful = rs.helpful.enable_helpful ?? true %}
+{% set enable_replies = rs.reply.enable_replies ?? true %}
+
+{% set rating           = review.meta('rating')|default(0)|number_format(0) %}
+{% set verified         = review.meta('verified') %}
+{% set helpful          = review.meta('helpful_count')|default(0) %}
+{% set unhelpful        = review.meta('unhelpful_count')|default(0) %}
+{% set title            = review.meta('comment_title') %}
+{% set criteria_ratings = review.meta('criteria_ratings') %}
+{% set user_vote        = user.logged ? function('get_comment_meta', review.ID, '_voted_' ~ user.ID, true) : null %}
+
+<div class="sh-review-item {% if review.comment_approved != '1' %}sh-review-pending{% endif %}"
+     id="review-{{ review.ID }}"
+     data-id="{{ review.ID }}">
+
+    {# ── Header ── #}
+    <div class="sh-review-item-header">
+        <div class="sh-review-item-author">
+            {{ function('get_avatar', review.comment_author_email, 40, 'mystery', review.comment_author) }}
+            <div class="sh-review-item-meta">
+                <strong>{{ review.comment_author }}</strong>
+                {% if verified %}<span class="sh-verified-badge">✓ {{ "Doğrulanmış"|trans }}</span>{% endif %}
+                <time>{{ review.comment_date|date('d M Y') }}</time>
+            </div>
+        </div>
+
+        {# ── Rating gösterimi ── #}
+        <div class="sh-review-item-rating">
+            {% if rating_type == 'stars' or rating_type == 'multi' %}
+                {% for i in 1..max_rating %}
+                    <i class="sh-star {% if i <= rating %}sh-star-full{% else %}sh-star-empty{% endif %}">
+                        {{ i <= rating ? '★' : '☆' }}
+                    </i>
+                {% endfor %}
+                <span class="sh-rating-val">{{ rating }}/{{ max_rating }}</span>
+            {% elseif rating_type == 'thumbs' %}
+                <span class="sh-thumb-display">{{ rating >= 4 ? '👍' : '👎' }}</span>
+            {% elseif rating_type == 'nps' %}
+                <span class="sh-nps-display sh-nps-{{ rating >= 9 ? 'promoter' : (rating >= 7 ? 'passive' : 'detractor') }}">
+                    {{ rating }}/10
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Kriter bazlı puanlar — sol: ad, sağ: yıldız ── #}
+    {% if criteria and criteria_ratings %}
+    <div class="sh-criteria-scores">
+        {% for criterion in criteria %}
+            {% set cval = attribute(criteria_ratings, criterion.key) ?? 0 %}
+            {% if cval > 0 %}
+            <div class="sh-criterion-row">
+                <span class="sh-criterion-label">{{ criterion.label }}</span>
+                <span class="sh-criterion-stars">
+                    {% for i in 1..5 %}
+                        <i class="sh-star {% if i <= cval %}sh-star-full{% else %}sh-star-empty{% endif %}">{{ i <= cval ? '★' : '☆' }}</i>
+                    {% endfor %}
+                </span>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Başlık ── #}
+    {% if title %}
+        <h4 class="sh-review-item-title">{{ title }}</h4>
+    {% endif %}
+
+    {# ── İçerik ── #}
+    <div class="sh-review-item-content">{{ review.comment_content }}</div>
+
+    {# ── Medya — get_comment_meta ile direkt oku ── #}
+    {% set image_ids = function('get_comment_meta', review.ID, 'comment_images', true) %}
+    {% if image_ids %}
+    <div class="sh-review-item-media">
+        {% for img_id in image_ids %}
+            {% set img_url   = function('wp_get_attachment_image_url', img_id, 'medium') %}
+            {% set img_full  = function('wp_get_attachment_image_url', img_id, 'full') %}
+            {% if img_url %}
+            <a href="{{ img_full }}" target="_blank" class="sh-review-media-thumb">
+                <img src="{{ img_url }}" alt="" loading="lazy">
+            </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+        {# Eski tek image fallback #}
+        {% set single_img = function('get_comment_meta', review.ID, 'comment_image', true) %}
+        {% if single_img %}
+        <div class="sh-review-item-media">
+            {% set img_url  = function('wp_get_attachment_image_url', single_img, 'medium') %}
+            {% set img_full = function('wp_get_attachment_image_url', single_img, 'full') %}
+            {% if img_url %}
+            <a href="{{ img_full }}" target="_blank" class="sh-review-media-thumb">
+                <img src="{{ img_url }}" alt="" loading="lazy">
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {# ── Footer: Helpful + Reply ── #}
+    <div class="sh-review-item-footer">
+
+        {% if enable_helpful %}
+        <div class="sh-review-votes">
+            <span class="sh-votes-label">{{ "Faydalı mıydı?"|trans }}</span>
+            <button type="button"
+                    class="sh-vote-btn {% if user_vote == 'helpful' %}active{% endif %}"
+                    data-id="{{ review.ID }}"
+                    data-type="helpful"
+                    onclick="shReviewVote(this)">
+                👍 <span class="sh-vote-count">{{ helpful }}</span>
+            </button>
+            <button type="button"
+                    class="sh-vote-btn {% if user_vote == 'unhelpful' %}active{% endif %}"
+                    data-id="{{ review.ID }}"
+                    data-type="unhelpful"
+                    onclick="shReviewVote(this)">
+                👎 <span class="sh-vote-count">{{ unhelpful }}</span>
+            </button>
+        </div>
+        {% endif %}
+
+        {% if enable_replies and user.logged %}
+        <button type="button" class="sh-reply-toggle btn btn-link btn-sm"
+                data-id="{{ review.ID }}"
+                onclick="shToggleReply(this)">
+            {{ "Yanıtla"|trans }}
+        </button>
+        {% endif %}
+
+    </div>
+
+    {# ── Reply formu ── #}
+    {% if enable_replies and user.logged %}
+    <div class="sh-reply-form" id="sh-reply-{{ review.ID }}" style="display:none">
+        <textarea class="form-control sh-reply-text" rows="3"
+                  placeholder="{{ 'Yanıtınızı yazın...'|trans }}"></textarea>
+        <div class="sh-reply-actions mt-2">
+            <button type="button" class="btn btn-primary btn-sm"
+                    data-id="{{ review.ID }}"
+                    onclick="shSubmitReply(this)">
+                {{ "Gönder"|trans }}
+            </button>
+            <button type="button" class="btn btn-link btn-sm"
+                    onclick="document.getElementById('sh-reply-{{ review.ID }}').style.display='none'">
+                {{ "İptal"|trans }}
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Replies ── #}
+    {% if enable_replies %}
+    {% set reply_ids = function('get_comments', {'parent': review.ID, 'type': 'review_reply', 'status': 'approve'}) %}
+    {% if reply_ids %}
+    <div class="sh-review-replies">
+        {% for reply in reply_ids %}
+        <div class="sh-review-reply">
+            <div class="sh-reply-header">
+                {{ function('get_avatar', reply.comment_author_email, 28, 'mystery', reply.comment_author) }}
+                <strong>{{ reply.comment_author }}</strong>
+                <time>{{ reply.comment_date|date('d M Y') }}</time>
+            </div>
+            <p>{{ reply.comment_content }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+</div>

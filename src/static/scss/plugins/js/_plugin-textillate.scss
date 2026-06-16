@@ -1,0 +1,10 @@
+/*! purgecss start ignore */
+.text-effect{
+    &.split-lines{
+        [class^="word"] {
+            display:block!important;
+            white-space: nowrap;
+        }
+    }
+}
+/*! purgecss end ignore */

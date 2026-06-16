@@ -889,62 +889,51 @@ function get_page_number($link) {
 
 
 function did_you_mean_search($input = "", $max_distance = 2) {
+    if ( empty( $input ) ) return '';
+    if ( class_exists( 'SearchHistory' ) ) {
+        $sh = new SearchHistory();
+        return $sh->did_you_mean( $input, $max_distance ) ?: '';
+    }
+    // Fallback — SearchHistory yüklü değilse
     global $wpdb;
     $table_name = $wpdb->prefix . 'search_terms';
-    $terms = $wpdb->get_results("SELECT name FROM $table_name ORDER BY rank DESC", ARRAY_A);
-    
+    $terms = $wpdb->get_results( "SELECT name FROM {$table_name} ORDER BY rank DESC", ARRAY_A );
     $closest = '';
-    $shortest = $max_distance + 1; // Başlangıçta en yüksek mesafeyi ayarla
-
-    foreach ($terms as $term) {
-        // Levenshtein mesafesini hesapla
-        $lev = levenshtein($input, $term['name']);
-
-        // Tam eşleşmeleri atla
-        if ($lev == 0) {
-            continue;
-        }
-
-        // En kısa mesafeyi bul ve yakın terimi ata
-        if ($lev <= $max_distance && $lev < $shortest) {
-            $closest = $term['name'];
+    $shortest = $max_distance + 1;
+    foreach ( $terms as $term ) {
+        $lev = levenshtein( $input, $term['name'] );
+        if ( $lev == 0 ) continue;
+        if ( $lev <= $max_distance && $lev < $shortest ) {
+            $closest  = $term['name'];
             $shortest = $lev;
         }
     }
-
     return $closest;
 }
 
 function search_suggestions($term = "", $count = 5) {
-    global $wpdb;
-
-    // Arama terimi boş ise geri dön
-    if (empty($term)) {
-        return [];
+    if ( empty( $term ) ) return [];
+    if ( class_exists( 'SearchHistory' ) ) {
+        $sh = new SearchHistory();
+        return $sh->suggestions( $term, $count );
     }
-
-    // Term'i küçük harfe çevir ve boşlukları temizle
-    $term = trim(strtolower($term));
+    // Fallback
+    global $wpdb;
+    $term       = trim( strtolower( $term ) );
     $table_name = $wpdb->prefix . 'search_terms';
-
-    // Tüm terimleri veritabanından çek
-    $results = $wpdb->get_results("SELECT name FROM $table_name");
-
+    $results    = $wpdb->get_results( "SELECT name FROM {$table_name}" );
     $suggestions = [];
-    foreach ($results as $row) {
-        $name = strtolower($row->name);
-        if ($name !== $term) {
-            $distance = levenshtein($term, $name);
-            // Mesafe kriterine göre öneri ekle
-            if ($distance <= 6) { // Mesafeyi buradaki değere göre ayarlayabilirsin
-                $suggestions[$name] = $distance;
+    foreach ( $results as $row ) {
+        $name = strtolower( $row->name );
+        if ( $name !== $term ) {
+            $distance = levenshtein( $term, $name );
+            if ( $distance <= 6 ) {
+                $suggestions[ $name ] = $distance;
             }
         }
     }
-
-    // Mesafeye göre sıralama ve sonuçları döndür
-    asort($suggestions);
-    return array_slice(array_keys($suggestions), 0, $count);
+    asort( $suggestions );
+    return array_slice( array_keys( $suggestions ), 0, $count );
 }
 
 function check_and_load_translation($textdomain, $locale = null) {
@@ -1042,7 +1031,7 @@ function deleteFolder($dir) {
  * @param  int|WP_Post $post_id  Post ID veya WP_Post objesi
  * @return array                 [ 'leaflet' => 'init_leaflet', ... ]
  */
-function modal_get_plugins_req( $post_id ): array {
+function modal_get_plugins_req( $post_id, string $html = '' ): array {
     if ( ! function_exists('compile_files_config') ) {
         if ( defined('SH_INCLUDES_PATH') && file_exists( SH_INCLUDES_PATH . 'minify-rules.php' ) ) {
             require_once SH_INCLUDES_PATH . 'minify-rules.php';
@@ -1055,13 +1044,34 @@ function modal_get_plugins_req( $post_id ): array {
     $assets    = get_post_meta( $post_id, 'assets', true );
     $plugins   = is_array($assets) ? ( $assets['plugins'] ?? [] ) : [];
 
+    // assets meta boşsa HTML'den tespit et
+    if ( empty($plugins) && ! empty($html) ) {
+        $plugins_all = compile_files_config()['js']['plugins'] ?? [];
+        foreach ( $plugins_all as $key => $plugin ) {
+            if ( empty($plugin['c']) ) continue;
+            $found = false;
+            if ( ! empty($plugin['class']) ) {
+                foreach ( $plugin['class'] as $class ) {
+                    if ( strpos($html, $class) !== false ) { $found = true; break; }
+                }
+            }
+            if ( ! $found && ! empty($plugin['attrs']) ) {
+                foreach ( $plugin['attrs'] as $attr ) {
+                    if ( strpos($html, $attr) !== false ) { $found = true; break; }
+                }
+            }
+            if ( $found ) $plugins[] = $key;
+        }
+        $plugins = array_values(array_unique($plugins));
+    }
+
     if ( empty($plugins) ) return [];
 
     $plugins_all = compile_files_config()['js']['plugins'] ?? [];
     $result      = [];
 
     foreach ( $plugins as $plugin ) {
-        if ( isset( $plugins_all[$plugin]['init'] ) ) {
+        if ( isset( $plugins_all[$plugin]['init'] ) && ! empty($plugins_all[$plugin]['init']) ) {
             $result[$plugin] = $plugins_all[$plugin]['init'];
         }
     }

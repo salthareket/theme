@@ -63,9 +63,11 @@ class Lcp {
             $lcp = $this->data[$device];
             if (!empty($lcp["id"])) $this->lcp_ids[] = (int) $lcp["id"];
             if (!empty($lcp["url"])) $this->lcp_urls[] = (string) $lcp["url"];
+            // font_url veya bg-image url'si de match için ekle
+            if (!empty($lcp["font_url"])) $this->lcp_urls[] = (string) $lcp["font_url"];
         }
 
-        $this->lcp_ids = array_unique($this->lcp_ids);
+        $this->lcp_ids  = array_unique($this->lcp_ids);
         $this->lcp_urls = array_unique($this->lcp_urls);
     }
 
@@ -75,13 +77,28 @@ class Lcp {
         $device_data = $this->data[$this->device] ?? [];
         $has_lcp_data = !empty($device_data["type"]);
 
-        if ($has_lcp_data) {
-            // LCP verisi var → preload + critical CSS inject et
+        // css_critical varsa da inject_preload çalışmalı
+        $has_critical_css = defined('SITE_ASSETS') && is_array(SITE_ASSETS) && !empty(SITE_ASSETS["css_critical"]);
+
+        if ($has_lcp_data || $has_critical_css) {
+            // LCP verisi veya critical CSS var → preload + critical CSS inject et
             add_action('wp_head', [$this, 'inject_preload'], 1);
-        } else {
-            // LCP verisi yok → ölçüm başlat + cache'i devre dışı bırak
+            
+            // Debug
+            add_action('wp_footer', function() use ($has_lcp_data, $has_critical_css) {
+                echo "<!-- LCP: Data found for {$this->device} (lcp=" . ($has_lcp_data?'yes':'no') . ", critical=" . ($has_critical_css?'yes':'no') . "), preload injected -->\n";
+            }, 999);
+        }
+
+        // Mevcut device için LCP verisi yoksa measurement başlat
+        // (critical CSS olsa bile eksik device için ölçüm yapılmalı)
+        if (!$has_lcp_data) {
             $this->disable_page_cache();
             $this->start_measurement();
+
+            add_action('wp_footer', function() {
+                echo "<!-- LCP: Measurement mode active for {$this->device} -->\n";
+            }, 999);
         }
     }
 
@@ -91,29 +108,114 @@ class Lcp {
         $preload = "";
         $css = "";
 
+        // ─── Critical CSS dosyasını inline ekle ──────────────────────────────
+        $critical_css_path = '';
+        if (defined('SITE_ASSETS') && is_array(SITE_ASSETS)) {
+            $critical_css_path = SITE_ASSETS["css_critical"] ?? '';
+        }
+        if (!empty($critical_css_path)) {
+            $full_path = STATIC_PATH . $critical_css_path;
+            if (file_exists($full_path)) {
+                $critical_content = file_get_contents($full_path);
+                if (!empty($critical_content)) {
+                    $css .= $critical_content . "\n";
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         foreach ($this->data as $device => $lcp) {
             if (!is_array($lcp)) continue;
-            $url = $lcp["url"] ?? '';
-            $code = $lcp["code"] ?? '';
-            if (empty($url) && empty($code)) continue;
+
+            $url      = $lcp["url"]      ?? '';
+            $code     = $lcp["code"]     ?? '';
+            $font_url = $lcp["font_url"] ?? '';
+            $type     = $lcp["type"]     ?? 'image';
+
+            if (empty($url) && empty($code) && empty($font_url)) continue;
 
             $is_mobile = ($device === 'mobile');
-            $media = $is_mobile ? 'max-width: 768px' : 'min-width: 769px';
-            $type = $lcp["type"] ?? 'image';
+            $media     = $is_mobile ? 'max-width: 768px' : 'min-width: 769px';
 
-            // Preload link
-            if (!empty($url)) {
-                $preload .= sprintf(
-                    '<link rel="preload" as="%s" href="%s" fetchpriority="high" media="(%s)">' . "\n",
-                    esc_attr($type),
-                    esc_url($url),
-                    esc_attr($media)
-                );
-            }
+            switch ($type) {
 
-            // Critical CSS for LCP element (inline styles to render LCP before main CSS loads)
-            if (!empty($code)) {
-                $css .= "@media ({$media}) { {$code} }\n";
+                case 'image':
+                    // <img> → preload as="image"
+                    if (!empty($url)) {
+                        $preload .= sprintf(
+                            '<link rel="preload" as="image" href="%s" fetchpriority="high" media="(%s)">' . "\n",
+                            esc_url($url), esc_attr($media)
+                        );
+                    }
+                    // Critical CSS: width/height/aspect-ratio (layout shift önleme)
+                    if (!empty($code)) {
+                        $css .= "@media ({$media}) { {$code} }\n";
+                    }
+                    break;
+
+                case 'video':
+                    // <video> → poster'ı image olarak preload et
+                    if (!empty($url)) {
+                        $preload .= sprintf(
+                            '<link rel="preload" as="image" href="%s" fetchpriority="high" media="(%s)">' . "\n",
+                            esc_url($url), esc_attr($media)
+                        );
+                    }
+                    // Video için CSS gerekmez
+                    break;
+
+                case 'iframe':
+                    // <iframe> → preload as="document"
+                    if (!empty($url)) {
+                        $preload .= sprintf(
+                            '<link rel="preload" as="document" href="%s" media="(%s)">' . "\n",
+                            esc_url($url), esc_attr($media)
+                        );
+                    }
+                    break;
+
+                case 'bg-image':
+                    // background-image → preload as="image" + critical CSS
+                    if (!empty($url)) {
+                        $preload .= sprintf(
+                            '<link rel="preload" as="image" href="%s" fetchpriority="high" media="(%s)">' . "\n",
+                            esc_url($url), esc_attr($media)
+                        );
+                    }
+                    if (!empty($code)) {
+                        $css .= "@media ({$media}) { {$code} }\n";
+                    }
+                    break;
+
+                case 'text':
+                    // Text element → font preload (custom font varsa) + critical CSS
+                    if (!empty($font_url)) {
+                        // woff2 mi woff mu?
+                        $font_ext = pathinfo(parse_url($font_url, PHP_URL_PATH), PATHINFO_EXTENSION);
+                        $font_type = ($font_ext === 'woff2') ? 'font/woff2' : 'font/woff';
+                        $preload .= sprintf(
+                            '<link rel="preload" as="font" type="%s" href="%s" crossorigin="anonymous" media="(%s)">' . "\n",
+                            esc_attr($font_type), esc_url($font_url), esc_attr($media)
+                        );
+                    }
+                    // Critical CSS: font-size, color, font-family, line-height
+                    if (!empty($code)) {
+                        $css .= "@media ({$media}) { {$code} }\n";
+                    }
+                    break;
+
+                default:
+                    // Bilinmeyen tip → varsa URL'yi image olarak preload et
+                    if (!empty($url)) {
+                        $preload .= sprintf(
+                            '<link rel="preload" as="image" href="%s" fetchpriority="high" media="(%s)">' . "\n",
+                            esc_url($url), esc_attr($media)
+                        );
+                    }
+                    if (!empty($code)) {
+                        $css .= "@media ({$media}) { {$code} }\n";
+                    }
+                    break;
             }
         }
 
@@ -170,7 +272,12 @@ class Lcp {
             if (window.__lcp_measured) return;
             window.__lcp_measured = true;
 
-            var platform = window.innerWidth <= 768 ? "mobile" : "desktop";
+            // Sunucu tarafı device tespiti + JS tarafı genişlik kontrolü
+            var serverDevice = '<?php echo $this->device; ?>';
+            var clientDevice = window.innerWidth <= 768 ? "mobile" : "desktop";
+            // İkisi de mobile diyorsa mobile, aksi halde client'a güven
+            var platform = (serverDevice === 'mobile' || clientDevice === 'mobile') ? 'mobile' : 'desktop';
+            var lastLcpMetric = null;
 
             // measure-lcp.js'i yükle (lcp_data + lcp_data_save fonksiyonları)
             var ms = document.createElement('script');
@@ -181,16 +288,55 @@ class Lcp {
                 wv.src = '<?php echo esc_url($web_vitals_url); ?>';
                 wv.onload = function() {
                     if (window.webVitals && typeof window.webVitals.onLCP === 'function') {
+                        // reportAllChanges: true → her LCP güncellemesini al, son olanı sakla
                         window.webVitals.onLCP(function(metric) {
+                            lastLcpMetric = metric; // Her güncellemede son değeri sakla
+                            log('[LCP] Güncelleme: ' + metric.value.toFixed(0) + 'ms', 'info');
+                        }, { reportAllChanges: true });
+
+                        // Sayfa kapanırken / arka plana geçerken son LCP'yi kaydet
+                        function saveFinalLcp() {
+                            if (!lastLcpMetric) return;
+                            if (window.__lcp_save_sent) return;
+                            window.__lcp_save_sent = true;
+
                             if (typeof lcp_data_save === 'function') {
-                                lcp_data_save(metric, platform);
+                                lcp_data_save(lastLcpMetric, platform);
                             }
+
                             // Temizlik
-                            if (wv.parentNode) wv.parentNode.removeChild(wv);
-                            if (ms.parentNode) ms.parentNode.removeChild(ms);
+                            if (wv && wv.parentNode) wv.parentNode.removeChild(wv);
+                            if (ms && ms.parentNode) ms.parentNode.removeChild(ms);
                             var self = document.getElementById('lcp-measure');
                             if (self) self.remove();
-                        }, { reportAllChanges: true });
+                        }
+
+                        // visibilitychange: sekme arka plana geçince (PSI bunu kullanır)
+                        document.addEventListener('visibilitychange', function() {
+                            if (document.visibilityState === 'hidden') {
+                                saveFinalLcp();
+                            }
+                        });
+
+                        // pagehide: sayfa kapanınca
+                        window.addEventListener('pagehide', saveFinalLcp);
+
+                        // beforeunload: ek güvence
+                        window.addEventListener('beforeunload', saveFinalLcp);
+
+                        // Fallback: 3 saniye sonra ne varsa kaydet
+                        // (PSI gibi botlar visibilitychange tetiklemeyebilir)
+                        setTimeout(function() {
+                            saveFinalLcp();
+                        }, 3000);
+
+                        // Agresif fallback: load event sonrası hemen kaydet
+                        // PSI sayfayı tam yükledikten sonra LCP'yi raporlar
+                        window.addEventListener('load', function() {
+                            setTimeout(function() {
+                                saveFinalLcp();
+                            }, 1000);
+                        });
                     }
                 };
                 document.head.appendChild(wv);

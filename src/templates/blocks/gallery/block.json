@@ -1,0 +1,22 @@
+{
+    "name": "acf/gallery",
+    "title": "Gallery",
+    "description": "Fotograf ve video galerisi — LightGallery lightbox, grid pattern ve justified layout destegi",
+    "category": "saltblocks",
+    "icon": "format-gallery",
+    "keywords": ["gallery", "galeri", "image", "photo", "lightbox", "lightgallery", "video", "grid"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Gallery Duzenle"
+    }
+}

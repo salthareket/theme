@@ -210,15 +210,22 @@ function btn_loading_parent(){
         .addClass(token_init);
     });	
 }
-function btn_ajax_method(){ /// ***new*** updated function
+function btn_ajax_method($container){ /// ***new*** updated function - Container-aware
 	var token_init = "btn-ajax-method-init";
+	
+	// Container belirtilmemişse document kullan
+	if (typeof $container === 'undefined' || !$container) {
+		$container = $(document);
+	} else {
+		$container = $($container);
+	}
 
 	function init_ajax_v1($obj, $button){
-		console.log("btn_ajax_method="+$obj.data("ajax-method"))
-		console.log("obj")
-		console.log($obj)
-		console.log("button")
-		console.log($button)
+		log("btn_ajax_method="+$obj.data("ajax-method"))
+		log("obj")
+		log($obj)
+		log("button")
+		log($button)
 		    var $data = $obj.data();
         	var $form = {};
         	if ($data && Object.prototype.hasOwnProperty.call($data, "form")) {
@@ -256,56 +263,58 @@ function btn_ajax_method(){ /// ***new*** updated function
 	}
 
 	function init_ajax($obj, $button){
-	    // 1. Önce butondaki TÜM datayı temizce alalım
 	    var $data = JSON.parse(JSON.stringify($obj.data()));
-	    
-	    console.log($data);
-	    
-	    // 2. Metodun pagination_ajax olduğundan emin olalım
-	    var currentMethod = $obj.attr("data-ajax-method"); 
-	    
+
+	    // ajax_query sisteminde method URL'den geliyor — vars'tan temizle
+	    var skipKeys = ['ajaxMethod', 'ajaxInit', 'ajaxSubmit', 'confirm', 'confirmMessage'];
+	    skipKeys.forEach(function(k){ delete $data[k]; });
+
+	    var currentMethod = $obj.attr("data-ajax-method");
+
 	    var callback = function(){
 	        var query = new ajax_query();
 	        query.method = currentMethod;
 	        query.vars = $data;
 	        query.objs = { "btn": $obj };
 	        query.request();
-	    }
-	    
+	    };
+
 	    if($data["confirm"]){
-				var confirm_message = $data["confirm-message"];
-				if(IsBlank(confirm_message)){
-                   confirm_message =  "Are you sure?";
-				}
-				var modal = _confirm(confirm_message, "", "md", "modal-confirm", "Yes", "No", callback);
-		}else{
-            callback();
-		}
+	        var confirm_message = $data["confirm-message"] || "Are you sure?";
+	        _confirm(confirm_message, "", "md", "modal-confirm", "Yes", "No", callback);
+	    } else {
+	        callback();
+	    }
 	}
 
-	$("[data-ajax-method]").not("."+token_init).not("[data-ajax-init='false']").each(function(){
+	// Container içindeki elementleri bul ve init et
+	$container.find("[data-ajax-method]").not("."+token_init).not("[data-ajax-init='false']").each(function(){
 		var $obj = $(this);
 		var is_button = $obj.is('button, a, input[type="button"], input[type="submit"], [role="button"]');
-        $obj
-        .addClass(token_init);
+		var is_form   = $obj.is('form');
+        $obj.addClass(token_init);
+
         if(is_button){
-	        $obj
-	        .on("click", function(e){
+	        $obj.on("click", function(e){
 	        	e.preventDefault();
 	        	let $btn = $(this);
-	        	console.log("buttona tıklandı")
 			    init_ajax($btn, true);
 	        });
-        }else{
-            init_ajax($obj, is_button);
+        } else if(is_form) {
+            // Form: submit event'inde tetikle, sayfa acilinca degil
+            $obj.on("submit", function(e){
+                e.preventDefault();
+                init_ajax($obj, false);
+            });
         }
+        // Diger elementler (div vs.) hic tetiklenmesin — data-ajax-init="false" ile ayni mantik
     });
 
-    var token_init = "btn-ajax-submit-init";
-	$("[data-ajax-submit]").not("."+token_init).each(function(){
+    var token_init_submit = "btn-ajax-submit-init";
+	$container.find("[data-ajax-submit]").not("."+token_init_submit).each(function(){
 		var $obj = $(this);
         $obj
-        .addClass(token_init)
+        .addClass(token_init_submit)
         .on("click", function(e){
         	var form = $($(this).attr("data-ajax-submit"));
         	if(form.length > 0){
@@ -431,8 +440,16 @@ function getEvents(obj, calendar, month, year){
 		 query.objs   = objs;
 		 query.request();
 }
-function btn_favorite(){
-    $(".btn-favorite").unbind("click").on("click", function(e){
+function btn_favorite($container){
+	// Container belirtilmemişse document kullan
+	if (typeof $container === 'undefined' || !$container) {
+		$container = $(document);
+	} else {
+		$container = $($container);
+	}
+	
+	// Container içindeki btn-favorite elementlerini bul ve init et
+    $container.find(".btn-favorite").unbind("click").on("click", function(e){
 		e.preventDefault();
 		if($(this).hasClass("active")){
 			favorites.remove($(this));
@@ -440,6 +457,24 @@ function btn_favorite(){
 			favorites.add($(this));
 		}
 	});
+
+	// Mevcut favorites state'ini yeni yüklenen butonlara uygula
+	if (typeof site_config !== 'undefined' && site_config.hasOwnProperty("favorites")) {
+		var favs = site_config.favorites;
+		if (typeof favs === 'string') {
+			try { favs = JSON.parse(favs); } catch(e) { favs = []; }
+		}
+		if (Array.isArray(favs) && favs.length > 0) {
+			$container.find(".btn-favorite").each(function(){
+				var id = parseInt($(this).attr("data-id"));
+				if (inArray(id, favs)) {
+					$(this).addClass("active");
+				} else {
+					$(this).removeClass("active");
+				}
+			});
+		}
+	}
 }
 function ajax_paginate($obj){
 	var token_init = "ajax-paginate-init";
@@ -547,6 +582,11 @@ function ajax_paginate($obj){
 						    query.after = function(response, vars, form, objs){
 
 						    	btn.removeClass("loading processing");
+
+						    	// HTML varsa list-cards'a append et
+						    	if (response && response.html) {
+						    	    obj.find(".list-cards").append(response.html);
+						    	}
 						    
 							    	var total = parseInt(response.data.count);
 					    	   	    var page = parseInt(response.data.page);
@@ -613,23 +653,11 @@ function ajax_paginate($obj){
 						    btn.trigger("click");
 						}
 					break;
-					/*case "scroll":
-						if(!btn.hasClass("ajax-load-scroll")){
-		                    btn.addClass("ajax-load-scroll")
-							$(window).scroll(function() {
-						        if( btn.is(":in-viewport")) {
-				                    ajax_paginate_load(btn);
-						        }
-						    }).trigger("scroll");							
-						}else{
-							ajax_paginate_load(btn);
-						}
-					break;*/
 					case "scroll":
 					    if(!btn.hasClass("ajax-load-scroll")){
 					        btn.addClass("ajax-load-scroll");
 					        const checkAjaxLoadViewport = function() {
-					            if( btn.is(":in-viewport")) {
+					            if( btn.inViewport()) {
 					                ajax_paginate_load(btn);
 					            }
 					        };
@@ -733,51 +761,55 @@ function updateDonutChart(el, percent, donut) {
 
 // 1. TEMEL YÖNETİCİ (Tüm ortak işler burada)
 class BaseManager {
-    constructor() {
-        this.nonce = typeof ajax_request_vars !== 'undefined' ? ajax_request_vars.ajax_nonce : '';
-        this.host = typeof host !== 'undefined' ? host : '';
-    }
+    constructor() {}
 
-    // Ortak AJAX isteği metodu
+    /**
+     * ajax_query tabanli ortak AJAX istegi.
+     * Queue, cache, hooks, events, nonce — hepsi ajax_query uzerinden gelir.
+     * @param {jQuery} obj Loading state icin DOM elementi
+     * @param {object} data { method: string, vars: object }
+     * @returns {Promise<object|null>} Parsed response or null on error
+     */
     async request(obj, data) {
-        // Standart veri eklemeleri
-        data["vars"] = data["vars"] || {};
-        data["vars"]["ajax"] = true;
-        data["ajax"] = "query";
-        data["_wpnonce"] = this.nonce;
-
-        try {
-            const response = await $.post(this.host, data);
-            const parsed = typeof response === "string" ? JSON.parse(response) : response;
-
-            // Global hata görünümü kontrolü
-            if (typeof errorView === "function" && errorView(parsed)) {
+        return new Promise((resolve) => {
+            const query = new ajax_query();
+            query.method = data.method;
+            query.vars = data.vars || {};
+            query.done = function(result) {
                 obj.removeClass("disabled loading loading-process");
-                return null;
-            }
-            return parsed;
-        } catch (error) {
-            console.error("UI Request Error:", error);
-            obj.removeClass("disabled loading loading-process");
-            // alert("error"); // İsteğe bağlı
-            return null;
-        }
+                resolve(result || null);
+            };
+            query.after = function(result) {
+                if (!result) {
+                    obj.removeClass("disabled loading loading-process");
+                    resolve(null);
+                }
+            };
+            query.request();
+        });
     }
 
     // Bildirim sayılarını güncelleyen ortak metod
     updateBadge(type, count) {
-        const container = $(`.dropdown-notifications[data-type='${type}'] > a`);
-        let counter = container.find(".notification-count");
+        count = parseInt(count) || 0;
 
-        if (count > 0) {
-            if (counter.length === 0) {
-                container.prepend("<div class='notification-count'></div>");
-                counter = container.find(".notification-count");
+        // Hem dropdown hem offcanvas icindeki counter'lari guncelle
+        const selectors = [
+            `.dropdown-notifications[data-type='${type}'] > a .notification-count`,
+            `.nav-item[data-type='${type}'] > a .notification-count`,
+            `#offcanvas${type.charAt(0).toUpperCase() + type.slice(1)} .notification-count`,
+        ];
+
+        selectors.forEach(function(sel) {
+            const $counter = $(sel);
+            if ($counter.length) {
+                if (count > 0) {
+                    $counter.html(count).removeClass("d-none");
+                } else {
+                    $counter.html("0").addClass("d-none");
+                }
             }
-            counter.html(count);
-        } else if (counter.length > 0) {
-            counter.remove();
-        }
+        });
     }
 }
 
@@ -786,6 +818,16 @@ class FavoritesManager extends BaseManager {
     constructor() {
         super();
         this.classTease = ".card-profile-tease";
+    }
+
+    async get(obj, view_type) {
+        view_type = view_type || "dropdown";
+        obj.addClass("loading-process");
+        const res = await this.request(obj, { method: "favorites_get", vars: { type: "favorites", view: view_type } });
+        if (res) {
+            obj.html(res.html).removeClass("loading-process");
+            this.updateBadge("favorites", res.count || 0);
+        }
     }
 
     async add(obj) {
@@ -813,7 +855,6 @@ class FavoritesManager extends BaseManager {
             obj.removeClass("active disabled loading");
             $(`.btn-favorite[data-id='${id}']`).removeClass("active");
             
-            // Eğer sayfa favoriler sayfasıysa kartı kaldır
             if (obj.data("type") == "favorites") {
                 obj.closest(this.classTease).parent().remove();
             }
@@ -830,31 +871,39 @@ class FavoritesManager extends BaseManager {
     }
 
     notify(msg, type) {
-        if (typeof toast_notification === "function") {
-            const img = type === 'add' ? 'favorites-add.jpg' : 'favorites-remove.jpg';
-            toast_notification({
-                message: msg,
-                sender: { image: `<img src='${ajax_request_vars.theme_url}/static/img/notification/${img}' class='img-fluid' />` }
+        const img = type === 'add' ? 'favorites-add.jpg' : 'favorites-remove.jpg';
+        const data = {
+            message: msg,
+            sender: { image: `<img src='${ajax_request_vars.theme_url}/static/img/notification/${img}' class='img-fluid' />` }
+        };
+        if (typeof toast_notification === "function" && typeof Toastify === "function") {
+            toast_notification(data);
+        } else if (typeof isLoadedJS === "function") {
+            isLoadedJS("toastify-js", true, function() {
+                if (typeof toast_notification === "function") toast_notification(data);
             });
         }
     }
 }
 var favorites = new FavoritesManager();
 
-// 3. SEPET YÖNETİMİ
+// 3. SEPET YÖNETİMİ - Guard: tekrar inject edilince redeclaration önle
+if (typeof CartManager === 'undefined') {
 class CartManager extends BaseManager {
-    async get(obj, type) {
+    async get(obj, view_type) {
+        view_type = view_type || "dropdown";
         obj.addClass("loading-process");
-        const res = await this.request(obj, { method: "get_cart", vars: { type } });
+        const res = await this.request(obj, { method: "get_cart", vars: { type: "cart", view: view_type } });
         if (res) this.render(obj, res);
     }
 
-    async removeItem(obj, type) {
+    async removeItem(obj, view_type) {
+        view_type = view_type || "dropdown";
         const key = obj.data("key");
         const container = obj.closest(".load-container");
         obj.addClass("loading-process");
         
-        const res = await this.request(container, { method: "wc_cart_item_remove", vars: { key, type } });
+        const res = await this.request(container, { method: "wc_cart_item_remove", vars: { key, type: "cart", view: view_type } });
         if (res) this.render(container, res);
     }
 
@@ -876,15 +925,19 @@ class CartManager extends BaseManager {
         $(".dropdown-notifications[data-type='cart'] .dropdown-container").toggleClass("has-dropdown-item", count > 0);
     }
 }
-var cart = new CartManager();
+var cart = window.cart || new CartManager();
+window.cart = cart;
+} // end CartManager guard
 
-// 4. MESAJ YÖNETİMİ
+// 4. MESAJ YÖNETİMİ - Guard
+if (typeof MessageManager === 'undefined') {
 class MessageManager extends BaseManager {
-    async get(obj) {
+    async get(obj, view_type) {
+        view_type = view_type || "offcanvas";
         obj.addClass("loading-process");
         const res = await this.request(obj, { 
             method: "get_messages", 
-            vars: { template: "partials/offcanvas/archive" } 
+            vars: { template: "partials/" + view_type + "/archive", type: "messages", view: view_type } 
         });
         
         if (res) {
@@ -897,4 +950,27 @@ class MessageManager extends BaseManager {
         }
     }
 }
-var messages = new MessageManager();
+var messages = window.messages || new MessageManager();
+window.messages = messages;
+} // end MessageManager guard
+
+// 5. BİLDİRİM YÖNETİMİ - Guard
+if (typeof NotificationsManager === 'undefined') {
+class NotificationsManager extends BaseManager {
+    async get(obj, view_type) {
+        view_type = view_type || "offcanvas";
+        obj.addClass("loading-process");
+        const res = await this.request(obj, {
+            method: "get_notifications",
+            vars: { view: view_type }
+        });
+
+        if (res) {
+            obj.html(res.html).removeClass("loading-process");
+            this.updateBadge("notifications", 0); // okundu işaretlendi
+        }
+    }
+}
+var notifications = window.notifications || new NotificationsManager();
+window.notifications = notifications;
+} // end NotificationsManager guard

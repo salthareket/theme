@@ -19,6 +19,10 @@ add_filter('timber/post/classmap', function ($classmap) {
             $custom_classmap[$post_type] = ThemePost::class;
         }
     }
+    // product_variation public değil ama ThemeProduct metodlarına ihtiyaç duyuyor
+    if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE) {
+        $custom_classmap['product_variation'] = ThemeProduct::class;
+    }
     $custom_classmap["attachment"] = ThemeImage::class;
     return array_merge($classmap, $custom_classmap);
 });

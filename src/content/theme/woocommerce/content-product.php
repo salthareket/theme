@@ -19,7 +19,17 @@ defined('ABSPATH') || exit;
 
 global $product, $wp_query, $woocommerce_loop;
 
-if (!is_a($product, WC_Product::class) || !$product->is_visible()) {
+if (!is_a($product, WC_Product::class)) {
+    return;
+}
+
+// Variation'lar icin: parent urun visible ise goster (Iconic WSSV uyumu)
+if ($product->is_type('variation')) {
+    $parent = wc_get_product($product->get_parent_id());
+    if (!$parent || $parent->get_status() !== 'publish') {
+        return;
+    }
+} elseif (!$product->is_visible()) {
     return;
 }
 
@@ -47,15 +57,12 @@ $product_id = $product->get_id();
 // Variable product: URL'deki filter_ parametrelerine göre doğru variation'ı bul
 if ($product->get_type() === 'variable') {
     $filter_attributes = [];
-
     foreach ($_GET as $key => $value) {
         if (strpos($key, 'filter_') === 0) {
-            // filter_color → attribute_pa_color formatına çevir
             $attribute_name = 'attribute_pa_' . substr($key, 7);
             $filter_attributes[$attribute_name] = sanitize_text_field($value);
         }
     }
-
     if (!empty($filter_attributes)) {
         $variation_id = $product->get_matching_variation($filter_attributes);
         if ($variation_id) {
@@ -66,12 +73,22 @@ if ($product->get_type() === 'variable') {
 ?>
 <div class="col" data-page="<?php echo esc_attr($page_no); ?>">
 <?php
-    Timber::render("woo/tease.twig", [
-        "post"        => Timber::get_post($product_id),
-        "product"     => $product,
-        "page"        => $page_no,
-        "index"       => $woocommerce_loop['loop'],
-        "querystring" => $querystring,
-    ]);
+    static $base_ctx = null;
+    if ($base_ctx === null) {
+        $base_ctx = Timber::context();
+    }
+    $ctx = $base_ctx;
+    // Extra context inject (örn. favorites sayfasında variation_add_to_cart)
+    if (!empty($GLOBALS['pae_tease_extra_ctx']) && is_array($GLOBALS['pae_tease_extra_ctx'])) {
+        foreach ($GLOBALS['pae_tease_extra_ctx'] as $k => $v) {
+            $ctx[$k] = $v;
+        }
+    }
+    $ctx["post"]        = Timber::get_post($product_id);
+    $ctx["product"]     = $product;
+    $ctx["page"]        = $page_no;
+    $ctx["index"]       = $woocommerce_loop['loop'];
+    $ctx["querystring"] = $querystring;
+    Timber::render("woo/tease.twig", $ctx);
 ?>
 </div>

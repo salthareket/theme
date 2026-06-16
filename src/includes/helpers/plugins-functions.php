@@ -508,7 +508,9 @@ function get_map_config($fields = array(), $block_meta = array()) {
             $location_data[] = $data;
         }
     } elseif ($map_type == "dynamic" && !empty($settings['posts'])) {
-        foreach ($settings['posts']->to_array() as $item) {
+        // V3 block fetch'te posts ham array gelebilir, Timber Collection da olabilir
+        $posts_array = is_array($settings['posts']) ? $settings['posts'] : $settings['posts']->to_array();
+        foreach ($posts_array as $item) {
             $map_data = $item->get_map_data();
             if (!empty($map_data)) $location_data[] = $map_data;
         }
@@ -675,8 +677,13 @@ function lightGallerySource($fields) {
             }
         } else {
             // Image türündeki öğeler
-            $image = Timber::get_image($item["id"]);
-            $image_class = $image->get_focal_point_class();
+
+            if(is_external($item["url"])){
+            	$image_class = "";
+            }else{
+            	$image = !empty($item["id"]) ? Timber::get_image($item["id"]) : null;
+            	$image_class = ($image && method_exists($image, 'get_focal_point_class')) ? $image->get_focal_point_class() : "";
+            }
             $sources[] = [
             	"id"        => $item["id"],
             	"type"      => $item["type"],

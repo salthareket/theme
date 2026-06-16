@@ -1,0 +1,23 @@
+{
+    "name": "acf/slider-advanced",
+    "title": "Slider Advanced",
+    "description": "Gelişmiş Swiper slider — çoklu layout, efekt ve breakpoint desteği ile",
+    "category": "saltblocks",
+    "icon": "slides",
+    "keywords": ["slider", "swiper", "advanced", "gelişmiş", "carousel", "image", "video", "parallax"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Slider Advanced Düzenle"
+    }
+}

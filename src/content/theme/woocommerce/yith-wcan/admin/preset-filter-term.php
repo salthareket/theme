@@ -13,7 +13,6 @@
  * @var $id           int
  * @var $term         WP_Term
  * @var $term_id      int
- * @var $term_name    string
  * @var $term_options array
  * @var $taxonomy     string
  */
@@ -24,7 +23,7 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 ?>
 
 <div id="term_<?php echo esc_attr( $id ); ?>_<?php echo esc_attr( $term_id ); ?>" class="term-box" data-term_id="<?php echo esc_attr( $term_id ); ?>">
-	<h4><?php echo esc_html( $term_name ); ?></h4>
+	<h4><?php echo esc_html( $term_options['name'] ); ?></h4>
 
 	<p class="yith-plugin-fw-field-wrapper yith-plugin-fw-text-field-wrapper term-label">
 		<label for="filters_<?php echo esc_attr( $id ); ?>_terms_<?php echo esc_attr( $term_id ); ?>_label"><?php echo esc_html_x( 'Label', '[Admin] Term edit field label (preset edit page)', 'yith-woocommerce-ajax-navigation' ); ?></label>

@@ -48,7 +48,17 @@ $fields    = YITH_WCAN_Preset::get_fields();
 				</div>
 			<?php endif; ?>
 
-			<?php do_action( 'yith_wcan_preset_edit_before_title', $preset_id, $preset ); ?>
+			<?php
+			/**
+			 * DO_ACTION: yith_wcan_preset_edit_before_title
+			 *
+			 * Triggered before preset title, in edit view.
+			 *
+			 * @param int              $preset_id Preset id.
+			 * @param YITH_WCAN_Preset $preset    Preset object.
+			 */
+			do_action( 'yith_wcan_preset_edit_before_title', $preset_id, $preset );
+			?>
 
 			<?php if ( ! empty( $fields ) ) : ?>
 				<table class="form-table">
@@ -83,11 +93,31 @@ $fields    = YITH_WCAN_Preset::get_fields();
 			</table>
 			<?php endif; ?>
 
-			<?php do_action( 'yith_wcan_preset_edit_before_filters', $preset_id, $preset ); ?>
+			<?php
+			/**
+			 * DO_ACTION: yith_wcan_preset_edit_before_filters
+			 *
+			 * Triggered before preset filters, in edit view.
+			 *
+			 * @param int              $preset_id Preset id.
+			 * @param YITH_WCAN_Preset $preset    Preset object.
+			 */
+			do_action( 'yith_wcan_preset_edit_before_filters', $preset_id, $preset );
+			?>
 
 			<?php require YITH_WCAN_DIR . 'templates/admin/preset-filters.php'; ?>
 
-			<?php do_action( 'yith_wcan_preset_edit_after_filters', $preset_id, $preset ); ?>
+			<?php
+			/**
+			 * DO_ACTION: yith_wcan_preset_edit_after_filters
+			 *
+			 * Triggered after preset filters, in edit view.
+			 *
+			 * @param int              $preset_id Preset id.
+			 * @param YITH_WCAN_Preset $preset    Preset object.
+			 */
+			do_action( 'yith_wcan_preset_edit_after_filters', $preset_id, $preset );
+			?>
 
 			<p class="submit">
 				<input type="submit" id="submit" class="button button-primary" value="<?php echo esc_attr_x( 'Save preset', '[Admin] Preset save button, in new/edit preset page', 'yith-woocommerce-ajax-navigation' ); ?>"/>

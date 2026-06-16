@@ -1,0 +1,22 @@
+{
+    "name": "acf/image",
+    "title": "Image",
+    "description": "Gorsel block — responsive srcset, lazy load ve lightbox destegi",
+    "category": "saltblocks",
+    "icon": "format-image",
+    "keywords": ["image", "gorsel", "foto", "photo", "picture", "responsive"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Image Duzenle"
+    }
+}

@@ -27,6 +27,19 @@ if($breakpoints){
     Data::merge("breakpoints", $breakpoints);
 }
 
+// My Account Links — init oncesi set edilmeli (salt_my_account_links dosya yuklenirken cagriliyor)
+$my_account_links = array(
+   "profile" => array(
+        "roles" => array(),
+        "title" => trans("Your account is not activated"),
+        "description" => trans("Your account is not activated"),
+        "menu" => "Profile"
+    ),
+);
+if($my_account_links){
+    Data::merge("my_account_links", $my_account_links);
+}
+
 if(Data::get("plugins")){
     $required_plugins = array(
         // set plugins in here
@@ -232,18 +245,6 @@ add_filter("init", function(){
         Data::merge("base_urls", $base_urls);
     }
 
-
-    $my_account_links = array(
-       "profile" => array(
-            "roles" => array(),
-            "title" => trans("Your account is not activated"),
-            "description" => trans("Your account is not activated"),
-            "menu" => "Profile"
-        ),
-    );
-    if($my_account_links){
-        Data::merge("my_account_links", $my_account_links);
-    }
 
     $sitemap_exclude_post_ids = array();
     if($sitemap_exclude_post_ids){

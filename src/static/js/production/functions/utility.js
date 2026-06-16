@@ -1,9 +1,59 @@
-function debugJS(value){
-    const config = typeof site_config !== 'undefined' ? site_config : {};
-    
-    if (config.debug === true) {
-        console.log(value);
+/**
+ * Salt Logger — site_config.debug === true olmadıkça sessiz kalır.
+ *
+ * Kullanım:
+ *   log('mesaj')               → console.log
+ *   log('mesaj', 'warn')       → console.warn
+ *   log('mesaj', 'error')      → console.error  (debug false olsa bile çıkar)
+ *   log('mesaj', 'info')       → console.info
+ *   log('label', data, 'group')→ console.group + log + groupEnd
+ *   log.table(data)            → console.table
+ *   log.time('label')          → console.time
+ *   log.timeEnd('label')       → console.timeEnd
+ *
+ * Geriye dönük uyumluluk: debugJS() hâlâ çalışır.
+ */
+const log = (function () {
+    const _isDebug = () => typeof site_config !== 'undefined' && site_config.debug === true;
+    const _prefix  = '[Salt]';
+
+    function _log(value, level = 'log') {
+        // error her zaman çıkar (debug false olsa bile)
+        if (!_isDebug() && level !== 'error') return;
+
+        switch (level) {
+            case 'warn':  console.warn(_prefix, value);  break;
+            case 'error': console.error(_prefix, value); break;
+            case 'info':  console.info(_prefix, value);  break;
+            case 'group':
+                console.group(_prefix);
+                console.log(value);
+                console.groupEnd();
+                break;
+            default:      console.log(_prefix, value);   break;
+        }
     }
+
+    // Ana fonksiyon: log(value, level?)
+    function logger(value, level = 'log') {
+        _log(value, level);
+    }
+
+    // Kısa yollar
+    logger.warn    = (v) => _log(v, 'warn');
+    logger.error   = (v) => _log(v, 'error');
+    logger.info    = (v) => _log(v, 'info');
+    logger.group   = (v) => _log(v, 'group');
+    logger.table   = (v) => { if (_isDebug()) console.table(v); };
+    logger.time    = (l) => { if (_isDebug()) console.time(l); };
+    logger.timeEnd = (l) => { if (_isDebug()) console.timeEnd(l); };
+
+    return logger;
+})();
+
+// Geriye dönük uyumluluk — eski debugJS() çağrıları kırılmasın
+function debugJS(value) {
+    log(value);
 }
 
 (function ($) {
@@ -84,25 +134,27 @@ function onClassChange($obj, $class, $callback){
 	});
 }
 
-const BrowserDetect = {
-    browser: "Unknown",
-    version: "Unknown",
-    OS: "Unknown",
-    init: function() {
-        const ua = navigator.userAgent;
-        const platform = navigator.platform;
+// Guard: YITH gibi eklentiler JS'i tekrar inject edince redeclaration önle
+if (typeof BrowserDetect === 'undefined') {
+    var BrowserDetect = {
+        browser: "Unknown",
+        version: "Unknown",
+        OS: "Unknown",
+        init: function() {
+            const ua = navigator.userAgent;
+            const platform = navigator.platform;
 
-        // Browser detection (modern, hızlı)
-        if (/Edg\/\d+/.test(ua)) this.browser = "Edge";
-        else if (/OPR\/\d+/.test(ua)) this.browser = "Opera";
-        else if (/Chrome\/\d+/.test(ua)) this.browser = "Chrome";
-        else if (/Firefox\/\d+/.test(ua)) this.browser = "Firefox";
-        else if (/Safari\/\d+/.test(ua) && !/Chrome/.test(ua)) this.browser = "Safari";
-        else if (/MSIE|Trident/.test(ua)) this.browser = "IE";
+            // Browser detection (modern, hızlı)
+            if (/Edg\/\d+/.test(ua)) this.browser = "Edge";
+            else if (/OPR\/\d+/.test(ua)) this.browser = "Opera";
+            else if (/Chrome\/\d+/.test(ua)) this.browser = "Chrome";
+            else if (/Firefox\/\d+/.test(ua)) this.browser = "Firefox";
+            else if (/Safari\/\d+/.test(ua) && !/Chrome/.test(ua)) this.browser = "Safari";
+            else if (/MSIE|Trident/.test(ua)) this.browser = "IE";
 
-        // Browser version detection
-        const versionMatch = ua.match(/(Edg|OPR|Chrome|Firefox|Safari|MSIE|rv:)\D*(\d+(\.\d+)?)/);
-        if(versionMatch) this.version = parseFloat(versionMatch[2]);
+            // Browser version detection
+            const versionMatch = ua.match(/(Edg|OPR|Chrome|Firefox|Safari|MSIE|rv:)\D*(\d+(\.\d+)?)/);
+            if(versionMatch) this.version = parseFloat(versionMatch[2]);
 
         // OS detection (basit ve hızlı)
         if (/Win/i.test(platform)) this.OS = "Windows";
@@ -114,7 +166,9 @@ const BrowserDetect = {
         return this;
     }
 };
-const isMobile = {
+}
+if (typeof isMobile === 'undefined') {
+    var isMobile = {
     Android: () => /Android/i.test(navigator.userAgent),
     iOS: () => /iPhone|iPad|iPod/i.test(navigator.userAgent),
     Opera: () => /Opera Mini/i.test(navigator.userAgent),
@@ -127,6 +181,7 @@ const isMobile = {
         return "";
     }
 };
+}
 var observeDOM = (function(){
 	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 	return function( obj, callback ){
@@ -597,7 +652,7 @@ function ajaxResponseFilter(input) {
   })();
 
   if (start === -1) {
-    console.error("Geçerli JSON başlangıcı bulunamadı.");
+    log("Geçerli JSON başlangıcı bulunamadı.", 'error');
     return null;
   }
 
@@ -635,7 +690,7 @@ function ajaxResponseFilter(input) {
   }
 
   if (end === -1) {
-    console.error("JSON kapanış parantezi bulunamadı.");
+    log("JSON kapanış parantezi bulunamadı.", 'error');
     return null;
   }
 
@@ -644,7 +699,7 @@ function ajaxResponseFilter(input) {
   try {
     return JSON.parse(possibleJson);
   } catch (e) {
-    console.error("JSON parse hatası:", e, "\nKesit:", possibleJson);
+    log("JSON parse hatası: " + e + "\nKesit: " + possibleJson, 'error');
     return null;
   }
 }
@@ -750,3 +805,111 @@ var waiting_init = {
         this.elements = [];
     }
 };
+
+
+/* =====================================================================
+ * $.fn.inViewport / onEnterViewport / onLeaveViewport / observeViewport
+ *
+ * @version    1.0.0
+ * @since      2026-04-21
+ * @replaces   is-in-viewport npm plugin + $.expr.pseudos ':in-viewport' (jQuery 4'te yok)
+ * @engine     IntersectionObserver (native, scroll event yok)
+ * ===================================================================== */
+(function($) {
+    'use strict';
+
+    // Sync anlık kontrol - getBoundingClientRect kullanır
+    $.fn.inViewport = function(options) {
+        var opts = $.extend({ threshold: 0, offset: 0 }, options);
+        var el = this[0];
+        if (!el) return false;
+
+        var rect = el.getBoundingClientRect();
+        var wh   = window.innerHeight || document.documentElement.clientHeight;
+        var ww   = window.innerWidth  || document.documentElement.clientWidth;
+
+        if (opts.threshold > 0) {
+            var visibleHeight = Math.min(rect.bottom, wh) - Math.max(rect.top, 0);
+            var visibleWidth  = Math.min(rect.right, ww)  - Math.max(rect.left, 0);
+            if (visibleHeight <= 0 || visibleWidth <= 0) return false;
+            return (visibleHeight * visibleWidth) / (rect.height * rect.width) >= opts.threshold;
+        }
+
+        return (
+            rect.bottom > -opts.offset && rect.top  < wh + opts.offset &&
+            rect.right  > -opts.offset && rect.left < ww + opts.offset
+        );
+    };
+
+    // Viewport'a girince callback
+    $.fn.onEnterViewport = function(callback, options) {
+        var opts = $.extend({ once: false, threshold: 0.1, rootMargin: '0px' }, options);
+        return this.each(function() {
+            var el = this;
+            var obs = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        callback.call(el, entry);
+                        if (opts.once) obs.unobserve(el);
+                    }
+                });
+            }, { threshold: opts.threshold, rootMargin: opts.rootMargin });
+            obs.observe(el);
+            $(el).data('_io_enter', obs);
+        });
+    };
+
+    // Viewport'tan çıkınca callback
+    $.fn.onLeaveViewport = function(callback, options) {
+        var opts = $.extend({ once: false, threshold: 0.1, rootMargin: '0px' }, options);
+        return this.each(function() {
+            var el = this;
+            var entered = false;
+            var obs = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting)  { entered = true; }
+                    else if (entered) {
+                        callback.call(el, entry);
+                        if (opts.once) obs.unobserve(el);
+                    }
+                });
+            }, { threshold: opts.threshold, rootMargin: opts.rootMargin });
+            obs.observe(el);
+            $(el).data('_io_leave', obs);
+        });
+    };
+
+    // Enter + Leave birlikte
+    $.fn.observeViewport = function(onEnter, onLeave, options) {
+        var opts = $.extend({ threshold: 0.1, rootMargin: '0px' }, options);
+        return this.each(function() {
+            var el = this;
+            var entered = false;
+            var obs = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entered = true;
+                        if (typeof onEnter === 'function') onEnter.call(el, entry);
+                    } else if (entered) {
+                        if (typeof onLeave === 'function') onLeave.call(el, entry);
+                    }
+                });
+            }, { threshold: opts.threshold, rootMargin: opts.rootMargin });
+            obs.observe(el);
+            $(el).data('_io_observe', obs);
+        });
+    };
+
+    // Observer'ı durdur ve temizle
+    $.fn.unobserveViewport = function() {
+        return this.each(function() {
+            var el = this;
+            var $el = $(el);
+            ['_io_enter', '_io_leave', '_io_observe'].forEach(function(key) {
+                var obs = $el.data(key);
+                if (obs) { obs.unobserve(el); obs.disconnect(); $el.removeData(key); }
+            });
+        });
+    };
+
+})(jQuery);

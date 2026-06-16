@@ -10,9 +10,10 @@
 /**
  * Variables available for this template:
  *
- * @var $preset    bool|YITH_WCAN_Preset
- * @var $filter    YITH_WCAN_Filter
- * @var $filter_id int
+ * @var $preset     bool|YITH_WCAN_Preset
+ * @var $filter     YITH_WCAN_Filter
+ * @var $filter_id  int
+ * @var $filter_key int
  */
 
 if ( ! defined( 'YITH_WCAN' ) ) {
@@ -20,7 +21,7 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 } // Exit if accessed directly
 ?>
 
-<div id="filter_<?php echo esc_attr( $filter_id ); ?>" class="yith-toggle-row ui-sortable-handle" data-item_key="<?php echo esc_attr( $filter_id ); ?>">
+<div id="filter_<?php echo esc_attr( $filter_id ); ?>" class="filter-row ui-sortable-handle" data-item_key="<?php echo esc_attr( $filter_key ); ?>">
 	<div class="yith-toggle-title">
 		<i class="title-arrow yith-icon yith-icon-arrow-right-alt"></i>
 		<h3 class="title">
@@ -34,19 +35,21 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 				}
 				?>
 		</h3>
-		<?php
-		yith_plugin_fw_get_field(
-			array(
-				'id'    => "filters_{$filter_id}_enabled",
-				'name'  => "filters[{$filter_id}][enabled]",
-				'value' => $filter->is_enabled() ? 'yes' : 'no',
-				'type'  => 'onoff',
-			),
-			true
-		);
-		?>
-		<span class="show-on-hover delete yith-icon-trash"></span>
-		<span class="show-on-hover clone yith-icon-clone"></span>
+		<div class="filter-actions">
+			<span class="show-on-hover delete yith-icon-trash"></span>
+			<span class="show-on-hover clone yith-icon-clone"></span>
+			<?php
+			yith_plugin_fw_get_field(
+				array(
+					'id'    => "filters_{$filter_id}_enabled",
+					'name'  => "filters[{$filter_id}][enabled]",
+					'value' => $filter->is_enabled() ? 'yes' : 'no',
+					'type'  => 'onoff',
+				),
+				true
+			);
+			?>
+		</div>
 	</div>
 	<div class="yith-toggle-content">
 		<?php
@@ -64,7 +67,7 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 						'id'     => $field_id,
 						'name'   => $field_name,
 						'filter' => $filter,
-						'value'  => method_exists( $filter, "get_{$field_slug}" ) ? $filter->{"get_{$field_slug}"}() : '',
+						'value'  => method_exists( $filter, "get_{$field_slug}" ) ? $filter->{"get_{$field_slug}"}( 'edit' ) : '',
 					)
 				);
 

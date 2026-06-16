@@ -1,0 +1,108 @@
+// ─────────────────────────────────────────────────────────────
+// MODAL
+// BS5 uyumlu - fullscreen class'ları .modal-dialog üzerinde
+// modal-fullscreen, modal-fullscreen-sm-down, modal-fullscreen-md-down vb.
+// ─────────────────────────────────────────────────────────────
+
+.modal {
+    .modal-dialog {
+        .modal-content {
+            .modal-header {
+                border-bottom: none;
+                padding: 25px 30px;
+                flex-wrap: wrap;
+                .modal-title {
+                    font-family: var(--font-primary);
+                    flex: 1;
+                }
+                .close { font-size: 32px; opacity: 1; }
+            }
+            .modal-body {
+                padding: 30px;
+                iframe { width: 100%; height: 100%; }
+            }
+            .modal-footer { padding: 30px; }
+        }
+    }
+
+    &.modal-confirm .modal-dialog .modal-content .modal-footer {
+        flex-direction: row-reverse;
+        justify-content: flex-start;
+    }
+
+    &.bootbox .modal-dialog .modal-content .modal-header {
+        align-items: start;
+        .close { font-size: 24px; opacity: 1; }
+    }
+
+    &.modal-map .modal-dialog .modal-content .modal-body {
+        padding: 0;
+        .map-google {
+            height: calc(100vh - 140px);
+            @include media-breakpoint-down(lg) { height: calc(100vh - 80px); }
+        }
+    }
+
+    &.modal-map.loading .modal-dialog .modal-content { min-height: 150px; }
+
+    &.modal-scrollable .modal-dialog .modal-content .modal-body {
+        height: calc(100vh - 210px);
+        overflow-y: auto;
+        @include media-breakpoint-down(md) { height: calc(100vh - 140px); }
+    }
+}
+
+// ── Fullscreen modal overrides (BS5: class .modal-dialog üzerinde) ────────────
+// .modal-fullscreen, .modal-fullscreen-sm-down, .modal-fullscreen-md-down vb.
+.modal-dialog[class*="modal-fullscreen"] {
+    .modal-content {
+        border: none !important;
+        border-radius: 0;
+        .modal-header {
+            border-radius: 0;
+            padding: 20px 25px;
+            .modal-title { margin: 0; }
+        }
+    }
+
+    // Container'lar tam genişlik almalı
+    [class*="container"] {
+        max-width: 100% !important;
+        width: 100%;
+    }
+}
+
+// ── Container width fix inside non-fullscreen modals ─────────
+// Prevents container overflow when modal is smaller than container max-width
+.modal-dialog:not([class*="modal-fullscreen"]) {
+    [class*="container"]:not(.container-fluid) {
+        max-width: var(--modal-content-width, 100%) !important;
+        width: 100%;
+    }
+
+    &.modal-sm  { --modal-content-width: calc(300px  - 76px); }
+    &.modal-md  { --modal-content-width: calc(500px  - 76px); }
+    &.modal-lg  { --modal-content-width: calc(800px  - 76px); }
+    &.modal-xl  { --modal-content-width: calc(1140px - 76px); }
+
+    &.modal-xxl {
+        @include media-breakpoint-up(md)  { --modal-content-width: calc(800px  - 76px); }
+        @include media-breakpoint-up(xl)  { --modal-content-width: calc(1140px - 76px); }
+        @include media-breakpoint-up(xxxl){ --modal-content-width: calc(1540px - 76px); }
+    }
+
+    &:not(.modal-sm):not(.modal-md):not(.modal-lg):not(.modal-xl):not(.modal-xxl) {
+        --modal-content-width: calc(500px - 76px);
+        @include media-breakpoint-up(lg) { --modal-content-width: calc(800px - 76px); }
+    }
+}
+
+// ── modal-xxl breakpoints ─────────────────────────────────────
+.modal-xxl {
+    @include media-breakpoint-up(md)   { max-width: 800px; }
+    @include media-breakpoint-up(xl)   { max-width: 1140px; }
+    @include media-breakpoint-up(xxxl) { max-width: 1540px; }
+}
+
+// ── Alert modal ───────────────────────────────────────────────
+.modal-alert.modal-alert-textless .modal-body { display: none; }

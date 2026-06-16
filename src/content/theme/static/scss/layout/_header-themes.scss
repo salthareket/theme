@@ -1,0 +1,37 @@
+// ─────────────────────────────────────────────────────────────
+// HEADER THEMES
+// headerTheme mixin → vendor/salthareket/theme/src/static/data/header-theme.scss
+// button-variant/outline-variant → Bootstrap (1-frameworks/_index.scss)
+// ─────────────────────────────────────────────────────────────
+
+// Default: hero olmayan sayfalarda header renkleri
+body:not(.menu-open):not(.menu-show-header) {
+    @include headerTheme(
+        $color:           #293a44,
+        $colorActive:     #293a44,
+        $bgColor:         null,
+        $logo:            #ffffff,
+        $colorAffix:      #293a44,
+        $colorAffixActive: #293a44,
+        $bgColorAffix:    #ffffff,
+        $logoAffix:       null,
+        $z_index:         5,
+        $btnAffixReverse: false
+    );
+}
+
+// Light theme override
+.light-theme:not(.menu-open):not(.menu-show-header) {
+    @include headerTheme(
+        $color:           #ffffff,
+        $colorActive:     #ffffff,
+        $bgColor:         null,
+        $logo:            #ffffff,
+        $colorAffix:      #293a44,
+        $colorAffixActive: #293a44,
+        $bgColorAffix:    #ffffff,
+        $logoAffix:       #293a44,
+        $z_index:         5,
+        $btnAffixReverse: false
+    );
+}

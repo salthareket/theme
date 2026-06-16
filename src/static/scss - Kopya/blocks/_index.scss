@@ -1,0 +1,27 @@
+@import 'text-image';
+@import "slider";
+@import "icon-list";
+@import "map";
+@import "milestones";
+@import "hero";
+@import "text";
+@import "table-extended";
+
+
+.wp-block {
+    &[data-align] {
+        float: none;
+        position: relative;
+        height: auto;
+        >* {
+            float: none;
+            margin-right: auto;
+        }
+    }
+}
+
+.block--hero{
+	&.block-video{
+		padding-top:0px!important;
+	}
+}

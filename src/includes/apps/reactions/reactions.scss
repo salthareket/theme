@@ -1,0 +1,143 @@
+/**
+ * SaltReactions — Styles
+ *
+ * @version 1.0.0
+ */
+
+// ─── BASE BUTTON ─────────────────────────────────────────
+
+.salt-reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: inherit;
+  line-height: 1;
+  color: inherit;
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  // Pop animation on activate
+  &.is-active i {
+    animation: salt-reaction-pop 0.25s ease;
+  }
+
+  i {
+    font-size: 1em;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .salt-reaction-count {
+    font-size: 0.85em;
+    font-weight: 600;
+    min-width: 1ch;
+    pointer-events: none;
+  }
+
+  .salt-reaction-label {
+    font-size: 0.9em;
+    pointer-events: none;
+  }
+}
+
+// ─── STYLES ──────────────────────────────────────────────
+
+// icon-only: just the icon, no extra padding
+.salt-reaction--icon-only {
+  padding: 4px;
+}
+
+// icon-count: icon + number
+.salt-reaction--icon-count {
+  // default
+}
+
+// icon-text: icon + label
+.salt-reaction--icon-text {
+  // default
+}
+
+// text-only: no icon
+.salt-reaction--text-only {
+  i { display: none; }
+}
+
+// pill: bordered button, fills on active
+.salt-reaction--pill {
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  padding: 4px 12px;
+
+  .salt-reaction-pill-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 2px 4px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  &.is-active {
+    border-color: transparent;
+  }
+}
+
+// ─── ACTIVE STATE ────────────────────────────────────────
+
+// Each reaction type gets its active color via CSS custom property
+// set by the JS from data-reaction-color
+.salt-reaction-btn.is-active {
+  // Color is applied inline via JS for flexibility
+  // But we can add a subtle scale
+  i {
+    transform: scale(1.1);
+  }
+}
+
+// ─── ANIMATION ───────────────────────────────────────────
+
+@keyframes salt-reaction-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+// ─── CUMULATIVE MODE ─────────────────────────────────────
+
+// Limit dolunca titreme
+@keyframes shReactionShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+.salt-reaction--limit {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+// Cumulative buton — limit dolunca disabled gorunum
+.salt-reaction-btn[data-reaction-mode="cumulative"] {
+  &.is-active {
+    // Aktif renk JS tarafindan inline olarak uygulanir
+  }
+}

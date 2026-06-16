@@ -1,0 +1,92 @@
+{#
+    My-account review item — ajax-paginate ile listelenir.
+    review           : WP_Comment | Timber\Comment
+    reviews_criteria : array  — aktif kriterler (post type bazlı)
+#}
+
+{% set rating          = review.meta('rating')|default(0)|number_format(0) %}
+{% set verified        = review.meta('verified') %}
+{% set title           = review.meta('comment_title') %}
+{% set criteria_ratings = review.meta('criteria_ratings') %}
+{% set has_criteria    = reviews_criteria is not empty and criteria_ratings is not empty %}
+{% set post            = function('get_post', review.comment_post_ID) %}
+
+<div class="list-group-item review-item infinite-item {% if review.comment_approved != '1' %}review-pending{% endif %}"
+     data-type="reviews"
+     data-id="{{ review.ID }}">
+    <div class="review-item-inner py-3">
+
+        {# ── Üst satır: Sol = Yıldız + Ortalama, Sağ = Tarih ── #}
+        <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+
+            {# Sol: Genel puan (yıldız + sayı) #}
+            <div class="d-flex align-items-center gap-2">
+                <span class="review-stars text-warning fs-6">
+                    {% for i in 1..5 %}{{ i <= rating ? '★' : '☆' }}{% endfor %}
+                </span>
+                <span class="review-score fw-600" style="font-size:14px;color:#374151">
+                    {{ rating }}/5
+                    {% if has_criteria %}
+                        <small class="text-muted fw-normal" style="font-size:11px">{{ "ort."|trans }}</small>
+                    {% endif %}
+                </span>
+                {% if verified %}
+                    <span class="badge bg-success-subtle text-success" style="font-size:10px">✓ {{ "Doğrulanmış"|trans }}</span>
+                {% endif %}
+                {% if review.comment_approved != '1' %}
+                    <span class="badge bg-warning text-dark" style="font-size:10px">{{ "Onay Bekliyor"|trans }}</span>
+                {% endif %}
+            </div>
+
+            {# Sağ: Kriter puanları (varsa) + Tarih #}
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                {% if has_criteria %}
+                    <div class="review-criteria-scores d-flex gap-2 flex-wrap">
+                        {% for criterion in reviews_criteria %}
+                            {% set cval = criteria_ratings[criterion.key] ?? 0 %}
+                            {% if cval > 0 %}
+                            <span class="review-criterion-badge" title="{{ criterion.label }}">
+                                <span class="criterion-label text-muted" style="font-size:11px">{{ criterion.label }}</span>
+                                <span class="criterion-score fw-600" style="font-size:12px;color:#2271b1">{{ cval }}</span>
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <small class="text-muted" style="font-size:12px;white-space:nowrap">
+                    {{ review.comment_date|date('d M Y') }}
+                </small>
+            </div>
+        </div>
+
+        {# ── Başlık ── #}
+        {% if title %}
+            <strong class="d-block mb-1" style="font-size:13px">{{ title }}</strong>
+        {% endif %}
+
+        {# ── İçerik ── #}
+        <p class="mb-2" style="font-size:13px;color:#374151;line-height:1.5">
+            {{ review.comment_content }}
+        </p>
+
+        {# ── Post linki ── #}
+        {% if post %}
+            <small class="text-muted">
+                <i class="far fa-file-alt me-1"></i>
+                <a href="{{ function('get_permalink', post.ID) }}" class="text-reset">
+                    {{ post.post_title }}
+                </a>
+            </small>
+        {% endif %}
+
+    </div>
+</div>
+
+<style>
+.review-item{border-bottom:1px solid #f0f0f1}
+.review-item:last-child{border-bottom:none}
+.review-item-inner{padding:12px 0}
+.review-stars{letter-spacing:1px}
+.review-criterion-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#f0f0f1;border-radius:20px}
+.review-pending{opacity:.75;background:#fef9c3}
+</style>

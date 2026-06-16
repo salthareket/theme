@@ -1,0 +1,154 @@
+// ─────────────────────────────────────────────────────────────
+// TABLE
+// ─────────────────────────────────────────────────────────────
+
+.table {
+    tr {
+        // Fixed-width column helpers
+        th.col-fixed, td.col-fixed { width: 1%; }
+        th.col-fit,   td.col-fit   { white-space: pre; min-width: 200px; }
+        th.col-image, td.col-image { width: 150px; max-width: 150px; min-width: 100px; }
+        th.col-field-xs, td.col-field-xs { width: 50px;  max-width: 50px;  min-width: 50px; }
+        th.col-field-sm, td.col-field-sm { width: 100px; max-width: 100px; min-width: 100px; }
+        th.col-field-md, td.col-field-md { width: 150px; max-width: 150px; min-width: 150px; }
+        th.col-field-lg, td.col-field-lg { width: 180px; max-width: 180px; min-width: 180px; }
+        td { vertical-align: middle; }
+    }
+
+    // ── List table ────────────────────────────────────────────
+    &.table-list {
+        > thead > tr th,
+        > thead > tr td {
+            vertical-align: middle;
+            border-top: none !important;
+            a { display: inline-block; vertical-align: middle; }
+            .icon { font-size: 20px; color: #333; margin-left: 5px; }
+        }
+        > tbody > tr > td { padding-left: 15px; padding-right: 15px; }
+
+        // Mobile: stacked rows
+        @include media-breakpoint-down(md) {
+            display: inline-block;
+            width: 100%;
+            > thead { display: none; }
+            > tbody,
+            > tbody > tr,
+            > tbody > tr > td { display: inline-block; width: 100%; border: none; }
+            > tbody > tr {
+                border: none;
+                background-color: transparent !important;
+                > td {
+                    background-color: transparent !important;
+                    min-height: 30px;
+                    &:first-child { padding: 15px 15px 5px; font-weight: 600; }
+                    &:last-child  { padding: 0 15px 15px; }
+                }
+                &:not(:last-child) { border-bottom: 1px solid #ddd; }
+            }
+        }
+    }
+
+    // ── Module table ──────────────────────────────────────────
+    &.table-module {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #666;
+
+        thead tr { color: #111; font-size: 16px; th { border: none; } }
+        tbody {
+            font-size: 14px;
+            th { vertical-align: middle; }
+            tr:first-child td { border-top: none; }
+        }
+
+        &.table-module-shadow { box-shadow: 0 2px 5px 0 rgba(19, 41, 104, .2); }
+        &.table-module-border { border: 1px solid #ddd; }
+
+        &.table-striped tbody tr td {
+            padding: 8px 18px;
+            &:first-child { border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+            &:last-child  { border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+        }
+
+        &.table-bordered-vertical {
+            border-collapse: separate;
+            border-spacing: 0;
+            th, td {
+                border-top: none;
+                border-bottom: none;
+                border-right: 2px dashed #999;
+                &:first-child { border-left: none; }
+                &:last-child  { border-right: none; }
+            }
+        }
+    }
+}
+
+// ── Responsive table ──────────────────────────────────────────
+.table-responsive {
+    padding: 0;
+    @include media-breakpoint-down(md) { border: 1px solid #ddd; }
+}
+
+// Responsive stacked table (data-label based)
+@include media-breakpoint-down(md) {
+    table.table-responsive {
+        border: 0;
+        caption { font-size: 16px; }
+        thead {
+            border: none;
+            clip: rect(0 0 0 0);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            width: 1px;
+        }
+        tr { border-bottom: 3px solid #ddd; display: block; margin-bottom: .625em; }
+        td {
+            border-bottom: 1px solid #ddd;
+            display: block;
+            font-size: 14px;
+            text-align: right;
+            &:before { content: attr(data-label); float: left; font-weight: bold; text-transform: uppercase; }
+            &:last-child { border-bottom: 0; }
+        }
+    }
+}
+
+// ── Fixed column (mobile only) ────────────────────────────────
+.table-static-column.fixed-column {
+    position: absolute;
+    display: inline-block;
+    width: auto;
+    border-right: 1px solid #ddd;
+    z-index: 1;
+    background-color: #fff;
+
+    @include media-breakpoint-up(md) { display: none; }
+}
+
+// ── Responsive stack breakpoints ─────────────────────────────
+@include media-breakpoint-down(sm) { .table-responsive-stack-sm { --stack-active: 1; } }
+@include media-breakpoint-down(md) { .table-responsive-stack-md { --stack-active: 1; } }
+@include media-breakpoint-down(lg) { .table-responsive-stack-lg { --stack-active: 1; } }
+@include media-breakpoint-down(xl) { .table-responsive-stack-xl { --stack-active: 1; } }
+
+@include media-breakpoint-down(lg) {
+    .table-responsive-stack-lg,
+    .table-responsive-stack-auto.is-stacked {
+        display: block;
+        thead { display: none; }
+        tr { display: block; border: 1px solid #eee; margin-bottom: 15px; }
+        td {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #f4f4f4;
+            &:before { content: attr(data-label); font-weight: bold; }
+        }
+    }
+}

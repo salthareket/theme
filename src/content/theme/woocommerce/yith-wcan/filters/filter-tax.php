@@ -20,20 +20,7 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 } // Exit if accessed directly
 ?>
 
-<?php 
-global $wp_query;
-$taxonomy = "";
-if(isset($wp_query->query_vars['taxonomy'])){
-	$taxonomy = $wp_query->query_vars['taxonomy'];	
-}
-$show_filter = true;
-if(is_product_category()){
-    if($filter->get_formatted_taxonomy() == $taxonomy ){
-   	    $show_filter = false;
-   	}
-}
 
-if( $show_filter ){ ?>
 <div
 	class="yith-wcan-filter <?php echo esc_attr( $filter->get_additional_classes() ); ?>"
 	id="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>"
@@ -55,8 +42,11 @@ if( $show_filter ){ ?>
 		?>
 
 		<?php echo $filter->render_end(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+		<?php if ( $filter->has_more_terms() && 'select' !== $filter->get_filter_design() ) : ?>
+			<a class="show-more" role="button">
+				<?php echo esc_html( apply_filters( 'yith_wcan_show_more_terms_text', _x( 'Show more', '[FRONTEND] Show more link on tax filters', 'yith-woocommerce-ajax-navigation' ) ) ); ?>
+			</a>
+		<?php endif; ?>
 	</div>
 </div>
-<?php 
-}
-?>

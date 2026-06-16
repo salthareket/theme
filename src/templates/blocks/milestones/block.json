@@ -1,0 +1,23 @@
+{
+    "name": "acf/milestones",
+    "title": "Milestones",
+    "description": "Zaman cizelgesi ve kilometre taslari — dikey/yatay layout destegi",
+    "category": "saltblocks",
+    "icon": "flag",
+    "keywords": ["milestone", "timeline", "zaman", "cizelge", "adim", "step", "history"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Milestones Duzenle"
+    }
+}

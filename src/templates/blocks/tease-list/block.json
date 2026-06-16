@@ -1,0 +1,22 @@
+{
+    "name": "acf/tease-list",
+    "title": "Tease List",
+    "description": "Seçili post tiplerini veya belirli postları kart/liste/slider olarak gösterir",
+    "category": "saltblocks",
+    "icon": "list-view",
+    "keywords": ["tease", "post", "list", "card", "kart", "slider", "loop", "query", "posts"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Tease List Düzenle"
+    }
+}

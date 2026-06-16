@@ -1,0 +1,23 @@
+{
+    "name": "acf/hero",
+    "title": "Hero",
+    "description": "Hero block — slider, video ve gorsel arka plan destegi ile",
+    "category": "saltblocks",
+    "icon": "table-row-before",
+    "keywords": ["slider", "gallery", "image", "gorsel", "video", "hero"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Hero Duzenle"
+    }
+}

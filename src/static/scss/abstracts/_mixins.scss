@@ -1,0 +1,177 @@
+// ─────────────────────────────────────────────────────────────
+// MIXINS & FUNCTIONS
+// Compass bağımlılığı yok. Sadece modern CSS.
+// ─────────────────────────────────────────────────────────────
+
+// ── Compass replacement: transition ──────────────────────────
+// Compass'ın @include transition() yerine - vendor prefix üretmez
+@mixin transition($transitions...) {
+    transition: $transitions;
+}
+
+// ── Compass replacement: calc ─────────────────────────────────
+@mixin calc($property, $expression) {
+    #{$property}: calc(#{$expression});
+}
+
+// ── Background helpers ────────────────────────────────────────
+@mixin bg-cover() {
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+}
+
+@mixin bg-contain() {
+    background-repeat: no-repeat !important;
+    background-position: center center;
+    background-size: contain;
+}
+
+// ── Grayscale ─────────────────────────────────────────────────
+@mixin grayscale() {
+    filter: grayscale(100%);
+}
+
+// ── Filter ────────────────────────────────────────────────────
+@mixin filter($filter-type, $filter-amount) {
+    filter: $filter-type + unquote('(#{$filter-amount})');
+}
+
+// ── Ellipsis / line clamp ─────────────────────────────────────
+// -webkit-box hâlâ gerekli (tüm modern browserlar destekler)
+@mixin ellipsis($lineCount: 1) {
+    display: -webkit-box;
+    -webkit-line-clamp: $lineCount;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// ── Absolute fill ─────────────────────────────────────────────
+@mixin absolute-fill($value: 0) {
+    position: absolute !important;
+    inset: $value;
+    width: auto !important;
+    height: auto !important;
+}
+
+// ── Card reset ────────────────────────────────────────────────
+@mixin card-reset() {
+    --#{$prefix}card-spacer-y: 0 !important;
+    --#{$prefix}card-spacer-x: 0 !important;
+    --#{$prefix}card-title-spacer-y: #{$card-title-spacer-y} !important;
+    --#{$prefix}card-border-width: 0 !important;
+    --#{$prefix}card-border-color: transparent !important;
+    --#{$prefix}card-border-radius: 0 !important;
+    --#{$prefix}card-box-shadow: none !important;
+    --#{$prefix}card-inner-border-radius: 0 !important;
+    --#{$prefix}card-cap-padding-y: 0 !important;
+    --#{$prefix}card-cap-padding-x: 0 !important;
+    --#{$prefix}card-cap-bg: transparent !important;
+    --#{$prefix}card-bg: transparent !important;
+}
+
+// ── SVG color ─────────────────────────────────────────────────
+@mixin svgColor($color: white) {
+    @if type-of($color) == 'map' {
+        @each $id, $id_color in $color {
+            ##{$id} {
+                circle[fill]:not([stroke]),
+                path[fill]:not([stroke]),
+                rect[fill]:not([stroke]),
+                polygon[fill]:not([stroke]) { fill: #{$id_color} !important; }
+                circle[stroke],
+                line[stroke],
+                path[stroke],
+                rect[stroke],
+                polygon[stroke] { stroke: #{$id_color} !important; }
+            }
+        }
+    } @else {
+        circle[fill]:not([stroke]),
+        path[fill]:not([stroke]),
+        rect[fill]:not([stroke]),
+        polygon[fill]:not([stroke]) { fill: #{$color} !important; }
+        circle[stroke],
+        line[stroke],
+        path[stroke],
+        rect[stroke],
+        polygon[stroke] { stroke: #{$color} !important; }
+    }
+}
+
+// ── Font Awesome button icon ──────────────────────────────────
+@mixin btnFa($key, $font-weight: 400) {
+    $content: null;
+    $font-var: null;
+    @if map-has-key($fa-icons, $key) {
+        $content: map-get($fa-icons, $key);
+        $font-var: '--icon-font';
+    } @else if map-has-key($fa-brand-icons, $key) {
+        $content: map-get($fa-brand-icons, $key);
+        $font-var: '--icon-font-brands';
+    }
+    @if $content != null and $font-var != null {
+        &:before {
+            content: "#{$content}";
+            font-family: var(#{$font-var});
+            font-weight: $font-weight;
+        }
+    } @else {
+        @warn "Icon `#{$key}` not found in $fa-icons or $fa-brand-icons.";
+    }
+}
+
+// ── Object position ───────────────────────────────────────────
+@mixin object-position($position) {
+    @if      $position == 'top-left'      { object-position: top left; }
+    @else if $position == 'top-center'    { object-position: top center; }
+    @else if $position == 'top-right'     { object-position: top right; }
+    @else if $position == 'bottom-left'   { object-position: bottom left; }
+    @else if $position == 'bottom-center' { object-position: bottom center; }
+    @else if $position == 'bottom-right'  { object-position: bottom right; }
+    @else if $position == 'center-left'   { object-position: center left; }
+    @else if $position == 'center'        { object-position: center; }
+    @else if $position == 'center-right'  { object-position: center right; }
+}
+
+// ── Aspect ratio (legacy - Bootstrap .ratio tercih edilmeli) ──
+@mixin aspect-ratio($width, $height) {
+    position: relative;
+    height: auto;
+    &:before { display: block; content: ""; width: 100%; padding-top: ($height / $width) * 100%; }
+    > * { display: block; position: absolute !important; inset: 0; }
+}
+
+@mixin aspect-ratio-bs-responsive {
+  @each $ratio-name, $ratio-value in $aspect-ratios {
+    .ratio-#{$ratio-name}::before {
+      padding-top: #{$ratio-value};
+    }
+    @each $breakpoint-name, $breakpoint-value in $grid-breakpoints {
+      @include media-breakpoint-up($breakpoint-name) {
+        .ratio-#{$breakpoint-name}-#{$ratio-name}::before {
+          --bs-aspect-ratio: #{$ratio-value};
+        }
+      }
+    }
+  }
+}
+
+// ── Placeholder (modern - tek selector yeterli) ───────────────
+@mixin placeholder {
+    &::placeholder { @content; }
+}
+
+// ── Functions ─────────────────────────────────────────────────
+// strip-unit: sayısal versiyon (_functions.scss'deki string versiyonunu override eder)
+@function strip-unit($number) {
+    @if type-of($number) == 'number' and not unitless($number) {
+        @return $number / ($number * 0 + 1);
+    }
+    @return $number;
+}
+
+@function random-item($arr) {
+    @return nth($arr, random(length($arr)));
+}

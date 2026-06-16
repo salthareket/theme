@@ -82,6 +82,21 @@ class TurboApi {
         // 4. MİRAS MANTIK (methods/index.php)
         $response = ["error" => false, "message" => "", "data" => "", "html" => ""];
 
+        /**
+         * Harici modüller (reactions, notifications vb.) kendi AJAX handler'larını
+         * buraya bağlar. Handler null dönerse bir sonrakine geçilir, array dönerse
+         * response olarak kullanılır ve methods/index.php atlanır.
+         *
+         * @param array|null $response  null = handle etme, array = response
+         * @param string     $method    API method adı
+         * @param array      $vars      Request vars
+         */
+        $handled = apply_filters('turbo_api_handle', null, $method, $vars);
+        if (is_array($handled)) {
+            echo json_encode($handled);
+            return;
+        }
+
         // include öncesi değişkenleri scope'a alıyoruz
         if (defined('THEME_INCLUDES_PATH')) {
             include_once THEME_INCLUDES_PATH . "methods/index.php";

@@ -1,0 +1,22 @@
+{
+    "name": "acf/world-map",
+    "title": "World Map",
+    "description": "SVG tabanlı dünya haritası — ülke renklendirme, tooltip ve interaktif seçim desteği",
+    "category": "saltblocks",
+    "icon": "admin-site-alt3",
+    "keywords": ["world", "map", "harita", "dünya", "ülke", "country", "svg", "interactive"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "World Map Düzenle"
+    }
+}

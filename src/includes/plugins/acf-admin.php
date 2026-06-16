@@ -857,7 +857,7 @@ function save_theme_styles_header_themes($header){
                         $code .= ");\n";
                     $code .= "}\n";
                 }
-                $wpscss_compiler = new SCSSCompiler();
+                $wpscss_compiler = new \SaltHareket\AssetManager\SCSSCompiler();
                 $code = $wpscss_compiler->compile_string($code);
                 ////error_log($code);
                 //error_log(print_r($wpscss_compiler->get_compile_errors(), true));
@@ -4569,56 +4569,12 @@ function acf_layout_posts_preload($fields = array()){// Kullanılmıyor gozukuyo
 
 
 
-function display_search_ranks_table() {
-    global $wpdb;
-    $sh = new SearchHistory();
-    $table = $sh->get_table_name();
 
-    if ( isset($_GET['delete_id']) ) {
-        $sh->delete_term( intval($_GET['delete_id']) );
-        echo '<meta http-equiv="refresh" content="0; url=' . admin_url('admin.php?page=search-ranks') . '">';
-    }
 
-    $results = $sh->get_all();
 
-    if ($results) {
-        echo '<div class="bg-white rounded-3 p-3 shadow-sm"><table class="table table-hover table-striped" style="width:100%; border-collapse: collapse;background-color:#fff;">';
-        echo '<thead><tr style="background-color:#f2f2f2; text-align:left;">';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">ID</th>';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">Name</th>';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">Type</th>';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">Rank</th>';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">Date</th>';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">Last Modified</th>';
-        echo '<th style="padding:10px; border-bottom: 1px solid #ddd;">Actions</th>';
-        echo '</tr></thead>';
-        echo '<tbody>';
-        foreach ($results as $row) {
-            echo '<tr>';
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">' . esc_html($row->id) . '</td>';
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">' . esc_html(urldecode($row->name)) . '</td>';
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">' . esc_html($row->type) . '</td>';
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">' . esc_html($row->rank) . '</td>';
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">' . esc_html($row->date) . '</td>';
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">' . esc_html($row->date_modified) . '</td>';
-            // Silme butonu
-            echo '<td style="padding:10px; border-bottom: 1px solid #ddd;">';
-            echo '<a href="' . admin_url('admin.php?page=search-ranks&delete_id=' . esc_attr($row->id)) . '" onclick="return confirm(\'Bu kaydı silmek istediğine emin misin?\');" style="color:red; text-decoration:none;">Sil</a>';
-            echo '</td>';
-            echo '</tr>';
-        }
-        echo '</tbody></table></div>';
-    } else {
-        echo '<p>No data found.</p>';
-    }
-}
-function update_search_ranks_message_field( $field ) {
-    ob_start();
-    display_search_ranks_table();
-    $field['message'] = ob_get_clean();
-    return $field;
-}
-add_filter('acf/prepare_field/key=field_66e9f03698857', 'update_search_ranks_message_field');
+
+
+
 
 
 
@@ -4732,7 +4688,7 @@ function acf_compile_js_css($value=0){
             if (!function_exists("compile_files_config")) {
                 require SH_INCLUDES_PATH . "minify-rules.php";
             }
-            require SH_CLASSES_PATH . "class.minify.php";
+            //require SH_CLASSES_PATH . "class.minify.php";
 
             if (class_exists('ScssPhp\ScssPhp\Compiler')) {
                 $compile_errors = SaltHareket\Theme::scss_compile();
@@ -4759,7 +4715,7 @@ function acf_compile_js_css($value=0){
             }
             
             // version update or plugin's custom init file update
-            $minifier = new SaltMinifier(false, $is_development);
+            $minifier = new \SaltHareket\AssetManager\SaltMinifier(false, $is_development);
             $updated_plugins = $minifier->init();//compile_files(false, $is_development);
             //error_log("updates_plugins: ".json_encode($updated_plugins));
 
@@ -4985,7 +4941,7 @@ function common_css_separated() {
             //file_put_contents(STATIC_PATH . "css/".$type.".html", $element_html);
             
             // RemoveUnusedCss ile sadece bu bölüme özel CSS'i ayıkla
-            $remover = new RemoveUnusedCss($element_html, $info['css'], "", $info['white_list'], false, [
+            $remover = new \SaltHareket\AssetManager\RemoveUnusedCss($element_html, $info['css'], "", $info['white_list'], false, [
                 "ignore_whitelist"      => false,
                 "black_list"            => $info['black_list'],
                 "ignore_root_variables" => true,
@@ -5025,7 +4981,7 @@ function common_css_separated() {
 
     $files[] = STATIC_PATH . "css/common.css";
 
-    $merger = new \SaltHareket\Theme\MergeCSS(
+    $merger = new \SaltHareket\AssetManager\MergeCSS(
         $files, 
         STATIC_PATH . 'css/common-all.css', // Output Path
         true,  // Minify: ON
@@ -5153,7 +5109,7 @@ function acf_development_extract_translations( $value=0, $post_id=0, $field="", 
                 $excludeFilePaths[] = 'templates/partials/dropdown/messages-empty.twig';
                 $excludeFilePaths[] = 'templates/partials/dropdown/messages-footer.twig';
             }
-            if(!ENABLE_FAVORITES){
+            if(!ENABLE_REACTIONS){
                 $excludeFilePaths[] = 'templates/partials/base/menu-favorites.twig';
                 $excludeFilePaths[] = 'templates/partials/base/offcanvas-favorites.twig';
                 $excludeFilePaths[] = 'templates/partials/dropdown/favorites.twig';
@@ -6194,7 +6150,7 @@ add_filter('acf/load_value/name=map_service', 'dynamic_map_service_value', 10, 3
 function dynamic_map_service_update_value( $value, $post_id, $field ) {
 
     $previous_value = get_field_default("map_service", "options");
-    $map_view_value = $_POST["acf"]["field_6735b65411079"];
+    $map_view_value = $_POST["acf"]["field_6735b65411079"] ?? get_field_default( 'map_view', 'option' );
     $map_view_previous_value = get_field_default( 'map_view', 'option' );
 
     if($value != $previous_value || $map_view_value != $map_view_previous_value){

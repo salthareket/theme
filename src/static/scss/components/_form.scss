@@ -1,0 +1,332 @@
+// ─────────────────────────────────────────────────────────────
+// FORMS
+// Bootstrap uyumlu form stilleri.
+// Renkler ve boyutlar root.css'deki CSS variable'lardan okunur.
+// ─────────────────────────────────────────────────────────────
+
+textarea { resize: none; }
+
+// ── Labels ────────────────────────────────────────────────────
+label.form-label {
+    font-weight: var(--form-label-font-weight, 600);
+    color: var(--form-label-color, #2271b1);
+    font-size: var(--form-label-font-size, 15px);
+    display: flex;
+    flex: 1 0 100%;
+    flex-direction: column;
+
+    &.form-label-fake {
+        text-indent: -9999px;
+        display: block !important;
+        flex: auto !important;
+        width: 100%;
+    }
+
+    > small { display: block; color: #777; }
+    .required, .optional { display: none; }
+
+    .btn-form-control-edit {
+        font-size: 13px;
+        margin-left: 10px;
+        color: var(--primary-color);
+        &.active { display: none; }
+    }
+
+    @include media-breakpoint-down(md) {
+        font-size: var(--form-label-font-size, 15px);
+        &.form-label-fake { display: none; }
+    }
+}
+
+.form-group { margin-bottom: 30px; }
+
+::-ms-clear { display: none; }
+
+.btn-form-control-clear {
+    z-index: 10;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+// ── Input group ───────────────────────────────────────────────
+.input-group {
+    .form-control {
+        box-shadow: none !important;
+        &:focus { box-shadow: none !important; }
+    }
+    &.date .form-control { min-width: 80px; }
+    .typeahead { flex: 1 1 auto; width: auto; }
+    .form-control.tt-input:focus { z-index: 3; }
+}
+
+// ── Form control ──────────────────────────────────────────────
+.form-control {
+    transition: border .3s ease-out, color .3s ease-out, background-color .3s ease-out;
+    background-image: none !important;
+    color: var(--form-input-color, #666);
+    font-family: var(--font-primary);
+    font-weight: var(--form-input-font-weight, 400);
+    text-transform: var(--form-input-text-transform, none);
+    background-color: var(--form-input-bg, #fff);
+    border: var(--form-input-border, 1px solid #ddd);
+    border-top: var(--form-input-border-top, var(--form-input-border, 1px solid #ddd));
+    border-right: var(--form-input-border-right, var(--form-input-border, 1px solid #ddd));
+    border-bottom: var(--form-input-border-bottom, var(--form-input-border, 1px solid #ddd));
+    border-left: var(--form-input-border-left, var(--form-input-border, 1px solid #ddd));
+    border-radius: var(--form-input-border-radius, 8px);
+    // md (default) size
+    font-size: var(--form-input-font-size-md, 15px);
+    padding: var(--form-input-padding-y-md, 10px) var(--form-input-padding-x-md, 14px);
+
+    &:focus {
+        color: var(--form-input-color-focus, #333);
+        background-color: var(--form-input-bg-focus, #fff);
+        border: var(--form-input-border-focus, 1px solid #aaa);
+        border-top: var(--form-input-border-focus-top, var(--form-input-border-focus, 1px solid #aaa));
+        border-right: var(--form-input-border-focus-right, var(--form-input-border-focus, 1px solid #aaa));
+        border-bottom: var(--form-input-border-focus-bottom, var(--form-input-border-focus, 1px solid #aaa));
+        border-left: var(--form-input-border-focus-left, var(--form-input-border-focus, 1px solid #aaa));
+        box-shadow: var(--form-input-focus-shadow, none);
+    }
+
+    &.is-valid {
+        padding-right: 16px;
+        &:focus {
+            border: var(--form-input-border-focus, 1px solid #aaa);
+            box-shadow: none;
+        }
+    }
+
+    &.is-invalid {
+        padding-right: 12px;
+        border-color: var(--form-invalid-border-color, #dc3545);
+        background-color: var(--form-invalid-bg, rgba(250,238,238,.3));
+    }
+
+    &.form-control-lg.is-invalid { padding-right: 16px; }
+
+    // Placeholder
+    &::placeholder {
+        color: var(--form-placeholder-color, #a3a3a3);
+        font-weight: var(--form-placeholder-font-weight, 400);
+    }
+
+    &.wpcf7-not-valid::placeholder { color: var(--form-invalid-color, #dc3545); }
+
+    // ── Clear button ──────────────────────────────────────────
+    &.form-control-clear {
+        + .btn-form-control-clear,
+        + .typeahead + .btn-form-control-clear {
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            color: var(--primary-color);
+            background-color: var(--form-input-bg, #fff);
+            border: var(--form-input-border, 1px solid #ddd);
+            border-left: none;
+            margin-left: -1px;
+
+            &::before {
+                font-family: var(--icon-font);
+                content: '\f00d';
+                font-weight: 300;
+            }
+
+            &:last-child {
+                border-top-right-radius: var(--form-input-border-radius, 8px);
+                border-bottom-right-radius: var(--form-input-border-radius, 8px);
+            }
+        }
+
+        &:focus + .btn-form-control-clear,
+        &:focus + .typeahead + .btn-form-control-clear {
+            background-color: var(--form-input-bg-focus, #fff);
+            border: var(--form-input-border-focus, 1px solid #aaa);
+            border-left: none;
+        }
+    }
+
+    // ── Password toggle ───────────────────────────────────────
+    &.form-control-password-toggle {
+        border-right: none;
+        + .input-group-append .btn {
+            background-color: var(--form-input-bg, #fff);
+            border: var(--form-input-border, 1px solid #ddd);
+            border-left: none;
+            color: #999;
+        }
+        &:focus + .input-group-append .btn {
+            background-color: var(--form-input-bg-focus, #fff);
+            border: var(--form-input-border-focus, 1px solid #aaa);
+            border-left: none;
+        }
+        &.is-invalid + .input-group-append .btn { border-color: $danger !important; }
+    }
+
+    // ── Editable ──────────────────────────────────────────────
+    &.form-control-editable { transition: padding .3s ease-out; }
+
+    // ── Datepicker readonly ───────────────────────────────────
+    &.datepicker[readonly] {
+        color: var(--form-input-color, #666);
+        background-color: var(--form-input-bg, #fff);
+        border: var(--form-input-border, 1px solid #ddd);
+    }
+
+    // ── Typeahead dropdown ────────────────────────────────────
+    &.typeahead.dropdown-menu {
+        touch-action: pan-y !important;
+        overflow-scrolling: touch !important;
+        overflow-y: auto !important;
+    }
+}
+
+// ── Form sizes ────────────────────────────────────────────────
+// ── Form sizes ────────────────────────────────────────────────
+// border-radius: size'a özel değer yoksa ana --form-input-border-radius'a fallback
+.form-control-sm {
+    font-size: var(--form-input-font-size-sm, 13px);
+    padding: var(--form-input-padding-y-sm, 6px) var(--form-input-padding-x-sm, 10px);
+    border-radius: var(--form-input-border-radius-sm, var(--form-input-border-radius, 8px));
+}
+
+.form-control-lg {
+    font-size: var(--form-input-font-size-lg, 17px);
+    padding: var(--form-input-padding-y-lg, 14px) var(--form-input-padding-x-lg, 18px);
+    border-radius: var(--form-input-border-radius-lg, var(--form-input-border-radius, 8px));
+}
+
+.form-control-plaintext:focus { outline: 0; }
+
+.form-select {
+    font-family: sans-serif !important;
+    cursor: pointer;
+    &.form-control-editable { transition: padding .3s ease-out; }
+}
+
+// ── Validation messages ───────────────────────────────────────
+.help-block {
+    font-family: var(--font-primary);
+    &.with-errors {
+        font-size: 14px;
+        font-style: italic;
+        display: block;
+        width: 100%;
+        margin-bottom: 0;
+        > ul { margin-bottom: 0; > li { display: block; ~ li { display: none; } } }
+    }
+}
+
+em.is-invalid,
+em.is-valid {
+    font-family: var(--font-primary);
+    font-size: 14px;
+    font-style: italic;
+    display: block;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 0;
+    > ul { margin-bottom: 0; > li { display: block; } }
+}
+em.is-invalid { color: var(--form-invalid-color, #dc3545); }
+em.is-valid   { color: var(--form-valid-color, #198754); }
+
+// ── Switch sizes ──────────────────────────────────────────────
+@mixin switch($res: 'sm') {
+    $index:   1rem;
+    $mainVal: 1rem;
+    @if $res == 'md'  { $index: 2rem; $mainVal: 1.5rem; }
+    @else if $res == 'lg' { $index: 3rem; $mainVal: 2rem; }
+    @else if $res == 'xl' { $index: 4rem; $mainVal: 2.5rem; }
+
+    display: flex;
+    align-items: center;
+    margin-bottom: $index / 2;
+
+    .form-check-input {
+        height: $mainVal;
+        width: calc(#{$index} + 0.75rem);
+        margin-left: calc(0px - (#{$index} + 0.75rem));
+        border-radius: $mainVal * 2;
+        + .form-check-label { margin-left: 10px; }
+    }
+}
+
+.form-check-input { clear: left; }
+.form-switch.form-switch-sm { @include switch(); }
+.form-switch.form-switch-md { @include switch('md'); }
+.form-switch.form-switch-lg { @include switch('lg'); }
+.form-switch.form-switch-xl { @include switch('xl'); }
+
+// ── Autofill override ─────────────────────────────────────────
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--form-input-color, #666);
+    -webkit-box-shadow: none;
+    transition: background-color .3s ease-in-out;
+}
+
+// ── AJAX paginate ─────────────────────────────────────────────
+.ajax-paginate {
+    &[data-load='button'],
+    &:not([data-load]) {
+        .btn-next-page.loading,
+        .btn-next-page.loading-process {
+            pointer-events: none;
+            background-image: none !important;
+            background-color: transparent !important;
+            border-color: transparent !important;
+            span { opacity: 0; }
+        }
+    }
+
+    &[data-load='scroll'] .btn-next-page {
+        background-image: none !important;
+        background-color: transparent !important;
+        border-color: transparent !important;
+        cursor: default;
+        span { opacity: 0; }
+    }
+
+    > .card-footer { position: relative; }
+}
+
+// ── Dark checkbox ─────────────────────────────────────────────
+.form-check-dark .form-check-input:checked[type="radio"] {
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='2' fill='%23111'/></svg>") !important;
+}
+
+// ── Checkbox / Radio ──────────────────────────────────────────
+.form-check-input {
+    clear: left;
+    width: var(--form-check-size, 18px);
+    height: var(--form-check-size, 18px);
+    border-color: var(--form-check-border-color, #aaa);
+    accent-color: var(--form-check-accent, #2271b1);
+
+    &:checked {
+        background-color: var(--form-check-accent, #2271b1);
+        border-color: var(--form-check-accent, #2271b1);
+    }
+
+    &:focus { box-shadow: 0 0 0 2px rgba(34,113,177,.25); }
+}
+
+// ── BS Switch (form-switch) ───────────────────────────────────
+.form-switch .form-check-input {
+    background-color: var(--form-switch-track-bg, #ccc);
+    border-color: var(--form-switch-track-bg, #ccc);
+
+    &:checked {
+        background-color: var(--form-switch-track-bg-checked, #2271b1);
+        border-color: var(--form-switch-track-bg-checked, #2271b1);
+    }
+}

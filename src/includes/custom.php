@@ -43,37 +43,18 @@ class SaltBase{
         ));*/
       
         
-        // 1. ÜYELİK SİSTEMİ VE FRONTEND KONTROLLERİ
-        if (defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP) {
-            
-            // Sadece login olmuş kullanıcılar için ağır kancaları yükle
-            if (is_user_logged_in()) {
-                add_action('wp', [ $this, 'update_online_users_status' ]);
-                add_action('profile_update', [ $this, 'user_after_update_hook'], 10, 2 );
-                add_action('update_user_meta', [ $this, 'user_after_meta_update_hook'], 10, 4);
-                
-                // Profil tamamlama ve aktivasyon yönlendirmeleri
-                add_action('template_redirect', [ $this, 'user_profile_not_completed' ]);
-                add_action('template_redirect', [ $this, 'redirect_to_profile' ]);
-                
-                if (defined('ENABLE_MEMBERSHIP_ACTIVATION') && ENABLE_MEMBERSHIP_ACTIVATION) {
-                    add_action('template_redirect', [ $this, 'user_not_activated' ]);                
-                }
-            }
-
-            // Login/Logout olayları (Her zaman dinlenmeli)
-            add_action('wp_login', [ $this, 'on_user_login' ], 10, 2);
-            add_action('wp_logout', [ $this, 'on_user_logout' ], 10, 1);
-            add_action('check_admin_referer', [ $this, 'logout_without_confirmation'], 1, 2);
-            
-            if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE) {
-                add_action('user_register', [ $this, 'user_register_hook'], 10, 1 );
-            }
-        }
+        // 1. ÜYELİK SİSTEMİ — MembershipManager'a delegate edildi.
+        // Hook'lar MembershipHooks::register()'da yönetiliyor (apps/membership/bootstrap.php).
+        // SaltBase burada sadece user nesnesini yükler.
+        // @see SaltHareket\Membership\MembershipManager
 
         // 2. SADECE ADMIN PANELİNDE ÇALIŞANLAR
         
             remove_action('post_updated', 'wp_save_post_revision');
+            
+            // LCP DATA RESET: Erken hook ile reset (priority 5 - diğer işlemlerden önce)
+            add_action('save_post', [ $this, 'early_reset_lcp_on_save'], 5, 3);
+            add_action('save_post_product', [ $this, 'early_reset_lcp_on_save'], 5, 3);
             
             // Post kayıt olaylarını sadece admin panelinde dinle
             add_action('save_post', [ $this, 'on_post_published'], 100, 3);
@@ -82,11 +63,18 @@ class SaltBase{
             add_action('created_term', [$this, 'on_term_published'], 10, 3);
             add_action('edited_term', [$this, 'on_term_published'], 10, 3);
             add_action('edit_user_profile_update', [ $this, 'user_before_update_hook'] );
-        if (is_admin()) {}
+        if (is_admin()) {
+            // admin-only hooks buraya eklenebilir
+        }
 
         // 3. KRİTİK VERİ NESNELERİ (SADECE GEREKTİĞİNDE)
-        if (class_exists('Timber\Timber')) {
-            // Ziyaretçi login değilse ve özel bir user ID gelmemişse Timber::get_user çalıştırma!
+        if (class_exists('User')) {
+            if ($user) {
+                $this->user = new User($user);
+            } elseif (is_user_logged_in()) {
+                $this->user = new User(wp_get_current_user());
+            }
+        } elseif (class_exists('Timber\Timber')) {
             if ($user) {
                 $this->user = Timber\Timber::get_user($user);
             } elseif (is_user_logged_in()) {
@@ -101,11 +89,13 @@ class SaltBase{
 
         // Localization ve Search History
         if ((defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOCATION_DB') && ENABLE_LOCATION_DB)) {
-            $this->localization = new Localization();
+            $this->localization = \SaltHareket\Localization\LocationManager::getInstance();
         }
 
         if (defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY) {
-            $this->search_history = new SearchHistory();
+            if ( class_exists( 'SearchHistory' ) ) {
+                $this->search_history = new SearchHistory();
+            }
         }
         
         if ($user) {
@@ -142,104 +132,65 @@ class SaltBase{
         }*/
         return $data; 
     }
+    
+    /**
+     * ERKEN LCP RESET: Post save edildiğinde LCP verilerini hemen sıfırla
+     * Priority 5 ile çalışır - diğer tüm işlemlerden önce
+     * Basit ve hızlı - sadece reset yapar, başka bir şey yapmaz
+     */
+    public function early_reset_lcp_on_save($post_id, $post, $update) {
+        // Temel kontroller
+        if (!$post_id || empty($post_id)) return;
+        if (wp_is_post_revision($post_id)) return;
+        if (wp_is_post_autosave($post_id)) return;
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+        
+        // Post type kontrolü
+        $post_types = get_post_types(['public' => true], 'names');
+        if (!in_array($post->post_type, $post_types)) return;
+        
+        // LCP reset - $update bağımsız çalışır
+        $this->reset_lcp_data_on_save($post_id);
+    }
 
     public function on_post_published($post_id, $post, $update){
 
-        if (!$post_id || empty($post_id)) {
-            return;
-        }
-        if (wp_is_post_revision($post_id) || $post->post_status !== 'publish') {
-            return;
-        }
+        if (!$post_id || empty($post_id)) return;
+        if (wp_is_post_revision($post_id) || $post->post_status !== 'publish') return;
+        if ( get_post_status( $post_id ) !== 'publish' ) return;
 
-        if ( get_post_status( $post_id ) !== 'publish' ) {
-            return;
-        }
-
-error_log("111");
-
-
-        if (get_transient('salt_purge_lock_' . $post_id)) {
-            //error_log("⛔ KİLİT AKTİF: $post_id için temizlik zaten yapılıyor, bu istek reddedildi.");
-            return;
-        }
-        // Kilidi 10 saniyeliğine takıyoruz
+        if (get_transient('salt_purge_lock_' . $post_id)) return;
         set_transient('salt_purge_lock_' . $post_id, true, 10);
 
-        if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket/Preload') !== false) {
-            return; // Bot geldiyse sakın bir şeyi silme, o zaten cache oluşturmaya geldi
+        // WP Rocket preload botu — cache oluşturmaya geldi, ağır işleri yapma
+        if (
+            ( isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket/Preload') !== false ) ||
+            isset($_SERVER['HTTP_X_ROCKET_PRELOAD'])
+        ) {
+            return;
         }
-
-        // 2. WP ROCKET'İN KENDİ İÇ İSTEĞİ Mİ?
-        if (isset($_SERVER['HTTP_X_ROCKET_PRELOAD'])) {
-            return; 
-        }
-
-error_log("222");
-
 
         if (function_exists('rocket_is_crawling') && rocket_is_crawling()) return;
 
-        error_log("333");
-
-        // 2. WP Rocket Preload botu geldiyse ağır işleri yapma
-        if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'WP Rocket/Preload') !== false) {
-            return; 
-        }
-
-        error_log("444");
-
-        // 3. Gutenberg'in o meşhur ikinci isteğini (Meta Box Loader) engelle
-        if (isset($_GET['meta-box-loader']) || isset($_GET['meta-box-loader-nonce'])) {
-            $this->log("Gereksiz Meta Box isteği engellendi.");
-            return;
-        }
-
-        error_log("555");
+        // Gutenberg meta box loader isteği
+        if (isset($_GET['meta-box-loader']) || isset($_GET['meta-box-loader-nonce'])) return;
 
         if (isset($_GET['action']) && $_GET['action'] == 'as_async_request_queue_runner') return;
 
-        error_log("666");
-
-
-        /*if (defined('REST_REQUEST') && REST_REQUEST) {
-            //error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
-            //return;
-        }*/
-
-        if (defined('REST_REQUEST') && REST_REQUEST && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            //error_log("❌ REST API isteği olduğu için işlem iptal edildi.");
-            //return;
-        }
-
-        error_log("777");
+        if (defined('REST_REQUEST') && REST_REQUEST && $_SERVER['REQUEST_METHOD'] !== 'POST') return;
 
         $current_hook = current_filter();
-        if (!in_array($current_hook, ['save_post', 'save_post_product'])) {
-            //error_log("❌ Hook $current_hook tarafından çağrıldı. İşlem yapılmadı.");
-            return;
-        }
-
-        error_log("888");
+        if (!in_array($current_hook, ['save_post', 'save_post_product'])) return;
 
         if (
             defined('DOING_AJAX') && DOING_AJAX &&
             (!isset($GLOBALS['salt_ai_doing_translate']) || !$GLOBALS['salt_ai_doing_translate'])
-        ) {
-            return;
-        }
-
-        error_log("999");
+        ) return;
 
         if (
             defined('DOING_CRON') && DOING_CRON &&
             (!isset($GLOBALS['salt_ai_doing_translate']) || !$GLOBALS['salt_ai_doing_translate'])
-        ) {
-            return;
-        }
-
-        error_log("10");
-
+        ) return;
 
         remove_action('save_post', [ $this, 'on_post_published'], 100);
         remove_action('save_post_product', [ $this, 'on_post_published'], 100);
@@ -248,76 +199,35 @@ error_log("222");
         $post_types = get_post_types(['public' => true], 'names');
         if (in_array($post->post_type, $post_types)) {
 
-
-            if (did_action('save_post') > 1 || did_action('publish_post') > 1) {
-                //return;
-            }
-
-            if (self::$already_ran) {
-                //error_log("zaten claıstııı");
-             //   return; // Eğer zaten çalıştıysa, çık
-            }
-
-            self::$already_ran = true; // Flag'i ayarla
-
-
             // check & save has map block
-            $has_map = false;
-            if(post_has_block($post_id, "acf/map")){
-                $has_map = true;
-            }
+            $has_map = post_has_block($post_id, "acf/map") ? true : false;
             update_post_meta( $post_id, 'has_map', $has_map );
 
             // check & save has core block
-            $has_core_block = false;
-            if(post_has_core_block($post_id)){
-                $has_core_block = true;
-            }
+            $has_core_block = post_has_core_block($post_id) ? true : false;
             update_post_meta( $post_id, 'has_core_block', $has_core_block );
             
             acf_block_id_fields($post_id);
 
-            //error_log("P O S T  S A V I N G  H O O K....".$post_id);
-
-            if (!class_exists('PageAssetsExtractor')) {
-                //error_log("PageAssetsExtractor yoook");
-                $extractor_file = SH_CLASSES_PATH . "class.page-assets-extractor.php";
-                if (file_exists($extractor_file)) {
-                    include_once $extractor_file;
-                    // Extractor'ın bağımlı olduğu diğer sınıfları da buraya ekle:
-                    include_once SH_CLASSES_PATH . "class.scss-compiler.php";
-                    include_once SH_CLASSES_PATH . "class.remove-unused-css.php";
-                    include_once SH_CLASSES_PATH . "class.assets-packer.php";
-                }
-            }
-
             if (class_exists('PageAssetsExtractor')) {
-                //error_log("PageAssetsExtractor vaar");
-                $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
+                $extractor = \PageAssetsExtractor::get_instance();
                 $extractor->on_save_post($post_id, $post, $update);
             }
+            
+            $this->reset_lcp_data_on_save($post_id);
 
-            // post'un featured image'ının alt text'i eklenmemişse post'un title'ını alt text olarak kaydet.
+            // Featured image alt text — boşsa post title'ı kullan
             $thumbnail_id = get_post_thumbnail_id($post_id);
             if ($thumbnail_id) {
                 $alt_text = get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true);
                 if (empty($alt_text)) {
-                    $post_title = get_the_title($post_id);
-                    update_post_meta($thumbnail_id, '_wp_attachment_image_alt', $post_title);
+                    update_post_meta($thumbnail_id, '_wp_attachment_image_alt', get_the_title($post_id));
                 }
             }
             
             if(function_exists("pll_copy_post_languages")){
                 pll_copy_post_languages($post_id);                
             }
-
-            /*if ( !did_action('wp_rocket_manifest_run_purge') ) {
-                $cache = WP_Rocket_Manifest_Manager::getInstance();
-                $cache->schedule_purge($post_id);
-                do_action('wp_rocket_manifest_run_purge'); // Kendi aksiyonumuzu tetikleyelim ki mükerrer olmasın
-            }*/
-            
-            self::$already_ran = false; // İşlem tamamlandı, flag'i sıfırla
         }
 
         add_action('save_post', [ $this, 'on_post_published'], 100, 3);
@@ -331,15 +241,117 @@ error_log("222");
             update_term_featured_image($term_id, $tt_id, $taxonomy);
             $extractor = \PageAssetsExtractor::get_instance();//$this->extractor;//new PageAssetsExtractor();
             $extractor->on_save_term($term_id, $tt_id, $taxonomy);
+            
+            // LCP DATA RESET: Term save edildiğinde LCP verilerini sıfırla
+            $this->reset_lcp_data_on_term_save($term_id, $taxonomy);
         }
+    }
+    
+    /**
+     * LCP verilerini sıfırla (post save edildiğinde)
+     * İçerik değiştiğinde LCP elementi de değişmiş olabilir
+     */
+    private function reset_lcp_data_on_save($post_id) {
+        // Assets meta verisini al
+        $assets = get_post_meta($post_id, 'assets', true);
+        
+        if (!is_array($assets)) {
+            return; // Assets yoksa zaten LCP yok
+        }
+        
+        // LCP verisi var mı kontrol et
+        if (empty($assets['lcp']['desktop']) && empty($assets['lcp']['mobile'])) {
+            return; // LCP verisi yoksa reset'e gerek yok
+        }
+        
+        // LCP verilerini sıfırla
+        $assets['lcp'] = [];
+        
+        // Meta'yı güncelle
+        update_post_meta($post_id, 'assets', $assets);
+        error_log("✅ LCP data reset for post #{$post_id}");
+    }
+    
+    /**
+     * LCP verilerini sıfırla (term save edildiğinde)
+     */
+    private function reset_lcp_data_on_term_save($term_id, $taxonomy) {
+        // Assets meta verisini al
+        $assets = get_term_meta($term_id, 'assets', true);
+        
+        if (!is_array($assets)) {
+            return; // Assets yoksa zaten LCP yok
+        }
+        
+        // LCP verisi var mı kontrol et
+        if (empty($assets['lcp']['desktop']) && empty($assets['lcp']['mobile'])) {
+            return; // LCP verisi yoksa reset'e gerek yok
+        }
+        
+        // LCP verilerini sıfırla
+        $assets['lcp'] = [];
+        
+        // Meta'yı güncelle
+        update_term_meta($term_id, 'assets', $assets);
+        error_log("✅ LCP data reset for term #{$term_id} ({$taxonomy})");
+    }
+    
+    /**
+     * LCP verilerini sıfırla (user profile update edildiğinde)
+     */
+    public function reset_lcp_data_on_user_save($user_id) {
+        // Assets meta verisini al
+        $assets = get_user_meta($user_id, 'assets', true);
+        
+        if (!is_array($assets)) {
+            return; // Assets yoksa zaten LCP yok
+        }
+        
+        // LCP verisi var mı kontrol et
+        if (empty($assets['lcp']['desktop']) && empty($assets['lcp']['mobile'])) {
+            return; // LCP verisi yoksa reset'e gerek yok
+        }
+        
+        // LCP verilerini sıfırla
+        $assets['lcp'] = [];
+        
+        // Meta'yı güncelle
+        update_user_meta($user_id, 'assets', $assets);
+        error_log("✅ LCP data reset for user #{$user_id}");
+    }
+    
+    /**
+     * LCP verilerini sıfırla (archive/dynamic type'lar için - option based)
+     * Archive: {post_type}_archive_{lang}
+     * Dynamic: search_{lang}, 404_{lang}, woo_account_{endpoint}_{lang}
+     */
+    public function reset_lcp_data_for_option($option_name) {
+        // Option'dan assets verisini al
+        $assets = get_option($option_name);
+        
+        if (!is_array($assets)) {
+            return; // Assets yoksa zaten LCP yok
+        }
+        
+        // LCP verisi var mı kontrol et
+        if (empty($assets['lcp']['desktop']) && empty($assets['lcp']['mobile'])) {
+            return; // LCP verisi yoksa reset'e gerek yok
+        }
+        
+        // LCP verilerini sıfırla
+        $assets['lcp'] = [];
+        
+        // Option'ı güncelle
+        update_option($option_name, $assets);
+        error_log("✅ LCP data reset for option: {$option_name}");
     }
 
     public function on_post_delete( $post_id ){
         $post = get_post($post_id);
         if ( !isset($post->post_type) ) return;
         $notification_post_types = Data::get("notification_post_types");
-        if(ENABLE_NOTIFICATIONS && $GLOBALS["notification_post_types"]){
-            if(in_array($post->post_type, $notification_post_types)){
+        if( ENABLE_NOTIFICATIONS && !empty( $notification_post_types ) ){
+            if( in_array($post->post_type, $notification_post_types) ){
                 Notifications::delete_post_notifications($post_id);
             }
         }
@@ -450,664 +462,138 @@ error_log("222");
         }
     }
 
-    public function login($vars=array(), $callback="", $role=""){
-        $response = $this->response();
-        $info = array();
-        $info['user_login'] = $vars['username'];
-        $info['user_password'] = $vars['password'];
-        $info['remember'] = true;
+    // ── MEMBERSHIP DELEGATES ──────────────────────────────────────────────────
+    // Gerçek implementasyon: SaltHareket\Membership\MembershipManager
+    // Bu metodlar geriye dönük uyumluluk için korunuyor.
+    // TODO: methods/user/*/index.php güncellenince bu wrapper'lar kaldırılabilir.
 
-        if(isset($vars["role"])){
-            $role = $vars["role"];
-        }
-
-        if(isset($role) && !empty($role)){
-            $user_data = get_user_by( 'email', $info['user_login'] );
-            if($user_data){
-               if(!in_array($role, $user_data->roles)){
-                  $response["error"] = true;
-                  $response["message"] = 'Please use your '.$role.' account.';
-               }
-            }           
-        }
-
-        if(!$response["error"]){
-            $user_signon = wp_signon( $info, false );
-            if ( is_wp_error($user_signon) ){
-                //print_r($user_signon);
-                $response["error"] = true;
-                $response["message"] = 'Wrong username or password.';
-            } else {
-                $response["message"] = 'Login successful.';
-                wp_set_current_user($user_signon->ID);
-                wp_set_auth_cookie($user_signon->ID);
-                $this->user = $user_signon;
-            }           
-        }
-
-        if(!$response["error"]){
-            if(isset($callback) && !empty($callback)){
-                /*if($callback == "publish_brief"){
-                    $context = Timber::context();
-                    $context['user'] = $this->user;
-                    $context['vars'] = $vars;
-                    $context['newsletter'] = $this->newsletter("status", $this->user->user_email);
-                    $response["resubmit"] = true;
-                    $response["html"] = Timber::compile( 'partials/form-user.twig', $context );
-                }*/
-            }else{
-                if(isset($vars['redirect_url'])){
-                   $redirect = $vars['redirect_url'];
-                }else{
-                    if(Data::has("base_urls.logged_url")){
-                        $redirect = Data::get("base_urls.logged_url");
-                    }else{
-                        $redirect = Data::get("base_urls.profile");
-                    }
-                }
-                $response["redirect"] = $redirect;
-            }
-        }
-        
-        return $response;
+    public function login( $vars = [], $callback = '', $role = '' ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->login( $vars, $role );
     }
-    public function on_user_login( $user_login, $user) {
-        update_user_meta( $user->ID, 'last_login', time() );
-        $this->generate_robots_txt($user);
+    public function register( $vars = [], $callback = '', $role = 'author' ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->register( $vars, $callback, $role );
     }
-    public function on_login_redirect() {
-        if (isset($_SESSION['referer_url'])) {
+    public function user_register_hook( $user_id, $vars = [] ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->userRegisterHook( (int) $user_id, is_array( $vars ) ? $vars : [] );
+    }
+    public function send_activation( $user_id = 0 ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->sendActivation( (int) $user_id );
+    }
+    public function verify_otp( $vars = [] ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->verifyOtp( $vars );
+    }
+    public function resend_otp( $vars = [] ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->resendOtp( $vars );
+    }
+    public function otp_status( $vars = [] ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->otpStatus( $vars );
+    }
+    public function change_activation_method( $vars = [] ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->changeActivationMethod( $vars );
+    }
+    public function password_recover( $vars = [], $callback = '' ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->passwordRecover( $vars );
+    }
+    public function update_profile( $vars = [], $callback = '' ): array {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->updateProfile( $vars );
+    }
+    public function on_user_login( $user_login, $user ): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->onUserLogin( $user_login, $user );
+    }
+    public function on_user_logout( $user_id = 0 ): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->onUserLogout( (int) $user_id );
+    }
+    public function logout_without_confirmation( $action, $result ): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->logoutWithoutConfirmation( (string) $action, $result );
+    }
+    public function update_online_users_status(): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->updateOnlineStatus();
+    }
+    public function update_online_users_status_logout( $user_id = 0 ): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->updateOnlineStatusLogout( (int) $user_id );
+    }
+    public static function user_is_online( $user_id ): bool {
+        return \SaltHareket\Membership\MembershipManager::isUserOnline( (int) $user_id );
+    }
+    public function redirect_to_profile(): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->redirectToProfile();
+    }
+    public function user_not_activated(): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->redirectIfNotActivated();
+    }
+    public function user_profile_not_completed(): void {
+        \SaltHareket\Membership\MembershipManager::getInstance()->redirectIfNotCompleted();
+    }
+    public function user_after_update_hook( $user_id, $old_user_data = null ): void {
+        $this->update_user( $user_id );
+        $this->reset_lcp_data_on_user_save( $user_id );
+    }
+    public function user_before_update_hook( $user_id ): void {
+        if ( ! is_admin() ) $this->update_user( $user_id );
+
+        // Admin profil sayfasından status güncelleme
+        if ( ! isset( $_POST['sh_status_nonce'] ) ) return;
+        if ( ! wp_verify_nonce( $_POST['sh_status_nonce'], 'sh_update_user_status_' . $user_id ) ) return;
+        if ( ! current_user_can( 'edit_users' ) ) return;
+
+        $status = sanitize_text_field( $_POST['sh_user_status'] ?? '' );
+        $valid  = [ 'pending', 'activated', 'approved', 'rejected' ];
+        if ( in_array( $status, $valid, true ) ) {
+            $mm = \SaltHareket\Membership\MembershipManager::getInstance();
+            match ( $status ) {
+                'approved'  => $mm->approveUser( $user_id ),
+                'rejected'  => $mm->rejectUser( $user_id ),
+                'activated' => $mm->activateUser( $user_id ),
+                default     => update_user_meta( $user_id, 'user_status', $status ),
+            };
+        }
+    }
+    public function user_after_meta_update_hook( $meta_id, $user_id, $meta_key, $_meta_value ): void {
+        if ( ! is_admin() ) $this->update_user( $user_id );
+    }
+    public function onUserAfterUpdate( $user_id, $old_user_data = null ): void {
+        $this->user_after_update_hook( $user_id, $old_user_data );
+    }
+    public function onAdminUserUpdate( $user_id ): void {
+        // Admin profil sayfasından status güncelleme
+        if ( ! isset( $_POST['sh_status_nonce'] ) ) return;
+        if ( ! wp_verify_nonce( $_POST['sh_status_nonce'], 'sh_update_user_status_' . $user_id ) ) return;
+        if ( ! current_user_can( 'edit_users' ) ) return;
+
+        $status = sanitize_text_field( $_POST['sh_user_status'] ?? '' );
+        $valid  = [ 'pending', 'activated', 'approved', 'rejected' ];
+        if ( in_array( $status, $valid, true ) ) {
+            $mm = \SaltHareket\Membership\MembershipManager::getInstance();
+            match ( $status ) {
+                'approved' => $mm->approveUser( $user_id ),
+                'rejected' => $mm->rejectUser( $user_id ),
+                'activated' => $mm->activateUser( $user_id ),
+                default    => update_user_meta( $user_id, 'user_status', $status ),
+            };
+        }
+    }
+    public function on_login_redirect(): void {
+        if ( isset( $_SESSION['referer_url'] ) ) {
             $url = $_SESSION['referer_url'];
             session_write_close();
             session_destroy();
-            wp_redirect($url);
+            wp_redirect( $url );
         } else {
-            wp_redirect(get_account_endpoint_url('dashboard'));
+            wp_redirect( get_account_endpoint_url( 'dashboard' ) );
         }
     }
-    public function on_user_logout($user_id=0){
-        $this->update_online_users_status_logout($user_id);
+    public function notification_count(): int {
+        return \SaltHareket\Membership\MembershipManager::getInstance()->getNotificationCount();
     }
-    public function logout_without_confirmation($action, $result){
-        if(!$result && ($action == 'log-out')){ 
-            wp_safe_redirect(getLogoutUrl()); 
-            exit(); 
-        }
-    }
-
-    public function generate_robots_txt($user){
-        if ( user_can($user, 'manage_options') ) {
-            $content = "User-agent: *\nDisallow:\n";
-            if ( function_exists('wpseo_sitemap_url') ) {
-                $content .= 'Sitemap: ' . wpseo_sitemap_url() . "\n";
-            } else {
-                $content .= 'Sitemap: ' . home_url('/sitemap.xml') . "\n";
-            }
-            $extra_sitemaps = ['llms.txt', 'ssms.txt'];
-            foreach ($extra_sitemaps as $file) {
-                if ( file_exists(ABSPATH . $file) ) {
-                    $content .= 'Sitemap: ' . home_url('/' . $file) . "\n";
-                }
-            }
-            file_put_contents(ABSPATH . 'robots.txt', $content);
-            //error_log("robots.txt dosyası oluşturuldu.");
-        }
-    }
-    
-
-    // Lost Password
-    public function password_recover($vars=array(), $callback=""){
-        switch(PASSWORD_RECOVER_TYPE){
-            case "renew" :
-                $response = $this->password_renew($vars, $callback);
-            break;
-            case "reset" :
-                $response = $this->password_reset($vars, $callback);
-            break;
-        }
-        return $response;
-    }
-    public function password_renew($vars=array(), $callback=""){
-        $response = $this->response();
-        $error = false;
-        $message = "";
-        $user_login = $vars['user_login'];
-        //check_ajax_referer( 'ajax-forgot-nonce', 'security' );
-        
-        if( empty( $user_login ) ) {
-            $error = true;
-            $message = 'Enter your e-mail address.';
-        } else {
-            if(is_email( $user_login )) {
-                if( email_exists($user_login) ){
-                    $get_by = 'email';
-                }else{
-                    $error = true;
-                    $message = 'There is no user registered with that email address.';                  
-                }
-            }else{
-                $error = true;
-                $message = 'Invalid e-mail address.';               
-            }
-        }
-        if(!$error) {
-            $mail = $this->send_password_activation($user_login);
-            if( $mail ){
-                $message = 'Check your email address for your password reset link.';
-            }else{
-                $error = true;
-                $message = 'System is unable to send you mail containg your password reset link.'; 
-            } 
-        }   
-        $response["error"] = $error;
-        $response["message"] = $message;
-        echo json_encode($response);
-    }
-    public function password_reset($vars=array(), $callback=""){
-        $response = $this->response();
-        $error = false;
-        $message = "";
-        $user_login = $vars['user_login'];
-        if( empty( $user_login ) ) {
-            $error = true;
-            $message = 'Enter an username or e-mail address.';
-        } else {
-            if(is_email( $user_login )) {
-                if( email_exists($user_login) ){
-                    $get_by = 'email';
-                }else{
-                    $error = true;
-                    $message = 'There is no user registered with that email address.';                  
-                }   
-            }else if (validate_username( $user_login )) {
-                if( username_exists($user_login) ) {
-                    $get_by = 'login';
-                }else{
-                    $error = true;
-                    $message = 'There is no user registered with that username.';                   
-                }
-            }else{
-                $error = true;
-                $message = 'Invalid username or e-mail address.';               
-            }
-        }
-        if(!$error) {
-            $random_password = wp_generate_password();
-            $user = get_user_by( $get_by, $user_login );    
-            $update_user = wp_update_user( array ( 'ID' => $user->ID, 'user_pass' => $random_password ) );
-            if( $update_user ) {
-                $from = get_bloginfo( 'admin_email' );
-                if(!(isset($from) && is_email($from))) {        
-                    $sitename = strtolower( $_SERVER['SERVER_NAME'] );
-                    if ( substr( $sitename, 0, 4 ) == 'www.' ) {
-                        $sitename = substr( $sitename, 4 );                 
-                    }
-                    $from = 'admin@'.$sitename; 
-                }
-                $to = $user->user_email;
-                $subject = 'Your new password';
-                $sender = 'From: '.get_option('name').' <'.$from.'>' . "\r\n";
-                $message = 'Your new password is: '.$random_password;
-                $headers[] = 'MIME-Version: 1.0' . "\r\n";
-                $headers[] = 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-                $headers[] = "X-Mailer: PHP \r\n";
-                $headers[] = $sender;
-                $mail = wp_mail( $to, $subject, $message, $headers );
-                if( $mail ){
-                    $message = 'Check your email address for you new password.';
-                }else{
-                    $error = true;
-                    $message = 'System is unable to send you mail containg your new password.'; 
-                }                   
-            } else {
-                $error = true;
-                $message = 'Oops! Something went wrong while updaing your account.';
-            }
-        } 
-        $response["error"] = $error;
-        $response["message"] = $message; 
-        echo json_encode($response);
-    }
-    public function get_password_activation_link($email){
-        $data = array('type' => 'password', 'email' => $email);
-        $encrypt = new Encrypt();
-        $code = $encrypt->encrypt($data);
-        return add_query_arg( array( 'activation-password' => $code ), Data::get("base_urls.account"));
-    }
-    public function send_password_activation($email){
-        $activation_link = $this->get_password_activation_link($email);
-        $from_name = get_bloginfo( 'name' );
-        $from_email = get_bloginfo( 'admin_email' );
-        $headers = array();
-        $headers[] = 'From: '.$from_name.' <'. $from_email.'>';
-        $headers[] = 'Content-Type: text/html; charset=UTF-8';
-        $headers[] = 'Reply-To: '.$from_name.' <'. $from_email.'>';
-        $mail = wp_mail( $email, $from_name.' Password Reset', 'Password Reset link : ' . $activation_link, $headers );
-        return $mail;
-    }
+    // ── END MEMBERSHIP DELEGATES ──────────────────────────────────────────────
 
 
-    public function register($vars=array(), $callback="", $role="author" ){
-        $response = $this->response();
-
-        $user_name = vars_fix($vars, "email");
-        $first_name = vars_fix($vars, "first_name");
-        $last_name = vars_fix($vars, "last_name");
-        $email = vars_fix($vars, "email");
-        $password = vars_fix($vars, "password");
-        $nice_name = strtolower(vars_fix($vars, "email"));
-        $user_role = vars_fix($vars, "role");
-        $role = !empty($user_role)?$user_role:$role;
-        $user_data = array(
-            'user_login' => $user_name,
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'user_email' => $email,
-            'user_pass' => $password,
-            'user_nicename' => $nice_name,
-            'display_name' => $first_name.' '.$last_name,
-            'role' => $role
-        );
-
-        $user_id = wp_insert_user($user_data);
-
-        if (is_wp_error($user_id)) {
-            if (isset($user_id->errors['empty_user_login'])) {
-                $response["error"] = true;
-                $response["message"] = $user_id->errors['empty_user_login'][0];
-            } elseif (isset($user_id->errors['existing_user_login'])) {
-                $response["error"] = true;
-                $response["message"] = $user_id->errors['existing_user_login'][0];
-            }elseif (isset($user_id->errors['existing_user_email'])) {
-                $response["error"] = true;
-                $response["message"] = $user_id->errors['existing_user_email'][0];
-            }else {
-                $response["error"] = true;
-                $response["message"] = 'Error occured, please fill up the sign up form carefully.';
-            }
-        }else{
-            $this->user = new User($user_id);
-            $response = $this->user_register_hook( $user_id );
-        }
-        if(!$response["error"] && isset($callback) && !empty($callback)){
-            /*$this->create_person();
-            $data["message"] = "";
-            if($callback == "publish_brief"){
-                $context = Timber::context();
-                $context['user'] = $this->user;
-                $context['vars'] = $vars;
-                $data["html"] = Timber::compile( 'partials/form-user.twig', $context );
-            }*/
-        }
-        return $response;
-    }
-
-    // User Activation by Email
-    public function get_activation_link($user_id){
-        global $wpdb; 
-        $user = get_user_by( 'id', $user_id );
-        $user_activation_key = md5(time());
-        $data = array('type' => 'activation', 'id' => $user_id, 'code' => $user_activation_key);
-        $encrypt = new Encrypt();
-        $code = $encrypt->encrypt($data);
-        $wpdb->update( 
-            $wpdb->users,   
-             array( 'user_activation_key' => $user_activation_key ),       
-             array( 'ID' => $user_id )
-        );
-        return add_query_arg( array( 'activation-code' => $code ), Data::get("base_urls.profile"));
-    }
-    
-
-    // User Activation by SMS
-    public function verify_otp($vars=array()){
-        $vars = array(
-            "user_id"    => $this->user->ID,
-            "otp_id"     => $vars["otp_id"],
-            "otp_code"   => $vars["otp_code"],
-        );
-        $otp = new Sms($vars);
-        $response = $otp->verify();
-        if(isset($response["data"]["status"])){
-            switch($response["data"]["status"] ){
-                case "APPROVED" :
-                    update_user_meta($this->user->ID, 'user_status', 1);
-                    $role = $this->user->get_role();
-                    $this->notification(
-                        $role."/new-account",
-                        array(
-                            "user" => $this->user,
-                            "recipient" => $this->user->ID
-                        )
-                    );
-                break;
-            }          
-        }
-        return $response;
-    }
-    public function otp_status($vars=array()){
-        $vars = array(
-            "user_id"    => $this->user->ID,
-            "otp_id"     => $vars["otp_id"]
-        );
-        $otp = new Sms($vars);
-        $response = $otp->otp_status();
-        return $response;
-    }
-    public function resend_otp($vars=array()){
-        $vars = array(
-            "user_id"    => $this->user->ID,
-            "otp_id"     => $vars["otp_id"]
-        );
-        $otp = new Sms($vars);
-        $response = $otp->resend();
-
-        if(isset($response["data"]["status"])){
-            if($response["data"]["status"] == "EXPIRED"){
-                $vars = array(
-                    "user_id"   => $this->user->ID,
-                    "recipient" => $this->user->get_phone(),
-                    "content"   => "Your otp code is {}"
-                );
-                $otp = new Sms($vars);
-                $response = $otp->generate();
-                $response["refresh"] = true;
-            }
-        }
-        return $response;
-    }
 
 
-    // New email activation
-    static function get_email_activation_link($user_id){
-        $email = get_user_meta($user_id, '_email_temp', true);
-        $data = array('type' => 'email', 'id' => $user_id , 'email' => $email);
-        $encrypt = new Encrypt();
-        $code = $encrypt->encrypt($data);
-        return add_query_arg( array( 'activation-email' => $code ), get_account_endpoint_url( 'profile' ));
-    }
-    static function send_email_activation($user_id){
-        $email = get_user_meta($user_id, '_email_temp', true);
-        $activation_link = Salt::get_email_activation_link($user_id);
-        $from_name = get_bloginfo( 'name' );
-        $from_email = get_bloginfo( 'admin_email' );
-        $headers = array();
-        $headers[] = 'From: '.$from_name.' <'. $from_email.'>';
-        $headers[] = 'Content-Type: text/html; charset=UTF-8';
-        $headers[] = 'Reply-To: '.$from_name.' <'. $from_email.'>';
-        $mail = wp_mail( $email, $from_name.' Email Activation', 'Email Activation link : ' . $activation_link, $headers );
-        return $mail;
-    }
-    static function reset_email_activation($user_id){
-        delete_user_meta($user_id, "_email_temp");
-        $email = get_user_meta($user_id, 'user_email', true);
-        return array(
-            "message" => "Email activation has been reset. Your current email is $email again.",
-            "refresh" => true
-        );
-    }
-    
-
-    // send activation
-    public function send_activation($user_id=0){
-        $response = $this->response();
-
-        if(ENABLE_MEMBERSHIP_ACTIVATION){
-
-            $user = $this->user;
-
-            $activation_type = MEMBERSHIP_ACTIVATION_TYPE;
-            $user_activation_type = get_user_meta($user_id, "activation_type", true);
-            if(!empty($user_activation_type)){
-               $activation_type = $user_activation_type;
-            }
-
-            switch($activation_type){
-
-                case "email" :
-                    $activation_link = $this->get_activation_link($user_id);//add_query_arg( array( 'activation-code' => base64_encode(serialize($string)) ), get_account_endpoint_url( 'profile' ));
-                    $from_name = get_bloginfo( 'name' );
-                    $from_email = get_bloginfo( 'admin_email' );
-                    $headers = array();
-                    $headers[] = 'From: '.$from_name.' <'. $from_email.'>';
-                    $headers[] = 'Content-Type: text/html; charset=UTF-8';
-                    $headers[] = 'Reply-To: '.$from_name.' <'. $from_email.'>';
-                    $mail = wp_mail( $user->user_email, $from_name.' Activation', 'Activation link : ' . $activation_link, $headers );
-                    if(!$mail){
-                        $response["error"] = true;
-                        $response["message"] = "Activation link could not be sent.";
-                    }else{
-                        update_user_meta($user_id, "activation_type", "email");
-                        $response["refresh"] = true;
-                    }
-                    return $response; 
-                break;
-
-                case "sms" :
-                    $vars = array(
-                      "user_id"   => $user_id,
-                      "recipient" => $user->get_phone(),
-                      "content"   => "Your otp code is {}"
-                    );
-                    $otp = new Sms($vars);
-                    $response = $otp->generate();
-
-                    if($response["error"]){
-                        update_user_meta($user_id, "activation_type", "email");
-                        return $this->send_activation($user_id);
-                    }else{
-                        update_user_meta($user_id, "activation_type", "sms");
-                        return $response;
-                    }
-                break;
-
-                default :
-                   return $response;
-                break;
-            }
-        }else{
-            return $response;
-        }
-    }
-
-    // change activation method
-    public function change_activation_method($vars=array()){
-        $method = $vars["activation_method"];
-        $user_id = $vars["user_id"];
-        switch($method){
-
-            case "email" :
-                update_user_meta($user_id, "activation_type", "email");
-                $response = $this->send_activation($user_id);
-                $response["refresh"] = true;
-            break;
-
-            case "sms" :
-               update_user_meta($user_id, "activation_type", "sms");
-               $response["refresh"] = true;
-            break;
-
-        }
-        return $response;
-    }
 
 
-    // Form validations
-    public function validate_phone($phone="", $country="", $phone_code=""){
-        $error = false;
-        $message = "";
-        $response = $this->response();
-        if(empty($phone) || empty($country)){
-            $error = true;
-            $message = "Phone number or country values is invalid.";
-        }
-        if(!empty($phone_code)){
-            $phone = $phone_code.$phone;
-        }
-        if(strlen($phone) < 5){
-            $error = true;
-            $message = "Phone number is too short";
-        }
-        if(!$error){
-            $url = PHONE_VALIDATOR_KEYS["url"];
-            $url = str_replace("{phone}", $phone, $url);
-            $url = str_replace("{country}", $country, $url);
-            $args = array(
-                'headers' => array(
-                    'X-RapidAPI-Key' => PHONE_VALIDATOR_KEYS["X-RapidAPI-Key"],
-                    'X-RapidAPI-Host' => PHONE_VALIDATOR_KEYS["X-RapidAPI-Host"],
-                ),
-            );
-            $result = wp_remote_get( $url, $args );
-            if ( is_wp_error( $result ) ) {
-                $response["error"] = true;
-                $response["message"] = $result;
-                return $response;
-            }
-            $body = wp_remote_retrieve_body( $result );
-            $data = json_decode( $body, true);
-            if(isset($data["isValidNumber"])){
-                if(!$data["isValidNumber"]){
-                    $error = true;
-                    $message = "Phone number is not valid."; 
-                }else{
-                    /*$data["carrier"]
-                    $data["numberType"] : "MOBILE", "FIXED_LINE"*/                    
-                }
-            }else{
-               $error = true;
-               $message = "Phone number is not valid."; 
-               if(isset($data["isPossibleNumberWithReason"])){
-                   switch($data["isPossibleNumberWithReason"]){
-                      case "TOO_SHORT" :
-                          $message = "Phone number is too short."; 
-                      break;
-                      case "INVALID_LENGTH" :
-                          $message = "Phone number is not valid."; 
-                      break;
-                   }
-               }else{
-                   $error = true;
-                   $message = "Phone number is not valid."; 
-               }
-            }            
-        }
-        $response["error"] = $error;
-        $response["message"] = $message;
-        return $response;
-    }
-    static function user_exist($vars=array(), $callback=""){
-        $email = $vars["email"];
-        if(isset($vars["exclude"])){
-           if($vars["exclude"] == $email){
-              return false;
-           }
-        }
-        $exists = email_exists($email);
-        if ( $exists ){
-          return "That E-mail is already registered.";
-        }else{
-          return false;//"That E-mail doesn't belong to any registered users on this site";
-        }
-    }
-    static function nickname_exist($vars=array(), $callback=""){
-        global $wpdb;
-        $nickname = $vars["nickname"];
-        if(isset($vars["exclude"])){
-           if($vars["exclude"] == $nickname){
-              return false;
-           }
-        }
-        if(isset($vars["user_id"])){
-            $user_id = $vars["user_id"];
-        }else{
-            $user_id = get_current_user_id();
-        }
-        $exists = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(ID) FROM $wpdb->users as users, $wpdb->usermeta as meta WHERE users.ID = meta.user_id AND meta.meta_key = 'nickname' AND meta.meta_value = %s AND users.ID <> %d", $nickname, $user_id ) );
-        if ( $exists ){
-          return "That user name is already registered.";
-        }else{
-          return false;//"That E-mail doesn't belong to any registered users on this site";
-        }
-    }
 
 
-    static function user_is_online($user_id) {
-          $logged_in_users = get_transient('users_online');
-          // online, if (s)he is in the list and last activity was less than 15 minutes ago
-          return isset($logged_in_users[$user_id]) && ($logged_in_users[$user_id] > (current_time('timestamp') - (15 * 60)));
-    }
-    public function update_online_users_status(){
-        if(is_user_logged_in()){
-
-            // get the online users list
-            if(($logged_in_users = get_transient('users_online')) === false) $logged_in_users = array();
-
-            $current_user = wp_get_current_user();
-            $current_user = $current_user->ID;  
-            $current_time = current_time('timestamp');
-
-            if(!isset($logged_in_users[$current_user]) || ($logged_in_users[$current_user] < ($current_time - (15 * 60)))){
-                $logged_in_users[$current_user] = $current_time;
-                set_transient('users_online', $logged_in_users, 30 * 60);
-            }
-        }
-    }
-    public function update_online_users_status_logout($user_id=0){
-        if($user_id > 0){
-            update_user_meta( $user_id, 'last_logout', time() );
-            if(($logged_in_users = get_transient('users_online')) === false) $logged_in_users = array();
-            unset($logged_in_users[$user_id]);
-            set_transient('users_online', $logged_in_users, 30 * 60);
-        }else{
-            if (!is_user_logged_in()){
-                //wp_safe_redirect(get_page_url('my-account'));
-                wp_safe_redirect(get_permalink(get_option('options_myaccount_page_id')));
-            }
-        }
-    }
-
-    public function redirect_to_profile(){
-        if (is_user_logged_in() && get_current_endpoint() == "my-account" && $this->user->get_status() ) {
-            wp_safe_redirect(get_account_endpoint_url('profile'));
-            exit();
-        }
-    }
-
-    public function user_not_activated() {
-        if(is_user_logged_in()){
-            //$endpoint = WC()->query->get_current_endpoint();
-            $endpoint = get_current_endpoint();
-            if (!$this->user->get_status() && $endpoint != "not-activated") {
-                wp_safe_redirect(get_account_endpoint_url('not-activated'));
-                exit();
-            }
-            if ($this->user->get_status() && $endpoint == "not-activated") {
-                wp_safe_redirect(get_account_endpoint_url('profile'));
-                exit();
-            }            
-        }
-    }
-
-    public function user_profile_not_completed() {
-        if(is_user_logged_in()){
-            //$endpoint = WC()->query->get_current_endpoint();
-            $endpoint = get_current_endpoint("my-account");
-            $endpoint = empty($endpoint)?get_query_var("pagename"):$endpoint;
-            $endpoint_not_allowed = array("sessions", "messages", "financials", "reviews");
-            if($this->user->get_role() == "expert"){
-                unset($endpoint_not_allowed["sessions"]);
-            }
-            if ($this->user->get_status() && !$this->user->profile_completed && in_array($endpoint, $endpoint_not_allowed)) {
-                wp_safe_redirect(get_account_endpoint_url('not-completed'));
-                exit();
-            }
-            if ($this->user->get_status() && $this->user->profile_completed && $endpoint == "not-completed") {
-               wp_safe_redirect(get_account_endpoint_url('profile'));
-               exit();
-            } 
-        }
-    }
 
     public function notification($event="", $data=array()){
         if(ENABLE_NOTIFICATIONS){
@@ -1120,62 +606,7 @@ error_log("222");
             }
         }
     }
-    public function notification_count(){
-        if(ENABLE_NOTIFICATIONS){
-            $user = $this->user;
-            $data = ["get_count" => true, "seen" => 0];
-            $notifications = new Notifications($user);
-            $result = $notifications->get_notifications($data);
-            if(isset($result["data"]["total"])){
-                return $result["data"]["total"];
-            }
-            return 0;
-        }else{
-            return 0;
-        }
-    }
 
-
-    public function favorites($vars=array()){
-        $response = $this->response();
-        $favorites = new Favorites();
-        if(isset($vars["action"])){
-            switch($vars["action"]){
-                case "get" :
-                    $posts_per_page = isset($vars["posts_per_page"])?intval($vars["posts_per_page"]):0;
-                    $page = isset($vars["page"])?intval($vars["page"]):1;
-                    
-                    if($favorites->count() > 0){
-                        $args = array();
-                        $args["include"] = $favorites->favorites;
-
-                        $paginate = new Paginate($args, $vars);
-                        $result = $paginate->get_results();
-                        $response["posts"] = $result["posts"];
-                        $response["data"] = $result["data"];
-                    }else{
-                        $response["posts"] = array();
-                        $response["data"] = array(
-                            "total" => 0,
-                            "page" => $page,
-                            "page_total" => 1
-                        );
-                    }
-                break;
-
-            }
-        }else{
-            $response["error"] = true;
-            $response["message"] = "Action is not set";
-        }
-        return $response;
-    }
-    public function get_favorites_count(){
-        $favorites = new Favorites();
-        $count = $favorites->count();
-        if (empty($count)) $count = 0;
-        return $count;
-    }
 
 
 
@@ -1220,93 +651,6 @@ error_log("222");
             }
             return $response;
     }
-
-
-
-
-
-    public function is_following($id = 0, $type = "user") {
-        global $wpdb;
-        // user_id, meta_key ve meta_value değerlerini prepare ile temizliyoruz
-        // wp_usermeta yerine {$wpdb->usermeta}
-        $query = $wpdb->prepare(
-            "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s AND meta_value = %s",
-            $this->user->ID,
-            'following_' . $type,
-            $id
-        );
-        return boolval($wpdb->get_var($query));
-    }
-
-    public function is_follows($id = 0, $type = "user") {
-        global $wpdb;
-        $query = $wpdb->prepare(
-            "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s AND meta_value = %s",
-            $id,
-            'following_' . $type,
-            $this->user->ID
-        );
-        return boolval($wpdb->get_var($query));
-    }
-
-    public function get_followers_count($id = 0, $type = "user") {
-        global $wpdb;
-        $query = $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s",
-            'following_' . $type,
-            $id
-        );
-        return (int) $wpdb->get_var($query);
-    }
-
-    public function get_followers($id = 0, $type = "user") {
-        global $wpdb;
-        $query = $wpdb->prepare(
-            "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s",
-            'following_' . $type,
-            $id
-        );
-        $users = $wpdb->get_results($query);
-        return wp_list_pluck($users, "user_id");
-    }
-    public function follow($id=0, $type="user"){
-        $response = $this->response();
-        $meta_id = 0;
-        if(is_user_logged_in() || $this->user->ID > 0){
-            if(!$this->is_following($id, $type)){
-               $meta_id = add_user_meta( $this->user->ID, "following_".$type, $id);
-               $response["html"] = trans("Unfollow");
-                $this->notification(
-                    $this->user->get_role()."/new-follower",
-                    array(
-                        "post" => array(),
-                        "user" => $this->user,
-                        "recipient" => $id,
-                    )
-                );
-            }else{
-               $meta_id = delete_user_meta( $this->user->ID, "following_".$type, $id);
-               $response["html"] = trans("Follow");
-               $notifications = new Notifications($this->user, false);
-               $notifications->delete_user_event_notification("new-follower", $id);
-            }
-        }
-        $response["data"] = $meta_id;
-        return $response;
-    }
-    /*public function unfollow($id=0, $type="user"){
-        $response = $this->response();
-        $meta_id = 0;
-        if((is_user_logged_in() || $this->user->ID > 0) && !$this->is_following($id, $type)){
-            $meta_id = delete_user_meta( $this->user->ID, "following_".$type, $id);
-        }
-        $response["data"] = $meta_id;
-        $response["html"] = trans("Follow");
-        return $response;
-    }*/
-
-
-
 
 
 
@@ -1462,89 +806,6 @@ error_log("222");
 
         return $message;
     }*/
-
-    // autologin after registration
-    public function user_register_hook( $user_id ) {
-        $response = $this->response();
-
-        $register_type = "email";
-        $querystring = json_decode(queryStringJSON(), true);
-        if(isset($querystring["loginSocial"])){
-            $register_type = $querystring["loginSocial"];
-        }
-        update_user_meta( $user_id, 'register_type', $register_type );
-
-        $vars = isset($_POST['vars'])?$_POST['vars']:$_POST;
-
-        $role = "default";
-        if(isset($vars["role"])){
-            $role = sanitize_text_field($vars['role']);
-        }
-
-        $user_id = wp_update_user( array( 'ID' => $user_id, 'role' => $role ) );
-        $user_data = new WP_User($user_id);
-        $user_data->set_role($role);
-
-        $this->update_user($user_id);
-        
-        $password_set = false;
-        if($role != "default"){
-            $password_set = true;
-            if(ENABLE_MEMBERSHIP_ACTIVATION || ENABLE_SMS_NOTIFICATIONS){
-                if( MEMBERSHIP_ACTIVATION_TYPE == "sms" || ENABLE_SMS_NOTIFICATIONS ){
-                    $vars["action"] = "save_sms_requirements";
-                    $vars["refresh"] = true;
-                    $response = $this->update_profile($vars);
-                    $this->user = new User($user_id);
-                    if(!$response["error"] && !ENABLE_MEMBERSHIP_ACTIVATION){
-                        $this->notification(
-                            $role."/new-account",
-                            array(
-                                "user"      => $this->user,
-                                "recipient" => $this->user->ID
-                            )
-                        );
-                    }
-                }else{
-                    $response = $this->send_activation($user_id);
-                }
-            }else{
-                $this->notification(
-                    $role."/new-account",
-                    array(
-                        "user"      => $this->user,
-                        "recipient" => $this->user->ID
-                    )
-                );
-            }            
-        }
-
-        update_user_meta( $user_id, 'password_set', $password_set );
-
-        wp_set_current_user($user_id);
-        wp_set_auth_cookie($user_id);
-        if (defined('DOING_AJAX') && DOING_AJAX) {
-            return $response;
-        }else{
-            wp_redirect( get_account_endpoint_url("profile") );
-            exit();             
-        }
-    }
-    public function user_after_update_hook($user_id, $old_user_data){
-        if(!is_admin()){
-            $this->update_user($user_id);
-        }
-    }
-    public function user_before_update_hook($user_id) {
-        if(!is_admin()){
-            $this->update_user($user_id);
-        }
-    }
-    public function user_after_meta_update_hook($meta_id, $user_id, $meta_key, $_meta_valu){
-        if(!is_admin()){
-            $this->update_user($user_id);
-        }
-    }
 
     
 

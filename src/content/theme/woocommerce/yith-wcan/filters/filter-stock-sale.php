@@ -35,7 +35,18 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 					<label for="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_sale">
 						<input type="checkbox" id="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_sale" name="filter[<?php echo esc_attr( $preset->get_id() ); ?>][<?php echo esc_attr( $filter->get_id() ); ?>][sale]" value="1" <?php checked( $on_sale_active ); ?> />
 						<a href="<?php echo esc_url( $filter->get_on_sale_filter_url() ); ?>" <?php yith_wcan_add_rel_nofollow_to_url( true, true ); ?> role="button" class="term-label">
-							<?php echo esc_html( apply_filters( 'yith_wcan_on_sale_text', _x( 'On sale', '[FRONTEND] On sale filter label', 'yith-woocommerce-ajax-navigation' ) ) ); ?>
+							<?php
+							/**
+							 * APPLY_FILTERS: yith_wcan_on_sale_text
+							 *
+							 * Filters "On sale" label.
+							 *
+							 * @param string $label "On sale" label
+							 *
+							 * @return string
+							 */
+							echo esc_html( apply_filters( 'yith_wcan_on_sale_text', _x( 'On sale', '[FRONTEND] On sale filter label', 'yith-woocommerce-ajax-navigation' ) ) );
+							?>
 							<?php echo $filter->render_count( $on_sale_count ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						</a>
 					</label>
@@ -51,7 +62,18 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 					<label for="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_stock">
 						<input type="checkbox" id="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_stock" name="filter[<?php echo esc_attr( $preset->get_id() ); ?>][<?php echo esc_attr( $filter->get_id() ); ?>][stock]" value="1" <?php checked( $in_stock_active ); ?> />
 						<a href="<?php echo esc_url( $filter->get_in_stock_filter_url() ); ?>" <?php yith_wcan_add_rel_nofollow_to_url( true, true ); ?> role="button" class="term-label">
-							<?php echo esc_html( apply_filters( 'yith_wcan_in_stock_text', _x( 'In stock', '[FRONTEND] On sale filter label', 'yith-woocommerce-ajax-navigation' ) ) ); ?>
+							<?php
+							/**
+							 * APPLY_FILTERS: yith_wcan_in_stock_text
+							 *
+							 * Filters "In stock" label.
+							 *
+							 * @param string $label "in stock" label
+							 *
+							 * @return string
+							 */
+							echo esc_html( apply_filters( 'yith_wcan_in_stock_text', _x( 'In stock', '[FRONTEND] On sale filter label', 'yith-woocommerce-ajax-navigation' ) ) );
+							?>
 							<?php echo $filter->render_count( $in_stock_count ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						</a>
 					</label>
@@ -67,7 +89,18 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 					<label for="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_featured">
 						<input type="checkbox" id="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_featured" name="filter[<?php echo esc_attr( $preset->get_id() ); ?>][<?php echo esc_attr( $filter->get_id() ); ?>][featured]" value="1" <?php checked( $featured_count_active ); ?> />
 						<a href="<?php echo esc_url( $filter->get_featured_filter_url() ); ?>" <?php yith_wcan_add_rel_nofollow_to_url( true, true ); ?> role="button" class="term-label">
-							<?php echo esc_html( apply_filters( 'yith_wcan_featured_text', _x( 'Featured', '[FRONTEND] On sale filter label', 'yith-woocommerce-ajax-navigation' ) ) ); ?>
+							<?php
+							/**
+							 * APPLY_FILTERS: yith_wcan_featured_text
+							 *
+							 * Filters "featured" label.
+							 *
+							 * @param string $label "featured" label
+							 *
+							 * @return string
+							 */
+							echo esc_html( apply_filters( 'yith_wcan_featured_text', _x( 'Featured', '[FRONTEND] On sale filter label', 'yith-woocommerce-ajax-navigation' ) ) );
+							?>
 							<?php echo $filter->render_count( $featured_count ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						</a>
 					</label>

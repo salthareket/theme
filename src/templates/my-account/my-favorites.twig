@@ -1,72 +1,45 @@
 
-
-{% set  page_settings = {
-            full : false,
-            classes : {
-                body : "",
-                main : "",
-                container : "",
-                gap : "",
-            },
-            offcanvas : {
-                individual : false,
-                size : "md",
-                width : 3,
-                position : "start",
-                template : ""
-            },
-            alert : {
-                type : "danger",
-                title : "",
-                message : "",
-                position : "bottom",
-                fixed : false,
-                class : "",
-                html : ""
-            },
-            paging : {
-                posts_per_page : 10,
-                page : 1
-            }
-        }
-%}
-
-
-{% block hero %}
-{% endblock %}
-
-
-{% block sidebar %}
-{% endblock %}
-
+{% block hero %}{% endblock %}
+{% block sidebar %}{% endblock %}
 
 {% block content %}
-    <div class="card-container card-container-solid card card-reset ajax-paginate" data-post_type="product" data-posts_per_page="10" data-order="desc" data-load="scroll" data-tease="product/tease" data-size="xs" data-action="get" data-ajax-method="favorites">
-        <div class="card-header">
-            <h1 class="card-title">
-                {{title}}
-                {% if description %}
-                <small>{{description}}</small>
-                {% endif %}
-            </h1>
+
+    <div class="card card-reset container">
+
+        <div class="card-header pb-3">
+            <h1 class="card-title mb-0">{{ title }}</h1>
         </div>
-        <div class="card-body list-cards pt-4 pb-2"></div>
-        <div class="card-footer justify-content-end viewport">
-            <a href="#" class="btn-next-page btn btn-light btn-extend w-100 loading" data-init="true"><span>Load <span class="item-left"></span> More</span></a>
-        </div>
+
+        {% if favorites_empty %}
+
+            <div class="card-body py-5 text-center text-muted">
+                <i class="fa-regular fa-heart fa-3x mb-3 d-block"></i>
+                <p class="mb-0">{{ translate("You haven't added any favorites yet.") }}</p>
+            </div>
+
+        {% else %}
+
+            {% include "partials/pagination/pagination-advanced.twig" with {
+                container  : ".products",
+                post_type  : post_type,
+                direction  : "prev"
+            } %}
+
+            <div class="card-body">
+                {# .products — loop-start.php ile aynı grid class'ları, AJAX append hedefi #}
+                <div class="products row {{ function('woo_archive_grid', 2, {'md': post_pagination[post_type].catalog_columns ?? 3, 'lg': post_pagination[post_type].catalog_columns ?? 3}) }} g-lg-5 g-4">
+                    {{ loop_html|raw }}
+                </div>
+            </div>
+
+            {% include "partials/pagination/pagination-advanced.twig" with {
+                container  : ".products",
+                post_type  : post_type,
+                direction  : "next"
+            } %}
+
+        {% endif %}
+
     </div>
-{% endblock %}
 
-
-{% block appendix %}
-    {{'<script>'}}
-        $( document ).ready(function() {
-            {% if not page_settings.paging %}
-            $("#form-search").find("[type='submit']").on("click", function(){
-                $(".list-cards").empty();
-            });
-            $("#form-search").submit();
-            {% endif %}
-        });
-    {{'</script>'}}
 {% endblock %}

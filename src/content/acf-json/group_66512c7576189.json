@@ -73,8 +73,8 @@
             "choices": {
                 "default": "Default",
                 "post\/tease": "Post Tease (Predefined)",
-                "theme\/templates\/_custom\/6995_default": "6995_default",
-                "theme\/templates\/_custom\/footer-test-001_default": "footer-test-001_default"
+                "theme\/templates\/_custom\/6992_default": "6992_default",
+                "theme\/templates\/_custom\/6995_default": "6995_default"
             },
             "default_value": false,
             "return_format": "value",
@@ -131,13 +131,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
     "acfe_autosync": [
         "json"
     ],
     "acfe_form": 0,
     "acfe_meta": "",
     "acfe_note": "",
-    "modified": 1774822268,
+    "modified": 1779054354,
     "acfe_categories": {
         "block": "Block"
     }

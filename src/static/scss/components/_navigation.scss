@@ -1,0 +1,63 @@
+// ─────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────
+
+// ── Horizontal scroll nav ────────────────────────────────────
+.navbar-nav-scroll {
+    max-width: 100%;
+    height: 50px;
+    overflow: hidden;
+    overflow-x: auto;
+    align-content: flex-start;
+    white-space: nowrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+
+    .nav {
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+}
+
+// Mobile-only scroll nav
+@include media-breakpoint-down(md) {
+    .navbar-nav-scroll-xs {
+        max-width: 100%;
+        height: 70px;
+        overflow: hidden;
+        overflow-x: auto;
+        align-content: flex-start;
+        white-space: nowrap;
+        justify-content: flex-start;
+        align-items: flex-start;
+
+        .nav {
+            flex-wrap: nowrap;
+            width: 100%;
+        }
+    }
+}
+
+// ── Main nav hover opacity ────────────────────────────────────
+.navbar-nav-main {
+    > .menu-item > a { @include transition(opacity .3s ease-out); }
+
+    &:hover > .menu-item > a {
+        opacity: .5;
+        &.highlighted, &:hover { opacity: 1; }
+    }
+}
+
+// ── Collapsed nav dropdown ────────────────────────────────────
+.nav.nav-collapsed .dropdown-menu {
+    position: relative;
+    transform: none;
+    --bs-dropdown-padding-y: 0;
+    --bs-dropdown-bg: transparent;
+    --bs-dropdown-border-width: 0;
+    --bs-dropdown-border-color: transparent;
+    --bs-dropdown-border-radius: 0;
+    --bs-dropdown-zindex: auto;
+
+    .nav-item .nav-link { --bs-nav-link-padding-y: 3px !important; }
+}

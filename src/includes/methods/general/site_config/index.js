@@ -50,9 +50,9 @@
             const platformFull = window.innerWidth <= 768 ? "mobile" : "desktop";
             if (site_config.lcp[platformKey] === 0) {
                 _self.loadLCPMeasure(platformFull);
-                console.log("[LCP] Veri eksik, ölçüm scripti yükleniyor...");
+                log("[LCP] Veri eksik, ölçüm scripti yükleniyor...");
             } else {
-                console.log("[LCP] Veri zaten mevcut, ölçüme gerek yok.");
+                log("[LCP] Veri zaten mevcut, ölçüme gerek yok.");
             }
         }
     },
@@ -64,7 +64,7 @@
         script.id = 'lcp-main-js';
         script.src = ajax_request_vars.theme_url + 'vendor/salthareket/theme/src/static/js/measure-lcp.js';
         script.onload = function() {
-            console.log("[LCP] Ana dosya yüklendi, şimdi kütüphaneye geçiliyor...");
+            log("[LCP] Ana dosya yüklendi, şimdi kütüphaneye geçiliyor...");
             // Kendi kendini tekrar çağır ama bu sefer path'i boş yolla (2. adıma geçsin)
             _self.loadWebVitals(platform);
         };
@@ -80,7 +80,7 @@
         script.onload = function () {
             webVitals.onLCP((metric) => {
                 if (typeof lcp_data_save === 'function') {
-                    console.log(metric, platform);
+                    log(metric, platform);
                     lcp_data_save(metric, platform);
                 }
             });

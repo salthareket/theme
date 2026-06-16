@@ -1,7 +1,12 @@
-//====================================
-// Custom Imports
-//====================================
+// ─────────────────────────────────────────────────────────────
+// TEMA OVERRIDE'LARI
+// vendor scss'den sonra yüklenir
+// Yapı: abstracts/ layout/ pages/ ile uyumlu
+// ─────────────────────────────────────────────────────────────
 
-//@import 'header';
-//@import 'footer';
-@import "pages/index";
+// Tema layout override'ları
+@import 'layout/header';
+@import 'layout/header-themes';
+
+// Tema sayfa stilleri
+@import 'pages/index';

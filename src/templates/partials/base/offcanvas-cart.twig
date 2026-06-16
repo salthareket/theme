@@ -39,7 +39,7 @@
            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
        </div>
 
-       <div class="offcanvas-body load-container {% if offcanvas.fullscreen and offcanvas.container and "body" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">
+       <div class="offcanvas-body load-container flex-column {% if offcanvas.fullscreen and offcanvas.container and "body" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">
        </div>
 
        <div class="offcanvas-footer {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">

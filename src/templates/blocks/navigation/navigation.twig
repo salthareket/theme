@@ -25,21 +25,20 @@
 
     {% set align_item = function("block_align", fields.align_item, true, fields.slider) %}
 
-    {#<div class="row {{block_meta.row.class}}" {{block_meta.row.attrs}}>
-
-        <div id="navigation" class="navbar-container d-xl-flex d-none h-100 justify-content-{{header_options.start.align}}">
-            
-                {% include "blocks/navigation/menu.twig" with {'menu': get_menu(fields.menu).get_items, 'parent_link' : fields.parent_link} %}
-
-        </div>#}
-
+    {% if fields.menu_view and fields.menu %}
         {% include "blocks/navigation/menu-" ~ fields.menu_view ~ ".twig" with {
-            'menu': get_menu(fields.menu).get_items, 
+            'menu': get_menu(fields.menu).get_items,
             'is_child': false,
             'parent_link' : fields.parent_link,
             "max_level": fields.max_level
         } %}
-
-    {#</div>#}
+    {% elseif is_preview %}
+        <nav class="d-flex gap-3 align-items-center py-2">
+            <a href="#" class="nav-link">Ana Sayfa</a>
+            <a href="#" class="nav-link">Hakkımızda</a>
+            <a href="#" class="nav-link dropdown-toggle">Hizmetler</a>
+            <a href="#" class="nav-link">İletişim</a>
+        </nav>
+    {% endif %}
 
 {% endblock %}

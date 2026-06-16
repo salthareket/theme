@@ -32,7 +32,18 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 
 			<?php if ( 'fields' === $filter->get_price_slider_design() ) : ?>
 				<label for="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_min">
-					<?php echo esc_html( apply_filters( 'yith_wcan_filter_price_slider_from_label', _x( 'From', '[FRONTEND] Label used in price slider filter', 'yith-woocommerce-ajax-navigation' ) ) ); ?>
+					<?php
+					/**
+					 * APPLY_FILTERS: yith_wcan_filter_price_slider_from_label
+					 *
+					 * Filters Price Slider "from" label.
+					 *
+					 * @param string $label "from" label
+					 *
+					 * @return string
+					 */
+					echo esc_html( apply_filters( 'yith_wcan_filter_price_slider_from_label', _x( 'From', '[FRONTEND] Label used in price slider filter', 'yith-woocommerce-ajax-navigation' ) ) );
+					?>
 				</label>
 			<?php endif; ?>
 			<input
@@ -49,7 +60,18 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 
 			<?php if ( 'fields' === $filter->get_price_slider_design() ) : ?>
 				<label for="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_max">
-					<?php echo esc_html( apply_filters( 'yith_wcan_filter_price_slider_to_label', _x( 'To', '[FRONTEND] Label used in price slider filter', 'yith-woocommerce-ajax-navigation' ) ) ); ?>
+					<?php
+					/**
+					 * APPLY_FILTERS: yith_wcan_filter_price_slider_to_label
+					 *
+					 * Filters Price Slider "to" label.
+					 *
+					 * @param string $label "to" label
+					 *
+					 * @return string
+					 */
+					echo esc_html( apply_filters( 'yith_wcan_filter_price_slider_to_label', _x( 'To', '[FRONTEND] Label used in price slider filter', 'yith-woocommerce-ajax-navigation' ) ) );
+					?>
 				</label>
 			<?php endif; ?>
 			<input

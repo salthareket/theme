@@ -76,7 +76,7 @@ function isLoadedJS($name, $load = false, $callback = null) {
             loadJS(finalUrl).then(() => {
                 if (isObj && item.callback_code) {
                     try { new Function(item.callback_code)(); }
-                    catch (e) { console.error("Callback Hatası:", e); }
+                    catch (e) { log("Callback Hatası: " + e.message, 'error'); }
                 }
                 loadJSChain(list, finalAction);
             }).catch(() => loadJSChain(list, finalAction));
@@ -121,7 +121,7 @@ function isLoadedJS($name, $load = false, $callback = null) {
             },
             error: function() {
                 isLoadedJS.loading = false;
-                console.error("JS Config dosyası yüklenemedi.");
+                log("JS Config dosyası yüklenemedi.", 'error');
             }
         });
     }
@@ -138,17 +138,29 @@ function function_secure($plugin, $name, $params) {
     debugJS($plugin, $name, $params)
     if (isLoadedJS($plugin)) {
         if (typeof window[$name] === 'function') {
-            if (Array.isArray($params)) { window[$name].apply(null, $params); }
-            else { window[$name]($params); }
+            // Eğer $params undefined veya null ise fonksiyonu parametresiz çağır
+            if ($params === undefined || $params === null) {
+                window[$name]();
+            } else if (Array.isArray($params)) {
+                window[$name].apply(null, $params);
+            } else {
+                window[$name]($params);
+            }
         } else {
-            console.error($name + ' is not a function...');
+            log($name + ' is not a function...', 'error');
         }
     } else {
         // Plugin yüklü değilse dinamik yükle, sonra init çağır
         isLoadedJS($plugin, true, function() {
             if (typeof window[$name] === 'function') {
-                if (Array.isArray($params)) { window[$name].apply(null, $params); }
-                else { window[$name]($params); }
+                // Eğer $params undefined veya null ise fonksiyonu parametresiz çağır
+                if ($params === undefined || $params === null) {
+                    window[$name]();
+                } else if (Array.isArray($params)) {
+                    window[$name].apply(null, $params);
+                } else {
+                    window[$name]($params);
+                }
             }
         });
     }
@@ -158,7 +170,9 @@ function function_secure($plugin, $name, $params) {
 /**
  * CF7Manager — Contact Form 7 entegrasyonu.
  * Event listener'lar, form init, loader yönetimi, hata işaretleme.
+ * Guard: YITH gibi eklentiler JS'i tekrar inject edince redeclaration önle
  */
+if (typeof CF7Manager === 'undefined') {
 class CF7Manager {
     constructor() {
         this.initEventListeners();
@@ -229,7 +243,8 @@ class CF7Manager {
         $container.animate({ scrollTop: offset }, 600);
     }
 }
-window.AppCF7 = new CF7Manager();
+window.AppCF7 = window.AppCF7 || new CF7Manager();
+} // end CF7Manager guard
 
 $(document).ready(function() {
     window.AppCF7.initForms();

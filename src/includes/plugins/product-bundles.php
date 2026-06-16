@@ -82,6 +82,23 @@ function get_bundle_product_id($product_id){
 	return $wpdb->get_var($wpdb->prepare("SELECT bundle_id FROM {$table} WHERE product_id = %d", $product_id));
 }
 
+/**
+ * WooCommerce variable product price range — EN DASH encoding fix.
+ *
+ * Sorun: ₺20,00 â€" ₺100,00 görünüyor.
+ * â€" = UTF-8 EN DASH (U+2013) double-encoded olarak geliyor.
+ * Bu filter ile price HTML'deki encoding bozukluğu düzeltilir.
+ *
+ * @since 2026-06-09
+ */
+add_filter( 'woocommerce_variable_price_html', function ( string $price ): string {
+    // Double-encoded EN DASH: â€" → –
+    $price = str_replace( 'â€"', '–', $price );
+    // Olası diğer double-encoding varyantları
+    $price = str_replace( [ 'â€"', '&ndash;', '&#8211;' ], '–', $price );
+    return $price;
+}, 20 );
+
 
 
 

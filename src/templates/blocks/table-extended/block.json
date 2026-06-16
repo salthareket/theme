@@ -1,0 +1,22 @@
+{
+    "name": "acf/table-extended",
+    "title": "Table Extended",
+    "description": "Gelişmiş tablo — filtreleme, arama, sayfalama ve özel sütun tipleri ile",
+    "category": "saltblocks",
+    "icon": "editor-table",
+    "keywords": ["table", "tablo", "extended", "gelişmiş", "filter", "search", "datatable", "satır", "sütun"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Table Extended Düzenle"
+    }
+}

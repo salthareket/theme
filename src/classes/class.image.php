@@ -5,27 +5,44 @@ namespace SaltHareket;
 /**
  * Image — Responsive image set, srcset, lazy loading, breakpoint-based image generation.
  *
- * @version 1.0.0
+ * @version 1.0.7
  *
  * @changelog
+ *   1.0.7 - 2026-05-18
+ *     - Add: ExternalImage wrapper class — Timber\Image interface'ini taklit eder
+ *     - Add: is_external_url() — site host ile URL host karşılaştırır
+ *     - Fix: get_image_set_post() — external URL'lerde attachment_url_to_postid() DB sorgusu atlanıyor
+ *     - Fix: get_image_set_post() — array src'de id=0 ise url key'ine bakıyor
+ *     - Fix: generate_actual_html() — width=0 / height=0 attribute'ları artık yazılmıyor
+ *     - Fix: render() ve init() cache key'leri birleştirildi, preview flag'i key'e dahil edildi
  *   1.0.0 - 2026-04-03
  *     - Add: Initial versioned release
  *
  * How to use:
- *   $img = new Image();
- *   $html = $img->get_image_set_post(['src' => 123, 'class' => 'img-fluid']);
- *   $html = $img->get_image_set_multiple($args, true);
+ *   // Numeric ID
+ *   get_image_set(['src' => 123, 'class' => 'img-fluid']);
+ *
+ *   // Local URL
+ *   get_image_set(['src' => 'https://site.com/wp-content/uploads/foto.jpg']);
+ *
+ *   // External URL (picsum, CDN vs.) — ExternalImage wrapper kullanılır
+ *   get_image_set(['src' => 'https://picsum.photos/800/600']);
+ *
+ *   // ACF array (id + url)
+ *   get_image_set(['src' => ['id' => 0, 'url' => 'https://picsum.photos/800/600']]);
  *
  * Examples:
  *   // Twig'de:
  *   {{ img({'src': post.thumbnail.id, 'class': 'img-fluid'}) }}
+ *   {{ img({'src': 'https://picsum.photos/800/600', 'class': 'img-fluid'}) }}
+ *   {{ img({'src': fields.image, 'class': 'img-fluid'}) }}
  *
  * @package SaltHareket
  */
 class Image {
 
     // Sınıf versiyonu (Tasarım/CSS değişirse burayı arttır, tüm cache patlasın)
-    private const VERSION = "1.0.6"; 
+    private const VERSION = "1.0.7"; 
     
     // Aynı sayfa içinde tekrar tekrar işlem yapmamak için statik depolama
     private static $static_cache = [];
@@ -117,13 +134,15 @@ class Image {
             } else {
                 $this->invalid = true;
             }
+        } else {
+            // src array ama breakpoint key'i değil — get_image_set_post'ta handle edilecek
         }
     }
 
     public function init() {
         if ($this->invalid) return $this->not_found();
 
-        // --- CACHE BAŞLANGIÇ ---
+        // render() ile aynı cache key — tüm args hash'leniyor
         $cache_key = 'sh_img_' . md5(json_encode([
             $this->args['src'] ?? '',
             $this->args['class'] ?? '',
@@ -135,6 +154,7 @@ class Image {
             $this->args['height'] ?? '',
             $this->args['inline'] ?? true,
             $this->args['wrapper'] ?? false,
+            $this->args['preview'] ?? false,
             self::VERSION
         ], JSON_UNESCAPED_UNICODE));
 
@@ -193,14 +213,17 @@ class Image {
             $this->args = $this->get_image_set_post($this->args);
         }
 
-        if(!isset($this->args["post"]) || !$this->args["post"]) return $this->not_found();
+        if(!isset($this->args["post"]) || !$this->args["post"]) {
+            return $this->not_found();
+        }
 
         // Attrs ve Focal Point Logic
         $attrs = [
-            "width" => $this->args["width"],
-            "height" => $this->args["height"],
             "alt" => $this->args["alt"]
         ];
+        // width/height sadece pozitif değerlerde ekle (0 veya null ise yazma)
+        if (!empty($this->args["width"]))  $attrs["width"]  = $this->args["width"];
+        if (!empty($this->args["height"])) $attrs["height"] = $this->args["height"];
 
         if (!empty($this->args["style"])) $attrs["style"] = $this->args["style"];
         if (!$this->args["lazy"] && $this->args["lazy_native"]) $attrs["loading"] = "lazy";
@@ -294,13 +317,35 @@ class Image {
         }
     }
 
+    /**
+     * Bir URL'nin external (başka domain) olup olmadığını kontrol eder.
+     */
+    private function is_external_url($url): bool {
+        if (!is_string($url) || empty($url)) return false;
+        if (strpos($url, '//') === 0) $url = 'https:' . $url;
+        if (strpos($url, 'http') !== 0) return false; // relative path
+
+        $site_host = parse_url(site_url(), PHP_URL_HOST);
+        $url_host  = parse_url($url, PHP_URL_HOST);
+
+        return $url_host && $url_host !== $site_host;
+    }
+
     public function get_image_set_post($args=array()){
         if (is_numeric($args["src"])) {
             $args["id"] = intval($args["src"]);
             $args["post"] = \Timber::get_image($args["id"]);
+
         } elseif (is_string($args["src"])) {
-            $args["id"] = attachment_url_to_postid($args["src"]);
-            $args["post"] = $args["id"] ? \Timber::get_image($args["id"]) : new \Timber\Image($args["src"]);
+            // External URL ise Timber'a hiç sorma, direkt ExternalImage wrapper yap
+            if ($this->is_external_url($args["src"])) {
+                $args["id"]   = 0;
+                $args["post"] = new ExternalImage($args["src"]);
+            } else {
+                $args["id"]   = attachment_url_to_postid($args["src"]);
+                $args["post"] = $args["id"] ? \Timber::get_image($args["id"]) : new \Timber\Image($args["src"]);
+            }
+
         } elseif (is_object($args["src"])) {
             if(isset($args["src"]->post_type) && $args["src"]->post_type == "attachment"){
                $args["id"] = $args["src"]->ID;
@@ -310,14 +355,26 @@ class Image {
                $args["post"] = $args["src"]->thumbnail;
             }
         } elseif (is_array($args["src"]) && isset($args["src"]["id"])) {
-            $args["id"] = $args["src"]["id"];
-            $args["post"] = \Timber::get_image($args["src"]["id"]);
+            $args["id"] = (int) $args["src"]["id"];
+            if ($args["id"] > 0) {
+                // Normal WP attachment
+                $args["post"] = \Timber::get_image($args["id"]);
+            } elseif (!empty($args["src"]["url"])) {
+                // id=0 ama url var (dummy data veya external array)
+                $url = $args["src"]["url"];
+                if ($this->is_external_url($url)) {
+                    $args["post"] = new ExternalImage($url);
+                } else {
+                    $args["id"]   = attachment_url_to_postid($url);
+                    $args["post"] = $args["id"] ? \Timber::get_image($args["id"]) : new \Timber\Image($url);
+                }
+            }
         }
 
         if(isset($args["post"])) {
-            if(empty($args["width"])) $args["width"] = $args["post"]->width();
+            if(empty($args["width"]))  $args["width"]  = $args["post"]->width();
             if(empty($args["height"])) $args["height"] = $args["post"]->height();
-            if(empty($args["alt"])) $args["alt"] = !empty($args["post"]->alt()) ? $args["post"]->alt() : (get_post($args["id"])->post_title ?? "");
+            if(empty($args["alt"]))    $args["alt"]    = !empty($args["post"]->alt()) ? $args["post"]->alt() : (get_post($args["id"])->post_title ?? "");
         }
         return $args;
     }
@@ -517,18 +574,75 @@ class Image {
     }
 
     public static function render($args) {
-        // Önce bi hash'e bak, nesneyi hiç doğurmadan sonucu dönebilir miyiz?
         $version = self::VERSION;
-        $cache_key = 'sh_img_' . md5(json_encode($args, JSON_UNESCAPED_UNICODE) . $version);
+        $cache_key = 'sh_img_' . md5(json_encode([
+            $args['src'] ?? '',
+            $args['class'] ?? '',
+            $args['type'] ?? '',
+            $args['lazy'] ?? true,
+            $args['lcp'] ?? false,
+            $args['placeholder'] ?? false,
+            $args['width'] ?? '',
+            $args['height'] ?? '',
+            $args['inline'] ?? true,
+            $args['wrapper'] ?? false,
+            $args['preview'] ?? false,
+            $version
+        ], JSON_UNESCAPED_UNICODE));
 
         if (isset(self::$static_cache[$cache_key])) {
             return self::$static_cache[$cache_key];
         }
 
-        // Yoksa mecbur nesneyi oluşturup işi yaptıralım
+        $transient = get_transient($cache_key);
+        if ($transient !== false) {
+            self::$static_cache[$cache_key] = $transient;
+            return $transient;
+        }
+
         $instance = new self($args);
         return $instance->init();
     }
+}
+
+/**
+ * ExternalImage — Timber\Image arayüzünü taklit eden hafif wrapper.
+ *
+ * @version 1.0.0
+ * @since   1.0.7 (class.image.php)
+ *
+ * @changelog
+ *   1.0.0 - 2026-05-18
+ *     - Add: Initial release — external URL'ler için Timber\Image interface'i
+ *
+ * Picsum, CDN, vs. gibi external URL'ler için kullanılır.
+ * srcset, width, height gibi metodlar boş/0 döner — sadece src() çalışır.
+ *
+ * How to use:
+ *   // Otomatik — get_image_set() external URL algılarsa kullanır
+ *   get_image_set(['src' => 'https://picsum.photos/800/600']);
+ *
+ *   // Manuel
+ *   $img = new ExternalImage('https://picsum.photos/800/600');
+ *   echo $img->src(); // https://picsum.photos/800/600
+ */
+class ExternalImage {
+    private string $url;
+
+    public function __construct(string $url) {
+        $this->url = $url;
+    }
+
+    public function src($size = 'full'): string { return $this->url; }
+    public function width(): int                { return 0; }
+    public function height(): int               { return 0; }
+    public function alt(): string               { return ''; }
+    public function srcset($size = null): string { return ''; }
+    public function get_aspect_ratio(): string  { return ''; }
+    public function meta($key = ''): string     { return ''; }
+
+    // Timber\Image compat — focal point
+    public function get_focal_point_class(): string { return ''; }
 }
 
 /**

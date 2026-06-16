@@ -1,0 +1,84 @@
+// ─────────────────────────────────────────────────────────────
+// STICKY
+// Responsive sticky positioning with header-aware top offset
+// ─────────────────────────────────────────────────────────────
+
+/*! purgecss start ignore */
+
+// ── Responsive sticky classes (.sticky-{bp}) ─────────────────
+// Each class activates sticky only at its breakpoint and below
+// Note: @extend cannot be used inside @media, using direct properties instead
+@each $breakpoint, $width in $grid-breakpoints {
+    @include media-breakpoint-down($breakpoint) {
+        .sticky-#{$breakpoint} {
+            position: sticky;
+            align-self: flex-start;
+            transition: top .3s ease;
+            &:not(.sticked) { z-index: 1; }
+            &.sticked       { z-index: 1020 !important; }
+        }
+    }
+}
+
+// ── Header-aware top offset ───────────────────────────────────
+// sticky-top / sticky-bottom get header height as top offset
+body:not(.header-hide) {
+    [class^="sticky-top"],
+    [class*=" sticky-top"] { top: var(--header-height); }
+
+    &.affix {
+        [class^="sticky-top"],
+        [class*=" sticky-top"] { top: var(--header-height-affix); }
+    }
+}
+
+body.header-hide {
+    [class^="sticky-top"],
+    [class*=" sticky-top"] { top: 0; }
+}
+
+// Inside modals: always top: 0
+.modal {
+    [class^="sticky-top"],
+    [class*=" sticky-top"] { top: 0 !important; }
+}
+
+// ── Sticked visibility helpers ────────────────────────────────
+// .d-sticked    → visible only when sticked
+// .d-sticked-none → hidden when sticked
+[class^="sticky-"],
+[class*=" sticky-"] {
+    &.sticked {
+        .d-sticked      { visibility: visible; opacity: 1; order: -1; }
+        .d-sticked-none { visibility: hidden;  opacity: 0; overflow: hidden; transition: opacity .3s ease; order: 999; }
+    }
+    &:not(.sticked) {
+        .d-sticked      { visibility: hidden;  opacity: 0; overflow: hidden; transition: opacity .3s ease; order: 999; }
+        .d-sticked-none { visibility: visible; opacity: 1; order: -1; }
+    }
+}
+
+// ── Bootstrap sticky-top / sticky-bottom overrides ───────────
+.sticky-top,
+.sticky-bottom {
+    display: flex;
+    flex-direction: column;
+    &:not(.sticked) { z-index: 1; }
+    &.sticked       { z-index: 1020 !important; }
+}
+
+// Loading state: lower z-index
+.loading {
+    .sticky-top,
+    .sticky-bottom {
+        &.sticked { z-index: 99 !important; }
+    }
+}
+
+// Table header sticky: keep table-cell display
+.table thead tr > th.sticky-top {
+    display: table-cell !important;
+    &.sticked { z-index: auto !important; }
+}
+
+/*! purgecss end ignore */

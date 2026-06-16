@@ -22,7 +22,7 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 ?>
 
 <?php if ( 'select' === $filter->get_filter_design() ) : ?>
-	<select class="filter-items <?php echo esc_attr( $filter->get_items_container_classes() ); ?>" name="filter[<?php echo esc_attr( $preset->get_id() ); ?>][<?php echo esc_attr( $filter->get_id() ); ?>]" id="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_select" <?php echo $filter->is_multiple_allowed() ? 'multiple="multiple"' : ''; ?> data-show_search="<?php echo esc_attr( $filter->is_search_enabled() ? 1 : 0 ); ?>" data-all-label="<?php echo esc_attr( $all_label ); ?>" >
+	<select class="filter-items <?php echo esc_attr( $filter->get_items_container_classes() ); ?>" name="filter[<?php echo esc_attr( $preset->get_id() ); ?>][<?php echo esc_attr( $filter->get_id() ); ?>]" id="filter_<?php echo esc_attr( $preset->get_id() ); ?>_<?php echo esc_attr( $filter->get_id() ); ?>_select" <?php echo $filter->is_multiple_allowed() ? 'multiple="multiple"' : ''; ?> data-show_search="<?php echo esc_attr( $filter->is_search_enabled() ? 1 : 0 ); ?>" data-all-label="<?php echo esc_attr( $all_label ); ?>" data-has-more="<?php echo esc_attr( $filter->has_more_terms() ); ?>" aria-label="<?php echo esc_attr( $filter->get_title() ); ?>">
 		<?php if ( ! $filter->is_multiple_allowed() ) : ?>
 			<option class="filter-item select" value=""><?php echo esc_html( $all_label ); ?></option>
 		<?php endif; ?>

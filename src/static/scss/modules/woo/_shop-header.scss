@@ -1,0 +1,45 @@
+// ─────────────────────────────────────────────────────────────
+// SHOP HEADER - WooCommerce shop page header bar
+// ─────────────────────────────────────────────────────────────
+
+header#header-shop {
+    position: relative;
+
+    .row-item {
+        min-height: 60px;
+        align-items: center;
+    }
+
+    .nav-pills {
+        font-family: var(--header-font);
+        line-height: 1;
+        text-transform: uppercase;
+        @include rfs(12px, --#{$prefix}nav-link-font-size);
+        --#{$prefix}nav-link-padding-x: 24px;
+        --#{$prefix}nav-link-padding-y: 10px;
+        --#{$prefix}nav-link-font-weight: 600;
+        --#{$prefix}nav-link-color: #444;
+        --#{$prefix}nav-link-hover-color: #fff;
+        --#{$prefix}nav-pills-border-radius: 22px;
+        --#{$prefix}nav-pills-link-active-color: #fff;
+        --#{$prefix}nav-pills-link-active-bg: #111;
+
+        li {
+            a { background-color: #f2f2f2; &:hover { background-color: #282828; } }
+            &:not(:first-child) { margin-left: 10px; }
+            &.active a { background-color: #333; color: #fff; }
+        }
+    }
+
+    .woocommerce-ordering {
+        float: none;
+        @include media-breakpoint-up(lg) { display: flex; justify-content: end; }
+    }
+
+    .form-select {
+        width: auto;
+        @include media-breakpoint-down(lg) { width: 100% !important; }
+    }
+
+    .result-count { color: #666; }
+}

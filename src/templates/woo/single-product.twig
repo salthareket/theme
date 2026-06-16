@@ -89,8 +89,6 @@
 
 {% block content %}
 
-    {{ product_type|print_r }}
-
     <div class="container">
         <div class="row gx-lg-5">
             <div class="col-lg-4">
@@ -319,11 +317,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            {% if post.book_sale_links %}
-                            <div class="col text-center">
-                                <a href="#" class="btn btn-secondary btn-lg px-4 border-0" data-ajax-method="template_modal" data-id="{{post.id}}" data-template="woo/modal-sale-links" data-title="{{ translate('Online Satış Linkleri') }}" data-size="md">{{ translate("Satın Al") }}</a>
-                            </div>
-                            {% endif %}
+
                         {% endif %}
                             <div class="col d-block d-lg-none text-center">
                                <div class="text-center fs-6 mb-n3 text-uppercase opacity-75 mt-5">{{ translate("Paylaş") }}</div>
@@ -336,46 +330,8 @@
             </div>
         </div>
     </div>
-    
-    {% if product_type == "simple" %}
-    <div class="book-author py-5 mt-5">
-        <div class="container">
-            <div class="row text-lg-start text-center">
-                <div class="col-12 col-lg-auto">
-                   <img data-src="{{book_author.thumbnail.src("thumbnail")}}" class="img-fluid lazy img-thumbnail shadow" alt="{{book_author.title}}" width="150" height="150"/>
-                </div>
-                <div class="col-12 col-lg pt-4">
-                    <h3 class="title mb-4">
-                        {{ translate("Yazar Hakkında") }}
-                        <small><a href="{{book_author.link}}" class="btn-loading-page" title="{{book_author.title}}">{{ book_author.title }}</a></small>
-                    </h3>
-                    <div class="description">
-                        {{ book_author.content }}
-                    </div>
-                    {% set books = book_author.get_books(post.id) %}
-                        {% if books|length > 0 %}
-                        <div class="card-books card card-reset mt-5">
-                            <div class="card-header">
-                                <h3 class="card-title">{{ translate("Yayımladığımız Diğer Kitapları") }}</h3>
-                            </div>
-                            <div class="card-body py-4">
-                                <div class="row row-cols-xxl-6 row-cols-lg-5 row-cols-md-4 row-cols-2 g-xl-5 gy-4 justify-content-lg-start justify-content-center">
-                                {% for book in books %}
-                                    <div class="col">
-                                        {% include "woo/tease.twig" with { post: book, size : "xs" } %}
-                                    </div>
-                                {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
-    {#<div class="card card-reset container">
+    <div class="card card-reset container">
 
     {% do action('woocommerce_before_single_product') %}
 
@@ -401,7 +357,7 @@
     {% include ["woo/tease.twig"] with { products: related_products } %}
 
     {% do action('woocommerce_after_single_product') %}
-    </div>#}
+    </div>
 
 {% endblock  %}
 

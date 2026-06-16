@@ -1,0 +1,112 @@
+// ─────────────────────────────────────────────────────────────
+// VARIABLES
+// PHP'den gelen SCSS variable'lar + tema sabitleri
+// ─────────────────────────────────────────────────────────────
+
+// Colors (theme/static/scss/_colors.scss'den gelir - PHP'den üretilir)
+@import "../../../../../../../theme/static/scss/_colors";
+
+// ── Icon Fonts ───────────────────────────────────────────────
+// CSS variable olarak root.css'de tanımlı: --icon-font, --icon-font-brands
+// SCSS compile için FA'nın kendi variable'ları kullanılır
+$use-fontawesome:    true;
+$fontawesome-brands: true;
+
+// ── Font fallbacks ────────────────────────────────────────────
+// $header-font, $font-primary vb. PHP'den inject edilir (wp_scss_set_variables)
+// CSS variable olarak root.css'de --header-font tanımlı
+// SCSS'de artık var(--header-font) kullanılıyor
+$fontawesome-thin:   false;
+$fontawesome-light:  false;
+$fontawesome-regular: true;
+$fontawesome-solid:  false;
+
+// ── Typography ───────────────────────────────────────────────
+// $base-font-size, $base-font-line-height, $font-primary vb. PHP'den gelir
+$base-font-size-rem: #{$base-font-size / 16px * 1rem};
+$font-size-base:     $base-font-size-rem;
+
+// ── Base Colors ──────────────────────────────────────────────
+$base-color:       $primary;
+$base-color-dark:  $primary;
+$base-color-light: $primary;
+
+// ── Header ───────────────────────────────────────────────────
+$header-border-color: transparent;
+$header-border-style: solid;
+$header-border-width: 0;
+
+// ── Sidebar ──────────────────────────────────────────────────
+// Sidebar variable'ları artık CSS variable'lardan okunuyor
+// Sadece genişlik değerleri SCSS compile için gerekli
+$sidebar-width:              360px;
+$sidebar-width-offcanvas:    380px;
+$sidebar-border-radius:      8px;
+$sidebar-mobile-margin-top:  100px;
+
+// ── Pagination ───────────────────────────────────────────────
+// $pagination-item-gap, $pagination-item-border-radius PHP'den gelir
+@if strip-unit($pagination-item-gap) == 0 and strip-unit($pagination-item-border-radius) > 0 {
+    $pagination-item-gap: 20px;
+}
+
+// ── Scroll to Top ────────────────────────────────────────────
+// $scroll-to-top-hr, $scroll-to-top-vr PHP'den gelir
+// Fallback: template'de position_hr/vr, eski sistemde hr/vr
+// CSS variable'lar root.css'te tanımlı, SCSS sadece pozisyon için kullanır
+
+// ── Forms ────────────────────────────────────────────────────
+// Form stilleri artık CSS variable'lardan okunuyor (root.css → --form-*)
+// Sadece SCSS compile için gerekli olan değerler burada kalıyor.
+$form-option-color:                 #fff;
+$form-option-color-active:          #ebad19;
+$form-option-border:                1px solid #aaa;
+$form-spinner-button-color:         #666;
+$form-spinner-button-bg-color:      #fff;
+$form-spinner-button-color-hover:   #fff;
+$form-spinner-button-bg-color-hover: #ebad19;
+
+// ── Bootstrap Slider ─────────────────────────────────────────
+$bootstrap-slider-version:  "10.6.2";
+$slider-line-height:        22px;
+$slider-border-radius:      8px;
+$slider-horizontal-width:   100%;
+$slider-vertical-height:    210px;
+$slider-primary:            #edab17;
+$slider-primary-top:        $slider-primary;
+$slider-primary-bottom:     darken($slider-primary, 5%);
+$slider-secondary-top:      saturate(lighten($slider-primary, 28%), 20%);
+$slider-secondary-bottom:   saturate(lighten($slider-primary, 23%), 2%);
+$slider-unicode-color:      #edab17;
+
+// ── Login ────────────────────────────────────────────────────
+$login-height:    auto;
+$login-bg-color:  $base-color;
+$login-bg-image: (
+    url: "#{$host_url}/static/img/bg-login.jpg",
+    bg-color:  transparent,
+    index: 0,
+    opacity: .6,
+    grayscale: true,
+    multiply: true,
+    size: "cover",
+    repeat: "no-repeat",
+    position: center center
+);
+
+// ── Card Profile ─────────────────────────────────────────────
+$card-profile-image-height: 130px;
+$card-profile-bg-color:     #fff;
+$card-profile-color:        $base-color;
+$card-profile-padding:      30px;
+$card-profile-height:       $card-profile-image-height + ($card-profile-padding * 2);
+$card-profile-bg-image:     ();
+
+// ── Misc ─────────────────────────────────────────────────────
+$base-screen-sizes:      lg, md, sm, xs;
+$loading-sizes:          64, 48, 32, 16;
+$loading-size-default:   32;
+$loading-color-dark:     #000;
+$loading-color-light:    #ddd;
+$loading-color-bg-light: #fff;
+$loading-color-bg-dark:  #111;

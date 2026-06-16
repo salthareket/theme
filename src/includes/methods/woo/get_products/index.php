@@ -26,7 +26,7 @@ remove_filter('posts_request', $closure);
 $posts = Timber::get_posts();
 $context['posts'] = $posts;
 
-if (defined('ENABLE_FAVORITES') && ENABLE_FAVORITES) {
+if (defined('ENABLE_REACTIONS') && ENABLE_REACTIONS) {
     $context['favorites'] = Data::get('favorites');
 }
 

@@ -251,7 +251,7 @@ document.addEventListener('click', function (e) {
 
     setTimeout(() => {
         if (e.defaultPrevented) {
-            console.log('Başka bir script bu linki yakaladı, loading iptal.');
+            log('Başka bir script bu linki yakaladı, loading iptal.');
             return;
         }
         document.body.classList.add('loading');
@@ -508,7 +508,11 @@ class ajax_query {
             await this.handleHooksAndCheck(result, obj, hooks);
 
         } catch (error) {
-            console.error('[ajax_query] ERROR in', obj.method, ':', error.message, error.stack);
+            if (error.name === 'AbortError') {
+                console.warn('[ajax_query] ABORTED (previous request cancelled):', obj.method);
+            } else {
+                console.error('[ajax_query] ERROR in', obj.method, ':', error.message, error.stack);
+            }
             if (error.name !== 'AbortError') {
                 this.check(null);
             }
@@ -862,7 +866,7 @@ var root = {
                         obj.removeClass('out-viewport');
                     }
 
-                    if (obj.is(":in-viewport")) {
+                    if (obj.inViewport()) {
                         obj.addClass('in-viewport');
                         if(!IsBlank(obj.data("viewport-func"))){
                             window[obj.data("viewport-func")](obj);
@@ -1649,7 +1653,7 @@ var favorites = {
                         favorites.update(response.data);
                         $(".count-favorites").text(response.count);
                         obj.find(".info").html(response.html);
-                        if(typeof $.toast === "function") toast_notification({
+                        if(typeof $.toast === "function" || typeof Toastify === "function") toast_notification({
                             url: "", sender: { image: "<img src='" + ajax_request_vars.theme_url + "/static/img/notification/favorites-add.jpg' class='img-fluid' alt='Added to favorites'/>" },
                             message: response.message
                         });
@@ -1669,7 +1673,7 @@ var favorites = {
                         });
                         favorites.update(response.data);
                         $(".count-favorites").text(response.count);
-                        if(typeof $.toast === "function") toast_notification({
+                        if(typeof $.toast === "function" || typeof Toastify === "function") toast_notification({
                             url: "", sender: { image: "<img src='" + ajax_request_vars.theme_url + "/static/img/notification/favorites-remove.jpg' class='img-fluid' alt='Removed from favorites'/>" },
                             message: response.message
                         });

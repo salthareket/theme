@@ -159,19 +159,15 @@ do_action( 'woocommerce_before_account_orders', $has_orders ); ?>
 
 
 <script>
-	function ajax_wc_order_list(response, vars, form){
-		_alert(response, "md", "my-orders modal-fullscreen", "Order No:"+vars["order_number"]);
-	}
 	$( document ).ready(function() {
 		$('.btn-order-detail').on('click', function(e){
 		    e.preventDefault();
-		    var query = new ajax_query();
-				query.method = "wc_order_list";
-				query.vars   = {
-					order_number : $(this).data('order-number')
-			    };
-				query.form   = "";
-				query.request();
+		    var query   = new ajax_query();
+		    query.method = "wc_order_list";
+		    query.vars   = { order_number: $(this).data('order-number') };
+		    query.form   = $();
+		    query.objs   = { btn: $(this) };
+		    query.request();
 	    });
 	});
 </script>

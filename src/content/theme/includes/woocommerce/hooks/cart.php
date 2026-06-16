@@ -61,6 +61,7 @@ function add_classes_to_quantity_field($classes){
 // Ürün sepetteyse sepete ekle buton metnini değiştirir
 add_filter('woocommerce_product_single_add_to_cart_text', 'woo_custom_cart_button_text');
 function woo_custom_cart_button_text() {
+    if ( ! WC()->cart ) return __('Sepete Ekle', 'woocommerce');
     foreach( WC()->cart->get_cart() as $cart_item_key => $values ) {
         $_product = $values['data'];
         if( get_the_ID() === $_product->get_id() ) {

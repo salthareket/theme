@@ -1,0 +1,22 @@
+{
+    "name": "acf/accordion",
+    "title": "Accordion",
+    "description": "Post veya ozel icerikleri daraltilabilir accordion UI ile gosterir",
+    "category": "saltblocks",
+    "icon": "menu-alt3",
+    "keywords": ["accordion", "collapse", "collapsible", "faq", "toggle", "post"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Accordion Duzenle"
+    }
+}

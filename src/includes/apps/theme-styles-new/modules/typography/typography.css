@@ -1,0 +1,405 @@
+/**
+ * Typography Module Styles
+ * @version 2.0.0
+ */
+
+/* Module Tabs (Edit/Preview) */
+.ts-module-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--ts-gray-200);
+}
+
+.ts-module-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ts-gray-600);
+    transition: var(--ts-transition);
+}
+
+.ts-module-tab-btn:hover { color: var(--ts-primary); }
+.ts-module-tab-btn.active { color: var(--ts-primary); border-bottom-color: var(--ts-primary); }
+.ts-module-tab-btn .dashicons { font-size: 16px; width: 16px; height: 16px; }
+
+.ts-module-tab-content { display: none; }
+.ts-module-tab-content.active { display: block; }
+
+/* Headings Grid */
+.ts-headings-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+}
+
+.ts-heading-column {
+    border: 1px solid var(--ts-gray-200);
+    border-radius: 8px;
+    padding: 14px;
+    background: #fff;
+    transition: var(--ts-transition);
+}
+
+.ts-heading-column:hover { border-color: var(--ts-primary); }
+
+.ts-heading-label {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ts-gray-700);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ts-gray-200);
+}
+
+.ts-heading-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ts-field-label-sm {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ts-gray-700);
+    margin-bottom: 4px;
+}
+
+/* Responsive Grid */
+.ts-responsive-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.ts-responsive-column {
+    border: 1px solid var(--ts-gray-200);
+    border-radius: 6px;
+    padding: 10px;
+    background: #fff;
+}
+
+.ts-responsive-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ts-gray-600);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--ts-gray-200);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ts-responsive-fields { display: flex; flex-direction: column; gap: 8px; }
+
+.ts-field-subgroup { margin-bottom: 28px; }
+.ts-field-subgroup:last-child { margin-bottom: 0; }
+.ts-field-subgroup h4 { margin: 0 0 14px 0; font-size: 14px; font-weight: 600; color: var(--ts-gray-700); }
+
+/* Tabs */
+.ts-tabs { margin-top: 0; }
+.ts-tabs-nav { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--ts-gray-200); }
+.ts-tab-btn { padding: 10px 20px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ts-gray-600); transition: var(--ts-transition); }
+.ts-tab-btn:hover { color: var(--ts-primary); }
+.ts-tab-btn.active { color: var(--ts-primary); border-bottom-color: var(--ts-primary); }
+.ts-tab-content { display: none; }
+.ts-tab-content.active { display: block; }
+
+/* Typography Preview */
+.ts-typography-preview {
+    padding: 40px;
+    background: #fff;
+    border: 1px solid var(--ts-gray-200);
+    border-radius: 8px;
+    min-height: 400px;
+}
+
+.ts-typo-preview-section {
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--ts-gray-100);
+}
+
+.ts-typo-preview-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.ts-typo-preview-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ts-gray-400);
+    margin-bottom: 20px;
+}
+
+.ts-preview-heading { margin-bottom: 8px; line-height: 1.2; }
+.ts-preview-title-text { line-height: 1.1; }
+
+#ts-preview-body p { margin: 0 0 12px 0; }
+#ts-preview-body p:last-child { margin-bottom: 0; }
+
+/* Responsive */
+@media (max-width: 1400px) {
+    .ts-headings-grid { grid-template-columns: repeat(3, 1fr); }
+    .ts-responsive-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 1024px) {
+    .ts-headings-grid { grid-template-columns: repeat(2, 1fr); }
+    .ts-responsive-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Title Scale Grid */
+.ts-title-scale-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.ts-title-scale-group-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ts-gray-400);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ts-gray-100);
+}
+
+.ts-title-scale-group-label .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.ts-title-scale-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ts-gray-100);
+}
+
+.ts-title-scale-row:last-child {
+    border-bottom: none;
+}
+
+.ts-title-scale-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.ts-bp-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Breakpoint badge colors */
+.ts-bp-badge-xxxl { background: #1e293b; color: #fff; }
+.ts-bp-badge-xxl  { background: #1d4ed8; color: #fff; }
+.ts-bp-badge-xl   { background: #0891b2; color: #fff; }
+.ts-bp-badge-lg   { background: #059669; color: #fff; }
+.ts-bp-badge-md   { background: #d97706; color: #fff; }
+.ts-bp-badge-sm   { background: #dc2626; color: #fff; }
+.ts-bp-badge-xs   { background: #7c3aed; color: #fff; }
+
+.ts-bp-range {
+    font-size: 10px;
+    color: var(--ts-gray-400);
+    white-space: nowrap;
+}
+
+.ts-title-scale-text {
+    flex: 1;
+    line-height: 1.1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--ts-gray-800);
+    transition: font-size 0.2s ease;
+}
+
+/* ── Fluid Typography UI ─────────────────────────────── */
+.ts-fluid-type-block {
+    background: #fff;
+    border: 1px solid var(--ts-gray-200);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.ts-fluid-type-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.ts-fluid-type-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ts-gray-800);
+}
+
+.ts-fluid-type-preview {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--ts-primary);
+    background: rgba(34, 113, 177, 0.08);
+    padding: 3px 10px;
+    border-radius: 20px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-fluid-minmax-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ts-fluid-minmax-col .ts-field-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.ts-fluid-advanced-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px dashed var(--ts-gray-300);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ts-gray-500);
+    cursor: pointer;
+    transition: var(--ts-transition);
+    margin-top: 4px;
+}
+
+.ts-fluid-advanced-toggle:hover {
+    border-color: var(--ts-primary);
+    color: var(--ts-primary);
+}
+
+.ts-fluid-advanced-toggle.open .dashicons {
+    transform: rotate(180deg);
+}
+
+.ts-fluid-advanced-toggle .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s ease;
+}
+
+.ts-fluid-advanced-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--ts-gray-200);
+}
+
+.ts-fluid-advanced-note {
+    font-size: 12px;
+    color: var(--ts-gray-500);
+    margin: 0 0 12px 0;
+    padding: 8px 12px;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 0 4px 4px 0;
+}
+
+@media (max-width: 1200px) {
+    .ts-fluid-minmax-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Fluid Sizes Row (yan yana) ──────────────────────── */
+.ts-fluid-sizes-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.ts-fluid-group-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ts-gray-500);
+    margin-bottom: 8px;
+}
+
+.ts-fluid-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ts-fluid-pair .ts-field-label-sm {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 1100px) {
+    .ts-fluid-sizes-row { grid-template-columns: 1fr; }
+}
+
+/* ── Fluid Pair Row (label solda, input sağda) ───────── */
+.ts-fluid-pair-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.ts-fluid-pair-row:last-child { margin-bottom: 0; }
+
+.ts-fluid-pair-label {
+    flex-shrink: 0;
+    width: 32px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ts-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ts-fluid-pair-row .ts-field-input {
+    flex: 1;
+    min-width: 0;
+}

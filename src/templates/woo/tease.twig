@@ -1,150 +1,409 @@
 {#
-  Product Tease — Default WooCommerce product card
-  
-  Context:
-    post       : Timber\Post (product)
-    size       : string (xs, sm, md, lg) — optional
-    lazy       : bool — override lazy loading
-    index      : int — loop index (for LCP paint optimization)
-    page       : int — current page number
+  ═══════════════════════════════════════════════════════════════
+  woo/tease.twig — WooCommerce Ürün Kartı
+  ═══════════════════════════════════════════════════════════════
+
+  Desteklenen post type'lar:
+    product            → variable / simple / grouped
+    product_variation  → tek variation (Iconic WSSV ile single gösterim)
+
+  ── ZORUNLU ────────────────────────────────────────────────────
+    post               : ThemeProduct   — ürün nesnesi
+
+  ── GÖRSEL ─────────────────────────────────────────────────────
+    multiple_images    : bool   — variable product'ta her variation'ın ana görselini
+                                  döngüyle göster (hover ile geçiş).
+                                  "WooCommerce Ek Varyasyon Görselleri" plugin gerekli.
+                                  product_variation'da bu flag'e bakılmaz — her zaman
+                                  o variation'ın ana resmi + ek görselleri gelir.
+                                  Default: true (template içinde set edilmiş)
+    lazy               : bool   — görsel lazy loading override.
+                                  Default: true (ilk sayfa ilk 4 ürün eager)
+
+  ── SWATCH ─────────────────────────────────────────────────────
+    show_variations    : bool   — renk/beden swatchlarını göster.
+                                  "Woo Variation Swatches" plugin gerekli.
+                                  Iconic WSSV aktifken otomatik kapalı.
+                                  product_variation'da her zaman kapalı.
+                                  Default: true (template içinde set edilmiş)
+    show_oos_swatches  : bool   — tükenmiş swatchları göster. Default: false
+    swatch_limit       : int    — max swatch sayısı. Default: 115
+    swatch_tooltip     : bool   — swatch üzerine gelince isim tooltip'i. Default: true
+
+  ── CTA BUTON ──────────────────────────────────────────────────
+    enable_cart        : bool   — footer CTA butonunu göster/gizle.
+                                  Default: context'ten gelir (global ayar)
+
+    variation_add_to_cart : bool — product_variation için CTA davranışı:
+                                  true  → "Sepete Ekle" (direkt bu variation'ı ekler)
+                                  false → "Seçenekleri Gör" (parent sayfasına gider)
+                                  Default: false
+                                  Örnek kullanım: favorites sayfasında true set edilir
+
+  ── BOYUT ──────────────────────────────────────────────────────
+    size               : string — kart boyutu: xs | sm | md | lg
+                                  xs/sm'de kategori ve bazı detaylar gizlenir
+
+  ── SAYFALAMA ──────────────────────────────────────────────────
+    index              : int    — loop index (LCP optimizasyonu için)
+    page               : int    — mevcut sayfa numarası (LCP optimizasyonu için)
+
+  ── ÖRNEK KULLANIM ─────────────────────────────────────────────
+
+    Standart — shop/archive:
+    include "woo/tease.twig"
+
+    Favorites — variation'lar için add to cart açık:
+    include "woo/tease.twig" with { variation_add_to_cart: true }
+
+    Küçük kart, swatchsız:
+    include "woo/tease.twig" with { size: "xs", show_variations: false }
+
+    Swatchlı, tooltip kapalı, max 8 swatch:
+    include "woo/tease.twig" with { swatch_tooltip: false, swatch_limit: 8 }
+
+  ═══════════════════════════════════════════════════════════════
 #}
 
-{% set product_link = post.link|variation_url_rewrite %}
-{% set product_type = post.get_product_type() %}
-{% set wc_product = post.product() %}
 
-{# Lazy loading — ilk sayfa ilk 4 urun LCP icin eager #}
+
+    {% set multiple_images = true %}
+    {% set show_variations = true %}
+    {% set swatch_tooltip  = true %}
+
+{# ── post_type tespiti ─────────────────────────────────────── #}
+{% set is_variation = post.post_type == 'product_variation' %}
+
+{# ── Temel değişkenler ─────────────────────────────────────── #}
+{% set product_link = post.variation_url %}
+{% set product_type = post.get_product_type() %}
+{% set is_in_stock  = post.is_in_stock() %}
+{% set is_on_sale   = post.is_on_sale() %}
+{% set is_featured  = post.is_featured() %}
+{% set is_variable  = post.is_variable() %}
+{% set category     = post.primary_category() %}
+
+{# ── Lazy loading — ilk sayfa ilk 4 ürün LCP için eager ───── #}
 {% if lazy is not defined %}
     {% set lazy = true %}
-    {% if page is defined and index is defined %}
-        {% if page == 1 and index < 4 %}
-            {% set lazy = false %}
-        {% endif %}
+    {% if page is defined and index is defined and page == 1 and index < 4 %}
+        {% set lazy = false %}
     {% endif %}
 {% endif %}
 
-{# Sale / New badge #}
-{% set is_on_sale = wc_product.is_on_sale() %}
-{% set is_featured = wc_product.is_featured() %}
+{# ── Görsel listesi ────────────────────────────────────────── #}
+{% set images = [] %}
+{% if is_variation %}
+    {# product_variation: ana resim + ek görseller (WooCommerce Ek Varyasyon Görselleri) #}
+    {% set images = post.variation_all_images('woocommerce_thumbnail') %}
+{% elseif multiple_images is defined and multiple_images
+    and is_variable
+    and active_plugins['woocommerce-additional-variation-images'] is defined %}
+    {% set images = post.default_variation_images('woocommerce_thumbnail') %}
+{% endif %}
+{% if images is empty %}
+    {% set cover = post.cover_url('woocommerce_thumbnail') %}
+    {% if cover %}{% set images = [cover] %}{% endif %}
+{% endif %}
+{% set image_count = images|length %}
 
-{{ post.setup() }}
+{# ── Swatch ayarları ───────────────────────────────────────── #}
+{% set _swatch_limit    = swatch_limit is defined ? swatch_limit : 115 %}
+{% set _swatch_tooltip  = swatch_tooltip is defined ? swatch_tooltip : false %}
+{% set _show_oos        = show_oos_swatches is defined and show_oos_swatches %}
+{% set _iconic_active   = active_plugins['woocommerce-show-single-variations'] is defined %}
+{% set _wvs_active      = active_plugins['woo-variation-swatches'] is defined
+                          or active_plugins['woo-variation-swatches-pro'] is defined %}
+{% set _show_swatches   = show_variations is defined and show_variations
+                          and _wvs_active and not _iconic_active and is_variable
+                          and not is_variation %}
 
-<article class="tease tease-product card product type-product product-{{ product_type }} {{ size ?? '' }}" 
-    itemscope itemtype="https://schema.org/Product"
-    {% if not size in ["sm", "xs"] %}data-aos="fade-up"{% endif %}>
-
-    {# ── IMAGE ── #}
-    <div class="card-img">
-        <a href="{{ product_link }}" class="d-block btn-loading-page" title="{{ post.title }}" itemprop="url">
-
-            {# Badges #}
-            {% if is_on_sale or is_featured %}
-            <div class="product-badges">
-                {% if is_on_sale %}
-                    <span class="badge badge-sale">{{ translate("İndirim") }}</span>
-                {% endif %}
-                {% if is_featured %}
-                    <span class="badge badge-new">{{ translate("Yeni") }}</span>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            {{wc_product.thumbnail}}
-
-            {# Product Image #}
-            {% if post.thumbnail %}
-                {{ img({
-                    post   : post,
-                    lazy   : lazy,
-                    srcset : {
-                        xs   : 400,
-                        sm   : 400,
-                        md   : 400,
-                        lg   : 400,
-                        xl   : 400,
-                        xxl  : 400,
-                        xxxl : 400
-                    }
-                }) }}
-            {% else %}
-                <div class="img-placeholder no-image"></div>
-            {% endif %}
-        </a>
-    </div>
-
-    {# ── INFO ── #}
-    <div class="card-body">
-
-        {# Category #}
-        {% if not size in ["xs", "xxs"] %}
-            {% set categories = post.terms('product_cat') %}
-            {% if categories %}
-                <div class="product-category text-muted">
-                    <a href="{{ categories[0].link }}" class="btn-loading-page">{{ categories[0].name }}</a>
-                </div>
+{#
+  Swatch verisi:
+  - all_attributes() artık her attribute için 'type' döndürüyor (color/button/image/radio/select)
+  - type='color' → renk dairesi (product_attribute_color meta key)
+  - type='image' → görsel swatch (product_attribute_image meta key)
+  - type='button' veya 'radio' → label/buton
+  - İlk variation attribute'u kullan (slug'ı 'color' olmak zorunda değil)
+#}
+{% set _swatch_attr = null %}
+{% set _swatch_type = 'button' %}
+{% set _swatch_slug = '' %}
+{% if _show_swatches %}
+    {% set _attrs = post.all_attributes() %}
+    {# Önce type=color olan variation attribute'u ara #}
+    {% for _slug, _attr in _attrs %}
+        {% if _attr.variation and _swatch_attr is null %}
+            {% if _attr.type == 'color' %}
+                {% set _swatch_attr = _attr %}
+                {% set _swatch_type = 'color' %}
+                {% set _swatch_slug = _slug %}
             {% endif %}
         {% endif %}
+    {% endfor %}
+    {# Yoksa type=image ara #}
+    {% if _swatch_attr is null %}
+        {% for _slug, _attr in _attrs %}
+            {% if _attr.variation and _swatch_attr is null and _attr.type == 'image' %}
+                {% set _swatch_attr = _attr %}
+                {% set _swatch_type = 'image' %}
+                {% set _swatch_slug = _slug %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {# Yoksa ilk variation attribute'u al (button/label) #}
+    {% if _swatch_attr is null %}
+        {% for _slug, _attr in _attrs %}
+            {% if _attr.variation and _swatch_attr is null %}
+                {% set _swatch_attr = _attr %}
+                {% set _swatch_type = _attr.type ?? 'button' %}
+                {% set _swatch_slug = _slug %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endif %}
+{% set _swatch_terms = _swatch_attr ? _swatch_attr.terms : [] %}
 
-        {# Title #}
-        <h3 class="card-title product-title" itemprop="name">
-            <a href="{{ product_link }}" class="btn-loading-page" title="{{ post.title }}">
+{% do post.setup() %}
+
+{# ═══════════════════════════════════════════════════════════ #}
+<article class="tease tease-product card h-100 border-0 rounded-3 overflow---hidden position-relative{{ not is_in_stock ? ' is-out-of-stock' : '' }}{{ size is defined ? ' tease-' ~ size : '' }}"
+    itemscope itemtype="https://schema.org/Product"
+    data-product-id="{{ post.ID }}"
+    data-product-type="{{ product_type }}"
+    data-swatch-tooltip="{{ _swatch_tooltip ? '1' : '0' }}">
+
+    <div class="d-flex-inline">
+        {{ post.reaction_button('clap')|raw }}
+
+        {{ post.reaction_button('like')|raw }}
+
+        {{ post.reaction_button('favorite')|raw }}
+    </div>
+
+
+    {# ── GÖRSEL ALANI ──────────────────────────────────────── #}
+    <div class="tease-product__img ratio ratio-1x1 bg-light position-relative overflow-hidden">
+
+        {% if images is not empty %}
+            {% for img_url in images %}
+                {#
+                  Yükleme stratejisi:
+                  - İlk sayfa ilk 4 ürün, ilk görsel → eager (LCP)
+                  - Diğer tüm ilk görseller → vanilla lazyload (data-src + lazy class)
+                  - 2. ve sonraki görseller → her zaman vanilla lazyload
+                #}
+                {% set _is_lcp = loop.first and not lazy %}
+                <img {{ _is_lcp ? 'src' : 'data-src' }}="{{ img_url }}"
+                     {{ not _is_lcp ? 'src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"' : '' }}
+                     alt="{{ post.title }}"
+                     class="tease-product__img-item object-fit-cover w-100 h-100 position-absolute top-0 start-0{{ not _is_lcp ? ' lazy' : '' }}"
+                     data-img-index="{{ loop.index0 }}"
+                     style="{{ loop.first ? 'opacity:1;z-index:1;' : 'opacity:0;z-index:0;pointer-events:none;' }}"
+                     {{ _is_lcp ? 'fetchpriority="high"' : '' }}
+                     itemprop="{{ loop.first ? 'image' : '' }}">
+            {% endfor %}
+
+            {# Hover zone'ları — sadece birden fazla görsel varsa #}
+            {% if image_count > 1 %}
+                <div class="tease-product__zones position-absolute top-0 start-0 w-100 h-100 d-flex" aria-hidden="true" style="z-index:2;">
+                    {% for i in 1..image_count %}
+                        <div class="tease-product__zone flex-fill" data-zone="{{ loop.index0 }}"></div>
+                    {% endfor %}
+                </div>
+                <div class="tease-product__dots position-absolute bottom-0 start-50 translate-middle-x d-flex gap-1 pb-2">
+                    {% for i in 1..image_count %}
+                        <span class="tease-product__dot rounded-circle{{ loop.first ? ' active' : '' }}" data-dot="{{ loop.index0 }}"></span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted position-absolute top-0 start-0">
+                <i class="fa-regular fa-image fa-2x opacity-25"></i>
+            </div>
+        {% endif %}
+
+        {# Tıklanabilir overlay — stretched-link kullanmıyoruz, zone'larla çakışır #}
+        <a href="{{ product_link }}" class="btn-loading-page position-absolute top-0 start-0 w-100 h-100" title="{{ post.title }}" itemprop="url" tabindex="-1" aria-hidden="true" style="z-index:1;"></a>
+
+        {# Rozetler #}
+        <div class="position-absolute top-0 start-0 p-2 d-flex flex-column gap-1" style="z-index:3;pointer-events:none;">
+            {% if is_on_sale %}
+                <span class="badge text-bg-danger fw-semibold" style="font-size:10px;letter-spacing:.04em;">{{ translate("İndirim") }}</span>
+            {% endif %}
+            {% if is_featured and not is_on_sale %}
+                <span class="badge fw-semibold" style="font-size:10px;letter-spacing:.04em;background:var(--bs-primary,#8c734b);">{{ translate("Yeni") }}</span>
+            {% endif %}
+            {% if not is_in_stock %}
+                <span class="badge text-bg-secondary fw-semibold" style="font-size:10px;letter-spacing:.04em;">{{ translate("Tükendi") }}</span>
+            {% endif %}
+        </div>
+
+        {# Favori butonu #}
+        {#% if enable_reactions is defined and enable_reactions %}
+            {{ function('salt_reaction_button', post.ID, 'post', 'favorite', {
+                'style': 'icon-only',
+                'class': 'position-absolute top-0 end-0 d-flex align-items-center justify-content-center rounded-circle bg-white shadow-sm m-2',
+                'show_count': false
+            }) }}
+        {% endif %#}
+
+    </div>{# /.tease-product__img #}
+
+    {# ── KART GÖVDE ────────────────────────────────────────── #}
+    <div class="card-body d-flex flex-column gap-1 px-3 pt-3 pb-2">
+
+        {# Kategori #}
+        {% if category %}
+            <div class="tease-product__cat" style="font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;">
+                <a href="{{ category.link }}" class="text-decoration-none btn-loading-page" style="color:var(--bs-primary,#8c734b);">{{ category.name }}</a>
+            </div>
+        {% endif %}
+
+        {# Başlık #}
+        <h3 class="card-title mb-0 lh-sm" style="font-size:14px;font-weight:600;" itemprop="name">
+            <a href="{{ product_link }}" class="text-dark text-decoration-none btn-loading-page" title="{{ post.title }}">
                 {{ post.title }}
             </a>
         </h3>
 
-        {# Price #}
-        {% if not size in ["xxs"] %}
-            <div class="product-price" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
-                <meta itemprop="priceCurrency" content="{{ function('get_woocommerce_currency') }}">
-                <meta itemprop="availability" content="https://schema.org/InStock">
-                {% do action('woocommerce_after_shop_loop_item_title') %}
-            </div>
-        {% endif %}
-
-        {# Short Description — sadece buyuk kartlarda #}
-        {% if size in ["lg"] and post.post_excerpt %}
-            <div class="product-excerpt text-muted">
-                {{ post.post_excerpt|truncate(80) }}
-            </div>
-        {% endif %}
-    </div>
-
-    {# ── ACTIONS ── #}
-    {% if enable_cart or enable_favorites %}
-        {% if not size in ["xxs"] %}
-        <div class="card-footer product-actions">
-            {% if enable_cart %}
-                {% if product_type == "simple" %}
-                    <a href="#" 
-                       class="btn btn-sm btn-add-to-cart btn-product-action" 
-                       data-method="add_to_cart" 
-                       {{ function("get_add_to_cart_attrs", post.id) }}
-                       aria-label="{{ translate('Sepete Ekle') }}">
-                        <i class="fa-regular fa-cart-plus"></i>
-                        <span class="btn-text d-none d-md-inline">{{ translate("Sepete Ekle") }}</span>
-                    </a>
+        {# ── Varyasyon swatchları (variable product) ─────────── #}
+        {% if _show_swatches and _swatch_terms is not empty %}
+            {% set _visible = [] %}
+            {% set _hidden  = 0 %}
+            {% for _term in _swatch_terms %}
+                {% if loop.index <= _swatch_limit %}
+                    {% set _visible = _visible|merge([_term]) %}
                 {% else %}
-                    <a href="{{ product_link }}" 
-                       class="btn btn-sm btn-select-options btn-loading-page"
-                       aria-label="{{ translate('Seçenekleri Gör') }}">
-                        <i class="fa-regular fa-eye"></i>
-                        <span class="btn-text d-none d-md-inline">{{ translate("Seçenekleri Gör") }}</span>
-                    </a>
+                    {% set _hidden = _hidden + 1 %}
                 {% endif %}
-            {% endif %}
+            {% endfor %}
 
-            {% if enable_favorites %}
-                <a href="#" 
-                   class="btn btn-sm btn-favorite btn-product-action {% if function('in_array', post.id, favorites) %}active{% endif %}" 
-                   data-id="{{ post.id }}"
-                   aria-label="{{ translate('Favorilere Ekle') }}">
-                    <i class="fa-regular fa-heart"></i>
+            {# Her swatch term'i için variation görseli — slug → url map #}
+            {% set _var_thumbs = post.variation_thumbnails(_swatch_slug, 'woocommerce_thumbnail') %}
+            {# map'e çevir: slug → image url #}
+            {% set _thumb_map = {} %}
+            {% for _vt in _var_thumbs %}
+                {% set _thumb_map = _thumb_map|merge({(_vt.slug): _vt.image}) %}
+            {% endfor %}
+
+            {% if _visible is not empty %}
+                <div class="tease-product__swatches d-flex flex-wrap align-items-center gap-1 mt-1">
+                    {% for _term in _visible %}
+                        {% set _swatch_url = (post.link ~ '?attribute_pa_' ~ _swatch_slug ~ '=' ~ _term.slug)|variation_url_rewrite %}
+                        {% set _swatch_img = _thumb_map[_term.slug] is defined ? _thumb_map[_term.slug] : '' %}
+
+                        {% if _swatch_type == 'color' %}
+                            <a href="{{ _swatch_url }}"
+                               class="tease-product__swatch d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-transparent btn-loading-page"
+                               title="{{ _term.name }}"
+                               data-swatch-index="{{ loop.index0 }}"
+                               data-swatch-name="{{ _term.name }}"
+                               {{ _swatch_img ? 'data-swatch-img="' ~ _swatch_img ~ '"' : '' }}
+                               style="width:20px;height:20px;flex-shrink:0;{{ _term.color ? 'background-color:' ~ _term.color : 'background:#eee' }};">
+                                {% if not _term.color %}
+                                    <span style="font-size:8px;font-weight:700;color:#666;line-height:1;">{{ _term.name|slice(0,2)|upper }}</span>
+                                {% endif %}
+                            </a>
+                        {% elseif _swatch_type == 'image' %}
+                            <a href="{{ _swatch_url }}"
+                               class="tease-product__swatch d-inline-flex rounded border border-2 border-transparent overflow-hidden btn-loading-page"
+                               title="{{ _term.name }}"
+                               data-swatch-index="{{ loop.index0 }}"
+                               data-swatch-name="{{ _term.name }}"
+                               {{ _swatch_img ? 'data-swatch-img="' ~ _swatch_img ~ '"' : '' }}
+                               style="width:22px;height:22px;flex-shrink:0;">
+                                {% if _term.image %}
+                                    <img src="{{ _term.image }}" alt="{{ _term.name }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
+                                {% else %}
+                                    <span style="font-size:8px;font-weight:700;color:#666;margin:auto;">{{ _term.name|slice(0,2)|upper }}</span>
+                                {% endif %}
+                            </a>
+                        {% else %}
+                            <a href="{{ _swatch_url }}"
+                               class="tease-product__swatch d-inline-flex align-items-center justify-content-center border rounded btn-loading-page"
+                               title="{{ _term.name }}"
+                               data-swatch-index="{{ loop.index0 }}"
+                               data-swatch-name="{{ _term.name }}"
+                               {{ _swatch_img ? 'data-swatch-img="' ~ _swatch_img ~ '"' : '' }}
+                               style="height:20px;padding:0 5px;font-size:10px;font-weight:600;color:#444;flex-shrink:0;white-space:nowrap;text-decoration:none;">
+                                {{ _term.name }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if _hidden > 0 %}
+                        <a href="{{ product_link }}" class="text-muted btn-loading-page" style="font-size:11px;font-weight:500;text-decoration:none;">+{{ _hidden }}</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {# ── Seçili variation attribute'ları (product_variation) ── #}
+        {% if is_variation %}
+            {% set _sel_attrs = post.variation_selected_attrs %}
+            {% if _sel_attrs is not empty %}
+                <div class="tease-product__variation-attrs d-flex flex-wrap align-items-center gap-1 mt-1">
+                    {% for _attr in _sel_attrs %}
+                        {% if _attr.type == 'color' and _attr.color %}
+                            {# Renk: daire + isim #}
+                            <span class="d-inline-flex align-items-center gap-1" style="font-size:11px;color:#555;">
+                                <span class="rounded-circle border" style="width:14px;height:14px;flex-shrink:0;background-color:{{ _attr.color }};display:inline-block;"></span>
+                                {{ _attr.name }}
+                            </span>
+                        {% else %}
+                            {# Beden / diğer: badge #}
+                            <span class="badge border text-dark fw-normal" style="font-size:10px;background:#f5f5f5;border-color:#ddd!important;">
+                                {{ _attr.name }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {# Fiyat #}
+        <div class="tease-product__price mt-auto pt-2" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+            <meta itemprop="priceCurrency" content="{{ function('get_woocommerce_currency') }}">
+            <meta itemprop="availability" content="{{ is_in_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}">
+            <span class="price">{{ post.price_html()|raw }}</span>
+        </div>
+
+    </div>{# /.card-body #}
+
+    {# ── KART FOOTER / CTA ─────────────────────────────────── #}
+    {% if enable_cart is defined and enable_cart %}
+        <div class="card-footer bg-transparent border-0 px-3 pb-3 pt-0">
+
+            {% if not is_in_stock %}
+                <a href="{{ product_link }}"
+                   class="btn btn-sm w-100 btn-loading-page"
+                   style="background:#f0f0f0;color:#999;border-color:#e0e0e0;cursor:not-allowed;"
+                   aria-label="{{ translate('Tükendi') }}">
+                    {{ translate("Tükendi") }}
+                </a>
+
+            {% elseif (product_type == "simple") or (is_variation and variation_add_to_cart is defined and variation_add_to_cart) %}
+                <a href="#"
+                   class="btn btn-sm w-100 btn-add-to-cart"
+                   style="background:var(--bs-primary,#8c734b);color:#fff;border-color:var(--bs-primary,#8c734b);"
+                   data-ajax-method="add_to_cart"
+                   {{ post.add_to_cart_attrs() }}
+                   aria-label="{{ translate('Sepete Ekle') }}">
+                    <i class="fa-regular fa-cart-plus me-1"></i>
+                    <span>{{ translate("Sepete Ekle") }}</span>
+                </a>
+
+            {% else %}
+                <a href="{{ product_link }}"
+                   class="btn btn-sm w-100 btn-loading-page"
+                   style="background:var(--bs-primary,#8c734b);color:#fff;border-color:var(--bs-primary,#8c734b);"
+                   aria-label="{{ translate('Seçenekleri Gör') }}">
+                    <i class="fa-regular fa-eye me-1"></i>
+                    <span>{{ translate("Seçenekleri Gör") }}</span>
                 </a>
             {% endif %}
+
         </div>
-        {% endif %}
     {% endif %}
 
-    {# Schema.org meta #}
-    <meta itemprop="image" content="{{ post.thumbnail.src ?? '' }}">
 </article>

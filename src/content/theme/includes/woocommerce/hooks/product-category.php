@@ -25,8 +25,14 @@ function category_queries_ajax($query=array(), $vars=array()){
 
                 // Create Query
 	            $query['post_type']      = array('product','product_variation');
-	            $query['posts_per_page'] = Data::get("site_config.pagination_count");
-			    $query['numberposts']    = Data::get("site_config.pagination_count");
+
+	            // post_pagination ACF ayarından al, yoksa site_config'e düş
+	            $product_pagination = function_exists('get_post_type_pagination') ? get_post_type_pagination('product') : [];
+	            $ppp = (!empty($product_pagination['paged']) && !empty($product_pagination['posts_per_page']))
+	                ? intval($product_pagination['posts_per_page'])
+	                : intval(Data::get("site_config.pagination_count"));
+	            $query['posts_per_page'] = $ppp;
+			    $query['numberposts']    = $ppp;
 			    $query['order']          = "DESC";
 			    $query['orderby']        = "publish_date";
 

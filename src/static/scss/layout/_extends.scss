@@ -1,0 +1,406 @@
+// ─────────────────────────────────────────────────────────────
+// EXTENDS - Utility classes & layout helpers
+// ─────────────────────────────────────────────────────────────
+
+// ── Background helpers ────────────────────────────────────────
+.bg-cover    { @include bg-cover(); }
+.bg-contain  { @include bg-contain(); }
+.bg-parallax { @include bg-cover(); background-attachment: fixed; }
+.img-multiply { background-blend-mode: multiply; mix-blend-mode: multiply; }
+
+// ── Image effects ─────────────────────────────────────────────
+.img-grayscale,
+.img-grayscale-hover,
+.img-color-hover:hover { @include grayscale(); }
+
+.img-grayscale-hover,
+.img-color-hover {
+    @include transition(all .3s ease-out);
+    &:hover { filter: grayscale(0); }
+}
+
+// ── Animation helpers ─────────────────────────────────────────
+.no-animate  { left: 0 !important; right: 0 !important; transition: none !important; }
+.animate-all { @include transition(all .3s ease-out); }
+
+// ── Misc ──────────────────────────────────────────────────────
+.fit-content { height: fit-content; }
+
+.text-unselectable {
+    user-select: none;
+    cursor: default;
+}
+
+.qtranxs-available-languages-message { display: none; }
+
+// ── Header-aware height/min-height ───────────────────────────
+// Uses per-breakpoint CSS variables from root.css
+.mh-100v-header {
+    @each $bp, $val in $grid-breakpoints {
+        @include media-breakpoint-up($bp) {
+            min-height: calc(100vh - var(--header-height));
+        }
+    }
+}
+.h-100v-header {
+    @each $bp, $val in $grid-breakpoints {
+        @include media-breakpoint-up($bp) {
+            height: calc(100vh - var(--header-height));
+        }
+    }
+}
+.header-hide {
+    .mh-100v-header:not(.out-viewport) { min-height: 100vh !important; }
+    .h-100v-header:not(.out-viewport)  { height: 100% !important; }
+}
+
+// ── Header padding helpers ────────────────────────────────────
+.pt-header {
+    padding-top: var(--header-height);
+    &:not(.offcanvas) { @include transition(padding-top .3s ease-out); }
+}
+.affix .pt-header {
+    padding-top: var(--header-height-affix);
+    &:not(.offcanvas) { @include transition(padding-top .3s ease-out); }
+}
+
+// ── Responsive multi-column ───────────────────────────────────
+[class^="col-multi-"],
+[class*=" col-multi-"] { column-gap: 30px; }
+
+@include media-breakpoint-up(md) {
+    [class^="col-multi-"] .col-break,
+    [class*=" col-multi-"] .col-break { break-inside: avoid-column; }
+}
+
+// Base (no breakpoint)
+@for $i from 2 through 6 {
+    .col-multi-#{$i} { display: block !important; column-count: #{$i}; }
+}
+
+// Breakpoint variants
+@each $bp, $val in $grid-breakpoints {
+    @include media-breakpoint-up($bp) {
+        [class^="col-multi-#{$bp}"],
+        [class*=" col-multi-#{$bp}"] { display: block !important; }
+        @for $i from 2 through 6 {
+            .col-multi-#{$bp}-#{$i} { column-count: #{$i}; }
+        }
+    }
+}
+
+// ── Absolute fill ─────────────────────────────────────────────
+.position-absolute-fill {
+    @include absolute-fill();
+    &.ignore-padding { inset: 0 !important; }
+}
+
+// Spacer-aware absolute fill
+@each $key, $space in $spacers {
+    .p-#{$key}  > .position-absolute-fill,
+    .px-#{$key} > .position-absolute-fill { left: $space !important; right: $space !important; }
+    .p-#{$key}  > .position-absolute-fill,
+    .py-#{$key} > .position-absolute-fill { top: $space !important; bottom: $space !important; }
+    .pt-#{$key} > .position-absolute-fill { top: $space !important; }
+    .pb-#{$key} > .position-absolute-fill { bottom: $space !important; }
+    .pl-#{$key} > .position-absolute-fill { left: $space !important; }
+    .pr-#{$key} > .position-absolute-fill { right: $space !important; }
+}
+
+@each $breakpoint, $min-width in $grid-breakpoints {
+    @include media-breakpoint-up($breakpoint) {
+        @each $key, $space in $spacers {
+            .p-#{$breakpoint}-#{$key}  > .position-absolute-fill,
+            .px-#{$breakpoint}-#{$key} > .position-absolute-fill { left: $space !important; right: $space !important; }
+            .p-#{$breakpoint}-#{$key}  > .position-absolute-fill,
+            .py-#{$breakpoint}-#{$key} > .position-absolute-fill { top: $space !important; bottom: $space !important; }
+            .pt-#{$breakpoint}-#{$key} > .position-absolute-fill { top: $space !important; }
+            .pb-#{$breakpoint}-#{$key} > .position-absolute-fill { bottom: $space !important; }
+        }
+    }
+}
+
+// ── Text truncation ───────────────────────────────────────────
+.text-truncate-2 { @include ellipsis(2); }
+.text-truncate-3 { @include ellipsis(3); }
+.text-truncate-4 { @include ellipsis(4); }
+.text-truncate-5 { @include ellipsis(5); }
+
+// ── Responsive width/height ───────────────────────────────────
+@each $bp, $val in $grid-breakpoints {
+    @include media-breakpoint-up($bp) {
+        .w-#{$bp}-100 { width: 100% !important; }
+        .w-#{$bp}-75  { width: 75%  !important; }
+        .w-#{$bp}-50  { width: 50%  !important; }
+        .w-#{$bp}-25  { width: 25%  !important; }
+        .h-#{$bp}-100 { height: 100% !important; }
+        .h-#{$bp}-75  { height: 75%  !important; }
+        .h-#{$bp}-50  { height: 50%  !important; }
+        .h-#{$bp}-25  { height: 25%  !important; }
+    }
+}
+
+// ── Letter spacing ────────────────────────────────────────────
+@for $i from 0 through 5 {
+    .ls-#{$i}  { letter-spacing: #{$i}px; }
+    @if $i > 0 { .ls-n#{$i} { letter-spacing: -#{$i}px; } }
+}
+
+// ── Cursor helpers ────────────────────────────────────────────
+.cursor-hand    { cursor: pointer; }
+.cursor-default { cursor: default; }
+.cursor-help    { cursor: help; }
+.cursor-loading { cursor: wait; }
+.cursor-move    { cursor: move; }
+.cursor-text    { cursor: text; }
+.cursor-cut     { cursor: crosshair; }
+.cursor-grab    { cursor: grab; }
+
+// ── Object position ───────────────────────────────────────────
+.object-position-top-left     { @include object-position('top-left'); }
+.object-position-top-center   { @include object-position('top-center'); }
+.object-position-top-right    { @include object-position('top-right'); }
+.object-position-bottom-left  { @include object-position('bottom-left'); }
+.object-position-bottom-center{ @include object-position('bottom-center'); }
+.object-position-bottom-right { @include object-position('bottom-right'); }
+.object-position-center-left  { @include object-position('center-left'); }
+.object-position-center       { @include object-position('center'); }
+.object-position-center-right { @include object-position('center-right'); }
+
+// ── Misc helpers ──────────────────────────────────────────────
+.nav-link    { min-width: 24px; } // Accessible tap target
+.h-inherit   { height: inherit; }
+.min-h-inherit { min-height: inherit; }
+.text-inherit  { text-align: inherit !important; }
+.img-fluid-vr  { max-height: 100%; width: auto; }
+.aligncenter   { display: block; margin-left: auto; margin-right: auto; }
+
+// ── Card layout helpers ───────────────────────────────────────
+.card {
+    > .card-header {
+        align-items: center;
+        > .card-title { flex: 1; margin: 0; }
+        > .action { flex: 0 1 auto; margin-left: 20px; }
+    }
+
+    &.card-sidebar-menu {
+        background-color: #f2f2f2;
+        border-radius: 6px;
+        > .card-header {
+            background-color: transparent;
+            border: none;
+            padding: 25px;
+            .card-title { font-size: 26px; small { display: block; } }
+        }
+        > .card-body {
+            padding: 25px 25px 0;
+            .nav li {
+                a { cursor: pointer; border: 1px solid #666; color: #666; background-color: transparent; }
+                &.active a { background-color: $base-color; color: #fff; border-color: $base-color; }
+                &:not(:first-child) { margin-top: 20px; }
+            }
+        }
+    }
+}
+
+// ── Button overrides ──────────────────────────────────────────
+.btn {
+    font-family: var(--header-font);
+    text-transform: uppercase;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0;
+
+    &.btn-icon {
+        padding: 0 5px !important;
+        font-size: 18px;
+        &:active { border-color: transparent !important; }
+    }
+}
+
+// FA icon button shortcuts
+.btn-fa {
+    &-angle-right    { @include btnFa("angle-right"); }
+    &-angle-left     { @include btnFa("angle-left"); }
+    &-play           { @include btnFa("play", 600); }
+    &-memo           { @include btnFa("memo", 600); }
+    &-file-arrow-down{ @include btnFa("file-arrow-down", 400); }
+    &-eye            { @include btnFa("eye", 400); }
+}
+
+// ── Vertical nav ──────────────────────────────────────────────
+.nav-vr {
+    font-size: 16px;
+    font-weight: 400;
+    > li {
+        position: relative;
+        a { color: #888; &:before { font-weight: 300; color: #ccc; } &:hover { color: #666; &:before { color: #999; } } }
+        &.active a { font-weight: 600; color: var(--bs-secondary); &:before { color: #999; } }
+    }
+}
+
+// ── Module card ───────────────────────────────────────────────
+.card-module {
+    position: relative;
+    background-color: #fff;
+    border-radius: 18px;
+    border: 1px solid #eee;
+    padding: 20px;
+    box-shadow: 0 0 10px 0 rgba(37, 34, 32, .05);
+    margin-bottom: 40px;
+
+    .table {
+        font-size: 14px;
+        margin: 0;
+        border: none;
+        thead tr th { padding: 8px 18px; color: $base-color; font-weight: 600; font-size: 12px; }
+        tbody tr td { padding: 8px 18px; color: #777; font-weight: 500; }
+
+        &.table-striped tbody tr td {
+            padding: 8px 18px;
+            &:first-child { border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+            &:last-child  { border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+        }
+        &.table-striped:not(.table-bordered-vertical) thead tr th,
+        &.table-striped:not(.table-bordered-vertical) tbody tr td { border: none; }
+
+        &.table-bordered-vertical {
+            border-collapse: separate;
+            border-spacing: 0;
+            th, td {
+                border-top: none; border-bottom: none;
+                border-right: 2px dashed #999;
+                &:first-child { border-left: none; }
+                &:last-child  { border-right: none; }
+            }
+        }
+    }
+}
+
+// ── Leaflet map ───────────────────────────────────────────────
+.marker-cluster-small {
+    background-color: rgba($base-color, .6);
+    div { background-color: $base-color; color: #fff; }
+}
+
+.leaflet-ratio {
+    @include media-breakpoint-up(xl)              { --bs-aspect-ratio: calc(9 / 32 * 100%); }
+    @include media-breakpoint-between(lg, xl)     { --bs-aspect-ratio: calc(9 / 24 * 100%); }
+    @include media-breakpoint-between(md, lg)     { --bs-aspect-ratio: calc(9 / 16 * 100%); }
+    @include media-breakpoint-between(sm, md)     { --bs-aspect-ratio: calc(9 / 12 * 100%); }
+    @include media-breakpoint-down(sm)            { --bs-aspect-ratio: calc(9 / 9 * 100%); }
+}
+
+.ratio {
+    .leaflet-map { height: 100% !important; }
+    &.ratio-32x9 { --bs-aspect-ratio: calc(9 / 32 * 100%); }
+}
+
+.leaflet .leaflet-map-pane .leaflet-tile-pane { @include grayscale(); }
+
+.leaflet-popup {
+    .leaflet-popup-content-wrapper {
+        border-radius: 22px;
+        box-shadow: 0 3px 14px rgba(0, 0, 0, .2);
+        .leaflet-popup-content { font-size: 12px; color: #777; max-width: 120px !important; }
+    }
+    .leaflet-popup-close-button { display: none; }
+}
+
+.leaflet-control-zoom {
+    border-color: $base-color;
+    .leaflet-control-zoom-in,
+    .leaflet-control-zoom-out {
+        border: none;
+        &:not(.leaflet-disabled) { background-color: var(--bs-primary); color: #fff; }
+    }
+}
+
+// ── Ancestory nav ─────────────────────────────────────────────
+.nav-ancestory {
+    .btn-ancestory {
+        background-color: transparent;
+        border: none;
+        @include transition(background-color .3s ease-out);
+        i { color: #ccc; font-size: 52px; }
+        .ancestory {
+            display: flex;
+            align-items: center;
+            img { max-height: 50px; width: auto; }
+            .title { margin: 0; font-size: 18px; color: #666; font-weight: 400; text-transform: none; }
+        }
+        &:hover { i { color: #999; } .title { color: #333; } }
+    }
+    @include media-breakpoint-up(lg) {
+        .btn-ancestory { min-width: 320px; &:hover { background-color: #f7f7f7; } }
+    }
+}
+
+// ── Accordion custom ──────────────────────────────────────────
+/*! purgecss start ignore */
+.accordion-custom {
+    --#{$prefix}accordion-color: #{var(--bs-primary)};
+    --#{$prefix}accordion-bg: #fff;
+    --#{$prefix}accordion-border-color: transparent;
+    --#{$prefix}accordion-border-width: 0;
+    --#{$prefix}accordion-border-radius: 0;
+    --#{$prefix}accordion-inner-border-radius: 0;
+    --#{$prefix}accordion-btn-padding-x: 0;
+    --#{$prefix}accordion-btn-padding-y: #{$accordion-button-padding-y};
+    --#{$prefix}accordion-btn-color: #{var(--bs-primary)};
+    --#{$prefix}accordion-btn-bg: #{$accordion-button-bg};
+    --#{$prefix}accordion-btn-icon-width: 25px;
+    --#{$prefix}accordion-btn-focus-border-color: #{$accordion-button-focus-border-color};
+    --#{$prefix}accordion-btn-focus-box-shadow: #{$accordion-button-focus-box-shadow};
+    --#{$prefix}accordion-body-padding-x: 0;
+    --#{$prefix}accordion-body-padding-y: #{$accordion-body-padding-y};
+    --#{$prefix}accordion-active-color: #{var(--bs-primary)};
+    --#{$prefix}accordion-active-bg: #fff;
+    border: none;
+    border-radius: 0;
+
+    .accordion-item {
+        .accordion-header .accordion-button {
+            .title { font-size: 22px; color: #111; font-weight: 400; small { font-size: 16px; color: #888; } }
+            img { max-width: 120px; }
+        }
+        .accordion-body .list-files { padding-top: 20px; border-top: 1px solid #eee; margin-top: 40px; }
+        &.active.out-viewport .accordion-header { position: sticky; top: 0; z-index: 1; .col-image { display: none; } }
+        &.error .accordion-header .accordion-button:before {
+            content: "\f071";
+            font-family: var(--icon-font);
+            color: $danger;
+            font-size: 22px;
+            margin-right: 15px;
+        }
+    }
+
+    &.accordion-seperated .accordion-item {
+        border-radius: 32px;
+        border: 1px solid #ddd;
+        &:not(:first-child) { margin-top: 20px; }
+        .accordion-header .accordion-button {
+            border-radius: 32px;
+            &:not(.collapsed) { border-color: #aaa; box-shadow: none; }
+            &:hover { border-color: #aaa; }
+        }
+    }
+}
+/*! purgecss end ignore */
+
+// ── Image placeholder ─────────────────────────────────────────
+.img-placeholder.img-not-found {
+    background-color: rgba(#000, .05);
+    background-position: center;
+    background-size: 30% auto;
+    background-image: var(--logo-not-found);
+    background-repeat: no-repeat;
+}
+
+.wp-block-image figure figcaption { text-align: center; color: #666; font-size: 14px; }
+
+// ── Swiper zoom ───────────────────────────────────────────────
+.swiper-zoom-in {
+    .swiper-bg { transform: scale(1.1); @include transition(all 3s ease-out); }
+    .swiper-slide-active .swiper-bg { transform: scale(1); }
+}

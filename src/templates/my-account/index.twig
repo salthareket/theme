@@ -2,7 +2,7 @@
 
 {% set page_settings_full = true %}
 {% set page_settings_classes_main = "py-5" %}
-{% set page_settings_classes_container = "container-xxl" %}
+{% set page_settings_classes_container = "" %}
 
 {% if user.logged %}
     {% if function('getUrlEndpoint') not in ["profile", "expertise", "schedule", "financials", "notifications", "messages", "security"] %}
@@ -10,7 +10,6 @@
            {% set page_settings_classes_main = "d-flex flex-column align-items-center justify-content-center" %}
         {% endif %}
     {% endif %}
-
 {% else %}
 
     {% if url_query_vars["activation-password"] %}
@@ -95,11 +94,10 @@
 
         {% else %}
 
-            <div class="container-xxl">
+            <div class="container">
                 <div class="row">
-                
-                    {% if type in ["profile", "expertise", "schedule", "integration", "security"] and type != "not-activated" %}
-                    <div class="col-lg-4">
+                    {# if type in ["profile", "expertise", "schedule", "integration", "security"] and type != "not-activated" #}
+                    <div class="col-lg-3">
                         <div class="card-container-solid card card-reset stick-top">
                             <div class="card-header border-bottom pb-4">
                                 {% include "user/tease.twig" with { size: "lg", user_item: user, show_rating: true, show_location: true, photo_edit: true, profile_link: true} %}
@@ -120,7 +118,7 @@
                             </div>
                          </div>
                     </div>
-                    {% endif %}
+                    {# endif #}
 
                     <div class="col">
                         {{post.content}}

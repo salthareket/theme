@@ -1,0 +1,38 @@
+//====================================
+// Global Imports
+//====================================
+
+// 0- Import Compass
+@import 'lib/compass';
+
+// 3 - functions, custom variables and mixins
+@import '3-base/index';
+
+// 1- Import bootstrap framework
+@import '1-frameworks/index';
+
+// 2 - Import plugins
+@import '2-plugins/index';
+
+//// 4 - Import components
+@import '4-components/index';
+
+//// 5 - Import layout  styles
+@import '5-layout/index';
+
+//// 6 - module styles
+@import '6-modules/index';
+
+/*
+@import '5-layout/header';
+@import '5-layout/footer';
+@import '5-layout/layout';
+@import '../../../../../../theme/static/scss/header';
+@import '../../../../../../theme/static/scss/footer';
+*/
+
+//// 7 - custom
+/*! purgecss start ignore */
+//@import '#{$theme_static_path}scss/index';
+@import '../../../../../../theme/static/scss/index';
+/*! purgecss end ignore */

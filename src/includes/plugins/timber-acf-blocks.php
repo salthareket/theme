@@ -1,42 +1,495 @@
 <?php
 
-add_filter( 'timber/acf-gutenberg-blocks-templates', function () {
-    return ['vendor/salthareket/theme/src/templates/blocks', 'theme/templates/blocks', 'templates/blocks'];
-});
+// =============================================================================
+// SALT BLOCK SYSTEM — V3 RENDER ENGINE
+// =============================================================================
+// @version 1.1.0
+//
+// @changelog
+//   1.1.0 - 2026-05-18
+//     - Add: salt_inject_dummy_data() — 17 block için dummy data desteği
+//       image, video, audio, gallery, slider, slider-advanced, text, buttons,
+//       icons, milestones, social-media, marquee, table, table-extended,
+//       accordion, hero, navigation, file/files
+//     - Fix: video dummy — video_type=embed, video_settings tam set
+//     - Fix: audio dummy — files array formatı (get_video() uyumlu)
+//     - Fix: slider/slider-advanced — block_settings.height guard (boşsa 500px)
+//     - Fix: navigation — menu yoksa twig'de HTML fallback (fatal error önlendi)
+//     - Fix: is_preview || (is_admin() && DOING_AJAX) — REST save'de de inject
+//   1.0.0 - 2026-05-16
+//     - Add: Initial V3 render engine
+// =============================================================================
 
-add_filter( 'timber/acf-gutenberg-blocks-data', function( $context ){
-    if ( array_key_exists('fields', $context) && is_array($context['fields']) ) {
-        if (isset($context['fields']['block_settings']['custom_id'])) {
-            $custom_id = $context['fields']['block_settings']['custom_id'];
-            ////error_log("custom_id:".$custom_id);
-            // Eğer ID boşsa (yeni blok) VEYA 'block_' ile başlayan bir ID gelmişse (kopyalanmışsa), yeni ID üret.
-            //if (empty($custom_id) || strpos($custom_id, 'block_') === 0) {
-                $context['fields']['block_settings']['custom_id'] = 'block_' . md5(uniqid('', true));
-            //}
-        }
-        $upload_dir = wp_upload_dir();
-        $context['fields']['upload_url'] = $upload_dir['baseurl'];
+/**
+ * Admin preview'da boş field'lara dummy data inject eder.
+ * Sadece $is_preview true iken ve ilgili field boşsa çalışır.
+ * picsum.photos ile gerçekçi dummy görseller kullanılır.
+ */
+function salt_inject_dummy_data( string $block_slug, array $fields ): array {
+
+    // Dummy image array — picsum.photos ile gerçekçi görsel
+    $dummy_image = [
+        'ID'     => 0,
+        'id'     => 0,
+        'url'    => 'https://picsum.photos/seed/' . $block_slug . '/1200/800',
+        'src'    => 'https://picsum.photos/seed/' . $block_slug . '/1200/800',
+        'width'  => 1200,
+        'height' => 800,
+        'alt'    => 'Dummy image',
+        'sizes'  => [
+            'thumbnail'    => 'https://picsum.photos/seed/' . $block_slug . '/150/150',
+            'medium'       => 'https://picsum.photos/seed/' . $block_slug . '/400/300',
+            'medium_large' => 'https://picsum.photos/seed/' . $block_slug . '/768/512',
+            'large'        => 'https://picsum.photos/seed/' . $block_slug . '/1024/683',
+        ],
+    ];
+
+    switch ( $block_slug ) {
+
+        case 'image':
+            if ( empty( $fields['image'] ) ) {
+                $fields['image'] = $dummy_image;
+            }
+            break;
+
+        case 'video':
+            if ( empty( $fields['video_url'] ) && empty( $fields['video_file'] ) ) {
+                $fields['video_type']     = 'embed';
+                $fields['video_url']      = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+                $fields['video_settings'] = [
+                    'videoBg'            => false,
+                    'autoplay'           => false,
+                    'loop'               => false,
+                    'muted'              => false,
+                    'videoReact'         => false,
+                    'controls'           => true,
+                    'controls_options'   => ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+                    'controls_hide'      => false,
+                    'ratio'              => '16x9',
+                    'custom_video_image' => false,
+                    'video_image'        => null,
+                    'vtt'                => '',
+                ];
+            }
+            break;
+
+        case 'audio':
+            if ( empty( $fields['audio_file'] ) && empty( $fields['audio_url'] ) ) {
+                $fields['video_type'] = 'audio';
+                $fields['files'] = [
+                    [ 'file' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' ],
+                ];
+            }
+            // video_type her zaman audio olmalı (twig merge'den önce inject)
+            if ( empty( $fields['video_type'] ) ) {
+                $fields['video_type'] = 'audio';
+            }
+            break;
+
+        case 'gallery':
+            if ( empty( $fields['gallery'] ) ) {
+                $fields['gallery'] = array_map( function( $i ) use ( $block_slug ) {
+                    return [
+                        'ID'     => $i,
+                        'id'     => $i,
+                        'url'    => "https://picsum.photos/seed/{$block_slug}{$i}/800/600",
+                        'src'    => "https://picsum.photos/seed/{$block_slug}{$i}/800/600",
+                        'width'  => 800,
+                        'height' => 600,
+                        'alt'    => "Dummy image {$i}",
+                        'type'   => 'image',
+                        'sizes'  => [
+                            'thumbnail'    => "https://picsum.photos/seed/{$block_slug}{$i}/150/150",
+                            'medium'       => "https://picsum.photos/seed/{$block_slug}{$i}/400/300",
+                            'medium_large' => "https://picsum.photos/seed/{$block_slug}{$i}/768/512",
+                            'large'        => "https://picsum.photos/seed/{$block_slug}{$i}/1024/683",
+                        ],
+                    ];
+                }, range( 1, 6 ) );
+            }
+            break;
+
+        case 'slider':
+        case 'slider-advanced':
+            if ( empty( $fields['slider'] ) ) {
+                $fields['slider'] = array_map( function( $i ) use ( $block_slug ) {
+                    return [
+                        'acf_fc_layout' => 'static',
+                        'add_media'     => true,
+                        'media_type'    => 'image',
+                        'image'         => [
+                            'ID'     => $i,
+                            'id'     => $i,
+                            'url'    => "https://picsum.photos/seed/{$block_slug}{$i}/1600/900",
+                            'src'    => "https://picsum.photos/seed/{$block_slug}{$i}/1600/900",
+                            'width'  => 1600,
+                            'height' => 900,
+                            'alt'    => "Slide {$i}",
+                            'sizes'  => [
+                                'large' => "https://picsum.photos/seed/{$block_slug}{$i}/1024/576",
+                            ],
+                        ],
+                        'add_content'   => true,
+                        'content'       => [
+                            'title'       => "Slide {$i} Başlığı",
+                            'description' => '<p>Dummy slide içeriği. Gerçek içerik eklemek için düzenleyin.</p>',
+                            'column'      => 8,
+                            'align'       => 'start',
+                        ],
+                        'class'         => '',
+                        'overlay'       => false,
+                    ];
+                }, range( 1, 3 ) );
+            }
+            // Preview'da yükseklik yoksa 500px ver
+            if ( empty( $fields['block_settings']['height'] ) || $fields['block_settings']['height'] === 'auto' ) {
+                $fields['block_settings']['height'] = 'lg';
+                $fields['block_settings']['background']['background']['color'] = '#ddd';
+            }
+            break;
+
+        case 'text':
+            if ( empty( $fields['text'] ) ) {
+                $fields['text'] = '<h2>Başlık Metni</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.</p>';
+            }
+            break;
+
+        case 'text-image':
+            if ( empty( $fields['text_image'] ) ) {
+                $fields['text_image'] = [
+                    [
+                        'content'    => '<h2>Başlık</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>',
+                        'media'      => [
+                            'media_type' => 'image',
+                            'image'      => [ "https://picsum.photos/seed/textimage/800/600" ],
+                            'width'      => 6,
+                        ],
+                    ],
+                ];
+            }
+            break;
+
+        case 'buttons':
+            if ( empty( $fields['buttons'] ) ) {
+                $fields['buttons'] = [
+                    [
+                        'link_text'  => 'Birincil Buton',
+                        'type'       => 'primary',
+                        'size'       => 'md',
+                        'outline'    => false,
+                        'link_type'  => 'external',
+                        'link_external' => '#',
+                    ],
+                    [
+                        'link_text'  => 'İkincil Buton',
+                        'type'       => 'secondary',
+                        'size'       => 'md',
+                        'outline'    => true,
+                        'link_type'  => 'external',
+                        'link_external' => '#',
+                    ],
+                ];
+            }
+            break;
+
+        case 'icons':
+            if ( empty( $fields['icons'] ) ) {
+                $fields['icons'] = array_map( function( $i ) use ( $block_slug ) {
+                    return [
+                        'icon'    => [
+                            'image'  => [
+                                'url'    => "https://picsum.photos/seed/icon{$i}/80/80",
+                                'width'  => 80,
+                                'height' => 80,
+                                'alt'    => "Icon {$i}",
+                                'sizes'  => [ 'medium' => "https://picsum.photos/seed/icon{$i}/80/80" ],
+                            ],
+                            'styles' => [ 'height' => '', 'margin' => 'default' ],
+                        ],
+                        'content' => [
+                            'description' => "<p><strong>İkon {$i}</strong><br>Açıklama metni buraya gelir.</p>",
+                            'url'         => null,
+                            'modal'       => false,
+                        ],
+                    ];
+                }, range( 1, 4 ) );
+            }
+            break;
+
+        case 'milestones':
+            if ( empty( $fields['timeline'] ) ) {
+                $fields['timeline'] = [
+                    [ 'title' => '2020', 'events' => [ [ 'description' => 'İlk önemli gelişme gerçekleşti.' ] ] ],
+                    [ 'title' => '2022', 'events' => [ [ 'description' => 'Büyük bir dönüm noktasına ulaşıldı.' ] ] ],
+                    [ 'title' => '2024', 'events' => [ [ 'description' => 'Yeni bir dönem başladı.' ] ] ],
+                ];
+            }
+            break;
+
+        case 'social-media':
+            if ( empty( $fields['social_accounts_custom'] ) && empty( $fields['social_accounts_contacts'] ) ) {
+                $fields['add_accounts_from']    = 'custom';
+                $fields['social_accounts_custom'] = [
+                    [ 'name' => 'instagram', 'url' => '#' ],
+                    [ 'name' => 'facebook',  'url' => '#' ],
+                    [ 'name' => 'twitter',   'url' => '#' ],
+                ];
+            }
+            break;
+
+        case 'marquee':
+            if ( empty( $fields['text'] ) && empty( $fields['query'] ) ) {
+                $fields['source'] = 'static';
+                $fields['text']   = 'Dummy marquee metni • Lorem ipsum dolor sit amet • Consectetur adipiscing elit • ';
+            }
+            break;
+
+        case 'navigation':
+            if ( empty( $fields['menu_view'] ) ) {
+                $fields['menu_view'] = 'collapsed';
+            }
+            break;
+
+        case 'accordion':
+            if ( empty( $fields['posts'] ) && empty( $fields['posts_relation'] ) && empty( $fields['post_type'] ) ) {
+                $fields['custom']   = true;
+                $fields['posts']    = [
+                    [
+                        'title'   => 'Sık Sorulan Soru 1',
+                        'content' => '<p>Bu birinci sorunun cevabıdır. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>',
+                    ],
+                    [
+                        'title'   => 'Sık Sorulan Soru 2',
+                        'content' => '<p>Bu ikinci sorunun cevabıdır. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>',
+                    ],
+                    [
+                        'title'   => 'Sık Sorulan Soru 3',
+                        'content' => '<p>Bu üçüncü sorunun cevabıdır. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>',
+                    ],
+                ];
+            }
+            if ( empty( $fields['collapsible'] ) ) {
+                $fields['collapsible'] = true;
+            }
+            if ( empty( $fields['heading'] ) ) {
+                $fields['heading'] = 'h3';
+            }
+            break;
+
+        case 'hero':
+            if ( empty( $fields['page_title'] ) ) {
+                $fields['page_title'] = true;
+            }
+            if ( empty( $fields['show_breadcrumb'] ) ) {
+                $fields['show_breadcrumb'] = true;
+            }
+            if ( empty( $fields['block_settings']['height'] ) ) {
+                $fields['block_settings']['height'] = 'lg';
+            }
+            if ( empty( $fields['block_settings']['background']['background']['color'] ) ) {
+                $fields['block_settings']['background']['background']['color'] = '#1a1a2e';
+            }
+            if ( empty( $fields['block_settings']['background']['background']['text_color'] ) ) {
+                $fields['block_settings']['background']['text_color'] = '#ffffff';
+            }
+            break;
+
+        case 'file':
+        case 'files':
+            if ( empty( $fields['files'] ) ) {
+                $fields['files'] = [
+                    [
+                        'file_type' => 'link',
+                        'title'     => 'Örnek Döküman.pdf',
+                        'link'      => '#',
+                    ],
+                    [
+                        'file_type' => 'link',
+                        'title'     => 'Kullanım Kılavuzu.docx',
+                        'link'      => '#',
+                    ],
+                    [
+                        'file_type' => 'link',
+                        'title'     => 'Teknik Şartname.zip',
+                        'link'      => '#',
+                    ],
+                ];
+            }
+            break;
+
+        case 'table':
+            if ( empty( $fields['table'] ) ) {
+                $fields['table'] = [
+                    'header' => [
+                        [ 'c' => 'Başlık 1' ],
+                        [ 'c' => 'Başlık 2' ],
+                        [ 'c' => 'Başlık 3' ],
+                    ],
+                    'body' => [
+                        [ [ 'c' => 'Satır 1, Sütun 1' ], [ 'c' => 'Satır 1, Sütun 2' ], [ 'c' => 'Satır 1, Sütun 3' ] ],
+                        [ [ 'c' => 'Satır 2, Sütun 1' ], [ 'c' => 'Satır 2, Sütun 2' ], [ 'c' => 'Satır 2, Sütun 3' ] ],
+                        [ [ 'c' => 'Satır 3, Sütun 1' ], [ 'c' => 'Satır 3, Sütun 2' ], [ 'c' => 'Satır 3, Sütun 3' ] ],
+                    ],
+                ];
+            }
+            break;
+
+        case 'table-extended':
+            if ( empty( $fields['table'] ) ) {
+                $fields['table'] = [
+                    'header' => [
+                        [ 'c' => [ 'type' => 'text', 'text' => 'Özellik' ] ],
+                        [ 'c' => [ 'type' => 'text', 'text' => 'Temel Plan' ] ],
+                        [ 'c' => [ 'type' => 'text', 'text' => 'Pro Plan' ] ],
+                    ],
+                    'body' => [
+                        [
+                            [ 'type' => 'text', 'text' => 'Depolama' ],
+                            [ 'type' => 'text', 'text' => '5 GB' ],
+                            [ 'type' => 'text', 'text' => '100 GB' ],
+                        ],
+                        [
+                            [ 'type' => 'text', 'text' => 'Kullanıcı Sayısı' ],
+                            [ 'type' => 'text', 'text' => '1 Kullanıcı' ],
+                            [ 'type' => 'text', 'text' => 'Sınırsız' ],
+                        ],
+                        [
+                            [ 'type' => 'text', 'text' => 'Destek' ],
+                            [ 'type' => 'text', 'text' => 'E-posta' ],
+                            [ 'type' => 'text', 'text' => '7/24 Canlı Destek' ],
+                        ],
+                        [
+                            [ 'type' => 'text', 'text' => 'API Erişimi' ],
+                            [ 'type' => 'boolean', 'boolean' => false ],
+                            [ 'type' => 'boolean', 'boolean' => true ],
+                        ],
+                    ],
+                ];
+            }
+            break;
+
+        case 'post-archive':
+        case 'tease-list':
+            if ( empty( $fields['post_type'] ) ) {
+                $fields['post_type'] = 'post';
+            }
+            break;
+
     }
-    return $context;
-});
 
-add_filter( 'timber/acf-gutenberg-blocks-default-data', function( $data ){
-    /*$data['default'] = array(
-        'post_type' => 'post',
-    );
-    $data['pages'] = array(
-        'post_type' => 'page',
-    );*/
-    return $data;
-});
+  
 
-add_filter( 'timber/acf-gutenberg-blocks-example-identifier', function( $sufix ){
-    return $sufix;
-});
+    return $fields;
+}
 
-add_filter( 'timber/acf-gutenberg-blocks-preview-identifier', function( $sufix ){
-    return $sufix;
-});
+/**
+ * ACF Block V3 için merkezi Timber render fonksiyonu.
+ * Her block'un render.php'si bunu çağırır.
+ *
+ * @param array       $block      ACF block verisi
+ * @param bool        $is_preview Editörde preview mi?
+ * @param int         $post_id    İlgili post ID
+ * @param string|null $twig_name  Twig dosya adını override etmek için (opsiyonel)
+ */
+function salt_render_acf_block( array $block, bool $is_preview, int $post_id, ?string $twig_name = null ): void {
+    $block_slug = $twig_name ?? str_replace( 'acf/', '', $block['name'] );
+
+    // Timber::context() timber/context filter'ını tetikler — startersite.php'deki
+    // add_to_context çalışır, all_js, fetch, breakpoints vs otomatik gelir.
+    $context               = Timber::context();
+    $context['fields']     = get_fields() ?: [];
+    $context['block']      = $block;
+    $context['is_preview'] = $is_preview;
+    $context['post_id']    = $post_id;
+
+    // Admin preview'da boş field'lara dummy data inject et
+    if ( $is_preview || ( is_admin() && defined('DOING_AJAX') && DOING_AJAX ) ) {
+        $context['fields'] = salt_inject_dummy_data( $block_slug, $context['fields'] );
+    }
+
+    // custom_id — her render'da yeni ID üret
+    if ( isset( $context['fields']['block_settings']['custom_id'] ) ) {
+        $context['fields']['block_settings']['custom_id'] = 'block_' . md5( uniqid( '', true ) );
+    }
+
+    // upload_url — static cache ile tek seferlik DB query
+    static $upload_url = null;
+    if ( $upload_url === null ) {
+        $upload_url = wp_upload_dir()['baseurl'];
+    }
+    $context['fields']['upload_url'] = $upload_url;
+
+    $templates = [
+        "blocks/{$block_slug}/{$block_slug}.twig",
+        "vendor/salthareket/theme/src/templates/blocks/{$block_slug}/{$block_slug}.twig",
+    ];
+
+    Timber::render( $templates, $context );
+}
+
+// =============================================================================
+// BLOCK DISCOVERY — block.json tabanlı otomatik kayıt
+// Transient cache ile her request'te disk I/O yapılmaz.
+// =============================================================================
+
+add_action( 'init', function () {
+
+    $base_dirs = [
+        get_template_directory() . '/vendor/salthareket/theme/src/templates/blocks',
+        get_template_directory() . '/theme/templates/blocks',
+        get_template_directory() . '/templates/blocks',
+    ];
+
+    // Tüm block.json dosyalarının son değiştirilme zamanlarını hash'e dahil et.
+    // Herhangi bir block.json eklenirse/değişirse hash değişir → cache otomatik geçersiz olur.
+    $mtime_hash = '';
+    foreach ( $base_dirs as $base_dir ) {
+        if ( ! is_dir( $base_dir ) ) {
+            continue;
+        }
+        foreach ( glob( $base_dir . '/*/block.json' ) as $json_file ) {
+            $mtime_hash .= $json_file . filemtime( $json_file );
+        }
+    }
+    $cache_key = 'salt_blocks_' . md5( $mtime_hash );
+
+    $cached_dirs = get_transient( $cache_key );
+
+    if ( $cached_dirs === false ) {
+        // Eski salt_blocks_* transient'leri temizle
+        global $wpdb;
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_salt_blocks_%' OR option_name LIKE '_transient_timeout_salt_blocks_%'"
+        );
+
+        $cached_dirs = [];
+        foreach ( $base_dirs as $base_dir ) {
+            if ( ! is_dir( $base_dir ) ) {
+                continue;
+            }
+            foreach ( glob( $base_dir . '/*', GLOB_ONLYDIR ) as $dir ) {
+                $block_json_path = $dir . '/block.json';
+                if ( ! file_exists( $block_json_path ) ) {
+                    continue;
+                }
+                $json = json_decode( file_get_contents( $block_json_path ), true );
+                if ( ! empty( $json['name'] ) ) {
+                    $cached_dirs[ $json['name'] ] = $dir;
+                }
+            }
+        }
+
+        set_transient( $cache_key, $cached_dirs, DAY_IN_SECONDS );
+    }
+
+    $registry = WP_Block_Type_Registry::get_instance();
+    foreach ( $cached_dirs as $block_name => $dir ) {
+        if ( ! $registry->is_registered( $block_name ) ) {
+            register_block_type( $dir );
+        }
+    }
+
+}, 5 );
 
 
 
@@ -292,11 +745,11 @@ function block_gallery_pattern(
 
 
 function block_responsive_classes($field=[], $type="", $block_column=""){
-    $sizes = array_reverse(array_keys(Data::get("breakpoints")));//array("xxxl", "xxl","xl","lg","md","sm","xs");
+
     $tempClasses = [];
     $lastAlign = null;
 
-    if((!empty($block_column) && $block_column["block"] != "bootstrap-columns")){ //&& empty($type)){
+    if((!empty($block_column) && $block_column["block"] != "bootstrap-columns")){
         $type = "align-items-";
     }
 
@@ -304,7 +757,7 @@ function block_responsive_classes($field=[], $type="", $block_column=""){
         if (!empty($align)) {
             if ($lastAlign !== null && $lastAlign !== $align) {
                 $tempClasses[] = [
-                    "key" => $prevKey === "xs" ? "" : $prevKey, // Son geçerli key
+                    "key" => $prevKey === "xs" ? "" : $prevKey,
                     "align" => $lastAlign,
                 ];
             }
@@ -319,9 +772,8 @@ function block_responsive_classes($field=[], $type="", $block_column=""){
         ];
     }
 
-    // Class'ları oluştur
     $classes = [];
-    foreach ($tempClasses as $index => $entry) {
+    foreach ($tempClasses as $entry) {
         $prefix = $entry["key"] ? $entry["key"] . "-" : "";
         $classes[] = $type . $prefix . $entry["align"];
     }
@@ -331,29 +783,21 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
     $tempClasses = [];
     $lastValue = null;
 
-    //$field = remove_empty_items($field);
-
     foreach ($field as $key => $value) {
-
         if ($value) {
-            // Eğer $field_name doluysa, içindeki değeri kullan
             if (!empty($field_name) && isset($value[$field_name])) {
                 $value = $value[$field_name];
             }
-
             if ($value !== $lastValue) {
                 $col = ($key === "xs") ? "" : $key . "-";
                 $tempClasses[] = $type . $col . $value;
-                $lastValue = $value; // Son değeri güncelle
-                $lastKey = $key;     // Son breakpoint güncelle
+                $lastValue = $value;
             } else {
-                // Aynı değerde olanları sonuncuya göre düzenliyoruz
                 $tempClasses[count($tempClasses) - 1] = $type . (($key === "xs") ? "" : $key . "-") . $value;
             }
         }
     }
-
-    return $tempClasses; // Sınıfları birleştir ve döndür
+    return $tempClasses;
 }
 
 function block_container_class($container="", $add_padding = true){
@@ -446,7 +890,6 @@ function block_align($align, $block_column = [], $slide=false){
     return $classes;
 }
 function block_classes($block, $fields, $block_column){
-    $sizes = array_reverse(array_keys(Data::get("breakpoints")));//array("xxxl", "xxl","xl","lg","md","sm","xs");
     $classes = [];
 
     $position = isset($fields["block_settings"]["position"]["position"]) ? $fields["block_settings"]["position"]["position"] : "relative";
@@ -552,21 +995,12 @@ function block_classes($block, $fields, $block_column){
 function block_attrs($block, $fields, $block_column){
     $attrs = [];
 
-    $slider_autoheight = false;
-    if(isset($fields["slider_settings"])){
-        if(isset($fields["slider_settings"])){
-            if($fields["slider_settings"]["autoheight"]){
-                $slider_autoheight = true;
-            }
-        }
-    }
-
     if(!empty($block["anchor"])){
         $attrs["id"] = $block["anchor"];
     }else{
         $attrs["id"] = $block["id"];
     }
-    $attrs["data-index"] = isset($block["index"])?$block["index"]:0;
+    $attrs["data-index"] = isset($block["index"]) ? $block["index"] : 0;
 
     if(isset($fields["block_settings"]["block_parallax"]) && !empty($fields["block_settings"]["block_parallax"]["active"])){
         $attrs["data-scroll"] = "";
@@ -749,11 +1183,11 @@ function generate_spacing_classes($spacing, $prefix) {
             }
         }
 
-        foreach ($grouped as $value => $directions) {
-            if (count($directions) === 2) {
+        foreach ($grouped as $value => $dir_sides) {
+            if (count($dir_sides) === 2) {
                 $classes[] = "{$prefix}{$axis}-{$value}";
             } else {
-                foreach ($directions as $direction) {
+                foreach ($dir_sides as $direction) {
                     $classes[] = "{$prefix}{$direction}-{$value}";
                 }
             }
@@ -2214,7 +2648,7 @@ function block_css($block, $fields, $block_column){
         $code .= "#".$selector." > .bg-cover{".$code_bg."}";
     }
 
-    if($background["parallax"] && !empty($code_bg_parallax)){
+    if(!empty($background["parallax"]) && !empty($code_bg_parallax)){
         $code .= "#".$selector." > .bg-cover .jarallax-container{".$code_bg_parallax."}";
     }
     
@@ -2373,8 +2807,8 @@ function block_meta($block_data=array(), $fields = array(), $extras = array(), $
         $meta["container"]        = isset($meta["settings"]["container"])?block_container($meta["settings"]["container"], $fields["block_settings"]["stretch_height"]):"default";
         $meta["bg_image"]         = block_bg_media($block_data, $fields, $block_column);
         $meta["data"]             = array(
-            "align"      => $block_data["align"],
-            "fullHeight" => $block_data["fullHeight"]
+            "align"      => $block_data["align"] ?? '',
+            "fullHeight" => $block_data["fullHeight"] ?? false
         );
        $meta["css"]               = block_css($block_data, $fields, $block_column);
 

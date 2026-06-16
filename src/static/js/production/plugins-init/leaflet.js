@@ -125,7 +125,7 @@ function init_leaflet(context) {
 
         // DEBUG: container boyutunu logla – tile sorununun kaynağını görmek için
         var _cont = document.getElementById(id);
-        console.log('[Leaflet] container boyutu init anında:', id, _cont ? _cont.offsetWidth + 'x' + _cont.offsetHeight : 'BULUNAMADI');
+        log('[Leaflet] container boyutu init anında:', id, _cont ? _cont.offsetWidth + 'x' + _cont.offsetHeight : 'BULUNAMADI');
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             tileSize: 256,
@@ -210,7 +210,7 @@ function init_leaflet(context) {
         requestAnimationFrame(function () {
             map.invalidateSize({ pan: false });
             setTimeout(function () {
-                console.log('[Leaflet] invalidateSize + _doFit çağrılıyor, map size:', map.getSize());
+                log('[Leaflet] invalidateSize + _doFit çağrılıyor, map size:', map.getSize());
                 map.invalidateSize({ pan: false });
                 // Tile pane'i sıfırla – top/left boşsa tile grid yeniden hesaplansın
                 map.eachLayer(function(layer) {
@@ -366,17 +366,17 @@ function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
 
 // ─── 7. Yardımcı: Fit map ────────────────────────────────────────────────────
 function _fitMap(map, locations, markerList) {
-    console.log('[_fitMap] locations:', locations.length, 'markerList:', markerList.length);
+    log('[_fitMap] locations:', locations.length, 'markerList:', markerList.length);
     if (locations.length > 1 && markerList.length > 0) {
         var realMarkers = markerList.filter(function (m) { return m instanceof L.Marker; });
-        console.log('[_fitMap] realMarkers:', realMarkers.length);
+        log('[_fitMap] realMarkers:', realMarkers.length);
         if (realMarkers.length > 0) {
             var group = L.featureGroup(realMarkers);
             map.fitBounds(group.getBounds(), { padding: [30, 30] });
         }
     } else if (locations.length === 1) {
         var zoom = locations[0].zoom || 15;
-        console.log('[_fitMap] setView', locations[0].lat, locations[0].lng, zoom);
+        log('[_fitMap] setView', locations[0].lat, locations[0].lng, zoom);
         map.setView([locations[0].lat, locations[0].lng], zoom);
     }
 }

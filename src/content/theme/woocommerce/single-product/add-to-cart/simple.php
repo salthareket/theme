@@ -25,19 +25,11 @@ if ( ! $product->is_purchasable() ) {
 
 echo wc_get_stock_html( $product ); // WPCS: XSS ok.
 
-if(ENABLE_FAVORITES){
-    $is_favorite  = in_array($product->get_id(), $GLOBALS['favorites']);
-    $favorite_count = (get_post_meta($product->get_id(),"wpcf_favorites_count", true));
-    if(empty($favorite_count) || $favorite_count < 0){
-       $favorite_count = 0; 
-    }
-    
-    $favorite_text = "";
-    /*$favorite_text .= '<span class="info">';
-    $favorite_text .= !$is_favorite?trans("Favorilerine Ekle"):trans("Kaldır");
-    $favorite_text .= !empty($favorite_count)?esc_attr(sprintf(trans("%s kişi bu ürünü ekledi"), $favorite_count)):"";
-    $favorite_text .= '</span>';
-    */
+if ( ENABLE_REACTIONS ) {
+    $uid         = get_current_user_id();
+    $product_id  = $product->get_id();
+    $is_favorite = $uid > 0 && \SaltHareket\Reactions\Reactions::has( 'favorite', $product_id, 'post', $uid );
+    $fav_count   = \SaltHareket\Reactions\Reactions::count( 'favorite', $product_id, 'post' );
 }
 
 if ( $product->is_in_stock() ) : ?>
@@ -71,15 +63,9 @@ if ( $product->is_in_stock() ) : ?>
 				  } 
 				 ?>
 			   <div class="col-auto">
-			    	<?php
-			        if(ENABLE_FAVORITES){?>
-			        <a href="#" class="btn-favorite btn-product-action btn-favorite-text-- <?php if($is_favorite){?>active<?php }?>" data-id="<?php echo $product->get_id(); ?>">
-			           <?php echo $GLOBALS["icons"]["favorite"]; ?>
-			           <?php  echo $favorite_text; ?>
-			        </a>
-			        <?php
-			        }
-			        ?>
+			    	<?php if ( ENABLE_REACTIONS ) : ?>
+			        <?php echo \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $product->get_id(), 'post', 'favorite', ['style' => 'icon-only', 'class' => 'btn-product-action'] ); ?>
+			        <?php endif; ?>
 		        </div>
 				<?php do_action( 'woocommerce_after_add_to_cart_button' ); ?>
 		    </div>

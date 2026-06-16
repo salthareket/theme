@@ -3,6 +3,48 @@
 use SaltHareket\Image;
 use Carbon\Carbon;
 
+/**
+ * Post — Timber\Post extend'i.
+ * Tum post type'lar icin kullanilir (page, post, custom post type).
+ *
+ * @version 1.2.0
+ * @changelog
+ *   1.2.0 - 2026-05-08
+ *     - Add: reaction_count() — post'un reaction sayisi
+ *     - Add: has_reaction() — mevcut kullanici reaction yapti mi
+ *     - Add: reaction_counts() — tum tiplerin sayilari (array)
+ *     - Add: reaction_button() — reaction button HTML'i render et
+ *   1.1.0 - 2026-05-07
+ *     - Add: get_thumbnail() — media field + fallback featured image
+ *     - Add: pll_get_post(), pll_get_post_default() — Polylang entegrasyonu
+ *   1.0.0 — Initial release
+ *
+ * ─── HOW TO USE ───────────────────────────────────────────
+ *
+ * // Twig'de:
+ * {{ post.reaction_count('like') }}
+ * {% if post.has_reaction('favorite') %}...{% endif %}
+ * {{ post.reaction_button('like', {'style': 'pill'})|raw }}
+ * {% set counts = post.reaction_counts %}
+ *
+ * ──────────────────────────────────────────────────────────
+ *
+ * @example
+ *   {{ post.reaction_count('like') }}
+ *
+ * @example
+ *   {% if post.has_reaction('favorite') %}<span>Favorilendi</span>{% endif %}
+ *
+ * @example
+ *   {{ post.reaction_button('like', {'style': 'icon-count'})|raw }}
+ *
+ * @example
+ *   {{ post.reaction_button('clap', {'style': 'icon-count', 'require_login': false})|raw }}
+ *
+ * @example
+ *   {% set counts = post.reaction_counts %}{{ counts.like }} like, {{ counts.clap }} clap
+ */
+
 class Post extends Timber\Post{
 
     public function get_archive_link(){
@@ -675,6 +717,51 @@ class Post extends Timber\Post{
         return null;
     }
 
+    // ── REACTIONS ────────────────────────────────────────────────────────────
+
+    /**
+     * Bu post'un belirli bir reaction sayisi.
+     * Twig: {{ post.reaction_count('like') }}
+     */
+    public function reaction_count( string $type = 'like' ): int {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return 0;
+        return \SaltHareket\Reactions\Reactions::count( $type, $this->ID, 'post' );
+    }
+
+    /**
+     * Mevcut kullanici bu post'a reaction yapti mi?
+     * Twig: {% if post.has_reaction('like') %}
+     */
+    public function has_reaction( string $type = 'like' ): bool {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return false;
+        return \SaltHareket\Reactions\Reactions::has( $type, $this->ID, 'post' );
+    }
+
+    /**
+     * Bu post'a yapilan tum reaction sayilari (type => count).
+     * Twig: {% set counts = post.reaction_counts %}
+     */
+    public function reaction_counts(): array {
+        if ( ! class_exists( \SaltHareket\Reactions\Reactions::class ) ) return [];
+        $types  = \SaltHareket\Reactions\ReactionsSettings::getTypes();
+        $result = [];
+        foreach ( array_keys( $types ) as $type ) {
+            $result[ $type ] = \SaltHareket\Reactions\Reactions::count( $type, $this->ID, 'post' );
+        }
+        return $result;
+    }
+
+    /**
+     * Reaction button HTML'i render et.
+     * Twig: {{ post.reaction_button('like', {'style': 'pill'}) }}
+     */
+    public function reaction_button( string $type = 'like', array $options = [] ): string {
+        if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
+        return \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->ID, 'post', $type, $options );
+    }
+
+    // ── END REACTIONS ─────────────────────────────────────────────────────────
+
     public function get_custom_template_data($type = "modal") {
         if (!in_array($type, ['offcanvas', 'modal'])) {
             return false;
@@ -720,4 +807,51 @@ class Post extends Timber\Post{
 
         return implode(' ', $data_strings);
     }
+
+    // ── LOCATION ──────────────────────────────────────────────────────────────
+
+    /**
+     * Post'un atandığı region term'leri.
+     * Twig: {% for region in post.regions %}{{ region.name }}{% endfor %}
+     */
+    public function get_regions(): array {
+        if ( ! taxonomy_exists( 'region' ) ) return [];
+        $terms = get_the_terms( $this->ID, 'region' );
+        return ( $terms && ! is_wp_error( $terms ) ) ? $terms : [];
+    }
+
+    /**
+     * Post belirli bir region'da mı?
+     * Twig: {% if post.in_region('TR') %}...{% endif %}
+     */
+    public function in_region( string $country_code = '' ): bool {
+        if ( ! taxonomy_exists( 'region' ) || empty( $country_code ) ) return true;
+        $region_ids = function_exists( 'get_region_by_country_code' )
+            ? get_region_by_country_code( $country_code )
+            : [];
+        if ( empty( $region_ids ) ) return true;
+        return has_term( $region_ids, 'region', $this->ID );
+    }
+
+    /**
+     * Post'un şehir adı (meta'dan).
+     * Twig: {{ post.city_name }}
+     */
+    public function get_city_name(): string {
+        $city = $this->meta( 'city' );
+        if ( empty( $city ) ) return '';
+        return function_exists( 'get_city_name' ) ? get_city_name( 'id', $city ) : '';
+    }
+
+    /**
+     * Post'un ülke adı (meta'dan).
+     * Twig: {{ post.country_name }}
+     */
+    public function get_country_name(): string {
+        $country = $this->meta( 'country' ) ?: $this->meta( 'billing_country' );
+        if ( empty( $country ) ) return '';
+        return function_exists( 'get_country_name' ) ? get_country_name( 'iso2', $country ) : $country;
+    }
+
+    // ── END LOCATION ──────────────────────────────────────────────────────────
 }

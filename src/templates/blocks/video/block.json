@@ -1,0 +1,23 @@
+{
+    "name": "acf/video",
+    "title": "Video",
+    "description": "Plyr tabanlı video oynatıcı — dosya yükleme, embed URL, arka plan video ve poster desteği",
+    "category": "saltblocks",
+    "icon": "video-alt3",
+    "keywords": ["video", "film", "movie", "plyr", "player", "embed", "youtube", "vimeo", "background"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Video Düzenle"
+    }
+}

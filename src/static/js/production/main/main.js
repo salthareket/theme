@@ -97,14 +97,17 @@ window.addEventListener('load', () => {
     handleHashScroll();
 });
 
-// Resize'ı throttle (frenleme) ile çalıştırıyoruz ki CPU patlamasın
-let resizeTimeout;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-        fitToContainer();
-    }, 150);
-});
+// Resize throttle - guard ile tekrar tanımlamayı önle
+if (typeof window._resizeTimeoutGuard === 'undefined') {
+    window._resizeTimeoutGuard = true;
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            fitToContainer();
+        }, 150);
+    });
+}
 
 window.withMethods = function(callback) {
     // 1. Değişken var mı VE içi dolu mu (site_config gelmiş mi?)
@@ -140,7 +143,7 @@ window.withMethods = function(callback) {
         },
         error: () => {
             window.methods_js_loading = false;
-            console.error(">>> Methods yüklenemedi!");
+            log(">>> Methods yüklenemedi!", 'error');
         }
     });
 };
@@ -200,10 +203,11 @@ function init_functions($plugins_req = []){
 		//$("input[type='number']").inputSpinner();
 
 
-        if(site_config.enable_favorites){
+        /*
+        if(site_config.enable_reactions){
         	btn_favorite();
         }
-        /*
+        
         
         if(site_config.enable_notifications && site_config.logged){
 		    ajax_hooks.get_notification_alerts.init();
@@ -362,19 +366,31 @@ $( document ).ready(function() {
 		        if ($container.length) {
 		            switch(type) {
 		                case 'favorites':
-		                    handle_favorites_load($parent, $container);
+		                    handle_favorites_load($parent, $container, "dropdown");
 		                    break;
 		                case 'messages':
 		                    if (window.messages) {
 		                        $container.addClass('loading-process');
-		                        window.messages.get($container);
+		                        window.messages.get($container, "dropdown");
 		                    }
 		                    break;
 		                case 'cart':
 		                    if (window.cart) {
 		                        $container.addClass('loading-process');
-		                        window.cart.get($container);
+		                        window.cart.get($container, "dropdown");
 		                    }
+		                    break;
+		                case 'notifications':
+		                    $container.addClass('loading-process');
+		                    var nQuery = new ajax_query();
+		                    nQuery.method = "get_notifications";
+		                    nQuery.vars = { view: "dropdown" };
+		                    nQuery.done = function(res) {
+		                        if (res && res.html) {
+		                            $container.html(res.html).removeClass("loading-process");
+		                        }
+		                    };
+		                    nQuery.request();
 		                    break;
 		            }
 		        }
@@ -424,7 +440,8 @@ $( document ).ready(function() {
 		bs_events_dropdown();
 
 		// 5️⃣ Favorites Karşılaştırma (Daha hızlı ve temiz)
-		function handle_favorites_load($parent, $container) {
+		function handle_favorites_load($parent, $container, view_type) {
+		    view_type = view_type || "dropdown";
 		    let favs = window.site_config?.favorites || [];
 		    if (typeof favs === "string") favs = JSON.parse(favs);
 		    
@@ -440,12 +457,171 @@ $( document ).ready(function() {
 
 		        if (isDifferent && window.favorites) {
 		            $container.addClass('loading-process');
-		            window.favorites.get($container);
+		            window.favorites.get($container, view_type);
 		        }
 		    } else {
 		        $container.html('<div class="empty-notify">Henüz favori yok.</div>');
 		    }
 		}
+
+
+		/********************************************
+		/*
+		/*   PANEL INTERACTIONS (dropdown + offcanvas)
+		/*   Merkezi event delegation sistemi.
+		/*   Yeni type eklemek icin sadece panelTypes objesine ekle.
+		/*
+		/*******************************************/
+
+		function init_panel_interactions() {
+
+		    // ── Type tanimlari ──────────────────────────────
+		    // Her type icin: manager instance, remove selector, remove handler
+		    var panelTypes = {
+		        cart: {
+		            removeSelector: ".cart-item-remove",
+		            remove: function($item, view) {
+		                if (window.cart) cart.removeItem($item, view);
+		            }
+		        },
+		        favorites: {
+		            removeSelector: ".favorites-remove",
+		            remove: function($item, view) {
+		                if (window.favorites) favorites.remove($item);
+		            }
+		        },
+		        messages: {
+		            removeSelector: null, // messages'da item remove yok
+		            remove: null
+		        },
+		        notifications: {
+		            removeSelector: null,
+		            remove: null
+		        }
+		    };
+
+		    // ── Yardimci: view type tespit ──────────────────
+		    function detectView($el) {
+		        return $el.closest(".offcanvas").length > 0 ? "offcanvas" : "dropdown";
+		    }
+
+		    // ── Yardimci: scrollbar init ────────────────────
+		    function initScrollbar($container) {
+		        var $scrollable = $container.find(".dropdown-body.scrollable, .offcanvas-body");
+		        if ($scrollable.length && typeof SimpleScrollbar !== "undefined") {
+		            $scrollable.each(function() { SimpleScrollbar.initEl(this); });
+		        }
+		    }
+
+		    // ── Yardimci: has-dropdown-item toggle ──────────
+		    function toggleEmptyState($container, hasItems) {
+		        $container.toggleClass("has-dropdown-item", hasItems);
+		        $container.find(".content-centered").toggle(!hasItems);
+		        $container.find(".dropdown-footer, .offcanvas-footer").toggleClass("d-none", !hasItems);
+		    }
+
+		    // ── 1. ITEM REMOVE — Event Delegation ──────────
+		    // Tek bir listener, tum type'lar icin calisiyor.
+		    $(document).on("click", "[class*='-item-remove'], [class*='-remove']", function(e) {
+		        e.preventDefault();
+		        var $btn = $(this);
+		        var $item = $btn.closest(".notification-item");
+		        var type = $item.data("type") || $btn.data("type");
+		        var view = detectView($btn);
+
+		        if (type && panelTypes[type] && panelTypes[type].remove) {
+		            panelTypes[type].remove($item, view);
+		        }
+		    });
+
+		    // ── 2. AJAX COMPLETE — Post-load islemleri ─────
+		    // AJAX ile icerik yuklendikten sonra scrollbar, lazyload vs. init et.
+		    $(document).on("ajax_query:complete", function(event, obj) {
+		        if (!obj || !obj.method) return;
+
+		        var affectedTypes = {
+		            "get_cart": "cart",
+		            "wc_cart_item_remove": "cart",
+		            "favorites_get": "favorites",
+		            "favorites_add": "favorites",
+		            "favorites_remove": "favorites",
+		            "get_messages": "messages",
+		            "get_notifications": "notifications"
+		        };
+
+		        var type = affectedTypes[obj.method];
+		        if (!type) return;
+
+		        // Tum bu type'in container'larini bul ve scrollbar init et
+		        setTimeout(function() {
+		            $(".dropdown-notifications[data-type='" + type + "'] .dropdown-container").each(function() {
+		                initScrollbar($(this));
+		            });
+		            $(".offcanvas-" + type + " .load-container, .offcanvas-" + type + " .offcanvas-body").each(function() {
+		                initScrollbar($(this));
+		            });
+		            // LazyLoad guncelle
+		            if (typeof lazyLoadInstance !== "undefined") lazyLoadInstance.update();
+		        }, 100);
+		    });
+
+		    // ── 3. WooCommerce EVENTS ──────────────────────
+		    // Sepete ekleme/cikarma vs. sonrasi cart guncelle.
+		    $(document.body).on(
+		        "added_to_cart removed_from_cart wc_fragments_loaded updated_cart_totals",
+		        function(e) {
+		            // Cart dropdown guncelle
+		            var $cartDropdown = $(".dropdown-notifications[data-type='cart']").find(".dropdown-container");
+		            if ($cartDropdown.length > 0 && typeof cart !== "undefined") {
+		                cart.get($cartDropdown, "dropdown");
+		            }
+		            // Cart offcanvas guncelle
+		            var $cartOffcanvas = $("#offcanvasCart .load-container");
+		            if ($cartOffcanvas.length > 0 && typeof cart !== "undefined") {
+		                cart.get($cartOffcanvas, "offcanvas");
+		            }
+		        }
+		    );
+
+		    // ── 4. WC Store API Intercept ──────────────────
+		    // Native WC cart/checkout block'lari Store API kullanir.
+		    // Fetch response'larindan items_count alip badge guncelle.
+		    (function() {
+		        var _origFetch = window.fetch;
+		        window.fetch = function(url, opts) {
+		            return _origFetch.apply(this, arguments).then(function(response) {
+		                // Sadece WC Store API cart endpoint'lerini dinle
+		                if (typeof url === "string" && url.indexOf("/wc/store/") !== -1 &&
+		                    (url.indexOf("/cart") !== -1 || url.indexOf("/batch") !== -1)) {
+		                    // Response'u clone et (body sadece 1 kez okunabilir)
+		                    response.clone().json().then(function(data) {
+		                        var count = null;
+
+		                        // Direkt cart response
+		                        if (data && typeof data.items_count !== "undefined") {
+		                            count = data.items_count;
+		                        }
+		                        // Batch response (remove-item vs.)
+		                        else if (data && data.responses && data.responses.length > 0) {
+		                            var body = data.responses[0].body;
+		                            if (body && typeof body.items_count !== "undefined") {
+		                                count = body.items_count;
+		                            }
+		                        }
+
+		                        if (count !== null && typeof cart !== "undefined") {
+		                            cart.updateBadge("cart", count);
+		                        }
+		                    }).catch(function() {});
+		                }
+		                return response;
+		            });
+		        };
+		    })();
+		}
+
+		// Init
+		init_panel_interactions();
 
         /********************************************
 		/*
@@ -749,6 +925,23 @@ $( document ).ready(function() {
 		            $container.addClass("loading-process");
 		            window.messages.get($container);
 		        }
+
+		        if($obj.hasClass("offcanvas-cart") && window.cart) {
+		            $container.addClass("loading-process");
+		            window.cart.get($container, "offcanvas");
+		        }
+
+		        if($obj.hasClass("offcanvas-favorites") && window.favorites) {
+		            $container.addClass("loading-process");
+		            handle_favorites_load($obj, $container, "offcanvas");
+		        }
+
+		        if($obj.hasClass("offcanvas-notifications")) {
+		            $container.addClass("loading-process");
+		            if (window.notifications) {
+		                window.notifications.get($container);
+		            }
+		        }
 		    })
 		    .on('shown.bs.offcanvas', '.offcanvas', function (e) {
 		        //const $obj = $(e.target);
@@ -831,56 +1024,43 @@ $( document ).ready(function() {
 
 		$(document)
 		.on('ajax_query:start', function(event, obj) {
-			console.log("🚀 İşlem Başladı: " + obj.method);
+			log("🚀 İşlem Başladı: " + obj.method, 'info');
 		})
 		$(document).on('ajax_query:complete', function(event, obj) {
-		    console.log("✅ İşlem Bitti: " + obj.method);
-		    if(isLoadedJS("vanilla-lazyload")){
-		    	lazyLoadInstance.update();
+		    log("✅ İşlem Bitti: " + obj.method, 'info');
+		    
+		    // Smart AJAX Init Manager ile yüklenen içeriği init et
+		    if (typeof window.AjaxInitManager !== 'undefined') {
+		        // AJAX response'dan container'ı tespit et
+		        let $container = document;
+		        
+		        // Eğer response'da target container varsa onu kullan
+		        if (obj && obj.objs && obj.objs.container) {
+		            $container = obj.objs.container;
+		        } else if (obj && obj.objs && obj.objs.obj) {
+		            // Pagination gibi durumlarda obj.objs.obj container olabilir
+		            $container = obj.objs.obj;
+		        }
+		        
+		        // Smart init çalıştır
+		        window.AjaxInitManager.initInContext($container);
+		    } else {
+		        // Fallback: Eski sistem
+		        if(isLoadedJS("vanilla-lazyload")){
+		            lazyLoadInstance.update();
+		        }
+		        $.fn.matchHeight._update();
+		        if(isLoadedJS("swiper")){
+		            init_swiper();
+		        }
+		        btn_ajax_method();
+		        btn_loading_page();
 		    }
-	    	$.fn.matchHeight._update();
-	    	if(isLoadedJS("swiper")){
-		    	init_swiper();
-		    }
-	    	btn_ajax_method();
-	    	btn_loading_page();
 		})
 		.on('ajax_query:stop', function(event, obj) {
-		    console.log("🛑 Tüm AJAX Trafiği Durdu.");
+		    log("🛑 Tüm AJAX Trafiği Durdu.");
 		});
 
 
-        //woocommerce events
-        /*$(document).on(
-		    "init_checkout payment_method_selected update_checkout updated_checkout checkout_error " +
-		    "applied_coupon_in_checkout removed_coupon_in_checkout adding_to_cart added_to_cart " +
-		    "removed_from_cart wc_cart_button_updated cart_page_refreshed cart_totals_refreshed " +
-		    "wc_fragments_loaded init_add_payment_method wc_cart_emptied updated_wc_div " +
-		    "updated_cart_totals country_to_state_changed updated_shipping_method applied_coupon removed_coupon",
-		    function (e) {
-		        
-		        // 1. inputSpinner Güncellemesi (Sadece ilgili eventlerde çalışsın)
-		        const spinnerEvents = ["updated_cart_totals", "updated_checkout", "updated_wc_div"];
-		        if (spinnerEvents.includes(e.type)) {
-		            const $inputs = $("input[type='number']");
-		            if ($inputs.length > 0 && typeof $.fn.inputSpinner !== "undefined") {
-		                $inputs.inputSpinner();
-		            }
-		        }
-
-		        // 2. Sepet Güncellemesi (Sadece kart içeriği değiştiğinde)
-		        const cartUpdateEvents = ["added_to_cart", "removed_from_cart", "wc_fragments_loaded"];
-		        if (cartUpdateEvents.includes(e.type)) {
-		            const $cartContainer = $(".dropdown-notifications[data-type='cart']").find(".dropdown-container");
-		            if ($cartContainer.length > 0 && typeof cart !== "undefined") {
-		                cart.get($cartContainer);
-		            }
-		        }
-
-		        // 3. Checkout Refresh (Ödeme metodu vb değiştiğinde)
-		        if (e.type === "updated_checkout") {
-		            // Checkout ekranına özel bir işlem gerekiyorsa buraya
-		        }
-		    }
-		);*/
+        //woocommerce events — init_panel_interactions() icinde yonetiliyor
 });

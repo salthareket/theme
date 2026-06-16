@@ -1,0 +1,109 @@
+.chart-donut {
+     font-size: 12em!important;
+    .pie-wrapper {
+         position: relative;
+         width: 1em;
+         height: 1em;
+         .pie {
+             position: absolute;
+             top: 0px;
+             left: 0px;
+             width: 100%;
+             height: 100%;
+             clip: rect(0, 1em, 1em, 0.5em);
+        }
+         .half-circle {
+             position: absolute;
+             top: 0px;
+             left: 0px;
+             width: 100%;
+             height: 100%;
+             border: 0.1em solid #1abc9c;
+             border-radius: 50%;
+             clip: rect(0em, 0.5em, 1em, 0em);
+        }
+         .right-side {
+             -webkit-transform: rotate(0deg);
+             transform: rotate(0deg);
+        }
+         .label {
+             position: absolute;
+             top: 0.4em;
+             right: 0.4em;
+             bottom: 0.4em;
+             left: 0.4em;
+             display: flex;
+             align-items:center;
+             justify-content:center;
+             background: none;
+             border-radius: 50%;
+             color: #7F8C8D;
+             font-size: 0.2em;
+             //line-height: 2.6em;
+             text-align: center;
+             cursor: default;
+             z-index: 2;
+        }
+         .smaller {
+             padding-bottom: 20px;
+             color: #BDC3C7;
+             font-size: 0.45em;
+             vertical-align: super;
+        }
+         .shadow {
+             width: 100%;
+             height: 100%;
+             border: 0.1em solid #BDC3C7;
+             border-radius: 50%;
+        }
+    }
+    //sizes
+    &.chart-donut-lg{
+        font-size: 10em!important;
+    }
+    &.chart-donut-md{
+        font-size: 8em!important;
+    }
+    &.chart-donut-sm{
+        font-size: 6em!important;
+    }
+    &.chart-donut-xs{
+        font-size: 4em!important;
+    }
+    //colors
+    &.chart-donut-primary{
+        .pie-wrapper{
+             .half-circle{
+                border-color:$primary;
+             }
+        }
+    }
+    &.chart-donut-danger{
+        .pie-wrapper{
+             .half-circle{
+                border-color:$danger;
+             }
+        }
+    }
+    &.chart-donut-success{
+        .pie-wrapper{
+             .half-circle{
+                border-color:$success;
+             }
+        }
+    }
+    &.chart-donut-warning{
+        .pie-wrapper{
+             .half-circle{
+                border-color:$warning;
+             }
+        }
+    }
+    &.chart-donut-info{
+        .pie-wrapper{
+             .half-circle{
+                border-color:$info;
+             }
+        }
+    }
+}

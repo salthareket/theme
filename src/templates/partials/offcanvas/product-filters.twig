@@ -1,46 +1,79 @@
+{#
+  Product Filters Offcanvas Template
+  
+  Desteklenen layout'lar:
+    - default    : Offcanvas (mobilde toggle button, büyük ekranda sidebar)
+    - horizontal : Sayfanın üstünde yatay filtre alanı
+#}
+
+{% block sidebar_toggler %}
+    {# Sadece default layout'ta ve mobilde göster #}
+    {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
+        <button type="button"
+                class="sidebar-toggler btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#offcanvas-product-filters-{{ page_settings.offcanvas.id }}"
+                aria-controls="offcanvas-product-filters-{{ page_settings.offcanvas.id }}">
+            <i class="fa-regular fa-sliders"></i>
+            {% if page_settings.offcanvas.title %}{{ page_settings.offcanvas.title }}{% endif %}
+        </button>
+    {% endif %}
+{% endblock %}
 
 
-    {% block sidebar_toggler %}
-        {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
-            <button type="button" class="sidebar-toggler btn btn-base" data-bs-toggle="offcanvas" data-bs-target="#offcanvas-{{page_settings.offcanvas.id}}" aria-label="{{page_settings.offcanvas.title}}">
-                {{page_settings.offcanvas.title}} <i class="fa fa-angle-right ms-2"></i>
-            </button>
+{% block sidebar %}
+    {# individual=false → base.twig row içine girer, sidebar olarak render edilir #}
+    {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
+        {% if not page_settings.offcanvas.individual %}
+            <div class="{{ function('acf_offcanvas_classes', page_settings) }} sidebar-col">
+                <div class="sidebar sticky-lg-top pt-3">
+                    {% set shortcode = '[yith_wcan_filters slug="' ~ page_settings.offcanvas.filter_preset ~ '"]' %}
+                    {{ shortcode|shortcodes }}
+                </div>
+            </div>
         {% endif %}
-    {% endblock %}
+    {% endif %}
+{% endblock %}
 
 
-    {% block sidebar %}
-        {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
-            <div class="sidebar sticky sticky-xl {{function("acf_offcanvas_classes", page_settings)}} offcanvas-{{page_settings.offcanvas.position}} {% if not page_settings.offcanvas.individual %}offcanvas-{{page_settings.offcanvas.size}}{% else %}offcanvas{% endif %} p-0 bg-white mh-100v-header" tabindex="-1" id="offcanvas-{{page_settings.offcanvas.id}}" data-bs-keyboard="false" data-bs-backdrop="false" data-bs-scroll="true">
-                <div class="offcanvas-header {% if not page_settings.offcanvas.title %}position-absolute{% endif %}" {% if not page_settings.offcanvas.title %}style="z-index:1;right:0;"{% endif %}>
+{% block offcanvas %}
+    {# individual=true → base.twig body'ye eklenir, gerçek Bootstrap offcanvas #}
+    {% if not page_settings.offcanvas.layout or page_settings.offcanvas.layout != "horizontal" %}
+        {% if page_settings.offcanvas.individual %}
+            <div class="offcanvas offcanvas-{{ page_settings.offcanvas.position|default('start') }}"
+                 tabindex="-1"
+                 id="offcanvas-product-filters-{{ page_settings.offcanvas.id }}"
+                 data-bs-keyboard="true"
+                 data-bs-backdrop="true"
+                 data-bs-scroll="false">
+                <div class="offcanvas-header border-bottom">
                     {% if page_settings.offcanvas.title %}
-                        <h4 class="offcanvas-title">{{page_settings.offcanvas.title}}</h4>
+                        <h5 class="offcanvas-title fw-semibold">{{ page_settings.offcanvas.title }}</h5>
                     {% endif %}
-                    <button type="button" class="btn-close btn-close-dark opacity-100" data-bs-toggle="offcanvas" data-bs-target="#offcanvas-{{page_settings.offcanvas.id}}" aria-label="{{translate('Kapat')}}"></button>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="offcanvas"
+                            aria-label="{{ translate('Kapat') }}"></button>
                 </div>
-                <div class="offcanvas-body d-block p-4">
-                    {% set shortcode = '[yith_wcan_filters slug="'~page_settings.offcanvas.filter_preset~'"]' %}
-                    {{shortcode|shortcodes}}
-                </div>
-            </div>
-        {% endif %}
-    {% endblock %}
-
-
-
-    {% block before_container %}
-        {% if page_settings.offcanvas.layout == "horizontal" %}
-            <div class="card card-reset">
-                {% if page_settings.offcanvas.title %}
-                <div class="card-header">
-                    <h4 class="card-title">{{page_settings.offcanvas.title}}</h4>
-                </div>
-                {% endif %}
-                <div class="card-body">
-                    {% set shortcode = '[yith_wcan_filters slug="'~page_settings.offcanvas.filter_preset~'"]' %}
-                    {{shortcode|shortcodes}}
+                <div class="offcanvas-body align-items-start justify-content-start">
+                    {% set shortcode = '[yith_wcan_filters slug="' ~ page_settings.offcanvas.filter_preset ~ '"]' %}
+                    {{ shortcode|shortcodes }}
                 </div>
             </div>
         {% endif %}
-    {% endblock %}
+    {% endif %}
+{% endblock %}
 
+
+{% block before_container %}
+    {# Horizontal layout: sayfanın üstünde yatay filtre alanı #}
+    {% if page_settings.offcanvas.layout == "horizontal" %}
+        <div class="product-filters-horizontal border-bottom mb-4 pb-3">
+            {% if page_settings.offcanvas.title %}
+                <h5 class="fw-semibold mb-3">{{ page_settings.offcanvas.title }}</h5>
+            {% endif %}
+            {% set shortcode = '[yith_wcan_filters slug="' ~ page_settings.offcanvas.filter_preset ~ '"]' %}
+            {{ shortcode|shortcodes }}
+        </div>
+    {% endif %}
+{% endblock %}

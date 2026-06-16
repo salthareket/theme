@@ -32,7 +32,7 @@
                         modal.find('.defaults-' + key).removeClass('d-none');
                     }
                 });
-            } catch(e) { console.error('Defaults parse error:', e); }
+            } catch(e) { log('Defaults parse error:', 'error'); }
         }
 
         modal.removeClass('loading');

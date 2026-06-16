@@ -1,0 +1,22 @@
+{
+    "name": "acf/table",
+    "title": "Table",
+    "description": "Düzenlenebilir veri tablosu — sıralama ve responsive desteği ile",
+    "category": "saltblocks",
+    "icon": "editor-table",
+    "keywords": ["table", "tablo", "satır", "sütun", "row", "column", "data", "veri"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Table Düzenle"
+    }
+}

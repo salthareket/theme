@@ -60,8 +60,9 @@
             {% endif %}
         </div>
 
-        {% if not user.logged and enable_registration %}
+        {% if not user.logged and enable_registration %}aaaa
             {% set login_url = function('get_login_url') %}
+            url:{{ login_url }}
             <div class="offcanvas-footer align-items-center d-flex p-4 {% if offcanvas.fullscreen and offcanvas.container and "footer" in offcanvas.container_apply %}{{function("block_container", offcanvas.container)}} p-2{% endif %}">
                 <div class="btn-group input-group-gap w-100">
                     <a href="{{login_url}}" class="btn btn-primary">{{'SIGNUP'|trans}}</a>

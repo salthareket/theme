@@ -16,7 +16,13 @@ if(ENABLE_MEMBERSHIP){
 if(ENABLE_ECOMMERCE){
 	include_once "includes/woocommerce.php";
 }
-include_once "includes/project.php";
+
+// Theme Styles New System
+$ts_new_path = get_template_directory() . '/vendor/salthareket/theme/src/includes/apps/theme-styles-new/index.php';
+if (file_exists($ts_new_path)) {
+    include_once $ts_new_path;
+}
+
 include_once "functions.php";
 
 define('THEME_INCLUDES_LOADED', true);

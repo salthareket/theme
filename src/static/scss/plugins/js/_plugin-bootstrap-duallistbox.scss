@@ -1,0 +1,89 @@
+.multiselect-native-select{
+		display:block;
+		.btn-group{
+			width:100%;
+			.multiselect{
+				text-align:left!important;
+				&:after{
+					display:none;
+				}
+				&.active{
+					background-color: var(--bs-primary);
+					color:#fff;
+					border-color: var(--bs-primary);
+					background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+					.badge{
+						background-color: #fff!important;
+						color:var(--bs-primary)!important;
+						font-weight:800;
+					}
+				}
+			}
+			.multiselect-container{
+				//padding-top:40px;
+				min-width:100%;
+				@media(max-width:767px){
+			        max-width:100%;
+				}
+				.multiselect-filter{
+					width:100%;
+				}
+				.multiselect-reset,
+				.multiselect-all-container{
+					display:flex;
+					align-items:center;
+					.multiselect-all{
+						flex:0;
+						&:hover{
+							background-color:transparent;
+						}
+						&.active,
+						&:active,
+						&:focus{
+							background-color:transparent;
+						}
+					}
+					.btn{
+						margin-left:auto;
+					}
+				}
+				.multiselect-group{
+					font-weight:600;
+				}
+				.multiselect-option{
+					font-size:15px;
+					&:hover{
+						background-color:transparent;
+					}
+					&.active,
+					&:active,
+					&:focus{
+						background-color:transparent;
+					}
+				}
+				.multiselect-container-set{
+					.multiselect-group-item{
+						-webkit-column-break-inside: avoid;
+                        page-break-inside: avoid;
+                        break-inside: avoid-column;
+                        margin-bottom:40px;
+					}
+				}
+			}
+		}
+
+		>.form-multi-select{
+			&[data-columns]{
+				+.btn-group{
+					.multiselect-container-set{	
+						@media(max-width:767px){
+			                column-count:2!important;
+						}
+						@media(max-width:575px){
+			                column-count:1!important;
+						}					
+					}
+				}
+			}
+		}
+	}

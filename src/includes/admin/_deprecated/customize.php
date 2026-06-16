@@ -475,7 +475,7 @@ add_filter('acf/update_value/name=enable_membership', 'acf_general_settings_rewr
 add_filter('acf/update_value/name=enable_membership_activation', 'acf_general_settings_rewrite', 10, 4);
 add_filter('acf/update_value/name=enable_chat', 'acf_general_settings_rewrite', 10, 4);
 add_filter('acf/update_value/name=enable_notifications', 'acf_general_settings_rewrite', 10, 4);
-add_filter('acf/update_value/name=enable_favorites', 'acf_general_settings_rewrite', 10, 4);
+add_filter('acf/update_value/name=enable_reactions', 'acf_general_settings_rewrite', 10, 4);
 
 
 

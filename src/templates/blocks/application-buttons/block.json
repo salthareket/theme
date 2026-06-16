@@ -1,0 +1,22 @@
+{
+    "name": "acf/application-buttons",
+    "title": "Application Buttons",
+    "description": "Mobil uygulama indirme butonlari — App Store ve Google Play linkleri",
+    "category": "saltblocks",
+    "icon": "smartphone",
+    "keywords": ["app", "application", "mobile", "button", "link", "store"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Application Buttons Duzenle"
+    }
+}

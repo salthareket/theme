@@ -1,6 +1,5 @@
 <?php
 
-
 use SaltHareket\Image;
 
 function file_get_contents_curl($url) {
@@ -35,8 +34,6 @@ function set_embed_lazy($code){
     return $code;
 }
 
-
-
 function upload_image($url = "", $post_id = 0, $featured = false) {
     $attachmentId = 0;
     if (empty($url)) return $attachmentId;
@@ -60,6 +57,7 @@ function upload_image($url = "", $post_id = 0, $featured = false) {
     }
     return $attachmentId;
 }
+
 function featured_image_from_url($image_url = "", $post_id = 0, $featured = false, $name = "", $name_addition = false){
           if(empty($image_url)){
               return;
@@ -319,7 +317,6 @@ function get_attachment_id_by_url($image_url) {
     return (int) attachment_url_to_postid($image_url) ?: false;
 }
 
-
 function get_attachment_dimensions_by_url($image_url) {
     $attachment_id = get_attachment_id_by_url($image_url);
     return get_attachment_dimensions($attachment_id);
@@ -340,8 +337,6 @@ function get_attachment_dimensions($attachment_id) {
     );
 }
 
-
-
 function webp_is_displayable($result, $path) {
     if ($result === false) {
         $displayable_image_types = array( IMAGETYPE_WEBP );
@@ -357,7 +352,6 @@ function webp_is_displayable($result, $path) {
     return $result;
 }
 add_filter('file_is_displayable_image', 'webp_is_displayable', 10, 2);
-
 
 function enable_mime_types( $upload_mimes ) {
     if(Data::get("upload_mimes")){
@@ -378,7 +372,6 @@ add_filter( 'wp_check_filetype_and_ext', function($data, $file, $filename, $mime
       'proper_filename' => $data['proper_filename']
   ];
 }, 10, 4 );
-
 
 function upload_file($file, $post_id) {
     $attachment_id = 0;
@@ -410,9 +403,6 @@ function upload_file($file, $post_id) {
     }
     return $attachment_id;
 }
-
-
-
 
 // Resize uploaded book cover size to 780x1200px
 function wp_handle_upload_resize($image_data){
@@ -455,15 +445,14 @@ function wp_handle_upload_resize($image_data){
         $fatal_error_reported = false;
         $valid_types = array('image/gif','image/png','image/jpeg','image/jpg');
 
+        $image_editor = wp_get_image_editor($image_data['file']);
+        $image_type = $image_data['type'];
+
         if(empty($image_data['file']) || empty($image_data['type'])) { 
             $fatal_error_reported = true;
         }else if(!in_array($image_data['type'], $valid_types)) {
             $fatal_error_reported = true;
         }
-
-        $image_editor = wp_get_image_editor($image_data['file']);
-        $image_type = $image_data['type'];
-
 
         if($fatal_error_reported || is_wp_error($image_editor)) {
         }else {
@@ -572,9 +561,6 @@ if($upload_resize){
     }
 }
 
-
-
-
 function remove_custom_image_sizes() {
     $upload_sizes_remove = Data::get("upload_sizes_remove");
     if (!empty($upload_sizes_remove) && is_array($upload_sizes_remove)) {
@@ -608,7 +594,29 @@ function upload_sizes_names($sizes) {
 }
 add_filter('image_size_names_choose', 'upload_sizes_names'); 
 
-
+/**
+ * get_image_set() — Responsive image HTML üretir.
+ *
+ * @version 1.1.0
+ *
+ * @changelog
+ *   1.1.0 - 2026-05-18
+ *     - Fix: External URL desteği — Image::render() ExternalImage wrapper kullanıyor
+ *     - Fix: Array src'de id=0 ise url key'ine bakıyor
+ *   1.0.0 - İlk versiyon
+ *
+ * How to use:
+ *   get_image_set(['src' => 123]);                          // WP attachment ID
+ *   get_image_set(['src' => 'https://picsum.photos/800/600']); // External URL
+ *   get_image_set(['src' => $acf_image_array]);             // ACF image array
+ *
+ * Examples (Twig):
+ *   {{ img({'src': fields.image}) }}
+ *   {{ img({'src': 'https://picsum.photos/800/600', 'class': 'img-fluid'}) }}
+ *
+ * @param array $args src, class, style, lazy, lcp, placeholder, attrs, wrapper, inline
+ * @return string HTML <img> veya <picture> tag'ı
+ */
 function get_image_set($args=array()){
     if(is_admin()){
         $args["preview"] = true;
@@ -630,9 +638,51 @@ function get_video($video_args=array()){
     $type  = $args["video_type"] ?? "file";
     $class = isset($video_args["class"])?$video_args["class"]:"";
     $init  = $video_args["init"] ?? false;
-    $lazy  = $video_args["lazy"] ?? true;
+    
+    // SMART LAZY LOADING STRATEGY
+    // Priority: 1. LCP detected → eager, 2. Above-fold → eager, 3. Default → lazy
+    
+    // Default lazy value from template
+    $lazy = $video_args["lazy"] ?? true;
+    
+    // LCP Discovery Mode Check (same as get_image_set)
+    $lcp_discovery_mode = false;
+    if (defined("SITE_ASSETS") && is_array(SITE_ASSETS)) {
+        $device = wp_is_mobile() ? 'mobile' : 'desktop';
+        // LCP tespit edilmemiş mi? (d:0 veya m:0)
+        if (!isset(SITE_ASSETS["lcp"][$device]) || empty(SITE_ASSETS["lcp"][$device])) {
+            $lcp_discovery_mode = true;
+        }
+    }
+    
+    // LCP Discovery Mode: İlk video'yu eager yap (LCP tespit için)
+    if ($lcp_discovery_mode) {
+        // İlk above-the-fold video eager olmalı ki LCP tespit edilebilsin
+        $is_above_fold = isset($video_args["above_fold"]) && $video_args["above_fold"];
+        if ($is_above_fold) {
+            $lazy = false;
+        }
+    }
+    
     $title = $args["video_title"] ?? "";
     $language = Data::get("language");
+
+    // LCP kontrolü - poster image LCP ise lazy load YAPMA!
+    $poster_image = null;
+    if ($type === "embed" && isset($args["video_settings"]["video_image"])) {
+        $poster_image = $args["video_settings"]["video_image"];
+    } elseif ($type === "file" && isset($args["video_poster"])) {
+        $poster_image = $args["video_poster"];
+    }
+    
+    $is_lcp = false;
+    if ($poster_image && function_exists('image_is_lcp')) {
+        $is_lcp = image_is_lcp($poster_image);
+        if ($is_lcp) {
+            $lazy = false; // LCP ise lazy load YAPMA!
+            $class .= " lcp-element"; // LCP class ekle (Plyr.js için)
+        }
+    }
 
     $embed = '<div class="player plyr__video-embed {{class}}" {{config}} {{poster}} {{attrs}}><iframe
         class="video {{class_lazy}}"
@@ -641,17 +691,15 @@ function get_video($video_args=array()){
         allowfullscreen
         allowtransparency
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-      ></iframe>{{poster_lazy}}</div>';
+      ></iframe></div>';
     $audio = '<audio class="player video {{class}}" {{controls}} {{autoplay}} {{muted}} {{config}}>
       <source src="{{src}}" type="audio/mp3" />
     </audio>';
     $file = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{lazy}} {{attrs}}>
       <source src="{{src}}" type="video/mp4" />
-      {{poster_lazy}}
       {{vtt}}
     </video>';
     $file_responsive = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{lazy}} {{attrs}}>
-      {{poster_lazy}}
       {{src}}
       {{vtt}}
     </video>';
@@ -678,18 +726,25 @@ function get_video($video_args=array()){
             }
         }
     }
+    
+    // LCP video için fetchpriority ekle
+    $attrs_extra = "";
+    if ($is_lcp) {
+        $attrs_extra = 'fetchpriority="high" decoding="sync"';
+        $code = str_replace("{{preload}}", "metadata", $code); // LCP için metadata preload
+    }
+    
     $code = str_replace("{{lazy}}", "", $code);
     $code = str_replace("{{preload}}", "metadata", $code);
     if(isset($video_args["attrs"])){
-        $code = str_replace("{{attrs}}", array2Attrs($video_args["attrs"]), $code);
+        $code = str_replace("{{attrs}}", array2Attrs($video_args["attrs"]) . " " . $attrs_extra, $code);
     }
-    $code = str_replace("{{attrs}}", "", $code);
-
+    $code = str_replace("{{attrs}}", $attrs_extra, $code);
 
     switch($type){
 
         case "audio" :
-            if(is_array($args["files"])){
+            if(isset($args["files"]) && is_array($args["files"])){
                 $code = str_replace("{{src}}", $args["files"][0]["file"], $code);
             }
         break;
@@ -701,47 +756,28 @@ function get_video($video_args=array()){
             $embed = new OembedVideo($args["video_url"], "1600x900");
             $data = $embed->get($settings);
             
-            // Poster belirleme
+            // Custom poster varsa data-poster olarak ekle, JavaScript'te handle edilecek
             $poster = (isset($settings["custom_video_image"]) && $settings["custom_video_image"] && !empty($settings["video_image"])) 
-                      ? $settings["video_image"] : ($data["src"] ?? '');
+                      ? $settings["video_image"] : '';
 
-            // 1. Durum: Lazy aktif MI ve Poster LCP MI?
-            $is_lcp = ($poster && image_is_lcp($poster));
-            
-            if($lazy && !$is_lcp){
-                // Standart Lazy Load: LCP değilse ve lazy açıkse
-                $code = str_replace('{{class_lazy}}', 'lazy', $code);
-                $code = str_replace('src="{{src}}"', 'data-src="{{src}}"', $code);
-                
-                if($poster){
-                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init lazy" data-bg="'.$poster.'"></div>', $code);
-                } else {
-                    $code = str_replace("{{poster_lazy}}", "", $code);
-                }
-            } else {
-                // LCP ise VEYA lazy kapalıysa: Lazy'yi iptal et
-                $code = str_replace('{{class_lazy}}', '', $code);
-                $code = str_replace('src="{{src}}"', 'src="{{src}}"', $code);
-                
-                if($poster){
-                    $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster plyr__poster-init" style="background-image: url(&quot;'.$poster.'&quot;);"></div>', $code);
-                    
-                    // LCP ise kafaya preload çak
-                    if($is_lcp){
-                        add_action('wp_head', function() use ($poster) {
-                            // Sizin sınıfa statik çağrı
-                            Salthareket\Image::add_preload_image($poster);
-                        }, 1);
-                    }
-                } else {
-                    $code = str_replace("{{poster_lazy}}", "", $code);
-                }
-            }
-
-            // Geri kalan replace işlemleri
             $code = str_replace("{{src}}", $data["embed_url"], $code);
             $code = str_replace("{{poster}}", ($poster ? "data-poster=".$poster : ""), $code);
             $code = str_replace("{{title}}", $title ?: ($data["title"] ?? ''), $code);
+            
+            // Custom poster varsa lazy loading'i devre dışı bırak
+            if($poster){
+                $lazy = false; // Custom poster varsa lazy'yi kapat
+                $code = str_replace('{{class_lazy}}', '', $code);
+                $class = str_replace('lazy-container', '', $class); // lazy-container class'ını kaldır
+            } else {
+                // Custom poster yoksa normal lazy loading
+                if($lazy && !image_is_lcp($poster)){
+                    $code = str_replace('{{class_lazy}}', 'lazy', $code);
+                    $code = str_replace('src="{{src}}"', 'data-src="{{src}}"', $code);
+                } else {
+                    $code = str_replace('{{class_lazy}}', '', $code);
+                }
+            }
         break;
 
         case "file" :
@@ -753,7 +789,7 @@ function get_video($video_args=array()){
                         $attachment_id = get_attachment_id_by_url($source);
                         if($source){
                             $meta = get_post_meta($attachment_id, '_wp_attachment_metadata', true);
-                            if (!is_array($meta)) continue; // 💥 EKLENDİ
+                            if (!is_array($meta)) continue;
                             $sources .= '<source '.($lazy?"":"").'src="'.$source.'" type="'.$meta["mime_type"].'" size="'.$meta["height"].'" />';
                             $source_count++;
                         }
@@ -790,26 +826,21 @@ function get_video($video_args=array()){
                 }               
             }
 
+            // Normal video için poster - sadece HTML poster attribute kullan
             if(isset($settings["video_image"]) && !empty($settings["video_image"])){
                 $poster = $settings["video_image"];
-                if($poster){
-                    $is_lcp = image_is_lcp($poster);
-                    if($lazy && !$is_lcp){
-                        $code = str_replace("{{poster_lazy}}", '<div class="plyr__poster opacity-100 lazy" data-bg="'.$poster.'"></div>', $code);       
-                    }else{
-                        $code = str_replace("{{poster}}", "poster=".$poster." data-poster=".$poster, $code);
-                        add_action('wp_head', function() use ($poster) {
-                            Salthareket\Image::add_preload_image($poster);
-                        });
-                    }                    
-                }else{
-                    $code = str_replace("{{poster}}", "", $code);
-                    $code = str_replace("{{poster_lazy}}", "", $code);
+                $code = str_replace("{{poster}}", "poster=".$poster." data-poster=".$poster, $code);
+                
+                // LCP ise preload ekle
+                if(image_is_lcp($poster)){
+                    add_action('wp_head', function() use ($poster) {
+                        SaltHareket\Image::add_preload_image($poster);
+                    }, 1);
                 }
             }else{
                 $code = str_replace("{{poster}}", "", $code);
-                $code = str_replace("{{poster_lazy}}", "", $code);
             }
+            
             $vtt = "";
             if(isset($settings["vtt"]) && !empty($settings["vtt"])){
                 $files = $settings["vtt"];
@@ -822,12 +853,6 @@ function get_video($video_args=array()){
                     }
                 }
             }
-            // --- GOOGLE (LIGHTHOUSE) İÇİN DÜZELTME ---
-            if(empty($vtt)){
-                // Eğer vtt yoksa, Google sussun diye boş bir track ekliyoruz.
-                // kind="captions" olması şart.
-                $vtt = '<track kind="captions" src="" srclang="tr" label="Yok" style="display:none;">';
-            }
             $code = str_replace("{{vtt}}", $vtt, $code);
         break;
 
@@ -837,8 +862,7 @@ function get_video($video_args=array()){
     if($init){
         $class .= " init-me "; 
     }
-    
-    if($type != "audio" && isset($settings["videoBg"]) && $settings["videoBg"]){
+    if(isset($settings["videoBg"]) && $settings["videoBg"]){
         $config["fullscreen"] = [ "enabled" => false, "fallback" => false, "iosNative" => false, "container" => null ];
         $settings["videoReact"] = false;
         $config["clickToPlay"] = false;
@@ -847,19 +871,13 @@ function get_video($video_args=array()){
     }
     $code = str_replace("{{class}}", $class, $code);
 
-    //$config["youtube"] = [ "noCookie" => true, "rel" => 0, "showinfo" => 0, "iv_load_policy" => 3, "modestbranding" => 1 ];
-
-    if(isset($args["video_settings"]["videoReact"]) && $args["video_settings"]["videoReact"]){
-        $config["clickToPlay"] = true;
-    }
-
     if(isset($settings["controls"]) && $settings["controls"]){
-        $config["controls"] = $settings["controls_options"];
-        if(isset($settings["controls_options_settings"]) && $settings["controls_options_settings"]){
-            $config["settings"] = $settings["controls_options_settings"];           
+        $config["controls"] = $settings["controls_options"] ?? [];
+        if(!empty($settings["controls_options_settings"])){
+            $config["settings"] = $settings["controls_options_settings"];			
         }
         $code = str_replace("{{controls}}", "controls", $code);
-        $config["hideControls"] = isset($settings["controls_hide"])?$settings["controls_hide"]:false;
+        $config["hideControls"] = $settings["controls_hide"] ?? false;
     }else{
         $config["controls"] = false;
         $config["settings"] = false;
@@ -884,25 +902,13 @@ function get_video($video_args=array()){
     }
     $config["loop"] = [ "active" => $settings["loop"] ];
 
-    if($type != "audio" && isset($settings["ratio"]) && $settings["ratio"]){
+    if(isset($settings["ratio"]) && $settings["ratio"]){
         $config["ratio"] = str_replace("235", "2.35", $settings["ratio"]);
         $config["ratio"] = str_replace("185", "1.85", $config["ratio"]);
         $config["ratio"] = str_replace("x", ":", $config["ratio"]);
-    }
-
-    if($type == "file"){
-        if(isset($settings["show_thumbnails"]) && $settings["show_thumbnails"]){
-            if(!empty($settings["vtt_thumbnails"])){
-                $config["previewThumbnails"] = ["enabled" => true, "src" => $settings["vtt_thumbnails"]];
-                if(empty($settings["controls"])){
-                    $config["controls"] = ["progress"];
-                }else{
-                    if(!in_array("progress", $settings["controls_options"])){
-                        $config["controls"][] = "progress";
-                    }
-                }
-            }
-        }
+    } else {
+        // Default ratio if not set
+        $config["ratio"] = "16:9";
     }
 
     $config["debug"] = false;
@@ -914,97 +920,50 @@ function get_video($video_args=array()){
     return $code;
 }
 
-function getAspectRatio(int $width, int $height){
-    // search for greatest common divisor
-    $greatestCommonDivisor = static function($width, $height) use (&$greatestCommonDivisor) {
-        return ($width % $height) ? $greatestCommonDivisor($height, $width % $height) : $height;
-    };
-    $divisor = $greatestCommonDivisor($width, $height);
-    return $width / $divisor . '/' . $height / $divisor;
-}
-
-function get_google_optimized_avif_quality($input = null) {
-    $base_quality = 50;
-    $min_quality = 10;
-    $max_quality = 80;
-    $max_resolution_threshold = 1920 * 1080;
-    $filesize_threshold = 300000;
-
-    // Belirli bir görsel verildiyse (ID veya path)
-    if ($input && is_numeric($input)) {
-        $file_path = get_attached_file($input);
-    } elseif ($input && is_string($input)) {
-        $file_path = $input;
-    } else {
-        // Parametre verilmemişse en son görseli al
-        global $wpdb;
-        $attachment = $wpdb->get_row("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' ORDER BY post_date DESC LIMIT 1");
-        if (!$attachment) return $base_quality;
-        $file_path = get_attached_file($attachment->ID);
-    }
-
-    if (!file_exists($file_path)) return $base_quality;
-
-    $filesize = filesize($file_path);
-    $image_info = getimagesize($file_path);
-    if (!$image_info) return $base_quality;
-
-    $width = $image_info[0];
-    $height = $image_info[1];
-    $resolution = $width * $height;
-    $bits_per_pixel = isset($image_info['bits']) ? $image_info['bits'] : 8;
-    $color_variation = ($bits_per_pixel / 8) * 100;
-
-    if ($resolution > $max_resolution_threshold) {
-        $resolution_factor = ($resolution / $max_resolution_threshold) * 15;
-        $base_quality -= $resolution_factor;
-    }
-
-    if ($filesize > $filesize_threshold) {
-        $size_factor = ($filesize / $filesize_threshold) * 10;
-        $base_quality -= $size_factor;
-    }
-
-    if ($color_variation < 80) {
-        $base_quality -= 15;
-    }
-
-    return max($min_quality, min($max_quality, $base_quality));
-}
-
-
-function get_embed_video_title($video_url) {
-    if (empty($video_url)) {
-        return false;
-    }
-
-    // Video servislerini belirle
-    if (strpos($video_url, 'youtube.com') !== false || strpos($video_url, 'youtu.be') !== false) {
-        $oembed_url = "https://www.youtube.com/oembed?url=" . urlencode($video_url) . "&format=json";
-    } elseif (strpos($video_url, 'vimeo.com') !== false) {
-        $oembed_url = "https://vimeo.com/api/oembed.json?url=" . urlencode($video_url);
-    } elseif (strpos($video_url, 'dailymotion.com') !== false) {
-        $oembed_url = "https://www.dailymotion.com/services/oembed?url=" . urlencode($video_url);
-    } else {
-        return false; // Desteklenmeyen platform
-    }
-
-    // API isteği gönder
-    $response = wp_remote_get($oembed_url, ['timeout' => 5]);
-
-    if (is_wp_error($response)) {
-        return false;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    return isset($data['title']) ? $data['title'] : false;
-}
-
 function image_is_lcp($image) {
-    //error_log("image_is_lcp tetiklendi"); // Sadece çağrıldığını görelim
     return \Lcp::getInstance()->is_lcp($image);
+}
+
+/**
+ * Video için LCP kontrolü
+ * Poster URL'sini veya video src'yi kontrol eder
+ * 
+ * @param mixed $video - string URL, array (src, poster), veya ACF video field
+ * @return bool
+ */
+function video_is_lcp($video) {
+    if (empty($video)) return false;
+    $lcp = \Lcp::getInstance();
+
+    // ACF video field array ise poster veya src'yi çıkar
+    if (is_array($video)) {
+        // Poster varsa önce onu kontrol et
+        $poster = $video['poster'] ?? $video['image'] ?? $video['thumbnail'] ?? '';
+        if ($poster && $lcp->is_lcp($poster)) return true;
+        // Src'yi kontrol et
+        $src = $video['url'] ?? $video['src'] ?? '';
+        if ($src && $lcp->is_lcp($src)) return true;
+        return false;
+    }
+
+    return $lcp->is_lcp($video);
+}
+
+/**
+ * Herhangi bir element için LCP kontrolü
+ * Twig'den {{ function('element_is_lcp', value, 'type') }} şeklinde kullanılır
+ * 
+ * @param mixed  $value - image array/id/url, video array, string url
+ * @param string $type  - 'image', 'video', 'url' (default: 'image')
+ * @return bool
+ */
+function element_is_lcp($value, $type = 'image') {
+    if (empty($value)) return false;
+    switch ($type) {
+        case 'video': return video_is_lcp($value);
+        case 'image': return image_is_lcp($value);
+        default:      return \Lcp::getInstance()->is_lcp($value);
+    }
 }
 
 function update_term_featured_image($term_id, $tt_id, $taxonomy) {
@@ -1041,4 +1000,22 @@ function update_term_featured_image($term_id, $tt_id, $taxonomy) {
         // delete_term_meta($term_id, 'thumbnail_id');
         // delete_term_meta($term_id, '_thumbnail_id');
     }
+}
+
+/**
+ * Görüntünün en-boy oranını hesaplar (örn: "16:9", "4:3")
+ *
+ * @param int $width
+ * @param int $height
+ * @return string
+ */
+function getAspectRatio(int $width, int $height): string {
+    if ($width <= 0 || $height <= 0) return '';
+
+    $greatestCommonDivisor = static function($width, $height) use (&$greatestCommonDivisor) {
+        return ($height === 0) ? $width : $greatestCommonDivisor($height, $width % $height);
+    };
+
+    $gcd = $greatestCommonDivisor($width, $height);
+    return ($width / $gcd) . ':' . ($height / $gcd);
 }

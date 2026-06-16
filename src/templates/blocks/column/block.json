@@ -1,0 +1,24 @@
+{
+    "name": "acf/column",
+    "title": "Column",
+    "description": "Tek bir Bootstrap kolonu — responsive genislik, align-self ve order kontrolu ile",
+    "category": "saltblocks",
+    "icon": "align-pull-left",
+    "keywords": ["column", "kolon", "col", "bootstrap", "grid"],
+    "parent": ["acf/columns"],
+    "usesContext": ["acf/columns/row_cols"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Column Duzenle"
+    }
+}

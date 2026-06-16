@@ -35,7 +35,19 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 	<a href="<?php echo esc_url( $filter->get_term_url( $term ) ); ?>" <?php yith_wcan_add_rel_nofollow_to_url( true, true ); ?> role="button" data-term-id="<?php echo esc_attr( $term->term_id ); ?>" data-term-slug="<?php echo esc_attr( yith_wcan_esc_term_slug( $term->slug ) ); ?>" <?php echo ! empty( $tooltip ) ? 'data-title="' . esc_attr( $tooltip ) . '"' : ''; ?>>
 		<?php if ( 'image' === $mode && ! empty( $image ) ) : ?>
 			<span class="term-image">
-				<?php echo wp_get_attachment_image( $image, apply_filters( 'yith_wcan_filter_tax_color_image_size', 'thumbnail', $filter ), false, apply_filters( 'yith_wcan_filter_tax_color_image_attr', array(), $filter ) ); ?>
+				<?php
+				/**
+				 * APPLY_FILTERS: yith_wcan_filter_tax_color_image_size
+				 *
+				 * Filters size of the attachment used for the color design in tax filters.
+				 *
+				 * @param string           $size   Default: "thumbnail"
+				 * @param YITH_WCAN_Filter $filter Filter object.
+				 *
+				 * @return string
+				 */
+				echo wp_get_attachment_image( $image, apply_filters( 'yith_wcan_filter_tax_color_image_size', 'thumbnail', $filter ), false, apply_filters( 'yith_wcan_filter_tax_color_image_attr', array(), $filter ) );
+				?>
 			</span>
 		<?php endif; ?>
 

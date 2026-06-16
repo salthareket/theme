@@ -1,4 +1,7 @@
 <article class="tease tease-{{post.post_type}} text-center" id="tease-{{post.ID}}">
+
+	{{ function('salt_reaction_button', post.ID, 'post', 'like', {'style': 'icon-only'}) }}
+	
 	{% block content %}
 		<{{heading|default("h2")}}><a href="{{post.link}}">{{post.title}}</a></{{heading|default("h2")}}>
 		<p>{{post.get_preview}}</p>

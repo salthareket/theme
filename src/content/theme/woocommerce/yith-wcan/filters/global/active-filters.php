@@ -22,7 +22,18 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 <?php if ( ! empty( $active_filters ) ) : ?>
 	<div class="yith-wcan-active-filters <?php echo ! $show_titles ? 'no-titles' : ''; ?> <?php echo 'custom' === yith_wcan_get_option( 'yith_wcan_filters_style', 'default' ) ? 'custom-style' : ''; ?>">
 
-		<?php do_action( 'yith_wcan_before_active_filters' ); ?>
+		<?php
+		/**
+		 * DO_ACTION: yith_wcan_before_active_filters.
+		 *
+		 * Triggered before active filters section.
+		 */
+		do_action( 'yith_wcan_before_active_filters' );
+		?>
+
+		<?php if ( ! empty( $labels_heading ) && ! empty( $active_filters ) ) : ?>
+			<h4><?php echo esc_html( $labels_heading ); ?></h4>
+		<?php endif; ?>
 
 		<?php foreach ( $active_filters as $filter => $options ) : ?>
 			<?php
@@ -47,7 +58,14 @@ if ( ! defined( 'YITH_WCAN' ) ) {
 			</div>
 		<?php endforeach; ?>
 
-		<?php do_action( 'yith_wcan_after_active_filters' ); ?>
+		<?php
+		/**
+		 * DO_ACTION: yith_wcan_after_active_filters.
+		 *
+		 * Triggered before active filters section.
+		 */
+		do_action( 'yith_wcan_after_active_filters' );
+		?>
 
 	</div>
 <?php endif; ?>

@@ -1,33 +1,39 @@
-{% apply spaceless %}
 {% if type == 'cart' %}
    {% set posts = cart.items %}
 {% endif %}
 
 <div class="dropdown-body scrollable infinite-container">
     {% if posts %}
-        <ul class="notifications">
+        <ul class="notifications flex-column">
         {% for post in posts %}
             {% include 'partials/dropdown/'~type~'.twig' with { type : type } %}
         {% endfor %}
         </ul>
-        <div class="content-centered">
-            <div class="content-block">
-                {% include "templates/partials/dropdown/"~type~"-empty.twig" %}
-            </div>
-        </div>
-    {% else %}
-        <div class="content-centered">
-            <div class="content-block">
-                {% include "templates/partials/dropdown/"~type~"-empty.twig" %}
-            </div>
-        </div>
     {% endif %}
+    <div class="content-centered">
+        <div class="content-block">
+            {% if type == "cart" %}
+                <i class="fal fa-shopping-basket"></i>
+                {{translate('Sepetiniz boş.')}}
+                <a class="btn btn-base btn-extend btn-sm" href="{{ function('esc_url', function('apply_filters', 'woocommerce_return_to_shop_redirect', function('wc_get_page_permalink', 'shop' ) ) ) }}">
+                    {{translate('Go Shopping')}}
+                </a>
+            {% elseif type == "favorites" %}
+                <i class="icon-heart-o"></i>
+                {{translate('Favorite list is empty.')}}
+                <a class="btn btn-base btn-extend btn-sm" href="{{ function('esc_url', function('apply_filters', 'woocommerce_return_to_shop_redirect', function('wc_get_page_permalink', 'shop' ) ) ) }}">
+                    {{translate('Go Shopping')}}
+                </a>
+            {% elseif type == "messages" %}
+                <i class="far fa-envelope"></i>
+                {{translate('No new messages.')}}
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 {% if posts %}
     <div class="dropdown-footer">
-        {% include "templates/partials/dropdown/"~type~"-footer.twig" %}
+        {% include "partials/dropdown/"~type~"-footer.twig" %}
     </div>
 {% endif %}
-
-{% endapply %}

@@ -1,6 +1,16 @@
+/**
+ * LCP Element Data Collector
+ * Her element tipine göre doğru veriyi toplar:
+ * - image/img  → url (src), preload as="image"
+ * - video      → url (poster), preload as="image"
+ * - iframe     → url (src), preload as="document"
+ * - text/block → font_url (custom font varsa), critical CSS (font-size, color, font-family, line-height)
+ * - bg-image   → url (background-image url), preload as="image", critical CSS
+ */
 function lcp_data(metric, type) {
     debugJS("is cached:" + site_config.cached);
     if (!metric || !metric.attribution || site_config.cached) return '';
+
     let element, url;
     if (typeof metric.attribution.lcpEntry !== "undefined") {
         element = metric.attribution.lcpEntry.element;
@@ -14,36 +24,35 @@ function lcp_data(metric, type) {
     debugJS(metric);
     debugJS(element);
 
-    let preloadTag = "";
-    let preloadType = "";
+    if (!element) {
+        return { type: "unknown", code: "", url: "", font_url: "", id: 0, selectors: [] };
+    }
+
+    // ─── HELPERS ─────────────────────────────────────────
+
+    const isUnique = (selector) => {
+        if (!selector || typeof selector !== "string") return false;
+        selector = selector.trim();
+        if (selector.startsWith(">")) selector = selector.substring(1).trim();
+        try { return document.querySelectorAll(selector).length === 1; }
+        catch (e) { return false; }
+    };
 
     function getUniqueSelector(el) {
         if (!el || !(el instanceof Element)) return "";
 
-        const isUnique = (selector) => {
-            if (!selector || typeof selector !== "string") return false;
-            selector = selector.trim();
-            if (selector.startsWith(">")) selector = selector.substring(1).trim();
-            try {
-                return document.querySelectorAll(selector).length === 1;
-            } catch (e) {
-                console.error(`Geçersiz CSS seçici: ${selector}`, e);
-                return false;
-            }
-        };
-
+        const ignoredClasses = ["loaded", "entered", "lazy", "plyr-init", "init-me", "inited", "ready", "paused", "stopped"];
         let selector = el.tagName.toLowerCase();
 
         if (el.classList.length > 0) {
             let validClasses = Array.from(el.classList)
-                .filter(cls => cls.trim() !== "" && !["loaded", "entered", "lazy"].includes(cls))// measure-lcp.js'ten:
+                .filter(cls => cls.trim() !== "" && !ignoredClasses.includes(cls))
                 .map(cls => `.${CSS.escape(cls)}`)
                 .join("");
             selector += validClasses;
         }
 
         if (isUnique(selector)) return selector;
-
         if (el.id) return `#${CSS.escape(el.id)}`;
 
         const getParentSelector = (element) => {
@@ -56,71 +65,168 @@ function lcp_data(metric, type) {
         return getParentSelector(el);
     }
 
-    function getElementStyles(el) {
-        if (!el) return {};
-        const computedStyles = window.getComputedStyle(el);
-        let styles = {
-            "font-size": computedStyles.fontSize,
-            "font-family": computedStyles.fontFamily,
-            "color": computedStyles.color,
-            "background-color": computedStyles.backgroundColor,
-            "padding": computedStyles.padding,
-            "margin": computedStyles.margin,
-            "border": computedStyles.border
-        };
-
-        if (styles["height"] === 'auto' || styles["height"] === '') {
-            let parent = el.parentElement;
-            while (parent && parent !== document.body) {
-                let parentStyles = window.getComputedStyle(parent);
-                if (parentStyles.height && parentStyles.height !== 'auto' && parentStyles.height !== '') {
-                    styles["height"] = parentStyles.height;
-                    break;
-                }
-                parent = parent.parentElement;
-            }
-        }
-
-        return styles;
-    }
-
-    const selectorList = [];//getCriticalSelectors(element);
-
-    if (element) {
-        preloadType = element.tagName.toLowerCase();
-        switch (preloadType) {
-            case "img": preloadType = "image"; break;
-            case "iframe": preloadType = "document"; break;
-            case "video": preloadType = "video"; break;
-            default: preloadType = "image"; break;
-        }
-        const selector = getUniqueSelector(element);
-        const styles = getElementStyles(element);
-
-        preloadTag = `${selector} {\n`;
-        Object.entries(styles).forEach(([key, value]) => {
-            if (value && value !== 'auto') {
-                preloadTag += `    ${key}: ${value};\n`;
+    // Computed style'dan belirli property'leri al
+    function getStyles(el, props) {
+        const cs = window.getComputedStyle(el);
+        const result = {};
+        props.forEach(p => {
+            const val = cs.getPropertyValue(p);
+            if (val && val !== 'none' && val !== 'normal' && val !== 'auto') {
+                result[p] = val;
             }
         });
-        preloadTag += "  }\n";
-    } else {
-        preloadType = "css";
-        preloadTag = "";
+        return result;
     }
 
-    let img_url = url || "";
-    let code = {
-        type: preloadType,
-        code: preloadTag,
-        url: img_url,
+    // CSS object → string
+    function stylesToCSS(selector, styles) {
+        if (!selector || !Object.keys(styles).length) return "";
+        let css = `${selector} {\n`;
+        Object.entries(styles).forEach(([k, v]) => { css += `  ${k}: ${v};\n`; });
+        css += "}\n";
+        return css;
+    }
+
+    // Background-image URL'sini çıkar
+    function getBgImageUrl(el) {
+        const cs = window.getComputedStyle(el);
+        const bg = cs.backgroundImage;
+        if (!bg || bg === 'none') return "";
+        const match = bg.match(/url\(["']?([^"')]+)["']?\)/);
+        return match ? match[1] : "";
+    }
+
+    // Custom font URL'sini bul (font-face'den)
+    function getFontUrl(fontFamily) {
+        if (!fontFamily) return "";
+        // Sistemin yüklü fontlarını kontrol et
+        const systemFonts = ['Arial', 'Helvetica', 'Times', 'Georgia', 'Verdana', 'Tahoma', 'initial', 'inherit', 'sans-serif', 'serif', 'monospace'];
+        const firstFont = fontFamily.split(',')[0].trim().replace(/['"]/g, '');
+        if (systemFonts.some(f => firstFont.toLowerCase().includes(f.toLowerCase()))) return "";
+
+        // document.fonts API ile font URL'sini bul
+        if (document.fonts) {
+            for (const font of document.fonts) {
+                if (font.family.replace(/['"]/g, '').trim() === firstFont) {
+                    // FontFace'in source URL'sini almak için stylesheet'leri tara
+                    break;
+                }
+            }
+        }
+
+        // Stylesheet'lerden @font-face src'yi bul
+        try {
+            for (const sheet of document.styleSheets) {
+                try {
+                    for (const rule of sheet.cssRules || []) {
+                        if (rule.type === CSSRule.FONT_FACE_RULE) {
+                            const family = rule.style.getPropertyValue('font-family').replace(/['"]/g, '').trim();
+                            if (family === firstFont) {
+                                const src = rule.style.getPropertyValue('src');
+                                const urlMatch = src.match(/url\(["']?([^"')]+\.(?:woff2|woff|ttf|otf))["']?\)/i);
+                                if (urlMatch) return urlMatch[1];
+                            }
+                        }
+                    }
+                } catch(e) {} // cross-origin stylesheet erişim hatası
+            }
+        } catch(e) {}
+
+        return "";
+    }
+
+    // ─── ELEMENT TYPE DETECTION ───────────────────────────
+
+    const tag = element.tagName.toLowerCase();
+    let lcpType = "text"; // default
+    let preloadUrl = url || "";
+    let fontUrl = "";
+    let criticalCSS = "";
+    const selector = getUniqueSelector(element);
+
+    if (tag === "img") {
+        // ── IMAGE ──
+        lcpType = "image";
+        preloadUrl = url || element.getAttribute("src") || element.getAttribute("data-src") || "";
+        // img için critical CSS: aspect-ratio, width, height (layout shift önleme)
+        const styles = getStyles(element, ['width', 'height', 'aspect-ratio', 'object-fit', 'object-position']);
+        criticalCSS = stylesToCSS(selector, styles);
+
+    } else if (tag === "video") {
+        // ── VIDEO ──
+        lcpType = "video";
+        // Poster URL'sini al
+        preloadUrl = element.getAttribute("data-poster") || element.getAttribute("poster") || url || "";
+        // Plyr wrapper'dan dene
+        if (!preloadUrl) {
+            const plyrWrapper = element.closest(".plyr__video-wrapper");
+            if (plyrWrapper) {
+                const posterDiv = plyrWrapper.querySelector(".plyr__poster");
+                if (posterDiv) {
+                    const bgStyle = posterDiv.style.backgroundImage;
+                    const match = bgStyle.match(/url\(["']?([^"')]+)["']?\)/);
+                    if (match) preloadUrl = match[1];
+                }
+            }
+        }
+        // Video için CSS gerekmez - poster preload yeterli
+
+    } else if (tag === "iframe") {
+        // ── IFRAME ──
+        lcpType = "iframe";
+        preloadUrl = element.getAttribute("src") || url || "";
+        // iframe için CSS gerekmez
+
+    } else {
+        // ── TEXT / BLOCK ELEMENT (h1, h2, h3, p, div, section, span...) ──
+        lcpType = "text";
+        preloadUrl = ""; // text için URL yok
+
+        // Background-image var mı?
+        const bgUrl = getBgImageUrl(element);
+        if (bgUrl) {
+            lcpType = "bg-image";
+            preloadUrl = bgUrl;
+        }
+
+        // Critical CSS: text render için gerekli stiller
+        const textProps = [
+            'font-size', 'font-family', 'font-weight', 'font-style',
+            'line-height', 'letter-spacing', 'color',
+            'text-align', 'text-transform',
+            'width', 'height', 'min-height',
+            'display', 'padding', 'margin'
+        ];
+        const styles = getStyles(element, textProps);
+
+        // background-image varsa onu da ekle
+        if (bgUrl) {
+            styles['background-image'] = `url('${bgUrl}')`;
+            styles['background-size'] = window.getComputedStyle(element).backgroundSize || 'cover';
+            styles['background-position'] = window.getComputedStyle(element).backgroundPosition || 'center';
+        }
+
+        criticalCSS = stylesToCSS(selector, styles);
+
+        // Custom font varsa preload için URL'sini bul
+        const fontFamily = window.getComputedStyle(element).fontFamily;
+        fontUrl = getFontUrl(fontFamily);
+        if (fontUrl) {
+            preloadUrl = fontUrl; // font preload için
+        }
+    }
+
+    const result = {
+        type: lcpType,
+        code: criticalCSS,
+        url: preloadUrl,
+        font_url: fontUrl,
         id: 0,
-        selectors: selectorList
+        selectors: getCriticalSelectors(element)
     };
 
-    debugJS(code);
-
-    return code;
+    debugJS("LCP Data:", result);
+    return result;
 }
 
 /*function lcp_data_save(metric, type = "desktop") {
@@ -153,45 +259,35 @@ function lcp_data(metric, type) {
 }*/
 
 function lcp_data_save(metric, type = "desktop") {
-    // Hemen bayrağı çekiyoruz ki bu fonksiyon bitmeden ikinci bir tetikleme gelmesin
-    if (window.lcp_measurement_sent) return;
-    window.lcp_measurement_sent = true;
-
-    // LCP verisini hazırla (Senin helper fonksiyonun)
+    // LCP verisini hazırla
     const lcpData = typeof lcp_data === 'function' ? lcp_data(metric, type) : metric;
     const pageUrl = window.location.href;
 
-    console.log("LCP Kayıt Başladı -> " + type, lcpData);
+    log('LCP Kayıt Başladı -> ' + type, 'info');
+    log(lcpData, 'group');
 
-    // ensureMethodsLoaded kuyruğuna girmemek için ham fetch kullanıyoruz
+    const body = new URLSearchParams({
+        action: "save_lcp_results",
+        type: site_config.meta.type,
+        id: site_config.meta.id,
+        lang: site_config.user_language,
+        lcp_data: JSON.stringify({ [type]: lcpData }),
+        url: pageUrl
+    }).toString();
+
+    // keepalive: true → sayfa kapanırken bile isteği tamamlar
     fetch(ajax_request_vars.url_admin, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-            action: "save_lcp_results",
-            type: site_config.meta.type,
-            id: site_config.meta.id,
-            lang: site_config.user_language,
-            lcp_data: JSON.stringify({ [type]: lcpData }),
-            url: pageUrl
-        }),
+        body: body,
+        keepalive: true
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        console.log(type + " LCP Sonuçları kaydedildi:", data);
-        
-        // Eğer mobil test penceresiyse ve iş bittiyse kapat
-        if (type === "mobile" && window.opener) {
-            setTimeout(() => { self.close(); }, 1000); // Biraz nefes alsın sonra kapansın
-        }
+        log(type + ' LCP kaydedildi: ' + JSON.stringify(data));
     })
     .catch(error => {
-        // Hata olursa bayrağı sıfırla ki tekrar denesin (opsiyonel)
-        window.lcp_measurement_sent = false; 
-        console.log("LCP Kayıt Hatası:", error);
+        log('LCP Kayıt Hatası: ' + error, 'error');
     });
 }
 

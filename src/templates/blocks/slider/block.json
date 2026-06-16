@@ -1,0 +1,23 @@
+{
+    "name": "acf/slider",
+    "title": "Slider",
+    "description": "Swiper tabanlı görsel ve video slider — otomatik oynatma, navigasyon ve pagination desteği",
+    "category": "saltblocks",
+    "icon": "slides",
+    "keywords": ["slider", "swiper", "carousel", "gallery", "image", "video", "görsel"],
+    "supports": {
+        "align": ["left", "right", "center", "wide", "full"],
+        "alignContent": true,
+        "multiple": true,
+        "anchor": true,
+        "customClassName": true,
+        "reusable": true
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Slider Düzenle"
+    }
+}

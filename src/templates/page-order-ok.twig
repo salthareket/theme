@@ -1,0 +1,20 @@
+{% extends "base.twig" %}
+
+{% set page_settings = {
+    full: true,
+    classes: {
+        body: "pb-5",
+        main: "",
+        container: "",
+        gap: ""
+    }
+} %}
+
+{% block hero %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    {% include "woo/pages/page-order-received.twig" %}
+</div>
+{% endblock %}

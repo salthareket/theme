@@ -1,0 +1,107 @@
+{#
+    My-Account: Yorumlarıma Gelen Cevaplar
+    Kullanıcı kendi review'larına gelen pending reply'ları onaylar/reddeder.
+
+    Gerekli context:
+        pending_replies : array  — onay bekleyen reply'lar
+        user            : Timber\User
+#}
+
+<div class="sh-my-reviews">
+
+    {% if pending_replies %}
+    <div class="sh-pending-replies mb-5">
+        <h3 class="mb-3">{{ "Onay Bekleyen Cevaplar"|trans }}
+            <span class="badge bg-warning text-dark">{{ pending_replies|length }}</span>
+        </h3>
+
+        {% for reply in pending_replies %}
+        {% set parent = function('get_comment', reply.comment_parent) %}
+        <div class="sh-reply-approval-card card mb-3" data-id="{{ reply.comment_ID }}">
+            <div class="card-body">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="flex-shrink-0">
+                        {{ function('get_avatar', reply.comment_author_email, 40, 'mystery', reply.comment_author) }}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <strong>{{ reply.comment_author }}</strong>
+                            <small class="text-muted">{{ reply.comment_date|date('d M Y') }}</small>
+                        </div>
+                        {% if parent %}
+                        <div class="sh-reply-parent-preview text-muted small mb-2">
+                            <i class="fa fa-reply me-1"></i>
+                            {{ "Yorumunuza cevap:"|trans }}
+                            <em>"{{ parent.comment_content|slice(0, 80) }}..."</em>
+                        </div>
+                        {% endif %}
+                        <p class="mb-2">{{ reply.comment_content }}</p>
+                        <div class="d-flex gap-2">
+                            <button type="button"
+                                    class="btn btn-success btn-sm sh-approve-reply"
+                                    data-id="{{ reply.comment_ID }}"
+                                    data-nonce="{{ function('wp_create_nonce', 'sh_review_reply_action') }}"
+                                    onclick="shApproveReply(this, 'approve')">
+                                <i class="fa fa-check me-1"></i>{{ "Onayla"|trans }}
+                            </button>
+                            <button type="button"
+                                    class="btn btn-outline-danger btn-sm sh-reject-reply"
+                                    data-id="{{ reply.comment_ID }}"
+                                    data-nonce="{{ function('wp_create_nonce', 'sh_review_reply_action') }}"
+                                    onclick="shApproveReply(this, 'reject')">
+                                <i class="fa fa-times me-1"></i>{{ "Reddet"|trans }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Tüm Yorumlarım ── #}
+    {% if my_reviews %}
+    <h3 class="mb-3">{{ "Yorumlarım"|trans }}</h3>
+    <div class="sh-my-reviews-list">
+        {% for review in my_reviews %}
+        {% include "partials/reviews/review-item.twig" with { review: review } %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="content-centered d-flex flex-column h-100 align-items-center justify-content-center text-center py-5">
+        <i class="far fa-star fa-3x text-muted mb-3"></i>
+        <p class="text-muted">{{ "Henüz yorum yazmadınız."|trans }}</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+function shApproveReply(btn, action) {
+    var card  = btn.closest('.sh-reply-approval-card');
+    var id    = btn.dataset.id;
+    var nonce = btn.dataset.nonce;
+    btn.disabled = true;
+
+    fetch('{{ function("admin_url", "admin-ajax.php") }}', {
+        method: 'POST',
+        body: new URLSearchParams({
+            action:   'sh_review_' + action + '_reply',
+            id:       id,
+            _wpnonce: nonce
+        })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            card.style.opacity = '0';
+            card.style.transition = 'opacity .3s';
+            setTimeout(function(){ card.remove(); }, 300);
+        } else {
+            btn.disabled = false;
+            alert(res.message || '{{ "Bir hata oluştu."|trans }}');
+        }
+    });
+}
+</script>

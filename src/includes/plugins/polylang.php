@@ -52,7 +52,7 @@ if (is_admin()) {
         <script type="text/javascript">
         (function($) {
             var translations = <?php echo json_encode($bricMap); ?>;
-            console.log("BRIC MAP GELDİ:", translations);
+            log("BRIC MAP GELDİ:", translations);
 
             function runJustice() {
                 // SAĞ TARAF
@@ -1002,3 +1002,208 @@ foreach ($acf_result_filters as $filter) {
 function bric_dynamic_acf_label_fix($title, $obj, $field, $post_id) {
     return bric_acf_fields_display_default_lang_label($title, $obj, $field, $post_id);
 } */
+
+
+
+/**
+ * BRIC CORE — MY ACCOUNT VIRTUAL ENDPOINTS — POLYLANG LANGUAGE SWITCHER FIX
+ *
+ * Sorun: notifications, profile, favorites gibi virtual endpoint'ler
+ * WP sayfası olmadığı için Polylang bunların çevirisini bilmiyor.
+ * Dil değiştirince Polylang anasayfaya yönlendiriyor.
+ *
+ * Çözüm: Kullanıcı my-account altında bir virtual endpoint'teysek
+ * pll_translation_url filter'ı ile hedef dildeki my-account sayfasının
+ * URL'sine aktif endpoint'i ekleyerek language switcher link'lerini düzeltiriz.
+ *
+ * Gereksinim: my-account WP sayfasının her dil için Polylang çevirisi atanmış olmalı.
+ * Endpoint slug'ı (notifications, profile vb.) URL'de her dilde aynı kalır.
+ *
+ * Nasıl çalışır:
+ *   EN (default): /my-account/notifications/ → TR switcher → /hesap/notifications/
+ *   TR:           /hesap/notifications/       → EN switcher → /my-account/notifications/
+ */
+add_filter( 'pll_translation_url', function( $url, $lang ) {
+    if ( is_admin() ) return $url;
+    if ( ! function_exists( 'pll_get_post' ) || ! function_exists( 'pll_current_language' ) ) return $url;
+    if ( ! defined( 'ENABLE_MEMBERSHIP' ) || ! ENABLE_MEMBERSHIP ) return $url;
+
+    // My-account page ID
+    $myaccount_page_id = 0;
+    if ( defined( 'ENABLE_ECOMMERCE' ) && ENABLE_ECOMMERCE && function_exists( 'wc_get_page_id' ) ) {
+        $myaccount_page_id = wc_get_page_id( 'myaccount' );
+    }
+    if ( ! $myaccount_page_id ) {
+        $myaccount_page_id = (int) get_option( 'options_myaccount_page_id', 0 );
+    }
+    if ( ! $myaccount_page_id ) return $url;
+
+    // Virtual endpoint'ler — WP sayfası olmayan, my-account altındaki slug'lar
+    $virtual_endpoints = [
+        'notifications', 'favorites', 'messages', 'reviews',
+        'security', 'profile', 'not-activated', 'renew-password',
+    ];
+
+    // Aktif endpoint'i bul
+    $current_endpoint = '';
+
+    // 1. WC query vars üzerinden dene (en güvenilir)
+    if ( defined( 'ENABLE_ECOMMERCE' ) && ENABLE_ECOMMERCE ) {
+        foreach ( $virtual_endpoints as $ep ) {
+            if ( get_query_var( $ep, null ) !== null ) {
+                // WP rewrite endpoint olarak kayıtlıysa query var set olur
+                $current_endpoint = $ep;
+                break;
+            }
+        }
+    }
+
+    // 2. WC query nesnesi üzerinden dene
+    if ( empty( $current_endpoint )
+         && defined( 'ENABLE_ECOMMERCE' ) && ENABLE_ECOMMERCE
+         && function_exists( 'WC' ) && WC()->query ) {
+        $wc_ep = WC()->query->get_current_endpoint();
+        if ( in_array( $wc_ep, $virtual_endpoints, true ) ) {
+            $current_endpoint = $wc_ep;
+        }
+    }
+
+    // 3. URL karşılaştırması — mevcut dilin my-account URL'si ile request'i karşılaştır
+    if ( empty( $current_endpoint ) ) {
+        $current_lang  = pll_current_language();
+        $current_ma_id = pll_get_post( $myaccount_page_id, $current_lang ) ?: $myaccount_page_id;
+        $current_ma_url = trailingslashit( get_permalink( $current_ma_id ) );
+
+        // $GLOBALS['wp']->request → WP'nin ayrıştırdığı path (query string yok)
+        $wp_request  = isset( $GLOBALS['wp']->request ) ? $GLOBALS['wp']->request : '';
+        $request_uri = trailingslashit( home_url( $wp_request ) );
+
+        if ( $current_ma_url && strpos( $request_uri, $current_ma_url ) === 0 ) {
+            $remainder = trim( substr( $request_uri, strlen( $current_ma_url ) ), '/' );
+            $parts     = explode( '/', $remainder );
+            $candidate = $parts[0] ?? '';
+            if ( in_array( $candidate, $virtual_endpoints, true ) ) {
+                $current_endpoint = $candidate;
+            }
+        }
+    }
+
+    if ( empty( $current_endpoint ) ) return $url;
+
+    // Hedef dildeki my-account sayfası permalink'i
+    $target_ma_id  = pll_get_post( $myaccount_page_id, $lang );
+    // Çeviri yoksa aynı sayfanın default permalink'ini kullan
+    if ( ! $target_ma_id ) $target_ma_id = $myaccount_page_id;
+    $target_ma_url = trailingslashit( get_permalink( $target_ma_id ) );
+
+    if ( ! $target_ma_url ) return $url;
+
+    return esc_url( $target_ma_url . trailingslashit( $current_endpoint ) );
+
+}, 10, 2 );
+
+
+/**
+ * BRIC CORE — WC SHOP + ARCHIVE SAYFALARINDA DİL LİNKLERİ FİXİ
+ *
+ * Sorun: Polylang shop/product-archive/product-category sayfalarında
+ * pll_the_languages() yanlış URL üretiyor (loop'taki ilk ürünü döndürüyor).
+ * WC archive sayfaları WP sayfası olmadığı için Polylang bunları tanımıyor.
+ *
+ * Çözüm: pll_the_languages filter'ı ile bu sayfalarda URL'leri override et.
+ * Bu hem Polylang'ın kendi language switcher widget'ını hem de
+ * pll_the_languages() kullanan tüm kodları düzeltir.
+ */
+add_filter( 'pll_the_languages', function( $output, $args ) {
+    // Admin'de değilsek ve WC aktifse
+    if ( is_admin() || ! function_exists( 'is_shop' ) ) return $output;
+
+    // Hangi WC sayfasındayız?
+    $shop_page_id      = 0;
+    $is_wc_archive     = false;
+    $is_product_cat    = is_product_category();
+    $is_product_tag    = is_product_tag();
+    $is_product_arch   = is_post_type_archive( 'product' );
+
+    if ( is_shop() ) {
+        $shop_page_id  = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'shop' ) : 0;
+        $is_wc_archive = true;
+    } elseif ( $is_product_arch ) {
+        $is_wc_archive = true;
+    }
+
+    // Bu sayfalardan biri değilse dokunma
+    if ( ! $is_wc_archive && ! $is_product_cat && ! $is_product_tag ) return $output;
+
+    // raw=1 modunda array döner — biz string output modunda çalışıyoruz
+    // Her iki modu da handle et
+    if ( ! empty( $args['raw'] ) ) {
+        // raw modunda array döner — her elementin URL'sini güncelle
+        if ( ! is_array( $output ) ) return $output;
+        foreach ( $output as $lang => &$item ) {
+            $url = self_get_wc_lang_url( $lang, $shop_page_id, $is_product_cat, $is_product_tag );
+            if ( $url ) $item['url'] = $url;
+        }
+        return $output;
+    }
+
+    // HTML string modunda — her dil için URL'yi bul ve replace et
+    if ( ! is_string( $output ) ) return $output;
+    if ( ! function_exists( 'pll_languages_list' ) ) return $output;
+
+    foreach ( pll_languages_list( [ 'fields' => 'slug' ] ) as $lang ) {
+        $url = self_get_wc_lang_url( $lang, $shop_page_id, $is_product_cat, $is_product_tag );
+        if ( ! $url ) continue;
+
+        // Polylang HTML'indeki yanlış URL'yi bul ve doğrusuyla değiştir
+        // href="..." pattern'ini yakala
+        $output = preg_replace_callback(
+            '/(<a[^>]*lang="' . preg_quote( $lang, '/' ) . '"[^>]*href=")([^"]+)(")/i',
+            function( $m ) use ( $url ) {
+                return $m[1] . esc_url( $url ) . $m[3];
+            },
+            $output
+        );
+    }
+
+    return $output;
+}, 10, 2 );
+
+/**
+ * WC sayfası için hedef dildeki URL'yi döndür.
+ */
+function self_get_wc_lang_url( string $lang, int $shop_page_id, bool $is_product_cat, bool $is_product_tag ): string
+{
+    if ( ! function_exists( 'pll_get_post' ) ) return '';
+
+    // Shop sayfası
+    if ( $shop_page_id > 0 ) {
+        $translated_id = pll_get_post( $shop_page_id, $lang );
+        if ( $translated_id ) return (string) get_permalink( $translated_id );
+        return (string) get_permalink( $shop_page_id );
+    }
+
+    // Product category archive
+    if ( $is_product_cat ) {
+        $queried = get_queried_object();
+        if ( $queried && isset( $queried->term_id ) ) {
+            $translated_term = function_exists( 'pll_get_term' ) ? pll_get_term( $queried->term_id, $lang ) : 0;
+            $term_id = $translated_term ?: $queried->term_id;
+            $link = get_term_link( $term_id, 'product_cat' );
+            return is_wp_error( $link ) ? '' : (string) $link;
+        }
+    }
+
+    // Product tag archive
+    if ( $is_product_tag ) {
+        $queried = get_queried_object();
+        if ( $queried && isset( $queried->term_id ) ) {
+            $translated_term = function_exists( 'pll_get_term' ) ? pll_get_term( $queried->term_id, $lang ) : 0;
+            $term_id = $translated_term ?: $queried->term_id;
+            $link = get_term_link( $term_id, 'product_tag' );
+            return is_wp_error( $link ) ? '' : (string) $link;
+        }
+    }
+
+    return '';
+}

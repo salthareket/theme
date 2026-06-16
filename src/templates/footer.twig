@@ -17,11 +17,19 @@
     {% set path = "footer-static.twig" %}
 {% else %}
     {% set footer_id = footer_id ~ "-custom" %}
-    {% set footer_class = footer_class ~ " " ~ template_post.slug %}
+
     {% set template_post = get_post(template) %}
+    {% set footer_class = footer_class ~ " " ~ template_post.slug %}
+
     {% if template_post.meta("render_template") %}
-        {% set path = 'theme/templates/_custom/' ~ template_post.id ~ "_" ~ language ~ ".twig" %}
+        {% if template_post.meta("template") %}
+            {% set twig_file = 'theme/templates/_custom/' ~ template_post.meta("template") %}
+            {% if function('file_exists', site.theme.path ~ '/' ~ twig_file) %}
+                {% set path = twig_file %}
+            {% endif %}
+        {% endif %}
     {% endif %}
+    
 {% endif %}
 
 <footer class="footer {{ footer_class }}" itemtype="https://schema.org/WPFooter" itemscope="" id="{{ footer_id }}" role="contentinfo">
@@ -32,8 +40,11 @@
         </div>
     {% elseif template_post %}
         {{ template_post.get_blocks().html }}
-        <link id='footer-css' rel='preload' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css' as='style' media="all" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
-        <noscript><link rel='stylesheet' href='{{site.theme.uri}}/theme/templates/_custom/{{ template_post.slug }}.css'></noscript>
+        {% set css = template_post.meta('css') %}
+        {% if css %}
+            <link id='footer-css' rel='preload' href='{{site.theme.uri}}/theme/templates/_custom/{{ css }}' as='style' media="all" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
+            <noscript><link rel='stylesheet' href='{{site.theme.uri}}/theme/templates/_custom/{{ css }}'></noscript>
+        {% endif %}
     {% endif %}
 
 </footer>

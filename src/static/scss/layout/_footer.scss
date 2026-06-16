@@ -1,0 +1,68 @@
+/*! purgecss start ignore */
+footer#footer {
+    position: relative;
+    padding:          var(--footer-padding);
+    background-color: var(--footer-bg-color);
+    background-image: var(--footer-bg-gradient, none);
+    color:            var(--footer-color);
+    height:           var(--footer-height, auto);
+
+    .img-footer {
+        background-image:    var(--footer-bg-image, none);
+        background-position: var(--footer-bg-position, center);
+        background-size:     var(--footer-bg-size, cover);
+        background-repeat:   var(--footer-bg-repeat, no-repeat);
+    }
+
+    a:not(.btn) {
+        color: var(--footer-color-link);
+        @include transition(color .3s ease-out);
+        &:hover { color: var(--footer-color-link-hover); }
+    }
+
+    @if variable-exists("newsletter") {
+        @if $newsletter {
+            form.newsletter {
+                color: var(--footer-color);
+                .input-group-wrapper {
+                    background-color: #fff;
+                    border: 3px solid #fff;
+                    border-radius: 8px;
+                }
+                input {
+                    background-color: #fff;
+                    border: none;
+                    border-radius: 6px;
+                }
+                .btn {
+                    padding-left: 30px;
+                    padding-right: 30px;
+                    border-radius: 6px 6px 6px 0;
+                    font-weight: 600;
+                    font-size: 16px;
+                    border: none;
+                    text-transform: uppercase;
+                    @include transition(background-color .3s ease-out);
+                }
+            }
+        }
+    }
+
+    .nav-footer .nav {
+        li ul {
+            &.dropdown-menu {
+                margin: 0;
+                --bs-dropdown-padding-x: 0;
+                --bs-dropdown-padding-y: 0;
+                --bs-dropdown-bg: transparent;
+                --bs-dropdown-border-width: 0;
+                --bs-dropdown-box-shadow: none;
+            }
+            > li a {
+                color: var(--footer-color-link);
+                &:hover, &:active { color: var(--footer-color-link-hover); }
+            }
+        }
+    }
+}
+/*! purgecss end ignore */

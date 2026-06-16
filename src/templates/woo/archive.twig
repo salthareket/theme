@@ -38,20 +38,19 @@
     {% set page_settings = page_settings_default %}
 {% endif %}
 
-{% block sidebar_toggler %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and (page_settings.offcanvas.layout == "default" or page_settings.offcanvas.layout == "") %}
-        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
-    {% endif %}
-{% endblock %}
+{% block sidebar_toggler %}{% endblock %}
 
 {% block sidebar %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and (page_settings.offcanvas.layout == "default" or page_settings.offcanvas.layout == "") %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.filter_preset is defined and page_settings.offcanvas.filter_preset
+        and (page_settings.offcanvas.layout == "default" or not page_settings.offcanvas.layout)
+        and not page_settings.offcanvas.individual %}
         {{ block("sidebar", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
 
 {% block before_container %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.filter_preset is defined and page_settings.offcanvas.filter_preset
+        and page_settings.offcanvas.layout == "horizontal" %}
         {{ block("before_container", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
@@ -60,17 +59,25 @@
     {% include "woo/header.twig" %}
 {% endblock %}
 
+{% block offcanvas %}
+    {% if page_settings.add_offcanvas and page_settings.offcanvas.filter_preset is defined and page_settings.offcanvas.filter_preset
+        and page_settings.offcanvas.individual %}
+        {{ block("offcanvas", page_settings.offcanvas.template) }}
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 
     {% do action('woocommerce_before_main_content') %}
 
-    <div class="card card-reset container">
+    <div class="card card-reset container" {% if is_fetch %}data-template="woo/tease"{% endif %}>
+
         {% if enable_filters %}
             {% set filter_labels = '[yith_wcan_active_filters_labels]'|shortcodes|spaceless %}
             {% set filter_reset = '[yith_wcan_reset_button]'|shortcodes|spaceless %}
-            {% set filter_toggler = page_settings.add_offcanvas and page_settings.offcanvas.filter_preset and page_settings.offcanvas.layout == "default" and page_settings.offcanvas.individual %}
+            {% set filter_toggler = page_settings.add_offcanvas and page_settings.offcanvas.filter_preset and page_settings.offcanvas.individual %}
             {% if filter_labels or filter_toggler %}
-            <div class="card-header">
+            <div class="card-header z-1">
                 <div class="row">
                     {% if filter_labels != "" %}
                     <div class="col">
@@ -80,7 +87,7 @@
                     {% endif %}
                     {% if filter_toggler %}
                     <div class="col">
-                       {{ offcanvas_toggler("offcanvas-" ~ page_settings.offcanvas.id, "btn btn-primary", page_settings.offcanvas.title, "") }}
+                       {{ offcanvas_toggler("offcanvas-product-filters-" ~ page_settings.offcanvas.id, "btn btn-primary", "Filters"|default(page_settings.offcanvas.title), "") }}
                     </div>
                     {% endif %}
                 </div>
@@ -89,15 +96,24 @@
         {% endif %}
 
         {% include "partials/pagination/pagination-advanced.twig" with { container : ".products", post_type : "product", direction : "prev"} %}
-
+        
         <div class="card-body">
             {% do action('woocommerce_before_shop_loop') %}
+
+                {#{ fn('woocommerce_product_loop_start') }}
+                {% for post in posts %}
+      
+                    {{ fn('wc_get_template', 'content-product.php') }}
+
+                {% endfor %}
+                {{ fn('woocommerce_product_loop_end') }#}
+
                 {{ fn("woocommerce_content") }}
+
             {% do action('woocommerce_after_shop_loop') %}
         </div>
 
         {% include "partials/pagination/pagination-advanced.twig" with { container : ".products", post_type : "product", direction : "next"} %}
- 
     </div>
 
     {% do action('woocommerce_after_main_content') %}

@@ -1,38 +1,26 @@
-//====================================
-// Global Imports
-//====================================
+// ─────────────────────────────────────────────────────────────
+// MAIN - Ana entry point
+// ─────────────────────────────────────────────────────────────
 
-// 0- Import Compass
-@import 'lib/compass';
+// abstracts: functions, mixins, variables (derlenmez, sadece tanımlar)
+@import 'abstracts/index';
 
-// 3 - functions, custom variables and mixins
-@import '3-base/index';
+// vendors: Bootstrap + container responsive
+@import 'vendors/index';
 
-// 1- Import bootstrap framework
-@import '1-frameworks/index';
+// plugins: JS ve WP plugin stilleri
+@import 'plugins/index';
 
-// 2 - Import plugins
-@import '2-plugins/index';
+// components: UI bileşenleri
+@import 'components/index';
 
-//// 4 - Import components
-@import '4-components/index';
+// layout: header, footer, sidebar, grid
+@import 'layout/index';
 
-//// 5 - Import layout  styles
-@import '5-layout/index';
+// modules: feature modülleri (hero, offcanvas, woo...)
+@import 'modules/index';
 
-//// 6 - module styles
-@import '6-modules/index';
-
-/*
-@import '5-layout/header';
-@import '5-layout/footer';
-@import '5-layout/layout';
-@import '../../../../../../theme/static/scss/header';
-@import '../../../../../../theme/static/scss/footer';
-*/
-
-//// 7 - custom
+// tema override'ları (theme/static/scss/)
 /*! purgecss start ignore */
-//@import '#{$theme_static_path}scss/index';
 @import '../../../../../../theme/static/scss/index';
 /*! purgecss end ignore */

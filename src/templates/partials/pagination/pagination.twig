@@ -1,7 +1,5 @@
 {% block pagination %}
 
-	{{ post_pagination[post_type]|print_r }}
-
 	<nav class="pagination-container" role="navigation" aria-label="{{ translate("Sayfalama") }}">
 		<ul class="pagination">
 
@@ -27,12 +25,11 @@
 						$( document ).ready(function() {
 							setTimeout(function(){
 							    var btn = $(".btn-pagination-ajax.scroll");
-								$(window).scroll(function() {
-							        if( btn.length && btn.is(":in-viewport") && !btn.hasClass("loading")) {
-					                    btn.trigger("click");
+							    btn.onEnterViewport(function() {
+							        if (!btn.hasClass("loading")) {
+							            btn.trigger("click");
 							        }
 							    });
-							    $(window).trigger("scroll");
 							}, 500);
 						});
 						</script>
