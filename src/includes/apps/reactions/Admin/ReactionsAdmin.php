@@ -747,14 +747,14 @@ class ReactionsAdmin {
     }
 
     private static function getThemePalette(): array {
-        $json_file = get_template_directory() . '/theme/static/data/theme-styles-new/latest.json';
+        $json_file = get_template_directory() . '/theme/static/data/theme-styles/latest.json';
         $data = [];
         if ( file_exists( $json_file ) ) {
             $raw = file_get_contents( $json_file );
             if ( $raw ) $data = json_decode( $raw, true ) ?: [];
         }
         if ( empty( $data ) ) {
-            $data = get_option( 'theme_styles_new_data', [] );
+            $data = get_option( 'theme_styles_data', [] );
         }
         $palette = [];
         $cols    = $data['colors'] ?? [];

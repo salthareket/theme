@@ -11,13 +11,13 @@ remove_action(
 //modify account menu
 add_filter ( 'woocommerce_account_menu_items', 'salt_remove_my_account_links' );
 function salt_remove_my_account_links( $menu_links ){
-    unset( $menu_links['edit-address'] ); // Addresses
+    //unset( $menu_links['edit-address'] ); // Addresses
     unset( $menu_links['dashboard'] ); // Dashboard
-    unset( $menu_links['payment-methods'] ); // Payment Methods
-    unset( $menu_links['orders'] ); // Orders
+    //unset( $menu_links['payment-methods'] ); // Payment Methods
+    //unset( $menu_links['orders'] ); // Orders
     unset( $menu_links['downloads'] ); // Downloads
-    unset( $menu_links['edit-account'] ); // Account details
-    unset( $menu_links['customer-logout'] ); // Logout
+    //unset( $menu_links['edit-account'] ); // Account details
+    //unset( $menu_links['customer-logout'] ); // Logout
     return $menu_links;
 }
 
@@ -57,16 +57,24 @@ add_filter("woocommerce_get_query_vars", function ($vars) {
 // Add new endpoint page inside "my account" page
 add_filter ( 'woocommerce_account_menu_items', 'salt_my_account_links_woo', 40 );
 function salt_my_account_links_woo( $menu_links ){
-    $menu_links_tmp = array();
+    $custom_links = array();
     $links = salt_my_account_links();
     if($links){
         foreach($links as $key => $link){
             if(!empty($link["menu"])){
-                $menu_links_tmp[$key] = $link["menu"];
+                $custom_links[$key] = $link["menu"];
             }
         }
-        $menu_links = $menu_links_tmp;   
     }
+
+    // WooCommerce linklerini koru, custom linkleri başa ekle
+    // customer-logout her zaman en sonda olsun
+    $logout = isset($menu_links['customer-logout']) ? ['customer-logout' => $menu_links['customer-logout']] : [];
+    unset($menu_links['customer-logout']);
+    unset($custom_links['customer-logout']);
+
+    $menu_links = array_merge($custom_links, $menu_links, $logout);
+
     return $menu_links;
 }
 

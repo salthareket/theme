@@ -68,9 +68,6 @@ function category_queries_ajax($query=array(), $vars=array()){
 			    if(!$query['paged']){
 			      // $query['is_paged'] = 1;
 			    }
-
-
-
                 
 	            return array(
 	            	"query" => $query,

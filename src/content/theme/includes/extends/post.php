@@ -461,7 +461,24 @@ class ThemeProduct extends Timber\Post {
 
     public function price_html() {
         $p = $this->product();
-        return $p ? $p->get_price_html() : '';
+        if (!$p) return '';
+        // variation için: direkt bu variation'ın fiyatını göster
+        if ($p->is_type('variation')) {
+            $regular = (float) $p->get_regular_price();
+            if ($regular > 0) {
+                return $p->get_price_html();
+            }
+            // Variation'da fiyat yoksa parent'ın min fiyatını göster
+            $parent = wc_get_product($p->get_parent_id());
+            if (!$parent) return '';
+            $min_price = (float) $parent->get_variation_price('min');
+            $max_price = (float) $parent->get_variation_price('max');
+            if ($min_price <= 0) return $parent->get_price_html();
+            if ($min_price === $max_price) return wc_price($min_price);
+            // Fiyat aralığı varsa min'i göster (bu variation için en yakın değer)
+            return wc_price($min_price);
+        }
+        return $p->get_price_html();
     }
 
     public function price() {
@@ -519,12 +536,8 @@ class ThemeProduct extends Timber\Post {
     public function is_in_stock() {
         $p = $this->product();
         if (!$p) return false;
-        // variation için: kendi stock'u yoksa parent'ın stock'una bak
-        if ($p->is_type('variation')) {
-            if ($p->managing_stock()) {
-                return $p->is_in_stock();
-            }
-            // manage_stock kapalıysa parent'ın stock_status'ına bak
+        // variation için: manage_stock kapalıysa parent'ın stock_status'ına bak
+        if ($p->is_type('variation') && !$p->managing_stock()) {
             $parent = wc_get_product($p->get_parent_id());
             return $parent ? $parent->is_in_stock() : $p->is_in_stock();
         }
@@ -641,6 +654,51 @@ class ThemeProduct extends Timber\Post {
         return $image_id ? wp_get_attachment_image_url($image_id, $size) : '';
     }
 
+    /**
+     * product_variation için ana resim + ek görseller (WooCommerce Ek Varyasyon Görselleri plugin).
+     * Twig: post.variation_all_images('woocommerce_thumbnail')
+     */
+    public function variation_all_images(string $size = 'woocommerce_thumbnail'): array {
+        $p = $this->product();
+        if (!$p || !$p->is_type('variation')) return [];
+
+        $images   = [];
+        $seen     = [];
+
+        // 1. Variation'ın ana resmi
+        $image_id = $p->get_image_id();
+        if ($image_id) {
+            $url = wp_get_attachment_image_url($image_id, $size);
+            if ($url) { $images[] = $url; $seen[$image_id] = true; }
+        }
+
+        // 2. Ek görseller (_wc_additional_variation_images plugin)
+        $additional = get_post_meta($this->ID, '_wc_additional_variation_images', true);
+        if ($additional) {
+            foreach (array_filter(explode(',', $additional)) as $add_id) {
+                $add_id = (int) trim($add_id);
+                if ($add_id && !isset($seen[$add_id])) {
+                    $url = wp_get_attachment_image_url($add_id, $size);
+                    if ($url) { $images[] = $url; $seen[$add_id] = true; }
+                }
+            }
+        }
+
+        // 3. Hiç görsel yoksa parent'ın ana resmini kullan
+        if (empty($images)) {
+            $parent = wc_get_product($p->get_parent_id());
+            if ($parent) {
+                $pid = $parent->get_image_id();
+                if ($pid) {
+                    $url = wp_get_attachment_image_url($pid, $size);
+                    if ($url) $images[] = $url;
+                }
+            }
+        }
+
+        return $images;
+    }
+
     public function all_image_urls($size = 'full') {
         $images = [];
         $cover = $this->cover_url($size);
@@ -659,6 +717,29 @@ class ThemeProduct extends Timber\Post {
     }
 
     public function primary_category() {
+        // product_variation için parent product'ın kategorisini döndür
+        if ($this->post_type === 'product_variation') {
+            $p = $this->product();
+            if ($p && $p->is_type('variation')) {
+                $parent_id = $p->get_parent_id();
+                if ($parent_id) {
+                    $terms = get_the_terms($parent_id, 'product_cat');
+                    if ($terms && !is_wp_error($terms)) {
+                        // Yoast primary category varsa onu kullan
+                        $primary_id = get_post_meta($parent_id, '_yoast_wpseo_primary_product_cat', true);
+                        if ($primary_id) {
+                            foreach ($terms as $term) {
+                                if ((int) $term->term_id === (int) $primary_id) {
+                                    return \Timber\Timber::get_term($term->term_id);
+                                }
+                            }
+                        }
+                        return \Timber\Timber::get_term(reset($terms)->term_id);
+                    }
+                }
+            }
+            return false;
+        }
         $cats = $this->categories();
         return $cats ? reset($cats) : false;
     }
@@ -706,13 +787,40 @@ class ThemeProduct extends Timber\Post {
         foreach ($attributes as $key => $attribute) {
             $slug = str_replace('pa_', '', $key);
             if ($attribute->is_taxonomy()) {
+                // Attribute type'ı al (color, button, image, radio, select)
+                $attr_type = 'select';
+                $taxonomy_obj = wc_get_attribute(wc_attribute_taxonomy_id_by_name($attribute->get_name()));
+                if ($taxonomy_obj) {
+                    $attr_type = $taxonomy_obj->type ?? 'select';
+                }
+
                 $terms = wc_get_product_terms($product->get_id(), $attribute->get_name(), ['fields' => 'all']);
                 $result[$slug] = [
                     'label'     => wc_attribute_label($attribute->get_name()),
-                    'terms'     => array_map(function ($term) {
+                    'type'      => $attr_type, // 'color', 'button', 'image', 'radio', 'select'
+                    'terms'     => array_map(function ($term) use ($attr_type) {
+                        $color = '';
+                        if ($attr_type === 'color') {
+                            // Variation Swatches plugin meta key
+                            $color = get_term_meta($term->term_id, 'product_attribute_color', true);
+                            // Fallback: eski 'color' meta key
+                            if (!$color) {
+                                $color = get_term_meta($term->term_id, 'color', true);
+                            }
+                        }
+                        $image = '';
+                        if ($attr_type === 'image') {
+                            $image_id = get_term_meta($term->term_id, 'product_attribute_image', true);
+                            if ($image_id) {
+                                $image = wp_get_attachment_image_url($image_id, 'thumbnail');
+                            }
+                        }
                         return [
-                            'id' => $term->term_id, 'name' => $term->name,
-                            'slug' => $term->slug, 'color' => get_term_meta($term->term_id, 'color', true),
+                            'id'    => $term->term_id,
+                            'name'  => $term->name,
+                            'slug'  => $term->slug,
+                            'color' => $color,
+                            'image' => $image,
                         ];
                     }, $terms),
                     'visible'   => $attribute->get_visible(),
@@ -721,6 +829,7 @@ class ThemeProduct extends Timber\Post {
             } else {
                 $result[$slug] = [
                     'label'     => $attribute->get_name(),
+                    'type'      => 'select',
                     'terms'     => $attribute->get_options(),
                     'visible'   => $attribute->get_visible(),
                     'variation' => $attribute->get_variation(),
@@ -746,39 +855,6 @@ class ThemeProduct extends Timber\Post {
         $p = $this->product();
         if (!$p || !$p->is_type('variable')) return [];
         return $p->get_variation_attributes();
-    }
-
-    /**
-     * product_variation için seçili attribute değerlerini döndürür.
-     * Twig: post.variation_selected_attrs
-     * Döner: [['label'=>'Renk', 'slug'=>'color', 'value'=>'kirmizi', 'name'=>'Kırmızı', 'type'=>'color', 'color'=>'#f00'], ...]
-     */
-    public function variation_selected_attrs(): array {
-        $p = $this->product();
-        if (!$p || !$p->is_type('variation')) return [];
-
-        $result = [];
-        $attrs  = $p->get_variation_attributes(); // ['attribute_pa_color' => 'kirmizi', ...]
-
-        foreach ($attrs as $key => $value) {
-            if (empty($value)) continue;
-            $slug     = str_replace('attribute_pa_', '', $key);
-            $taxonomy = 'pa_' . $slug;
-            $term     = get_term_by('slug', $value, $taxonomy);
-            $label    = wc_attribute_label($taxonomy);
-            $type     = get_option("woocommerce_pa_{$slug}_type", 'select'); // color/image/button/select
-
-            $result[] = [
-                'label' => $label,
-                'slug'  => $slug,
-                'value' => $value,
-                'name'  => $term ? $term->name : $value,
-                'type'  => $type,
-                'color' => $term ? (string) get_term_meta($term->term_id, 'color', true) : '',
-                'image' => $term ? (string) get_term_meta($term->term_id, 'product_attribute_image', true) : '',
-            ];
-        }
-        return $result;
     }
 
     public function default_variation_id() {
@@ -814,6 +890,62 @@ class ThemeProduct extends Timber\Post {
 
     public function get_variation_url() {
         return $this->variation_url();
+    }
+
+    /**
+     * product_variation için seçili attribute değerlerini döndürür.
+     * Twig: post.variation_selected_attrs
+     * Döner: [['label'=>'Renk','slug'=>'color','name'=>'Kırmızı','type'=>'color','color'=>'#f00'], ...]
+     */
+    public function variation_selected_attrs(): array {
+        $p = $this->product();
+        if (!$p || !$p->is_type('variation')) return [];
+
+        $result = [];
+        foreach ($p->get_variation_attributes() as $key => $value) {
+            if (empty($value)) continue;
+            $slug     = str_replace('attribute_pa_', '', $key);
+            $taxonomy = 'pa_' . $slug;
+            $term     = get_term_by('slug', $value, $taxonomy);
+            $tax_id   = wc_attribute_taxonomy_id_by_name($taxonomy);
+            $tax_obj  = $tax_id ? wc_get_attribute($tax_id) : null;
+            $type     = $tax_obj ? ($tax_obj->type ?? 'select') : 'select';
+
+            $result[] = [
+                'label' => wc_attribute_label($taxonomy),
+                'slug'  => $slug,
+                'value' => $value,
+                'name'  => $term ? $term->name : $value,
+                'type'  => $type,
+                'color' => $term ? (string) get_term_meta($term->term_id, 'product_attribute_color', true) : '',
+                'image' => $term ? (string) get_term_meta($term->term_id, 'product_attribute_image', true) : '',
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * product_variation için kardeş variation sayısı (kendisi hariç).
+     * Twig: post.variation_siblings_count
+     * Döner: int (örn. 4 → "+4 renk")
+     */
+    public function variation_siblings_count(): int {
+        $p = $this->product();
+        if (!$p || !$p->is_type('variation')) return 0;
+        $parent = wc_get_product($p->get_parent_id());
+        if (!$parent) return 0;
+        $children = $parent->get_children();
+        return max(0, count($children) - 1);
+    }
+
+    /**
+     * product_variation için parent product URL'i.
+     * Twig: post.parent_url
+     */
+    public function parent_url(): string {
+        $p = $this->product();
+        if (!$p || !$p->is_type('variation')) return $this->link;
+        return (string) get_permalink($p->get_parent_id());
     }
 
     // ── CART ─────────────────────────────────────────────
@@ -989,34 +1121,51 @@ class ThemeProduct extends Timber\Post {
     }
 
     /**
-     * Default varyasyonun gorselleri.
-     * Ornek: post.default_variation_images('large')
+     * Tüm varyasyonların unique ana görsellerini döndürür (hover zone için).
+     * Her varyasyondan sadece 1 görsel — ana görsel veya ilk ek görsel.
+     * Ornek: post.default_variation_images('woocommerce_thumbnail')
      */
     public function default_variation_images($size = 'full') {
         $p = $this->product();
         if (!$p || !$p->is_type('variable')) return $this->all_image_urls($size);
 
-        $var_id = $this->default_variation_id();
-        if (!$var_id) return $this->all_image_urls($size);
+        $images     = [];
+        $seen       = [];
+        $variations = $p->get_available_variations();
 
-        $images = [];
-        $variation = wc_get_product($var_id);
-        if (!$variation) return $this->all_image_urls($size);
+        foreach ($variations as $variation) {
+            $var_id   = $variation['variation_id'];
+            $image_id = $variation['image_id'] ?? 0;
 
-        $image_id = $variation->get_image_id();
-        if ($image_id) {
-            $url = wp_get_attachment_image_url($image_id, $size);
-            if ($url) $images[] = $url;
-        }
+            // Varyasyonun ana görseli varsa onu al
+            if ($image_id && !isset($seen[$image_id])) {
+                $url = wp_get_attachment_image_url($image_id, $size);
+                if ($url) {
+                    $images[]        = $url;
+                    $seen[$image_id] = true;
+                    continue; // Bu varyasyon için bitti, sonrakine geç
+                }
+            }
 
-        $additional = get_post_meta($var_id, '_wc_additional_variation_images', true);
-        if ($additional) {
-            foreach (array_filter(explode(',', $additional)) as $add_id) {
-                $url = wp_get_attachment_image_url($add_id, $size);
-                if ($url) $images[] = $url;
+            // Ana görsel yoksa ek görsellerden ilkini al
+            $additional = get_post_meta($var_id, '_wc_additional_variation_images', true);
+            if ($additional) {
+                $add_ids = array_filter(explode(',', $additional));
+                foreach ($add_ids as $add_id) {
+                    $add_id = (int) trim($add_id);
+                    if ($add_id && !isset($seen[$add_id])) {
+                        $url = wp_get_attachment_image_url($add_id, $size);
+                        if ($url) {
+                            $images[]      = $url;
+                            $seen[$add_id] = true;
+                            break; // Sadece ilkini al
+                        }
+                    }
+                }
             }
         }
 
+        // Hiç görsel yoksa ana ürün görsellerine fallback
         return $images ?: $this->all_image_urls($size);
     }
 
@@ -1183,10 +1332,321 @@ class ThemeProduct extends Timber\Post {
         return function_exists('woo_get_available_categories') ? woo_get_available_categories() : [];
     }
 
+    // ── CUSTOM FIELDS (WooCommerce Custom Product Fields) ───────────────────────────
+
+    /**
+     * Get WooCommerce custom field value
+     * 
+     * @version 1.0.0
+     * @since 2026-04-23
+     * 
+     * CHANGELOG:
+     * 1.0.0 - 2026-04-23
+     *   - Initial release
+     *   - Added woo_meta() method to ThemeProduct class
+     *   - Support for all custom field types (text, textarea, number, email, url, tel, password, checkbox, select, date, color)
+     *   - Default value support
+     * 
+     * HOW TO USE:
+     * This method retrieves custom field values that were added via WooCommerce → Settings → Products → Custom Fields.
+     * Use it in Twig templates to display custom product information like warranty periods, badges, special notes, etc.
+     * The method accepts a field ID (defined in admin) and an optional default value.
+     * 
+     * @param string $field_id Field ID (defined in WooCommerce custom fields settings)
+     * @param mixed $default Default value if field is empty or doesn't exist
+     * @return mixed Field value (string, number, boolean depending on field type)
+     * 
+     * @example Basic usage - Get warranty period:
+     * {{ post.woo_meta('warranty_period') }}
+     * 
+     * @example With default value:
+     * {{ post.woo_meta('badge_text', 'Yeni Ürün') }}
+     * 
+     * @example Conditional display:
+     * {% if post.woo_meta('special_note') %}
+     *     <div class="alert">{{ post.woo_meta('special_note') }}</div>
+     * {% endif %}
+     * 
+     * @example Loop through products in archive:
+     * {% for product in products %}
+     *     <h3>{{ product.title }}</h3>
+     *     {% if product.woo_meta('badge') %}
+     *         <span class="badge">{{ product.woo_meta('badge') }}</span>
+     *     {% endif %}
+     *     <p>Garanti: {{ product.woo_meta('warranty', 'Yok') }}</p>
+     * {% endfor %}
+     * 
+     * @example Color field usage:
+     * <div style="background: {{ post.woo_meta('product_color') }}">
+     *     Renk: {{ post.woo_meta('product_color') }}
+     * </div>
+     * 
+     * @example Checkbox field:
+     * {% if post.woo_meta('is_featured') %}
+     *     <span class="featured-badge">Öne Çıkan</span>
+     * {% endif %}
+     * 
+     * @example Number field (stock alert threshold):
+     * {% if post.stock_quantity < post.woo_meta('low_stock_threshold', 5) %}
+     *     <span class="low-stock">Stok Azalıyor!</span>
+     * {% endif %}
+     */
+    public function woo_meta($field_id, $default = '') {
+        return function_exists('wc_get_custom_field') 
+            ? wc_get_custom_field($this->ID, $field_id, $default) 
+            : $default;
+    }
+
+    /**
+     * Get all WooCommerce custom fields
+     * 
+     * @version 1.0.0
+     * @since 2026-04-23
+     * 
+     * CHANGELOG:
+     * 1.0.0 - 2026-04-23
+     *   - Initial release
+     *   - Returns all custom fields with labels, values, types, and field configs
+     * 
+     * HOW TO USE:
+     * This method retrieves ALL custom fields for a product at once.
+     * Returns an associative array where keys are field IDs and values contain label, value, type, and field config.
+     * Useful for displaying all custom information in a structured way.
+     * 
+     * @return array Array of field_id => ['label' => string, 'value' => mixed, 'type' => string, 'field' => array]
+     * 
+     * @example Display all custom fields:
+     * {% set fields = post.woo_meta_all() %}
+     * {% if fields %}
+     *     <div class="custom-fields">
+     *         <h4>Ek Bilgiler</h4>
+     *         {% for field_id, data in fields %}
+     *             <div class="field">
+     *                 <strong>{{ data.label }}:</strong> {{ data.value }}
+     *             </div>
+     *         {% endfor %}
+     *     </div>
+     * {% endif %}
+     * 
+     * @example Styled table display:
+     * {% set fields = post.woo_meta_all() %}
+     * {% if fields %}
+     *     <table class="product-specs">
+     *         {% for field_id, data in fields %}
+     *             <tr>
+     *                 <th>{{ data.label }}</th>
+     *                 <td>{{ data.value }}</td>
+     *             </tr>
+     *         {% endfor %}
+     *     </table>
+     * {% endif %}
+     * 
+     * @example Filter by field type:
+     * {% set fields = post.woo_meta_all() %}
+     * {% for field_id, data in fields %}
+     *     {% if data.type == 'url' %}
+     *         <a href="{{ data.value }}" target="_blank">{{ data.label }}</a>
+     *     {% endif %}
+     * {% endfor %}
+     * 
+     * @example Count custom fields:
+     * {% set field_count = post.woo_meta_all()|length %}
+     * <p>Bu üründe {{ field_count }} ek bilgi var</p>
+     * 
+     * @example Check if any custom fields exist:
+     * {% if post.woo_meta_all() %}
+     *     <button class="show-more-info">Daha Fazla Bilgi</button>
+     * {% endif %}
+     */
+    public function woo_meta_all() {
+        return function_exists('wc_get_all_custom_fields') 
+            ? wc_get_all_custom_fields($this->ID) 
+            : [];
+    }
+
+    /**
+     * Get formatted WooCommerce custom field (for URL, email, color, etc.)
+     * 
+     * @version 1.0.0
+     * @since 2026-04-23
+     * 
+     * CHANGELOG:
+     * 1.0.0 - 2026-04-23
+     *   - Initial release
+     *   - Auto-formats URL fields as clickable links
+     *   - Auto-formats email fields as mailto links
+     *   - Auto-formats tel fields as tel links
+     *   - Auto-formats color fields with color preview box
+     *   - Auto-formats textarea with line breaks
+     *   - Auto-formats select fields with option labels
+     * 
+     * HOW TO USE:
+     * This method returns HTML-formatted field values based on field type.
+     * Use it when you want automatic formatting for special field types like URLs, emails, colors.
+     * IMPORTANT: Use |raw filter in Twig to render HTML properly.
+     * 
+     * @param string $field_id Field ID
+     * @return string Formatted HTML string
+     * 
+     * @example URL field - Auto-creates clickable link:
+     * {{ post.woo_meta_formatted('website')|raw }}
+     * {# Output: <a href="https://example.com" target="_blank" rel="noopener">https://example.com</a> #}
+     * 
+     * @example Email field - Auto-creates mailto link:
+     * {{ post.woo_meta_formatted('support_email')|raw }}
+     * {# Output: <a href="mailto:support@example.com">support@example.com</a> #}
+     * 
+     * @example Color field - Shows color preview box:
+     * {{ post.woo_meta_formatted('product_color')|raw }}
+     * {# Output: <span class="color-preview" style="..."></span>#dd9933 #}
+     * 
+     * @example Phone field - Auto-creates tel link:
+     * {{ post.woo_meta_formatted('contact_phone')|raw }}
+     * {# Output: <a href="tel:+905551234567">+90 555 123 45 67</a> #}
+     * 
+     * @example Textarea field - Preserves line breaks:
+     * {{ post.woo_meta_formatted('long_description')|raw }}
+     * {# Output: Line 1<br>Line 2<br>Line 3 #}
+     * 
+     * @example Multiple formatted fields:
+     * <div class="contact-info">
+     *     <p>Web: {{ post.woo_meta_formatted('website')|raw }}</p>
+     *     <p>Email: {{ post.woo_meta_formatted('email')|raw }}</p>
+     *     <p>Tel: {{ post.woo_meta_formatted('phone')|raw }}</p>
+     * </div>
+     * 
+     * @example Conditional formatted display:
+     * {% if post.woo_meta('website') %}
+     *     <div class="website">
+     *         {{ post.woo_meta_formatted('website')|raw }}
+     *     </div>
+     * {% endif %}
+     */
+    public function woo_meta_formatted($field_id) {
+        return function_exists('wc_get_custom_field_formatted') 
+            ? wc_get_custom_field_formatted($this->ID, $field_id) 
+            : '';
+    }
+
+    /**
+     * Check if has WooCommerce custom field
+     * 
+     * @version 1.0.0
+     * @since 2026-04-23
+     * 
+     * CHANGELOG:
+     * 1.0.0 - 2026-04-23
+     *   - Initial release
+     *   - Checks if custom field exists and has a non-empty value
+     * 
+     * HOW TO USE:
+     * This method checks if a custom field exists and has a value.
+     * Use it in conditional statements to avoid displaying empty fields.
+     * Returns true if field has a value, false if empty or doesn't exist.
+     * 
+     * @param string $field_id Field ID
+     * @return bool True if field exists and has value, false otherwise
+     * 
+     * @example Basic conditional:
+     * {% if post.has_woo_meta('special_note') %}
+     *     <div class="alert">{{ post.woo_meta('special_note') }}</div>
+     * {% endif %}
+     * 
+     * @example Multiple field check:
+     * {% if post.has_woo_meta('warranty') or post.has_woo_meta('guarantee') %}
+     *     <div class="warranty-info">
+     *         {% if post.has_woo_meta('warranty') %}
+     *             <p>Garanti: {{ post.woo_meta('warranty') }}</p>
+     *         {% endif %}
+     *         {% if post.has_woo_meta('guarantee') %}
+     *             <p>Garanti Süresi: {{ post.woo_meta('guarantee') }}</p>
+     *         {% endif %}
+     *     </div>
+     * {% endif %}
+     * 
+     * @example Show section only if any field exists:
+     * {% if post.has_woo_meta('badge') or post.has_woo_meta('label') %}
+     *     <div class="badges">
+     *         {% if post.has_woo_meta('badge') %}
+     *             <span class="badge">{{ post.woo_meta('badge') }}</span>
+     *         {% endif %}
+     *         {% if post.has_woo_meta('label') %}
+     *             <span class="label">{{ post.woo_meta('label') }}</span>
+     *         {% endif %}
+     *     </div>
+     * {% endif %}
+     * 
+     * @example Avoid empty divs:
+     * {% if post.has_woo_meta('shipping_note') %}
+     *     <div class="shipping-note">
+     *         <i class="icon-truck"></i>
+     *         {{ post.woo_meta('shipping_note') }}
+     *     </div>
+     * {% endif %}
+     * 
+     * @example Loop with field check:
+     * {% for product in products %}
+     *     <div class="product">
+     *         <h3>{{ product.title }}</h3>
+     *         {% if product.has_woo_meta('badge') %}
+     *             <span class="badge">{{ product.woo_meta('badge') }}</span>
+     *         {% endif %}
+     *     </div>
+     * {% endfor %}
+     */
+    public function has_woo_meta($field_id) {
+        return function_exists('wc_has_custom_field') 
+            ? wc_has_custom_field($this->ID, $field_id) 
+            : false;
+    }
+
     // ── MISC / BACKWARD COMPAT ───────────────────────────
 
     public function get_author() {
         $author_id = $this->meta('book_author');
         return $author_id ? Timber::get_post($author_id) : false;
     }
+
+
+    // ── REACTIONS ────────────────────────────────────────────────────────────
+
+    /**
+     * Bu post'un belirli bir reaction sayisi.
+     * Twig: {{ post.reaction_count('like') }}
+     */
+    public function reaction_count( string $type = 'like' ): int {
+        return \SaltHareket\Reactions\Reactions::count( $type, $this->ID, 'post' );
+    }
+
+    /**
+     * Mevcut kullanici bu post'a reaction yapti mi?
+     * Twig: {% if post.has_reaction('like') %}
+     */
+    public function has_reaction( string $type = 'like' ): bool {
+        return \SaltHareket\Reactions\Reactions::has( $type, $this->ID, 'post' );
+    }
+
+    /**
+     * Bu post'a yapilan tum reaction sayilari (type => count).
+     * Twig: {% set counts = post.reaction_counts %}
+     */
+    public function reaction_counts(): array {
+        $types  = \SaltHareket\Reactions\ReactionsSettings::getTypes();
+        $result = [];
+        foreach ( array_keys( $types ) as $type ) {
+            $result[ $type ] = \SaltHareket\Reactions\Reactions::count( $type, $this->ID, 'post' );
+        }
+        return $result;
+    }
+
+    /**
+     * Reaction button HTML'i render et.
+     * Twig: {{ post.reaction_button('like', {'style': 'pill'}) }}
+     */
+    public function reaction_button( string $type = 'like', array $options = [] ): string {
+        if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
+        return \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->ID, 'post', $type, $options );
+    }
+
+    // ── END REACTIONS ─────────────────────────────────────────────────────────
 }

@@ -96,7 +96,7 @@ add_filter( 'posts_orderby', 'featured_products_orderby', 10, 2 );
 
 
 
-add_filter( 'woocommerce_loop_add_to_cart_link', 'woo_display_variation_dropdown_on_shop_page' );
+//add_filter( 'woocommerce_loop_add_to_cart_link', 'woo_display_variation_dropdown_on_shop_page' );
 function woo_display_variation_dropdown_on_shop_page() {
     global $product;
 
@@ -159,9 +159,3 @@ function woo_display_variation_dropdown_on_shop_page() {
         );
     }
 }
-
-
-
-
-
-

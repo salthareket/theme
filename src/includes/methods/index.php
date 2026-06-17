@@ -27,6 +27,11 @@ $response['html'] = Timber::compile('acf-query-field/loop.twig', $context);
 echo json_encode($response);
 wp_die();
 break;
+case 'change_activation_method':
+$salt = \Salt::get_instance();
+echo json_encode($salt->change_activation_method($vars));
+wp_die();
+break;
 case 'comment_product':
 $salt = \Salt::get_instance();
 echo $salt->comment_product($vars);
@@ -185,50 +190,6 @@ $response['message'] = $message;
 $response['data']    = $post_data;
 $response['html']    = $html;
 echo json_encode($response);
-wp_die();
-break;
-case 'get_search_history':
-/**
-* get_search_history — AJAX handler
-*
-* Kullanıcının son aramaları veya popüler aramaları döner.
-* Yeni format: { terms: string[], title: string }
-* Eski format (html) de desteklenir — geriye uyumluluk için.
-*
-* POST params:
-*   history   = 'user' | 'popular'
-*   post_type = 'search' | 'product' | ...
-*   lang      = '' | 'tr' | 'en' (opsiyonel, ML siteler için)
-*   format    = 'json' | 'html' (default: json)
-*/
-$user         = is_user_logged_in() ? wp_get_current_user() : null;
-$search_history = new SearchHistory();
-$history_type = sanitize_key( $vars['history']   ?? 'popular' );
-$post_type    = sanitize_key( $vars['post_type']  ?? 'search' );
-$lang         = sanitize_key( $vars['lang']       ?? '' );
-$format       = sanitize_key( $vars['format']     ?? 'json' );
-if ( $history_type === 'popular' ) {
-$title  = trans( 'Popular search terms' );
-$result = $search_history->get_popular_terms( $post_type, 10, $lang );
-} else {
-$title  = trans( 'Your last searches' );
-$result = $user
-? $search_history->get_user_terms( $user->ID, $post_type, 10 )
-: [];
-}
-// Yeni format: terms array — JS dropdown tarafından render edilir
-$response['terms'] = array_values( $result ?: [] );
-$response['title'] = $title;
-$response['type']  = $history_type;
-// Geriye uyumluluk: format=html isterse eski twig'i de derle
-if ( $format === 'html' && ! empty( $result ) ) {
-$context                 = Timber::context();
-$context['title']        = $title;
-$context['search_terms'] = $result;
-$context['vars']         = $vars;
-$response['html'] = Timber::compile( 'partials/snippets/search-field-history.twig', $context );
-}
-echo json_encode( $response );
 wp_die();
 break;
 case 'pagination_ajax':
@@ -624,6 +585,94 @@ $html = Timber::compile([ $vars['template'] . '.twig' ], $context);
 }
 modal_json_output( $html, modal_get_plugins_req($post_id), $vars, $error, $message );
 break;
+case 'get_notification_alerts':
+if (is_user_logged_in()) {
+$messages       = [];
+$messages_count = 0;
+if (ENABLE_CHAT) {
+$messages       = Messenger::notifications('notification');
+$messages_count = Messenger::count();
+}
+$notifications       = new Notifications();
+$notifications_count = (int) $notifications->get_unseen_notifications_count();
+$notifications_posts = $notifications->get_unseen_notifications();
+$response['data'] = [
+'count' => [
+'message'      => $messages_count,
+'notification' => $notifications_count,
+],
+'notifications' => array_merge($messages, $notifications_posts),
+];
+} else {
+$response['error'] = true;
+$response['message'] = 'Not logged in';
+}
+echo json_encode($response);
+wp_die();
+break;
+case 'get_notifications':
+if ( ! is_user_logged_in() ) {
+$response['error']   = true;
+$response['message'] = 'Not logged in';
+echo json_encode( $response );
+wp_die();
+}
+$user          = Timber::get_user( wp_get_current_user() );
+$notifications = new Notifications( $user );
+$view          = $vars['view'] ?? '';
+// ── Offcanvas modu: sadece okunmamışları al, okundu işaretle ──────────────
+if ( $view === 'offcanvas' ) {
+$posts   = $notifications->get_unseen_notifications();
+$context = Timber::context();
+$context['type']  = 'notifications';
+$context['posts'] = $posts;
+$response['data'] = [ 'count' => 0 ];
+$response['html'] = Timber::compile( 'partials/offcanvas/archive.twig', $context );
+echo json_encode( $response );
+wp_die();
+}
+// ── my-account / ajax-paginate modu: tüm bildirimleri paginate ile al ─────
+$set_seen = ! empty( $vars['set_seen'] );
+$result   = $notifications->get_notifications( array_merge( $vars, [ 'set_seen' => $set_seen ] ) );
+$posts    = $result['posts'] ?? [];
+$html     = '';
+$timeAgo  = class_exists( '\\Westsworld\\TimeAgo' ) ? new \Westsworld\TimeAgo() : null;
+foreach ( $posts as $row ) {
+$sender = new User( $row->sender_id );
+$url    = '';
+if ( function_exists( 'notification_url_map' ) ) {
+$ndata   = json_decode( $row->data ?? '{}', true );
+$post_id = (int) ( $ndata['post_id'] ?? 0 );
+$user_id = (int) ( $ndata['user_id'] ?? 0 );
+$url     = notification_url_map( $row->event, $post_id, $user_id );
+}
+$time = $row->created_at;
+if ( $timeAgo && method_exists( $user, 'get_local_date' ) ) {
+$time = $timeAgo->inWordsFromStrings(
+$user->get_local_date( $row->created_at, $sender->get_timezone(), $user->get_timezone() )
+);
+}
+$ctx         = Timber::context();
+$ctx['post'] = [
+'id'      => $row->id,
+'status'  => $row->status,
+'event'   => $row->event,
+'message' => strip_tags( $row->message ),
+'url'     => $url ?: '#',
+'time'    => $time,
+'sender'  => [
+'image' => get_avatar( $sender->ID, 40, 'mystery', $sender->get_title() ),
+'name'  => $sender->get_title(),
+],
+];
+$ctx['type'] = 'notifications';
+$html       .= Timber::compile( 'my-account/notification-item.twig', $ctx );
+}
+$response['data'] = $result['data'] ?? [];
+$response['html'] = $html;
+echo json_encode( $response );
+wp_die();
+break;
 case 'get_reviews':
 if ( ! is_user_logged_in() ) {
 $response['error']   = true;
@@ -665,6 +714,138 @@ break;
 case 'login':
 $salt = \Salt::get_instance();
 echo json_encode($salt->login($vars));
+wp_die();
+break;
+case 'nickname_exist':
+$salt   = \Salt::get_instance();
+$status = $salt->nickname_exist($vars);
+$response['error']   = (bool) $status;
+$response['message'] = $status ?: '';
+echo json_encode($response);
+wp_die();
+break;
+case 'password_recover':
+$salt = \Salt::get_instance();
+echo $salt->password_recover($vars);
+wp_die();
+break;
+case 'register':
+$salt = \Salt::get_instance();
+echo json_encode($salt->register($vars));
+wp_die();
+break;
+case 'search_terms_add':
+$sh = new SearchHistory();
+$sh->set_term($keyword);
+wp_die();
+break;
+case 'search_terms_remove':
+echo userSearchTermsRemove(wp_get_current_user());
+wp_die();
+break;
+case 'send_profile_message':
+$sender_id   = get_current_user_id();
+$reciever_id = $vars['id'] ?? 0;
+$post_id     = $vars['post_id'] ?? 0;
+$message     = $vars['message'] ?? '';
+if (empty($message)) {
+$response['error']   = true;
+$response['message'] = 'Please write a message';
+echo json_encode($response);
+wp_die();
+}
+$conv_id = Messenger::find_conversation($post_id, $sender_id, $reciever_id, true);
+$conversation = $conv_id
+? Messenger::store($conv_id, $sender_id, $reciever_id, $message)
+: Messenger::create_conversation($sender_id, $reciever_id, $message, $post_id);
+if (is_true($vars['static'] ?? false)) {
+$url = $post_id ? get_permalink($post_id) : Data::get('base_urls.messages') . $conversation->conv_id . '/chat/' . $reciever_id . '/';
+$response['message']     = 'Your message has been sent!';
+$response['description'] = "<a href='" . esc_url($url) . "' target='_blank'>View your conversation</a>";
+} else {
+if ($post_id) {
+$response['redirect'] = get_permalink($post_id) . '?conversationId=' . $conversation->conv_id . '#messages';
+} else {
+$response['redirect'] = Data::get('base_urls.messages') . $conversation->conv_id . '/chat/' . $reciever_id . '/';
+}
+}
+$conversation = before_store_new_message($conversation);
+after_store_new_message($conversation);
+echo json_encode($response);
+wp_die();
+break;
+case 'update_profile':
+try {
+$salt = \Salt::get_instance();
+echo json_encode($salt->update_profile($vars));
+} catch (\Throwable $e) {
+error_log('[update_profile] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+echo json_encode(['error' => true, 'message' => 'Server error: ' . $e->getMessage()]);
+}
+wp_die();
+break;
+case 'update_profile_photo':
+$user_id = get_current_user_id();
+if (!$user_id) {
+$response['error']   = true;
+$response['message'] = 'Not logged in';
+echo json_encode($response);
+wp_die();
+}
+$files = $_FILES['profile_photo_main'] ?? null;
+if (empty($files)) {
+$response['error']   = true;
+$response['message'] = 'No file uploaded';
+echo json_encode($response);
+wp_die();
+}
+require_once ABSPATH . 'wp-admin/includes/image.php';
+$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+foreach ($files['name'] as $key => $name) {
+if (empty($name) || !is_uploaded_file($files['tmp_name'][$key])) continue;
+if (!in_array($files['type'][$key], $allowed_types)) continue;
+$uploads   = wp_upload_dir();
+$safe_name = time() . '-' . sanitize_file_name($name);
+$file_path = $uploads['path'] . '/' . $safe_name;
+$file_url  = $uploads['url'] . '/' . $safe_name;
+if (!move_uploaded_file($files['tmp_name'][$key], $file_path)) continue;
+$filetype = wp_check_filetype(basename($file_path), null);
+$attach_id = wp_insert_attachment([
+'guid'           => $file_url,
+'post_mime_type' => $filetype['type'],
+'post_title'     => sanitize_file_name($safe_name),
+'post_content'   => '',
+'post_status'    => 'inherit',
+], $file_path, 0);
+if (is_wp_error($attach_id)) continue;
+// Eski profil resmini sil
+$old_image = get_field('profile_image', 'user_' . $user_id);
+if ($old_image) {
+wp_delete_attachment($old_image, true);
+}
+wp_generate_attachment_metadata($attach_id, $file_path);
+update_post_meta($attach_id, '_wp_attachment_wp_user_avatar', $user_id);
+update_field('profile_image', $attach_id, 'user_' . $user_id);
+$thumb = wp_get_attachment_image_src($attach_id, 'smallthumb');
+$response['message'] = 'Image has been uploaded';
+$response['data']    = $thumb[0] ?? $file_url;
+break; // Sadece ilk dosya
+}
+echo json_encode($response);
+wp_die();
+break;
+case 'user_exist':
+$salt   = \Salt::get_instance();
+$status = $salt->user_exist($vars);
+$response['error']   = (bool) $status;
+$response['message'] = $status ?: '';
+echo json_encode($response);
+wp_die();
+break;
+case 'validate_phone':
+$salt   = \Salt::get_instance();
+$status = $salt->validate_phone($vars['phone'] ?? '', $vars['country'] ?? '', $vars['phone_code'] ?? '');
+echo json_encode($status);
 wp_die();
 break;
 case 'add_to_cart':

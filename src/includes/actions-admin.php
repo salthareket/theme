@@ -86,8 +86,15 @@ function save_title_field($user_id) {
 
 
 
-
-
+function scss_variables_boolean($value=""){
+    if(empty($value)){
+        $value = "false";
+    }else{
+        $value = "true";
+    }
+    return $value;
+}
+/*
 function scss_variables_padding($padding=""){
     $padding = trim($padding);
     $padding = str_replace("px", " ", $padding);
@@ -103,14 +110,7 @@ function scss_variables_color($value=""){
     }
     return $value;
 }
-function scss_variables_boolean($value=""){
-    if(empty($value)){
-        $value = "false";
-    }else{
-        $value = "true";
-    }
-    return $value;
-}
+
 function scss_variables_image($value=""){
     if(empty($value)){
         $value = "none";
@@ -156,56 +156,62 @@ function scss_variables_font($font = ""){
         return '"' . $font . '"';
     }
 }
+*/
 function wp_scss_set_variables(){
     $host_url = get_stylesheet_directory_uri();
-    /*if(ENABLE_PUBLISH){
-        if(function_exists("WPH_activated")){
-                $wph_settings = get_option("wph_settings");
-                $new_theme_path = "";
-                if(isset($wph_settings["module_settings"]["new_theme_path"])){
-                    $new_theme_path = $wph_settings["module_settings"]["new_theme_path"];
-                }
-                if(!empty($new_theme_path)){
-                    $host_url = PUBLISH_URL."/".$new_theme_path;
-                }
-        }else{
-            $host_url = str_replace(get_host_url(), PUBLISH_URL, $host_url);
-        }
-    }*/
 
     $variables = [
-        "woocommerce" => class_exists("WooCommerce") ? "true" : "false",
-        "yobro" => class_exists("Redq_YoBro") ? "true" : "false",
-        "mapplic" => class_exists("Mapplic") ? "true" : "false",
-        "newsletter" => class_exists("Newsletter") ? "true" : "false",
-        "yasr" => function_exists("yasr_fs") ? "true" : "false",
-        "apss" => class_exists("APSS_Class") ? "true" : "false",
-        "cf7" => class_exists("WPCF7") ? "true" : "false",
-        "enable_multilanguage" => boolval(ENABLE_MULTILANGUAGE) ? "true" : "false",
-        "enable_reactions" => boolval(ENABLE_REACTIONS) ? "true" : "false",
-        "enable_cart" => boolval(ENABLE_CART) ? "true" : "false",
-        "enable_filters" => boolval(ENABLE_FILTERS) ? "true" : "false",
-        "enable_membership" => boolval(ENABLE_MEMBERSHIP) ? "true" : "false",
-        "enable_chat" => boolval(ENABLE_CHAT) ? "true" : "false",
-        "enable_notifications" => boolval(ENABLE_NOTIFICATIONS) ? "true" : "false",
-        "enable_sms_notifications" => boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_SMS_NOTIFICATIONS) ? "true" : "false",
-        "search_history" => boolval(ENABLE_SEARCH_HISTORY) ? "true" : "false",
-        "logo" => "'" . get_field("logo", "option") . "'",
-        "dropdown_notification" => boolval(header_has_dropdown()) ? "true" : "false",
-        "host_url" => "'" . $host_url . "'",
-        "node_modules_path" =>  '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
-        "theme_static_path" =>  '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"',
-        "sh_static_path" =>  '"' . str_replace('\\', '/', SH_STATIC_PATH) . '"'
+        "woocommerce"             => class_exists("WooCommerce") ? "true" : "false",
+        "yobro"                   => class_exists("Redq_YoBro") ? "true" : "false",
+        "mapplic"                 => class_exists("Mapplic") ? "true" : "false",
+        "newsletter"              => class_exists("Newsletter") ? "true" : "false",
+        "yasr"                    => function_exists("yasr_fs") ? "true" : "false",
+        "apss"                    => class_exists("APSS_Class") ? "true" : "false",
+        "cf7"                     => class_exists("WPCF7") ? "true" : "false",
+        "enable_multilanguage"    => boolval(ENABLE_MULTILANGUAGE) ? "true" : "false",
+        "enable_reactions"        => boolval(ENABLE_REACTIONS) ? "true" : "false",
+        "enable_cart"             => boolval(ENABLE_CART) ? "true" : "false",
+        "enable_filters"          => boolval(ENABLE_FILTERS) ? "true" : "false",
+        "enable_membership"       => boolval(ENABLE_MEMBERSHIP) ? "true" : "false",
+        "enable_chat"             => boolval(ENABLE_CHAT) ? "true" : "false",
+        "enable_notifications"    => boolval(ENABLE_NOTIFICATIONS) ? "true" : "false",
+        "enable_sms_notifications"=> boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_SMS_NOTIFICATIONS) ? "true" : "false",
+        "search_history"          => boolval(ENABLE_SEARCH_HISTORY) ? "true" : "false",
+        "logo"                    => "'" . (function_exists('get_field') ? get_field("logo", "option") : '') . "'",
+        "dropdown_notification"   => boolval(header_has_dropdown()) ? "true" : "false",
+        "host_url"                => "'" . $host_url . "'",
+        "node_modules_path"       => '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
+        "theme_static_path"       => '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"',
+        "sh_static_path"          => '"' . str_replace('\\', '/', SH_STATIC_PATH) . '"',
     ];
-    
-    if(file_exists(get_stylesheet_directory() ."/static/js/js_files_all.json")){
-        $plugins = file_get_contents(get_stylesheet_directory() ."/static/js/js_files_all.json");
-        if($plugins){
-           $variables["plugins"] = str_replace(array("[", "]"), "", $plugins);
-        }        
+
+    if (file_exists(get_stylesheet_directory() . "/static/js/js_files_all.json")) {
+        $plugins = file_get_contents(get_stylesheet_directory() . "/static/js/js_files_all.json");
+        if ($plugins) {
+            $variables["plugins"] = str_replace(["[", "]"], "", $plugins);
+        }
     }
 
-    $variables = get_theme_styles($variables);
+    // ── Yeni tema stilleri sistemi ──────────────────────────────────────────
+    // Kayıt sırasında üretilen scss-variables.json'dan oku (get_theme_styles() çağrısı YOK)
+    $scss_json = get_template_directory() . '/theme/static/data/theme-styles/scss-variables.json';
+    if (file_exists($scss_json)) {
+        $saved = json_decode(file_get_contents($scss_json), true);
+        if (!empty($saved) && is_array($saved)) {
+            $variables = array_merge($variables, $saved);
+        }
+    } elseif (class_exists('Theme_Styles')) {
+        // JSON henüz oluşturulmamış — anlık üret (ilk kurulum)
+        $data      = Theme_Styles::init()->get_data();
+        if (!empty($data)) {
+            $gen  = new Theme_Styles_CSS_Generator();
+            $gen->generate($data);
+            $scss_vars = $gen->get_scss_variables();
+            if (!empty($scss_vars)) {
+                $variables = array_merge($variables, $scss_vars);
+            }
+        }
+    }
 
     return $variables;
 }
@@ -293,9 +299,6 @@ if(ENABLE_ECOMMERCE){
 
 
 
-
-
-
 // Under Construction Cache Flush
 if (class_exists('underConstruction')) {
     add_filter('option_underConstructionActivationStatus', function($status) {
@@ -305,40 +308,6 @@ if (class_exists('underConstruction')) {
         return $status;
     });
 }
-
-// ACF Setting Change Hooks
-foreach (['enable_membership', 'enable_membership_activation', 'enable_chat', 'enable_notifications', 'enable_reactions'] as $fn) {
-    add_filter("acf/update_value/name={$fn}", 'acf_general_settings_rewrite', 10, 4);
-}
-function acf_general_settings_rewrite($value, $post_id, $field, $original) {
-    return $value;
-}
-
-add_filter('acf/update_value/name=enable_membership', 'acf_general_settings_enable_membership', 10, 4);
-function acf_general_settings_enable_membership($value, $post_id, $field, $original) {
-    if ($value) {
-        create_my_account_page();
-    } else {
-        $pid = get_option('woocommerce_myaccount_page_id');
-        if ($pid) wp_delete_post($pid, true);
-    }
-    return $value;
-}
-
-add_filter('acf/update_value/name=enable_location_db', 'acf_general_settings_enable_location_db', 10, 4);
-function acf_general_settings_enable_location_db($value, $post_id, $field, $original) {
-    $ip2country = get_field('enable_ip2country', 'option');
-    $settings   = get_field('ip2country_settings', 'option');
-    return ($ip2country && $settings === 'db') ? 1 : $value;
-}
-
-add_filter('acf/update_value/name=enable_registration', 'acf_general_settings_registration', 10, 4);
-function acf_general_settings_registration($value, $post_id, $field, $original) {
-    update_option('users_can_register', $value);
-    update_option('woocommerce_enable_myaccount_registration', $value ? 'yes' : 'no');
-    return $value;
-}
-
 
 
 
@@ -468,18 +437,6 @@ function set_my_account_page($ecommerce = true) {
     // Her iki option'i da sync et
     update_option('woocommerce_myaccount_page_id', $pid);
     update_option('options_myaccount_page_id', $pid);
-}
-
-add_filter('acf/update_value/name=enable_membership', 'check_my_account_page', 10, 4);
-function check_my_account_page($value, $post_id, $field, $original) {
-    if ($field['name'] !== 'enable_membership' || !$value) return $value;
-    set_my_account_page(class_exists('WooCommerce'));
-    if (!class_exists('SaltHareket\MethodClass')) require_once SH_CLASSES_PATH . 'class.methods.php';
-    $m = new SaltHareket\MethodClass();
-    $m->createFiles(false);
-    $m->createFiles(false, 'admin');
-    if (function_exists('redirect_notice')) redirect_notice('Frontend/Backend methods compiled!', 'success');
-    return $value;
 }
 
 

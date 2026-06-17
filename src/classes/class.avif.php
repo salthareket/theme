@@ -134,6 +134,11 @@ class AvifConverter {
         // _wp_attached_file meta'sını güncelle (hook tetiklemez)
         update_post_meta($attachment_id, '_wp_attached_file', _wp_relative_upload_path($new_main_path));
 
+        // Orijinal dosyayı sil (dönüştürülmüş yeni dosya zaten oluşturuldu)
+        if ($original_file_path !== $new_main_path && file_exists($original_file_path)) {
+            @unlink($original_file_path);
+        }
+
         return $metadata;
     }
 

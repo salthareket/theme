@@ -311,7 +311,8 @@ function custom_product_title_script(){
                 }
 
                 $data[ $variation_id ]["id"] = $variation_id;
-                $data[ $variation_id ][$taxonomy] = get_term_by( 'slug', $value_id, $taxonomy )->name;
+                $termObj = get_term_by( 'slug', $value_id, $taxonomy );
+                $data[ $variation_id ][$taxonomy] = ( $termObj && ! is_wp_error( $termObj ) ) ? $termObj->name : $value_id;
                 $data[ $variation_id ]["title"] = $variation_title;
                 $data[ $variation_id ]["description"] = ($product_variation->get_sku()?'<strong>SKU: '.$product_variation->get_sku().'</strong><br>':'').$variation_description;
                 $data[ $variation_id ]["how_to_use"] = $variation_how_to_use;
@@ -625,7 +626,7 @@ function wc_dropdown_variation_attribute_options_sorted( $html, $args ) {
                 $i = 0;
                 foreach($product->get_available_variations() as $variation) {
                     $i++;
-                    if ($term->slug == $variation['attributes'][$name]) {
+                    if (isset($variation['attributes'][$name]) && $term->slug == $variation['attributes'][$name]) {
                         $key = $i - 1;
                         unset($terms[$key]);
                         $terms[$key] = $term;

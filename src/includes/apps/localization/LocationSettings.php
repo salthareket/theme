@@ -107,6 +107,16 @@ class LocationSettings
         update_option( self::OPTION_KEY, $settings, false );
         self::$cache = null;
 
+        // ── Hook: dışarıdan dinlenebilir ──────────────────────────────────────
+        do_action( 'sh/localization/saved', $settings, $current );
+
+        foreach ( $settings as $key => $new_val ) {
+            $old_val = $current[ $key ] ?? null;
+            if ( $old_val !== $new_val ) {
+                do_action( 'sh/localization/setting_changed', $key, $new_val, $old_val, $settings );
+            }
+        }
+
         self::syncConstants( $settings );
         Schema\LocationSchema::clearCache();
     }

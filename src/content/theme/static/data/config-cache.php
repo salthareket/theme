@@ -1,5 +1,5 @@
 <?php
-/** SaltConfig Auto Generated Cache — 2026-06-15 23:28:17 **/
+/** SaltConfig Auto Generated Cache — 2026-06-17 14:46:21 **/
 return array (
   'options_disable_default_cat' => '1',
   'options_disable_review_approve' => '0',

@@ -18,7 +18,7 @@ if(ENABLE_ECOMMERCE){
 }
 
 // Theme Styles New System
-$ts_new_path = get_template_directory() . '/vendor/salthareket/theme/src/includes/apps/theme-styles-new/index.php';
+$ts_new_path = get_template_directory() . '/vendor/salthareket/theme/src/includes/apps/theme-styles/index.php';
 if (file_exists($ts_new_path)) {
     include_once $ts_new_path;
 }

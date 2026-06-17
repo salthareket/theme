@@ -174,13 +174,23 @@ class MediaOptimizerAdmin
                     <tbody id="sh-mo-tbody"></tbody>
                 </table>
             </div>
-            <div id="sh-mo-pagination" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:13px">
+            <!-- Pagination — sadece birden fazla sayfa varsa JS gösterir -->
+            <div id="sh-mo-pagination" style="display:none;align-items:center;justify-content:space-between;margin-top:14px;font-size:13px">
                 <span id="sh-mo-page-info" style="color:#6b7280"></span>
                 <div style="display:flex;gap:8px">
                     <button type="button" class="sh-btn sh-btn-secondary sh-btn-sm" id="sh-mo-prev-btn" disabled>← Prev</button>
                     <button type="button" class="sh-btn sh-btn-secondary sh-btn-sm" id="sh-mo-next-btn" disabled>Next →</button>
                 </div>
             </div>
+        </div>
+
+        <!-- All Optimized — boş sonuç -->
+        <div id="sh-mo-all-optimized" style="display:none;text-align:center;padding:48px 24px">
+            <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:#dcfce7;margin-bottom:16px">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <h3 style="margin:0 0 8px;font-size:18px;font-weight:700;color:#15803d">All images are optimized!</h3>
+            <p style="margin:0;font-size:14px;color:#6b7280">No JPG, PNG or GIF files found in your media library.<br>All images are already in AVIF or WebP format.</p>
         </div>
 
         <!-- Email on complete -->
@@ -348,7 +358,10 @@ class MediaOptimizerAdmin
             r.classList.remove('sh-processing');
             r.classList.add('sh-done');
             var b=r.querySelector('.sh-mo-single-btn');
-            if(b){b.textContent='✓';b.disabled=true;b.style.color='#00a32a';}
+            if(b){
+                // Butonu kaldır, yeşil check ikonu koy
+                b.outerHTML='<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:#dcfce7;color:#16a34a;font-size:16px;">✓</span>';
+            }
         }
         function rowError(id) {
             var r = document.querySelector('tr.sh-mo-row[data-id="'+id+'"]');
@@ -387,7 +400,9 @@ class MediaOptimizerAdmin
             var allBtn=document.getElementById('sh-mo-convert-all-btn');
             if(selBtn){selBtn.disabled=true; selBtn.textContent='⏳ Converting...';}
             if(allBtn) allBtn.disabled=true;
+            // Checkbox + action butonlarını kilitle
             document.querySelectorAll('.sh-mo-cb').forEach(function(cb){cb.disabled=true;});
+            document.querySelectorAll('.sh-mo-single-btn').forEach(function(b){b.disabled=true;});
 
             var total=ids.length, done=0, failed=0;
             var queue=ids.slice();
@@ -396,6 +411,7 @@ class MediaOptimizerAdmin
                 if(!queue.length) {
                     MO.converting=false;
                     document.querySelectorAll('.sh-mo-cb').forEach(function(cb){cb.disabled=false;});
+                    document.querySelectorAll('.sh-mo-single-btn').forEach(function(b){b.disabled=false;});
                     if(allBtn) allBtn.disabled=false;
                     if(selBtn){selBtn.style.display='none';}
                     toggleSelectedBtn();
@@ -470,8 +486,25 @@ class MediaOptimizerAdmin
                 btn.disabled=false; btn.textContent='🔍 Find Unoptimized';
                 if(!res.success) return;
                 var d=res.data; MO.page=1; MO.pages=d.pages; MO.total=d.total;
+
+                var tableWrap=document.getElementById('sh-mo-table-wrap');
+                var allOptimized=document.getElementById('sh-mo-all-optimized');
+
+                if(!d.total || !d.items || !d.items.length) {
+                    // Tüm görseller optimize — güzel mesaj göster
+                    tableWrap.style.display='none';
+                    if(allOptimized) allOptimized.style.display='';
+                    document.getElementById('sh-mo-select-all-btn').style.display='none';
+                    document.getElementById('sh-mo-convert-all-btn').style.display='none';
+                    document.getElementById('sh-mo-found-badge').style.display='';
+                    document.getElementById('sh-mo-found-badge').textContent='0 unoptimized found';
+                    document.getElementById('sh-mo-email-wrap').style.display='none';
+                    return;
+                }
+
+                if(allOptimized) allOptimized.style.display='none';
                 document.getElementById('sh-mo-tbody').innerHTML=d.html;
-                document.getElementById('sh-mo-table-wrap').style.display='';
+                tableWrap.style.display='';
                 document.getElementById('sh-mo-select-all-btn').style.display='';
                 document.getElementById('sh-mo-convert-all-btn').style.display='';
                 document.getElementById('sh-mo-found-badge').style.display='';
@@ -555,10 +588,13 @@ class MediaOptimizerAdmin
             });
         }
         function updatePagination(d){
+            var pag=document.getElementById('sh-mo-pagination');
             var pi=document.getElementById('sh-mo-page-info');
             if(pi) pi.textContent='Page '+d.page+' of '+d.pages+' ('+d.total+' images)';
             document.getElementById('sh-mo-prev-btn').disabled=d.page<=1;
             document.getElementById('sh-mo-next-btn').disabled=d.page>=d.pages;
+            // Sadece birden fazla sayfa varsa göster
+            if(pag) pag.style.display = d.pages > 1 ? 'flex' : 'none';
         }
 
         // ── Reset Stats ──

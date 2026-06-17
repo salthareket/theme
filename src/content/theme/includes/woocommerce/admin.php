@@ -219,3 +219,7 @@ class hide_biography{
         print $html;
     }
 }
+
+
+// Custom Product Fields are loaded via woocommerce.php → custom-fields/index.php
+// No need to include here anymore

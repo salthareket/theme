@@ -144,6 +144,17 @@ class MembershipSettings
 
         update_option( self::OPTION_KEY, $settings, false );
         self::$cache = null;
+
+        // ── Hook: dışarıdan dinlenebilir ──────────────────────────────────────
+        do_action( 'sh/membership/saved', $settings, $current );
+
+        // Değişen ayarları tek tek fire et
+        foreach ( $settings as $key => $new_val ) {
+            $old_val = $current[ $key ] ?? null;
+            if ( $old_val !== $new_val ) {
+                do_action( 'sh/membership/setting_changed', $key, $new_val, $old_val, $settings );
+            }
+        }
     }
 
     /**

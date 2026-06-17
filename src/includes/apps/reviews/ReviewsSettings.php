@@ -187,8 +187,20 @@ class ReviewsSettings
      */
     public static function saveAll( array $settings ): void
     {
+        $previous = self::all();
         update_option( self::OPTION_KEY, $settings );
         self::clearCache();
+
+        do_action( 'sh/reviews/saved', $settings, $previous );
+        foreach ( $settings as $group => $values ) {
+            if ( ! is_array( $values ) ) continue;
+            foreach ( $values as $key => $new_val ) {
+                $old_val = $previous[ $group ][ $key ] ?? null;
+                if ( $old_val !== $new_val ) {
+                    do_action( 'sh/reviews/setting_changed', $group . '.' . $key, $new_val, $old_val, $settings );
+                }
+            }
+        }
     }
 
     /**

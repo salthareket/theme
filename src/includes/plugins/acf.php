@@ -32,79 +32,41 @@ if (ENABLE_MULTILANGUAGE){
 	
 }
 
-/*function acf_get_theme_styles() {
-    // 1. STATİK CACHE: PHP belleğinde varsa (aynı istek içinde ikinci kez çağrılırsa) direkt dön.
-    static $cached_styles = null;
-    if ($cached_styles !== null) {
-        return $cached_styles;
-    }
+/*
+ * acf_get_theme_styles() — Eski ACF tabanlı sistem kaldırıldı.
+ * Yeni sistem: theme-styles app (Theme_Styles class).
+ * Fonksiyon adı geriye uyumluluk için korundu.
+ */
+if ( ! function_exists( 'acf_get_theme_styles' ) ) {
+function acf_get_theme_styles(): array {
+    // Static cache — aynı request içinde tekrar okuma
+    static $cache = null;
+    if ( $cache !== null ) return $cache;
 
-    $theme_styles_latest = get_template_directory() . "/theme/static/data/theme-styles/latest.json";
-    $theme_styles_defaults = SH_STATIC_PATH . "data/theme-styles-default.json";
-    $theme_styles = [];
-
-    // 2. ÖNCELİK: Güncel JSON dosyası (I/O işlemini tek seferde bitirelim)
-    if (file_exists($theme_styles_latest)) {
-        $theme_styles = json_decode(file_get_contents($theme_styles_latest), true);
-    }
-
-    // 3. FALLBACK: JSON yoksa DB'ye (QueryCache) git
-    if (empty($theme_styles)) {
-        $theme_styles = get_option("options_theme_styles");
-    }
-
-    // 4. SON ÇARE: Default JSON dosyası
-    if (empty($theme_styles) && file_exists($theme_styles_defaults)) {
-        $theme_styles = json_decode(file_get_contents($theme_styles_defaults), true);
-    }
-
-    // 5. SONUÇ: Belleğe kaydet ve gönder
-    $cached_styles = $theme_styles;
-    return $theme_styles;
-}*/
-if (!function_exists('acf_get_theme_styles')) {
-function acf_get_theme_styles() {
-    // 1. STATİK CACHE
-    static $cached_styles = null;
-    if ($cached_styles !== null) return $cached_styles;
-
-    // 2. TRANSIENT
-    $cached_styles = get_transient('sh_theme_styles_cache');
-    if ($cached_styles !== false) return $cached_styles;
-
-    // 3. Yeni sistem varsa oradan oku
- /*   if (class_exists('Theme_Styles_New')) {
-        $data = Theme_Styles_New::init()->get_data();
-        if (!empty($data)) {
-            set_transient('sh_theme_styles_cache', $data, DAY_IN_SECONDS);
-            $cached_styles = $data;
-            return $cached_styles;
+    // 1. Yeni sistem: Theme_Styles
+    if ( class_exists( 'Theme_Styles' ) ) {
+        $data = Theme_Styles::init()->get_data();
+        if ( ! empty( $data ) ) {
+            $cache = $data;
+            return $cache;
         }
-    }*/
-
-    // 4. Eski sistem fallback
-    $theme_styles_latest   = get_template_directory() . '/theme/static/data/theme-styles/latest.json';
-    $theme_styles_defaults = SH_STATIC_PATH . 'data/theme-styles-default.json';
-    $theme_styles = [];
-
-    if (file_exists($theme_styles_latest)) {
-        $theme_styles = json_decode(file_get_contents($theme_styles_latest), true);
-    }
-    if (empty($theme_styles)) {
-        $theme_styles = get_option('options_theme_styles');
-    }
-    if (empty($theme_styles) && file_exists($theme_styles_defaults)) {
-        $theme_styles = json_decode(file_get_contents($theme_styles_defaults), true);
     }
 
-    if (!empty($theme_styles)) {
-        set_transient('sh_theme_styles_cache', $theme_styles, DAY_IN_SECONDS);
+    // 2. Yeni sistemin JSON dosyası (class yüklü değilse)
+    $new_json = get_template_directory() . '/theme/static/data/theme-styles/latest.json';
+    if ( file_exists( $new_json ) ) {
+        $data = json_decode( file_get_contents( $new_json ), true );
+        if ( ! empty( $data ) ) {
+            $cache = $data;
+            return $cache;
+        }
     }
 
-    $cached_styles = $theme_styles;
-    return $theme_styles;
+    $cache = [];
+    return $cache;
 }
-} // end if (!function_exists)
+}
+
 
 // contact main location
 function acf_main_location($locations){
@@ -117,35 +79,7 @@ function acf_main_location($locations){
 	   }
 	}
 }
-/*function acf_get_contacts_v1($type=""){
-	$posts = array();
-	//if($type == "main" || $type == "standard"){
-		
-		$args = array(
-			"post_type" => "contact",
-			//"numberposts" => ($type=="main"?1:-1),
-			'orderby' => "menu_order"
-		);
-		if(!empty($type)){
-			$category = get_option("contact_type_".$type);
-			$args["tax_query"] = array(
-				array(
-					"taxonomy" => "contact-type",
-					"field" => "term_id",
-		            "terms" => [$category],
-		            "operator" => "IN"
-				)
-			);
-		}
-		$args = QueryCache::wp_query($args);
-		$posts = Timber::get_posts($args);
-		if ($posts->found_posts) { 
-			//error_log("post var mı?");
-		    $posts = $posts->to_array()[0]; 
-		}
-	//}
-	return $posts;
-}*/
+
 function acf_get_contacts($type = "") {
     // 1. STATİK DEPO: Fonksiyonun hafızasını oluşturuyoruz
     static $contacts_cache = [];
@@ -204,26 +138,6 @@ function acf_get_contacts($type = "") {
 
     return $posts;
 }
-/*function acf_get_contact_related($post_id=0, $post_type="post"){
-	$args = array(
-			"post_type"   => $post_type,
-			'orderby'     => "menu_order",
-			"numberposts" => 1,
-			"meta_query"  => array(
-				array(
-					"key" => "contact",
-					"value" => array($post_id),
-		            "operator" => "IN"
-				)
-			)
-	);
-	$posts = QueryCache::wp_query($args);
-	$posts = Timber::get_posts($posts);
-	if ($posts->found_posts) { 
-	    $posts = $posts->to_array()[0]; 
-	}
-    return $posts;
-}*/
 function acf_get_contact_related($post_id = 0, $post_type = "post") {
     if (!$post_id) return false;
 
@@ -257,13 +171,6 @@ function acf_get_contact_related($post_id = 0, $post_type = "post") {
 
     return false;
 }
-/*function acf_get_accounts($post=array()){
-	$accounts = array();
-	if(isset($post->ID)){
-		$accounts = get_field("contact_accounts", $post->ID);
-	}
-    return $accounts;
-}*/
 function acf_get_accounts($post = array()){
     $accounts = array();
     
@@ -278,42 +185,7 @@ function acf_get_accounts($post = array()){
     
     return $accounts;
 }
-/*function get_contact_form($slug=""){
-	$arr = array();
-	$forms = get_option("forms");
-	if($forms){
-		foreach($forms as $form){
-			if($slug ==$form["slug"]){
-				$arr = array(
-					"id"          => $form["form"],
-		            "title"       => $form["title"],
-		            "description" => $form["description"]
-				);			
-			}
-		}		
-	}
-	return $arr;
-}
-function get_contact_forms($slug=""){
-	if(!empty($slug)){
-		return get_contact_form($slug);
-	}
-	$arr = array();
-	$forms = get_option("forms");
-	if($forms){
-		foreach($forms as $form){
-			$arr[$form["slug"]] = array(
-				"id"          => $form["form"],
-	            "title"       => $form["title"],
-	            "description" => $form["description"]
-			);
-		}
-	}
-	return $arr;
-}*/
-/**
- * Tekil bir formu slug ile getirir
- */
+
 function get_contact_form($slug = "") {
     if (empty($slug)) return array();
 

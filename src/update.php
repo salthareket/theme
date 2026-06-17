@@ -1718,9 +1718,13 @@ class Update {
         // 3. Cache temizle
         self::_flush_acf_cache();
 
-        // 4. Tema stilleri güncelle
-        if ( function_exists('get_theme_styles') ) {
-            get_theme_styles([], true);
+        // 4. Tema stilleri güncelle — yeni Theme_Styles sistemi
+        if ( class_exists( 'Theme_Styles' ) ) {
+            $ts   = Theme_Styles::init();
+            $data = $ts->get_data();
+            if ( ! empty( $data ) ) {
+                $ts->save_data( $data );
+            }
         }
     }
     private static function npm_install(): bool {

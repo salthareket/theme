@@ -92,6 +92,14 @@ class NotificationsSettings
 
         update_option( self::OPTION_KEY, $settings, false );
         self::$cache = null;
+
+        do_action( 'sh/notifications/saved', $settings, $current );
+        foreach ( $settings as $key => $new_val ) {
+            $old_val = $current[ $key ] ?? null;
+            if ( $old_val !== $new_val ) {
+                do_action( 'sh/notifications/setting_changed', $key, $new_val, $old_val, $settings );
+            }
+        }
     }
 
     public static function clearCache(): void

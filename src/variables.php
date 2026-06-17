@@ -327,6 +327,12 @@ include_once SH_INCLUDES_PATH . 'apps/download-log/bootstrap.php';
 if ( (defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOCATION_DB') && ENABLE_LOCATION_DB) || (defined('ENABLE_REGIONAL_POSTS') && ENABLE_REGIONAL_POSTS) || $is_admin ) {
     include_once SH_INCLUDES_PATH . "apps/localization/bootstrap.php";
 }
+
+// App Settings Hooks — ACF'den taşınan side effect'ler
+// Admin'de yükle: settings değişiklikleri admin AJAX'ından geliyor
+if ( $is_admin ) {
+    include_once SH_INCLUDES_PATH . 'apps/hooks.php';
+}
 if (!empty($GLOBALS["pagenow"]) && $GLOBALS["pagenow"] === "wp-login.php") include_once SH_INCLUDES_PATH . "admin/custom-login.php";
 
 // ACF ve Plugin Entegrasyonları
@@ -453,9 +459,9 @@ if (SH_THEME_EXISTS){// || file_exists($template_path . "/theme/index.php")) {
 
 if (SH_THEME_EXISTS && $is_admin) {
     include_once THEME_INCLUDES_PATH . "admin/index.php";
-    if (!function_exists("acf_general_settings_rewrite")) {
+    /*if (!function_exists("acf_general_settings_rewrite")) {
         include_once SH_INCLUDES_PATH . "admin/general-settings/index.php";
-    }
+    }*/
     if(!ENABLE_ECOMMERCE){
         add_action('admin_init', function() {
             new AdminThumbnailColumns();

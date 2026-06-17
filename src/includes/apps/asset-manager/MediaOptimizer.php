@@ -333,10 +333,10 @@ class MediaOptimizer
             // Metadata güncelle
             wp_update_attachment_metadata( $attachment_id, $new_metadata );
 
-            // Yeni dosya boyutu
-            $new_file      = get_attached_file( $attachment_id );
-            $new_size      = $new_file && file_exists( $new_file ) ? filesize( $new_file ) : $original_size;
-            $saved_bytes   = max( 0, $original_size - $new_size );
+            // Yeni dosya boyutu — orijinal silinmiş olabilir, new_file'dan hesapla
+            $new_file    = get_attached_file( $attachment_id );
+            $new_size    = $new_file && file_exists( $new_file ) ? filesize( $new_file ) : 0;
+            $saved_bytes = max( 0, $original_size - $new_size );
 
             return [
                 'success'     => true,
