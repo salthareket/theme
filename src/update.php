@@ -1744,32 +1744,25 @@ class Update {
         $npmPath     = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
         $env         = [ 'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath ];
 
-        // 1. Deneme: npm install
+        // 1. Deneme: npm install — mustRun yerine run() kullan, exception fırlatmaz
         $process = new Process(['npm', 'install'], $workingDir);
         $process->setEnv($env);
         $process->setTimeout(120);
-
-        try {
-            $process->mustRun();
+        $process->run(); // Exception fırlatmaz, exit code döner
+        if ($process->isSuccessful()) {
             return true;
-        } catch (ProcessFailedException $e) {
-            // Peer dependency çakışması olabilir (örn. jQuery 4.x) — --legacy-peer-deps ile retry
-            error_log('[npm_install] npm install failed, retrying with --legacy-peer-deps: ' . $e->getMessage());
         }
 
         // 2. Fallback: npm install --legacy-peer-deps
         $fallback = new Process(['npm', 'install', '--legacy-peer-deps'], $workingDir);
         $fallback->setEnv($env);
         $fallback->setTimeout(120);
-
-        try {
-            $fallback->mustRun();
-            error_log('[npm_install] Installed with --legacy-peer-deps (peer dependency conflict resolved)');
+        $fallback->run();
+        if ($fallback->isSuccessful()) {
             return true;
-        } catch (ProcessFailedException $e) {
-            error_log('[npm_install] --legacy-peer-deps also failed: ' . $e->getMessage());
-            return false;
         }
+
+        return false;
     }
     private static function install_mu_plugins(){
         $srcDir = SH_PATH . 'content/mu-plugins';
