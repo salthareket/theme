@@ -141,7 +141,10 @@ trait FetchesPages {
             if (function_exists('get_page_status')) {
                 $st = @get_page_status($fetch_url);
                 $this->error_log("[PAE] get_page_status={$st} for {$fetch_url}");
-                if ($st != 200) {
+                if ($st === 0) {
+                    // cURL bağlanamadı (localhost loopback veya network sorunu) — wp_remote_get ile devam et
+                    $this->error_log("[PAE] get_page_status=0, skipping status check (localhost/loopback fallback)");
+                } elseif ($st != 200) {
                     if ($this->type !== 'dynamic') {
                         $this->error_log("PAE: Fetch Error! Status: {$st} for URL: {$fetch_url}");
                         return false;

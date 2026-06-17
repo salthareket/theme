@@ -241,10 +241,25 @@ trait HandlesGrouped
             if (!$count) continue;
 
             // Page'ler gruplanmaz - her biri ayrı template kullanabilir
+            // ML site ise sadece default language page'leri listele —
+            // Fetch sırasında build_related_assets() diğer dillere zaten apply eder
             if ($pt->name === 'page') {
+                $default_lang = $this->pae_lang_default();
+                $is_ml        = defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE;
+
                 $pages = $wpdb->get_results("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status = 'publish' ORDER BY menu_order ASC, post_title ASC");
                 foreach ($pages as $p) {
                     if (in_array((int) $p->ID, $woo_page_ids)) continue;
+
+                    // ML site + Polylang: sadece default lang sayfaları listele
+                    if ( $is_ml && $default_lang && ENABLE_MULTILANGUAGE === 'polylang' && function_exists('pll_get_post_language') ) {
+                        $page_lang = pll_get_post_language( (int) $p->ID );
+                        // Dil yoksa (false/null) veya default dil değilse atla
+                        if ( ! $page_lang || strtolower( $page_lang ) !== strtolower( $default_lang ) ) {
+                            continue;
+                        }
+                    }
+
                     $url    = get_permalink($p->ID);
                     $title  = get_the_title($p->ID);
                     $groups[] = [

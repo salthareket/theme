@@ -659,24 +659,28 @@ Class Theme{
             
             // Eğer fatura bilgileri eksikse ve IP değişmişse DB/API sorgusu yap
             if ((empty($user->billing_country) || empty($user->billing_state)) && $salt && $salt->is_ip_changed() && ENABLE_IP2COUNTRY) {
-                $login_location = $salt->localization->ip_info("visitor", "Location");
+                // LocationManager::ipInfo() — eski $salt->localization->ip_info() deprecated
+                $login_location = \SaltHareket\Localization\LocationManager::getInstance()->ipInfo();
                 
                 if ($login_location) {
-                    $user->login_location = $login_location;
-                    $user->billing_country = $login_location["country_code"];
+                    $user->login_location  = $login_location;
+                    $user->billing_country = $login_location['country_code'] ?? '';
                     
-                    // SQL sorgusunu sadece buraya girince yap (Safe query)
-                    global $wpdb;
-                    $state_name = $login_location["state"];
-                    $city_id = $wpdb->get_var($wpdb->prepare(
-                        "SELECT id FROM states WHERE name LIKE %s LIMIT 1",
-                        $state_name
-                    ));
-                    
-                    $user->city = $city_id;
-                    $user->billing_state = $city_id;
+                    // Şehir/eyalet eşleştirmesi — state varsa ara
+                    $state_name = $login_location['state'] ?? '';
+                    if ( $state_name ) {
+                        global $wpdb;
+                        $city_id = $wpdb->get_var( $wpdb->prepare(
+                            "SELECT id FROM {$wpdb->prefix}states WHERE name LIKE %s LIMIT 1",
+                            $state_name
+                        ) );
+                        if ( $city_id ) {
+                            $user->city          = $city_id;
+                            $user->billing_state = $city_id;
+                        }
+                    }
                 }
-                if (session_id()) session_write_close(); // Session kilidini bırak
+                if (session_id()) session_write_close();
             }
 
             // Newsletter ve Mesaj Sayıları

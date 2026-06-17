@@ -4,6 +4,8 @@ namespace SaltHareket\AssetManager\Admin;
 
 use SaltHareket\AssetManager\AssetManager;
 use SaltHareket\AssetManager\AssetSettings;
+use SaltHareket\AssetManager\MediaOptimizer;
+use SaltHareket\AssetManager\Admin\MediaOptimizerAdmin;
 
 class AssetManagerAdmin
 {
@@ -15,6 +17,12 @@ class AssetManagerAdmin
         add_action( 'admin_enqueue_scripts', [ self::class, 'enqueueAssets' ] );
         add_action( 'wp_ajax_sh_am_save_settings', [ self::class, 'ajaxSaveSettings' ] );
         add_action( 'wp_ajax_sh_am_purge_cache',   [ self::class, 'ajaxPurgeCache' ] );
+
+        // Media Optimizer AJAX
+        MediaOptimizerAdmin::registerAjax();
+
+        // Cron
+        add_action( MediaOptimizer::CRON_HOOK, [ MediaOptimizer::class, 'runCron' ] );
     }
 
     public static function addMenuPage(): void
@@ -93,6 +101,7 @@ class AssetManagerAdmin
                 <a href="?page=sh-asset-manager&tab=filters"   class="sh-tab-btn <?php echo $tab==='filters'  ?'active':''; ?>">Filters</a>
                 <a href="?page=sh-asset-manager&tab=cache"     class="sh-tab-btn <?php echo $tab==='cache'    ?'active':''; ?>">Cache</a>
                 <a href="?page=sh-asset-manager&tab=debug"     class="sh-tab-btn <?php echo $tab==='debug'    ?'active':''; ?>">Debug</a>
+                <a href="?page=sh-asset-manager&tab=media"     class="sh-tab-btn <?php echo $tab==='media'    ?'active':''; ?>">🖼️ Media</a>
             </div>
         </div>
 
@@ -103,6 +112,7 @@ class AssetManagerAdmin
             'filters'  => [ 'title' => 'Filter Reference',  'desc' => 'All available filters for extending asset loading from outside.' ],
             'cache'    => [ 'title' => 'Cache Management',  'desc' => 'Inline CSS cache and font preload cache.' ],
             'debug'    => [ 'title' => 'Debug — Loaded Assets', 'desc' => 'All currently enqueued CSS and JS with details.' ],
+            'media'    => [ 'title' => '🖼️ Media Optimizer', 'desc' => 'Convert unoptimized images to AVIF/WebP. Save bandwidth, boost Core Web Vitals.' ],
         ];
         $cur = $titles[$tab] ?? $titles['overview'];
         ?>
@@ -117,6 +127,7 @@ class AssetManagerAdmin
             case 'filters':  self::renderFiltersTab(); break;
             case 'cache':    self::renderCacheTab( $nonce, $ajax_url ); break;
             case 'debug':    self::renderDebugTab(); break;
+            case 'media':    MediaOptimizerAdmin::renderTab( $nonce, $ajax_url ); break;
             default:         self::renderOverviewTab( $settings, $is_prod ); break;
         }
         ?>

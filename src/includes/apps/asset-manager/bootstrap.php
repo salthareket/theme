@@ -37,7 +37,9 @@ require_once $am_base . 'Concerns/HandlesAdminAssets.php';
 require_once $am_base . 'Concerns/HandlesPreloads.php';
 require_once $am_base . 'Concerns/HandlesHelpers.php';
 require_once $am_base . 'AssetManager.php';
+require_once $am_base . 'MediaOptimizer.php';
 require_once $am_base . 'Admin/AssetManagerAdmin.php';
+require_once $am_base . 'Admin/MediaOptimizerAdmin.php';
 
 // ─── TOOLS ───────────────────────────────────────────────────────────────────
 // CSS/JS işleme araçları — admin'de yüklenir
