@@ -648,8 +648,7 @@ class ExternalImage {
     public function get_focal_point_class(): string { return ''; }
 }
 
-// Namespace'den çıkıyoruz - global function'lar için
-} // namespace SaltHareket sonu
+} // namespace SaltHareket
 
 /**
  * AUTO-INVALIDATION
