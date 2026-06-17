@@ -2,30 +2,78 @@
 /**
  * Optimized Avif & WebP Converter Class
  *
- * @version 1.2.0
+ * @version 1.3.1
  *
- * Changelog:
- * -----------
- * 1.2.0 — 2026-06-17
- *   - Add: process_and_convert_metadata() sonunda orijinal dosyayı siler
- *          (convert başarılı olunca JPG/PNG/GIF disk'ten temizlenir)
+ * @changelog
+ *   1.3.1 - 2026-06-18
+ *     - Fix: cleanup_leftover_original_files() artık orijinal dosyaları silmiyor
+ *     - Fix: Sadece converted formatları (avif/webp + suffix) temizleniyor
+ *     - Fix: WP'nin kendi delete işlemi guid'deki dosyayı zaten siler
+ *   1.3.0 - 2026-06-18
+ *     - Add: $converted_suffix yapılandırılabilir hale getirildi (constructor parametresi)
+ *     - Fix: Orijinal yüklenen görsel artık silinmiyor (sadece dönüştürülen boyutlar siliniyor)
+ *     - Fix: Dönüştürülen dosyalara opsiyonel suffix ekleme desteği
+ *   1.2.0 - 2026-06-17
+ *     - Add: process_and_convert_metadata() sonunda orijinal dosyayı siler
+ *            (convert başarılı olunca JPG/PNG/GIF disk'ten temizlenir)
+ *   1.1.0 - 2026-03-31
+ *     - Fix: wp_update_post yerine $wpdb->update — save_post hook tetiklenmez, metadata bozulmaz
+ *     - Fix: update_attached_file yerine update_post_meta — hook zinciri kırılmaz
+ *     - Fix: Thumbnail metadata (.png/.jpg) artık doğru şekilde .avif/.webp olarak güncelleniyor
+ *   1.0.0 - Önceki stabil versiyon
  *
- * 1.1.0 — 2026-03-31
- *   - Fix: wp_update_post yerine $wpdb->update — save_post hook tetiklenmez, metadata bozulmaz
- *   - Fix: update_attached_file yerine update_post_meta — hook zinciri kırılmaz
- *   - Fix: Thumbnail metadata (.png/.jpg) artık doğru şekilde .avif/.webp olarak güncelleniyor
+ * @package SaltHareket
  *
- * 1.0.0 — Önceki stabil versiyon
+ * How to use:
+ *   // Default kullanım (suffix yok, orijinal korunur)
+ *   new AvifConverter();
+ *
+ *   // Custom quality
+ *   new AvifConverter(85);
+ *
+ *   // Suffix ile (eski davranış)
+ *   new AvifConverter(null, '-converted');
+ *   // Sonuç: image.jpg → image-converted.avif
+ *
+ *   // Custom quality + suffix
+ *   new AvifConverter(90, '-optimized');
+ *
+ * Examples:
+ *   // theme.php veya functions.php içinde:
+ *   
+ *   // Standart kullanım (önerilen)
+ *   new AvifConverter();
+ *   // → image.jpg yüklenir
+ *   // → image.avif oluşturulur (DB'de kayıtlı)
+ *   // → image-150x150.jpg → image-150x150.avif (thumbnail)
+ *   // → Orijinal image.jpg DİSKTE KORUNUR
+ *
+ *   // Suffix ile (geriye uyumluluk)
+ *   new AvifConverter(null, '-converted');
+ *   // → image.jpg yüklenir
+ *   // → image-converted.avif oluşturulur
+ *   // → Orijinal image.jpg KORUNUR
+ *
+ * Conversion logic:
+ *   - Alpha channel VAR → WebP (fallback)
+ *   - Alpha channel YOK → AVIF (WebP fallback)
+ *   - Orijinal yüklenen dosya → KORUNUR (DB'de kayıtlı)
+ *   - Thumbnail'lar → Dönüştürülür ve orijinalleri silinir
+ *   - Delete attachment → Sadece converted formatları temizlenir
  */
 class AvifConverter {
 
     private $quality = null; 
+    private $converted_suffix = ''; // Boşsa suffix eklenmez, doluysa (örn: '-converted') eklenir
     private $allowed_formats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'heic'];
 
-    public function __construct($quality = null) {
+    public function __construct($quality = null, $converted_suffix = '') {
         if ($quality !== null) {
             $this->quality = (int) $quality;
         }
+        
+        // Suffix yapılandırması (boş string ise suffix yok)
+        $this->converted_suffix = (string) $converted_suffix;
 
         if ($this->is_converter_supported()) {
             add_filter('wp_generate_attachment_metadata', [$this, 'process_and_convert_metadata'], 20, 2);
@@ -116,6 +164,9 @@ class AvifConverter {
                         $metadata['sizes'][$size_name]['file'] = basename($thumb_conv['path']);
                         $metadata['sizes'][$size_name]['mime-type'] = $thumb_conv['mime'];
                         $metadata['sizes'][$size_name]['filesize'] = filesize($thumb_conv['path']);
+                        
+                        // Sadece dönüştürülmüş formatları sil (orijinal yüklenen değil)
+                        // Thumbnail'lerin orijinal formatlarını (jpg/png) sil
                         @unlink($thumb_path);
                     }
                 }
@@ -138,17 +189,18 @@ class AvifConverter {
         // _wp_attached_file meta'sını güncelle (hook tetiklemez)
         update_post_meta($attachment_id, '_wp_attached_file', _wp_relative_upload_path($new_main_path));
 
-        // Orijinal dosyayı sil (dönüştürülmüş yeni dosya zaten oluşturuldu)
-        if ($original_file_path !== $new_main_path && file_exists($original_file_path)) {
-            @unlink($original_file_path);
-        }
+        // ÖNEMLİ: Orijinal yüklenen dosyayı SİLMİYORUZ
+        // Sadece dönüştürülen boyutlar (thumbnails) zaten yukarıda siliniyor
+        // Orijinal dosya DB'de kayıtlı ve korunmalı
 
         return $metadata;
     }
 
     private function attempt_conversion($source_path, $target_ext) {
         $base_path = preg_replace('/\.[^.]+$/', '', $source_path);
-        $target_path = $base_path . '.' . $target_ext;
+        
+        // Suffix varsa ekle (örn: image-converted.avif), yoksa direkt (örn: image.avif)
+        $target_path = $base_path . $this->converted_suffix . '.' . $target_ext;
 
         // Kaynak ve hedef aynıysa (zaten dönüştürülmüş) skip
         if ($source_path === $target_path) return false;
@@ -263,22 +315,23 @@ class AvifConverter {
 
         $base = preg_replace('/\.[^.]+$/', '', $file);
 
-        // Orijinal formatları temizle (guid'deki dosya)
-        foreach ($this->allowed_formats as $ext) {
-            $path = $base . '.' . $ext;
-            if (file_exists($path)) @unlink($path);
-        }
-
-        // Converted formatları da temizle
+        // Converted formatları temizle (suffix varsa/yoksa)
         foreach (['avif', 'webp'] as $ext) {
-            $path = $base . '.' . $ext;
+            $path = $base . $this->converted_suffix . '.' . $ext;
             if (file_exists($path)) @unlink($path);
         }
 
         // Eski -converted suffix'li dosyalar varsa onları da temizle (geriye uyumluluk)
-        foreach (array_merge($this->allowed_formats, ['avif', 'webp']) as $ext) {
-            $path = $base . '-converted.' . $ext;
-            if (file_exists($path)) @unlink($path);
+        // Sadece şu anki suffix ile aynı değilse temizle
+        if ($this->converted_suffix !== '-converted') {
+            foreach (array_merge($this->allowed_formats, ['avif', 'webp']) as $ext) {
+                $path = $base . '-converted.' . $ext;
+                if (file_exists($path)) @unlink($path);
+            }
         }
+        
+        // ÖNEMLİ: Orijinal dosyaları (jpg, png, gif) SİLMİYORUZ
+        // WP attachment delete zaten guid'deki dosyayı siler
+        // Biz sadece dönüştürülmüş formatları temizliyoruz
     }
 }

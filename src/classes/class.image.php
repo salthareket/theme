@@ -5,9 +5,12 @@ namespace SaltHareket;
 /**
  * Image — Responsive image set, srcset, lazy loading, breakpoint-based image generation.
  *
- * @version 1.0.7
+ * @version 1.0.8
  *
  * @changelog
+ *   1.0.8 - 2026-06-18
+ *     - Fix: _sh_img_invalidate_cache() artık function_exists() check ile korunuyor
+ *     - Fix: Namespace dışında tanımlanıyor, WP hook sistemi ile uyumlu
  *   1.0.7 - 2026-05-18
  *     - Add: ExternalImage wrapper class — Timber\Image interface'ini taklit eder
  *     - Add: is_external_url() — site host ile URL host karşılaştırır
@@ -645,25 +648,30 @@ class ExternalImage {
     public function get_focal_point_class(): string { return ''; }
 }
 
+// Namespace'den çıkıyoruz - global function'lar için
+} // namespace SaltHareket sonu
+
 /**
  * AUTO-INVALIDATION
  * - Görsel silindiğinde → cache patlar
  * - Görsel güncellendiğinde (replace, crop, metadata) → cache patlar
  */
-function _sh_img_invalidate_cache($post_id) {
-    if (get_post_type($post_id) !== 'attachment') return;
-    $all_rels = get_option('sh_img_rels', []);
-    if (isset($all_rels[$post_id]) && is_array($all_rels[$post_id])) {
-        foreach ($all_rels[$post_id] as $hash) {
-            delete_transient($hash);
+if (!function_exists('_sh_img_invalidate_cache')) {
+    function _sh_img_invalidate_cache($post_id) {
+        if (get_post_type($post_id) !== 'attachment') return;
+        $all_rels = get_option('sh_img_rels', []);
+        if (isset($all_rels[$post_id]) && is_array($all_rels[$post_id])) {
+            foreach ($all_rels[$post_id] as $hash) {
+                delete_transient($hash);
+            }
+            // Silme işleminde mapping'i de kaldır, güncelleme'de koru (yeniden oluşturulacak)
+            if (current_action() === 'delete_attachment') {
+                unset($all_rels[$post_id]);
+                update_option('sh_img_rels', $all_rels, false);
+            }
         }
-        // Silme işleminde mapping'i de kaldır, güncelleme'de koru (yeniden oluşturulacak)
-        if (current_action() === 'delete_attachment') {
-            unset($all_rels[$post_id]);
-            update_option('sh_img_rels', $all_rels, false);
-        }
+        \SaltHareket\Image::clearStaticCache();
     }
-    \SaltHareket\Image::clearStaticCache();
 }
 add_action('delete_attachment', '_sh_img_invalidate_cache');
 add_action('edit_attachment', '_sh_img_invalidate_cache');
