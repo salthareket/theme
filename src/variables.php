@@ -244,9 +244,9 @@ add_action('after_setup_theme', function () use ($is_admin) {
             include_once THEME_INCLUDES_PATH . "twig-extends.php";
         }
         
-        if (class_exists('Timber_Acf_Wp_Blocks')) {
+        //if (class_exists('Timber_Acf_Wp_Blocks')) {
             include_once SH_INCLUDES_PATH . "plugins/timber-acf-blocks.php"; 
-        }
+        //}
     }
 
     // 4. ACF Kontrolü (Sadece front-end render sırasında yönlendir)

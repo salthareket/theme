@@ -1730,40 +1730,45 @@ class Update {
     private static function npm_install(): bool {
         $workingDir = ABSPATH;
         if (!is_dir($workingDir)) {
-            wp_send_json_error(['message' => 'npm path not found: '.$dir]);
+            wp_send_json_error(['message' => 'npm path not found: '.$workingDir]);
         }
 
-        //error_log(SH_PATH . "content/package.json -> ".$workingDir .'package.json');
-        //if (!file_exists($workingDir .'package.json')) {
-            self::fileCopy(SH_PATH . "content/package.json", $workingDir .'package.json');
-        //}
+        self::fileCopy(SH_PATH . "content/package.json", $workingDir .'package.json');
         
         if(!isLocalhost()){
            return true;
         }
 
-        $command = ['npm', 'install'];
-        $process = new Process($command, $workingDir);
-        $currentUser = getenv('USERNAME') ?: getenv('USER'); // Windows için USERNAME, diğer sistemlerde USER
-        $nodeJsPath = 'C:\Program Files\nodejs';
-        $npmPath = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
-        $process->setEnv([
-            'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath,
-        ]);
-        //print_r(getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath);
+        $currentUser = getenv('USERNAME') ?: getenv('USER');
+        $nodeJsPath  = 'C:\Program Files\nodejs';
+        $npmPath     = 'C:\Users\\' . $currentUser . '\AppData\Roaming\npm';
+        $env         = [ 'PATH' => getenv('PATH') . ';' . $nodeJsPath . ';' . $npmPath ];
+
+        // 1. Deneme: npm install
+        $process = new Process(['npm', 'install'], $workingDir);
+        $process->setEnv($env);
         $process->setTimeout(120);
+
         try {
             $process->mustRun();
-            //error_log($process->getOutput()); // Çıktıyı kaydet
             return true;
-            //wp_send_json_success(['message' => 'npm packages installed!']);
-            //return $process->getOutput();
         } catch (ProcessFailedException $e) {
-            // Hata durumunda istisna fırlat
-            //error_log('Webpack execution failed: ' . $exception->getMessage());
+            // Peer dependency çakışması olabilir (örn. jQuery 4.x) — --legacy-peer-deps ile retry
+            error_log('[npm_install] npm install failed, retrying with --legacy-peer-deps: ' . $e->getMessage());
+        }
+
+        // 2. Fallback: npm install --legacy-peer-deps
+        $fallback = new Process(['npm', 'install', '--legacy-peer-deps'], $workingDir);
+        $fallback->setEnv($env);
+        $fallback->setTimeout(120);
+
+        try {
+            $fallback->mustRun();
+            error_log('[npm_install] Installed with --legacy-peer-deps (peer dependency conflict resolved)');
+            return true;
+        } catch (ProcessFailedException $e) {
+            error_log('[npm_install] --legacy-peer-deps also failed: ' . $e->getMessage());
             return false;
-            //wp_send_json_error(['message' => 'npm packeges not installed: ' . $e->getMessage()]);
-            //throw new \Exception("npm install işlemi başarısız oldu: " . $e->getMessage());
         }
     }
     private static function install_mu_plugins(){
