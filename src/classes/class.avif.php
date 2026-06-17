@@ -2,10 +2,14 @@
 /**
  * Optimized Avif & WebP Converter Class
  *
- * @version 1.1.0
+ * @version 1.2.0
  *
  * Changelog:
  * -----------
+ * 1.2.0 — 2026-06-17
+ *   - Add: process_and_convert_metadata() sonunda orijinal dosyayı siler
+ *          (convert başarılı olunca JPG/PNG/GIF disk'ten temizlenir)
+ *
  * 1.1.0 — 2026-03-31
  *   - Fix: wp_update_post yerine $wpdb->update — save_post hook tetiklenmez, metadata bozulmaz
  *   - Fix: update_attached_file yerine update_post_meta — hook zinciri kırılmaz

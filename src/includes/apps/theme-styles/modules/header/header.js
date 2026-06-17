@@ -32,7 +32,7 @@
             $preview.css({ background: bgColor || '#ffffff', height });
 
             // Logo
-            const logos = (typeof themeStylesNew !== 'undefined' && themeStylesNew.logos) ? themeStylesNew.logos : {};
+            const logos = (typeof themeStyles !== 'undefined' && themeStyles.logos) ? themeStyles.logos : {};
             const logoUrl = isAffix
                 ? (logos.acf_logo_affix || logos.acf_logo || logos.wp_logo || '')
                 : (logos.acf_logo || logos.wp_logo || '');

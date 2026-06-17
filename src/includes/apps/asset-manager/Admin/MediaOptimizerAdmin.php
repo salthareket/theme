@@ -8,6 +8,18 @@ use SaltHareket\AssetManager\MediaOptimizer;
  * MediaOptimizerAdmin
  *
  * @version 1.1.0
+ * @changelog
+ *   1.1.0 - 2026-06-17
+ *     - Add: ajaxConvertSingle — direkt convert, queue/cron yok
+ *     - Add: wp_ajax_sh_mo_convert_single handler
+ *     - Change: renderScript tamamen yeniden yazıldı
+ *       - Convert Single: direkt AJAX, spinner → ✓ ikonu
+ *       - Convert Selected: sıralı AJAX, lock table (checkbox + single butonlar)
+ *       - Convert All: queue + cron + progress bar
+ *     - Add: "All images optimized" boş sonuç mesajı (yeşil check ikonu)
+ *     - Add: Pagination sadece pages>1'de görünür
+ *     - Fix: nonce bug — sh_mo_nonce ayrıca wp_create_nonce ile üretiliyor
+ *   1.0.0 - 2026-06-16 — Initial release
  */
 class MediaOptimizerAdmin
 {

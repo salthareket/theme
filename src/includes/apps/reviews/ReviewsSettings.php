@@ -7,8 +7,10 @@ namespace SaltHareket\Reviews;
  * Reviews sistemi için tüm ayarları yönetir.
  * wp_options tablosunda 'sh_reviews_settings' key'i altında JSON olarak saklanır.
  *
- * @version 1.0.1
+ * @version 1.0.2
  * @changelog
+ *   1.0.2 - 2026-06-17
+ *     - Add: saveAll() sonrası do_action('sh/reviews/saved') + do_action('sh/reviews/setting_changed')
  *   1.0.1 - 2026-06-16
  *     - Add: isApproveDisabled() — DISABLE_REVIEW_APPROVE define için helper
  *   1.0.0 - 2026-05-05 — Initial release

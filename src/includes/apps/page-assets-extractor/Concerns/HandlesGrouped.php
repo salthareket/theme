@@ -7,11 +7,15 @@
  * endpoint yonetimi ve toplu asset uygulama islemlerini kapsar.
  *
  * @package    SaltHareket\Theme\PageAssetsExtractor\Concerns
- * @version    1.0.0
+ * @version    1.0.1
  * @since      1.0.0
  * @author     SaltHareket
  *
  * @changelog
+ *   1.0.1 - 2026-06-17
+ *     - Add: get_grouped_urls() page bloğuna Polylang default lang filtresi
+ *            ML sitede sadece default dil sayfaları tabloda listelenir
+ *            (fetch sırasında diğer dillere zaten apply edilir)
  *   1.0.0 - 2026-05-03
  *     - Refactor: class.page-assets-extractor.php'den ayrildi
  *     - Add: CODING_PRINCIPLES uyumlu dokumantasyon eklendi

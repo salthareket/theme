@@ -13,8 +13,10 @@ namespace SaltHareket\Membership;
  *   require_once SH_INCLUDES_PATH . 'apps/membership/MembershipSettings.php';
  *   define("ENABLE_MEMBERSHIP", MembershipSettings::getSetting('enable_membership'));
  *
- * @version 1.0.0
+ * @version 1.0.1
  * @changelog
+ *   1.0.1 - 2026-06-17
+ *     - Add: save() sonrası do_action('sh/membership/saved') + do_action('sh/membership/setting_changed')
  *   1.0.0 - 2026-06-16
  *     - Add: Initial release — ACF options'tan taşındı
  *     - Add: Tüm membership ayarları wp_options'a alındı

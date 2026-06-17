@@ -9,8 +9,10 @@ namespace SaltHareket\Localization;
  * ACF options sayfasından okur (geriye uyumluluk) + kendi wp_options key'lerini kullanır.
  * ACF field'ları silinince kendi key'lerinden okumaya devam eder.
  *
- * @version 2.0.0
+ * @version 2.0.1
  * @changelog
+ *   2.0.1 - 2026-06-17
+ *     - Add: save() sonrası do_action('sh/localization/saved') + do_action('sh/localization/setting_changed')
  *   2.0.0 - 2026-06-16
  *     - Add: enable_localization — ana switch
  *     - Add: location_data_source — 'database' | 'package' (WC/JSON fallback)

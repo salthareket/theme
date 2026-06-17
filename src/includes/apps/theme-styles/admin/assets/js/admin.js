@@ -19,7 +19,7 @@
          * Initialize
          */
         init() {
-            this.data = themeStylesNew.data || {};
+            this.data = themeStyles.data || {};
             this.originalData = JSON.parse(JSON.stringify(this.data));
             
             this.bindEvents();
@@ -389,11 +389,11 @@
             const data = this.collectData();
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'theme_styles_save',
-                    nonce: themeStylesNew.nonce,
+                    nonce: themeStyles.nonce,
                     data: JSON.stringify(data)
                 },
                 success: (response) => {
@@ -439,11 +439,11 @@
             const data = this.collectData();
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'theme_styles_save_preset',
-                    nonce: themeStylesNew.nonce,
+                    nonce: themeStyles.nonce,
                     name: name,
                     data: JSON.stringify(data)
                 },
@@ -479,11 +479,11 @@
             this.showLoading();
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'theme_styles_load_preset',
-                    nonce: themeStylesNew.nonce,
+                    nonce: themeStyles.nonce,
                     name: name
                 },
                 success: (response) => {
@@ -518,11 +518,11 @@
             this.showLoading();
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'theme_styles_delete_preset',
-                    nonce: themeStylesNew.nonce,
+                    nonce: themeStyles.nonce,
                     name: name
                 },
                 success: (response) => {
@@ -548,7 +548,7 @@
          * Export preset
          */
         exportPreset(name) {
-            window.location.href = `${themeStylesNew.ajaxUrl.replace('admin-ajax.php', 'admin-post.php')}?action=theme_styles_export_preset&name=${name}`;
+            window.location.href = `${themeStyles.ajaxUrl.replace('admin-ajax.php', 'admin-post.php')}?action=theme_styles_export_preset&name=${name}`;
         },
 
         /**
@@ -560,9 +560,9 @@
 
             this.showLoading();
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
-                data: { action: 'theme_styles_duplicate_preset', nonce: themeStylesNew.nonce, name, new_name: newName.trim() },
+                data: { action: 'theme_styles_duplicate_preset', nonce: themeStyles.nonce, name, new_name: newName.trim() },
                 success: (response) => {
                     this.hideLoading();
                     if (response.success) {
@@ -585,9 +585,9 @@
 
             this.showLoading();
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
-                data: { action: 'theme_styles_rename_preset', nonce: themeStylesNew.nonce, name, new_name: newName.trim() },
+                data: { action: 'theme_styles_rename_preset', nonce: themeStyles.nonce, name, new_name: newName.trim() },
                 success: (response) => {
                     this.hideLoading();
                     if (response.success) {
@@ -621,11 +621,11 @@
             
             const formData = new FormData();
             formData.append('action', 'theme_styles_import_preset');
-            formData.append('nonce', themeStylesNew.nonce);
+            formData.append('nonce', themeStyles.nonce);
             formData.append('file', file);
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -662,11 +662,11 @@
             this.showLoading();
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'theme_styles_revert',
-                    nonce: themeStylesNew.nonce
+                    nonce: themeStyles.nonce
                 },
                 success: (response) => {
                     this.hideLoading();
@@ -737,7 +737,7 @@
                 .addClass(presetName ? 'ts-preset-badge-custom' : 'ts-preset-badge-default')
                 .html(`<span class="dashicons dashicons-saved"></span> ${label}`);
             // Localize objesini de güncelle ki refreshPresetList doğru aktif preset'i işaretlesin
-            themeStylesNew.activePreset = presetName || '';
+            themeStyles.activePreset = presetName || '';
         },
 
         /**
@@ -769,7 +769,7 @@
                 return;
             }
 
-            const activePreset = themeStylesNew.activePreset || '';
+            const activePreset = themeStyles.activePreset || '';
 
             Object.values(presets).forEach(preset => {
                 const isActive = preset.name === activePreset || preset.label === activePreset;
@@ -862,11 +862,11 @@
             const data = this.collectData();
             
             $.ajax({
-                url: themeStylesNew.ajaxUrl,
+                url: themeStyles.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'theme_styles_generate_preview',
-                    nonce: themeStylesNew.nonce,
+                    nonce: themeStyles.nonce,
                     data: JSON.stringify(data)
                 },
                 success: (response) => {

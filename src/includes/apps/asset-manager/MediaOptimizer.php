@@ -8,8 +8,15 @@ namespace SaltHareket\AssetManager;
  * Unoptimized (non-AVIF/WebP) media library images'ı tarar, kuyruğa alır
  * ve arka planda WP Cron ile dönüştürür. Session bazlı istatistik tutar.
  *
- * @version 1.0.0
+ * @version 1.1.0
  * @changelog
+ *   1.1.0 - 2026-06-17
+ *     - Add: convertSingle() — direkt convert, queue/cron yok (admin ⚡ butonu)
+ *     - Add: enqueue() last_update timestamp — stale queue tespiti için
+ *     - Add: processNext() her batch'te last_update günceller
+ *     - Add: getQueueStatus() stale queue koruması: 10 dk'dan eski → clearQueue()
+ *     - Fix: onQueueComplete() artık clearQueue() çağırır (stale queue önle)
+ *     - Fix: convertAttachment() saved_bytes: orijinal silinince yeni dosyadan hesapla
  *   1.0.0 - 2026-06-16 — Initial release
  *     - Add: scan() — unoptimized attachment'ları paged olarak listele
  *     - Add: enqueue() — ID listesini dönüştürme kuyruğuna ekle

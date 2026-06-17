@@ -7,11 +7,16 @@
  * Breakpoint bazlı media query'ler otomatik oluşturulur.
  *
  * @package SaltHareket\Theme\ThemeStyles
- * @version 1.3.0
+ * @version 1.4.0
  * @author  SaltHareket
  * @since   1.0.0
  *
  * CHANGELOG:
+ * 1.4.0 - 2026-06-17
+ * - Add: get_scss_variables() — save_data() için scss-variables.json üretimi
+ * - Add: generate() başında Theme_Styles_Module_Manager::init() garantili çağrılıyor
+ * - Change: Sınıf ve dosya adlandırması theme-styles-new → theme-styles
+ *
  * 1.3.0 - 2026-04-28
  * - $header_themes_css property eklendi
  * - set_header_themes_css() metodu eklendi - header themes CSS'ini root.css'e ekler

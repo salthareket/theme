@@ -67,7 +67,7 @@
                             <label class="ts-field-label">Size</label>
                             <select class="ts-field-select" data-field="custom.${index}.size">
                                 <option value="default">default</option>
-                                ${(themeStylesNew.breakpoints || ['xxxl','xxl','xl','lg','md','sm','xs']).map(bp => 
+                                ${(themeStyles.breakpoints || ['xxxl','xxl','xl','lg','md','sm','xs']).map(bp => 
                                     `<option value="${bp}">${bp}</option>`
                                 ).join('')}
                             </select>

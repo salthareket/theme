@@ -7,11 +7,18 @@
  * işlemlerini koordine eder.
  *
  * @package SaltHareket\Theme\ThemeStyles
- * @version 2.4.0
+ * @version 2.5.0
  * @author  SaltHareket
  * @since   1.0.0
  *
  * CHANGELOG:
+ * 2.5.0 - 2026-06-17
+ * - Change: theme-styles-new → theme-styles (rename). THEME_STYLES_NEW_* → THEME_STYLES_*
+ * - Change: class adı Theme_Styles_New → Theme_Styles
+ * - Add: save_data() sonunda scss-variables.json yazılır (SCSSCompiler için)
+ * - Add: save_data() theme_styles_save_colors() çağrısı
+ * - Change: WP option key'leri: theme_styles_new_* → theme_styles_*
+ *
  * 2.4.0 - 2026-04-28
  * - save_data() → header themes CSS üretimi eklendi (save_theme_styles_header_themes entegrasyonu)
  * - CSS generator'a set_header_themes_css() metodu eklendi
@@ -22,7 +29,7 @@
  * - Offcanvas ve Footer JS enqueue eklendi
  *
  * 2.2.0 - 2026-04-25
- * - Sticky toolbar için themeStylesNew.activePreset localize edildi
+ * - Sticky toolbar için themeStyles.activePreset localize edildi
  * - Logo data (wp_logo, acf_logo, acf_logo_affix) eklendi
  *
  * 2.1.0 - 2026-04-23
@@ -149,7 +156,7 @@ class Theme_Styles {
         );
         
         // Localize breakpoints from PHP
-        wp_localize_script('theme-styles-admin', 'themeStylesNew', [
+        wp_localize_script('theme-styles-admin', 'themeStyles', [
             'ajaxUrl'     => admin_url('admin-ajax.php'),
             'nonce'       => wp_create_nonce('theme_styles_nonce'),
             'modules'     => self::get_modules(),

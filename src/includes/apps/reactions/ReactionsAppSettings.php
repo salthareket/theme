@@ -8,8 +8,10 @@ namespace SaltHareket\Reactions;
  * Reactions app aktif/pasif ayarını yönetir.
  * (ReactionsSettings zaten reaction tiplerini yönetiyor — bu sadece enable toggle)
  *
- * @version 1.0.0
+ * @version 1.0.1
  * @changelog
+ *   1.0.1 - 2026-06-17
+ *     - Add: save() sonrası do_action('sh/reactions/saved') + do_action('sh/reactions/setting_changed')
  *   1.0.0 - 2026-06-16 — Initial release, ACF'ten taşındı
  */
 class ReactionsAppSettings

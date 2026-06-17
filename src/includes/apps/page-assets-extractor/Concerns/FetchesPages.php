@@ -7,10 +7,12 @@
  * heavy process lock mekanizması.
  *
  * @package    SaltHareket\Theme\PageAssetsExtractor
- * @version    1.0.0
+ * @version    1.0.1
  * @since      1.9.7
  *
  * @changelog
+ *   1.0.1 - 2026-06-17
+ *     - Fix: get_page_status() = 0 (localhost loopback) artık skip değil, wp_remote_get ile devam eder
  *   1.0.0 - 2026-05-03
  *     - Refactor: class.page-assets-extractor.php'den ayrıldı
  *     - Add: CODING_PRINCIPLES uyumlu dokümantasyon

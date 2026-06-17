@@ -13,8 +13,10 @@ namespace SaltHareket\Notifications;
  *   require_once SH_INCLUDES_PATH . 'apps/notifications/NotificationsSettings.php';
  *   define("ENABLE_NOTIFICATIONS", NotificationsSettings::getSetting('enable_notifications'));
  *
- * @version 1.0.1
+ * @version 1.0.2
  * @changelog
+ *   1.0.2 - 2026-06-17
+ *     - Add: save() sonrası do_action('sh/notifications/saved') + do_action('sh/notifications/setting_changed')
  *   1.0.1 - 2026-06-16
  *     - Fix: save() — alt kanal kuralı (enable_notifications=false → sıfırla) artık
  *            sadece enable_notifications bu çağrıda açıkça false gönderilirse çalışır.

@@ -1786,10 +1786,14 @@ class Update {
         acf_methods_settings();
     }
     private static function generate_files(){
-        $theme_styles = acf_get_theme_styles();
-        save_theme_styles_colors($theme_styles);
-        save_theme_styles_header_themes($theme_styles["header"]);
-        get_theme_styles([], true);
+        // Yeni Theme_Styles sistemi — eski get_theme_styles() / save_theme_styles_* kaldırıldı
+        if ( class_exists( 'Theme_Styles' ) ) {
+            $ts   = Theme_Styles::init();
+            $data = $ts->get_data();
+            if ( ! empty( $data ) ) {
+                $ts->save_data( $data );
+            }
+        }
     }
     private static function compile_js_css(){
         acf_compile_js_css();
