@@ -352,3 +352,46 @@ Example:
     ]
 ];
 */
+
+/**
+ * did_you_mean_search — Arama terimi için benzer öneri döndürür.
+ *
+ * İki katmanlı motor:
+ *   Tier 1 — SearchHistory tablosundan no_results=0 olan başarılı aramalar
+ *             (rank'e göre sıralı — popüler terimler önce gelir, hızlı).
+ *   Tier 2 — Site içeriğinden fallback: post başlıkları (product öncelikli)
+ *             + WooCommerce product_cat/product_tag terimleri.
+ *             ENABLE_SEARCH_HISTORY kapalıyken de çalışır.
+ *
+ * Twig'den function('did_you_mean_search', keyword, 2) ile çağrılır.
+ *
+ * @param string $keyword      Aranan (yanlış yazılmış) kelime
+ * @param int    $max_distance Levenshtein max mesafesi (default 2)
+ * @return string              En iyi öneri veya boş string
+ */
+if ( ! function_exists( 'did_you_mean_search' ) ) {
+    function did_you_mean_search( string $keyword, int $max_distance = 2 ): string {
+        if ( empty( trim( $keyword ) ) ) return '';
+        if ( ! class_exists( 'SearchHistory' ) ) return '';
+        $sh = new SearchHistory();
+        return $sh->did_you_mean( $keyword, $max_distance ) ?: '';
+    }
+}
+
+/**
+ * sh_get_popular_search_terms — Popüler arama terimlerini döndürür.
+ * SearchHistory::get_popular_terms() metoduna delege eder.
+ * Twig'den function('sh_get_popular_search_terms', post_type, count) ile çağrılır.
+ *
+ * @param string $post_type  Post type filtresi ('search', 'product' vb.)
+ * @param int    $count      Kaç terim döneceği
+ * @return array             Term string'lerinden oluşan array
+ */
+if ( ! function_exists( 'sh_get_popular_search_terms' ) ) {
+    function sh_get_popular_search_terms( string $post_type = 'search', int $count = 10 ): array {
+        if ( ! class_exists( 'SearchHistory' ) ) return [];
+        $sh = new SearchHistory();
+        // get_popular_terms() zaten string[] döndürür (wp_list_pluck ile name)
+        return $sh->get_popular_terms( $post_type, $count ) ?: [];
+    }
+}

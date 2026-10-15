@@ -1,6 +1,6 @@
 <?php
 
-function compile_files_config($enable_production=false){
+function compile_files_config($enable_development=false){
 
 	if (!function_exists("compile_files_plugins") && SH_THEME_EXISTS) {
         require THEME_INCLUDES_PATH . "minify-rules.php";
@@ -63,13 +63,13 @@ function compile_files_config($enable_production=false){
 		"node_uri" => $node_path_uri
 	);
 
-	if($enable_production){
+	if($enable_development){
 	   $node_path = $node_path_uri;
 	   $plugin_path = $plugin_path_uri;
 	   $prod_path = $prod_path_uri;
 	}
 
-	$header_has_navigation = header_has_navigation();
+	//$header_has_navigation = header_has_navigation();
 
 	$plugins = array();
 	$plugins['enquire'] = [
@@ -231,7 +231,7 @@ function compile_files_config($enable_production=false){
 	];
 	$plugins['plyr'] = [
 		"c"	=> true,
-		"admin" => false,
+		"admin" => true,
 		"url" => [
 			$node_path . 'plyr/dist/plyr.min.js'
 		],
@@ -251,7 +251,7 @@ function compile_files_config($enable_production=false){
 	];
 	$plugins['jquery-slinky'] = [
 		"c"   => true,
-		"admin" => false,
+		"admin" => true,
 		"url" => [
 			$node_path . 'jquery-slinky/dist/slinky.min.js'
 		],
@@ -283,7 +283,8 @@ function compile_files_config($enable_production=false){
 			'data-ajax-method="page_modal"', 
 			'data-ajax-method="iframe_modal"', 
 			'data-ajax-method="map_modal"',
-			'data-ajax-method="custom_modal"'
+			'data-ajax-method="custom_modal"',
+			'data-bs-source-modal'
 		],
 		"init" => "init_bootbox",
 		"whitelist" => [
@@ -296,7 +297,7 @@ function compile_files_config($enable_production=false){
 	];
 	$plugins['aos'] = [
 		"c"   => true,
-		"admin" => false,
+		"admin" => true,
 		"url" => [
 			$node_path . 'aos/dist/aos.js'
 		],
@@ -333,7 +334,7 @@ function compile_files_config($enable_production=false){
 	];
 	$plugins['justifiedGallery'] = [
 		"c"	=> true,
-		"admin" => false,
+		"admin" => true,
 		"url" => [
 			$node_path . 'justifiedGallery/dist/js/jquery.justifiedGallery.min.js'
 		],
@@ -351,7 +352,7 @@ function compile_files_config($enable_production=false){
 	];
 	$plugins['lightgallery'] = [
 		"c"   => true,
-		"admin" => false,
+		"admin" => true,
 		"url" => [
 			$node_path . 'lightgallery/lightgallery.min.js',
 			$node_path . 'lightgallery/plugins/video/lg-video.min.js'
@@ -386,7 +387,11 @@ function compile_files_config($enable_production=false){
 		"whitelist" => [
 			".image-uploader",
 			".uploaded",
-			".uploaded-*"
+			".uploaded-*",
+			".iu-avatar",
+			".iu-avatar-*",
+			".iu-avatar--*",
+			".iu-avatar__*"
 		],
 		"required" => []
 	];
@@ -472,7 +477,7 @@ function compile_files_config($enable_production=false){
 		"attrs" => [
             'data-ajax-method="map_modal"'
 		],
-		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "leaflet" ? 1: 0,
+		"condition" => \SaltHareket\SaltConfig::get('options_map_view') == "js" && \SaltHareket\SaltConfig::get('options_map_service') == "leaflet" ? 1: 0,
 		"init"     => "init_leaflet",
 		"whitelist" => [
 			".leaflet-*"
@@ -491,14 +496,14 @@ function compile_files_config($enable_production=false){
 		"attrs"  => [
 			'data-ajax-method="map_modal"'
 		],
-		"condition" => get_option("options_map_view") == "js" && get_option("options_map_service") == "google" ? 1: 0,
+		"condition" => \SaltHareket\SaltConfig::get("options_map_view") == "js" && \SaltHareket\SaltConfig::get("options_map_service") == "google" ? 1: 0,
 		"init"     => "init_google_maps",
 		"whitelist" => [],
 		"required" => []
 	];
 	$plugins['smarquee'] = [
 		"c"	=> true,
-		"admin" => false,
+		"admin" => true,
 		"url" => [
 			$node_path . 'smarquee/dist/smarquee.min.js'
 		],
@@ -601,36 +606,230 @@ function compile_files_config($enable_production=false){
 		"css_only_local" => false,
 		"class" => [".tab-collapse",".tab-collapse-*"],
 		"attrs" => [],
+		"init"     => "init_bs_tab_collapse",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['salt-offcanvas'] = [
+   		"c"	=> false,
+   		"admin" => false,
+		"url" => [
+			$js_sh_path . 'plugins/salt-offcanvas/salt-offcanvas.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
 		"init"     => "",
 		"whitelist" => [],
 		"required" => []
 	];
+	$plugins['simplycountdown'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'simplycountdown.js/dist/simplyCountdown.js'
+		],
+		"css" => [
+			$node_path . 'simplycountdown.js/dist/themes/default.css'
+		],
+		"css_only_local" => false,
+		"class" => ["sh-countdown"],
+		"attrs" => [],
+		"init"     => "init_simplycountdown",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['otp_input'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$js_sh_path . 'plugins/otp-input/otp-input.js'
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => ["otp-input"],
+		"attrs" => [],
+		"init"     => "init_otp_input",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['phone-validator'] = [
+   		"c"	=> true,
+   		"admin" => false,
+		"url" => [
+			$node_path . 'libphonenumber-js/bundle/libphonenumber-js.min.js',
+		],
+		"css" => [],
+		"css_only_local" => false,
+		"class" => ["form-control-phone"],
+		"attrs" => [],
+		"init"     => "init_phone_validator",
+		"whitelist" => [],
+		"required" => []
+	];
+	$plugins['select2-bootstrap-5-theme'] = [
+   		"c"	=> false,
+   		"admin" => false,
+		"url" => [],
+		"css" => [
+			$node_path . 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css'
+		],
+		"css_only_local" => false,
+		"class" => [],
+		"attrs" => [],
+		"init"     => "",
+		"whitelist" => [
+		    ".select2-container--bootstrap-5",
+		    ".select2-container--*",
+		    ".select2-*"
+		],
+		"required" => []
+	];
+	$plugins['tom-select'] = [
+	    "c"              => true,
+	    "admin"          => false,
+	    "url"            => [
+	        $node_path . 'tom-select/dist/js/tom-select.complete.min.js'
+	    ],
+	    "css"            => [
+	        $node_path . 'tom-select/dist/css/tom-select.bootstrap5.min.css'
+	    ],
+	    "css_only_local" => false,
+	    "class"          => ["ts-select", "typeahead"],
+	    "attrs"          => ["data-ts"],
+	    "init"           => "init_tom_select",
+	    "whitelist"      => [
+	        ".ts-wrapper",
+	        ".ts-control",
+	        ".ts-dropdown",
+	        ".ts-dropdown-content",
+	        ".ts-dropdown-*",
+	        ".ts-input",
+	        ".ts-item",
+	        ".ts-*",
+	        ".plugin-*",
+	    ],
+	    "required"       => []
+	];
+	$plugins['inputmask'] = [
+	    "c"              => true,
+	    "admin"          => false,
+	    "url"            => [
+	        $node_path . '@enp/inputmask/dist/jquery.inputmask.min.js'
+	    ],
+	    "css"            => [],
+	    "css_only_local" => false,
+	    "class"          => [
+	        "form-control-postal-code",
+	        "form-control-phone",
+	        "form-control-gsm",
+	        "form-control-tckn",
+	        "form-control-tckn-serial",
+	        "form-control-tckn-old",
+	        "form-control-currency",
+	        "form-control-iban",
+	        "form-control-date",
+	        "form-control-license",
+	        "form-control-percentage",
+	    ],
+	    "attrs"          => [
+	        "data-slug",
+	        "data-alphaonly",
+	        "data-numericonly",
+	        "data-alphanumericonly",
+	    ],
+	    "init"           => "input_masks",
+	    "whitelist"      => [],
+	    "required"       => []
+	];
+	$plugins['jquery-serializejson'] = [
+	    "c"              => true,
+	    "admin"          => false,
+	    "url"            => [
+	        $node_path . 'jquery-serializejson/jquery.serializejson.min.js'
+	    ],
+	    "css"            => [],
+	    "css_only_local" => false,
+	    "class"          => [],
+	    "attrs"          => [],
+	    "init"           => "",
+	    "whitelist"      => [],
+	    "required"       => []
+	];
+	$plugins['jquery-validation'] = [
+	    "c"              => true,
+	    "admin"          => false,
+	    "url"            => [
+	        $node_path . 'jquery-validation/dist/jquery.validate.min.js',
+	        $node_path . 'jquery-validation/dist/additional-methods.min.js',
+	    ],
+	    "css"            => [],
+	    "css_only_local" => false,
+	    "class"          => ["form-validate"],
+	    "attrs"          => ["data-remote", "data-rule-username-rule"],
+	    "init"           => "form_validate",
+	    "whitelist"      => [
+	        ".is-invalid",
+	        ".is-valid",
+	        ".invalid-feedback",
+	        ".valid-feedback",
+	        ".alert",
+	        ".alert-*"
+	    ],
+	    "required"       => ["jquery-serializejson"]
+	];
 
-    if(!isset($plugins["smartmenus"]) && $header_has_navigation){
-	 	$plugins['smartmenus'] = [
-	 		"c"   => true,
-	 		"admin" => false,
-			"url" => [
-				$node_path . 'smartmenus/dist/jquery.smartmenus.min.js',
-				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.min.js'
-			],
-			"css" => [
-				$node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css'
-			],
-			"css_only_local" => false,
-		"class" => ["smartmenu"],
-			"attrs" => [],
-			"init"     => "init_smartmenus",
-		    "whitelist" => [
-		    	".highlighted"
-		    ],
-			"required" => ["bootstrap"]
-		];
-	}
+
+
+
+	
+
+
+	
+
+    // smartmenus — her zaman conditional plugin map'te olsun.
+    // header_has_navigation() kontrolu kaldirildi: class detection HTML'den yapilir.
+    // Eger sayfada / template'te 'smartmenu' class'i varsa yuklenir, yoksa yuklenmez.
+    if ( ! isset( $plugins['smartmenus'] ) ) {
+        $plugins['smartmenus'] = [
+            'c'            => true,
+            'admin'        => false,
+            'url'          => [
+                $node_path . 'smartmenus/dist/jquery.smartmenus.min.js',
+                $node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.min.js',
+            ],
+            'css'          => [
+                $node_path . 'smartmenus/dist/addons/bootstrap-4/jquery.smartmenus.bootstrap-4.css',
+            ],
+            'css_only_local' => false,
+            'class'        => ['smartmenu'],
+            'attrs'        => [],
+            'init'         => 'init_smartmenus',
+            'whitelist'    => ['.highlighted'],
+            'required'     => ['bootstrap'],
+        ];
+
+        // ── Social Share ──────────────────────────────────────────────────────
+        $plugins['social-share'] = [
+            'c'            => true,
+            'admin'        => false,
+            'url'          => [
+                $plugin_path . 'social-share.js',
+            ],
+            'css'          => [],
+            'css_only_local' => false,
+            'class'        => ['sh-social-share'],
+            'attrs'        => ['data-required-js=social-share'],
+            'init'         => '',
+            'whitelist'    => ['.sh-social-share', '.sh-ss-btn'],
+            'required'     => [],
+        ];
+    }
     
     if(function_exists("compile_files_plugins")){
     	////error_log(" ----------------  compile_files_plugins");
-		$theme_plugins = compile_files_plugins($enable_production);
+		$theme_plugins = compile_files_plugins($enable_development);
 
 		if($theme_plugins){
 			$plugins = array_merge($plugins, $theme_plugins);
@@ -717,7 +916,7 @@ function compile_files_config($enable_production=false){
 	    "plugins_admin" => $plugins_admin
 	);
 
-	if($enable_production){
+	if($enable_development){
 		$js["functions"] = array();
 		$functions = array_slice(scandir($config["prod"].'functions/'), 2);
 
@@ -756,6 +955,14 @@ function compile_files_config($enable_production=false){
 		$js["main"] = array();
 		$main =  array_slice(scandir($config["prod"].'main/'), 2);
 		foreach($main as $file){
+			// woocommerce.js sadece ENABLE_ECOMMERCE aktifse dahil et
+			if ( $file === 'woocommerce.js' && ( ! defined('ENABLE_ECOMMERCE') || ! ENABLE_ECOMMERCE ) ) {
+				continue;
+			}
+			// Kopya/yedek dosyaları dahil etme
+			if ( strpos( $file, ' - Kopya' ) !== false || strpos( $file, ' - Copy' ) !== false ) {
+				continue;
+			}
 			$js["main"][] = $prod_path_uri.'main/'.$file;
 		}
 

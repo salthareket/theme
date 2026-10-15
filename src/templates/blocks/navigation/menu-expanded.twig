@@ -1,0 +1,54 @@
+{% set menu_level = menu_level is empty ? 1 : menu_level %}
+{% set max_level  = max_level  is empty or max_level == 0 ? 9999 : max_level %}
+
+{% if menu_level <= 1 %}
+{# direction: horizontal → flex-row, vertical → flex-column #}
+{% set ul_class = direction == 'vertical' ? 'nav flex-column' : 'nav flex-row flex-wrap' %}
+<nav class="nav-menu {{ class_name }}" id="menu-{{ block_meta.id }}" role="navigation"
+     itemscope itemtype="https://schema.org/SiteNavigationElement"
+     aria-label="{{ translate('Menu') }}">
+    <ul class="{{ ul_class }} nav-{{fields.menu_view}}">
+{% endif %}
+
+{% for item in menu %}
+
+    {% if menu_level <= max_level %}
+
+        {% set props = item.get_properties({
+            parent_link : parent_link,
+            collapsed   : true,
+            menu_level  : menu_level,
+            max_level   : max_level
+        }) %}
+
+        <li class="{{ props.item.class }}" data-menu-level="{{ menu_level }}">
+
+            <a href="{{ item.children and menu_level < max_level ? '#' : props.link.href }}"
+               class="text-wrap {{ props.link.class }}"
+               {% if props.link.target %}target="{{ props.link.target }}"{% endif %}
+               {{ props.link.attrs }}>
+                {{ item.title }}
+            </a>
+
+            {% if item.children and menu_level < max_level %}
+            <ul class="dropdown-menu show position-relative bg-transparent">
+                {% include "blocks/navigation/menu-expanded.twig" with {
+                    'menu'       : item.children,
+                    'menu_level' : menu_level + 1,
+                    'max_level'  : max_level,
+                    'parent_link': parent_link,
+                    'direction'  : direction
+                } %}
+            </ul>
+            {% endif %}
+
+        </li>
+
+    {% endif %}
+
+{% endfor %}
+
+{% if menu_level <= 1 %}
+    </ul>
+</nav>
+{% endif %}

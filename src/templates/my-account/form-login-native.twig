@@ -1,220 +1,1265 @@
-{% set woocommerce_enable_myaccount_registration  = false %}
+{#
+  form-login-native.twig
+  WooCommerce YOKKEN kullanılır. AJAX tabanlı login + isteğe bağlı register.
+
+  Passwordless-first mantığı:
+  - enable_passwordless = true  → İlk step: passwordless (telefon no + OTP)
+                                   "Sign in with password" butonu ile şifre formuna geç
+  - enable_passwordless = false → Doğrudan şifre formu
+
+  2FA aktifse: login yanıtı requires_2fa:true döner → JS 2FA adımını gösterir.
+#}
+{% set woocommerce_enable_myaccount_registration  = function('membership_enable_registration') %}
 {% set woocommerce_registration_generate_username = true %}
-{% set woocommerce_registration_generate_password = false %}
+{% set woocommerce_registration_generate_password = function('membership_generate_password') %}
 
-<div class="container-md my-5">
-    <div class="bg-white rounded-5 shadow-sm">
+{# Passwordless aktifse ilk gösterilen adım passwordless, değilse login #}
+{% set _first_step = (enable_passwordless is defined and enable_passwordless) ? 'passwordless' : 'login' %}
 
-        <form class="card card-login-signup card-login card-reset form form-validate" id="form-login" autocomplete="off" method="post" {% if woocommerce_enable_myaccount_registration %}data-condition="form-type !== 'signup'"{% endif %} data-ajax-method="login">
-		    <div class="card-header py-4 text-center">
-		    	<h2 class="card-title m-0 text-dark">{{__("Login", "woocommerce")}}</h2>
-		    </div>
-		    <div class="card-body">
-		    	<div class="row justify-content-center">
-		    		<div class="col-lg-8 col-10">
+<div class="container py-5">
+<div class="row justify-content-center">
+<div class="col-12 col-md-8 col-lg-6 col-xl-5">
 
-					    {% if not post_data.username %}
-						<div class="form-group ">
-							<label for="username" class="form-label d-none">E-mail <span class="required">*</span></label>
-							<input type="text" class="form-control form-control-lg border-dark-subtle border rounded-5" name="username" id="username" placeholder="E-mail" autocomplete="username" value="{{post_data.username}}" required/>
-						</div>
-					    {% endif %}
-						<div class="form-group ">
-							<label for="password" class="form-label d-none">Password <span class="required">*</span></label>
-							<input class="form-control form-control-lg" type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required/>
-						</div>
+    {# ── Passwordless step (ilk adım — enable_passwordless true ise) ─────── #}
+    {% if enable_passwordless is defined and enable_passwordless %}
+    <div id="sh-auth-step-passwordless"{% if _first_step != 'passwordless' %} style="display:none"{% endif %}>
 
-                        {% if enable_lost_password or enable_remember_login %}
-						<div class="form-group ">
-							<div class="row align-items-center">
-							    {% if enable_remember_login %}
-								<div class="col">
-									<div class="form-check">
-						                <input type="checkbox" class="form-check-input" name="rememberme" type="checkbox" id="rememberme" value="forever">
-						                <label class="form-check-label" for="rememberme">Remember me</label>
-						            </div>
-								</div>
-							    {% endif %}
-							    {% if enable_lost_password %}
-								<div class="col">
-							        <div class="woocommerce-LostPassword lost_password text-end">
-										<a href="#" class="btn btn-link btn-forgot-password p-0" data-ajax-method='template_modal' data-template='partials/modals/lost-password' data-size='md'>{{__( 'Lost your password?', 'woocommerce' )}}</a>
-									</div>
-								</div>
-							    {% endif %}
-							</div>
-						</div>
-						{% endif %}
-		    		
-		    		</div>
-		    	</div>
-		    </div>
-		    <div class="card-footer pb-5">
-				<div class="row justify-content-center">
-			     	<div class="col-lg-8">
-			     	    {% if post_data.redirect_url %}
-                            <input type="hidden" name="redirect_url" value="{{post_data.redirect_url}}"/>
-			     	    {% endif %}
-			     	    {% if post_data.username %}
-                           <input type="hidden" name="username" value="{{post_data.username}}"/>
-			     	    {% endif %}
-			     	    {{ function('wp_nonce_field', 'woocommerce-login', 'woocommerce-login-nonce')}}	
-			            <button type="submit" class="btn-submit btn btn-danger fw-bold btn-lg text-uppercase w-100 woocommerce-form-login__submit" name="login" value="{{__( 'Login', 'woocommerce' )}}">{{__( 'Login', 'woocommerce' )}}</button>
+        <div class="text-center mb-4">
+            {{ fa_icon('mobile-signal', 'light', 'fa-3x text-secondary opacity-50 mb-2') }}
+            <h2 class="fw-bold mb-1">{{ translate("Sign in with SMS") }}</h2>
+            <p class="text-muted small mb-0">{{ translate("We'll send a one-time code to your registered phone number.") }}</p>
+        </div>
 
-			            {% if enable_social_login %}
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
 
-			            <div class="seperator-or">OR</div>
+            <form id="form-passwordless"
+                  class="form needs-validation"
+                  autocomplete="off"
+                  novalidate>
 
-			            {{'[nextend_social_login login="1" link="1" unlink="1"]'|shortcodes}}
+                {# ── Telefon: country code select + numara input ──────────── #}
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small d-flex flex-row gap-1">
+                        {{ translate("Phone Number") }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group input-group-lg">
 
-			            {#'[nextend_social_login provider="linkedin"]'|shortcodes}}
-			            {{'[nextend_social_login provider="google"]'|shortcodes#}
+                        {# Country code select — wp_countries tablosundan #}
+                        {% set _countries = function('salt_get_countries') %}
+                        {% if _countries %}
+                        <select name="phone_code"
+                                class="form-select flex-shrink-0"
+                                style="max-width:130px"
+                                aria-label="{{ translate('Country code') }}">
+                            {% for c in _countries %}
+                            <option value="+{{ c.phonecode }}"
+                                    data-iso="{{ c.iso2 }}"
+                                    {% if c.iso2 == 'TR' %}selected{% endif %}>
+                                {{ c.iso2 }} +{{ c.phonecode }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input type="text" name="phone_code"
+                               class="form-control flex-shrink-0"
+                               style="max-width:90px"
+                               placeholder="+90" value="+90" maxlength="6"/>
+                        {% endif %}
 
-			            {% endif %}
-			            
-			            {% if woocommerce_enable_myaccount_registration %}
-			            <a href="#" class="btn-form-type btn btn-outline-dark- btn-link btn-lg fw-bold text-uppercase w-100" value="signup">CREATE A NEW ACCOUNT</a>
-			            {% endif %}
-			        
-			      	</div>
-			    </div>
-		    </div>
-		</form>
-        
-        {% if woocommerce_enable_myaccount_registration %}
-	    <form class="card card-login-signup card-signup card-reset form form-validate d-none" id="form-registraton" autocomplete="off" method="post" data-ajax-method="register" data-condition="form-type == 'signup'">
-		    <div class="card-header py-4 text-center text-dark">
-				<h2 class="card-title m-0">Create your saran-group account</h2>
-		    </div>
-			<div class="card-body">
-				<div class="row justify-content-center">
-				    <div class="col-lg-8 col-10">
-				    	<div class="row gx-lg-2">
-                            
-                            {% do action('woocommerce_register_form_start') %}
-
-							{% if not woocommerce_registration_generate_username %}
-
-							<div class="col-12" data-condition="role">
-								<div class="form-group ">
-									<label for="reg_username" class="form-label d-none">
-									     {{translate( 'Username')}} <span class="required">*</span>
-									</label>
-									<input type="text" class="form-control form-control-lg" name="username" id="reg_username" placeholder="{{translate( 'Username')}}" autocomplete="username" value="{{post_data.username}}" required/>
-								</div>
-							</div>
-
-							{% endif %}
-
-							<div class="col-12" data-condition="role">
-								<div class="form-group ">
-									<label for="reg_email" class="form-label d-none">
-										E-mail <span class="required">*</span>
-									</label>
-									<input type="email" class="form-control form-control-lg" name="email" id="reg_email" placeholder="E-mail" autocomplete="email" value="{{post_data.email}}" data-rule="email" data-remote="user_exist" data-remote-param="email" data-msg="Bu kullanıcı var" required/>
-								</div>
-							</div>
-
-							{% if not woocommerce_registration_generate_password %}
-
-								<div class="col-lg-6" data-condition="role">
-									<div class="form-group ">
-										<label class="form-label d-none" for="reg_password">Password <span class="required">*</span></label>
-										<input type="password" class="form-control form-control-lg" name="password" id="reg_password" placeholder="Password" autocomplete="new-password" required/>
-									</div>
-								</div>
-
-								<div class="col-lg-6" data-condition="role">
-									<div class="form-group ">
-										<label class="form-label d-none" for="reg_password">Password <span class="required">*</span></label>
-										<input type="password" class="form-control form-control-lg" name="password_2" id="reg_password_2" placeholder="Password (again)" data-rule-equalto="#reg_password[name='password']" data-msg="Your passwords should match!" autocomplete="new-password" required/>
-									</div>
-								</div>
-
-							{% else %}
-
-								<div class="col-12 text-center">{{__('Your password will send your e-mail address.', 'woocommerce' )}}</div>
-
-							{% endif %}
-
-							{% do action('woocommerce_register_form') %}
-							    
-							<div class="col-12 mt-5">
-				                <div class="form-group " data-condition="role">
-				                    {#<div class="form-check">
-				                        <input type="checkbox" class="form-check-input" id="newsletter" name="newsletter" value="true">
-				                        <label class="form-check-label" for="newsletter">
-				                            Yes! I'd like to receive Salt's newsletter on travel news & specials.
-				                        </label>
-				                    </div>#}
-				                    <div class="form-check">
-				                        <input type="checkbox" class="form-check-input" id="agreement" name="agreement" value="true" required>
-				                        <label class="form-check-label" for="agreement">
-				                            By clicking "submit" below, I agree to the <a href="#" class="text-primary text-underline" data-ajax-method="page_modal" data-id="terms-conditions">Terms of Use</a> and <a href="#" class="text-primary text-underline" data-ajax-method="page_modal" data-id="privacy-policy">Privacy Policy.</a>
-				                        </label>
-				                    </div>
-				                 </div>
-				            </div>
-
-				        </div>
+                        <input type="tel" name="phone"
+                               class="form-control form-control-phone"
+                               placeholder="555 000 00 00"
+                               autocomplete="tel" required/>
                     </div>
-				</div>
-			</div>
-			<div class="card-footer pb-5 text-center">
-			    <div class="row justify-content-center">
-				    <div class="col-lg-8 col-10">
-						{{ function('wp_nonce_field', 'woocommerce-register', 'woocommerce-register-nonce')}}	
-						<button type="submit" class="btn btn-danger rounded-5 w-100 fw-bold" name="register" value="SIGNUP" data-condition="role">{{__('SIGNUP', 'woocommerce' )}}</button>
-                        
-                        {% if enable_social_login %}
-						<div class="seperator-or">OR</div>
+                    <div class="form-text text-muted small mt-1">
+                        {{ translate("Use the phone number registered to your account.") }}
+                    </div>
+                </div>
 
-						{{'[nextend_social_login login="1" link="1" unlink="1"]'|shortcodes}}
+                <div class="d-grid">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Send Code") }}
+                    </button>
+                </div>
 
-					    {% endif %}
+            </form>
 
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="sh-toggle-password-login">
+                    {{ fa_icon('lock', 'regular', 'me-1') }}{{ translate("Sign in with password") }}
+                </button>
+            </div>
 
-						 <a href="#" class="btn-form-type btn btn-outline-dark- btn-link text-uppercase rounded-5 w-100 fw-bold" value="login">I already have an account.</a>
-					</div>
-			</div>
-		</form>
+            {% if woocommerce_enable_myaccount_registration %}
+            <div class="text-center mt-2">
+                <span class="text-muted small">{{ translate("Don't have an account?") }}</span>
+                <button type="button" class="btn btn-link small p-0 ms-1 btn-form-type" value="signup">
+                    {{ translate("Create account") }}
+                </button>
+            </div>
+            {% endif %}
 
-		<input type="hidden" name="form-type" value="" />
-	    {% endif %}
+        </div>
+        </div>
 
-    </div>
-</div>
+    </div>{# /step-passwordless #}
+    {% endif %}
 
+    {# ── STEP: Login formu ───────────────────────────────────────────────── #}
+    <div id="sh-auth-step-login"{% if _first_step != 'login' %} style="display:none"{% endif %}>
+
+        <div class="text-center mb-4">
+            <h2 class="fw-bold mb-1">{{ translate("Welcome back") }}</h2>
+            <p class="text-muted small mb-0">{{ translate("Sign in to your account to continue.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            <form id="form-login"
+                  class="form form-validate needs-validation"
+                  autocomplete="off"
+                  method="post"
+                  novalidate
+                  data-ajax-method="login">
+
+                <div class="mb-3">
+                    <label for="login-username" class="form-label fw-semibold small">
+                        {{ translate("Email Address") }}
+                    </label>
+                    <input type="text"
+                           id="login-username"
+                           name="username"
+                           class="form-control form-control-lg"
+                           placeholder="{{ translate('your@email.com') }}"
+                           autocomplete="username"
+                           value="{{ post_data.username|default('') }}"
+                           required/>
+                    <div class="invalid-feedback">{{ translate("Email is required.") }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="login-password" class="form-label fw-semibold small d-flex justify-content-between align-items-center">
+                        <span>{{ translate("Password") }}</span>
+                        {% if enable_lost_password %}
+                        {#
+                          Modal versiyonu — ileride kullanmak için saklandı:
+                          <a href="#" class="text-muted small fw-normal"
+                             data-ajax-method="template_modal"
+                             data-template="partials/modals/lost-password"
+                             data-size="md">{{ translate("Forgot password?") }}</a>
+                        #}
+                        <a href="#" class="text-muted small fw-normal" id="sh-forgot-pw-link">
+                            {{ translate("Forgot password?") }}
+                        </a>
+                        {% endif %}
+                    </label>
+                    <input type="password"
+                           id="login-password"
+                           name="password"
+                           class="form-control form-control-lg"
+                           placeholder="••••••••"
+                           autocomplete="current-password"
+                           required/>
+                    <div class="invalid-feedback">{{ translate("Password is required.") }}</div>
+                </div>
+
+                {% if enable_remember_login %}
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               id="rememberme"
+                               name="rememberme"
+                               value="forever"/>
+                        <label class="form-check-label small" for="rememberme">
+                            {{ translate("Remember me") }}
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if post_data.redirect_url %}
+                <input type="hidden" name="redirect_url" value="{{ post_data.redirect_url }}"/>
+                {% endif %}
+
+                {{ function('wp_nonce_field', 'woocommerce-login', 'woocommerce-login-nonce') }}
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Sign In") }}
+                    </button>
+                </div>
+
+            </form>
+
+            {# Passwordless geri dön #}
+            {% if enable_passwordless is defined and enable_passwordless %}
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="sh-toggle-passwordless">
+                    {{ fa_icon('mobile-signal', 'regular', 'me-1') }}{{ translate("Log in without password") }}
+                </button>
+            </div>
+            {% endif %}
+
+            {# Social Login #}
+            {% if enable_social_login %}
+            <div class="my-4 d-flex align-items-center gap-3">
+                <hr class="flex-grow-1 my-0"/>
+                <span class="text-muted small">{{ translate("or") }}</span>
+                <hr class="flex-grow-1 my-0"/>
+            </div>
+            {{ '[nextend_social_login login="1" link="1" unlink="1"]'|shortcodes }}
+            {% endif %}
+
+            {% if woocommerce_enable_myaccount_registration %}
+            <div class="text-center mt-3">
+                <span class="text-muted small">{{ translate("Don't have an account?") }}</span>
+                <button type="button" class="btn btn-link small p-0 ms-1 btn-form-type" value="signup">
+                    {{ translate("Create account") }}
+                </button>
+            </div>
+            {% endif %}
+
+        </div>
+        </div>
+
+    </div>{# /step-login #}
+
+    {# ── OTP verify step (passwordless kod girişi) ────────────────────────── #}
+    {% if enable_passwordless is defined and enable_passwordless %}
+    <div id="sh-auth-step-pwless-otp" style="display:none">
+
+        <div class="text-center mb-4">
+            {{ fa_icon('message-sms', 'light', 'fa-3x text-secondary opacity-50 mb-2') }}
+            <h2 class="fw-bold mb-1">{{ translate("Enter the code") }}</h2>
+            <p class="text-muted small mb-0" id="sh-pwless-otp-desc">{{ translate("We sent a 6-digit code to your phone.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            <form id="form-pwless-otp"
+                  class="form needs-validation"
+                  novalidate>
+
+                <div class="mb-4 text-center">
+                    <input type="text" name="otp_code"
+                           class="form-control form-control-lg text-center fw-bold fs-3 mx-auto"
+                           style="max-width:220px;letter-spacing:.4em"
+                           maxlength="6" minlength="6" inputmode="numeric"
+                           autocomplete="one-time-code" placeholder="000000" required/>
+                </div>
+                <input type="hidden" name="otp_id" class="sh-pwless-otp-id"/>
+                <input type="hidden" name="pending_token" class="sh-pwless-pending-token"/>
+
+                <div class="d-grid mb-3">
+                    <button type="button" id="sh-pwless-verify-btn" class="btn btn-primary btn-lg fw-bold">
+                        {{ translate("Verify & Sign In") }}
+                    </button>
+                </div>
+
+                {# Countdown + Resend #}
+                <div class="text-center">
+                    <div id="sh-pwless-countdown-wrap" class="text-muted small mb-2">
+                        {{ translate("Code expires in") }}
+                        <span id="sh-pwless-countdown" class="fw-semibold">--:--</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-link text-muted small p-0 sh-pwless-resend"
+                            id="sh-pwless-resend-btn"
+                            disabled>
+                        {{ translate("Resend code") }}
+                        <span id="sh-pwless-resend-count" class="text-muted" style="font-size:11px"></span>
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="sh-pwless-otp-back">
+                    ← {{ translate("Back") }}
+                </button>
+            </div>
+
+        </div>
+        </div>
+
+    </div>{# /step-pwless-otp #}
+    {% endif %}
+
+    {# ── 2FA step ─────────────────────────────────────────────────────────── #}
+    <div id="sh-auth-step-2fa" style="display:none">
+
+        <div class="text-center mb-4">
+            {{ fa_icon('shield-check', 'light', 'fa-3x text-secondary opacity-50 mb-2') }}
+            <h2 class="fw-bold mb-1" id="sh-2fa-title">{{ translate("Two-Step Verification") }}</h2>
+            <p class="text-muted small mb-0" id="sh-2fa-desc">{{ translate("Enter the verification code to continue.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            {# SMS 2FA form #}
+            <form id="form-2fa-sms"
+                  class="form form-validate needs-validation sh-2fa-form"
+                  data-method="sms"
+                  autocomplete="off"
+                  novalidate
+                  data-ajax-method="verify_2fa_sms"
+                  style="display:none">
+
+                <div class="mb-4 text-center">
+                    <label class="form-label fw-semibold small d-block mb-3">
+                        {{ translate("Enter the 6-digit code sent to your phone") }}
+                    </label>
+                    <input type="text"
+                           name="otp_code"
+                           class="form-control form-control-lg text-center fw-bold fs-3 mx-auto"
+                           style="max-width:220px;letter-spacing:.4em"
+                           maxlength="6" minlength="6" inputmode="numeric"
+                           autocomplete="one-time-code" placeholder="000000" required/>
+                </div>
+                <input type="hidden" name="pending_token" class="sh-pending-token"/>
+                <input type="hidden" name="otp_id" class="sh-otp-id"/>
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Verify") }}
+                    </button>
+                </div>
+                <div class="text-center">
+                    <button type="button" class="btn btn-link text-muted small p-0 sh-resend-otp">
+                        {{ translate("Resend code") }}
+                    </button>
+                </div>
+
+            </form>
+
+            {# TOTP 2FA form #}
+            <form id="form-2fa-totp"
+                  class="form form-validate needs-validation sh-2fa-form"
+                  data-method="totp"
+                  autocomplete="off"
+                  novalidate
+                  data-ajax-method="verify_2fa_totp"
+                  style="display:none">
+
+                <div class="mb-4 text-center">
+                    <label class="form-label fw-semibold small d-block mb-3">
+                        {{ translate("Enter the 6-digit code from your authenticator app") }}
+                    </label>
+                    <input type="text"
+                           name="totp_code"
+                           class="form-control form-control-lg text-center fw-bold fs-3 mx-auto"
+                           style="max-width:220px;letter-spacing:.4em"
+                           maxlength="6" minlength="6" inputmode="numeric"
+                           autocomplete="one-time-code" placeholder="000000" required/>
+                </div>
+                <input type="hidden" name="pending_token" class="sh-pending-token"/>
+                <div class="d-grid">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Verify") }}
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="sh-2fa-back">
+                    ← {{ translate("Back to login") }}
+                </button>
+            </div>
+
+        </div>
+        </div>
+
+    </div>{# /step-2fa #}
+
+    {# ═══════════════════════════════════════════════════════════════════════ #}
+    {# ── Forgot password steps (inline — modal versiyonu comment'te)        #}
+    {#    Akış: sh-auth-step-forgot → sh-auth-step-forgot-otp → sh-auth-step-reset-pw #}
+    {# ═══════════════════════════════════════════════════════════════════════ #}
+
+    {# ── STEP: Forgot — email gir ────────────────────────────────────────── #}
+    {% if enable_lost_password %}
+    <div id="sh-auth-step-forgot" style="display:none">
+
+        <div class="text-center mb-4">
+            {{ fa_icon('envelope-open-text', 'light', 'fa-3x text-secondary opacity-50 mb-2') }}
+            <h2 class="fw-bold mb-1">{{ translate("Forgot Password?") }}</h2>
+            <p class="text-muted small mb-0">{{ translate("Enter your email address and we'll send you a verification code.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            <form id="form-forgot" class="form form-validate needs-validation" autocomplete="off" novalidate>
+
+                <div class="mb-4">
+                    <label for="forgot-email" class="form-label fw-semibold small d-flex flex-row gap-1">
+                        {{ translate("Email Address") }} <span class="text-danger">*</span>
+                    </label>
+                    <input type="email"
+                           id="forgot-email"
+                           name="user_login"
+                           class="form-control form-control-lg"
+                           placeholder="{{ translate('your@email.com') }}"
+                           autocomplete="email"
+                           inputmode="email"
+                           required/>
+                    <div class="invalid-feedback">{{ translate("Please enter a valid email address.") }}</div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Send Verification Code") }}
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="sh-forgot-back">
+                    ← {{ translate("Back to sign in") }}
+                </button>
+            </div>
+
+        </div>
+        </div>
+
+    </div>{# /step-forgot #}
+
+    {# ── STEP: Forgot OTP — kodu gir ─────────────────────────────────────── #}
+    <div id="sh-auth-step-forgot-otp" style="display:none">
+
+        <div class="text-center mb-4">
+            {{ fa_icon('message-lines', 'light', 'fa-3x text-secondary opacity-50 mb-2') }}
+            <h2 class="fw-bold mb-1">{{ translate("Check Your Email") }}</h2>
+            <p class="text-muted small mb-0" id="sh-forgot-otp-desc">
+                {{ translate("We sent a verification code to your email address.") }}
+            </p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            <form id="form-forgot-otp" class="form needs-validation" autocomplete="off" novalidate>
+
+                {# OTP kutucuklar #}
+                {% include "my-account/partials/otp-input.twig" with {
+                    otp_length  : otp_length ?? 6,
+                    input_name  : "otp_code",
+                    input_class : "sh-forgot-otp-code",
+                    wrap_id     : "sh-otp-forgot"
+                } %}
+
+                <input type="hidden" name="forgot_token" class="sh-forgot-token"/>
+
+                <div class="d-grid mb-3 mt-4">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Verify Code") }}
+                    </button>
+                </div>
+
+                {# Countdown + Resend #}
+                <div class="text-center">
+                    <div class="text-muted small mb-2">
+                        {{ translate("Code expires in") }}
+                        <span id="sh-forgot-countdown" class="fw-semibold">--:--</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-link text-muted small p-0"
+                            id="sh-forgot-resend-btn"
+                            disabled>
+                        {{ translate("Resend code") }}
+                        <span id="sh-forgot-resend-count" class="text-muted" style="font-size:11px"></span>
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="sh-forgot-otp-back">
+                    ← {{ translate("Back") }}
+                </button>
+            </div>
+
+        </div>
+        </div>
+
+    </div>{# /step-forgot-otp #}
+
+    {# ── STEP: Reset PW — yeni şifre gir ────────────────────────────────── #}
+    <div id="sh-auth-step-reset-pw" style="display:none">
+
+        <div class="text-center mb-4">
+            {{ fa_icon('lock-keyhole', 'light', 'fa-3x text-secondary opacity-50 mb-2') }}
+            <h2 class="fw-bold mb-1">{{ translate("Set New Password") }}</h2>
+            <p class="text-muted small mb-0">{{ translate("Choose a strong password for your account.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            <form id="form-reset-pw" class="form form-validate needs-validation" autocomplete="off" novalidate>
+
+                <input type="hidden" name="reset_token" class="sh-reset-token"/>
+
+                <div class="mb-3">
+                    <label for="reset-password" class="form-label fw-semibold small d-flex flex-row gap-1">
+                        {{ translate("New Password") }} <span class="text-danger">*</span>
+                    </label>
+                    <input type="password"
+                           id="reset-password"
+                           name="new_password"
+                           class="form-control form-control-lg"
+                           placeholder="••••••••"
+                           autocomplete="new-password"
+                           minlength="8"
+                           required/>
+                    <div class="invalid-feedback">{{ translate("Password must be at least 8 characters.") }}</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="reset-password-2" class="form-label fw-semibold small d-flex flex-row gap-1">
+                        {{ translate("Confirm Password") }} <span class="text-danger">*</span>
+                    </label>
+                    <input type="password"
+                           id="reset-password-2"
+                           name="confirm_password"
+                           class="form-control form-control-lg"
+                           placeholder="••••••••"
+                           autocomplete="new-password"
+                           minlength="8"
+                           data-rule-equalto="#reset-password"
+                           data-msg="{{ translate('Passwords do not match.') }}"
+                           required/>
+                    <div class="invalid-feedback">{{ translate("Passwords do not match.") }}</div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Reset Password") }}
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+        </div>
+
+    </div>{# /step-reset-pw #}
+    {% endif %}{# enable_lost_password #}
+
+    {# ── Register form (isteğe bağlı) ────────────────────────────────────── #}
+    {% if woocommerce_enable_myaccount_registration %}
+    <div id="sh-auth-step-signup" style="display:none">
+
+        <div class="text-center mb-4">
+            <h2 class="fw-bold mb-1">{{ translate("Create your account") }}</h2>
+            <p class="text-muted small mb-0">{{ translate("Join us today.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+
+            <form id="form-registration"
+                  class="form form-validate needs-validation sh-no-error-summary"
+                  autocomplete="off"
+                  novalidate
+                  data-ajax-method="register">
+
+                {% do action('woocommerce_register_form_start') %}
+
+                {# ── Rol seçimi — en az 2 seçilebilir rol varsa göster ──────── #}
+                {% if enable_role_selection and selectable_roles|length >= 2 %}
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small d-block mb-2">
+                        {{ translate("I am registering as") }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for role in selectable_roles %}
+                        <div class="form-check">
+                            <input class="form-check-input"
+                                   type="radio"
+                                   name="role"
+                                   id="reg-role-{{ role.slug }}"
+                                   value="{{ role.slug }}"
+                                   {% if loop.first %}checked{% endif %}
+                                   required/>
+                            <label class="form-check-label" for="reg-role-{{ role.slug }}">
+                                {{ role.label }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {# ── Dynamic fields grid ───────────────────────────────────── #}
+                {#
+                   Tüm enabled + show_on_register field'lar otomatik olarak
+                   do_action('sh_register_form_field_{key}') ile render edilir.
+                   Built-in field'lar (first_name, last_name, phone, country, state)
+                   kendi özel PHP metodlarına yönlendirilir.
+                   Diğerleri (gender, shoe_size, clothing_size, custom field'lar)
+                   type'a göre PHP renderFieldDynamic() ile render edilir.
+                #}
+                <div class="row g-3 mb-3">
+
+                    {# ── first_name + last_name — her zaman yan yana ────────── #}
+                    {% if function('has_action', 'sh_register_form_field_first_name') %}
+                    <div class="col-12 col-sm-6">
+                        {% do action('sh_register_form_field_first_name') %}
+                    </div>
+                    {% endif %}
+
+                    {% if function('has_action', 'sh_register_form_field_last_name') %}
+                    <div class="col-12 col-sm-6">
+                        {% do action('sh_register_form_field_last_name') %}
+                    </div>
+                    {% endif %}
+
+                    {# ── Email (sabit) ────────────────────────────────────────── #}
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label for="reg-email" class="form-label fw-semibold small d-flex flex-row gap-1">
+                                {{ translate("Email Address") }} <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" id="reg-email" name="email" class="form-control form-control-lg"
+                                   placeholder="{{ translate('your@email.com') }}" autocomplete="email"
+                                   value="{{ post_data.email|default('') }}"
+                                   data-rule="email"
+                                   data-remote="user_exist"
+                                   data-remote-param="email"
+                                   data-msg="{{ translate('This email is already registered.') }}"
+                                   required/>
+                        </div>
+                    </div>
+
+                    {# ── Şifre ────────────────────────────────────────────────── #}
+                    {% if not woocommerce_registration_generate_password %}
+                    <div class="col-12 col-sm-6">
+                        <div class="mb-3">
+                            <label for="reg-password" class="form-label fw-semibold small d-flex flex-row gap-1">
+                                {{ translate("Password") }} <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" id="reg-password" name="password"
+                                   class="form-control form-control-lg"
+                                   placeholder="••••••••" autocomplete="new-password" minlength="8" required/>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="mb-3">
+                            <label for="reg-password-2" class="form-label fw-semibold small d-flex flex-row gap-1">
+                                {{ translate("Confirm Password") }} <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" id="reg-password-2" name="password_2"
+                                   class="form-control form-control-lg"
+                                   placeholder="••••••••" autocomplete="new-password"
+                                   data-rule-equalto="#reg-password[name='password']"
+                                   data-msg="{{ translate('Passwords do not match.') }}"
+                                   required/>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <p class="text-muted small mb-0">{{ translate("Your password will be sent to your email address.") }}</p>
+                    </div>
+                    {% endif %}
+
+                    {# ── phone — tam genişlik ─────────────────────────────────── #}
+                    {% if function('has_action', 'sh_register_form_field_phone') %}
+                    <div class="col-12">
+                        {% do action('sh_register_form_field_phone') %}
+                    </div>
+                    {% endif %}
+
+                    {# ── country + state — yan yana ───────────────────────────── #}
+                    {% if function('has_action', 'sh_register_form_field_country') %}
+                    <div class="col-12 col-sm-6">
+                        {% do action('sh_register_form_field_country') %}
+                    </div>
+                    {% endif %}
+
+                    {% if function('has_action', 'sh_register_form_field_state') %}
+                    <div class="col-12 col-sm-6">
+                        {% do action('sh_register_form_field_state') %}
+                    </div>
+                    {% endif %}
+
+                    {# ── Diğer tüm field'lar — dinamik loop ───────────────────── #}
+                    {% set _builtin_keys = ['first_name', 'last_name', 'phone', 'country', 'state'] %}
+                    {% set _rf = register_fields ?? function('SaltHareket\\Membership\\MembershipSettings::getSetting', 'register_fields') ?? {} %}
+                    {% for _fkey, _fcfg in _rf %}
+                        {% if (_fcfg.enabled ?? false) and (_fcfg.show_on_register ?? true) and _fkey not in _builtin_keys %}
+                        <div class="col-12 col-sm-6">
+                            {% do action('sh_register_form_field_' ~ _fkey) %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+
+                </div>{# /row #}
+
+                {% do action('woocommerce_register_form') %}
+
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="reg-agreement" name="agreement" value="true" required/>
+                        <label class="form-check-label small" for="reg-agreement">
+                            {{ translate("I agree to the") }}
+                            <a href="#" class="text-primary" data-ajax-method="page_modal" data-id="terms-conditions">{{ translate("Terms of Use") }}</a>
+                            {{ translate("and") }}
+                            <a href="#" class="text-primary" data-ajax-method="page_modal" data-id="privacy-policy">{{ translate("Privacy Policy") }}</a>.
+                        </label>
+                        <div class="invalid-feedback">{{ translate("You must agree before continuing.") }}</div>
+                    </div>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Create Account") }}
+                    </button>
+                </div>
+
+                {% if enable_social_login %}
+                <div class="my-3 d-flex align-items-center gap-3">
+                    <hr class="flex-grow-1 my-0"/>
+                    <span class="text-muted small">{{ translate("or") }}</span>
+                    <hr class="flex-grow-1 my-0"/>
+                </div>
+                {{ '[nextend_social_login login="1" link="1" unlink="1"]'|shortcodes }}
+                {% endif %}
+
+            </form>
+
+            <div class="text-center mt-3">
+                <span class="text-muted small">{{ translate("Already have an account?") }}</span>
+                <button type="button" class="btn btn-link small p-0 ms-1 btn-form-type" value="login">
+                    {{ translate("Sign in") }}
+                </button>
+            </div>
+
+        </div>
+        </div>
+
+    </div>{# /step-signup #}
+
+    <input type="hidden" id="sh-form-type" name="form-type" value=""/>
+    {% endif %}
+
+</div>{# col #}
+</div>{# row #}
+</div>{# container #}
 
 <script>
-	window.addEventListener("hashchange", function(){
-		alert(window.location.hash);
-        if(window.location.hash == "#form-registration"){
-	       $("#signup-method-email").prop("checked");
-	    }
-	}, false);
-    $( document ).ready(function() {
-    	if(window.location.hash == "#form-registration"){
-           $("#signup-method-email").prop("checked");
-    	}
+(function($){
+    'use strict';
 
-    	$(".btn-form-type").on("click", function(e){
+    var _firstStep = '{{ _first_step }}';
+
+    // ── Genel inline form submit helper ──────────────────────────────────
+    // form_validate init çalışmadığında devreye girer.
+    // Tüm #form-* submit'leri method+vars toplayıp ajax_query ile gönderir.
+    function shSubmitForm($form, method, onDone) {
+        if ($form[0].checkValidity && !$form[0].checkValidity()) {
+            $form[0].reportValidity();
+            return;
+        }
+        var $btn        = $form.find('[type="submit"]').first().prop('disabled', true);
+        var $loadTarget = $form.closest('.card-body, .card');
+        if ($loadTarget.length) $loadTarget.addClass('loading-process');
+        else $('body').addClass('loading-process');
+
+        var vars = {};
+        $form.find('input, select, textarea').each(function(){
+            var name = $(this).attr('name');
+            if (!name) return;
+            var type = ($(this).attr('type') || '').toLowerCase();
+            if (type === 'checkbox') {
+                if ($(this).is(':checked')) vars[name] = $(this).val();
+            } else if (type === 'radio') {
+                if ($(this).is(':checked')) vars[name] = $(this).val();
+            } else {
+                vars[name] = $(this).val();
+            }
+        });
+
+        var q = new ajax_query();
+        q.method = method;
+        q.vars   = vars;
+        q.done   = function(res){
+            $btn.prop('disabled', false);
+            if ($loadTarget.length) $loadTarget.removeClass('loading-process');
+            else $('body').removeClass('loading-process');
+            if (onDone) onDone(res, $form);
+        };
+        q.request();
+    }
+
+    // response_view ile hata/mesaj/redirect yönetimi
+    function shHandleResponse(res, $form) {
+        if (typeof response_view === 'function') {
+            response_view(res);
+        } else if ($form && res && res.error) {
+            var $msg = $form.find('.sh-form-msg');
+            if (!$msg.length) {
+                $msg = $('<div class="sh-form-msg alert alert-danger py-2 small mb-3"></div>').prependTo($form);
+            }
+            $msg.text(res.message || '{{ translate("An error occurred.") }}');
+        }
+    }
+
+    // ── Adım yönetimi ─────────────────────────────────────────────────────
+    function showStep(step) {
+        $('#sh-auth-step-login,#sh-auth-step-passwordless,#sh-auth-step-pwless-otp,#sh-auth-step-2fa,#sh-auth-step-signup,#sh-auth-step-forgot,#sh-auth-step-forgot-otp,#sh-auth-step-reset-pw').hide();
+        $('#sh-auth-step-' + step).show();
+    }
+
+    // Login ↔ Signup toggle
+    $(document).on('click', '.btn-form-type', function(e){
+        e.preventDefault();
+        var val = $(this).attr('value');
+        $('#sh-form-type').val(val).trigger('change');
+        showStep(val === 'signup' ? 'signup' : _firstStep);
+    });
+
+    // Passwordless → şifre formu
+    $('#sh-toggle-password-login').on('click', function(){ showStep('login'); });
+
+    // Şifre → passwordless
+    $('#sh-toggle-passwordless').on('click', function(){ showStep('passwordless'); });
+
+    // 2FA geri
+    $('#sh-2fa-back').on('click', function(){
+        showStep(_firstStep);
+        $('.sh-2fa-form').hide();
+        $('#form-login')[0] && $('#form-login')[0].reset();
+    });
+
+    // ── Forgot Password ───────────────────────────────────────────────────
+    var _forgotToken  = '';
+    var _forgotEmail  = '';
+    var _fcdTimer     = null;
+    var _fResendCount = 0;
+    var _fMaxResend   = parseInt('{{ otp_max_resend ?? 3 }}') || 3;
+    var _fOtpExpiry   = parseInt('{{ otp_expiry ?? 300 }}') || 300;
+
+    function shStartForgotCountdown(seconds) {
+        if (_fcdTimer) clearInterval(_fcdTimer);
+        _fResendCount = 0;
+        $('#sh-forgot-resend-count').text('');
+        var $cd  = $('#sh-forgot-countdown');
+        var $btn = $('#sh-forgot-resend-btn');
+        $btn.prop('disabled', true);
+        var rem = parseInt(seconds) || _fOtpExpiry;
+        function _tick() {
+            var m = Math.floor(rem / 60), s = rem % 60;
+            $cd.text((m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s);
+            if (rem <= 0) {
+                clearInterval(_fcdTimer);
+                if (_fResendCount < _fMaxResend) $btn.prop('disabled', false);
+                else $btn.text('{{ translate("Max resend reached") }}').prop('disabled', true);
+                return;
+            }
+            rem--;
+        }
+        _tick();
+        _fcdTimer = setInterval(_tick, 1000);
+    }
+
+    // "Forgot password?" linke tık → forgot step
+    $(document).on('click', '#sh-forgot-pw-link', function(e){
+        e.preventDefault();
+        showStep('forgot');
+        $('#forgot-email').focus();
+    });
+
+    // Forgot adımından geri
+    $(document).on('click', '#sh-forgot-back', function(){
+        showStep(_firstStep);
+        $('#form-forgot')[0] && $('#form-forgot')[0].reset();
+    });
+
+    // Forgot OTP adımından geri
+    $(document).on('click', '#sh-forgot-otp-back', function(){
+        if (_fcdTimer) clearInterval(_fcdTimer);
+        showStep('forgot');
+    });
+
+    // Forgot: email gönder → OTP adımına geç
+    $(document).on('submit', '#form-forgot', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var $form = $(this);
+        var $btn  = $form.find('[type="submit"]').first().prop('disabled', true);
+        var $lt   = $form.closest('.card-body, .card');
+        if ($lt.length) $lt.addClass('loading-process');
+        var q = new ajax_query();
+        q.method = 'password_recover';
+        q.vars   = { user_login: $('#forgot-email').val().trim() };
+        q.done   = function(res) {
+            $btn.prop('disabled', false);
+            if ($lt.length) $lt.removeClass('loading-process');
+            if (res && res.error) { shHandleResponse(res, $form); return; }
+            var d = (res.data && typeof res.data === 'object') ? res.data : {};
+            _forgotToken = d.forgot_token || '';
+            _forgotEmail = $('#forgot-email').val().trim();
+            if (!_forgotToken) {
+                // Email-link modu: bilgi ver, forgot adımında kal
+                shHandleResponse(res, $form);
+                return;
+            }
+            // OTP modu
+            $('#form-forgot-otp .sh-forgot-token').val(_forgotToken);
+            var masked = _forgotEmail.replace(/(.{2}).+(@.+)/, '$1***$2');
+            $('#sh-forgot-otp-desc').text('{{ translate("We sent a verification code to") }} ' + masked);
+            shStartForgotCountdown(parseInt(d.otp_expiry) || _fOtpExpiry);
+            showStep('forgot-otp');
+            $('#sh-otp-forgot input.otp-cell').val('').first().focus();
+        };
+        q.request();
+    });
+
+    // Forgot resend
+    $(document).on('click', '#sh-forgot-resend-btn', function(){
+        if (_fResendCount >= _fMaxResend) return;
+        _fResendCount++;
+        $('#sh-forgot-resend-count').text('(' + _fResendCount + '/' + _fMaxResend + ')');
+        $('#form-forgot').trigger('submit');
+    });
+
+    // Forgot OTP: kodu doğrula → reset-pw adımına geç
+    $(document).on('submit', '#form-forgot-otp', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var otp_code = '';
+        $('#sh-otp-forgot input.otp-cell').each(function(){ otp_code += $(this).val(); });
+        var otp_len = parseInt('{{ otp_length ?? 6 }}') || 6;
+        if (!otp_code || otp_code.length < otp_len) {
+            $('#sh-otp-forgot input.otp-cell').first().focus();
+            return;
+        }
+        var token = _forgotToken || $('#form-forgot-otp .sh-forgot-token').val();
+        if (!token) {
+            shHandleResponse({ error: true, message: '{{ translate("Session expired. Please start over.") }}' }, $(this));
+            showStep('forgot');
+            return;
+        }
+        var $form = $(this);
+        var $btn  = $form.find('[type="submit"]').first().prop('disabled', true);
+        var $lt   = $form.closest('.card-body, .card');
+        if ($lt.length) $lt.addClass('loading-process');
+        var q = new ajax_query();
+        q.method = 'verify_forgot_otp';
+        q.vars   = { otp_code: otp_code, forgot_token: token };
+        q.done   = function(res){
+            $btn.prop('disabled', false);
+            if ($lt.length) $lt.removeClass('loading-process');
+            if (res && res.error) { shHandleResponse(res, $form); return; }
+            var d = (res.data && typeof res.data === 'object') ? res.data : {};
+            var resetToken = d.reset_token || '';
+            if (!resetToken) { shHandleResponse({ error: true, message: '{{ translate("Verification failed. Please try again.") }}' }, $form); return; }
+            if (_fcdTimer) clearInterval(_fcdTimer);
+            _forgotToken = '';
+            $('#form-reset-pw .sh-reset-token').val(resetToken);
+            showStep('reset-pw');
+            $('#reset-password').focus();
+        };
+        q.request();
+    });
+
+    // Reset PW: yeni şifre kaydet
+    $(document).on('submit', '#form-reset-pw', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var newPw  = $('#reset-password').val();
+        var confPw = $('#reset-password-2').val();
+        if (newPw.length < 8) {
+            $('#reset-password')[0].setCustomValidity('{{ translate("Password must be at least 8 characters.") }}');
+            $(this)[0].reportValidity();
+            $('#reset-password')[0].setCustomValidity('');
+            return;
+        }
+        if (newPw !== confPw) {
+            $('#reset-password-2')[0].setCustomValidity('{{ translate("Passwords do not match.") }}');
+            $(this)[0].reportValidity();
+            $('#reset-password-2')[0].setCustomValidity('');
+            return;
+        }
+        var $form = $(this);
+        var $btn  = $form.find('[type="submit"]').first().prop('disabled', true);
+        var $lt   = $form.closest('.card-body, .card');
+        if ($lt.length) $lt.addClass('loading-process');
+        var q = new ajax_query();
+        q.method = 'reset_password_with_token';
+        q.vars   = {
+            reset_token:      $form.find('.sh-reset-token').val(),
+            new_password:     newPw,
+            confirm_password: confPw
+        };
+        q.done   = function(res){
+            $btn.prop('disabled', false);
+            if ($lt.length) $lt.removeClass('loading-process');
+            if (res && res.error) { shHandleResponse(res, $form); return; }
+            $form[0].reset();
+            showStep(_firstStep);
+            if (typeof response_view === 'function') {
+                response_view(res);
+            } else {
+                var $msg = $('<div class="alert alert-success py-2 small mb-3"></div>').text(
+                    res.message || '{{ translate("Password updated. You can now sign in.") }}'
+                );
+                $('#sh-auth-step-' + _firstStep).find('.card-body').prepend($msg);
+                setTimeout(function(){ $msg.fadeOut(400, function(){ $(this).remove(); }); }, 4000);
+            }
+        };
+        q.request();
+    });
+
+    // ── 2FA event ─────────────────────────────────────────────────────────
+    $(document).on('sh:login:requires_2fa', function(e, res){
+        var method = res.method || 'sms';
+        var token  = res.pending_token || '';
+        var otpId  = res.otp_id || '';
+
+        if (method === 'sms') {
+            $('#sh-2fa-title').text('{{ translate("SMS Verification") }}');
+            $('#sh-2fa-desc').text('{{ translate("Enter the 6-digit code sent to your phone.") }}');
+            $('#form-2fa-sms .sh-pending-token').val(token);
+            $('#form-2fa-sms .sh-otp-id').val(otpId);
+            $('#form-2fa-sms').show();
+            $('#form-2fa-totp').hide();
+        } else if (method === 'totp') {
+            $('#sh-2fa-title').text('{{ translate("Authenticator App") }}');
+            $('#sh-2fa-desc').text('{{ translate("Enter the 6-digit code from your authenticator app.") }}');
+            $('#form-2fa-totp .sh-pending-token').val(token);
+            $('#form-2fa-totp').show();
+            $('#form-2fa-sms').hide();
+        }
+        showStep('2fa');
+        $('.sh-2fa-form:visible input').first().focus();
+    });
+
+    // ── Hash tabanlı adım (#signup) ───────────────────────────────────────
+    function checkHash() {
+        if (window.location.hash === '#signup') showStep('signup');
+    }
+    checkHash();
+    $(window).on('hashchange', checkHash);
+
+    // ── Country → State chain ─────────────────────────────────────────────
+    $(document).on('change', '#form-registration select[name="country"]', function(){
+        var iso2        = $(this).val();
+        var $stateWrap  = $('#sh-reg-state-wrap');
+        var $stateSelect= $('#sh-reg-state-select');
+        var phonecode   = $(this).find('option:selected').data('phonecode');
+        var statesCount = parseInt($(this).find('option:selected').data('states') || 0);
+
+        if (phonecode) {
+            $('select[name="phone_code"]').find('option').each(function(){
+                if ($(this).data('iso') === iso2) { $(this).prop('selected', true); }
+            });
+            $('input[name="phone_code"]').val('+' + phonecode);
+        }
+
+        if (!iso2 || statesCount === 0) {
+            $stateWrap.hide();
+            $stateSelect.html('<option value="">{{ translate("Select state / city") }}</option>');
+            return;
+        }
+
+        $stateWrap.show();
+        $stateSelect.html('<option value="">{{ translate("Loading...") }}</option>');
+
+        var q = new ajax_query();
+        q.method = 'get_states';
+        q.vars   = { country_code: iso2 };
+        q.done   = function(res){
+            $stateSelect.html('<option value="">{{ translate("Select state / city") }}</option>');
+            if (!res.error && res.data && res.data.length) {
+                $.each(res.data, function(i, s){
+                    $stateSelect.append('<option value="' + s.id + '">' + s.name + '</option>');
+                });
+            }
+        };
+        q.request();
+    });
+
+    // ── Login form submit ─────────────────────────────────────────────────
+    $(document).on('submit', '#form-login', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        shSubmitForm($(this), 'login', function(res, $form){
+            if (res && !res.error && res.requires_2fa) {
+                $(document).trigger('sh:login:requires_2fa', [res]);
+            } else {
+                shHandleResponse(res, $form);
+                if (res && !res.error && res.redirect) window.location.href = res.redirect;
+            }
+        });
+    });
+
+    // ── Passwordless session — JS değişkenlerinde sakla (hidden input unreliable) ──
+    var _pwlessToken = '';
+    var _pwlessOtpId = '';
+
+    // methods.min.js'deki ajax_hooks override et — passwordless_request bizim handler'a gelsin
+    // Eski delegate handler'ları iptal et
+    $(document).off('submit', '#form-pwless-otp');
+
+    // ajax_hooks hazır olunca override et
+    function _overridePasswordlessHooks() {
+        if (typeof ajax_hooks === 'undefined') {
+            setTimeout(_overridePasswordlessHooks, 100);
+            return;
+        }
+        // passwordless_request — done callback'i bizim twig handler'ı çağırmasın, biz handle ediyoruz
+        if (!ajax_hooks['passwordless_request']) ajax_hooks['passwordless_request'] = {};
+        var _origPwlessAfter = ajax_hooks['passwordless_request'].after || null;
+        ajax_hooks['passwordless_request'].after = function(res) {
+            // response_view çağırma — biz handle ediyoruz
+            return;
+        };
+        ajax_hooks['passwordless_request'].done = function(res) {
+            return;
+        };
+    }
+    _overridePasswordlessHooks();
+
+    // ── Passwordless: telefon → OTP ────────────────────────────────────────
+    $(document).on('submit', '#form-passwordless', function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        shSubmitForm($(this), 'passwordless_request', function(res, $form){
+            if (res && res.error) { shHandleResponse(res, $form); return; }
+
+            // DEBUG — res.data ne geliyor
+            console.log('[Pwless] res:', JSON.stringify(res));
+
+            var d = (res.data && typeof res.data === 'object') ? res.data : {};
+            _pwlessToken = d.pending_token || '';
+            _pwlessOtpId = d.otp_id       || '';
+
+            console.log('[Pwless] token:', _pwlessToken, '| otp_id:', _pwlessOtpId);
+            var expiry   = parseInt(d.otp_expiry) || 300;
+            var phone    = d.phone || '';
+
+            if (!_pwlessToken || !_pwlessOtpId) {
+                shHandleResponse({ error: true, message: '{{ translate("Could not start session. Please try again.") }}' }, $form);
+                return;
+            }
+
+            $('#form-pwless-otp input[name="otp_code"]').val('');
+            if (phone) $('#sh-pwless-otp-desc').text('{{ translate("Code sent to") }} ' + phone);
+            shStartCountdown(expiry);
+            showStep('pwless-otp');
+            $('#form-pwless-otp input[name="otp_code"]').focus();
+        });
+    });
+
+    // ── Countdown ─────────────────────────────────────────────────────────
+    var _cdTimer     = null;
+    var _resendCount = 0;
+    var _maxResend   = 5;
+
+    function shStartCountdown(seconds) {
+        if (_cdTimer && typeof _cdTimer.stop === 'function') _cdTimer.stop();
+        _resendCount = 0;
+        $('#sh-pwless-resend-count').text('');
+        var $cd  = $('#sh-pwless-countdown');
+        var $btn = $('#sh-pwless-resend-btn');
+        $btn.prop('disabled', true);
+
+        _cdTimer = shCountdownStart(
+            $cd[0],
+            parseInt(seconds) || 300,
+            function(){
+                if (_resendCount < _maxResend) $btn.prop('disabled', false);
+                else $btn.text('{{ translate("Max resend reached") }}').prop('disabled', true);
+            },
+            null,
+            'mm:ss'
+        );
+    }
+
+    $(document).on('click', '#sh-pwless-resend-btn', function(){
+        if (_resendCount >= _maxResend) return;
+        _resendCount++;
+        $('#sh-pwless-resend-count').text('(' + _resendCount + '/' + _maxResend + ')');
+        $('#form-passwordless').trigger('submit');
+    });
+
+    $('#sh-pwless-otp-back').on('click', function(){
+        if (_cdTimer && typeof _cdTimer.stop === 'function') _cdTimer.stop();
+        showStep('passwordless');
+    });
+
+    // ── Passwordless OTP doğrula — doğrudan buton click, form submit değil ──
+    // btn type="button" yaptık — form submit event'i hiç tetiklenmiyor
+    function bindPwlessOtpSubmit() {
+        $('#sh-pwless-verify-btn').off('click.pwless').on('click.pwless', function(e){
             e.preventDefault();
-            $("input[name='form-type']").val($(this).attr("value")).trigger("change");
-    	})
+            e.stopImmediatePropagation();
 
+            var otp_code = $('#form-pwless-otp input[name="otp_code"]').val().trim();
+            if (!otp_code) {
+                $('#form-pwless-otp input[name="otp_code"]').focus();
+                return;
+            }
 
-		$("a.btn-social-facebook").on("click", function(e){
-			e.preventDefault();
-			var $form = $(this).closest("form");
-			//if($form.valid()){
-				$form.removeClass("form-changed");
-				$("a.facebook-connect").trigger("focus").trigger("click");
-			//}else{
-				$("input[name='agreement']").removeClass("ignore");
-			//}
-		});
+            if (!_pwlessToken || !_pwlessOtpId) {
+                shHandleResponse({ error: true, message: '{{ translate("Session expired. Please request a new code.") }}' }, $('#form-pwless-otp'));
+                return;
+            }
 
-		//btn_forgot_password();
-	});
+            var $btn        = $(this).prop('disabled', true);
+            var $loadTarget = $('#form-pwless-otp').closest('.card-body, .card');
+            if ($loadTarget.length) $loadTarget.addClass('loading-process');
+
+            var q = new ajax_query();
+            q.method = 'passwordless_verify';
+            q.vars   = {
+                otp_code:      otp_code,
+                otp_id:        _pwlessOtpId,
+                pending_token: _pwlessToken
+            };
+            q.done = function(res){
+                $btn.prop('disabled', false);
+                if ($loadTarget.length) $loadTarget.removeClass('loading-process');
+                if (res && res.error) {
+                    shHandleResponse(res, $('#form-pwless-otp'));
+                } else if (res && !res.error) {
+                    _pwlessToken = '';
+                    _pwlessOtpId = '';
+                    if (res.redirect) window.location.href = res.redirect;
+                }
+            };
+            q.request();
+        });
+    }
+
+    // İlk bağlama + showStep override
+    bindPwlessOtpSubmit();
+    var _origShowStep = showStep;
+    showStep = function(step) {
+        _origShowStep(step);
+        if (step === 'pwless-otp') {
+            setTimeout(bindPwlessOtpSubmit, 100);
+        }
+    };
+
+    // showStep('pwless-otp') sonrası da yeniden bağla (DOM değişmiş olabilir)
+    var _origShowStep = showStep;
+    showStep = function(step) {
+        _origShowStep(step);
+        if (step === 'pwless-otp') {
+            setTimeout(bindPwlessOtpSubmit, 50);
+        }
+    };
+    // ── Register form submit ──────────────────────────────────────────────
+    // data-ajax-method="register" sistemi handle ediyor
+
+})(jQuery);
 </script>

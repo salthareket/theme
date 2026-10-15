@@ -43,19 +43,19 @@ use SaltHareket\Reactions\ReactionsAppSettings;
  *
  * @example
  *   // Types tab: reaction tiplerini tanimla
- *   // ?page=salt-reactions&tab=types
+ *   // ?page=sh-reactions&tab=types
  *
  * @example
  *   // Generator tab: button olustur, Twig kodu uret
- *   // ?page=salt-reactions&tab=generator
+ *   // ?page=sh-reactions&tab=generator
  *
  * @example
  *   // Analytics tab: istatistikler, grafik, top content
- *   // ?page=salt-reactions&tab=analytics
+ *   // ?page=sh-reactions&tab=analytics
  *
  * @example
  *   // Info tab: extend metodlari, Twig ornekleri, copy butonlari
- *   // ?page=salt-reactions&tab=info
+ *   // ?page=sh-reactions&tab=info
  *
  * @example
  *   // AJAX: type kaydet
@@ -70,7 +70,7 @@ class ReactionsAdmin {
     }
 
     public static function enqueueAssets( string $hook ): void {
-        if ( strpos( $hook, 'salt-reactions' ) === false ) return;
+        if ( strpos( $hook, 'sh-reactions' ) === false ) return;
 
         // Chart.js — analytics tab icin
         add_action( 'admin_head', function() {
@@ -91,6 +91,16 @@ class ReactionsAdmin {
         // WP Media Library
         wp_enqueue_media();
 
+        // SH Icon Picker — reactions icon seçimi için
+        $ip_css = SH_INCLUDES_PATH . 'apps/sh-icon-picker.css';
+        $ip_js  = SH_INCLUDES_PATH . 'apps/sh-icon-picker.js';
+        if ( file_exists( $ip_css ) ) {
+            wp_enqueue_style( 'sh-icon-picker', SH_INCLUDES_URL . 'apps/sh-icon-picker.css', [], filemtime( $ip_css ) );
+        }
+        if ( file_exists( $ip_js ) ) {
+            wp_enqueue_script( 'sh-icon-picker', SH_INCLUDES_URL . 'apps/sh-icon-picker.js', ['jquery'], filemtime( $ip_js ), true );
+        }
+
         // Admin JS
         $js_path = __DIR__ . '/reactions-admin.js';
         $js_url  = trailingslashit( SH_INCLUDES_URL ) . 'apps/reactions/Admin/reactions-admin.js';
@@ -104,10 +114,10 @@ class ReactionsAdmin {
         }
     }
     public static function addMenuPage(): void {
-        add_submenu_page('theme-settings','⚡ Reactions','⚡ Reactions','manage_options','salt-reactions',[self::class,'renderPage']);
+        add_submenu_page('theme-settings','⚡ Reactions','⚡ Reactions','manage_options','sh-reactions',[self::class,'renderPage']);
     }
     public static function hideNotices(): void {
-        if(($_GET['page']??'')!=='salt-reactions')return;
+        if(($_GET['page']??'')!=='sh-reactions')return;
         echo '<style>body .notice:not(.sh-inline),body .updated:not(.sh-inline),body .error:not(.sh-inline){display:none!important;}</style>';
     }
     public static function saveTypes(): void {
@@ -117,7 +127,7 @@ class ReactionsAdmin {
         foreach($raw as $key=>$cfg){$key=sanitize_key($key);if(!$key)continue;
             $types[$key]=['label'=>sanitize_text_field($cfg['label']??''),'label_on'=>sanitize_text_field($cfg['label_on']??''),'icon_off'=>sanitize_text_field($cfg['icon_off']??''),'icon_on'=>sanitize_text_field($cfg['icon_on']??''),'color'=>sanitize_hex_color($cfg['color']??'')?:'#2271b1','notify_event'=>sanitize_key($cfg['notify_event']??''),'toggle'=>!empty($cfg['toggle']),'exclusive'=>!empty($cfg['exclusive']),'enabled'=>!empty($cfg['enabled'])];}
         ReactionsSettings::saveTypes($types);
-        wp_redirect(add_query_arg(['page'=>'salt-reactions','tab'=>'types','saved'=>'1'],admin_url('admin.php')));exit;
+        wp_redirect(add_query_arg(['page'=>'sh-reactions','tab'=>'types','saved'=>'1'],admin_url('admin.php')));exit;
     }
     public static function ajaxSaveType(): void {
         check_ajax_referer('sh_reactions_nonce','nonce');
@@ -137,13 +147,15 @@ class ReactionsAdmin {
         $types[$key] = [
             'label'        => sanitize_text_field($_POST['label']        ?? ''),
             'label_on'     => sanitize_text_field($_POST['label_on']     ?? ''),
-            'icon_off'     => sanitize_text_field($_POST['icon_off']     ?? ''),
-            'icon_on'      => sanitize_text_field($_POST['icon_on']      ?? ''),
+            'icon_off'     => self::sanitizeIconValue($_POST['icon_off'] ?? ''),
+            'icon_on'      => self::sanitizeIconValue($_POST['icon_on']  ?? ''),
             'color'        => sanitize_hex_color($_POST['color']         ?? '') ?: '#2271b1',
             'notify_event' => sanitize_key($_POST['notify_event']        ?? ''),
             'mode'         => in_array($_POST['mode'] ?? 'toggle', ['toggle','additive','cumulative']) ? $_POST['mode'] : 'toggle',
             'limit'        => (int) ($_POST['limit'] ?? 0),
             'enabled'      => ! empty($_POST['enabled']),
+            'private'      => ! empty($_POST['private']),
+            'sortable'     => ! empty($_POST['sortable']),
         ];
         ReactionsSettings::saveTypes($types);
         ob_start();
@@ -173,11 +185,11 @@ class ReactionsAdmin {
         $ajax_url = esc_url(admin_url('admin-ajax.php'));
         echo '<div class="wrap sh-wrap" id="sh-reactions-page">';
         self::renderStyles();
-        echo '<div class="sh-toolbar"><h1>&#9889; Reactions</h1>';
+        echo '<div class="sh-toolbar"><h1 style="display:inline-flex;align-items:center;gap:8px;">&#9889; Reactions <span class="sh-badge ' . ( $reactions_enabled ? 'sh-badge-green' : 'sh-badge-gray' ) . '" style="font-size:11px">' . ( $reactions_enabled ? 'Enabled' : 'Disabled' ) . '</span></h1>';
         echo '<span class="sh-badge sh-badge-blue">'.$tc.' type'.($tc!==1?'s':'').'</span>';
         echo '<div class="sh-toolbar-right">';
         foreach(['types'=>'Types','generator'=>'&#128736; Generator','analytics'=>'&#128200; Analytics','info'=>'Info'] as $t=>$l)
-            echo '<a href="?page=salt-reactions&tab='.$t.'" class="sh-tab-btn '.($tab===$t?'active':'').'">'.$l.'</a>';
+            echo '<a href="?page=sh-reactions&tab='.$t.'" class="sh-tab-btn '.($tab===$t?'active':'').'">'.$l.'</a>';
         echo '</div></div>';
         // ── Enable Reactions toggle box (Notifications admin style) ──────────
         ?>
@@ -215,6 +227,9 @@ class ReactionsAdmin {
                     if (res.success) {
                         label.textContent = enabled ? 'Enabled' : 'Disabled';
                         label.style.color = enabled ? '#00a32a' : '#9ca3af';
+                        // header badge sync
+                        var hb = document.querySelector('.sh-toolbar h1 .sh-badge');
+                        if (hb) { hb.textContent = enabled ? 'Enabled' : 'Disabled'; hb.className = 'sh-badge ' + (enabled ? 'sh-badge-green' : 'sh-badge-gray'); }
                         if (typeof window.shShowToast === 'function') window.shShowToast(enabled ? 'Reactions enabled' : 'Reactions disabled', 'success');
                     } else {
                         toggle.checked = !enabled;
@@ -303,6 +318,7 @@ class ReactionsAdmin {
         $notify    = $def['notify_event'] ?? '';
         $mode      = $def['mode']     ?? ( !empty($def['toggle']) ? 'toggle' : 'toggle' );
         $limit     = (int) ($def['limit'] ?? 0);
+        $is_private = ! empty( $def['private'] );
 
         $mode_labels = [ 'toggle' => 'Toggle', 'additive' => 'Additive', 'cumulative' => 'Cumulative' ];
         $mode_colors = [ 'toggle' => '#2271b1', 'additive' => '#16a34a', 'cumulative' => '#e11d48' ];
@@ -330,6 +346,9 @@ class ReactionsAdmin {
                         <?php endif; ?>
                         <?php if ($notify) : ?>
                             <span class="sh-ch-badge sh-ch-alert active" style="font-size:10px;">notify: <?php echo esc_html($notify); ?></span>
+                        <?php endif; ?>
+                        <?php if ($is_private) : ?>
+                            <span style="font-size:10px;background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644;padding:2px 8px;border-radius:10px;font-weight:600;">🔒 Private</span>
                         <?php endif; ?>
                     </span>
                 </div>
@@ -368,39 +387,11 @@ class ReactionsAdmin {
                 <div class="sh-form-row">
                     <div class="sh-form-col">
                         <label>Icon Off <span style="font-size:11px;color:#9ca3af;">(inactive)</span></label>
-                        <div class="sh-icon-field" style="display:flex;align-items:center;gap:6px;">
-                            <input type="text" class="sh-input sh-type-icon-off" value="<?php echo esc_attr($icon_off); ?>" placeholder="far fa-heart" style="max-width:140px;">
-                            <button type="button" class="sh-media-pick-btn sh-btn sh-btn-secondary" style="padding:5px 8px;font-size:12px;" title="Pick from Media Library">&#128247;</button>
-                            <button type="button" class="sh-icon-clear-btn sh-icon-btn sh-icon-delete" title="Clear" style="font-size:12px;">&#10005;</button>
-                            <span class="sh-icon-preview">
-                                <?php if ( $icon_off && is_numeric($icon_off) ) :
-                                    $url = wp_get_attachment_url( (int) $icon_off );
-                                    if ( $url ) : ?>
-                                        <img src="<?php echo esc_url($url); ?>" style="width:22px;height:22px;object-fit:contain;border-radius:3px;" alt="">
-                                    <?php endif;
-                                elseif ( $icon_off ) : ?>
-                                    <i class="<?php echo esc_attr($icon_off); ?>" style="font-size:18px;color:#9ca3af;"></i>
-                                <?php endif; ?>
-                            </span>
-                        </div>
+                        <?php self::renderIconField( 'off', $icon_off, $color ); ?>
                     </div>
                     <div class="sh-form-col">
                         <label>Icon On <span style="font-size:11px;color:#9ca3af;">(active)</span></label>
-                        <div class="sh-icon-field" style="display:flex;align-items:center;gap:6px;">
-                            <input type="text" class="sh-input sh-type-icon-on" value="<?php echo esc_attr($icon_on); ?>" placeholder="fas fa-heart" style="max-width:140px;">
-                            <button type="button" class="sh-media-pick-btn sh-btn sh-btn-secondary" style="padding:5px 8px;font-size:12px;" title="Pick from Media Library">&#128247;</button>
-                            <button type="button" class="sh-icon-clear-btn sh-icon-btn sh-icon-delete" title="Clear" style="font-size:12px;">&#10005;</button>
-                            <span class="sh-icon-preview">
-                                <?php if ( $icon_on && is_numeric($icon_on) ) :
-                                    $url = wp_get_attachment_url( (int) $icon_on );
-                                    if ( $url ) : ?>
-                                        <img src="<?php echo esc_url($url); ?>" style="width:22px;height:22px;object-fit:contain;border-radius:3px;" alt="">
-                                    <?php endif;
-                                elseif ( $icon_on ) : ?>
-                                    <i class="<?php echo esc_attr($icon_on); ?>" style="font-size:18px;color:<?php echo esc_attr($color); ?>;"></i>
-                                <?php endif; ?>
-                            </span>
-                        </div>
+                        <?php self::renderIconField( 'on', $icon_on, $color ); ?>
                     </div>
                     <div class="sh-form-col">
                         <label>Notify Event</label>
@@ -419,6 +410,30 @@ class ReactionsAdmin {
                         <input type="number" class="sh-input sh-type-limit" value="<?php echo esc_attr($limit ?: 50); ?>" min="1" max="9999" style="width:80px;">
                     </div>
                 </div>
+                <div class="sh-form-row">
+                    <div style="display:flex;gap:24px;flex-wrap:wrap">
+                        <div class="sh-form-col">
+                            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+                                <input type="checkbox" class="sh-type-private" style="margin-top:3px" <?php checked( ! empty( $def['private'] ) ); ?>>
+                                <span>
+                                    <strong style="font-size:13px">Private</strong>
+                                    <span style="font-size:11px;color:#6b7280;display:block">My Account menüsünde listelenir — sadece sahibi kendi kayıtlarını görür</span>
+                                </span>
+                            </label>
+                        </div>
+                        <?php if ( defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE ) : ?>
+                        <div class="sh-form-col">
+                            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+                                <input type="checkbox" class="sh-type-sortable" style="margin-top:3px" <?php checked( ! empty( $def['sortable'] ) ); ?>>
+                                <span>
+                                    <strong style="font-size:13px">Sortable <span style="font-size:10px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;font-weight:500;vertical-align:middle">Shop</span></strong>
+                                    <span style="font-size:11px;color:#6b7280;display:block">Shop sayfasında "Sort by X count" seçeneği olarak gösterilir</span>
+                                </span>
+                            </label>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
                 <div class="sh-form-footer">
                     <button type="button" class="sh-btn sh-btn-primary sh-type-save-btn">Save</button>
                     <button type="button" class="sh-btn sh-btn-ghost sh-type-cancel-btn">Cancel</button>
@@ -428,10 +443,155 @@ class ReactionsAdmin {
         <?php
     }
     /**
-     * Icon degerini HTML'e cevir — FA class veya attachment ID destekler.
-     * Admin preview icin kullanilir (inline, kucuk boyut).
+     * Icon değerini sanitize eder.
+     * Desteklenen formatlar:
+     *   'solid:heart'   → SVG icon (style:name)
+     *   'img:8451'      → Media attachment
+     */
+    private static function sanitizeIconValue( string $value ): string {
+        $value = trim( $value );
+        if ( ! $value ) return '';
+
+        // img:ID format
+        if ( str_starts_with( $value, 'img:' ) ) {
+            $id = (int) substr( $value, 4 );
+            return $id > 0 ? 'img:' . $id : '';
+        }
+
+        // style:name format
+        if ( strpos( $value, ':' ) !== false ) {
+            [ $style, $name ] = explode( ':', $value, 2 );
+            $style = sanitize_key( $style );
+            $name  = sanitize_key( $name );
+            return $style && $name ? $style . ':' . $name : '';
+        }
+
+        // Eski numeric ID — img: formatına migrate et
+        if ( is_numeric( $value ) && (int) $value > 0 ) {
+            return 'img:' . (int) $value;
+        }
+
+        // Eski FA class string — boş döndür (artık desteklenmiyor)
+        return '';
+    }
+
+    /**
+     * Icon field render — iki tab: İkon (SH Icon Picker) | Görsel (Media)
+     * Format: 'solid:heart' → icon, 'img:8451' → media attachment
+     *
+     * @param string $slot  'off' veya 'on'
+     * @param string $value Mevcut değer
+     * @param string $color Aktif renk (icon on için)
+     */
+    private static function renderIconField( string $slot, string $value, string $color = '#2271b1' ): void {
+        // Format parse
+        $mode     = 'icon'; // 'icon' | 'img'
+        $icon_val = '';
+        $img_id   = '';
+        $img_url  = '';
+
+        if ( str_starts_with( $value, 'img:' ) ) {
+            $mode   = 'img';
+            $img_id = substr( $value, 4 );
+            if ( is_numeric( $img_id ) ) {
+                $img_url = wp_get_attachment_url( (int) $img_id ) ?: '';
+            }
+        } elseif ( $value && strpos( $value, ':' ) !== false ) {
+            $mode     = 'icon';
+            $icon_val = $value; // 'solid:heart'
+        } elseif ( $value && is_numeric( $value ) ) {
+            // Eski format — sadece ID, img olarak migrate et
+            $mode   = 'img';
+            $img_id = $value;
+            $img_url = wp_get_attachment_url( (int) $value ) ?: '';
+        } elseif ( $value ) {
+            // Eski FA class string — icon moduna al, değer boş bırak (manuel silip yeniden seçecek)
+            $mode     = 'icon';
+            $icon_val = '';
+        }
+
+        $field_class = $slot === 'off' ? 'sh-type-icon-off' : 'sh-type-icon-on';
+        $preview_color = $slot === 'on' ? $color : '#9ca3af';
+        ?>
+        <div class="sh-icon-field-v2" data-slot="<?php echo esc_attr($slot); ?>">
+            <!-- Hidden input — kaydedilen değer -->
+            <input type="hidden"
+                   class="sh-input <?php echo esc_attr($field_class); ?> sh-icon-v2-value"
+                   value="<?php echo esc_attr($value); ?>">
+
+            <!-- Tab bar -->
+            <div class="sh-icon-tabs" style="display:flex;gap:0;margin-bottom:6px;border:1px solid #ddd;border-radius:6px;overflow:hidden;width:fit-content;">
+                <button type="button"
+                        class="sh-icon-tab-btn <?php echo $mode === 'icon' ? 'active' : ''; ?>"
+                        data-mode="icon"
+                        style="padding:4px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;background:<?php echo $mode === 'icon' ? '#2271b1' : '#f9fafb'; ?>;color:<?php echo $mode === 'icon' ? '#fff' : '#374151'; ?>;">
+                    ⚡ İkon
+                </button>
+                <button type="button"
+                        class="sh-icon-tab-btn <?php echo $mode === 'img' ? 'active' : ''; ?>"
+                        data-mode="img"
+                        style="padding:4px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;background:<?php echo $mode === 'img' ? '#2271b1' : '#f9fafb'; ?>;color:<?php echo $mode === 'img' ? '#fff' : '#374151'; ?>;">
+                    🖼 Görsel
+                </button>
+            </div>
+
+            <!-- İkon panel -->
+            <div class="sh-icon-panel sh-icon-panel-icon" style="display:<?php echo $mode === 'icon' ? 'flex' : 'none'; ?>;align-items:center;gap:8px;">
+                <input type="hidden"
+                       class="sh-icon-picker-input"
+                       data-sh-icon-picker
+                       data-placeholder="İkon ara..."
+                       value="<?php echo esc_attr($icon_val); ?>"
+                       style="width:200px;">
+            </div>
+
+            <!-- Görsel panel -->
+            <div class="sh-icon-panel sh-icon-panel-img" style="display:<?php echo $mode === 'img' ? 'flex' : 'none'; ?>;align-items:center;gap:8px;">
+                <input type="hidden" class="sh-img-id-input" value="<?php echo esc_attr($img_id); ?>">
+                <button type="button" class="sh-media-pick-btn sh-btn sh-btn-secondary" style="padding:5px 10px;font-size:12px;">
+                    📷 <?php echo $img_url ? 'Değiştir' : 'Seç'; ?>
+                </button>
+                <button type="button" class="sh-icon-clear-btn sh-btn sh-btn-ghost" style="padding:5px 8px;font-size:12px;<?php echo $img_url ? '' : 'display:none;'; ?>">✕</button>
+                <span class="sh-img-preview">
+                    <?php if ($img_url) : ?>
+                        <img src="<?php echo esc_url($img_url); ?>" style="width:28px;height:28px;object-fit:contain;border-radius:3px;" alt="">
+                    <?php endif; ?>
+                </span>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Icon değerini HTML'e çevir — yeni format destekli.
+     * 'solid:heart' → SVG render, 'img:8451' → <img>, eski FA class → <i>
      */
     private static function adminIconHtml( string $value, string $color = '#6b7280', int $size = 14 ): string {
+        if ( ! $value ) return '';
+
+        // Yeni format: img:ID
+        if ( str_starts_with( $value, 'img:' ) ) {
+            $id  = (int) substr( $value, 4 );
+            $url = $id ? wp_get_attachment_url( $id ) : '';
+            if ( $url ) {
+                return '<img src="' . esc_url( $url ) . '" style="width:' . $size . 'px;height:' . $size . 'px;object-fit:contain;vertical-align:middle;" alt="">';
+            }
+            return '';
+        }
+
+        // Yeni format: style:name (SVG)
+        if ( strpos( $value, ':' ) !== false && ! str_starts_with( $value, 'fa' ) ) {
+            [ $style, $name ] = explode( ':', $value, 2 );
+            if ( class_exists( '\SaltHareket\FaIconManager' ) ) {
+                $svg = \SaltHareket\FaIconManager::render( $name, $style );
+                if ( $svg ) {
+                    return '<span style="display:inline-flex;width:' . $size . 'px;height:' . $size . 'px;color:' . esc_attr($color) . ';">' . $svg . '</span>';
+                }
+            }
+            return '';
+        }
+
+        // Eski format: numeric attachment ID
         if ( is_numeric( $value ) && (int) $value > 0 ) {
             $url = wp_get_attachment_url( (int) $value );
             if ( $url ) {
@@ -439,9 +599,12 @@ class ReactionsAdmin {
             }
             return '';
         }
+
+        // Eski format: FA class string
         if ( $value ) {
             return '<i class="' . esc_attr( $value ) . '" style="color:' . esc_attr( $color ) . ';font-size:' . $size . 'px;"></i>';
         }
+
         return '';
     }
 
@@ -575,6 +738,38 @@ class ReactionsAdmin {
         wp_send_json_success(['count' => count($buttons)]);
     }
 
+    public static function ajaxReorderButtons(): void {
+        check_ajax_referer('sh_reactions_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+
+        $order   = (array) ( $_POST['order'] ?? [] );
+        $order   = array_map( 'sanitize_text_field', $order );
+        $buttons = (array) get_option('sh_reactions_buttons', []);
+
+        // Key → button map
+        $map = [];
+        foreach ( $buttons as $btn ) {
+            $k = $btn['key'] ?? '';
+            if ( $k ) $map[$k] = $btn;
+        }
+
+        // Yeni sırayla yeniden oluştur — bilinmeyen key'leri sona ekle
+        $reordered = [];
+        foreach ( $order as $key ) {
+            if ( isset($map[$key]) ) {
+                $reordered[] = $map[$key];
+                unset($map[$key]);
+            }
+        }
+        // Listede olmayan button'ları (varsa) sona ekle
+        foreach ( $map as $btn ) {
+            $reordered[] = $btn;
+        }
+
+        update_option('sh_reactions_buttons', array_values($reordered), false);
+        wp_send_json_success(['count' => count($reordered)]);
+    }
+
     private static function renderInfoTab(): void {
         $types = ReactionsSettings::getTypes();
 
@@ -584,44 +779,59 @@ class ReactionsAdmin {
                 ['reaction_count', 'Kac kisi like yapti?', "{{ post.reaction_count('like') }}"],
                 ['has_reaction', 'Mevcut kullanici like yapti mi?', "{% if post.has_reaction('like') %}...{% endif %}"],
                 ['reaction_counts', 'Tum tiplerin sayilari (array)', "{% set counts = post.reaction_counts %}\n{{ counts.like }} like, {{ counts.favorite }} favorite"],
-                ['reaction_button', 'Like butonu render et', "{{ post.reaction_button('like', {'style': 'pill'})|raw }}"],
-                ['reaction_button', 'Favorite butonu icon-only', "{{ post.reaction_button('favorite', {'style': 'icon-only'})|raw }}"],
+                ['reaction_button', 'Like butonu — Generator config ile', "{{ post.reaction_button('like') }}"],
+                ['reaction_button', 'Favorite butonu — style override', "{{ post.reaction_button('favorite', {'style': 'icon-only'}) }}"],
+                ['reaction_button', 'Butonu tam manuel — class + show_count override', "{{ post.reaction_button('favorite', {\n    'style': 'icon-only',\n    'class': 'position-absolute top-0 end-0 rounded-circle bg-white shadow-sm m-2',\n    'show_count': false\n}) }}"],
+                ['reaction_buttons', '🆕 Post tipine gore tum aktif butonlar (otomatik)', "{{ post.reaction_buttons() }}"],
+                ['reaction_buttons', '🆕 Wrapper olmadan (kendi div\'ini sar)', "{{ post.reaction_buttons({}, '') }}"],
+                ['reaction_buttons', '🆕 Style override ile', "{{ post.reaction_buttons({'style': 'pill'}) }}"],
             ],
             'User Extend Metodlari' => [
                 ['reaction_count', 'Kac kisi follow etti?', "{{ user.reaction_count('follow') }}"],
                 ['has_reaction', 'Mevcut kullanici follow yapti mi?', "{% if user.has_reaction('follow') %}...{% endif %}"],
-                ['reaction_button', 'Follow butonu render et', "{{ user.reaction_button('follow', {'style': 'pill'})|raw }}"],
+                ['reaction_button', 'Follow butonu render et', "{{ user.reaction_button('follow', {'style': 'pill'}) }}"],
+                ['reaction_buttons', '🆕 User icin tum aktif butonlar', "{{ user.reaction_buttons() }}"],
                 ['reaction_ids', 'Kullanicinin favori post ID listesi', "{% set fav_ids = user.reaction_ids('favorite', 'post') %}"],
                 ['reaction_ids', 'Kullanicinin follow ettigi user ID listesi', "{% set following = user.reaction_ids('follow', 'user') %}"],
             ],
             'Term Extend Metodlari' => [
                 ['reaction_count', 'Kac kisi follow etti?', "{{ term.reaction_count('follow') }}"],
                 ['has_reaction', 'Mevcut kullanici follow yapti mi?', "{% if term.has_reaction('follow') %}...{% endif %}"],
-                ['reaction_button', 'Follow butonu render et', "{{ term.reaction_button('follow', {'style': 'pill'})|raw }}"],
+                ['reaction_button', 'Follow butonu render et', "{{ term.reaction_button('follow', {'style': 'pill'}) }}"],
+                ['reaction_buttons', '🆕 Term icin tum aktif butonlar', "{{ term.reaction_buttons() }}"],
             ],
             'Review / Comment Extend Metodlari' => [
                 ['reaction_count', 'Kac kisi like yapti?', "{{ review.reaction_count('like') }}"],
                 ['has_reaction', 'Mevcut kullanici like yapti mi?', "{% if review.has_reaction('like') %}...{% endif %}"],
-                ['reaction_button', 'Like butonu render et', "{{ review.reaction_button('like', {'style': 'icon-count'})|raw }}"],
+                ['reaction_button', 'Like butonu render et', "{{ review.reaction_button('like', {'style': 'icon-count'}) }}"],
+                ['reaction_buttons', '🆕 Review icin tum aktif butonlar', "{{ review.reaction_buttons() }}"],
             ],
             'Global Twig Fonksiyonlari' => [
                 ['salt_reaction_count', 'Post like sayisi', "{{ function('salt_reaction_count', post.ID, 'post', 'like') }}"],
                 ['salt_has_reaction', 'Kullanici like yapti mi?', "{{ function('salt_has_reaction', post.ID, 'post', 'like') }}"],
+                ['salt_reaction_button', 'Butonu tam manuel (PHP fonksiyon)', "{{ function('salt_reaction_button', post.ID, 'post', 'favorite', {\n    'style': 'icon-only',\n    'class': 'my-class',\n    'show_count': false,\n    'require_login': false\n}) }}"],
                 ['salt_reaction_ids', 'Kullanicinin favori ID listesi', "{% set favs = function('salt_reaction_ids', user.ID, 'post', 'favorite') %}"],
                 ['salt_reactions_for', 'Post icin tanimli reactionlar', "{% set reactions = function('salt_reactions_for', 'post', post.post_type) %}"],
             ],
+            '🆕 reaction_buttons() Override Mantigi' => [
+                ['priority', '1. inline options > 2. Generator config > 3. default', "{{-- Asagidaki style Generator'daki product kaydini ezer: --}}\n{{ post.reaction_buttons({'style': 'pill'}) }}"],
+                ['wrapper_tag', 'Wrapper tag degistir (varsayilan: div)', "{{ post.reaction_buttons({}, 'span', 'my-class') }}"],
+                ['wrapper_tag', 'Wrapper olmadan', "{{ post.reaction_buttons({}, '') }}"],
+                ['subtype', 'Her post tipi kendi Generator kaydini kullanir', "{{-- product: css class=test123, style=icon-only\n    looks: css class=btn-sm my-class, style=pill+count\n    Generator > generator tab'indan yonet --}}"],
+            ],
             'Faydali Kullanim Ornekleri' => [
+                ['Tease/Loop', 'Urun kartinda otomatik butonlar', "{{ post.reaction_buttons() }}"],
                 ['Favori listesi', 'Kullanicinin favori postlarini cek', "{% set fav_ids = user.reaction_ids('favorite', 'post') %}\n{% set fav_posts = fav_ids ? get_posts({'post__in': fav_ids, 'post_type': 'any'}) : [] %}\n{% for p in fav_posts %}{{ p.title }}{% endfor %}"],
-                ['Reaction durumu badge', 'Aktif/pasif duruma gore class', "<div class=\"reaction-wrap {% if post.has_reaction('like') %}is-liked{% endif %}\">\n    {{ post.reaction_button('like', {'style': 'icon-count'})|raw }}\n</div>"],
-                ['Coklu reaction', 'Birden fazla reaction butonu', "{{ post.reaction_button('like', {'style': 'icon-count'})|raw }}\n{{ post.reaction_button('favorite', {'style': 'icon-only'})|raw }}\n{{ post.reaction_button('bookmark', {'style': 'icon-only'})|raw }}"],
-                ['Follow sayaci', 'Kullanicinin follower sayisi', "<span>{{ user.reaction_count('follow') }} takipci</span>\n{{ user.reaction_button('follow', {'style': 'pill'})|raw }}"],
+                ['Reaction durumu badge', 'Aktif/pasif duruma gore class', "<div class=\"reaction-wrap {% if post.has_reaction('like') %}is-liked{% endif %}\">\n    {{ post.reaction_button('like', {'style': 'icon-count'}) }}\n</div>"],
+                ['Coklu reaction', 'Manuel birden fazla butonu siralama', "{{ post.reaction_button('like', {'style': 'icon-count'}) }}\n{{ post.reaction_button('favorite', {'style': 'icon-only'}) }}\n{{ post.reaction_button('bookmark', {'style': 'icon-only'}) }}"],
+                ['Follow sayaci', 'Kullanicinin follower sayisi', "<span>{{ user.reaction_count('follow') }} takipci</span>\n{{ user.reaction_button('follow', {'style': 'pill'}) }}"],
             ],
         ];
         ?>
         <div class="sh-layout">
         <div class="sh-main">
         <?php foreach ( $sections as $section_title => $items ) : ?>
-            <div class="sh-card" style="margin-bottom:16px;">
+            <div class="sh-card" style="margin-bottom:16px;padding:16px 20px;">
                 <h3 style="margin:0 0 14px;font-size:14px;font-weight:600;color:var(--ts-gray-900);"><?php echo esc_html($section_title); ?></h3>
                 <table class="sh-table">
                     <thead><tr>
@@ -829,6 +1039,31 @@ class ReactionsAdmin {
                 </div>
             <?php endif; ?>
             </div>
+            <script>
+            (function($){
+                $(document).ready(function(){
+                    var NONCE = <?php echo wp_json_encode( wp_create_nonce('sh_reactions_nonce') ); ?>;
+                    var AJAX  = <?php echo wp_json_encode( admin_url('admin-ajax.php') ); ?>;
+                    $('#sh-saved-buttons-list').sortable({
+                        handle: '.sh-btn-drag-handle',
+                        placeholder: 'sh-rule-card-placeholder',
+                        axis: 'y',
+                        tolerance: 'pointer',
+                        update: function() {
+                            var order = [];
+                            $('#sh-saved-buttons-list .sh-rule-card').each(function(){
+                                order.push($(this).data('key'));
+                            });
+                            $.post(AJAX, {
+                                action: 'sh_reactions_reorder_buttons',
+                                nonce:  NONCE,
+                                order:  order
+                            });
+                        }
+                    }).disableSelection();
+                });
+            })(jQuery);
+            </script>
 
         </div>
         <div class="sh-sidebar">
@@ -882,6 +1117,7 @@ class ReactionsAdmin {
         ob_start(); ?>
         <div class="sh-rule-card <?php echo $btn_active ? '' : 'sh-rule-inactive'; ?>" data-key="<?php echo esc_attr($btn_key); ?>">
             <div class="sh-rule-header">
+                <span class="sh-btn-drag-handle" title="Sırala" style="cursor:grab;padding:0 6px;color:#9ca3af;font-size:16px;line-height:1;user-select:none">⠿</span>
                 <label class="sh-rule-switch">
                     <input type="checkbox" class="sh-rule-switch-input sh-btn-active-toggle" <?php echo $btn_active ? 'checked' : ''; ?> data-key="<?php echo esc_attr($btn_key); ?>">
                     <span class="sh-rule-switch-slider"></span>

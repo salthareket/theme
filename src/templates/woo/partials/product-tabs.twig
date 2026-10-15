@@ -1,0 +1,161 @@
+{#
+  woo/partials/product-tabs.twig
+  ─────────────────────────────────────────────────────────────────────────────
+  Ürün sayfası tab / accordion / tab-collapse sistemi.
+
+  Kullanım (single-product.twig içinde):
+    {% include 'woo/partials/product-tabs.twig' %}
+
+  Settings (General Settings → WooCommerce → Product Tabs):
+    options_product_tabs.mode        : 'tab' | 'collapse' | 'tab-collapse'
+    options_product_tabs.convert_bp  : 'none' | 'sm' | 'md' | 'lg' | 'xl'
+    options_product_tabs.tabs[]      : tab listesi
+
+  Tab tipleri:
+    wc_description  — WC ürün açıklaması
+    wc_additional   — WC ek bilgiler (boyut, ağırlık vs.)
+    sh_reviews      — Salt Reviews App
+    custom_field    — Custom Product Field (field_id ile)
+    html            — Serbest HTML
+  ─────────────────────────────────────────────────────────────────────────────
+#}
+
+{% set _pt_cfg    = product_tabs_cfg ?? {} %}
+{% set _mode      = _pt_cfg.mode       ?? 'tab' %}
+{% set _cvt_bp    = _pt_cfg.convert_bp ?? 'none' %}
+{% set _tabs      = _pt_cfg.tabs       ?? [] %}
+
+{# Aktif tab'ları filtrele #}
+{% set _active_tabs = [] %}
+{% for t in _tabs %}
+    {% if t.enabled is not empty and t.enabled %}
+        {% set _active_tabs = _active_tabs|merge([t]) %}
+    {% endif %}
+{% endfor %}
+
+{# Hangi tab varsayılan açık — default_open true olan ilk tab, yoksa ilk tab #}
+{% set _default_tab_id = '' %}
+{% for t in _active_tabs %}
+    {% if _default_tab_id == '' and t.default_open %}
+        {% set _default_tab_id = t.id %}
+    {% endif %}
+{% endfor %}
+{% if _default_tab_id == '' and _active_tabs|length > 0 %}
+    {% set _default_tab_id = _active_tabs[0].id %}
+{% endif %}
+
+{% if _active_tabs|length > 0 %}
+
+{% set _tab_id = 'sh-product-tabs-' ~ post.id %}
+
+{#
+  Outer wrapper: PAE her modda aynı whitelist'i görür.
+  Tab, collapse, tab-collapse — hangi modda fetch edilse
+  tüm class'lar whitelisted kalır, CSS hiç purge edilmez.
+#}
+<div class="sh-product-tabs-wrap"
+     data-html-whitelist="
+       .sh-product-tabs, .sh-product-tabs-wrap, .sh-product-tabs--accordion,
+       .sh-product-tab-body,
+       .nav-tabs, .nav-item, .nav-link, .tab-content, .tab-pane, .tab-collapse,
+       .tab-collapse-sm, .tab-collapse-md, .tab-collapse-lg, .tab-collapse-xl,
+       .tab-collapse-xxl, .tab-collapse-xs,
+       .accordion, .accordion-item, .accordion-header, .accordion-button,
+       .accordion-collapse, .accordion-body,
+       .collapse, .collapsing, .show, .fade, .active,
+       .woocommerce-product-details__short-description, .woocommerce-product-attributes,
+       .sh-product-reviews, .sh-product-custom-field, .sh-product-html-content,
+       .entry-content, .badge"
+     data-required-js="{% if _mode == 'tab-collapse' %}bs-tab-collapse{% endif %}">
+
+{# ── TAB modu ────────────────────────────────────────────────────────────── #}
+{% if _mode == 'tab' or _mode == 'tab-collapse' %}
+
+{% set _nav_class = 'nav nav-tabs' %}
+{% if _mode == 'tab-collapse' and _cvt_bp != 'none' %}
+    {% set _nav_class = _nav_class ~ ' tab-collapse-' ~ _cvt_bp %}
+{% endif %}
+
+<div class="sh-product-tabs" id="{{ _tab_id }}">
+
+    {# Nav tabs #}
+    <ul class="{{ _nav_class }}{% if _mode == 'tab-collapse' %} tab-collapse{% endif %}" role="tablist">
+        {% for t in _active_tabs %}
+        {% set _is_active = (t.id == _default_tab_id) %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link{% if _is_active %} active{% endif %}"
+                    id="sh-tab-{{ _tab_id }}-{{ t.id }}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#sh-pane-{{ _tab_id }}-{{ t.id }}"
+                    type="button"
+                    role="tab"
+                    aria-controls="sh-pane-{{ _tab_id }}-{{ t.id }}"
+                    aria-selected="{{ _is_active ? 'true' : 'false' }}">
+                {% if t.icon %}<i class="{{ t.icon }}"></i> {% endif %}
+                {{ t.title ? translate(t.title) : '' }}
+                {# Reviews tab — count badge #}
+                {% if t.type == 'sh_reviews' %}
+                    {% set _rv_count = function('get_post_meta', post.id, '_post_rating_count', true)|default(0) %}
+                    {% if _rv_count > 0 %}
+                        <span class="badge rounded-pill bg-secondary ms-1" style="font-size:10px;font-weight:500;vertical-align:middle">{{ _rv_count }}</span>
+                    {% endif %}
+                {% endif %}
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {# Tab panes #}
+    <div class="tab-content">
+        {% for t in _active_tabs %}
+        {% set _is_active = (t.id == _default_tab_id) %}
+        <div class="tab-pane fade{% if _is_active %} show active{% endif %}"
+             id="sh-pane-{{ _tab_id }}-{{ t.id }}"
+             role="tabpanel"
+             aria-labelledby="sh-tab-{{ _tab_id }}-{{ t.id }}">
+            <div class="sh-product-tab-body py-4">
+                {% include 'woo/partials/product-tab-content.twig' with {'tab': t, 'post': post} %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{# ── COLLAPSE / ACCORDION modu ───────────────────────────────────────────── #}
+{% elseif _mode == 'collapse' %}
+
+<div class="sh-product-tabs sh-product-tabs--accordion accordion" id="{{ _tab_id }}">
+
+    {% for t in _active_tabs %}
+    {% set _is_open = (t.id == _default_tab_id) %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="sh-heading-{{ _tab_id }}-{{ t.id }}">
+            <button class="accordion-button{% if not _is_open %} collapsed{% endif %}"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#sh-collapse-{{ _tab_id }}-{{ t.id }}"
+                    aria-expanded="{{ _is_open ? 'true' : 'false' }}"
+                    aria-controls="sh-collapse-{{ _tab_id }}-{{ t.id }}">
+                {% if t.icon %}<i class="{{ t.icon }}"></i>&nbsp;{% endif %}
+                {{ t.title ? translate(t.title) : '' }}
+            </button>
+        </h2>
+        <div id="sh-collapse-{{ _tab_id }}-{{ t.id }}"
+             class="accordion-collapse collapse{% if _is_open %} show{% endif %}"
+             aria-labelledby="sh-heading-{{ _tab_id }}-{{ t.id }}"
+             data-bs-parent="#{{ _tab_id }}">
+            <div class="accordion-body">
+                {% include 'woo/partials/product-tab-content.twig' with {'tab': t, 'post': post} %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+
+{% endif %}
+
+</div>{# /.sh-product-tabs-wrap #}
+
+{% endif %}

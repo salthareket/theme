@@ -38,6 +38,11 @@
     {% set page_settings = page_settings_default %}
 {% endif %}
 
+{#
+  DEPRECATED — eski ACF add_offcanvas sistemi. Yeni Page Settings sidebar/offcanvas
+  base.twig'deki default block'lar tarafından yönetiliyor (is_sidebar / is_standalone).
+  Bu override'lar base default'unu eziyordu, o yüzden comment'e alındı.
+
 {% block sidebar_toggler %}
     {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
@@ -55,6 +60,7 @@
         {{ block("before_container", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
+#}
 
 {% block shop_header %}
     {% include "woo/header.twig" %}

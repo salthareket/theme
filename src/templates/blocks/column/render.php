@@ -11,8 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 $fields = get_fields() ?: ( $block['data'] ?? [] );
 
 // Parent columns block'tan row_cols context'ini al
-// providesContext: "data" ile tüm columns data'sı geliyor
-$row_cols_active = ! empty( $context['acf/columns/row_cols']['row_cols'] ?? false );
+// providesContext: "data" ile tüm columns data'sı geliyor — ama raw string, parse güvenilmez
+// Global değişken daha güvenilir (columns render.php set ediyor)
+global $salt_columns_row_cols_active;
+$row_cols_active = ! empty( $salt_columns_row_cols_active );
+
+// Context fallback — global yoksa dene
+if ( ! $row_cols_active ) {
+    $ctx_data = $context['acf/columns/row_cols'] ?? null;
+    if ( is_array( $ctx_data ) ) {
+        $row_cols_active = ! empty( $ctx_data['row_cols'] );
+    }
+}
 
 $widths = $fields['col_widths'] ?? [];
 $align  = $fields['col_align_self'] ?? '';
@@ -76,7 +86,7 @@ if ( function_exists( 'block_css' ) ) {
 }
 ?>
 <div class="<?= esc_attr( $col_class_str ) ?> block-salt-theme <?= $is_preview ? 'is-preview' : '' ?>" <?= $block_attrs ?>>
-    <InnerBlocks />
+    <InnerBlocks class="w-100" />
     <?php if ( $block_css ) : ?>
         <?= $block_css ?>
     <?php endif; ?>

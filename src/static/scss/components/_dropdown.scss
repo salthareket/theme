@@ -1,197 +1,316 @@
 // ─────────────────────────────────────────────────────────────
-// DROPDOWN - Notification/account dropdown panel
+// DROPDOWN
+// BS5 uyumlu — prefix'siz --dropdown-* variable'larımızı
+// BS5'in --bs-dropdown-* variable'larına bridge ediyoruz.
+// processor.php theme-styles admin'den değerleri yazar.
+//
+// Desteklenen CSS custom properties:
+//   --dropdown-bg              : arkaplan rengi
+//   --dropdown-bg-rgb          : RGB bileşenleri (rgba() için)
+//   --dropdown-bg-gradient     : gradient arkaplan
+//   --dropdown-color           : metin rengi
+//   --dropdown-min-width       : minimum genişlik
+//   --dropdown-padding-x/y     : iç boşluk
+//   --dropdown-spacer          : trigger ile menu arası boşluk
+//   --dropdown-font-size       : genel font boyutu
+//   --dropdown-border-*        : kenarlık variable'ları
+//   --dropdown-box-shadow      : gölge
+//   --dropdown-link-*          : item renk variable'ları
+//   --dropdown-item-*          : item layout variable'ları
+//   --dropdown-header-*        : header variable'ları
+//   --dropdown-divider-*       : divider variable'ları
 // ─────────────────────────────────────────────────────────────
 
+// ── 1. Theme Styles — .dropdown-menu BS5 variable bridge ─────
+.dropdown .dropdown-menu {
+    // Background — gradient desteği eklendi
+    --bs-dropdown-bg:                  var(--dropdown-bg, var(--bs-body-bg));
+    background-image:                  var(--dropdown-bg-gradient, none);
+
+    --bs-dropdown-color:               var(--dropdown-color, var(--bs-body-color));
+    --bs-dropdown-min-width:           var(--dropdown-min-width, 10rem);
+    --bs-dropdown-padding-x:           var(--dropdown-padding-x, 0);
+    --bs-dropdown-padding-y:           var(--dropdown-padding-y, .5rem);
+    --bs-dropdown-spacer:              var(--dropdown-spacer, .125rem);
+    --bs-dropdown-font-size:           var(--dropdown-font-size, inherit);
+    --bs-dropdown-border-color:        var(--dropdown-border-color, var(--bs-border-color-translucent));
+    --bs-dropdown-border-radius:       var(--dropdown-border-radius, var(--bs-border-radius));
+    --bs-dropdown-border-width:        var(--dropdown-border-width, var(--bs-border-width));
+    --bs-dropdown-box-shadow:          var(--dropdown-box-shadow, var(--bs-box-shadow));
+    --bs-dropdown-link-color:          var(--dropdown-link-color, var(--bs-body-color));
+    --bs-dropdown-link-hover-color:    var(--dropdown-link-hover-color, var(--bs-dropdown-link-color));
+    --bs-dropdown-link-hover-bg:       var(--dropdown-link-hover-bg, var(--bs-tertiary-bg));
+    --bs-dropdown-link-active-color:   var(--dropdown-link-active-color, #fff);
+    --bs-dropdown-link-active-bg:      var(--dropdown-link-active-bg, var(--bs-primary));
+    --bs-dropdown-link-disabled-color: var(--dropdown-link-disabled-color, var(--bs-tertiary-color));
+    --bs-dropdown-item-padding-x:      var(--dropdown-item-padding-x, 1rem);
+    --bs-dropdown-item-padding-y:      var(--dropdown-item-padding-y, .25rem);
+    --bs-dropdown-item-border-radius:  var(--dropdown-item-border-radius, 0);
+    --bs-dropdown-header-color:        var(--dropdown-header-color, var(--bs-secondary-color));
+    --bs-dropdown-header-padding-x:    var(--dropdown-header-padding-x, 1rem);
+    --bs-dropdown-header-padding-y:    var(--dropdown-header-padding-y, .5rem);
+    --bs-dropdown-divider-bg:          var(--dropdown-divider-bg, var(--bs-border-color));
+    --bs-dropdown-divider-margin-y:    var(--dropdown-divider-margin-y, .5rem);
+
+    // Custom — BS5'te karşılığı olmayan variable'lar
+    .dropdown-item   { font-weight: var(--dropdown-item-font-weight, inherit); }
+    .dropdown-header { font-size:   var(--dropdown-header-font-size, .75rem); }
+
+    // Size sınıfları
+    &.dropdown-sm  { width: 240px; }
+    &.dropdown-md  { width: 320px; }
+    &.dropdown-lg  { width: 420px; }
+    &.dropdown-xl  { width: 560px; }
+}
+
+
+// ── 2. Genel dropdown davranışı ───────────────────────────────
 .dropdown {
+    // Açma: JS (mouseenter → .show). Kapama: tıklama (data-bs-auto-close='outside').
+    // Mouseleave ile kapanmaz — istenen davranış.
+    // CSS :hover + pointer-events:none KALDIRILDI (JS ile çakışıyor).
 
-    // ── Notification dropdown ─────────────────────────────────
-    &.dropdown-notifications {
-        position: static;
+    .dropdown-menu .dropdown-item:active {
+        background-color: var(--bs-dropdown-link-active-bg, #f5f5f5);
+        color:            var(--bs-dropdown-link-active-color, #111);
+    }
+}
 
-        .dropdown-menu {
-            margin-top: 0;
-            left: auto;
-            right: 0;
-            min-width: 320px;
-            min-height: 280px;
-            border-radius: 0 0 6px 6px;
-            background-color: #fff;
-            border-color: #ddd;
-            border-top-color: #eee;
-            padding: 0;
+// ── Full-width — header altından başlar ──────────────────────
+.dropdown-below-header {
+    position:   fixed !important;
+    top:        var(--header-height, 60px) !important;
+    margin-top: 0 !important;
+}
 
-            // Header row
-            > .dropdown-header {
-                padding: 20px 25px;
-                display: flex;
-                > .title {
-                    color: #222;
-                    font-size: 14px;
-                    font-family: var(--nav-font);
-                    flex: 1;
-                    font-weight: 600;
-                    .badge { font-weight: 500; padding: 4px 8px; font-size: 10px; }
-                }
-                > .action a { color: #999; font-size: 12px; font-weight: 400; }
-            }
 
-            // Container
-            > .dropdown-container {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                flex: 1;
-                &:not(.has-dropdown-item) > .dropdown-footer { display: none; }
-            }
+// ── 3. Notification Dropdown Panel (.dropdown-notifications) ──
+.dropdown-notifications {
 
-            // Body
-            > .dropdown-container > .dropdown-body,
-            > .dropdown-body {
-                position: relative;
-                &.scrollable { max-height: 200px; overflow-y: auto; }
+    // Header
+    .dropdown-header {
+        display:       flex !important;
+        align-items:   center;
+        white-space:   normal;
+        color:         inherit;
+        margin-bottom: 0;
 
-                .notifications {
-                    list-style: none;
-                    margin: 0;
-                    padding: 0;
-
-                    > .notification-item {
-                        position: relative;
-                        @include transition(background-color .3s ease-out);
-
-                        .product-tease {
-                            display: flex;
-                            padding: 10px 25px;
-                            @include transition(background-color .3s ease-out);
-                            > a > .image,
-                            > .image { border: 1px solid #ddd; margin-right: 15px; max-width: 60px; height: 60px; }
-                            > .detail {
-                                flex: 1;
-                                margin-right: 15px;
-                                padding: 5px 0;
-                                .title { font-size: 11px; text-transform: uppercase; color: #666; line-height: 14px; a { color: #666; } }
-                                .price { .current { font-size: 14px; } .old { font-size: 11px; } }
-                            }
-                            > .action a { color: #999; font-size: 14px; &:hover { color: #111; } }
-                        }
-
-                        &[data-type="messages"] {
-                            a {
-                                display: flex;
-                                align-items: center;
-                                img { border-radius: 50%; max-width: 100%; height: auto; min-width: 32px; }
-                                .detail {
-                                    padding-left: 10px;
-                                    .title { color: $base-color; }
-                                    .description {
-                                        color: #666; font-size: 13px; line-height: 13px;
-                                        .date { color: #999; display: block; font-size: 12px; }
-                                    }
-                                }
-                            }
-                            &:hover { background-color: #f5f5f5; }
-                        }
-                    }
-
-                    + .content-centered { display: none; }
-                    &:empty + .content-centered { display: flex; }
-                }
-
-                .dropdown-item {
-                    padding: 5px 25px;
-                    &:last-child { margin-bottom: 20px; }
-                    &:active { color: #111 !important; background-color: #eee !important; }
-                }
-
-                .content-centered {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100%;
-                    padding: 0 30px;
-                    .content-block {
-                        display: flex;
-                        flex-direction: column;
-                        color: #666;
-                        font-size: 14px;
-                        font-weight: 500;
-                        text-align: center;
-                        i { color: #eee; font-size: 72px; margin-bottom: 5px; display: flex; justify-content: center; }
-                        .btn { margin-top: 15px; }
-                    }
-                }
-            }
-
-            // Footer
-            > .dropdown-container > .dropdown-footer {
-                padding: 10px;
-                border-top: 1px solid #eee;
-                &:empty { display: none; }
-                .table-total {
-                    margin-bottom: 10px;
-                    > tbody > tr {
-                        &.quantity { font-size: 12px; }
-                        &.total    { font-size: 14px; font-weight: 700; }
-                        td { border: none; padding: 0; &:last-child { text-align: right; } }
-                    }
-                }
-                .btn-group,
-                .btn-flex-group { width: 100%; .btn:not(:first-child) { margin-left: 1px; } }
-                .dropdown-item {
-                    padding: 5px 25px;
-                    &:last-child { margin-bottom: 20px; }
-                    &:active { color: #111 !important; background-color: #eee !important; }
-                }
-            }
+        .title {
+            flex: 1;
+            font-weight: 600;
+            .badge { font-weight: 500; padding: 4px 8px; font-size: 10px; }
         }
 
-        &.show > .dropdown-menu { display: flex !important; }
-
-        &.show .dropdown-menu {
-            display: flex;
-            flex-direction: column;
-            > .dropdown-container > .dropdown-body,
-            > .dropdown-body { flex: 1; }
-        }
-
-        &[data-type="favorites"] {
-            .dropdown-menu > .dropdown-container > .dropdown-footer,
-            .dropdown-menu > .dropdown-footer { padding: 15px; }
-            &.active > a:after {
-                content: "";
-                position: absolute;
-                width: 4px;
-                height: 4px;
-                border-radius: 50%;
-                bottom: -6px;
-                left: 50%;
-                margin-left: -2px;
-                background-color: var(--header-icon-dot-color);
-            }
-        }
-
-        &[data-type="account"] > a img {
-            border-radius: 50%;
-            max-width: 40px;
-            max-height: 40px;
-        }
-
-        // Mobile: fullscreen dropdown
-        @include media-breakpoint-down(lg) {
-            .dropdown-menu {
-                position: fixed;
-                top: var(--header-height);
-                width: 100%;
-                height: calc(100vh - var(--header-height));
-                border-radius: 0;
-                > .dropdown-container { flex: auto; height: calc(100% - 60px); }
-                > .dropdown-container > .dropdown-body,
-                > .dropdown-body { &.scrollable { max-height: none; } }
-                &.show { display: flex !important; }
+        .action {
+            flex-shrink: 0;
+            margin-left: 8px;
+            a {
+                display:         flex;
+                align-items:     center;
+                justify-content: center;
+                width:           28px;
+                height:          28px;
+                border-radius:   50%;
+                color:           #999;
+                text-decoration: none;
+                @include transition(background-color .2s ease, color .2s ease);
+                svg { display: block; pointer-events: none; }
+                &:hover { color: #333; }
             }
         }
     }
 
-    // ── Generic dropdown ──────────────────────────────────────
-    .dropdown-menu .dropdown-item:active { background-color: #f5f5f5; }
+    // Body
+    .dropdown-body {
+        position: relative;
+        flex:     1;
+
+        &.scrollable {
+            max-height:          min(360px, calc(100vh - var(--header-height, 80px) - 100px));
+            overflow-x:          hidden;
+            overflow-y:          auto;
+            overscroll-behavior: contain;
+            touch-action:        pan-y;
+        }
+
+        > *,
+        .load-container {
+            padding:      8px 0;
+            word-break:   break-word;
+            overflow-wrap: break-word;
+        }
+    }
+
+    // Footer
+    .dropdown-footer {
+        flex-shrink: 0;
+        &:empty { display: none; }
+
+        .table-total {
+            margin-bottom: 10px;
+            > tbody > tr {
+                &.quantity { font-size: 12px; }
+                &.total    { font-size: 14px; font-weight: 700; }
+                td { border: none; padding: 0; &:last-child { text-align: right; } }
+            }
+        }
+
+        .btn-group,
+        .btn-flex-group { width: 100%; .btn:not(:first-child) { margin-left: 1px; } }
+    }
+
+    // Dropdown menu layout
+    .dropdown-menu {
+        margin-top: 0;
+        left:       auto;
+        right:      0;
+        min-width:  320px;
+        max-height: calc(100vh - var(--header-height, 80px) - 16px);
+        overflow:   hidden;
+        padding:    0;
+
+        // Açıkken flex. .show class'ına güveniyoruz — inline style değil.
+        &.show {
+            display:        flex !important;
+            flex-direction: column;
+        }
+        flex-direction: column !important;
+
+        > .dropdown-container {
+            position:       relative;
+            display:        flex;
+            flex-direction: column;
+            flex:           1;
+            min-width:      inherit;
+            &:not(.has-dropdown-item) > .dropdown-footer { display: none; }
+        }
+
+        > .dropdown-container > .dropdown-body,
+        > .dropdown-body {
+            position:   relative;
+            overflow-y: auto;
+            flex:       1;
+
+            &.scrollable {
+                max-height: min(360px, calc(100vh - var(--header-height, 80px) - 100px));
+                min-height: 60px;
+            }
+
+            // Notification items
+            .notifications {
+                list-style: none;
+                margin:     0;
+                padding:    0;
+
+                > .notification-item {
+                    position: relative;
+                    @include transition(background-color .3s ease-out);
+
+                    .product-tease {
+                        display: flex;
+                        padding: 10px 25px;
+                        @include transition(background-color .3s ease-out);
+                        > a > .image,
+                        > .image { border: 1px solid #ddd; margin-right: 15px; max-width: 60px; height: 60px; }
+                        > .detail {
+                            flex:         1;
+                            margin-right: 15px;
+                            padding:      5px 0;
+                            .title { font-size: 11px; text-transform: uppercase; color: #666; line-height: 14px; a { color: #666; } }
+                            .price { .current { font-size: 14px; } .old { font-size: 11px; } }
+                        }
+                        > .action a { color: #999; font-size: 14px; &:hover { color: #111; } }
+                    }
+
+                    &[data-type="messages"] {
+                        a {
+                            display:     flex;
+                            align-items: center;
+                            img { border-radius: 50%; max-width: 100%; height: auto; min-width: 32px; }
+                            .detail {
+                                padding-left: 10px;
+                                .title { color: $base-color; }
+                                .description {
+                                    color: #666; font-size: 13px; line-height: 13px;
+                                    .date { color: #999; display: block; font-size: 12px; }
+                                }
+                            }
+                        }
+                        &:hover { background-color: rgba(0, 0, 0, .04); }
+                    }
+                }
+
+                + .content-centered  { display: none; }
+                &:empty + .content-centered { display: flex; }
+            }
+
+            .content-centered {
+                display:         flex;
+                align-items:     center;
+                justify-content: center;
+                height:          100%;
+                padding:         0 30px;
+                .content-block {
+                    display:        flex;
+                    flex-direction: column;
+                    color:          #666;
+                    font-size:      14px;
+                    font-weight:    500;
+                    text-align:     center;
+                    i { color: #eee; font-size: 72px; margin-bottom: 5px; display: flex; justify-content: center; }
+                    .btn { margin-top: 15px; }
+                }
+            }
+        }
+
+        // Favorites footer
+        &[data-type="favorites"] {
+            > .dropdown-container > .dropdown-footer,
+            > .dropdown-footer { padding: 15px; }
+        }
+    }
+
+    // Active badge dot
+    &[data-type="favorites"].active > a:after {
+        content:          "";
+        position:         absolute;
+        width:            4px;
+        height:           4px;
+        border-radius:    50%;
+        bottom:           -6px;
+        left:             50%;
+        margin-left:      -2px;
+        background-color: var(--header-icon-dot-color);
+    }
+
+    // Account avatar
+    &[data-type="account"] > a img {
+        border-radius: 50%;
+        max-width:     40px;
+        max-height:    40px;
+    }
+
+    // show state — flex layout garantisi
+    &.show > .dropdown-menu { display: flex !important; }
+    &.show .dropdown-menu {
+        display:        flex;
+        flex-direction: column;
+        > .dropdown-container > .dropdown-body,
+        > .dropdown-body { flex: 1; }
+    }
+
+    // Mobile: fullscreen
+    @include media-breakpoint-down(lg) {
+        .dropdown-menu {
+            position:      fixed;
+            top:           var(--header-height);
+            width:         100%;
+            height:        calc(100vh - var(--header-height));
+            border-radius: 0;
+            > .dropdown-container { flex: auto; height: calc(100% - 60px); }
+            > .dropdown-container > .dropdown-body,
+            > .dropdown-body { &.scrollable { max-height: none; } }
+            &.show { display: flex !important; }
+        }
+    }
 }

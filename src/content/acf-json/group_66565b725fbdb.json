@@ -1,6 +1,6 @@
 {
     "key": "group_66565b725fbdb",
-    "title": "Settings: Background",
+    "title": "Settings Background",
     "fields": [
         {
             "key": "field_670d698268dae",
@@ -1336,7 +1336,7 @@
             "search_placeholder": "",
             "create_options": 0,
             "save_options": 0,
-            "pll_default_value": ""
+            "pll_default_value": false
         },
         {
             "key": "field_66ace9902a7f5",
@@ -2152,7 +2152,9 @@
             "pll_default_value": {
                 "value": "0",
                 "unit": "px"
-            }
+            },
+            "allowed_units": [],
+            "default_unit": ""
         },
         {
             "key": "field_669453e0cfa2a",
@@ -2274,7 +2276,7 @@
             "search_placeholder": "",
             "create_options": 0,
             "save_options": 0,
-            "pll_default_value": ""
+            "pll_default_value": false
         },
         {
             "key": "field_670d6147b9667",
@@ -3058,13 +3060,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_autosync": [
-        "json"
-    ],
-    "acfe_form": 0,
-    "acfe_meta": "",
-    "acfe_note": "",
-    "modified": 1774822273,
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1787708513,
     "acfe_categories": {
         "common": "Common"
     }

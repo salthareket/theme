@@ -88,6 +88,12 @@ class DownloadManager {
     public static function renderAttrs( int $file_id, array $options = [] ): string {
         if ( $file_id < 1 ) return '';
 
+        // Download Log devre dışıysa — gerçek dosya URL'ini href olarak ver, data attr yok
+        if ( ! defined('ENABLE_DOWNLOAD_LOG') || ! ENABLE_DOWNLOAD_LOG ) {
+            $url = wp_get_attachment_url( $file_id );
+            return $url ? 'href="' . esc_url( $url ) . '"' : 'href="#"';
+        }
+
         $source_post = (int) ( $options['source_post'] ?? 0 );
         if ( ! $source_post ) {
             global $post;
@@ -104,7 +110,7 @@ class DownloadManager {
 
         // data attrs — data-sh-download her zaman eklenir (JS selector)
         $attrs = sprintf(
-            '%sdata-sh-download data-file-id="%d" data-source-post="%d" data-mode="%s" data-access="%s"',
+            'href="#" %sdata-sh-download data-file-id="%d" data-source-post="%d" data-mode="%s" data-access="%s"',
             $class_attr,
             $file_id,
             $source_post,

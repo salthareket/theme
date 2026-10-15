@@ -34,6 +34,8 @@
 {% endif %}
 
 
+{#
+DEPRECATED — eski ACF add_offcanvas sistemi. Yeni sistem base.twig default block'larinda.
 {% block sidebar_toggler %}
     {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
@@ -45,6 +47,7 @@
         {{ block("sidebar", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
+#}
 
 {% block hero %}
 {% endblock %}

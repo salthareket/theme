@@ -1,18 +1,19 @@
 {% set menu_level = menu_level is empty?1:menu_level %}
+{% set max_level = max_level is empty?9999:max_level %}
 {% if menu_level <= 1 %}
-<nav class="nav-tree nav-menu" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" data-single-parent="true" aria-label="{{translate("Sidebar Menü")}}">
+<nav class="nav-tree nav-menu" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" data-single-parent="true" aria-label="{{translate("Sidebar Menu")}}">
      <ul class="nav {{class_name}} flex-column">
 {% endif %}
 
 {% for item in menu %}
 
-    {% set props = item.get_properties({parent_link: parent_link, collapsible : true, nodes : nodes}) %}
+    {% set props = item.get_properties({parent_link: parent_link, collapsible : true, nodes : nodes, menu_level: menu_level, max_level: max_level}) %}
 
     <li class="{{props.item.class}}" data-menu-level="{{menu_level}}" parent="{{item.menu_item_parent}}">
         <a href="{{props.link.href}}" data-parent="#menu" class="level-{{menu_level}} {{props.link.class}}" {% if props.link.target %}target="{{props.link.target}}"{% endif %} {{props.link.attrs}}>
             <span itemprop="name">{{item.title}}</span>
         </a>            
-        {% if item.children %}
+        {% if item.children and menu_level < max_level %}
 
             {% set last_level = true %}                
             {% for item_m in item.children %}   
@@ -31,7 +32,9 @@
                         menu : item.children, 
                         menu_id : menu_id, 
                         is_child : item.children, 
-                        menu_level : menu_level+1, 
+                        menu_level : menu_level+1,
+                        max_level : max_level,
+                        parent_link : parent_link,
                         hash : hash, 
                     } %}
                 </ul>

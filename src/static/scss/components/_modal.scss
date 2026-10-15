@@ -1,32 +1,116 @@
 // ─────────────────────────────────────────────────────────────
 // MODAL
-// BS5 uyumlu - fullscreen class'ları .modal-dialog üzerinde
-// modal-fullscreen, modal-fullscreen-sm-down, modal-fullscreen-md-down vb.
+// Tüm variable'lar --modal-* prefix'i ile root.css'de tanımlı.
+// processor.php bunları theme-styles admin'den override eder.
+// _button.twig → data-modal-style → _applyCustomStyle() ile per-instance override.
+//
+// Desteklenen CSS custom properties:
+//   --modal-bg              : içerik arkaplanı (hex/rgb/transparent)
+//   --modal-bg-rgb          : RGB bileşenleri (rgba() için)
+//   --modal-bg-gradient     : gradient arkaplan (none veya CSS gradient)
+//   --modal-bg-image        : görsel arkaplan (none veya url(...))
+//   --modal-color           : metin rengi
+//   --modal-border-*        : kenarlık variable'ları
+//   --modal-box-shadow      : gölge
+//   --modal-transition      : açılma animasyonu
+//   --modal-fade-transform  : başlangıç transform değeri
+//   --modal-close-*         : kapat butonu variable'ları
+//   --modal-header-*        : header variable'ları
+//   --modal-padding         : body padding
+//   --modal-body-*          : body variable'ları
+//   --modal-footer-*        : footer variable'ları
+//   --backdrop-bg / --backdrop-opacity : backdrop (offcanvas ile paylaşımlı)
 // ─────────────────────────────────────────────────────────────
+
+// ── Açılma animasyonu ─────────────────────────────────────────
+// BS5'te $modal-fade-transform Sass variable'ı CSS var ile override edilemez.
+// .modal.fade .modal-dialog'a doğrudan yazıyoruz.
+.modal.fade .modal-dialog {
+    transition: var(--modal-transition, transform .3s ease-out);
+    transform:  var(--modal-fade-transform, translate(0, -50px));
+}
+.modal.show .modal-dialog {
+    transform: none;
+}
 
 .modal {
     .modal-dialog {
         .modal-content {
+            // ── Background ───────────────────────────────────
+            // bg-gradient ve bg-image ayrı property'ler — shorthand background değil.
+            // bg-gradient set edilince bg-image'ı ezer (CSS cascade); bg-image varsa
+            // gradient gelmez; ikisi de none ise sadece bg-color görünür.
+            background-color: var(--modal-bg, #fff);
+            background-image: var(--modal-bg-gradient, var(--modal-bg-image, none));
+            background-size:  cover;
+            background-position: center;
+
+            // ── Base ─────────────────────────────────────────
+            color:         var(--modal-color, inherit);
+            border-color:  var(--modal-border-color, rgba(0, 0, 0, .2));
+            border-width:  var(--modal-border-width, 1px);
+            border-radius: var(--modal-border-radius, .5rem);
+            box-shadow:    var(--modal-box-shadow, 0 .5rem 1rem rgba(0, 0, 0, .5));
+
+            // ── Header ───────────────────────────────────────
             .modal-header {
-                border-bottom: none;
-                padding: 25px 30px;
-                flex-wrap: wrap;
+                border-bottom:       none;
+                padding:             var(--modal-header-padding, 25px 30px);
+                border-bottom-color: var(--modal-header-border-color, transparent);
+                border-bottom-width: var(--modal-header-border-width, 0);
+                border-bottom-style: solid;
+                background-color:    var(--modal-header-bg, transparent);
+                color:               var(--modal-header-color, inherit);
+                flex-wrap:           wrap;
+
                 .modal-title {
-                    font-family: var(--font-primary);
+                    font-family:  var(--font-primary);
+                    font-size:    var(--modal-header-font-size, inherit);
+                    font-weight:  var(--modal-header-font-weight, 500);
+                    line-height:  var(--modal-title-line-height, 1.5);
                     flex: 1;
                 }
-                .close { font-size: 32px; opacity: 1; }
+
+                // Close button — .btn-close (BS5) veya .close (eski)
+                .btn-close,
+                .close {
+                    color:     var(--modal-close-color, inherit);
+                    opacity:   var(--modal-close-opacity, .5);
+                    font-size: var(--modal-close-size, 1.5rem);
+                    transition: color .15s ease, opacity .15s ease;
+                    &:hover {
+                        color:   var(--modal-close-color-hover, inherit);
+                        opacity: 1;
+                    }
+                }
             }
+
+            // ── Body ─────────────────────────────────────────
             .modal-body {
-                padding: 30px;
+                padding:          var(--modal-padding, 30px);
+                background-color: var(--modal-body-bg, transparent);
+                color:            var(--modal-body-color, inherit);
+                font-size:        var(--modal-body-font-size, inherit);
+
                 iframe { width: 100%; height: 100%; }
             }
-            .modal-footer { padding: 30px; }
+
+            // ── Footer ───────────────────────────────────────
+            .modal-footer {
+                padding:          var(--modal-footer-padding, 30px);
+                background-color: var(--modal-footer-bg, transparent);
+                color:            var(--modal-footer-color, inherit);
+                border-top-color: var(--modal-footer-border-color, transparent);
+                border-top-width: var(--modal-footer-border-width, 0);
+                border-top-style: solid;
+                gap:              var(--modal-footer-gap, .5rem);
+            }
         }
     }
 
+    // ── Variants ─────────────────────────────────────────────
     &.modal-confirm .modal-dialog .modal-content .modal-footer {
-        flex-direction: row-reverse;
+        flex-direction:  row-reverse;
         justify-content: flex-start;
     }
 
@@ -46,39 +130,45 @@
     &.modal-map.loading .modal-dialog .modal-content { min-height: 150px; }
 
     &.modal-scrollable .modal-dialog .modal-content .modal-body {
-        height: calc(100vh - 210px);
+        height:     calc(100vh - 210px);
         overflow-y: auto;
         @include media-breakpoint-down(md) { height: calc(100vh - 140px); }
     }
+
+    &.modal-alert.modal-alert-textless .modal-body { display: none; }
 }
 
-// ── Fullscreen modal overrides (BS5: class .modal-dialog üzerinde) ────────────
-// .modal-fullscreen, .modal-fullscreen-sm-down, .modal-fullscreen-md-down vb.
+// ── Fullscreen modal ──────────────────────────────────────────
+// BS5: class .modal-dialog üzerinde (.modal-fullscreen, .modal-fullscreen-sm-down vb.)
 .modal-dialog[class*="modal-fullscreen"] {
     .modal-content {
-        border: none !important;
+        border:        none !important;
         border-radius: 0;
+
         .modal-header {
             border-radius: 0;
-            padding: 20px 25px;
+            padding:       20px 25px;
             .modal-title { margin: 0; }
         }
     }
 
-    // Container'lar tam genişlik almalı
+    // Container'lar tam genişlik
     [class*="container"] {
         max-width: 100% !important;
-        width: 100%;
+        width:     100%;
     }
 }
 
-// ── Container width fix inside non-fullscreen modals ─────────
-// Prevents container overflow when modal is smaller than container max-width
+// ── Container width fix — non-fullscreen ─────────────────────
+// Modal container max-width overflow'unu önler.
+// Spesifik BS5 class'ları kullanıldı — 3. parti "container" class'larını etkilememek için.
 .modal-dialog:not([class*="modal-fullscreen"]) {
-    [class*="container"]:not(.container-fluid) {
-        max-width: var(--modal-content-width, 100%) !important;
-        width: 100%;
-    }
+    .container,
+    .container-sm,
+    .container-md,
+    .container-lg,
+    .container-xl,
+    .container-xxl { width: 100%; }
 
     &.modal-sm  { --modal-content-width: calc(300px  - 76px); }
     &.modal-md  { --modal-content-width: calc(500px  - 76px); }
@@ -86,9 +176,9 @@
     &.modal-xl  { --modal-content-width: calc(1140px - 76px); }
 
     &.modal-xxl {
-        @include media-breakpoint-up(md)  { --modal-content-width: calc(800px  - 76px); }
-        @include media-breakpoint-up(xl)  { --modal-content-width: calc(1140px - 76px); }
-        @include media-breakpoint-up(xxxl){ --modal-content-width: calc(1540px - 76px); }
+        @include media-breakpoint-up(md)   { --modal-content-width: calc(800px  - 76px); }
+        @include media-breakpoint-up(xl)   { --modal-content-width: calc(1140px - 76px); }
+        @include media-breakpoint-up(xxxl) { --modal-content-width: calc(1540px - 76px); }
     }
 
     &:not(.modal-sm):not(.modal-md):not(.modal-lg):not(.modal-xl):not(.modal-xxl) {
@@ -103,6 +193,3 @@
     @include media-breakpoint-up(xl)   { max-width: 1140px; }
     @include media-breakpoint-up(xxxl) { max-width: 1540px; }
 }
-
-// ── Alert modal ───────────────────────────────────────────────
-.modal-alert.modal-alert-textless .modal-body { display: none; }

@@ -86,25 +86,24 @@
             "type": "select",
             "instructions": "",
             "required": 0,
-            "conditional_logic": [
-                [
-                    {
-                        "field": "field_6972c838e8341",
-                        "operator": "!=",
-                        "value": "custom_modal"
-                    }
-                ]
-            ],
+            "conditional_logic": 0,
             "wrapper": {
                 "width": "20",
-                "class": "",
+                "class": "acf-modal-sizes",
                 "id": ""
             },
             "choices": {
-                "sm": "Small",
-                "lg": "Large",
-                "xl": "Extra Large",
-                "fullscreen": "Fullscreen"
+                ": Default": ": Default",
+                "modal-sm": "Small",
+                "modal-md": "Medium",
+                "modal-lg": "Large",
+                "modal-xl": "Extra Large",
+                "modal-fullscreen": "Fullscreen",
+                "modal-fullscreen-sm-down": "Fullscreen below sm",
+                "modal-fullscreen-md-down": "Fullscreen below md",
+                "modal-fullscreen-lg-down": "Fullscreen below lg",
+                "modal-fullscreen-xl-down": "Fullscreen below xl",
+                "modal-fullscreen-xxl-down": "Fullscreen below xxl"
             },
             "default_value": "lg",
             "return_format": "value",
@@ -396,7 +395,7 @@
             "save_options": 0,
             "allow_custom": 0,
             "search_placeholder": "Find posts",
-            "pll_default_value": ""
+            "pll_default_value": []
         },
         {
             "key": "field_6972c838e834c",
@@ -447,7 +446,7 @@
             "save_options": 0,
             "allow_custom": 0,
             "search_placeholder": "",
-            "pll_default_value": ""
+            "pll_default_value": false
         },
         {
             "key": "field_6972c838e834d",
@@ -817,14 +816,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_autosync": [
-        "json"
-    ],
-    "acfe_form": 0,
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
     "pll_display_field_instructions": 1,
-    "acfe_meta": "",
-    "acfe_note": "",
-    "modified": 1774822334,
+    "modified": 1787776820,
     "acfe_categories": {
         "common": "Common",
         "general": "General"

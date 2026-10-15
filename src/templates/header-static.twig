@@ -1,0 +1,43 @@
+<div class="navbar-main navbar">           
+    <div class="navbar-top container px-4 px-lg-3 justify-content-between align-items-start">
+
+                    <div class="h-inherit">
+                        <div class="navbar-brand align-items-start d-flex {% if logo_affix.url %}has-logo-affix{% endif %} {% if logo_mobile.url %}has-logo-mobile logo-mobile-{{logo_mobile_breakpoint}}{% endif %}">
+                            <a href="{{site.url}}" class="mh-100 h-100 d-block btn-loading-page h-inherit" rel="home" itemprop="url" title="{{translate("Home")}}">
+                                {% if function('get_extension', logo.url) == "svg" %}
+                                    {{function('inline_svg', logo.url, {"class": "logo-svg w-auto h-inherit--"})}}
+                                {% else %}
+                                    <img src="{{logo.url}}" class="logo h-inherit--" alt="{{site.name}}" fetchpriority="high" decoding="sync" width="{{ logo.width }}" height="{{ logo.height }}" />
+                                {% endif %}
+                                {% if logo_affix.url != "" %}
+                                    {% if function('get_extension', logo_affix.url) == "svg" %}
+                                        {{function('inline_svg', logo_affix.url, {"class": "logo-svg logo-affix w-auto h-inherit--"})}}
+                                    {% else %}
+                                        <img src="{{logo_affix.url}}" class="logo logo-affix h-inherit--" alt="{{site.name}}" width="{{ logo_affix.width }}" height="{{ logo_affix.height }}"/>
+                                    {% endif %}
+                                {% endif %}
+                                {% if logo_mobile.url != "" %}
+                                    {% if function('get_extension', logo_mobile.url) == "svg" %}
+                                        {{function('inline_svg', logo_mobile.url, {"class": "logo-svg logo-mobile w-auto"})}}
+                                    {% else %}
+                                        <img src="{{logo_mobile.url}}" class="logo logo-mobile" alt="{{site.name}}" fetchpriority="high" decoding="sync" width="{{ logo_mobile.width }}" height="{{ logo_mobile.height }}" />
+                                    {% endif %}
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class=" h-100">
+                        <nav id="navigation" class="navbar-container d-xl-flex d-none h-100 justify-content-end" role="navigation" aria-label="{{ translate("Navigation") }}">
+                            <ul class="smartmenu navbar-nav-main nav navbar-nav--" data-sm-skip data-sm-skip-collapsible-behavior="true">
+                                {% set _nav_loc = header_options[col].menu %}
+                                {% set _nav_obj = _nav_loc ? fn('Timber\\Timber::get_menu', _nav_loc) : null %}
+                                {% if _nav_obj %}
+                                    {% include "navigation/menu.twig" with {'menu': _nav_obj.get_items, 'parent_link': header_options[col].parent_link} %}
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+
+    </div>
+</div>

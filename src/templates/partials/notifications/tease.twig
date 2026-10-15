@@ -14,13 +14,13 @@
                 {% set post = post.parent %}
             {% endif %}
             {% if notification_action in ["new_project","approved_application", "new_application"] %}
-                {% set icon = "fa-regular fa-calendar-circle-plus ms-1" %}
+                {% set icon = "calendar-circle-plus" %}
             {% endif %}
             {% if notification_action in ["payment_completed"] %}
-                {% set icon = "fa-regular fa-credit-card" %}
+                {% set icon = "credit-card" %}
             {% endif %}
             {% if notification_action in ["session_expired", "declined_application"] %}
-                {% set icon = "fa-regular fa-calendar-circle-exclamation" %}
+                {% set icon = "calendar-circle-exclamation" %}
             {% endif %}
         {% else %}
             {% set sender = TimberUser(notification.sender_id, 'User') %}

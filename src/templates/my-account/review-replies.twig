@@ -11,7 +11,7 @@
 
     {% if pending_replies %}
     <div class="sh-pending-replies mb-5">
-        <h3 class="mb-3">{{ "Onay Bekleyen Cevaplar"|trans }}
+        <h3 class="mb-3">{{ translate("Pending Replies") }}
             <span class="badge bg-warning text-dark">{{ pending_replies|length }}</span>
         </h3>
 
@@ -30,8 +30,9 @@
                         </div>
                         {% if parent %}
                         <div class="sh-reply-parent-preview text-muted small mb-2">
-                            <i class="fa fa-reply me-1"></i>
-                            {{ "Yorumunuza cevap:"|trans }}
+                            {#<i class="fa fa-reply me-1"></i>#}
+                            {{ fa_icon('reply', 'solid', 'me-1') }}
+                            {{ translate("Reply to your comment:") }}
                             <em>"{{ parent.comment_content|slice(0, 80) }}..."</em>
                         </div>
                         {% endif %}
@@ -42,14 +43,16 @@
                                     data-id="{{ reply.comment_ID }}"
                                     data-nonce="{{ function('wp_create_nonce', 'sh_review_reply_action') }}"
                                     onclick="shApproveReply(this, 'approve')">
-                                <i class="fa fa-check me-1"></i>{{ "Onayla"|trans }}
+                                {#<i class="fa fa-check me-1"></i>#}
+                                {{ fa_icon('check', 'solid', 'me-1') }}{{ translate("Approve") }}
                             </button>
                             <button type="button"
                                     class="btn btn-outline-danger btn-sm sh-reject-reply"
                                     data-id="{{ reply.comment_ID }}"
                                     data-nonce="{{ function('wp_create_nonce', 'sh_review_reply_action') }}"
                                     onclick="shApproveReply(this, 'reject')">
-                                <i class="fa fa-times me-1"></i>{{ "Reddet"|trans }}
+                                {#<i class="fa fa-times me-1"></i>#}
+                                {{ fa_icon('times', 'solid', 'me-1') }}{{ translate("Reject") }}
                             </button>
                         </div>
                     </div>
@@ -62,16 +65,17 @@
 
     {# ── Tüm Yorumlarım ── #}
     {% if my_reviews %}
-    <h3 class="mb-3">{{ "Yorumlarım"|trans }}</h3>
+    <h3 class="mb-3">{{ translate("My Reviews") }}</h3>
     <div class="sh-my-reviews-list">
         {% for review in my_reviews %}
-        {% include "partials/reviews/review-item.twig" with { review: review } %}
+        {% include "partials/post-reviews/review-item.twig" with { review: review } %}
         {% endfor %}
     </div>
     {% else %}
     <div class="content-centered d-flex flex-column h-100 align-items-center justify-content-center text-center py-5">
-        <i class="far fa-star fa-3x text-muted mb-3"></i>
-        <p class="text-muted">{{ "Henüz yorum yazmadınız."|trans }}</p>
+        {#<i class="far fa-star fa-3x text-muted mb-3"></i>#}
+        {{ fa_icon('star', 'regular', 'fa-3x text-muted mb-3') }}
+        <p class="text-muted">{{ translate("You haven't written any reviews yet.") }}</p>
     </div>
     {% endif %}
 
@@ -100,7 +104,7 @@ function shApproveReply(btn, action) {
             setTimeout(function(){ card.remove(); }, 300);
         } else {
             btn.disabled = false;
-            alert(res.message || '{{ "Bir hata oluştu."|trans }}');
+            alert(res.message || '{{ translate("An error occurred.") }}');
         }
     });
 }

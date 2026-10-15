@@ -38,11 +38,6 @@ $breakpoints = array_map(fn($w) => $w ? "≤{$w}" : '>1600px', THEME_STYLES_BREA
                 <div><?php theme_styles_render_font_family_field('font_heading', $data['font_heading'] ?? '', ['label' => __('Heading', 'theme-styles')]); ?></div>
                 <div><?php theme_styles_render_font_family_field('font_secondary', $data['font_secondary'] ?? '', ['label' => __('Secondary', 'theme-styles')]); ?></div>
             </div>
-            <div class="ts-field-row ts-field-row-2" style="margin-top: 20px;">
-                <div><?php theme_styles_render_font_family_field('icon_font', $data['icon_font'] ?? '', ['label' => __('Icon Font', 'theme-styles')]); ?></div>
-                <div><?php theme_styles_render_font_family_field('icon_font_brands', $data['icon_font_brands'] ?? '', ['label' => __('Icon Font (Brands)', 'theme-styles')]); ?></div>
-            </div>
-        </div>
 
         <!-- Base Settings -->
         <div class="ts-section">
@@ -328,3 +323,5 @@ $breakpoints = array_map(fn($w) => $w ? "≤{$w}" : '>1600px', THEME_STYLES_BREA
     </div><!-- /preview tab -->
 
 </div>
+
+</div><!-- /ts-module-typography -->

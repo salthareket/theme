@@ -58,13 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Sayfa yeniden gösterildiğinde (Geri/İleri tuşu veya bfcache)
     window.addEventListener('pageshow', (event) => {
-        _hasUserLeft = false; // Sayfaya dönüldüğü için durumu sıfırla
+        _hasUserLeft = false;
         document.body.classList.remove("loading", "loading-process");
-        
-        // Eğer sayfa tarayıcı önbelleğinden (bfcache) geliyorsa ve tazelenmesi gerekiyorsa:
-        if (event.persisted) {
-             window.location.reload();
-        }
+        // bfcache reload kaldırıldı — gereksiz extra request yaratıyordu
     });
 
     // 5. Görünürlük Değişimi
@@ -193,37 +189,55 @@ window.waiting_init = {
     }
 };*/
 
-// lazy-load main-combined.css only once, when a matching modal is triggered
+// ─── Dinamik icerik CSS'i (modal / offcanvas / dropdown) — lazy, TEK KEZ ──────
+// Sayfa CSS'i used-CSS ile purge edilir; AJAX ile gelen modal/offcanvas/dropdown
+// icerigindeki class'lar (btn-primary vb.) sayfa HTML'inde olmadigindan purge'e
+// takilir. Cozum: TAM main-combined.css'i, kullanici bir modal/offcanvas/dropdown
+// TETIKLEYICISINE tikladigi anda (panel ACILMADAN ONCE) yukle. Tiklama ile acilis
+// arasindaki sure (bootstrap animasyonu + AJAX) CSS'i orter. Idempotent — 1 kez.
 (function() {
-  const VALID_METHODS = ['form_modal', 'page_modal', 'map_modal', 'iframe_modal', 'template_modal', 'custom_modal'];
-  const FULL_CSS_URL = ajax_request_vars.theme_url+'/static/css/main-combined.css?v=1.0.0'; // buraya kendi yolunu yaz
-  let cssLoaded = false;
+  var isRtl    = (document.documentElement.getAttribute('dir') === 'rtl') ||
+                 (document.body && document.body.classList.contains('rtl'));
+  var baseUrl  = (typeof ajax_request_vars !== 'undefined' && ajax_request_vars.theme_url)
+                 ? ajax_request_vars.theme_url : '';
+  var ver      = (typeof ajax_request_vars !== 'undefined' && ajax_request_vars.css_version)
+                 ? ajax_request_vars.css_version : '1.0.0';
+  var FULL_CSS_URL = baseUrl + '/static/css/main-combined' + (isRtl ? '-rtl' : '') + '.css?v=' + ver;
+  var cssLoaded = false;
 
-  // Dinle: herhangi bir tıklama olayı
+  function loadDynamicCss() {
+    if (cssLoaded || !baseUrl) return;
+    cssLoaded = true;
+    var link = document.createElement('link');
+    link.rel  = 'stylesheet';
+    link.href = FULL_CSS_URL;
+    link.setAttribute('data-sh-dynamic-css', '1');
+    link.onload = function () {
+      if (typeof debugJS === 'function') debugJS('%c[main-combined.css yuklendi]', 'color: #3cfa8c');
+    };
+    document.head.appendChild(link);
+  }
+  window.loadDynamicCss = loadDynamicCss;
+
+  // Tetikleyiciler: modal/offcanvas/dropdown acan HER kontrol (acilmadan ONCE yakala).
+  //  - data-ajax-method  → form_modal, page_modal, template_modal, ... (eski)
+  //  - data-salt-offcanvas → source offcanvas (cart/favorites/reviews/reaction...)
+  //  - data-bs-toggle="modal|offcanvas|dropdown" → bootstrap native toggler'lar
+  //  - data-bs-source-modal / data-source → source modal'lari
+  var SELECTOR = [
+    '[data-ajax-method]',
+    '[data-salt-offcanvas]',
+    '[data-bs-toggle="modal"]',
+    '[data-bs-toggle="offcanvas"]',
+    '[data-bs-toggle="dropdown"]',
+    '[data-bs-source-modal]',
+    '.dropdown-notifications [data-bs-toggle]'
+  ].join(',');
+
   document.addEventListener('click', function(e) {
-    const trigger = e.target.closest('[data-ajax-method]');
-    if (!trigger) return;
-
-    const method = trigger.getAttribute('data-ajax-method');
-    if (!VALID_METHODS.includes(method)) return;
-
-    // Modal tetiklendiyse ve CSS henüz yüklenmediyse
-    if (!cssLoaded) {
-      cssLoaded = true;
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = FULL_CSS_URL;
-      link.onload = () => debugJS('%c[main-combined.css yüklendi 💅]', 'color: #3cfa8c');
-      document.head.appendChild(link);
-    }
-  });
-
-  /* opsiyonel: preload, kullanıcı modal’a tıklamadan önce indirsin
-  const preload = document.createElement('link');
-  preload.rel = 'preload';
-  preload.as = 'style';
-  preload.href = FULL_CSS_URL;
-  document.head.appendChild(preload);*/
+    if (cssLoaded) return;
+    if (e.target.closest(SELECTOR)) loadDynamicCss();
+  }, true); // capture: acilis handler'larindan ONCE calissin
 })();
 
 
@@ -303,6 +317,8 @@ class ajax_query {
 
         if (isError) {
             if (typeof response_view === "function") response_view(result);
+            // Error durumunda da obj.done çağır — caller kendi error handling'ini yapabilsin
+            if (obj.done) await obj.done(result, obj.vars, obj.form, obj.objs);
         } else {
             // Hook'ları sırasıyla çalıştır
             if (hooks.after) await hooks.after(result, obj.vars, obj.form, obj.objs);
@@ -366,7 +382,8 @@ class ajax_query {
     getPayload() {
         this.vars["lang"] = typeof root !== 'undefined' ? root.lang : 'tr';
         const hasFiles = this.form.length > 0 && this.form.find('[type="file"]').length > 0;
-        if (hasFiles) {
+        const forceMultipart = this.form.length > 0 && this.form[0] && this.form[0].dataset && this.form[0].dataset.ajaxMultipart === 'true';
+        if (hasFiles || forceMultipart) {
             const formData = new FormData(this.form[0]);
             Object.keys(this.vars).forEach(key => {
                 formData.append(`vars[${key}]`, typeof this.vars[key] === 'object' ? JSON.stringify(this.vars[key]) : this.vars[key]);
@@ -512,6 +529,25 @@ class ajax_query {
                 console.warn('[ajax_query] ABORTED (previous request cancelled):', obj.method);
             } else {
                 console.error('[ajax_query] ERROR in', obj.method, ':', error.message, error.stack);
+                // 500 hatası — WooCommerce veya servis devre dışı olabilir
+                // Açık modal/offcanvas'ı kapat, kullanıcıya bilgi ver
+                if (error.message && error.message.indexOf('500') !== -1) {
+                    var _serviceMsg = '<p style="text-align:center;padding:30px 20px;color:#999;font-size:13px">⚠️ This service is currently unavailable.</p>';
+                    // Açık offcanvas load-container'larına mesaj yaz
+                    document.querySelectorAll('.offcanvas.show .load-container.loading-process').forEach(function(el) {
+                        el.classList.remove('loading-process');
+                        el.innerHTML = _serviceMsg;
+                    });
+                    // Açık modal load-container'larına mesaj yaz
+                    document.querySelectorAll('.modal.show .load-container.loading-process').forEach(function(el) {
+                        el.classList.remove('loading-process');
+                        el.innerHTML = _serviceMsg;
+                    });
+                    // Toast göster
+                    if (typeof window.shGsToast === 'function') {
+                        window.shGsToast('This service is currently unavailable.', false);
+                    }
+                }
             }
             if (error.name !== 'AbortError') {
                 this.check(null);
@@ -626,6 +662,10 @@ class ResponsiveManager {
         } else {
             setTimeout(scheduleTasks, 200);
         }
+
+        // bottom-start affix mode icin updateHeaderOffset'i hemen de calistir
+        // (load event'tan once data-affix-offset yazilmasi gerekiyor)
+        this.updateHeaderOffset();
     }
 
     updateBreakpoint(className) {
@@ -669,9 +709,39 @@ class ResponsiveManager {
         if (!this.header) return;
         requestAnimationFrame(() => {
             const h = this.header.offsetHeight || 0;
-            const offset = window.innerHeight - h;
-            this.header.setAttribute("data-affix-offset", Math.round(h));
+
+            // data-affix-offset hesapla:
+            // fixed-bottom-start: body.scrollHeight - header.offsetHeight
+            //   = header'in sayfadaki absolute top konumu (jQuery: $body.height() - $header.outerHeight())
+            //   ScrollPosStyler scroll bu degeri gecince "affix" ekler → header tepede sabitlenir
+            // Diger modlar: header.offsetHeight (kaydirinca affix olsun)
+            if (this.header.classList.contains('fixed-bottom-start') ||
+                (this.header.classList.contains('affix') && this.header.dataset.affixMode === 'viewport')) {
+                // CSS: top: calc(100vh - header-height) — viewport bazli konum
+                // Offset = viewport yuksekligi - header yuksekligi
+                const offset = Math.max(1, window.innerHeight - h);
+                this.header.setAttribute("data-affix-offset", Math.round(offset));
+            } else {
+                this.header.setAttribute("data-affix-offset", Math.round(h));
+            }
+
             this.body.style.setProperty('--header-height', h + 'px');
+
+            // --header-height-affix: hide_on_affix row'larini toplam yukseklikten cikar.
+            // Sadece hide_on_affix row'u varsa DOM ölçümünü kullan.
+            // Yoksa theme styles root.css'deki değeri koru — JS override etmesin.
+            let hiddenOnAffixH = 0;
+            this.header.querySelectorAll('.header-row-hide-on-affix').forEach(row => {
+                hiddenOnAffixH += row.offsetHeight || 0;
+            });
+
+            if (hiddenOnAffixH > 0) {
+                // Hide-on-affix row var — DOM'dan hesapla
+                const affixedH = Math.max(0, h - hiddenOnAffixH);
+                this.body.style.setProperty('--header-height-affix', affixedH + 'px');
+            }
+            // Hide-on-affix row yoksa --header-height-affix'e dokunma:
+            // theme styles root.css'deki değer geçerli kalır (örn. 70px)
         });
     }
 }
@@ -733,37 +803,9 @@ var root = {
         setTimeout(function() {
             var arr = {};
             var obj = getComputedStyle(document.documentElement);
-            /*arr['header-height-xxxl'] = parseFloat(obj.getPropertyValue('--header-height-xxxl').trim());
-            arr['header-height-xxl'] = parseFloat(obj.getPropertyValue('--header-height-xxl').trim());
-            arr['header-height-xl'] = parseFloat(obj.getPropertyValue('--header-height-xl').trim());
-            arr['header-height-lg'] = parseFloat(obj.getPropertyValue('--header-height-lg').trim());
-            arr['header-height-md'] = parseFloat(obj.getPropertyValue('--header-height-md').trim());
-            arr['header-height-sm'] = parseFloat(obj.getPropertyValue('--header-height-sm').trim());
-            arr['header-height-xs'] = parseFloat(obj.getPropertyValue('--header-height-xs').trim());*/
-
             arr['header-height'] = parseFloat(obj.getPropertyValue('--header-height').trim());
-
-            /*arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
-            arr['header-height-xxxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxxl-affix').trim());
-            arr['header-height-xxl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xxl-affix').trim());
-            arr['header-height-xl-affix'] = parseFloat(obj.getPropertyValue('--header-height-xl-affix').trim());
-            arr['header-height-lg-affix'] = parseFloat(obj.getPropertyValue('--header-height-lg-affix').trim());
-            arr['header-height-md-affix'] = parseFloat(obj.getPropertyValue('--header-height-md-affix').trim());
-            arr['header-height-sm-affix'] = parseFloat(obj.getPropertyValue('--header-height-sm-affix').trim());
-            arr['header-height-xs-affix'] = parseFloat(obj.getPropertyValue('--header-height-xs-affix').trim());*/
-
             arr['header-height-affix'] = parseFloat(obj.getPropertyValue('--header-height-affix').trim());
-
-            /*arr['hero-height-xxxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxxl').trim());
-            arr['hero-height-xxl'] = parseFloat(obj.getPropertyValue('--hero-height-xxl').trim());
-            arr['hero-height-xl'] = parseFloat(obj.getPropertyValue('--hero-height-xl').trim());
-            arr['hero-height-lg'] = parseFloat(obj.getPropertyValue('--hero-height-lg').trim());
-            arr['hero-height-md'] = parseFloat(obj.getPropertyValue('--hero-height-md').trim());
-            arr['hero-height-sm'] = parseFloat(obj.getPropertyValue('--hero-height-sm').trim());
-            arr['hero-height-xs'] = parseFloat(obj.getPropertyValue('--hero-height-xs').trim());*/
-
             arr['hero-height'] = parseFloat(obj.getPropertyValue('--hero-height').trim());
-
             root.css_vars = arr;
         }, 50);
     },
@@ -805,41 +847,12 @@ var root = {
             return (sizes.indexOf(a) > sizes.indexOf(b));
         },
 
-        /*size: function() {
-            var bodyObj, bodyClass;
-            bodyObj = window.document.documentElement; //document.body;
-            bodyClass = "xxxl";
-            bodyClass = root.classes.hasClass(bodyObj, "size-xxxl") ? "xxxl" : bodyClass;
-            bodyClass = root.classes.hasClass(bodyObj, "size-xxl") ? "xxl" : bodyClass;
-            bodyClass = root.classes.hasClass(bodyObj, "size-xl") ? "xl" : bodyClass;
-            bodyClass = root.classes.hasClass(bodyObj, "size-lg") ? "lg" : bodyClass;
-            bodyClass = root.classes.hasClass(bodyObj, "size-md") ? "md" : bodyClass;
-            bodyClass = root.classes.hasClass(bodyObj, "size-sm") ? "sm" : bodyClass;
-            bodyClass = root.classes.hasClass(bodyObj, "size-xs") ? "xs" : bodyClass;
-            return bodyClass;
-        },*/
         size: function() {
             const bodyObj = window.document.documentElement;
             const match = bodyObj.className.match(/size-([a-z0-9]+)/);
             return match ? match[1] : "xxxl"; // match[1] 'xxxl', 'lg' vb. döner
         },
 
-        /*closeOffcanvas: function($breakpoint){
-            let breakpoints = ["xs", "sm", "md", "lg", "xl", "xxl", "xxxl"];
-            let offcanvas = $(".offcanvas.show");
-            if (!$offcanvas.length) return;
-            breakpoints.forEach(function(bp){
-                if (bp === $breakpoint) return;
-                if ($offcanvas.hasClass(`offcanvas-${bp}`)) {
-                    let bsOffcanvas = bootstrap.Offcanvas.getInstance($offcanvas[0]);
-                    if (bsOffcanvas) {
-                        bsOffcanvas.hide();
-                    } else {
-                        $offcanvas.removeClass("show").hide(); // fallback
-                    }
-                }
-            });
-        },*/
     },
 
     ui: {
@@ -880,43 +893,6 @@ var root = {
             $(window).on('scroll resize', root.throttle(checkViewportStatus, 100));
             setTimeout(checkViewportStatus, 150);
         },
-
-        /*navigation: function() {
-
-            var menu = $('#navigation');
-            if (menu.find(".link-onepage-home").length > 0) {
-                menu.find(".link-onepage-home a").attr("href", "#home");
-            }
-
-            menu.on("click", ".dropdown-toggle", function(e) {
-                e.preventDefault();
-                
-                var $this = $(this);
-                var $parent = $this.parent(".dropdown"); // Parent'ın .dropdown olduğundan emin olalım
-                
-                // Menü içindeki diğer açık olanları bul ama tıkladığımızı hariç tut
-                var $openOthers = menu.find(".dropdown.open").not($parent);
-
-                // 1. Diğerlerini temizle
-                if ($openOthers.length > 0) {
-                    $openOthers.removeClass("open");
-                    $openOthers.find("a").removeClass("has-submenu highlighted");
-                    $openOthers.find("ul.dropdown-menu").attr("aria-hidden", true).attr("aria-expanded", false).hide();
-                }
-
-                // 2. Tıklananı Toggle et
-                if ($parent.hasClass("open")) {
-                    $parent.removeClass("open");
-                    $this.removeClass("has-submenu highlighted");
-                    $parent.find("ul.dropdown-menu").attr("aria-hidden", true).attr("aria-expanded", false).hide();
-                } else {
-                    $parent.addClass("open");
-                    $this.addClass("has-submenu highlighted");
-                    $parent.find("ul.dropdown-menu").attr("aria-hidden", false).attr("aria-expanded", true).show();
-                }
-            });
-
-        },*/
 
         scroll_dedect: function(up, down) {
             const self = this;
@@ -1056,96 +1032,6 @@ var root = {
             }
         },
 
-        /*scroll_to: function($hash, $animate = true, $outside = false, $callback = null) {
-            //const self = this;
-            
-            // 1. Girdi Kontrolü ve ID Üretimi
-            if (typeof $hash === "object") {
-                if (IsBlank($hash.attr("id"))) {
-                    $hash.attr("id", "sc-" + Math.random().toString(36).substr(2, 5));
-                }
-                $hash = "#" + $hash.attr("id");
-            }
-
-            if (IsBlank($hash)) return false;
-
-            const $target = $($hash);
-            if ($target.length === 0) return false;
-
-            // 2. Durum Belirleme
-            let _history = !$target.hasClass("tab-pane");
-            const header = $("header#header");
-            const isNavbarOpen = $(".navbar-collapse").hasClass("show");
-            const isOffcanvasOpen = $(".offcanvas.show").length > 0;
-
-            // 3. Bootstrap Bileşenlerini Tetikle (Show/Hide işlemleri)
-            // Offcanvas açıksa kapat
-            if (isOffcanvasOpen) {
-                $(".offcanvas.show").offcanvas("hide");
-            }
-
-            // Collapse ise aç
-            if ($target.hasClass("collapse") && !$target.hasClass("show")) {
-                $target.collapse("show");
-            }
-
-            // Tab ise aktifleştir
-            if ($target.hasClass("tab-pane") && !$target.hasClass("active")) {
-                $("a[href='" + $hash + "']").trigger("click");
-            }
-
-            // 4. Pozisyon Hesaplama (Calculation Engine)
-            const calculatePosition = () => {
-                let posY = $target.offset().top;
-                const headerHeight = root.get_css_var("header-height") || 0;
-                const headerHeightAffix = root.get_css_var("header-height-affix") || 0;
-                const currentSize = root.browser.size();
-
-                // Header yükseklik düşümü
-                if (header.hasClass("affix") || header.hasClass("fixed-top")) {
-                    posY -= (posY >= headerHeight) ? headerHeight : headerHeightAffix;
-                } else if (!root.browser.size_compare(currentSize, "md")) {
-                    posY -= headerHeightAffix;
-                }
-
-                // Sticky elemanları hesapla (Loop yerine tek seferde)
-                $(".stick-top.sticky, .sticky-top").each(function() {
-                    if ($(this).is(":visible")) {
-                        posY -= $(this).outerHeight(true);
-                    }
-                });
-
-                return posY;
-            };
-
-            // 5. Kaydırma Fonksiyonu (Execution)
-            const runScroll = (finalY) => {
-                const duration = $animate ? 600 : 0;
-                
-                $("html, body").stop().animate({
-                    scrollTop: Math.max(0, finalY) // Negatif değerleri engelle
-                }, duration, function() {
-                    // Callback ve History yönetimi
-                    if (!_outside && _history && !IsBlank($hash)) {
-                        // history.pushState(null, null, $hash); // İsteğe bağlı açılabilir
-                    }
-                    if (typeof $callback === "function") $callback();
-                });
-            };
-
-            // 6. Navbar Kapalıysa Direkt Kaydır, Açıksa Kapanmasını Bekle
-            if (isNavbarOpen) {
-                $(".navbar-collapse").collapse("hide").one('hidden.bs.collapse', function() {
-                    runScroll(calculatePosition());
-                });
-            } else {
-                // Render gecikmelerine karşı küçük bir timeout (özellikle collapse açılıyorsa)
-                setTimeout(() => runScroll(calculatePosition()), $target.hasClass("collapse") ? 350 : 0);
-            }
-
-            return false;
-        },*/
-
         scroll_to: function($hash, $animate = true, $outside = false, $callback = null) {
             // 1. Girdi Kontrolü ve Hedef Saptama
             if (typeof $hash === "object") {
@@ -1272,16 +1158,6 @@ var root = {
             });
         },
 
-        /*resizing : function(){
-            let timer;
-            function start() { $("body").addClass("resizing"); }
-            function stop() { $("body").removeClass("resizing"); }
-            $(window).on("resize", function(){
-                start();
-                clearTimeout(timer);
-                timer = setTimeout(stop, 250);
-            });
-        },*/
         resizing: function() {
             let timer;
             let lastWidth = window.innerWidth;
@@ -1308,21 +1184,6 @@ var root = {
                 }
             }, { passive: true });
         },
-
-        /*tree_menu : function(){
-            var obj = $(".nav-tree");
-            obj.each(function(){
-                var menu = $(this);
-                var single_parent = $(this).data("single-parent");
-                if(single_parent){
-                    $(this).find("a + ul").on('show.bs.collapse', function (e) {
-                            var parent = $(e.target).parents();
-                            menu.find("ul.collapse.show").not(parent).collapse('hide');
-                        //}
-                    });
-                }
-            });
-        },*/
 
         scrollspy: function() {
             // 1. Menüyü ve içindeki linkleri bul
@@ -1372,89 +1233,6 @@ var root = {
         }
 
     },
-
-    /*form: {
-        init: function() {
-            $('.btn-submit').attr("disabled", false).removeClass("processing");
-        }
-    },
-
-    responsive: {
-        table: function() {
-            if ($('.table.table-responsive-data').length > 0) {
-                $(".table.table-responsive-data").each(function() {
-                    var headers = [];
-                    $(this).find("thead th").each(function(index) {
-                        headers[index] = $(this).text();
-                    });
-                    $(this).find("tbody tr").each(function() {
-                        $(this).find("td").each(function(index) {
-                            $(this).attr("data-th", headers[index]);
-                        })
-                    });
-                });
-            }
-        },
-
-        tab: function() {
-            if ($('.tab-collapse').length > 0) {
-                $('.tab-collapse').tabCollapse({
-                        tabsClass: 'd-lg-flex d-md-none d-sm-none d-none',
-                        accordionClass: 'd-lg-none d-md-block s-sm-block d-block card-merged card-collapse card-collapse-scroll'
-                    })
-                    .on('show-accordion.bs.tabcollapse', function(e) {
-                        $(window).trigger("resize");
-                        var active_tab = $(e.target).find("li.active").find("a").attr("href");
-                        this.activate_tab = active_tab + "-collapse";
-                    })
-                    .on('shown-accordion.bs.tabcollapse', function(e) {
-                        $(this.activate_tab).closest(".card").addClass("active");
-                    })
-                    .on('show-tabs.bs.tabcollapse', function(e) {
-
-                    })
-                    .on('shown-tabs.bs.tabcollapse', function(e) {
-
-                    })
-                    .on('shown.bs.tab', function(e) {
-
-                    })
-
-
-                $(document).on("shown.bs.collapse", ".card-collapse", function(e) {
-                        $(e.target).closest(".card").addClass("active");
-                        var posY = $(e.target).closest(".card").offset().top;
-                        posY = root.ui.fixed_top() ? posY - ($("header#header").height() + 10) : posY;
-                        $("html, body").stop().animate({
-                            scrollTop: posY
-                        }, 500);
-                        //activate tab button
-                        var tab_index = $(e.target).closest(".card").index();
-                        var tab_id = $(e.target).attr("id").replace("-collapse", "");
-                        var tab_buttons = $(e.target).closest(".card-group").prev(".tab-collapse");
-                        tab_buttons.find("li").removeClass("active")
-                        tab_buttons.find("li").eq(tab_index).addClass("active");
-                        //activate tab content
-                        var tab_content = $(e.target).closest(".card-group").next(".tab-content");
-                        tab_content.find(".tab-pane").removeClass("active").removeClass("in");
-                        tab_content.find(".tab-pane#" + tab_id).addClass("active").addClass("in");
-                    })
-                    .on("hide.bs.collapse", ".card-collapse", function(e) {
-                        $(e.target).closest(".card").removeClass("active");
-                        //activate tab button
-                        var tab_index = $(e.target).closest(".card").index();
-                        var tab_id = $(e.target).attr("id").replace("-collapse", "");
-                        var tab_buttons = $(e.target).closest(".card-group").prev(".tab-collapse");
-                        tab_buttons.find("li").removeClass("active")
-                        tab_buttons.find("li").eq(tab_index).addClass("active");
-                        //activate tab content
-                        var tab_content = $(e.target).closest(".card-group").next(".tab-content");
-                        tab_content.find(".tab-pane").removeClass("active").removeClass("in");
-                        tab_content.find(".tab-pane#" + tab_id).addClass("active").addClass("in");
-                    });
-            }
-        }
-    },*/
 
     get_location: function($obj) {
             if (navigator.geolocation) {
@@ -1598,224 +1376,64 @@ if (typeof $.parseJSON !== 'function') {
     };
 }
 
-/*
-var favorites = {
-    class_tease: ".card-profile-tease",
-    add: function(obj) {
-        var id = obj.data("id");
-        var vars = { id: id };
-        var data = { method: "favorites_add", vars: vars, _wpnonce: ajax_request_vars.ajax_nonce };
-        obj.addClass("disabled loading");
-        this.request(obj, data);
-    },
-    remove: function(obj) {
-        var id = obj.data("id");
-        var vars = { id: id };
-        var data = { method: "favorites_remove", vars: vars, _wpnonce: ajax_request_vars.ajax_nonce };
-        obj.addClass("disabled loading");
-        if (obj.data("type") == "favorites") {
-            obj.closest(this.class_tease).addClass("loading-process");
+
+// ─── CSP Violation Listener ──────────────────────────────────────────────────
+// root.js'de çünkü sayfa en başında synchronous yükleniyor — violation'lar
+// sayfa yüklenirken oluşur, measure-lcp.js gibi dinamik inject'ten önce.
+// ajax_request_vars henüz set olmamış olabilir — sadece gönderme sırasında kontrol et.
+(function() {
+    var _violations = [];
+    var _sent       = false;
+    var _timer      = null;
+
+    document.addEventListener('securitypolicyviolation', function(e) {
+        var blocked   = e.blockedURI   || '';
+        var directive = (e.violatedDirective || e.effectiveDirective || '').split(' ')[0];
+
+        console.log('[CSP] İhlal:', directive, blocked);
+
+        // keyword'leri atla
+        if (!blocked || blocked === 'data' || blocked === 'blob' ||
+            blocked === 'self' || blocked === 'inline' || blocked === 'eval') return;
+
+        var domain = blocked;
+        try { domain = new URL(blocked).origin; } catch(ex) {}
+
+        var key = directive + '|' + domain;
+        for (var i = 0; i < _violations.length; i++) {
+            if (_violations[i]._key === key) return; // dup
         }
-        this.request(obj, data);
-    },
-    get: function(obj) {
-        var template = "partials/dropdown/archive";
-        var vars = { template: template };
-        var data = { method: "favorites_get", vars: vars, _wpnonce: ajax_request_vars.ajax_nonce };
-        this.request(obj, data);
-    },
-    update: function($data) {
-        site_config.favorites = $data;
-        var $data_parsed = $data;
-        var dropdown = $(".dropdown-notifications[data-type='favorites']");
-        dropdown.toggleClass("active", $data_parsed.length > 0);
-    },
-    request: function(obj, data) {
-        data["vars"]["ajax"] = true;
-        data["ajax"] = "query";
-        data["_wpnonce"] = ajax_request_vars.ajax_nonce;
-        $.post(host, data)
-            .fail(function() {
-                alert("error");
-                obj.removeClass("disabled");
-            })
-            .done(function(response) {
-                response = JSON.parse(response);
-                if (errorView(response)) {
-                    obj.removeClass("disabled");
-                    return false;
-                };
+        _violations.push({ directive: directive, domain: domain, page: window.location.pathname, _key: key });
 
-                switch (data["method"]) {
-                    case "favorites_add":
-                        obj.removeClass("disabled loading").addClass("active");
-                        $(".btn-favorite[data-id='" + obj.data("id") + "']").addClass("active");
-                        favorites.update(response.data);
-                        $(".count-favorites").text(response.count);
-                        obj.find(".info").html(response.html);
-                        if(typeof $.toast === "function" || typeof Toastify === "function") toast_notification({
-                            url: "", sender: { image: "<img src='" + ajax_request_vars.theme_url + "/static/img/notification/favorites-add.jpg' class='img-fluid' alt='Added to favorites'/>" },
-                            message: response.message
-                        });
-                        break;
-                    case "favorites_remove":
-                        obj.removeClass("active disabled loading");
-                        var dropdownBody = obj.closest(".dropdown-body");
-                        if (obj.data("type") == "favorites") {
-                            obj.closest(favorites.class_tease).parent().remove();
-                            // Geri kalan DOM güncellemeleri...
-                        }
-                        $(".btn-favorite[data-id='" + obj.data("id") + "']").each(function() {
-                            $(this).removeClass("active");
-                            if ($(this).data("type") == "favorites") {
-                                $(this).closest(favorites.class_tease).parent().remove();
-                            }
-                        });
-                        favorites.update(response.data);
-                        $(".count-favorites").text(response.count);
-                        if(typeof $.toast === "function" || typeof Toastify === "function") toast_notification({
-                            url: "", sender: { image: "<img src='" + ajax_request_vars.theme_url + "/static/img/notification/favorites-remove.jpg' class='img-fluid' alt='Removed from favorites'/>" },
-                            message: response.message
-                        });
-                        break;
-                    case "favorites_get":
-                        obj.html(response.html).removeClass("loading-process");
-                        obj.find(".favorites-remove").on("click", function(e) {
-                            e.preventDefault();
-                            favorites.remove($(this));
-                        });
-                        obj.toggleClass("has-dropdown-item", response.post_count > 0);
-                        SimpleScrollbar.initEl(obj.find(".dropdown-body")[0]);
-                        break;
-                }
-            });
+        clearTimeout(_timer);
+        _timer = setTimeout(_send, 3000);
+    });
+
+    function _send() {
+        if (_sent || !_violations.length) return;
+        // ajax_request_vars bu noktada hazır (site_config AJAX dönmüş)
+        if (!window.ajax_request_vars || !ajax_request_vars.url_admin) return;
+        if (!ajax_request_vars.csp_active) return;
+
+        _sent = true;
+        console.log('[CSP] Gönderiliyor:', _violations.length, 'ihlal');
+
+        var clean = _violations.map(function(v) {
+            return { directive: v.directive, domain: v.domain, page: v.page };
+        });
+
+        fetch(ajax_request_vars.url_admin, {
+            method:    'POST',
+            headers:   { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:      new URLSearchParams({
+                action:     'sh_save_csp_violations',
+                nonce:      ajax_request_vars.ajax_nonce || '',
+                violations: JSON.stringify(clean)
+            }).toString(),
+            keepalive: true
+        }).catch(function() {});
     }
-}
 
-var cart = {
-    get: function(obj, type) {
-        var vars = { type: type };
-        var data = { method: "get_cart", vars: vars };
-        this.request(obj, data);
-    },
-    remove_item: function(obj, type) {
-        var key = obj.data("key");
-        var vars = { key: key, type: type };
-        var data = { method: "wc_cart_item_remove", vars: vars };
-        obj.addClass("loading-process");
-        this.request(obj.closest(".load-container"), data);
-    },
-    request: function(obj, data) {
-        data["ajax"] = "query";
-        $.post(host, data)
-            .fail(function() {
-                alert("error");
-                obj.removeClass("disabled");
-            })
-            .done(function(response) {
-                response = JSON.parse(response);
-                if (errorView(response)) {
-                    obj.removeClass("disabled");
-                    return false;
-                };
-
-                switch (data["method"]) {
-                    case "get_cart":
-                    case "wc_cart_item_remove":
-                        var html = $("<div class='temp'>" + response.html + "</div>");
-                        var footer = "";
-                        if (html.find(".offcanvas-footer").length > 0) {
-                            footer = html.find(".offcanvas-footer").html();
-                            html.find(".offcanvas-footer").remove();
-                        }
-                        obj.html(html.html()).removeClass("loading-process");
-                        
-                        var footerObj = obj.next(".offcanvas-footer");
-                        footerObj.html(footer).toggleClass("d-none", IsBlank(footer));
-
-                        var count = response.data && response.data.count || 0;
-                        var counter = $(".dropdown-notifications[data-type='cart'] > a").find(".notification-count");
-                        
-                        if (counter.length == 0 && count > 0) {
-                            $(".dropdown-notifications[data-type='cart'] > a").prepend("<div class='notification-count'></div>");
-                            counter = $(".dropdown-notifications[data-type='cart']").find(".notification-count");
-                        }
-                        
-                        if (count == 0) {
-                            counter.remove();
-                        } else {
-                            counter.html(count);
-                        }
-                        
-                        $(".dropdown-notifications[data-type='cart'] .dropdown-container").toggleClass("has-dropdown-item", count > 0);
-                        
-                        obj.find(".cart-item-remove").not(".init").each(function() {
-                            $(this).addClass("init").on("click", function(e) {
-                                e.preventDefault();
-                                cart.remove_item($(this).closest(".notification-item"), data.vars.type);
-                            });
-                        });
-                        break;
-                }
-            });
-    }
-}
-
-var messages = {
-    get: function(obj) {
-        var template = "partials/offcanvas/archive";
-        var vars = { template: template };
-        var data = { ajax: "query", method: "get_messages", vars: vars, _wpnonce: ajax_request_vars.ajax_nonce };
-        this.request(obj, data);
-    },
-    remove_item: function(obj) {
-        var key = obj.data("key");
-        var vars = { key: key };
-        var data = { method: "wc_cart_item_remove", vars: vars };
-        obj.addClass("loading-process");
-        this.request(obj.closest(".dropdown-container"), data);
-    },
-    request: function(obj, data) {
-        $.post(ajax_request_vars.url, data)
-            .fail(function() {
-                alert("error");
-                obj.removeClass("disabled");
-            })
-            .done(function(response) {
-                response = JSON.parse(response);
-                if (errorView(response)) {
-                    obj.removeClass("disabled");
-                    return false;
-                };
-
-                switch (data["method"]) {
-                    case "get_messages":
-                        obj.html(response.html).removeClass("loading-process");
-                        var count = response.data && response.data.count || 0;
-                        var counter = $(".dropdown-notifications[data-type='messages'] > a").find(".notification-count");
-                        
-                        if (counter.length == 0 && count > 0) {
-                            $(".dropdown-notifications[data-type='messages'] > a").prepend("<div class='notification-count'></div>");
-                            counter = $(".dropdown-notifications[data-type='messages']").find(".notification-count");
-                        }
-                        
-                        if (count == 0) {
-                            counter.remove();
-                        } else {
-                            counter.html(count);
-                        }
-
-                        obj.find(".cart-item-remove").not(".init").each(function() {
-                            $(this).addClass("init").on("click", function(e) {
-                                e.preventDefault();
-                                messages.remove_item($(this).closest(".notification-item"));
-                            });
-                        });
-                        SimpleScrollbar.initEl(obj.find(".dropdown-body")[0]);
-                        break;
-                }
-            });
-    }
-}
-*/
-
+    window.addEventListener('pagehide',     _send);
+    window.addEventListener('beforeunload', _send);
+})();

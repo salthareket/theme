@@ -1,0 +1,14 @@
+{#
+    Page Settings Offcanvas — STANDALONE mode
+
+    ARTIK BURADA RENDER EDILMIYOR.
+
+    Standalone offcanvas (is_standalone) artik merkezi OffcanvasRegistry sistemine
+    kaydediliyor (PageSettings::resolveOffcanvasContext icinde OffcanvasRegistry::add).
+    DOM'a basma islemi wp_footer'da (apps/templates/bootstrap.php) yapiliyor ve
+    salt-offcanvas.js tarafindan yonetiliyor (button offcanvas ile ayni motor).
+
+    Bu dosya bilerek bos birakildi (base.twig offcanvas block'u bunu include ediyor).
+    Sidebar modu (is_sidebar) ise sidebar.twig'de server-side layout kolonu olarak
+    render edilmeye devam ediyor (layout parcasi).
+#}

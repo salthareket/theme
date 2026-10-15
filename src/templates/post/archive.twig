@@ -38,7 +38,7 @@
     {% set page_settings = page_settings_default %}
 {% endif %}
 
-{% block sidebar_toggler %}
+{#% block sidebar_toggler %}
     {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "default" %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
     {% endif %}
@@ -54,7 +54,7 @@
     {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" and page_settings.offcanvas.layout == "horizontal" %}
         {{ block("before_container", page_settings.offcanvas.template) }}
     {% endif %}
-{% endblock %}
+{% endblock %#}
 
 {% set categories = function('get_blog_categories') %}
 {% set tags = function('get_blog_tags') %}
@@ -71,7 +71,7 @@
                 {{title}}
                 <small class="d-block fs-5 opacity-50 mt-2">
                     {% if posts.found_posts %}
-                        {{ translate_nooped_plural( translate_n_noop('%s sonuç bulundu.', '%s sonuç bulundu.'), posts.found_posts)|format(posts.found_posts) }}
+                        {{ translate_nooped_plural( translate_n_noop('%s result found.', '%s results found.'), posts.found_posts)|format(posts.found_posts) }}
                     {% endif %}
                 </small>
             </h2>

@@ -475,3 +475,97 @@ function getCriticalSelectors(lcpElement) {
     
     return Array.from(selectors);
 }*/
+
+// ─── CSP Violation Listener ───────────────────────────────────────────────────
+// LCP script'i sadece "ilk ziyarette" inject edilir (LCP data yokken).
+// Aynı pencerede CSP ihlallerini de toplar — LCP kaydedildikten sonra gönderir.
+// Sayfa değişince PAE LCP'yi sıfırlar → bir sonraki ziyarette yeniden çalışır.
+// Bu sayede yeni eklenen plugin'lerin domain'leri otomatik tespit edilir.
+(function() {
+    'use strict';
+
+    console.log('[CSP] Script başladı — IIFE çalışıyor');
+
+    var _violations = [];
+    var _sent       = false;
+    var _sendTimer  = null;
+
+    // securitypolicyviolation event'ini HEMEN dinle (sayfa yüklenirken oluşur,
+    // ajax_request_vars henüz yoktur — ama event kaçırılmamalı).
+    document.addEventListener('securitypolicyviolation', function(e) {
+        var blocked   = e.blockedURI || '';
+        var directive = e.violatedDirective || e.effectiveDirective || '';
+        console.log('[CSP] İhlal tespit edildi:', directive, blocked);
+
+        // data:, blob:, 'self', inline, eval gibi keyword'leri atla — domain değil
+        if (!blocked || blocked === 'data' || blocked === 'blob' || blocked === 'self' ||
+            blocked === 'inline' || blocked === 'eval' || blocked === 'wasm-eval') return;
+
+        // Tam URL'den sadece origin'i çıkar (https://cdn.plyr.io/3.8.4/plyr.svg → https://cdn.plyr.io)
+        var domain = blocked;
+        try {
+            var parsed = new URL(blocked);
+            domain = parsed.origin; // https://cdn.plyr.io
+        } catch(err) {
+            // URL parse edilemiyorsa ham değeri kullan
+        }
+
+        // directive'i sadece ana kısmına indir (connect-src img-src etc., "connect-src https:" → "connect-src")
+        directive = directive.split(' ')[0];
+
+        // Dups önle
+        var key = directive + '|' + domain;
+        var exists = false;
+        for (var i = 0; i < _violations.length; i++) {
+            if (_violations[i]._key === key) { exists = true; break; }
+        }
+        if (!exists) {
+            _violations.push({
+                directive: directive,
+                domain:    domain,
+                page:      window.location.pathname,
+                _key:      key
+            });
+        }
+
+        // Debounce: son violation'dan 2sn sonra gönder (batch'le)
+        clearTimeout(_sendTimer);
+        _sendTimer = setTimeout(_sendViolations, 2000);
+    });
+
+    function _sendViolations() {
+        if (_sent || !_violations.length) return;
+        if (!window.ajax_request_vars || !ajax_request_vars.url_admin) return;
+        // CSP aktif değilse gönderme — gönderme sırasında ajax_request_vars hazır olur
+        if (!ajax_request_vars.csp_active) {
+            console.log('[CSP] csp_active false, violation gönderilmedi');
+            return;
+        }
+        console.log('[CSP] Gönderiliyor:', _violations.length, 'ihlal');
+
+        // _key'leri temizle — sadece directive/domain/page gönder
+        var clean = _violations.map(function(v) {
+            return { directive: v.directive, domain: v.domain, page: v.page };
+        });
+
+        _sent = true; // tek seferlik gönder
+
+        var body = new URLSearchParams({
+            action:     'sh_save_csp_violations',
+            nonce:      ajax_request_vars.nonce || '',
+            violations: JSON.stringify(clean)
+        }).toString();
+
+        fetch(ajax_request_vars.url_admin, {
+            method:    'POST',
+            headers:   { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:      body,
+            keepalive: true
+        }).catch(function() {}); // sessiz fail — kritik değil
+    }
+
+    // Sayfa kapanırken de gönder (henüz gönderilmediyse)
+    window.addEventListener('pagehide', _sendViolations);
+    window.addEventListener('beforeunload', _sendViolations);
+
+})();

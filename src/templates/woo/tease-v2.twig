@@ -40,10 +40,10 @@
             {% if is_on_sale or is_featured %}
             <div class="product-badges">
                 {% if is_on_sale %}
-                    <span class="badge badge-sale">{{ translate("İndirim") }}</span>
+                    <span class="badge badge-sale">{{ translate("Discount") }}</span>
                 {% endif %}
                 {% if is_featured %}
-                    <span class="badge badge-new">{{ translate("Yeni") }}</span>
+                    <span class="badge badge-new">{{ translate("New") }}</span>
                 {% endif %}
             </div>
             {% endif %}
@@ -120,16 +120,18 @@
                        class="btn btn-sm btn-add-to-cart btn-product-action" 
                        data-ajax-method="add_to_cart" 
                        {{ function("get_add_to_cart_attrs", post.id) }}
-                       aria-label="{{ translate('Sepete Ekle') }}">
-                        <i class="fa-regular fa-cart-plus"></i>
-                        <span class="btn-text d-none d-md-inline">{{ translate("Sepete Ekle") }}</span>
+                       aria-label="{{ translate('Add to Cart') }}">
+                        {#<i class="fa-regular fa-cart-plus"></i>#}
+                        {{ fa_icon('cart-plus', 'regular') }}
+                        <span class="btn-text d-none d-md-inline">{{ translate("Add to Cart") }}</span>
                     </a>
                 {% else %}
                     <a href="{{ product_link }}" 
                        class="btn btn-sm btn-select-options btn-loading-page"
-                       aria-label="{{ translate('Seçenekleri Gör') }}">
-                        <i class="fa-regular fa-eye"></i>
-                        <span class="btn-text d-none d-md-inline">{{ translate("Seçenekleri Gör") }}</span>
+                       aria-label="{{ translate('View Options') }}">
+                        {#<i class="fa-regular fa-eye"></i>#}
+                        {{ fa_icon('eye', 'regular') }}
+                        <span class="btn-text d-none d-md-inline">{{ translate("View Options") }}</span>
                     </a>
                 {% endif %}
             {% endif %}

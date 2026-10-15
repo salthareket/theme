@@ -170,7 +170,9 @@ trait CalculatesRating
         }
 
         if ( class_exists( 'QueryCache' ) ) {
-            \QueryCache::forget( "review_rating_{$type}_{$target_id}" );
+            // wrap() metodu key'e 'wrap_' prefix ekliyor, forget() düz key alıyor.
+            // Bu yüzden 'wrap_' prefix'ini elle ekleyerek sileriz.
+            \QueryCache::forget( "wrap_review_rating_{$type}_{$target_id}" );
         }
     }
 

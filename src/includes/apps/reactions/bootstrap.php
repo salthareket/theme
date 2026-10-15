@@ -45,84 +45,92 @@ require_once __DIR__ . '/ReactionsAppSettings.php';
 require_once __DIR__ . '/Admin/ReactionsAjax.php';
 require_once __DIR__ . '/Admin/ReactionsAnalytics.php';
 
-// ─── ADMIN PAGE ──────────────────────────────────────────
+// ─── ADMIN PAGE & WP HOOKS — sadece reactions aktifse veya admin panelindeyse ──
+// Bootstrap artık her zaman yükleniyor (Twig helper'lar için).
+// WP hook'larını gereksiz yere frontend'e eklemekten kaçın.
 
-require_once __DIR__ . '/Admin/ReactionsAdmin.php';
-add_action( 'admin_menu', [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'addMenuPage' ], 20 );
-add_action( 'admin_head', [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'hideNotices' ] );
-add_action( 'admin_enqueue_scripts', [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'enqueueAssets' ] );
-add_action( 'wp_ajax_sh_reactions_save_types',      [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'saveTypes' ] );
-add_action( 'wp_ajax_sh_reactions_save_type',          [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxSaveType' ] );
-add_action( 'wp_ajax_sh_reactions_delete_type',        [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxDeleteType' ] );
-add_action( 'wp_ajax_sh_reactions_save_button',        [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxSaveButton' ] );
-add_action( 'wp_ajax_sh_reactions_delete_button',      [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxDeleteButton' ] );
-add_action( 'wp_ajax_sh_reactions_toggle_button',      [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxToggleButton' ] );
-add_action( 'wp_ajax_sh_reactions_get_data',           [ \SaltHareket\Reactions\Admin\ReactionsAnalytics::class, 'ajaxGetData' ] );
-add_action( 'wp_ajax_sh_reactions_save_app_toggle',    [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxSaveAppToggle' ] );
+$_reactions_is_admin = defined('DOING_AJAX') ? false : is_admin();
 
-add_action( 'admin_init', function () {
-    Reactions::createTable();
-}, 5 );
+if ( ENABLE_REACTIONS || $_reactions_is_admin ) {
 
-// ─── NOTIFICATIONS ENTEGRASYONU ──────────────────────────
-// notify_event dolu olan reaction type'larini Notifications event listesine ekle.
-// Notifications'a hic dokunmadan filter ile calisir.
-// Yeni type eklenince veya notify_event degisince otomatik guncellenir.
-add_filter( 'sh_notify_events', function ( array $events ): array {
-    foreach ( ReactionsSettings::getTypes() as $type_key => $type_def ) {
-        $slug = sanitize_key( $type_def['notify_event'] ?? '' );
-        if ( ! $slug ) continue;
-        // Zaten listede varsa ekleme
-        foreach ( $events as $ev ) {
-            if ( ( $ev['slug'] ?? '' ) === $slug ) continue 2;
+    require_once __DIR__ . '/Admin/ReactionsAdmin.php';
+    // add_action( 'admin_menu', [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'addMenuPage' ], 20 ); // Dashboard üzerinden erişiliyor
+    add_action( 'admin_head', [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'hideNotices' ] );
+    add_action( 'admin_enqueue_scripts', [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'enqueueAssets' ] );
+    add_action( 'wp_ajax_sh_reactions_save_types',      [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'saveTypes' ] );
+    add_action( 'wp_ajax_sh_reactions_save_type',          [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxSaveType' ] );
+    add_action( 'wp_ajax_sh_reactions_delete_type',        [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxDeleteType' ] );
+    add_action( 'wp_ajax_sh_reactions_save_button',        [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxSaveButton' ] );
+    add_action( 'wp_ajax_sh_reactions_delete_button',      [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxDeleteButton' ] );
+    add_action( 'wp_ajax_sh_reactions_toggle_button',      [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxToggleButton' ] );
+    add_action( 'wp_ajax_sh_reactions_reorder_buttons',     [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxReorderButtons' ] );
+    add_action( 'wp_ajax_sh_reactions_get_data',           [ \SaltHareket\Reactions\Admin\ReactionsAnalytics::class, 'ajaxGetData' ] );
+    add_action( 'wp_ajax_sh_reactions_save_app_toggle',    [ \SaltHareket\Reactions\Admin\ReactionsAdmin::class, 'ajaxSaveAppToggle' ] );
+
+    add_action( 'admin_init', function () {
+        Reactions::createTable();
+    }, 5 );
+
+    // ─── NOTIFICATIONS ENTEGRASYONU ──────────────────────────
+    add_filter( 'sh_notify_events', function ( array $events ): array {
+        foreach ( ReactionsSettings::getTypes() as $type_key => $type_def ) {
+            $slug = sanitize_key( $type_def['notify_event'] ?? '' );
+            if ( ! $slug ) continue;
+            foreach ( $events as $ev ) {
+                if ( ( $ev['slug'] ?? '' ) === $slug ) continue 2;
+            }
+            $label    = $type_def['label'] ?? ucfirst( $type_key );
+            $events[] = [
+                'slug'        => $slug,
+                'title'       => $label . ' Reaction',
+                'description' => $label . ' reaction yapildiginda tetiklenir.',
+                'group'       => 'Reactions',
+            ];
         }
-        $label    = $type_def['label'] ?? ucfirst( $type_key );
-        $events[] = [
-            'slug'        => $slug,
-            'title'       => $label . ' Reaction',
-            'description' => $label . ' reaction yapildiginda tetiklenir.',
-            'group'       => 'Reactions',
-        ];
-    }
-    return $events;
-} );
+        return $events;
+    } );
 
-// ─── WP HOOKS ────────────────────────────────────────────
+} // end ENABLE_REACTIONS || admin
 
-// Frontend: reactions.js + nonce
-add_action( 'wp_enqueue_scripts', function () {
-    $js_url = trailingslashit( SH_INCLUDES_URL ) . 'apps/reactions/reactions.js';
-    wp_enqueue_script( 'salt-reactions', $js_url, [], '1.0.0', true );
-} );
+// ─── WP HOOKS — sadece reactions aktifse ─────────────────────────────────────
 
-add_action( 'wp_head', function () {
-    // saltConfig.nonce reactions.js tarafindan kullanilir
-    $nonce = wp_create_nonce( 'ajax' );
-    echo '<script>window.saltConfig=window.saltConfig||{};window.saltConfig.nonce=' . wp_json_encode( $nonce ) . ';</script>' . "\n";
-}, 2 );
+if ( ENABLE_REACTIONS ) {
 
-// Silinen post/user/comment/term için reaction'ları temizle
-add_action( 'before_delete_post', function ( int $post_id ) {
-    global $wpdb;
-    $wpdb->delete( $wpdb->prefix . 'reactions', [ 'object_id' => $post_id, 'object_type' => 'post' ], [ '%d', '%s' ] );
-} );
+    // Frontend: reactions.js + nonce
+    add_action( 'wp_enqueue_scripts', function () {
+        $js_url = trailingslashit( SH_INCLUDES_URL ) . 'apps/reactions/reactions.js';
+        wp_enqueue_script( 'salt-reactions', $js_url, [], '1.0.0', true );
+    } );
 
-add_action( 'delete_user', function ( int $user_id ) {
-    global $wpdb;
-    $table = $wpdb->prefix . 'reactions';
-    $wpdb->delete( $table, [ 'user_id' => $user_id ], [ '%d' ] );
-    $wpdb->delete( $table, [ 'object_id' => $user_id, 'object_type' => 'user' ], [ '%d', '%s' ] );
-} );
+    add_action( 'wp_head', function () {
+        $nonce = wp_create_nonce( 'ajax' );
+        echo '<script>window.saltConfig=window.saltConfig||{};window.saltConfig.nonce=' . wp_json_encode( $nonce ) . ';</script>' . "\n";
+    }, 2 );
 
-add_action( 'delete_comment', function ( int $comment_id ) {
-    global $wpdb;
-    $wpdb->delete( $wpdb->prefix . 'reactions', [ 'object_id' => $comment_id, 'object_type' => 'comment' ], [ '%d', '%s' ] );
-} );
+    // Silinen post/user/comment/term için reaction'ları temizle
+    add_action( 'before_delete_post', function ( int $post_id ) {
+        global $wpdb;
+        $wpdb->delete( $wpdb->prefix . 'reactions', [ 'object_id' => $post_id, 'object_type' => 'post' ], [ '%d', '%s' ] );
+    } );
 
-add_action( 'delete_term', function ( int $term_id ) {
-    global $wpdb;
-    $wpdb->delete( $wpdb->prefix . 'reactions', [ 'object_id' => $term_id, 'object_type' => 'term' ], [ '%d', '%s' ] );
-} );
+    add_action( 'delete_user', function ( int $user_id ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'reactions';
+        $wpdb->delete( $table, [ 'user_id' => $user_id ], [ '%d' ] );
+        $wpdb->delete( $table, [ 'object_id' => $user_id, 'object_type' => 'user' ], [ '%d', '%s' ] );
+    } );
+
+    add_action( 'delete_comment', function ( int $comment_id ) {
+        global $wpdb;
+        $wpdb->delete( $wpdb->prefix . 'reactions', [ 'object_id' => $comment_id, 'object_type' => 'comment' ], [ '%d', '%s' ] );
+    } );
+
+    add_action( 'delete_term', function ( int $term_id ) {
+        global $wpdb;
+        $wpdb->delete( $wpdb->prefix . 'reactions', [ 'object_id' => $term_id, 'object_type' => 'term' ], [ '%d', '%s' ] );
+    } );
+
+} // end ENABLE_REACTIONS
 
 // Login'de guest reactions'ı user'a merge et
 // GuestIdentity::mergeToUser() wp_guests + wp_reactions günceller (guest_id ile eşleşme)
@@ -161,23 +169,40 @@ add_filter( 'turbo_api_handle', function ( $handled, string $method, array $vars
                 $html = '';
                 foreach ( $posts as $i => $post ) {
                     ob_start();
-                    $ctx              = \Timber\Timber::context();
-                    $ctx['post']      = $post;
-                    $ctx['index']     = $i;
-                    $ctx['type']      = 'favorites';
-                    $ctx['favorites'] = $fav_ids;
-                    \Timber\Timber::render( $tpl ? [ $tpl, 'tease.twig' ] : [ 'tease.twig' ], $ctx );
+                    $ctx                  = \Timber\Timber::context();
+                    $ctx['post']          = $post;
+                    $ctx['item']          = $post;
+                    $ctx['index']         = $i;
+                    $ctx['type']          = 'favorites';
+                    $ctx['source']        = 'reaction:favorite';
+                    $ctx['reaction_type'] = 'favorite';
+                    $ctx['object_type']   = 'post';
+                    $ctx['favorites']     = $fav_ids;
+                    // Yeni convention: source/reactions/tease.twig (kullanici $tpl verirse oncelik onda).
+                    \Timber\Timber::render( $tpl ? [ $tpl, 'partials/source/reactions/tease.twig' ] : [ 'partials/source/reactions/tease.twig' ], $ctx );
                     $html .= ob_get_clean();
                 }
                 return [ 'error' => false, 'html' => $html, 'data' => $fav_ids, 'count' => count( $fav_ids ) ];
             }
+            // NOT: Legacy endpoint. favorites artik reaction:favorite convention'ina tasindi
+            // (get_reactions → partials/source/reactions/). Eski 'partials/{view}/archive.twig'
+            // yolu KULLANILMIYOR (partials/dropdown kaldirildi). Guvenli olmasi + yeni sistemle
+            // tutarli olmasi icin source/reactions template'ine yonlendiriyoruz; view context'te.
             $view = $vars['view'] ?? 'dropdown';
             $ctx  = \Timber\Timber::context();
-            $ctx['type']  = 'favorites';
-            $ctx['posts'] = $posts;
+            $ctx['type']          = 'favorites';
+            $ctx['source']        = 'reaction:favorite';
+            $ctx['reaction_type'] = 'favorite';
+            $ctx['object_type']   = 'post';
+            $ctx['view']          = $view;
+            $ctx['posts']         = $posts;
+            $ctx['items']         = $posts;
             return [
                 'error' => false,
-                'html'  => \Timber\Timber::compile( 'partials/' . $view . '/archive.twig', $ctx ),
+                'html'  => \Timber\Timber::compile(
+                    [ 'partials/source/reactions/archive-' . $view . '.twig', 'partials/source/reactions/archive.twig' ],
+                    $ctx
+                ),
                 'data'  => $fav_ids,
                 'count' => count( $fav_ids ),
             ];
@@ -250,10 +275,9 @@ add_filter( 'timber/twig', function ( \Twig\Environment $twig ) {
 
     /**
      * Reaction butonu render et.
+     * ENABLE_REACTIONS false ise boş string döner — Fatal error olmaz.
      *
      * @example {{ function('salt_reaction_button', post.ID, 'post', 'like', {'style': 'icon-count'}) }}
-     * @example {{ function('salt_reaction_button', user.ID, 'user', 'follow', {'style': 'pill'}) }}
-     * @example {{ function('salt_reaction_button', review.ID, 'comment', 'like', {'style': 'icon-only'}) }}
      */
     $twig->addFunction( new \Twig\TwigFunction(
         'salt_reaction_button',
@@ -335,6 +359,17 @@ if ( ! function_exists( 'salt_reaction_count' ) ) {
 if ( ! function_exists( 'salt_has_reaction' ) ) {
     function salt_has_reaction( int $object_id, string $object_type, string $type, int $user_id = 0 ): bool {
         return Reactions::has( $type, $object_id, $object_type, $user_id );
+    }
+}
+
+if ( ! function_exists( 'salt_reactions_for' ) ) {
+    /**
+     * Object type + subtype için aktif reaction config'i döndür.
+     * Twig'den function('salt_reactions_for', 'user', author.get_role()) ile çağrılabilir.
+     */
+    function salt_reactions_for( string $object_type, string $subtype = '' ): array {
+        if ( ! class_exists( '\SaltHareket\Reactions\ReactionsSettings' ) ) return [];
+        return \SaltHareket\Reactions\ReactionsSettings::getForObject( $object_type, $subtype );
     }
 }
 

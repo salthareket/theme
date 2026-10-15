@@ -1,0 +1,38 @@
+{#
+  partials/otp-input.twig
+  OTP kutucuk input component.
+
+  Parametreler:
+  - otp_length  : kutucuk sayısı (default: 6, SMS App'ten gelir)
+  - input_name  : hidden input name (default: "otp_code")
+  - input_class : hidden input CSS class (default: "")
+  - wrap_id     : wrapper div ID (default: "sh-otp-boxes")
+
+  Kullanım:
+    {% include "my-account/partials/otp-input.twig" with {
+        otp_length  : otp_length,
+        input_name  : "otp_code",
+        input_class : "sh-otp-code",
+        wrap_id     : "sh-otp-pwless"
+    } %}
+#}
+{% set _len   = otp_length  ?? 6 %}
+{% set _name  = input_name  ?? "otp_code" %}
+{% set _class = input_class ?? "" %}
+{% set _id    = wrap_id     ?? "sh-otp-boxes" %}
+
+<div class="otp-input d-flex justify-content-center gap-2" id="{{ _id }}" data-length="{{ _len }}">
+    {% for i in 1.._len %}
+    <input type="text"
+           class="otp-input-digit form-control text-center fw-bold"
+           style="width:52px;height:60px;border-radius:12px;font-size:1.5rem;padding:0"
+           maxlength="1"
+           inputmode="numeric"
+           pattern="[0-9]*"
+           autocomplete="{% if i == 1 %}one-time-code{% else %}off{% endif %}"
+           data-index="{{ i - 1 }}"
+           aria-label="{{ translate('Digit') }} {{ i }}"/>
+    {% endfor %}
+</div>
+{# Hidden input — form submit'te bu değer gider #}
+<input type="hidden" name="{{ _name }}" class="{{ _class }}" id="{{ _id }}-value"/>

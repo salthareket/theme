@@ -27,14 +27,14 @@
                 <span class="review-score fw-600" style="font-size:14px;color:#374151">
                     {{ rating }}/5
                     {% if has_criteria %}
-                        <small class="text-muted fw-normal" style="font-size:11px">{{ "ort."|trans }}</small>
+                        <small class="text-muted fw-normal" style="font-size:11px">{{ translate("avg.") }}</small>
                     {% endif %}
                 </span>
                 {% if verified %}
-                    <span class="badge bg-success-subtle text-success" style="font-size:10px">✓ {{ "Doğrulanmış"|trans }}</span>
+                    <span class="badge bg-success-subtle text-success" style="font-size:10px">✓ {{ translate("Verified") }}</span>
                 {% endif %}
                 {% if review.comment_approved != '1' %}
-                    <span class="badge bg-warning text-dark" style="font-size:10px">{{ "Onay Bekliyor"|trans }}</span>
+                    <span class="badge bg-warning text-dark" style="font-size:10px">{{ translate("Pending Approval") }}</span>
                 {% endif %}
             </div>
 
@@ -72,7 +72,8 @@
         {# ── Post linki ── #}
         {% if post %}
             <small class="text-muted">
-                <i class="far fa-file-alt me-1"></i>
+                {#<i class="far fa-file-alt me-1"></i>#}
+                {{ fa_icon('file-alt', 'regular', 'me-1') }}
                 <a href="{{ function('get_permalink', post.ID) }}" class="text-reset">
                     {{ post.post_title }}
                 </a>

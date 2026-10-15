@@ -1,319 +1,246 @@
-/*
- * Bootstrap 5 Uyumlu TabCollapse Eklentisi (Gelişmiş Breakpoint Algılama ile)
- * Yazar: Gemini (Yüksek Performanslı Kodlama Asistanı)
- * Lisans: MIT
+/*!
+ * SaltHareket Tab-Collapse Plugin v2.1
+ * DOM manipulation approach — no CSS show/hide tricks.
+ *
+ * On init : TAB structure is always in the DOM.
+ * < breakpoint : tab nav + tab-content hidden, accordion built & inserted, content moved.
+ * >= breakpoint: accordion removed, tab nav + tab-content restored, content moved back,
+ *                Bootstrap Tab instances re-initialised so clicking works again.
  */
 !function ($) {
-    "use strict";
+    'use strict';
 
-    // Eklentinin adı
-    const NAME = 'tabCollapse';
-    // Geçerli Bootstrap breakpoint'leri (Küçükten büyüğe sıralı)
-    const BREAKPOINTS = ['sm', 'md', 'lg', 'xl', 'xxl'];
+    const NAME      = 'tabCollapse';
+    const BS_BPS    = ['sm', 'md', 'lg', 'xl', 'xxl'];
+    const BP_WIDTHS = { sm: 576, md: 768, lg: 992, xl: 1200, xxl: 1400 };
 
-    // Varsayılan ayarlar
-    const DEFAULTS = {
-        // Varsayılan breakpoint. Eğer özel sınıf (tab-collapse-lg gibi) bulunmazsa kullanılır.
-        breakpoint: 'md', 
-        
-        // Bu sınıflar INIT sırasında dinamik olarak ayarlanacaktır.
-        tabsClass: '', 
-        accordionClass: '', 
+    function isBelowBp(bp) {
+        return window.innerWidth < (BP_WIDTHS[bp] || BP_WIDTHS.md);
+    }
 
-        // Akordeon öğesi şablonu (BS5'e uygun)
-        accordionTemplate: function(headerHtml, groupId, parentId, active) {
-            // Güvenlik ve performans için ES6 Template Literals kullanıldı.
-            return `
-                <div class="card mb-2">
-                    <div class="card-header p-0" id="heading-${groupId}">
-                        <h2 class="mb-0">
-                            <button class="btn btn-block text-left p-3 ${active ? '' : 'collapsed'}" type="button" 
-                                    data-bs-toggle="collapse" data-bs-target="#${groupId}" 
-                                    aria-expanded="${active}" aria-controls="${groupId}">
-                                ${headerHtml}
-                            </button>
-                        </h2>
-                    </div>
-                    <div id="${groupId}" class="collapse ${active ? 'show' : ''}" 
-                         aria-labelledby="heading-${groupId}" data-bs-parent="#${parentId}">
-                        <div class="card-body js-tabcollapse-card-body">
-                            </div>
-                    </div>
-                </div>
-            `;
-        }
-    };
-
-    /**
-     * @class TabCollapse
-     * @description Ana Eklenti Sınıfı
-     */
     class TabCollapse {
+
         constructor(element, options) {
-            this.$tabs = $(element);
-            this.options = $.extend({}, DEFAULTS, options);
+            this.$nav  = $(element);
+            this.$wrap = this.$nav.closest('.sh-product-tabs, [data-tab-collapse-wrap]');
 
-            this._determineBreakpoint();
-            this._setResponsiveClasses();
+            // Breakpoint'i class'tan oku: tab-collapse-md -> 'md'
+            const m = (this.$nav.attr('class') || '').match(/tab-collapse-([a-z]+)/);
+            this.bp = (m && BS_BPS.includes(m[1])) ? m[1] : ((options && options.breakpoint) || 'md');
 
-            this._accordionVisible = false;
-            this._resizeTimeout = null;
+            this._snapshot();
+            this._mode = 'tab';
+            this._render();
 
-            this._initAccordion();
-            this._bindEvents();
-            this._bindAccordionEvents();
-
-            // Asenkron kontrol (DOM yükleme/işleme sonrası doğru durumu yakalar)
-            setTimeout(() => this.checkState(), 0);
+            this._resizeHandler = this._debounce(() => this._render(), 150);
+            $(window).on('resize.tabCollapse.' + this.bp, this._resizeHandler);
         }
 
-        /**
-         * Navigasyon sınıfından özel breakpoint'i algılar.
-         * tab-collapse-md -> breakpoint: 'md' olur.
-         */
-        _determineBreakpoint() {
-            let userBreakpoint = this.options.breakpoint;
-            
-            // Sınıfları regex ile kontrol et: tab-collapse-X
-            const classes = this.$tabs.attr('class');
-            if (classes) {
-                const match = classes.match(/tab-collapse-([a-z]+)/);
-                if (match && match[1] && BREAKPOINTS.includes(match[1])) {
-                    userBreakpoint = match[1];
-                }
+        // ------------------------------------------------------------------
+        // Snapshot: kaydet tab yapısını (once, at init)
+        // ------------------------------------------------------------------
+        _snapshot() {
+            this._tabs = [];
+
+            this.$tabContent = this.$nav.siblings('.tab-content');
+            if (!this.$tabContent.length && this.$wrap.length) {
+                this.$tabContent = this.$wrap.find('.tab-content').first();
             }
-            this.options.breakpoint = userBreakpoint;
+
+            this.$nav.find('[data-bs-toggle="tab"],[data-bs-toggle="pill"]').each((i, btn) => {
+                const $btn   = $(btn);
+                const paneId = ($btn.attr('data-bs-target') || $btn.attr('href') || '').replace(/^#/, '');
+                const $pane  = paneId ? $('#' + paneId) : $();
+                const isAct  = $btn.hasClass('active') || i === 0;
+
+                // Dispose any existing Bootstrap Tab instance so we control it ourselves
+                if (window.bootstrap && window.bootstrap.Tab) {
+                    const inst = window.bootstrap.Tab.getInstance(btn);
+                    if (inst) inst.dispose();
+                }
+
+                this._tabs.push({
+                    id       : paneId || ('tab-' + i),
+                    btnHtml  : $btn.html(),
+                    btnId    : $btn.attr('id') || '',
+                    paneId   : paneId,
+                    active   : isAct,
+                    $pane    : $pane,
+                    $content : $pane.find('.sh-product-tab-body').length
+                                 ? $pane.find('.sh-product-tab-body')
+                                 : $pane,
+                });
+            });
+
+            // Re-init Bootstrap Tabs cleanly after dispose
+            this._initBsTabs();
         }
 
-        /**
-         * Belirlenen breakpoint'e göre Bootstrap 5 responsive sınıflarını ayarlar.
-         */
-        _setResponsiveClasses() {
-            const bp = this.options.breakpoint;
-            
-            // Örnek: bp='lg' ise
-            // Tabs: d-none d-lg-flex (lg'den itibaren görünür)
-            // Accordion: d-lg-none (lg'ye kadar görünür)
-            this.options.tabsClass = `d-none d-${bp}-flex`;
-            this.options.accordionClass = `d-${bp}-none`;
+        // ------------------------------------------------------------------
+        // Bootstrap Tab instance'larini (yeniden) olustur
+        // ------------------------------------------------------------------
+        _initBsTabs() {
+            if (!(window.bootstrap && window.bootstrap.Tab)) return;
+            this.$nav.find('[data-bs-toggle="tab"],[data-bs-toggle="pill"]').each(function () {
+                const existing = window.bootstrap.Tab.getInstance(this);
+                if (existing) existing.dispose();
+                new window.bootstrap.Tab(this);
+            });
         }
 
-
-        // DOM'da akordeonun görünür olup olmadığını kontrol eder.
-        checkState() {
-            // Kontrol, akordeonun kendine özgü sınıfının (d-lg-none) görünürlüğünü baz alır.
-            const isAccordionVisible = this.$accordion.css('display') !== 'none';
-            // Alternatif ve daha güvenilir yol:
-            // const isAccordionVisible = this.$accordion.is(':visible');
-
-            if (!isAccordionVisible && this._accordionVisible) {
-                // Akordeon gizli, sekmeler görünür olmalı
-                this.showTabs();
-                this._accordionVisible = false;
-            } else if (isAccordionVisible && !this._accordionVisible) {
-                // Akordeon görünür, akordeon moduna geçilmeli
-                this.showAccordion();
-                this._accordionVisible = true;
+        // ------------------------------------------------------------------
+        // Render: durum kontrolu
+        // ------------------------------------------------------------------
+        _render() {
+            const needAcc = isBelowBp(this.bp);
+            if (needAcc && this._mode !== 'accordion') {
+                this._toAccordion();
+            } else if (!needAcc && this._mode !== 'tab') {
+                this._toTab();
             }
         }
 
-        /**
-         * Akordeon görünümünden sekme görünümüne geçiş.
-         */
-        showTabs() {
-            this.$tabs.trigger($.Event('show-tabs.bs.tabcollapse'));
+        // ------------------------------------------------------------------
+        // TAB -> ACCORDION
+        // ------------------------------------------------------------------
+        _toAccordion() {
+            const wrapId = this.$nav.closest('[id]').attr('id') || 'sh-tc';
+            const accId  = wrapId + '--acc';
 
-            this.$accordion.find('.js-tabcollapse-card-header').each((i, header) => {
-                const $header = $(header);
-                const $parentLi = $header.data('bs.tabcollapse.parentLi');
-                const $toggle = $parentLi.find('[data-bs-toggle="tab"], [data-bs-toggle="pill"]');
-                
-                $toggle.attr({
-                    'data-bs-toggle': 'tab',
-                    'data-bs-target': $header.attr('data-bs-target'),
-                    'aria-expanded': null,
-                    'aria-controls': $header.attr('aria-controls'),
-                }).removeClass('collapsed');
-                
-                $parentLi.removeClass('active');
-                if ($header.data('bs.tabcollapse.isActive')) {
-                    $parentLi.addClass('active');
+            const $acc = $('<div class="accordion sh-tab-accordion" id="' + accId + '"></div>');
+
+            this._tabs.forEach((tab) => {
+                const colId = accId + '-' + tab.id;
+                const open  = tab.active;
+
+                const $item = $(
+                    '<div class="accordion-item">' +
+                        '<h2 class="accordion-header" id="h-' + colId + '">' +
+                            '<button class="accordion-button' + (open ? '' : ' collapsed') + '"' +
+                                ' type="button"' +
+                                ' data-bs-toggle="collapse"' +
+                                ' data-bs-target="#' + colId + '"' +
+                                ' aria-expanded="' + open + '"' +
+                                ' aria-controls="' + colId + '">' +
+                                tab.btnHtml +
+                            '</button>' +
+                        '</h2>' +
+                        '<div id="' + colId + '"' +
+                             ' class="accordion-collapse collapse' + (open ? ' show' : '') + '"' +
+                             ' aria-labelledby="h-' + colId + '"' +
+                             ' data-bs-parent="#' + accId + '">' +
+                            '<div class="accordion-body sh-tab-acc-body"></div>' +
+                        '</div>' +
+                    '</div>'
+                );
+
+                // move content into accordion body
+                $item.find('.sh-tab-acc-body').append(tab.$content.contents().detach());
+                tab.$accBody = $item.find('.sh-tab-acc-body');
+
+                $acc.append($item);
+            });
+
+            this.$nav.hide();
+            this.$tabContent.hide();
+
+            if (this.$tabContent.length) {
+                this.$tabContent.after($acc);
+            } else {
+                this.$nav.after($acc);
+            }
+
+            this.$accordion = $acc;
+            this._mode = 'accordion';
+        }
+
+        // ------------------------------------------------------------------
+        // ACCORDION -> TAB
+        // ------------------------------------------------------------------
+        _toTab() {
+            if (!this.$accordion || !this.$accordion.length) {
+                this._mode = 'tab';
+                return;
+            }
+
+            // Move content back to original pane wrappers
+            this._tabs.forEach((tab) => {
+                if (tab.$accBody) {
+                    tab.$content.append(tab.$accBody.contents().detach());
+                    tab.$accBody = null;
                 }
             });
-            
-            this.$accordion.find('.js-tabcollapse-card-body').each((i, body) => {
-                const $cardBody = $(body);
-                const $tabPane = $cardBody.data('bs.tabcollapse.tabpane');
-                $tabPane.append($cardBody.contents().detach());
-            });
-            
-            this.$accordion.html('');
-            this.$tabs.trigger($.Event('shown-tabs.bs.tabcollapse'));
-        }
 
-        /**
-         * Sekme görünümünden akordeon görünümüne geçiş.
-         */
-        showAccordion() {
-            this.$tabs.trigger($.Event('show-accordion.bs.tabcollapse'));
-            
-            // UI Refresh: Diğer pluginleri uyandır
-            $(window).trigger("resize");
+            // Remove accordion from DOM
+            this.$accordion.remove();
+            this.$accordion = null;
 
-            const $headers = this.$tabs.find('li:not(.dropdown) [data-bs-toggle="tab"], li:not(.dropdown) [data-bs-toggle="pill"]');
-            
-            $headers.each((i, element) => {
-                const $header = $(element);
-                const $parentLi = $header.closest('li');
-                const isActive = $parentLi.hasClass('active');
+            // Show tab nav + tab-content
+            this.$nav.show();
+            this.$tabContent.show();
 
-                $header.data('bs.tabcollapse.parentLi', $parentLi);
-                $header.data('bs.tabcollapse.isActive', isActive);
-                
-                const $card = this._createAccordionGroup(this.$accordion.attr('id'), $header, $header.html(), isActive);
-                this.$accordion.append($card);
-
-                // PRO EKLEME: Eğer aktifse, kartın kendisine de active class ver
-                if(isActive) $card.addClass('active');
-            });
-
-            this.$tabs.trigger($.Event('shown-accordion.bs.tabcollapse'));
-        }
-
-        _bindAccordionEvents() {
-            const _this = this;
-
-            // Accordion içindeki kartlar açıldığında/kapandığında çalışır
-            this.$accordion.on('shown.bs.collapse', '.collapse', function(e) {
-                const $el = $(e.target);
-                const $card = $el.closest('.card');
-                
-                // 1. Görsel aktiflik
-                $card.addClass('active');
-
-                // 2. Akıllı Scroll (Lenis veya Native)
-                if (root.ui && root.ui.scroll_to) {
-                    root.ui.scroll_to($card);
+            // Restore active state on panes (Bootstrap may have lost it)
+            this._tabs.forEach((tab) => {
+                const $pane = $('#' + tab.paneId);
+                $pane.removeClass('show active');
+                if (tab.active) {
+                    $pane.addClass('show active');
                 }
-
-                // 3. Tab Senkronizasyonu
-                const tabId = $el.attr('id').replace('-collapse', '');
-                const $tabPane = $('#' + tabId);
-                const tabIndex = $card.index();
-
-                // Üstteki tab navigasyonunu güncelle
-                _this.$tabs.find('li').removeClass('active').eq(tabIndex).addClass('active');
-                
-                // Tab Pane'leri güncelle
-                _this.getTabContentElement().find('.tab-pane').removeClass('active show in');
-                $tabPane.addClass('active show');
             });
 
-            this.$accordion.on('hidden.bs.collapse', '.collapse', function(e) {
-                $(e.target).closest('.card').removeClass('active');
+            // Restore active state on nav buttons
+            this.$nav.find('[data-bs-toggle="tab"],[data-bs-toggle="pill"]').each((i, btn) => {
+                const $btn = $(btn);
+                const isAct = this._tabs[i] && this._tabs[i].active;
+                $btn.toggleClass('active', !!isAct)
+                    .attr('aria-selected', isAct ? 'true' : 'false');
             });
-        }
-        
-        // Yardımcı metot: Akordeon Grubu Oluşturma
-        _createAccordionGroup(parentId, $header, headerHtml, active){
-            // Tab İçeriği/Pane'ini bul
-            let tabSelector = $header.attr('data-bs-target') || $header.attr('href');
-            tabSelector = tabSelector && tabSelector.replace(/.*(?=#[^\s]*$)/, '');
-            
-            const $tabPane = $(tabSelector);
 
-            // Akordeon grubu ID'sini oluştur
-            const groupId = $tabPane.attr('id') + '-collapse';
-            
-            // Şablonu kullanarak kartı oluştur
-            const $card = $(this.options.accordionTemplate(headerHtml, groupId, parentId, active));
+            // Re-init Bootstrap Tab instances so click events work again
+            this._initBsTabs();
 
-            // Kart başlık button'ını özelleştir
-            const $accordionToggle = $card.find('button');
-            $accordionToggle.addClass('js-tabcollapse-card-header'); // İşaretleyici sınıf
-            $accordionToggle.data('bs.tabcollapse.parentLi', $header.data('bs.tabcollapse.parentLi'));
-            
-            // Tab içeriğini (Pane) akordeon gövdesine taşı
-            $card.find('.js-tabcollapse-card-body').append($tabPane.contents().detach())
-                .data('bs.tabcollapse.tabpane', $tabPane); // Orijinal tab pane'i sakla
-
-            return $card;
+            this._mode = 'tab';
         }
 
-
-        // Yardımcı metot: Akordeon yapısını başlat
-        _initAccordion() {
-            // Rastgele ID oluşturma fonksiyonu
-            const randomString = () => Math.random().toString(36).substring(2, 7);
-
-            const srcId = this.$tabs.attr('id') || randomString();
-            const accordionId = srcId + '-accordion';
-
-            // Akordeon kapsayıcısını oluştur
-            this.$accordion = $(`<div class="accordion ${this.options.accordionClass}" id="${accordionId}"></div>`);
-            
-            // DOM'a ekle
-            this.$tabs.after(this.$accordion);
-            
-            // Responsive sınıflarını uygula
-            this.$tabs.addClass(this.options.tabsClass);
-            this.getTabContentElement().addClass(this.options.tabsClass);
-        }
-        
-        // Yardımcı metot: Tab içeriği elementini bulur
-        getTabContentElement(){
-            // Tab içeriği selector'ü options'a eklenmemişse, hemen yanındaki .tab-content'i bul
-            return $(this.options.tabContentSelector) || this.$tabs.siblings('.tab-content');
+        // ------------------------------------------------------------------
+        destroy() {
+            if (this._mode === 'accordion') this._toTab();
+            $(window).off('resize.tabCollapse.' + this.bp, this._resizeHandler);
+            this.$nav.removeData('bs.' + NAME);
         }
 
-        // Olay dinleyicilerini bağla (resize)
-        _bindEvents() {
-            // Yüksek performans için Debounce mekanizması
-            $(window).on('resize.bs.tabcollapse', () => {
-                clearTimeout(this._resizeTimeout);
-                this._resizeTimeout = setTimeout(() => {
-                    this.checkState();
-                }, 150); 
-            });
+        _debounce(fn, wait) {
+            let t;
+            return function () {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(this, arguments), wait);
+            };
         }
-    } // End of TabCollapse Class
+    }
 
-    // TABCOLLAPSE PLUGIN DEFINITION
-    // =======================
-
+    // jQuery plugin
     $.fn[NAME] = function (option) {
         return this.each(function () {
-            const $this = $(this);
-            let data = $this.data(`bs.${NAME}`);
-            // Data attribute'larını ve özel option'ları birleştir
-            const options = $.extend({}, $this.data(), typeof option === 'object' && option);
-
-            if (!data) {
-                // Eklenti örneğini oluştur ve data attribute'una kaydet
-                data = new TabCollapse(this, options);
-                $this.data(`bs.${NAME}`, data);
+            const $el  = $(this);
+            let   inst = $el.data('bs.' + NAME);
+            const opts = $.extend({}, typeof option === 'object' ? option : {});
+            if (!inst) {
+                inst = new TabCollapse(this, opts);
+                $el.data('bs.' + NAME, inst);
             }
-            
-            // Programatik kontrol
-            if (typeof option === 'string') {
-                data[option]();
+            if (typeof option === 'string' && typeof inst[option] === 'function') {
+                inst[option]();
             }
         });
     };
-
     $.fn[NAME].Constructor = TabCollapse;
 
-
-    // VERİ API'SI - OTOMATİK İNİT
-    // =======================
-    // data-toggle="tabcollapse", .tab-collapse veya .tab-collapse-{breakpoint} sınıfı olan her şeyi otomatik başlatır.
-
-    $(window).on('load', function () {
-        $('[data-toggle="tabcollapse"], [data-bs-toggle="tabcollapse"],.tab-collapse, [class*="tab-collapse-"]').each(function () {
-            const $tabNav = $(this);
-            // Sadece bir kez başlatıldığından emin ol
-            if (!$tabNav.data(`bs.${NAME}`)) {
-                 $tabNav[NAME]();
+    // Auto-init on DOM ready
+    $(function () {
+        $('.tab-collapse, [class*="tab-collapse-"]').each(function () {
+            const $el = $(this);
+            if (!$el.data('bs.' + NAME)) {
+                $el[NAME]();
             }
         });
     });

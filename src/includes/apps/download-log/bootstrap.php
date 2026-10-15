@@ -53,17 +53,17 @@ require_once __DIR__ . '/DownloadManager.php';
 require_once __DIR__ . '/Admin/DownloadLogAdmin.php';
 require_once __DIR__ . '/Admin/DownloadLogAjax.php';
 
-add_action( 'admin_menu', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'addMenuPage' ], 25 );
+// add_action( 'admin_menu', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'addMenuPage' ], 25 ); // Dashboard üzerinden erişiliyor
 add_action( 'admin_head', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'hideNotices' ] );
 add_action( 'admin_enqueue_scripts', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'enqueueAssets' ] );
 add_action( 'admin_post_sh_download_save_settings', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'saveSettings' ] );
 add_action( 'wp_ajax_sh_download_clear_logs', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'clearLogs' ] );
+add_action( 'wp_ajax_sh_download_log_save_app_toggle', [ \SaltHareket\DownloadLog\Admin\DownloadLogAdmin::class, 'ajaxSaveAppToggle' ] );
 
 // ─── TURBO API — FRONTEND ────────────────────────────────
 // Frontend download işlemleri sistemin TurboAPI'si üzerinden çalışır.
-// site.com/api/download_request  → token al, erişim kontrol
-// site.com/api/download_lead     → lead form submit, cookie yaz, token al
-// site.com/api/download_stream   → dosya stream (token doğrula, indir)
+// ENABLE_DOWNLOAD_LOG=false iken bu hook'lar kayıtlanmaz.
+if ( defined('ENABLE_DOWNLOAD_LOG') && ENABLE_DOWNLOAD_LOG ) {
 
 add_filter( 'turbo_api_handle', function ( $handled, string $method, array $vars ) {
     if ( $handled !== null ) return $handled;
@@ -157,7 +157,9 @@ add_action( 'wp_enqueue_scripts', function () {
     }
 } );
 
-// ─── TWIG HELPERS ────────────────────────────────────────
+} // end ENABLE_DOWNLOAD_LOG
+
+// ─── TWIG HELPERS — her zaman kayıtlı (ENABLE_DOWNLOAD_LOG=false iken boş döner) ──
 
 add_filter( 'timber/twig', function ( \Twig\Environment $twig ) {
 
@@ -234,6 +236,9 @@ if ( ! function_exists( 'sh_download_count' ) ) {
         return \SaltHareket\DownloadLog\DownloadManager::getCount( $file_id );
     }
 }
+
+// ─── CF7 MAIL INTERCEPT + CRON + EVENTS — sadece app aktifken ─────────────────
+if ( defined('ENABLE_DOWNLOAD_LOG') && ENABLE_DOWNLOAD_LOG ) {
 
 // ─── CF7 MAIL INTERCEPT ──────────────────────────────────
 // Lead capture modunda kullanılan CF7 formları mail göndermemeli.
@@ -314,3 +319,5 @@ add_action( 'admin_init', function () {
     wp_redirect( add_query_arg( [ 'page' => 'salt-download-log', 'tab' => 'settings', 'saved' => '1' ], admin_url( 'admin.php' ) ) );
     exit;
 } );
+
+} // end ENABLE_DOWNLOAD_LOG (CF7 + cron + events)

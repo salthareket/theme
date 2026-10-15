@@ -1,0 +1,58 @@
+{
+    "key": "group_salt_header_logo",
+    "title": "Header Logo — Settings",
+    "fields": [
+        {
+            "key": "field_shlogo_height",
+            "label": "Logo 100% Height",
+            "name": "logo_height",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Aktif: logo yuksekligi header yuksekligini doldurusun.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "30",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 0
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-logo"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786398691,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

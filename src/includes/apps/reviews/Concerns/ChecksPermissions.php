@@ -30,6 +30,17 @@ trait ChecksPermissions
             if ( ! $post || $post->post_status !== 'publish' ) return false;
             // Kendi postuna review yazamaz
             if ( (int) $post->post_author === $user_id ) return false;
+
+            // ReviewsSettings types config — post type bazlı
+            $post_type = get_post_type( $target_id ) ?: 'post';
+            if ( ! \SaltHareket\Reviews\ReviewsSettings::canReviewType( 'post', $post_type ) ) return false;
+        }
+
+        if ( $type === 'user' ) {
+            // ReviewsSettings types config — user role bazlı
+            $target_user = get_userdata( $target_id );
+            $role        = $target_user && ! empty( $target_user->roles ) ? reset( $target_user->roles ) : '';
+            if ( ! \SaltHareket\Reviews\ReviewsSettings::canReviewType( 'user', $role ) ) return false;
         }
 
         return (bool) apply_filters( 'reviews/can_review', true, $user_id, $target_id, $type );

@@ -1,0 +1,23 @@
+{
+    "name": "acf/header-tool-user-menu",
+    "title": "Header Tool: User Menu",
+    "description": "Header Tool: User Menu",
+    "category": "headerblocks",
+    "icon": "admin-users",
+    "keywords": ["header", "tool", "user-menu"],
+    "parent": ["acf/header-tools", "acf/header-column"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": false,
+        "customClassName": false,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Header Tool: User Menu Duzenle"
+    }
+}

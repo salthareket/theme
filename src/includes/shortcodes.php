@@ -59,7 +59,7 @@ add_action("init", function(){
                 if (defined('ENABLE_SEARCH_HISTORY') && ENABLE_SEARCH_HISTORY) {
                     $context["salt"] = Data::get("salt");
                 }
-                return Timber::compile("partials/snippets/search-field.twig", $context);
+                return Timber::compile("partials/search/search-field.twig", $context);
             },
             'atts' => [
                 'note' => [

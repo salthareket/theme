@@ -74,7 +74,7 @@ class NotificationsAdmin
 
     public static function register(): void
     {
-        add_action( 'admin_menu', [ self::class, 'addMenuPage' ], 20 );
+        // add_action( 'admin_menu', [ self::class, 'addMenuPage' ], 20 ); // Dashboard üzerinden erişiliyor
         add_action( 'admin_head', [ self::class, 'hideNotices' ] );
         add_action( 'admin_enqueue_scripts', [ self::class, 'enqueueAssets' ] );
         add_action( 'wp_ajax_sh_notify_save_rule',    [ self::class, 'ajaxSaveRule' ] );
@@ -92,11 +92,9 @@ class NotificationsAdmin
         add_action( 'wp_ajax_sh_notify_save_sms_toggle', [ self::class, 'ajaxSaveSmsToggle' ] );
         // Master enable toggle
         add_action( 'wp_ajax_sh_notify_save_master_toggle', [ self::class, 'ajaxSaveMasterToggle' ] );
-        // SMS
-        add_action( 'wp_ajax_sh_sms_save_settings', [ self::class, 'ajaxSmsSaveSettings' ] );
-        add_action( 'wp_ajax_sh_sms_send',          [ self::class, 'ajaxSmsSend' ] );
-        add_action( 'wp_ajax_sh_sms_check_balance', [ self::class, 'ajaxSmsCheckBalance' ] );
-        add_action( 'wp_ajax_sh_sms_search_users',  [ self::class, 'ajaxSmsSearchUsers' ] );
+        // SMS AJAX → artık SmsAdmin'de (apps/sms) — buradakiler geriye uyumluluk için korunuyor
+        // add_action( 'wp_ajax_sh_sms_save_settings', ... ) → SmsAdmin::register() içinde
+        // add_action( 'wp_ajax_sh_sms_send', ... )          → SmsAdmin::register() içinde
         // Email
         add_action( 'wp_ajax_sh_email_save_settings', [ self::class, 'ajaxEmailSaveSettings' ] );
         add_action( 'wp_ajax_sh_email_send',          [ self::class, 'ajaxEmailSend' ] );
@@ -353,14 +351,16 @@ class NotificationsAdmin
         <?php self::renderStyles(); ?>
 
         <div class="sh-toolbar">
-            <h1>🔔 Notifications</h1>
+            <h1>🔔 Notifications
+                <span id="sh-notify-header-badge" class="sh-badge <?php echo $notifs_enabled ? 'sh-badge-green' : 'sh-badge-gray'; ?>" style="font-size:11px"><?php echo $notifs_enabled ? 'Enabled' : 'Disabled'; ?></span>
+            </h1>
             <span class="sh-badge sh-badge-blue"><?php echo $rule_count; ?> rule<?php echo $rule_count !== 1 ? 's' : ''; ?></span>
             <span class="sh-badge sh-badge-gray"><?php echo $event_count; ?> event<?php echo $event_count !== 1 ? 's' : ''; ?></span>
             <div class="sh-toolbar-right">
                 <a href="?page=sh-notifications&tab=overview" class="sh-tab-btn <?php echo $tab === 'overview' ? 'active' : ''; ?>">Overview</a>
                 <a href="?page=sh-notifications&tab=rules"    class="sh-tab-btn <?php echo $tab === 'rules'    ? 'active' : ''; ?>">Rules</a>
                 <a href="?page=sh-notifications&tab=events" class="sh-tab-btn <?php echo $tab === 'events' ? 'active' : ''; ?>">Events</a>
-                <a href="?page=sh-notifications&tab=sms"    class="sh-tab-btn <?php echo $tab === 'sms'    ? 'active' : ''; ?>">📱 SMS</a>
+                <a href="?page=sh-sms" class="sh-tab-btn">📱 SMS ↗</a>
                 <a href="?page=sh-notifications&tab=email"  class="sh-tab-btn <?php echo $tab === 'email'  ? 'active' : ''; ?>">📧 Email</a>
                 <a href="?page=sh-notifications&tab=push"   class="sh-tab-btn <?php echo $tab === 'push'   ? 'active' : ''; ?>">Web Push</a>
                 <a href="?page=sh-notifications&tab=log"    class="sh-tab-btn <?php echo $tab === 'log'    ? 'active' : ''; ?>">Log</a>
@@ -580,7 +580,7 @@ class NotificationsAdmin
                     $show_push  = $notifs_enabled && $push_enabled;
 
                     $items = [
-                        [ 'icon' => '📱', 'label' => 'SMS',      'active' => $show_sms,   'url' => '?page=sh-notifications&tab=sms',   'id' => 'sms',   'own' => $sms_enabled   ],
+                        [ 'icon' => '📱', 'label' => 'SMS',      'active' => $show_sms,   'url' => admin_url('admin.php?page=sh-sms'),  'id' => 'sms',   'own' => $sms_enabled   ],
                         [ 'icon' => '📧', 'label' => 'Email',    'active' => $show_email, 'url' => '?page=sh-notifications&tab=email', 'id' => 'email', 'own' => $email_enabled ],
                         [ 'icon' => '🌐', 'label' => 'Web Push', 'active' => $show_push,  'url' => '?page=sh-notifications&tab=push',  'id' => 'push',  'own' => $push_enabled  ],
                     ];
@@ -634,9 +634,13 @@ class NotificationsAdmin
                 break;
             }
         }
-        $role_label = $roles[ $rule->role ] ?? $rule->role;
+        $role_label    = $roles[ $rule->role ] ?? $rule->role;
+        $sms_available = defined( 'ENABLE_SMS' ) && ENABLE_SMS;
+        $sms_active    = ! empty( $carriers['sms']['active'] );
+        // SMS disabled + bu rule'da SMS aktifse → uyarı durumu
+        $has_sms_warning = ( ! $sms_available && $sms_active );
         ?>
-        <div class="sh-rule-card <?php echo $rule->active ? '' : 'sh-rule-inactive'; ?>" data-id="<?php echo esc_attr( $rule->id ); ?>" data-role="<?php echo esc_attr( $rule->role ); ?>" data-event="<?php echo esc_attr( $rule->event ); ?>">
+        <div class="sh-rule-card <?php echo $rule->active ? '' : 'sh-rule-inactive'; ?><?php echo $has_sms_warning ? ' sh-rule-warning' : ''; ?>" data-id="<?php echo esc_attr( $rule->id ); ?>" data-role="<?php echo esc_attr( $rule->role ); ?>" data-event="<?php echo esc_attr( $rule->event ); ?>">
             <div class="sh-rule-header">
 
                 <!-- Switch — en başta -->
@@ -650,16 +654,25 @@ class NotificationsAdmin
                     <span class="sh-rule-arrow">→</span>
                     <span class="sh-rule-event"><?php echo esc_html( $event_label ?: $rule->event ); ?></span>
                     <span class="sh-rule-type sh-type-<?php echo esc_attr( $rule->type ); ?>"><?php echo esc_html( $rule->type ); ?></span>
+                    <?php if ( $has_sms_warning ) : ?>
+                    <span class="sh-rule-dep-warn" title="SMS channel is active but SMS app is disabled">
+                        ⚠ <a href="<?php echo esc_url( admin_url('admin.php?page=sh-sms') ); ?>" style="color:inherit;text-decoration:underline">SMS disabled</a>
+                    </span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="sh-rule-actions">
                     <?php
                     $web_push_enabled = defined( 'ENABLE_WEB_PUSH' ) && ENABLE_WEB_PUSH;
+                    $sms_available    = defined( 'ENABLE_SMS' ) && ENABLE_SMS;
                     foreach ( [ 'email', 'alert', 'sms', 'push' ] as $ch ) :
                         if ( $ch === 'push' && ! $web_push_enabled ) continue;
                         $ch_active = ! empty( $carriers[ $ch ]['active'] );
+                        // SMS disabled iken aktif badge'i muted olarak göster
+                        $disabled_class = ( $ch === 'sms' && ! $sms_available ) ? ' sh-ch-disabled' : '';
+                        $title = ( $ch === 'sms' && ! $sms_available ) ? ' title="SMS is disabled — go to SMS settings"' : '';
                     ?>
-                        <span class="sh-ch-badge sh-ch-<?php echo $ch; ?> <?php echo $ch_active ? 'active' : 'inactive'; ?>"><?php echo strtoupper( $ch ); ?></span>
+                        <span class="sh-ch-badge sh-ch-<?php echo $ch; ?> <?php echo $ch_active ? 'active' : 'inactive'; ?><?php echo $disabled_class; ?>"<?php echo $title; ?>><?php echo strtoupper( $ch ); ?><?php echo ( $ch === 'sms' && ! $sms_available ) ? ' ⚠' : ''; ?></span>
                     <?php endforeach; ?>
 
                     <div class="sh-rule-btns">
@@ -736,20 +749,28 @@ class NotificationsAdmin
                 <div class="sh-carriers">
                     <?php
                     $web_push_enabled  = defined( 'ENABLE_WEB_PUSH' ) && ENABLE_WEB_PUSH;
+                    $sms_available     = defined( 'ENABLE_SMS' ) && ENABLE_SMS;
                     $carrier_icons = [ 'email' => '&#9993;', 'alert' => '&#128276;', 'sms' => '&#128172;', 'push' => '&#128242;' ];
                     foreach ( [ 'email', 'alert', 'sms', 'push' ] as $ch ) :
                         if ( $ch === 'push' && ! $web_push_enabled ) continue;
                         $cfg    = $carriers[ $ch ] ?? [];
                         $active = ! empty( $cfg['active'] );
+                        $ch_disabled = ( $ch === 'sms' && ! $sms_available );
                     ?>
-                    <div class="sh-carrier <?php echo $active ? 'sh-carrier-active sh-carrier-open' : ''; ?>" data-channel="<?php echo $ch; ?>">
-                        <div class="sh-carrier-header" onclick="shToggleCarrier(this)">
+                    <div class="sh-carrier <?php echo $active ? 'sh-carrier-active sh-carrier-open' : ''; ?><?php echo $ch_disabled ? ' sh-carrier-unavailable' : ''; ?>" data-channel="<?php echo $ch; ?>">
+                        <div class="sh-carrier-header" onclick="<?php echo $ch_disabled ? 'void(0)' : 'shToggleCarrier(this)'; ?>" <?php echo $ch_disabled ? 'style="cursor:default"' : ''; ?>>
                             <span class="sh-carrier-icon"><?php echo $carrier_icons[ $ch ]; ?></span>
                             <span class="sh-carrier-name"><?php echo strtoupper( $ch ); ?></span>
+                            <?php if ( $ch_disabled ) : ?>
+                            <span style="font-size:11px;color:#9ca3af;margin-left:4px">
+                                — disabled · <a href="<?php echo esc_url( admin_url('admin.php?page=sh-sms') ); ?>" style="color:#2271b1;text-decoration:none">Enable →</a>
+                            </span>
+                            <?php else : ?>
                             <label class="sh-toggle" onclick="event.stopPropagation()">
                                 <input type="checkbox" name="carriers[<?php echo $ch; ?>][active]" value="1" <?php checked( $active ); ?> onchange="shCarrierToggle(this)">
                                 <span class="sh-toggle-slider"></span>
                             </label>
+                            <?php endif; ?>
                             <span class="sh-carrier-arrow">&#8250;</span>
                         </div>
                         <div class="sh-carrier-body">
@@ -1436,6 +1457,41 @@ class NotificationsAdmin
             }
             window.shShowToast = toast; // SMS tab ve diğer tab'lar kullanabilsin
 
+            // Dependency Notice — persistent, auto-dismiss yok.
+            // dep: { app_id, label, reason, admin_url, admin_label }
+            // container: HTMLElement veya selector string (opsiyonel, yoksa .sh-wrap'ın başına ekler)
+            window.shShowDependencyNotice = function( dep, container ) {
+                var wrap = typeof container === 'string'
+                    ? document.querySelector( container )
+                    : ( container || document.querySelector('.sh-wrap') || document.body );
+
+                // Aynı app için zaten notice var mı?
+                var existing = wrap.querySelector('.sh-dependency-notice[data-app="' + dep.app_id + '"]');
+                if ( existing ) return;
+
+                var notice = document.createElement('div');
+                notice.className = 'sh-dependency-notice';
+                notice.setAttribute('data-app', dep.app_id);
+                notice.innerHTML =
+                    '<span class="sh-dep-icon">⚠️</span>' +
+                    '<div class="sh-dep-body">' +
+                        '<div class="sh-dep-title">' + dep.label + ' is required</div>' +
+                        '<div class="sh-dep-reason">' + dep.reason + '</div>' +
+                        '<a class="sh-dep-link" href="' + dep.admin_url + '" target="_blank">' +
+                            dep.admin_label + ' →' +
+                        '</a>' +
+                    '</div>' +
+                    '<button class="sh-dep-dismiss" title="Dismiss">✕</button>';
+
+                notice.querySelector('.sh-dep-dismiss').addEventListener('click', function() {
+                    notice.remove();
+                });
+
+                // wrap'ın en üstüne ekle
+                wrap.insertBefore( notice, wrap.firstChild );
+                notice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            };
+
             // Master Notifications toggle
             window.shNotifsMasterToggle = function(enabled) {
                 // Show saving indicator
@@ -1462,6 +1518,9 @@ class NotificationsAdmin
                             el.textContent = active ? '● Active' : '○ Inactive';
                             el.style.color  = active ? '#00a32a' : '#9ca3af';
                         });
+                        // h1 badge sync
+                        var hb = document.getElementById('sh-notify-header-badge');
+                        if (hb) { hb.textContent = enabled ? 'Enabled' : 'Disabled'; hb.className = 'sh-badge ' + (enabled ? 'sh-badge-green' : 'sh-badge-gray'); }
                         toast(enabled ? '✅ Notifications enabled' : '⛔ Notifications disabled');
                     } else {
                         toast('❌ ' + (res.data || 'Error'), 'error');

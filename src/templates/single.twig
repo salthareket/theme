@@ -39,6 +39,8 @@
     {% set page_settings = page_settings_default %}
 {% endif %}
 
+{#
+  DEPRECATED — eski ACF add_offcanvas sistemi. Yeni sistem base.twig default block'larında.
 {% block sidebar_toggler %}
     {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
@@ -50,6 +52,7 @@
         {{ block("sidebar", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
+#}
 
 {% block hero %}
 {% endblock %}
@@ -67,7 +70,7 @@
 					<img src="{{post.thumbnail.src}}" alt="{{post.thumbnail.alt}}"/>
 				{% endif %}
 				<div class="article-body">
-					{{post.content}}
+					{{ post.content }}
 				</div>
 			</section>
 
@@ -93,7 +96,7 @@
 		</article>
 	</div><!-- /content-wrapper -->
 
-    {% include "partials/reviews/reviews.twig" %}
+    {% include "partials/post-reviews/reviews.twig" %}
 
 
 {% endblock %}

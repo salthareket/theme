@@ -22,10 +22,10 @@
             <div class="container-sm">
                 <div class="card card-reset text-center">
                     <div class="card-header">
-                        {% if function('get_extension', logo) == "svg" %}
-                            {{function('inline_svg', logo, {"class": "logo"})}}
+                        {% if function('get_extension', logo.url) == "svg" %}
+                            {{function('inline_svg', logo.url, {"class": "logo"})}}
                         {% else %}
-                            <img src="{{logo}}" class="logo" alt="{{site.name}}" />
+                            <img src="{{logo.url}}" class="logo" alt="{{site.name}}" width="{{ logo.width }}" height="{{ logo.height }}"/>
                         {% endif %}
                     </div>
                 </div>

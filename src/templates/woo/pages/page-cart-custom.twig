@@ -1,0 +1,40 @@
+{% extends "woo/pages/page-cart.twig" %}
+
+{% block content %}
+    {#
+        PAE: swiper plugin'ini bu sayfaya zorla yükle.
+        <main> içinde olmalı — PAE final_html_string = main_content + block_content.
+        after_main bloğu </main> dışında olduğu için buraya koyuyoruz.
+    #}
+    <span data-required-js="swiper" data-html-whitelist=".sh-product-list,.sh-product-list--new_in_store,.sh-product-list--carousel,.sh-product-list__swiper,.sh-product-list__header,.sh-product-list__title,.swiper,.swiper-wrapper,.swiper-slide,.swiper-button-prev,.swiper-button-next,.swiper-pagination,.swiper-scrollbar,.sh-pl-nav-arrows" class="d-none" aria-hidden="true" style="display:none!important"></span>
+
+    {# Boş sepet empty state stillemesi — WC Blocks'un kendi ikonunu kullan, sadece ortalama ve padding #}
+    <style>
+    .wp-block-woocommerce-empty-cart-block {
+        text-align: center;
+        padding: 60px 20px 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    .wp-block-woocommerce-empty-cart-block h2.wp-block-heading {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
+    }
+    </style>
+
+    {{ parent() }}
+{% endblock %}
+
+{% block after_main %}
+    {# "New in store" — kendi tease.twig ile #}
+    {% if new_in_store_products|length > 0 %}
+        {% include 'woo/partials/product-list.twig' with {
+            'list_type': 'new_in_store',
+            'posts': new_in_store_products
+        } %}
+    {% endif %}
+{% endblock %}

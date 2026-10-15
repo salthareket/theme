@@ -28,13 +28,13 @@
         {% if fields.categories %}
             {% set posts = function("get_posts_by_taxonomy_terms", fields.post_type) %}
         {% else %}
-            {% set posts = get_posts({ "post_type" : fields.post_type, "post__not_in" : [post.id], "posts_per_page" : fields.max_posts}) %}
+            {% set posts = cached_posts({ "post_type" : fields.post_type, "post__not_in" : [post.id], "posts_per_page" : fields.max_posts}) %}
             {% set posts = [{term:{}, posts:posts}] %}
         {% endif %}
         {% set label = function("get_post_type_object", fields.post_type).labels.name %}
     {% else %}
         {% if fields.posts %}
-            {% set posts = get_posts(fields.posts) %}
+            {% set posts = cached_posts(fields.posts) %}
             {% set posts = [{term:{}, posts:posts}] %}
             {% set label = function("get_post_type_object", posts.posts[0].post_type).labels.name %}
         {% endif %}
@@ -60,6 +60,9 @@
         {% for term in posts %}
 
             {% if term.posts %}
+
+                {# Post listesini render etmeden once bulk prefetch — reaction count/has + WC product cache #}
+                {% do posts_prefetch(term.posts, fields.post_type) %}
 
                 {% if fields.categories %}
                     <div class="card card-reset">

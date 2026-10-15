@@ -47,6 +47,14 @@ trait HandlesTwig
             $this->twig_template_paths = $paths;
     }
 
+    public function set_twig_scan_includes( bool $value ): void {
+        $this->twig_scan_includes = $value;
+    }
+
+    public function get_twig_scan_includes(): bool {
+        return $this->twig_scan_includes;
+    }
+
     // =========================================================
 
         private function detectTimberTemplatePaths(): array {
@@ -299,11 +307,22 @@ trait HandlesTwig
         private function collectTwigLoadedHtml(\voku\helper\HtmlDomParser $dom): string {
         $nodes = $dom->find("*[{$this->twig_attr}]");
         if (!$nodes || count($nodes) === 0) {
-            $this->error_log('[PAE] data-template: node bulunamadı');
+            $this->error_log('[PAE] data-template: node bulunamadı — sayfa muhtemelen Twig block kullanmıyor. url=' . ($this->url ?? 'unknown') . ' | id=' . ($this->id ?? 'unknown') . ' | type=' . ($this->type ?? 'unknown'));
             return '';
         }
 
         $this->ensureTwigPaths();
+
+        // ── Header/footer twig'lerini plugin detection'dan hariç tut ──────────
+        // Bu twig'ler common-all.css'e dahil edildiğinden sayfa plugin detection'ına
+        // girmemeli. Aksi hâlde header'daki smartmenu/slinky gibi class'lar sayfanın
+        // plugin bundle'ına yanlış olarak eklenir.
+        // Template post'larının kendi plugin listesi ayrı mekanizmayla yönetilir.
+        static $header_footer_twig_blacklist = [
+            'partials/header/',
+            'partials/footer/',
+            'navigation/',
+        ];
 
         // AJAX ile yüklenecek template'leri hariç tut (modal, offcanvas vs.)
         $ajax_method_nodes = $dom->find("*[data-ajax-method]");

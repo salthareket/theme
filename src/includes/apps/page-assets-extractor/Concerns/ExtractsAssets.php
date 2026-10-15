@@ -123,6 +123,15 @@ trait ExtractsAssets
             $main_node->delete(); 
         }
 
+        // Dual fetch HTML'de birden fazla <main> olabilir (logged + anon merge)
+        // findOne sadece ilkini alır — tüm main'leri topla
+        $extra_mains = $html_temp->findMulti('main');
+        if (!empty($extra_mains)) {
+            foreach ($extra_mains as $extra_main) {
+                $main_content .= "\n" . $extra_main->outerHtml();
+            }
+        }
+
         $block_content = '';
         $block_node = $html_temp->findOne('.block--hero');
         if ($block_node) { 
@@ -140,8 +149,15 @@ trait ExtractsAssets
         $offcanvas_string = implode("\n", $offcanvas_html);
         $html_temp = null;
 
-        $final_html_string = $header_content . $main_content . $block_content . $offcanvas_string . $footer_content;
-        //$final_html_string = $main_content . $block_content . $offcanvas_string;
+        // header ve footer common-all.css'e dahil edildiği için sayfa CSS'ine eklenmez.
+        // Duplikasyon önleme: sadece main, hero block ve offcanvas içerikleri CSS purge'e giriyor.
+        // ISTISNA: post_type=template ise header/footer da template'in kendisidir — plugin tespiti icin dahil et.
+        $is_template_post = ( $this->type === 'post' && $this->detect_post_type( $id ) === 'template' );
+        if ( $is_template_post ) {
+            $final_html_string = $header_content . $main_content . $footer_content . $block_content . $offcanvas_string;
+        } else {
+            $final_html_string = $main_content . $block_content . $offcanvas_string;
+        }
         $html = HtmlDomParser::str_get_html($final_html_string);
 
         /*$theme_dir = get_template_directory();
@@ -340,6 +356,40 @@ trait ExtractsAssets
 
             // Expand sonrası tekrar unique — güvenlik
             $plugins = array_values(array_unique($plugins));
+
+            // ── Forced Plugins inject ──────────────────────────────────────
+            // pae_forced_plugins option'ından bu post_type / taxonomy için
+            // tanımlanmış zorunlu plugin'leri ekle.
+            $forced_rules = (array) get_option( 'pae_forced_plugins', [] );
+            if ( ! empty( $forced_rules ) ) {
+                // Bu fetch'in post type / taxonomy'sini tespit et
+                $fetch_post_type = $this->detect_post_type( $id );
+                $fetch_taxonomy  = '';
+                if ( $this->type === 'term' && $id ) {
+                    $term = get_term( (int) $id );
+                    if ( $term && ! is_wp_error( $term ) ) $fetch_taxonomy = $term->taxonomy;
+                }
+
+                $forced_plugins = [];
+                foreach ( $forced_rules as $rule ) {
+                    $rule_type = $rule['type']    ?? '';
+                    $rule_key  = $rule['key']      ?? '';
+                    $rule_plgs = $rule['plugins']  ?? [];
+                    if ( $rule_type === 'post_type' && $rule_key === $fetch_post_type ) {
+                        $forced_plugins = array_merge( $forced_plugins, $rule_plgs );
+                    }
+                    if ( $rule_type === 'taxonomy' && $rule_key === $fetch_taxonomy ) {
+                        $forced_plugins = array_merge( $forced_plugins, $rule_plgs );
+                    }
+                }
+                if ( ! empty( $forced_plugins ) ) {
+                    $plugins = array_values( array_unique( array_merge( $plugins, $forced_plugins ) ) );
+                    // Forced plugin'lerin bağımlılıklarını da genişlet
+                    $plugins = $this->expand_required_plugins( $plugins, $files['js']['plugins'] );
+                    $plugins = array_values( array_unique( $plugins ) );
+                    $this->error_log( '[PAE] Forced plugins injected: ' . implode( ',', $forced_plugins ), 'forced' );
+                }
+            }
         }
 
         // WP kısa kod bazlı JS ekleri
@@ -353,6 +403,14 @@ trait ExtractsAssets
 
         // plugin whitelist (CSS purge için)
         $plugin_files_whitelist = [];
+        if (!empty($files["js"]["plugins"])) {
+            // c:false plugin'lerin whitelist'lerini her zaman ekle
+            foreach ($files["js"]["plugins"] as $plg_key => $plg_def) {
+                if (empty($plg_def['c']) && !empty($plg_def['whitelist'])) {
+                    $plugin_files_whitelist = array_merge($plugin_files_whitelist, $plg_def['whitelist']);
+                }
+            }
+        }
         if (!empty($plugins) && !empty($files["js"]["plugins"])) {
             foreach($plugins as $plg){
                 if(!empty($files["js"]["plugins"][$plg]["whitelist"])){
@@ -365,20 +423,22 @@ trait ExtractsAssets
         // Pagination whitelist: arşiv/search/term sayfalarında pagination class'larını koru
         $post_type_for_pagination = $this->detect_post_type($id);
         $pagination_config = class_exists('Data') ? \Data::get("post_pagination") : [];
-        // Admin context'te Data boş olabilir - doğrudan option'dan oku
-        if (empty($pagination_config) && function_exists('get_field')) {
-            $raw = get_field('post_pagination', 'options');
-            if (is_array($raw)) {
+        // Admin context'te Data boş olabilir — SaltConfig'den oku (ACF değil)
+        if (empty($pagination_config)) {
+            $raw = \SaltHareket\SaltConfig::get('options_post_pagination', []);
+            if (is_array($raw) && ! empty($raw)) {
                 $pagination_config = [];
                 foreach ($raw as $item) {
                     if (!isset($item['post_type'])) continue;
                     $pt = $item['post_type'];
+                    $ppp = !empty($item['paged']) ? intval($item['catalog_rows']) * intval($item['catalog_columns']) : -1;
+                    $item['posts_per_page'] = $ppp;
                     unset($item['post_type']);
                     $pagination_config[$pt] = $item;
                 }
-                // Search pagination
-                $search = get_field('search_pagination', 'options');
-                if ($search && !empty($search['paged'])) {
+                $search = \SaltHareket\SaltConfig::get('options_search_pagination', []);
+                if (!empty($search) && !empty($search['paged'])) {
+                    $search['posts_per_page'] = intval($search['catalog_rows']) * intval($search['catalog_columns']);
                     $pagination_config['search'] = $search;
                 }
             }
@@ -530,6 +590,7 @@ trait ExtractsAssets
 
                 case 'myaccount':
                     $wc_whitelist = array_merge($wc_whitelist, [
+                        // WooCommerce MyAccount
                         '.woocommerce-MyAccount-navigation', '.woocommerce-MyAccount-content',
                         '.woocommerce-orders-table', '.woocommerce-orders-table-*',
                         '.woocommerce-order-details',
@@ -539,6 +600,51 @@ trait ExtractsAssets
                         '.woocommerce-address-fields',
                         '.woocommerce-EditAccountForm',
                         '.order-*', '.order-status',
+                        // SaltHareket My Account — login form
+                        '.sh-auth-step-login', '.sh-auth-step-signup', '.sh-auth-step-2fa',
+                        '.sh-auth-step-passwordless', '.sh-auth-step-pwless-otp',
+                        '.sh-2fa-form', '.sh-pending-token', '.sh-pwless-otp-id',
+                        '.btn-form-type', '.sh-toggle-passwordless', '.sh-toggle-password-login',
+                        '.sh-2fa-back', '.sh-pwless-otp-back', '.sh-resend-otp', '.sh-pwless-resend',
+                        // SaltHareket My Account — dashboard layout
+                        '.sh-section',
+                        '.nav-link', '.nav-link.active', '.nav-item',
+                        '.badge', '.badge-*', '.rounded-pill',
+                        '.sticky-top',
+                        // Bootstrap grid & utility (my-account özelinde kritikler)
+                        '.col-lg-3', '.col-lg-9',
+                        '.g-4', '.gap-1', '.gap-2', '.gap-3',
+                        '.min-vh-75', '.min-w-0',
+                        '.fw-semibold', '.fw-bold',
+                        '.bg-primary', '.bg-opacity-10',
+                        '.text-primary', '.text-body', '.text-muted', '.text-danger', '.text-success', '.text-warning',
+                        '.text-truncate',
+                        '.shadow-sm', '.border-0', '.rounded-4', '.rounded-3',
+                        '.card-header', '.card-body', '.card-footer',
+                        '.list-group', '.list-group-item', '.list-group-flush',
+                        '.form-control', '.form-control-lg', '.form-control-sm',
+                        '.form-select', '.form-select-lg',
+                        '.form-check', '.form-check-input', '.form-check-label',
+                        '.form-label', '.form-text',
+                        '.input-group', '.input-group-lg', '.input-group-text',
+                        '.invalid-feedback',
+                        '.alert', '.alert-warning', '.alert-danger', '.alert-success',
+                        '.d-flex', '.d-grid', '.d-none', '.d-block',
+                        '.align-items-center', '.justify-content-between', '.justify-content-end',
+                        '.flex-shrink-0', '.flex-grow-1',
+                        '.ms-auto', '.me-1', '.me-2',
+                        '.p-0', '.p-3', '.p-4', '.px-3', '.px-5', '.py-2', '.py-3', '.py-4', '.py-5',
+                        '.mb-0', '.mb-1', '.mb-2', '.mb-3', '.mb-4', '.mb-5',
+                        '.mt-3', '.mt-4',
+                        '.border-bottom', '.border-top',
+                        '.small', '.fs-3', '.fs-5',
+                        // Security tab
+                        '.totp-setup-start', '.totp-setup-step',
+                        '.totp-qr-image', '.totp-secret-key',
+                        '.placeholder-glow', '.placeholder',
+                        '.user-select-all',
+                        // Profile completion indicator
+                        '.fa-2x', '.fa-3x',
                     ]);
                     break;
 
@@ -562,8 +668,20 @@ trait ExtractsAssets
                         // Galeri
                         '.woocommerce-product-gallery', '.woocommerce-product-gallery-*',
                         '.flex-*',
-                        // Tabs
+                        // WC native tabs (fallback)
                         '.woocommerce-tabs', '.wc-tab', '.wc-tab-*',
+                        // Salt Product Tabs — tab modu (Bootstrap nav-tabs)
+                        '.sh-product-tabs', '.sh-product-tabs-wrap', '.sh-product-tabs--accordion',
+                        '.sh-product-tab-body',
+                        '.nav-tabs', '.nav-item', '.nav-link', '.tab-content', '.tab-pane',
+                        '.tab-collapse', '.tab-collapse-sm', '.tab-collapse-md',
+                        '.tab-collapse-lg', '.tab-collapse-xl', '.tab-collapse-xxl',
+                        // Salt Product Tabs — collapse/accordion modu (Bootstrap accordion)
+                        '.accordion', '.accordion-item', '.accordion-header',
+                        '.accordion-button', '.accordion-collapse', '.accordion-body',
+                        '.collapse', '.collapsing',
+                        // Bootstrap state class'ları (tabs + accordion)
+                        '.show', '.fade', '.active', '.collapsed',
                         // Review
                         '.woocommerce-Reviews', '.comment-form-rating',
                         '.star-rating', '.star-rating-*',
@@ -599,7 +717,8 @@ trait ExtractsAssets
             'plugins'   => $plugins,
             'wp_js'     => $wp_js,
             'whitelist' => $plugin_files_whitelist,
-            'classes'   => $dom_classes,
+            // 'classes' kaldırıldı — dinamik class'lar (logged-in, wc-session vb.)
+            // fingerprint'i her request'te değiştiriyor ve sürekli REBUILD'e neden oluyor
             'dir'       => $dir,
         ]);
 
@@ -630,7 +749,9 @@ trait ExtractsAssets
                         $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '.css';
                     }
                     $current_mtime = $this->source_files_mtime_hash($check_files);
-                    $expected_key = sha1(json_encode($pm['plugins_list']) . '|' . $current_mtime);
+                    $list_sorted   = $pm['plugins_list'];
+                    sort( $list_sorted );
+                    $expected_key = sha1(json_encode($list_sorted) . '|' . $current_mtime);
                     if ($expected_key !== $pk) {
                         $mtime_ok = false;
                         $this->error_log("[PAE] EARLY RETURN BLOCKED - plugin source files changed. id={$id} old_key={$pk} new_key={$expected_key}");
@@ -676,6 +797,19 @@ trait ExtractsAssets
             $plugin_files_css_src = [];
             $plugin_files_css_rtl_src = [];
             $plugin_files_js_src = [];
+
+            // c:false olan plugin'lerin CSS'lerini de bundle'a ekle
+            // (conditional değil — her sayfanın plugin bundle'ına dahil et)
+            foreach ($files["js"]["plugins"] as $plg_key => $plg_def) {
+                if (!empty($plg_def['c'])) continue;    // c:true → skip, zaten $plugins'te
+                if (empty($plg_def['css'])) continue;   // CSS yoksa skip
+                foreach ((array) $plg_def['css'] as $css_src) {
+                    if (!empty($css_src) && file_exists($css_src)) {
+                        $plugin_files_css_src[] = $css_src;
+                    }
+                }
+            }
+
             foreach($plugins as $plugin){
                 if(!empty($files["js"]["plugins"][$plugin]["css"])){
                     $plugin_files_css_src[]     = STATIC_PATH . 'js/plugins/'.$plugin.".css";
@@ -685,7 +819,10 @@ trait ExtractsAssets
                 $plugin_files_js_src[] = STATIC_PATH . 'js/plugins/'.$plugin."-init.js";
             }
             $src_mtime = $this->source_files_mtime_hash(array_merge($plugin_files_css_src, $plugin_files_js_src));
-            $plugins_key = sha1(json_encode($plugins) . '|' . $src_mtime);
+            // Sıra bağımsız hash — aynı plugin listesi her zaman aynı key'i üretir
+            $plugins_sorted = $plugins;
+            sort( $plugins_sorted );
+            $plugins_key = sha1(json_encode($plugins_sorted) . '|' . $src_mtime);
 
             $plugin_manifest = $this->manifest['plugins'][$plugins_key] ?? null;
 
@@ -782,7 +919,8 @@ trait ExtractsAssets
 
                 $this->error_log("need_rebuild_tpl ");
 
-                $css_page_raw = $this->remove_unused_css_cached($html_content, "", $plugin_files_whitelist);
+                // header ve footer common-all.css'te mevcut — sayfa CSS'i sadece main/block/offcanvas'tan uretilir
+                $css_page_raw = $this->remove_unused_css_cached($final_html_string, "", $plugin_files_whitelist);
 
                 $cache_dir = rtrim(STATIC_PATH, '/').'/css/cache/';
                 if (!is_dir($cache_dir)) { wp_mkdir_p($cache_dir); }
@@ -790,9 +928,19 @@ trait ExtractsAssets
                 $css_page_hash = $this->content_hash($css_page_raw, 'css');
                 $css_page_file = $cache_dir . $css_page_hash . '.css';
                 if (!file_exists($css_page_file)) {
-                    @file_put_contents($css_page_file, $this->normalize_content($css_page_raw, 'css'));
+                    $written = @file_put_contents($css_page_file, $this->normalize_content($css_page_raw, 'css'));
+                    if ($written === false) {
+                        $this->error_log("[PAE] css_page file_put_contents FAILED: {$css_page_file}");
+                        $css_page_file = '';
+                    }
                 }
-                $css_page = str_replace(STATIC_PATH, '', $css_page_file);
+                // Windows'ta backslash/slash karışıklığını önlemek için normalize et
+                $css_page = '';
+                if ( $css_page_file ) {
+                    $norm_file        = str_replace( '\\', '/', $css_page_file );
+                    $norm_static_path = str_replace( '\\', '/', rtrim( STATIC_PATH, '/\\' ) ) . '/';
+                    $css_page = str_replace( $norm_static_path, '', $norm_file );
+                }
 
                 // RTL üretimi
                 $parser = new \Sabberworm\CSS\Parser($css_page_raw);
@@ -805,9 +953,19 @@ trait ExtractsAssets
                 $css_page_rtl_hash = $this->content_hash($css_page_rtl_raw, 'css');
                 $css_page_rtl_file = $cache_dir . $css_page_rtl_hash . '.css';
                 if (!file_exists($css_page_rtl_file)) {
-                    @file_put_contents($css_page_rtl_file, $this->normalize_content($css_page_rtl_raw, 'css'));
+                    $written_rtl = @file_put_contents($css_page_rtl_file, $this->normalize_content($css_page_rtl_raw, 'css'));
+                    if ($written_rtl === false) {
+                        $this->error_log("[PAE] css_page_rtl file_put_contents FAILED: {$css_page_rtl_file}");
+                        $css_page_rtl_file = '';
+                    }
                 }
-                $css_page_rtl = str_replace(STATIC_PATH, '', $css_page_rtl_file);
+                // Windows'ta backslash/slash karışıklığını önlemek için normalize et
+                $css_page_rtl = '';
+                if ( $css_page_rtl_file ) {
+                    $norm_rtl_file    = str_replace( '\\', '/', $css_page_rtl_file );
+                    $norm_static_path = str_replace( '\\', '/', rtrim( STATIC_PATH, '/\\' ) ) . '/';
+                    $css_page_rtl = str_replace( $norm_static_path, '', $norm_rtl_file );
+                }
 
                 $this->manifest['templates'][$this->structure_fp] = [
                     'css'     => $css_page,

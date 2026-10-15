@@ -1,165 +1,230 @@
 {% extends "base.twig" %}
+{#
+  index.twig — My Account ana layout.
 
-{% set page_settings_full = true %}
-{% set page_settings_classes_main = "py-5" %}
-{% set page_settings_classes_container = "" %}
+  Karar ağacı:
+  ─ Giriş yapılmamış
+    ├─ ?activation-password → form-renew-password.twig (şifre sıfırlama)
+    └─ Normal → form-login.twig (WC varsa woo, yoksa native)
+  ─ Giriş yapılmış
+    ├─ Rol = "default" → Rol seçim formu (update_profile action=set_role)
+    └─ Normal → İki kolonlu layout: sidebar menü + endpoint içeriği
+#}
+
+{# ── Page layout ayarları ──────────────────────────────────────────────────── #}
+{% set _endpoint = function('getUrlEndpoint') %}
+{% set _full_endpoints = ["profile", "expertise", "schedule", "financials", "notifications", "messages", "security", "reviews", "favorites", "not-completed"] %}
+{% set _no_sidebar_endpoints = ["not-activated"] %}
 
 {% if user.logged %}
-    {% if function('getUrlEndpoint') not in ["profile", "expertise", "schedule", "financials", "notifications", "messages", "security"] %}
-        {% if (not user.get_status() or not user.profile_completed()) %}
-           {% set page_settings_classes_main = "d-flex flex-column align-items-center justify-content-center" %}
+    {# Rol tamamlanmamış veya aktive edilmemiş → centered layout #}
+    {% if _endpoint not in _full_endpoints %}
+        {% if not user.get_status() or not user.profile_completed() %}
+            {% set _main_class = "d-flex flex-column align-items-center justify-content-center min-vh-75" %}
+        {% else %}
+            {% set _main_class = "py-5" %}
         {% endif %}
+    {% else %}
+        {% set _main_class = "py-5" %}
     {% endif %}
 {% else %}
-
+    {# Giriş yapılmamış: renew-password ise centered, değilse normal #}
     {% if url_query_vars["activation-password"] %}
-        {% set page_settings_classes_main = "d-flex flex-column align-items-center justify-content-center" %}
+        {% set _main_class = "d-flex flex-column align-items-center justify-content-center min-vh-75" %}
+    {% else %}
+        {% set _main_class = "py-5" %}
     {% endif %}
-
 {% endif %}
 
 {% set page_settings = {
-            full : page_settings_full,
-            classes : {
-                body : "",
-                main : page_settings_classes_main,
-                container : page_settings_classes_container,
-                gap : "",
-            },
-            offcanvas : {
-                individual : false,
-                size : "md",
-                width : 3,
-                position : "start",
-                template : ""
-            },
-            alert : {
-                type : "danger",
-                title : "",
-                message : "",
-                position : "bottom",
-                fixed : false,
-                class : "",
-                html : ""
-            },
-            paging : {
-                posts_per_page : 10,
-                page : 1
-            }
-        }
-%}
+    full    : true,
+    classes : {
+        body      : "",
+        main      : _main_class,
+        container : "",
+        gap       : "",
+    },
+    offcanvas : { individual : false, size : "md", width : 3, position : "start", template : "" },
+    alert     : { type : "danger", title : "", message : "", position : "bottom", fixed : false, class : "", html : "" },
+    paging    : { posts_per_page : 10, page : 1 },
+} %}
 
 {% set pageName = "my-account" %}
 
-{% block offcanvas %}
-{% endblock %}
-
-
-{% block hero %}
-   {# include 'my-account/hero-profile.twig' with { user : user } #}
-{% endblock %}
-
 {% block content %}
 
-    {% if user.logged %}
+{# ── Giriş yapmamış ─────────────────────────────────────────────────────── #}
+{% if not user.logged %}
 
-        {% if user.get_role == "default" %}
+    {% if url_query_vars["activation-password"] %}
+        {# Şifre sıfırlama akışı #}
+        {% include "my-account/form-renew-password.twig" with {
+            activation_password: url_query_vars["activation-password"]
+        } %}
+    {% else %}
+        {# Login / register formu #}
+        {% include "my-account/form-login.twig" %}
+    {% endif %}
 
-            <div class="container-sm">
-                <form class="form form-validate" id="form-update-profile" method="post" enctype="multipart/form-data" data-ajax-method="update_profile" autocomplete="off">
-                    <div class="card-container-solid card card-reset stick-top">
-                        <div class="card-header border-bottom pb-4">
-                            {% include "user/tease.twig" with { size: "lg", user_item: user} %}
-                        </div>
-                        <div class="card-body pt-4">
-                            <div class="form-group  text-center text-white">
-                                <label class="form-label">I'll create my account</label>
-                                {% do action('woocommerce_register_form_start') %} {# add role radio buttoons #}
-                            </div>
+{# ── Giriş yapılmış ─────────────────────────────────────────────────────── #}
+{% else %}
 
-                            {% if (enable_membership_activation and membership_activation_type == "sms") or (enable_sms_notifications and not enable_membership_activation) or (enable_sms_notifications and membership_activation_type == "email") %}
-                            <div class="row gy-3 my-4" data-condition="role">
-                                {% do action('woocommerce_register_form') %}  {# add country, city, phone #}
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="card-footer d-flex justify-content-end pt-4" data-condition="role">
-                            <input autocomplete="false" name="hidden" type="text" style="display:none;">
-                            <input type="hidden" name="action" value="set_role"/>
-                            <button type="submit" class="btn-submit btn btn-secondary btn-fa-angle-right btn-fa-end fw-bold btn-lg px-5 position-relative btn-loading-page">NEXT</button>
-                        </div>
+    {# Rol henüz seçilmemiş (default) — rol seçim adımı #}
+    {% if user.get_role == "default" %}
+
+        <div class="container-sm py-5">
+            <form id="form-set-role"
+                  class="form form-validate"
+                  method="post"
+                  autocomplete="off"
+                  data-ajax-method="update_profile">
+
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-header border-bottom p-4">
+                        {% include "user/tease.twig" with { size: "lg", user_item: user } %}
                     </div>
-                </form>
-            </div>
+                    <div class="card-body p-4">
+                        <div class="form-group text-center mb-4">
+                            <label class="form-label fw-bold">{{ translate("Choose your account type") }}</label>
+                            {% do action('woocommerce_register_form_start') %}
+                        </div>
 
-        {% else %}
+                        {% if (enable_membership_activation and membership_activation_type == "sms")
+                           or (enable_sms_notifications and not enable_membership_activation)
+                           or (enable_sms_notifications and membership_activation_type == "email") %}
+                        <div class="row gy-3" data-condition="role">
+                            {% do action('woocommerce_register_form') %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer border-top p-4 d-flex justify-content-end" data-condition="role">
+                        <input autocomplete="false" name="hidden" type="text" style="display:none">
+                        <input type="hidden" name="action" value="set_role"/>
+                        <button type="submit"
+                                class="btn-submit btn btn-primary btn-lg fw-bold px-5">
+                            {{ translate("Continue") }}
+                            {{ fa_icon('angle-right', 'solid', '') }}
+                        </button>
+                    </div>
+                </div>
 
-            <div class="container">
-                <div class="row">
-                    {# if type in ["profile", "expertise", "schedule", "integration", "security"] and type != "not-activated" #}
-                    <div class="col-lg-3">
-                        <div class="card-container-solid card card-reset stick-top">
-                            <div class="card-header border-bottom pb-4">
-                                {% include "user/tease.twig" with { size: "lg", user_item: user, show_rating: true, show_location: true, photo_edit: true, profile_link: true} %}
-                            </div>
-                            <div class="card-body pt-4">
-                                <ul class="nav-vr nav flex-column">
+            </form>
+        </div>
+
+        {% if enable_membership_activation and membership_activation_type == "sms" %}
+        <script>
+        (function($){
+            $("select[name='country']").on("change", function(){
+                var $opt = $(this).find("option:selected");
+                $("input[name='phone_code']").val($opt.data("phonecode")).trigger("change");
+                $(".phone-code").text($opt.data("phonecode"));
+                var hasStates = parseInt($opt.data("states")) > 0;
+                $("input[name='states_view']").val(hasStates).trigger("change");
+            });
+            if (!$("input[name='phone_code']").val()) {
+                $("select[name='country']").trigger("change");
+            }
+        })(jQuery);
+        </script>
+        {% endif %}
+
+    {# Normal giriş yapılmış kullanıcı — iki kolonlu layout #}
+    {% else %}
+
+        <div class="container py-4">
+            <div class="row g-4">
+
+                {# ── Sol: Sidebar ──────────────────────────────────────────── #}
+                {% if _endpoint not in _no_sidebar_endpoints %}
+                <div class="col-lg-3">
+                    <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top:80px">
+
+                        {# Kullanıcı özeti #}
+                        <div class="card-header border-bottom p-4">
+                            {% include "user/tease.twig" with {
+                                size          : "md",
+                                user_item     : user,
+                                show_rating   : true,
+                                show_location : true,
+                                photo_edit    : true,
+                                profile_link  : true
+                            } %}
+                        </div>
+
+                        {# Navigasyon menüsü #}
+                        <div class="card-body p-3">
+                            <nav>
+                                <ul class="nav flex-column gap-1 mb-0">
                                 {% for item in user.menu %}
-                                    <li class="nav-item {% if "is-active" in item.class %}active{% endif %}">
-                                        <a href="{{item.url}}" class="nav-link btn-fa-angle-right btn-fa-end px-0 btn-loading-page">
-                                            {{ item.title }}
-                                            {% if (item.action in ["profile", "expertise", "schedule", "integration"] and not user.profile_completion[item.action].success) %}
-                                              <i class="icon fa fa-exclamation-triangle text-danger"></i>
-                                            {% endif %}
+                                    <li class="nav-item">
+                                        <a href="{{ item.url }}"
+                                           class="nav-link d-flex align-items-center justify-content-between rounded-3 px-3 py-2{% if 'is-active' in item.class %} active bg-primary bg-opacity-10 text-primary fw-semibold{% else %} text-body{% endif %}">
+
+                                            <span>{{ item.title }}</span>
+
+                                            <span class="d-flex align-items-center gap-2">
+                                                {# Tamamlanmamış bölüm uyarısı #}
+                                                {% if item.action in ["profile", "expertise", "schedule", "integration"]
+                                                   and user.profile_completion[item.action] is defined
+                                                   and not user.profile_completion[item.action].success %}
+                                                    {{ fa_icon('circle-exclamation', 'solid', 'text-warning small') }}
+                                                {% endif %}
+
+                                                {# Okunmamış sayacı #}
+                                                {% if item.count > 0 %}
+                                                    <span class="badge bg-primary rounded-pill" style="font-size:10px">
+                                                        {{ item.count }}
+                                                    </span>
+                                                {% endif %}
+
+                                                {{ fa_icon('angle-right', 'regular', 'text-muted small') }}
+                                            </span>
+
                                         </a>
                                     </li>
                                 {% endfor %}
                                 </ul>
-                            </div>
-                         </div>
-                    </div>
-                    {# endif #}
+                            </nav>
+                        </div>
 
-                    <div class="col">
-                        {{post.content}}
                     </div>
                 </div>
+                {% endif %}
+
+                {# ── Sağ: İçerik alanı ─────────────────────────────────────── #}
+                <div class="{% if _endpoint not in _no_sidebar_endpoints %}col-lg-9{% else %}col-12{% endif %}">
+                    {% if enable_ecommerce %}
+                        {# WC aktif: shortcode yerine direkt content action — çift render engellenmiş #}
+                        {% do action('woocommerce_account_content') %}
+                    {% else %}
+                        {{ post.content }}
+                    {% endif %}
+                </div>
+
             </div>
+        </div>
 
-        {% endif %}
+    {% endif %}{# /role default #}
 
-    {% else %}
-
-        {{post.content}}
-
-    {% endif %}
+{% endif %}{# /user.logged #}
 
 {% endblock %}
 
 {% block appendix %}
-    {% if enable_membership_activation and membership_activation_type == "sms" %}
-    <script>
-        $( document ).ready(function() {
-            $("select[name='country']").on("change", function(){
-                var country = $(this).val();
-                if(!IsBlank(country)){
-                    var $phone_code = $(this).find("option:selected").attr("data-phonecode");
-                    $("input[name='phone_code']").val($phone_code).trigger("change");
-                    $(".phone-code").text($phone_code);
-
-                    var $states_count = parseInt($(this).find("option:selected").attr("data-states"));
-                    var $states_view = true;
-                    if($states_count == 0){
-                       $states_view = false;
-                    }
-                    $("input[name='states_view']").val($states_view).trigger("change");
-                    
-                }
-            });
-            if(IsBlank($("input[name='phone_code']").val())){
-               $("select[name='country']").trigger("change");
-            }
-        });
-    </script>
-    {% endif %}
+{% if enable_membership_activation and membership_activation_type == "sms" and not user.logged %}
+<script>
+(function($){
+    $("select[name='country']").on("change", function(){
+        var $opt = $(this).find("option:selected");
+        $("input[name='phone_code']").val($opt.data("phonecode")).trigger("change");
+        $(".phone-code").text($opt.data("phonecode"));
+        var hasStates = parseInt($opt.data("states")) > 0;
+        $("input[name='states_view']").val(hasStates).trigger("change");
+    });
+    if (!$("input[name='phone_code']").val()) {
+        $("select[name='country']").trigger("change");
+    }
+})(jQuery);
+</script>
+{% endif %}
 {% endblock %}

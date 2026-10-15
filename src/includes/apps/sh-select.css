@@ -1,0 +1,163 @@
+/**
+ * SH Select — Custom Multi-Select / Tag Input Component
+ * Tüm admin sayfalarında kullanılabilen evrensel multi-select bileşeni.
+ *
+ * Kullanım:
+ *   1. sh-select.css + sh-select.js enqueue et
+ *   2. <select multiple data-sh-select data-placeholder="Seçiniz..."> ekle
+ *   3. sh-select.js otomatik init eder — ya da manuel: shSelect.init('#my-select')
+ *
+ * @version 1.0.0
+ */
+
+/* ── Container ─────────────────────────────────────────────────────────────── */
+.sh-select-container {
+    position: relative;
+    width: 100%;
+}
+
+/* ── Input Wrap ────────────────────────────────────────────────────────────── */
+.sh-select-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-height: 36px;
+    padding: 5px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #fff;
+    cursor: text;
+    transition: border-color .15s;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none !important;
+    box-shadow: none !important;
+}
+.sh-select-wrap:focus-within {
+    border-color: #8c8f94;
+    box-shadow: none !important;
+    outline: none !important;
+}
+.sh-select-wrap.sh-select-disabled {
+    background: #f9fafb;
+    cursor: default;
+    opacity: .6;
+    pointer-events: none;
+}
+
+/* ── Chips ─────────────────────────────────────────────────────────────────── */
+.sh-select-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+.sh-select-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border: none;
+    background: none;
+    color: #9ca3af;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: color .1s;
+}
+.sh-select-chip-remove:hover {
+    color: #374151;
+}
+
+/* ── Search Input ──────────────────────────────────────────────────────────── */
+.sh-select-search {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    font-size: 13px;
+    color: #374151;
+    min-width: 80px;
+    flex: 1;
+    padding: 0 2px;
+    line-height: 1.5;
+    height: auto;
+}
+.sh-select-search:focus,
+.sh-select-search:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+.sh-select-search::placeholder {
+    color: #9ca3af;
+}
+
+/* ── Dropdown ──────────────────────────────────────────────────────────────── */
+.sh-select-dropdown {
+    position: fixed;
+    z-index: 999999;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* max-height JS tarafından dinamik set edilir */
+    margin-top: 0;
+}
+/* Dropup: yukarı açılınca border-radius tersine döner */
+.sh-select-dropdown.sh-select-dropup {
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 -2px 8px rgba(0,0,0,.10);
+}
+.sh-select-dropdown.sh-select-dropbelow {
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+.sh-select-dropdown-item {
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    transition: background .08s;
+}
+.sh-select-dropdown-item:hover {
+    background: #f3f4f6;
+}
+.sh-select-dropdown-item.sh-select-item-selected {
+    color: #6b7280;
+    cursor: default;
+}
+.sh-select-dropdown-item.sh-select-item-selected:hover {
+    background: transparent;
+}
+.sh-select-dropdown-item .sh-select-check {
+    color: #22c55e;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.sh-select-dropdown-empty {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #9ca3af;
+    font-style: italic;
+}

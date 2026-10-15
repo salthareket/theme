@@ -9,7 +9,6 @@
 
 		<{{heading|default("h2")}} class="card-title">
 			<a href="{{post.link}}" title="{{ post.title }}" class="btn-loading-page text-dark font-header fw-600 title-xs">{{ post.title }}</a>
-			{#<small class="small d-block mt-3">by {{post.author.get_title}} | {{ post.get_read_time() }} read</small>#}
 		</{{heading|default("h2")}}>
 
 	</div>
@@ -19,8 +18,14 @@
 			{{ post.excerpt({ words: 30, read_more: '' }) }}
 		</div>
 	</div>
-	<div class="card-footer mt-auto text-gray text-sm">
+	<div class="card-footer mt-auto d-flex align-items-center justify-content-between text-gray text-sm">
 		<date>{{post.date}}</date>
+        {# Reactions — config'e göre #}
+        {% if enable_reactions %}
+        <div class="d-flex gap-1">
+            {{ post.reaction_buttons({}, 'span', 'tease-reactions') }}
+        </div>
+        {% endif %}
 	</div>
 	{% endif %}
 

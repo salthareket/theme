@@ -1,188 +1,263 @@
+{#
+  author.twig — Public Profil Sayfası
+  ─────────────────────────────────────────────────────────────────────────────
+  Context (author.php'den gelir):
+    author              — ThemeUser nesnesi
+    user                — giriş yapmış kullanıcı
+    enable_chat         — bool
+    enable_reactions    — bool
+    enable_reviews      — bool
+    can_review_user     — bool  (ReviewsSettings type config)
+    review_type_config  — array (enabled, modes, criteria)
+    review_modes        — array ['rate','comment','criteria']
+    reviews_criteria    — array (user role bazlı criteria)
+    reviews_settings    — array
+    rating_type         — string
+    base_urls           — account endpoint URL'leri
+  ─────────────────────────────────────────────────────────────────────────────
+#}
 {% extends "base.twig" %}
 
-{% set page_settings_default = {
-    full : true,
-    classes : {
-        body : (hero?"has-hero":""),
-        main : "",
-        container : function("block_container", "default"),
-        gap : ""
-    },
-    add_offcanvas : 0,
-    offcanvas : {
-        individual : false,
-        size : "md",
-        width : 3,
-        position : "start",
-        template : "",
-        title : "",
-    },
-    alert : {
-        type : "danger",
-        title : "",
-        message : "",
-        position : "top",
-        fixed : false,
-        class : "",
-        html : ""
-    },
-    paging : {
-        posts_per_page : 10,
-        page : 1
-    }
-}
-%}
+{% set page_settings = {
+    full      : true,
+    classes   : { body: "", main: "py-5", container: "", gap: "" },
+    offcanvas : { individual: false },
+    alert     : { type: "danger", title: "", message: "", position: "top", fixed: false, class: "", html: "" }
+} %}
 
-{% if page_settings %}
-   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
-{% else %}
-    {% set page_settings = page_settings_default %}
-{% endif %}
-
-{% block sidebar_toggler %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
-        {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
-    {% endif %}
-{% endblock %}
-
-{% block sidebar %}
-    {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
-        {{ block("sidebar", page_settings.offcanvas.template) }}
-    {% endif %}
-{% endblock %}
-
-{% block hero %}
-{% endblock %}
-
+{% block hero %}{% endblock %}
+{% block sidebar %}{% endblock %}
 
 {% block content %}
 
-	    <div class="row gy-4">
-			<div class="col-lg-3">
-			    <div class="card-container-solid card card-reset stick-top">
-                	<div id="client-{{author.id}}" class="card-header border-bottom pb-4">
-			     		{% include "user/tease.twig" with { size: "lg", user_item: author, photo_edit : true} %}
-			     		{% if not author.is_online() and author.get_last_seen() %}
-			     	        <div class="text-muted text-center mt-2">
-                                Son giriş {{ author.get_last_seen() }} önce
-			     	        </div>
-			     	    {% elseif author.is_online() %}
-			     	        <div class="text-muted text-center mt-2">
-                                <span class="text-success fw-bold ls-1">KULLANICI ONLINE</span>
-			     	        </div>
-			     	    {% endif %}
-			     	</div>
-			     	<div class="card-body pt-4">
-			     	    <ul class="list-sidebar">
-	                        <li>
-					     		{% set stats = author.get_stats() %}
-				                <div class="list-user-stats list-user-stats-lg">
-				                    <ul class="values list-unstyled d-flex justify-content-around">
-				                    {% for stat in stats %}
-				                        <li>
-				                            {% if stat.link %}
-				                            <a href="{{stat.link}}" {{stat.link_attrs}} title="{{user_item.get_title}} - {{stat.title}}">
-				                            {% endif %}
-				                            <div class="item">
-				                               <i class="fa-light {{stat.icon}}"></i>
-				                               <div class="count count-{{stat.slug}} fs-4 lh-1" data-id="{{stat.id}}">{{ stat.count }}</div>
-				                            </div>
-				                            <div class="title ls-1">{{ stat.title }}</div>
-				                            {% if stat.link %}
-				                            </a>
-				                            {% endif %}
-				                        </li>
-				                    {% endfor %}
-				                    </ul>
-				                </div>
-			                </li>
+{% set _is_own   = user.id == author.id %}
+{% set _edit_url = base_urls.profile ?? (base_urls.account ~ 'profile/') %}
+{% set _social   = author.get_social_media() %}
+{% set _nets     = function('membership_social_networks') %}
 
-		                </ul>
+{# Reactions config — tease.twig içinde show_follow/show_favorite ile yönetiliyor #}
 
-	                </div>
-	                <div class="card-footer text-center pt-3">
-                        <a href="#" class="btn btn-success fw-bold ls-1 text-uppercase mt-2 btn-loading-page" title='{{ translate("Düzenle") }}' data-ajax-method='template_modal' data-size='md' data-template='user/modal/add_user' data-user_id="{{author.id}}" data-title='{{ translate("Düzenle") }}'>{{ translate("Düzenle") }}</a>
-			     	</div>
+{# Reviews config #}
+{% set _can_review  = can_review_user ?? false %}
+{% set _has_reviewed = user.logged and function('sh_has_reviewed', user.id, author.id, 'user') %}
 
-			     </div>
-			</div>
+<div class="container py-2">
+<div class="row gy-4">
 
-			<div class="col-lg-9">
+    {# ══════════════════════════════════════════════════════════════════════
+       SOL KOLON — Profil kartı
+    ══════════════════════════════════════════════════════════════════════ #}
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm stick-top">
 
-			    <div id="list-user-cells" class="card-container-solid card-reset card ajax-paginate" data-posts_per_page="20" data-orderby="date" data-order="desc" data-load="scroll" data-user_id="{{author.ID}}" data-action="get" data-ajax-method="cell" data-notfound="session/not-found/not-applied-sessions" data-page="1">
-	                <div class="card-header mb-2 d-flex flex-lg-row flex-column flex-column-reverse text-lg-start text-center">
-	                	<h1 class="card-title">
-	                        {{ author.display_name }} - {{ translate("Hücreler") }} 
-	                        <small class="item-total">{{title_sub}}</small>
-	                	</h1>
-	                	<a href="#" class="btn btn-success btn-sm text-nowrap text-uppercase fw-bold ls-1 ms-lg-auto mb-lg-0 mb-3" data-ajax-method='template_modal' data-size='md' data-template='user/modal/add_cell' data-title='{{ translate("Yeni Hücre") }}' data-user_id="{{author.id}}"><i class="fa-sharp fa-solid fa-bolt"></i> {{ translate("Yeni Hücre") }}</a>
-	                </div>
-	                <div class="card-header mb-2 pt-3">
-	                    {% if cell_types and not cell_type_selected %}
-                            <ddiv class="text-danger text-center">Kullanıcıya ait Hücre Tipi bulunamadı.</ddiv>
-	                    {% else %}
-		                    {% if cell_types %}
-					    		<select class="form-select" name="hucre_tipi_filter" placeholder="Hücre Tipi" autocomplete="off">
-	                            	<option value="">{{translate("Tüm Hücreler")}}</option>
-	                                {% for item in cell_types %}
-										{% if item.children and function("arrayMatch", item.children|pluck("term_id"), cell_type_selected) %}
-											<optgroup label="{{item.name}}">
-											{% for item_sub in item.children  %}
-												{% if item_sub.term_id in cell_type_selected %}
-												<option value="{{item_sub.term_id}}">{{item_sub.name}}</option>
-												{% endif %}
-											{% endfor %}
-											</optgroup>
-										{% else %}
-											{% if item.term_id in cell_type_selected %}
-												<option value="{{item.term_id}}">{{item.name}}</option>
-											{% endif %}
-										{% endif %}
-									{% endfor %}
-	                       		</select>
-	                        {% else %}
-	                            <div class="text-danger text-center">Sistemde <strong>Hücre Tipi</strong> kaydı bulunamadı, lütfen ekleyin.</div>
-	                        {% endif %}
+            {# Avatar + isim + follow/message butonları #}
+            <div class="card-body pb-2">
+                {% include "user/tease.twig" with {
+                    size         : "lg",
+                    user_item    : author,
+                    photo_edit   : false,
+                    show_rating  : enable_reviews,
+                    show_follow  : enable_reactions,
+                    show_favorite: enable_reactions,
+                    show_message : enable_chat,
+                    profile_link : false
+                } %}
+            </div>
+
+            {# Online / son giriş #}
+            <div class="card-body py-2 text-center border-top">
+                {% if author.is_online() %}
+                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                        {{ fa_icon('circle', 'solid', 'me-1') }}{{ translate("Online") }}
+                    </span>
+                {% elseif author.get_last_seen() %}
+                    <small class="text-muted">{{ translate("Last seen") }} {{ author.get_last_seen() }} {{ translate("ago") }}</small>
+                {% endif %}
+            </div>
+
+            {# Stats #}
+            {% set _stats = author.get_stats() %}
+            {% if _stats %}
+            <div class="card-body border-top py-3">
+                <ul class="values list-unstyled d-flex justify-content-around mb-0">
+                {% for stat in _stats %}
+                    <li class="text-center">
+                        {% if stat.link %}
+                        <a href="{{ stat.link }}" {{ stat.link_attrs }} class="text-decoration-none text-reset">
                         {% endif %}
-                    </div>
-	               	<div class="card-body pt-3">
-	                	<table class="table-cells table table-striped table-rounded table-responsive">
-					   	<tbody class="list-cards"></tbody>
-					   	</table>
-	               	</div>
-	               	<div class="card-footer text-center p-0">
-					    <a href="#" class="btn-next-page btn btn-outline-secondary position-relative text-uppercase fw-bold" data-init="true">
-					    	<span class="text">Load <span class="item-left"></span> More</span>
-					    </a>
-			        </div>
-	             </div>
+                        <div class="item">
+                            {{ fa_icon(stat.icon, 'light', '') }}
+                            <div class="count count-{{ stat.slug }} fs-5 fw-bold lh-1 mt-1" data-id="{{ stat.id }}">{{ stat.count }}</div>
+                        </div>
+                        <div class="title small text-muted mt-1">{{ stat.title }}</div>
+                        {% if stat.link %}</a>{% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
 
-	        </div>
+            {# Website + Sosyal medya #}
+            {% if author.user_url or _social %}
+            <div class="card-body border-top py-3">
+                {% if author.user_url %}
+                    <div class="mb-2">{{ author.user_url|url_link("_blank", "", true, true, "text-decoration-none small") }}</div>
+                {% endif %}
+                {% if _social and _nets %}
+                <ul class="list-inline mb-0">
+                    {% for _key, _url in _social %}
+                        {% if _nets[_key] is defined %}
+                        {% set _net = _nets[_key] %}
+                        <li class="list-inline-item">
+                            <a href="{{ _url }}" target="_blank" rel="nofollow noopener"
+                               title="{{ _net.label ?? _key }}"
+                               class="btn btn-sm rounded-circle d-inline-flex align-items-center justify-content-center"
+                               style="width:32px;height:32px;background-color:{{ _net.color ?? '#6b7280' }};color:{{ _net.text_color ?? '#fff' }};">
+                                {{ fa_icon(_net.icon ?? _key, _net.icon_style ?? 'brands', '') }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {# Üye tarihi #}
+            <div class="card-body border-top py-2">
+                <small class="text-muted">
+                    {{ fa_icon('calendar', 'regular', 'me-1') }}
+                    {{ translate("Member since") }} {{ author.user_registered|date("M Y") }}
+                </small>
+            </div>
+
+
+            {# Footer — kendi profilindeyse edit, değilse reactions #}
+            {% if _is_own %}
+            <div class="card-footer bg-transparent d-grid">
+                <a href="{{ _edit_url }}" class="btn btn-outline-primary btn-loading-page">
+                    {{ fa_icon('pen', 'regular', 'me-1') }}{{ translate("Edit Profile") }}
+                </a>
+            </div>
+            {% elseif enable_reactions %}
+            <div class="card-footer bg-transparent d-flex gap-2 justify-content-center">
+                {{ author.reaction_buttons()|raw }}
+            </div>
+            {% endif %}
+
         </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════════
+       SAĞ KOLON — İçerik
+    ══════════════════════════════════════════════════════════════════════ #}
+    <div class="col-lg-8">
+
+        {# ── Hakkında ─────────────────────────────────────────────────── #}
+        {% if author.description or author.meta('about') %}
+        <div class="card border-0 shadow-sm mb-4" id="about">
+            <div class="card-header bg-transparent border-bottom fw-semibold py-3">
+                {{ translate("About") }}
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ (author.meta('about') ?: author.description)|nl2br }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Konum ────────────────────────────────────────────────────── #}
+        {% if author.get_location %}
+        <div class="card border-0 shadow-sm mb-4" id="location">
+            <div class="card-header bg-transparent border-bottom fw-semibold py-3">
+                {{ translate("Location") }}
+            </div>
+            <div class="card-body d-flex align-items-center gap-2">
+                {{ fa_icon('location-dot', 'regular', 'text-muted') }}
+                <span>{{ author.get_location }} — UTC{{ author.get_gmt() }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Reviews bölümü ───────────────────────────────────────────── #}
+        {% if enable_reviews %}
+        <div class="card border-0 shadow-sm mb-4" id="reviews">
+            <div class="card-header bg-transparent border-bottom fw-semibold py-3 d-flex align-items-center gap-2">
+                {{ translate("Reviews") }}
+                {% if author._user_rating %}
+                <div class="star-rating-readonly-ui star-rating-readonly-xs" data-value="{{ author._user_rating }}"></div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+
+                {# Review yazma formu — config'e göre göster #}
+                {% if _can_review and user.logged and not _is_own and not _has_reviewed %}
+                <div class="mb-4">
+                    {% include "partials/post-reviews/review-form.twig" with {
+                        target_type     : "user",
+                        target_id       : author.id,
+                        review_modes    : review_modes,
+                        reviews_criteria: reviews_criteria,
+                        reviews_settings: reviews_settings,
+                        rating_type     : rating_type
+                    } %}
+                </div>
+                {% elseif _has_reviewed %}
+                <div class="alert alert-info py-2 px-3 mb-3 small">
+                    {{ translate("You have already reviewed this content.") }}
+                </div>
+                {% elseif not user.logged and _can_review %}
+                <div class="alert alert-secondary py-2 px-3 mb-3 small">
+                    <a href="{{ base_urls.login ?? '#' }}"
+                       class="alert-link"
+                       data-ajax-method="template_modal"
+                       data-template="partials/modals/login"
+                       data-size="md">
+                        {{ translate("Login to write a review") }}
+                    </a>
+                </div>
+                {% endif %}
+
+                {# Review listesi — AJAX paginate #}
+                <div class="ajax-paginate"
+                     id="author-reviews-list"
+                     data-posts_per_page="5"
+                     data-orderby="comment_date"
+                     data-order="desc"
+                     data-load="button"
+                     data-status="1"
+                     data-user="{{ author.id }}"
+                     data-user_id="{{ author.id }}"
+                     data-mode="profile"
+                     data-view="list"
+                     data-ajax-method="get_reviews"
+                     data-notfound="comment/not-found"
+                     data-template="partials/source/reviews/tease.twig">
+                    <ul class="list-group list-group-flush list-cards mb-0"></ul>
+                    <div class="text-center p-0 mt-2">
+                        <a href="#" class="btn-next-page btn btn-outline-secondary btn-sm w-100 text-uppercase fw-semibold d-none" data-init="true">
+                            <span class="text">{{ translate("Load") }} <span class="item-left"></span> {{ translate("More") }}</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+</div>
 
 {% endblock %}
 
-
-
-
 {% block appendix %}
-	<script type="text/javascript">
-	$(document).ready(function() {
-		
-	    $("select[name='hucre_tipi_filter']").on("change", function(){
-	    	var list_user_cells = $("#list-user-cells");
-			var value = $(this).val();
-			if(!IsBlank(value)){
-				list_user_cells
-				.attr("data-taxonomy", "hucre-tipi")
-				.attr("data-terms", JSON.stringify([value]));
-			}else{
-				list_user_cells
-				.removeAttr("data-taxonomy")
-				.removeAttr("data-terms")
-			}
-			ajax_paginate(list_user_cells);
-		});
-	});
-	</script>
+<script>
+(function($){
+    setTimeout(function(){
+        if (typeof ajax_paginate === 'function') {
+            ajax_paginate();
+        }
+    }, 150);
+})(jQuery);
+</script>
 {% endblock %}

@@ -27,13 +27,15 @@
                         <ul class="list-text-label justify-content-lg-start justify-content-center">
                             <li>
                                 <div class="item">
-                                   <i class="fa-regular fa-location-dot"></i>
+                                   {#<i class="fa-regular fa-location-dot"></i>#}
+                                   {{ fa_icon('location-dot', 'regular', '') }}
                                    {{user_item.get_location}} - UTC{{user_item.get_gmt()}}
                                 </div>
                             </li>
                             <li>
                                 <div class="item">
-                                    <i class="fa-regular fa-globe"></i>
+                                    {#<i class="fa-regular fa-globe"></i>#}
+                                    {{ fa_icon('globe', 'regular', '') }}
                                     {{user_item.get_languages()|join(", ")}}
                                 </div>
                             </li>
@@ -134,7 +136,8 @@
                            <a href="{{stat.link}}" {{stat.link_attrs}} title="{{user_item.get_title}} - {{stat.title}}">
                            {% endif %}
                             <div class="item">
-                               <i class="fa-light {{stat.icon}}"></i>
+                               {#<i class="fa-light {{stat.icon}}"></i>#}
+                               {{ fa_icon({{stat.icon}}, 'light', '') }}
                                <div class="count count-{{stat.slug}}" data-id="{{stat.id}}">{{ stat.count }}</div>
                             </div>
                             <div class="title">{{ stat.title }}</div>
@@ -172,7 +175,9 @@
                                 <ul class="dropdown-menu pre-scrollable w-100 p-3 rounded-4">
                                     <li>
                                         <a class="dropdown-item btn-loading-page" href="{{base_urls.sessions}}create/{{user_item.id}}/">
-                                            <i class="fa-thin fa-star"></i> New session
+                                            {#<i class="fa-thin fa-star"></i>#}
+                                            {{ fa_icon('star', 'light', '') }}
+                                            New session
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>

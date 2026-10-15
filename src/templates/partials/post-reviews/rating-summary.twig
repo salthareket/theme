@@ -1,0 +1,83 @@
+{#
+  rating-summary.twig — Single product title altı rating özeti.
+  Context: avg (float), count (int), rating_post_id (int)
+  count=0 ise boş yıldızlar + "No reviews yet" linki gösterilir.
+#}
+{% set _full = avg|round(0,'floor') %}
+{% set _half = ((avg - _full) >= 0.4) ? 1 : 0 %}
+
+<div class="sh-product-rating sh-product-rating--md{% if count < 1 %} sh-product-rating--empty{% endif %} mb-2"
+     {% if count > 0 %}itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating"{% endif %}>
+    {% if count > 0 %}
+    <meta itemprop="ratingValue" content="{{ avg }}">
+    <meta itemprop="reviewCount" content="{{ count }}">
+    {% endif %}
+
+    <a href="#sh-reviews"
+       class="sh-product-rating__link d-inline-flex align-items-center gap-2 text-decoration-none"
+       onclick="shScrollToReviews(event)">
+
+        <span class="sh-product-rating__stars">
+            {%- for i in 1..5 -%}
+                {%- if i <= _full -%}
+                    <span class="sh-prs sh-prs--full">{{ fa_icon('star','solid','sh-prs-svg') }}</span>
+                {%- elseif _half and i == (_full + 1) -%}
+                    <span class="sh-prs sh-prs--half">{{ fa_icon('star-half-stroke','solid','sh-prs-svg') }}</span>
+                {%- else -%}
+                    <span class="sh-prs sh-prs--empty">{{ fa_icon('star','regular','sh-prs-svg') }}</span>
+                {%- endif -%}
+            {%- endfor -%}
+        </span>
+
+        {% if count > 0 %}
+        <span class="sh-product-rating__avg">{{ avg }}</span>
+        <span class="sh-product-rating__count text-muted">({{ count }} {{ translate("review") }})</span>
+        {% else %}
+        <span class="sh-product-rating__count text-muted" style="font-size:12px;">{{ translate("No reviews yet — be the first!") }}</span>
+        {% endif %}
+
+    </a>
+</div>
+
+<style>
+.sh-product-rating{display:flex;align-items:center;gap:4px;line-height:1;}
+.sh-product-rating--sm .sh-prs-svg{width:12px;height:12px;}
+.sh-product-rating--md .sh-prs-svg{width:16px;height:16px;}
+.sh-prs--full svg,.sh-prs--half svg{color:#f59e0b;}
+.sh-prs--empty svg{color:#d1d5db;}
+.sh-product-rating__link:hover .sh-product-rating__avg,
+.sh-product-rating__link:hover .sh-product-rating__count{text-decoration:underline;}
+.sh-product-rating__avg{font-size:14px;font-weight:600;color:#374151;}
+.sh-product-rating__count{font-size:12px;}
+.sh-product-rating--empty .sh-prs--empty svg{color:#e5e7eb;}
+.sh-product-rating--empty .sh-product-rating__count{color:#9ca3af;}
+</style>
+
+<script>
+window.shScrollToReviews = function(e) {
+    e.preventDefault();
+    // Reviews tab'ını bul ve aktif et
+    var reviewsTab = document.querySelector('[data-bs-target*="sh-pane"][data-bs-toggle="tab"]');
+    if (reviewsTab) {
+        // Reviews tipindeki tab'ı bul
+        var tabs = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabs.forEach(function(tab) {
+            var paneId = tab.getAttribute('data-bs-target') || '';
+            var pane   = document.querySelector(paneId);
+            if (pane && pane.querySelector('.sh-reviews, .sh-product-reviews')) {
+                if (window.bootstrap && window.bootstrap.Tab) {
+                    var inst = window.bootstrap.Tab.getInstance(tab) || new window.bootstrap.Tab(tab);
+                    inst.show();
+                }
+            }
+        });
+    }
+    // Scroll
+    setTimeout(function() {
+        var target = document.getElementById('sh-reviews')
+                  || document.querySelector('.sh-product-reviews')
+                  || document.querySelector('[id*="product-tabs"]');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+};
+</script>

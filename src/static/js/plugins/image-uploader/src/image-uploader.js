@@ -1,28 +1,45 @@
-/*! Image Uploader - v2.0.0 - 2026-04-09
- * Vanilla JS rewrite — no jQuery dependency
- * Original by Christian Bayer (MIT), rewritten by SaltHareket
+/*! Image Uploader - v3.0.0 - 2026-09-09
+ * Vanilla JS — no jQuery dependency
+ * Two modes: 'gallery' (multi-image grid) | 'avatar' (single circular photo)
  *
- * Usage:
- *   new ImageUploader(element, options)
+ * Usage — Gallery:
  *   new ImageUploader('.input-images', { maxFiles: 10 })
- *   new ImageUploader(document.querySelector('.input-images'))
  *
- * jQuery compat (optional):
+ * Usage — Avatar:
+ *   new ImageUploader('.profile-photo-main', {
+ *     mode: 'avatar',
+ *     avatarSrc: '/path/to/current.jpg',
+ *     onChange: (files) => { ... }
+ *   })
+ *
+ * jQuery compat:
  *   $('.input-images').imageUploader({ maxFiles: 10 })
  */
 
 class ImageUploader {
+
     static defaults = {
+        // ── Mode ───────────────────────────────────────────────────────
+        mode: 'gallery',               // 'gallery' | 'avatar'
+
+        // ── Gallery mode ───────────────────────────────────────────────
         preloaded: [],
         imagesInputName: 'images',
         preloadedInputName: 'preloaded',
         label: 'Drag & Drop files here or click to browse',
+        maxFiles: undefined,
+
+        // ── Avatar mode ────────────────────────────────────────────────
+        avatarSrc: '',                 // current avatar URL
+        avatarLabel: 'Change photo',   // overlay label
+        avatarSize: null,              // CSS size string e.g. '96px' — null = CSS default
+
+        // ── Shared ─────────────────────────────────────────────────────
         extensions: ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.avif'],
         mimes: ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp', 'image/avif'],
         maxSize: undefined,
-        maxFiles: undefined,
-        onError: null,      // callback(message, file) — custom error handler
-        onChange: null,      // callback(files, preloaded) — fires on any change
+        onError: null,
+        onChange: null,
     };
 
     constructor(el, options = {}) {
@@ -31,36 +48,138 @@ class ImageUploader {
 
         this.settings = { ...ImageUploader.defaults, ...options };
         this.dataTransfer = new DataTransfer();
-        this.preloaded = [...this.settings.preloaded];
+        this.preloaded = [...(this.settings.preloaded || [])];
         this.input = null;
-        this.container = null;
-        this.uploadedContainer = null;
 
-        this._init();
+        if (this.settings.mode === 'avatar') {
+            this._initAvatar();
+        } else {
+            this._initGallery();
+        }
     }
 
-    // ── INIT ─────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // AVATAR MODE
+    // ═══════════════════════════════════════════════════════════════════
 
-    _init() {
-        this.container = this._createElement('div', { className: 'image-uploader' });
+    _initAvatar() {
+        const s = this.settings;
 
-        // File input (hidden)
-        this.input = this._createElement('input', {
+        // Build
+        const root = this._el('div', { className: 'iu-avatar' });
+        if (s.avatarSize) root.style.setProperty('--iu-avatar-size', s.avatarSize);
+
+        // Image
+        this._avatarImg = this._el('img', {
+            src: s.avatarSrc || '',
+            alt: '',
+            className: 'iu-avatar__img',
+        });
+        this._avatarImg.loading = 'lazy';
+        this._avatarImg.decoding = 'async';
+
+        // Overlay
+        const overlay = this._el('div', { className: 'iu-avatar__overlay' });
+        overlay.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+            '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2l1-3h16l1 3a2 2 0 0 0 2 2z"/>' +
+            '<circle cx="12" cy="13" r="4"/></svg>' +
+            '<span>' + s.avatarLabel + '</span>';
+
+        // Hidden input
+        this.input = this._el('input', {
             type: 'file',
-            id: this.settings.imagesInputName + '-' + this._uid(),
-            name: this.settings.imagesInputName + '[]',
-            accept: this.settings.extensions.join(','),
+            accept: s.extensions.join(','),
+            className: 'iu-avatar__input',
+            tabIndex: -1,
+        });
+        if (s.imagesInputName) this.input.name = s.imagesInputName;
+
+        // Loading spinner
+        this._avatarLoading = this._el('div', { className: 'iu-avatar__loading', style: 'display:none' });
+        this._avatarLoading.innerHTML =
+            '<div class="iu-avatar__spinner"></div>';
+
+        root.append(this._avatarImg, overlay, this.input, this._avatarLoading);
+        this.wrapper.appendChild(root);
+        this._avatarRoot = root;
+
+        // Events
+        root.addEventListener('click', () => this.input.click());
+        root.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.input.click(); }
+        });
+        root.setAttribute('tabindex', '0');
+        root.setAttribute('role', 'button');
+        root.setAttribute('aria-label', s.avatarLabel);
+
+        this.input.addEventListener('change', (e) => this._onAvatarSelect(e));
+    }
+
+    _onAvatarSelect(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (this.settings.extensions && !this._validateExt(file)) { e.target.value = ''; return; }
+        if (this.settings.mimes && !this._validateMime(file)) { e.target.value = ''; return; }
+        if (this.settings.maxSize && !this._validateSize(file)) { e.target.value = ''; return; }
+
+        // Preview instantly
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            this._avatarImg.src = ev.target.result;
+            this._avatarRoot.classList.add('iu-avatar--changed');
+        };
+        reader.readAsDataURL(file);
+
+        this.dataTransfer = new DataTransfer();
+        this.dataTransfer.items.add(file);
+        this.input.files = this.dataTransfer.files;
+
+        this._fireChange(this.dataTransfer.files, []);
+    }
+
+    /** Show/hide loading state on avatar */
+    setLoading(loading) {
+        if (!this._avatarLoading) return;
+        this._avatarLoading.style.display = loading ? 'flex' : 'none';
+        if (this._avatarRoot) this._avatarRoot.classList.toggle('iu-avatar--loading', loading);
+    }
+
+    /** Update avatar src after successful upload */
+    setAvatarSrc(src) {
+        if (this._avatarImg) {
+            this._avatarImg.src = src;
+            this._avatarRoot?.classList.remove('iu-avatar--changed');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // GALLERY MODE
+    // ═══════════════════════════════════════════════════════════════════
+
+    _initGallery() {
+        const s = this.settings;
+
+        this.container = this._el('div', { className: 'image-uploader' });
+
+        // Hidden file input
+        this.input = this._el('input', {
+            type: 'file',
+            name: (s.imagesInputName || 'images') + '[]',
+            accept: s.extensions.join(','),
             multiple: true,
         });
         this.container.appendChild(this.input);
 
         // Uploaded images area
-        this.uploadedContainer = this._createElement('div', { className: 'uploaded' });
+        this.uploadedContainer = this._el('div', { className: 'uploaded' });
         this.container.appendChild(this.uploadedContainer);
 
-        // Upload text / label
-        const textContainer = this._createElement('div', { className: 'upload-text' });
-        textContainer.innerHTML = `<i class="iui-cloud-upload"></i><span>${this.settings.label}</span>`;
+        // Upload label
+        const textContainer = this._el('div', { className: 'upload-text' });
+        textContainer.innerHTML =
+            '<i class="iui-cloud-upload"></i><span>' + s.label + '</span>';
         this.container.appendChild(textContainer);
 
         // Events
@@ -70,23 +189,22 @@ class ImageUploader {
         });
         this.input.addEventListener('click', (e) => e.stopPropagation());
         this.input.addEventListener('change', (e) => this._onFileSelect(e));
-
         this.container.addEventListener('dragover', (e) => this._onDragHover(e, true));
         this.container.addEventListener('dragleave', (e) => this._onDragHover(e, false));
         this.container.addEventListener('drop', (e) => this._onFileSelect(e));
 
         this.wrapper.appendChild(this.container);
 
-        // Preloaded images
+        // Preloaded
         if (this.preloaded.length) {
             this.container.classList.add('has-files');
             this.preloaded.forEach((img) => {
-                this.uploadedContainer.appendChild(this._createImage(img.src, img.id, true));
+                this.uploadedContainer.appendChild(
+                    this._createGalleryImage(img.src, img.id, true)
+                );
             });
         }
     }
-
-    // ── FILE HANDLING ────────────────────────────────────
 
     _onFileSelect(e) {
         e.preventDefault();
@@ -107,48 +225,43 @@ class ImageUploader {
         if (valid.length) {
             this._addFiles(valid);
         } else {
-            // Restore input files (browser clears on empty select)
             this.input.files = this.dataTransfer.files;
         }
     }
 
     _addFiles(files) {
         this.container.classList.add('has-files');
-
         for (const file of files) {
             this.dataTransfer.items.add(file);
             const url = URL.createObjectURL(file);
             this.uploadedContainer.appendChild(
-                this._createImage(url, this.dataTransfer.items.length - 1, false)
+                this._createGalleryImage(url, this.dataTransfer.items.length - 1, false)
             );
         }
-
         this.input.files = this.dataTransfer.files;
-        this._fireChange();
+        this._fireChange(this.dataTransfer.files, this.preloaded);
     }
 
-    // ── IMAGE ELEMENT ───────────────────────────────────
-
-    _createImage(src, id, isPreloaded) {
-        const container = this._createElement('div', { className: 'uploaded-image' });
-        const img = this._createElement('img', { src, alt: '' });
+    _createGalleryImage(src, id, isPreloaded) {
+        const container = this._el('div', { className: 'uploaded-image' });
+        const img = this._el('img', { src, alt: '' });
         img.loading = 'lazy';
         img.decoding = 'async';
         container.appendChild(img);
 
-        const btn = this._createElement('button', {
+        const btn = this._el('button', {
             className: 'delete-image',
             type: 'button',
-            ariaLabel: 'Remove image',
         });
+        btn.setAttribute('aria-label', 'Remove image');
         btn.innerHTML = '<i class="iui-close"></i>';
         container.appendChild(btn);
 
         if (isPreloaded) {
             container.dataset.preloaded = 'true';
-            const hidden = this._createElement('input', {
+            const hidden = this._el('input', {
                 type: 'hidden',
-                name: this.settings.preloadedInputName + '[]',
+                name: (this.settings.preloadedInputName || 'preloaded') + '[]',
                 value: id,
             });
             container.appendChild(hidden);
@@ -156,45 +269,36 @@ class ImageUploader {
             container.dataset.index = id;
         }
 
-        // Prevent container click from triggering file input
         container.addEventListener('click', (e) => e.stopPropagation());
-
-        // Delete handler
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this._removeImage(container, id, isPreloaded);
+            this._removeGalleryImage(container, id, isPreloaded);
         });
 
         return container;
     }
 
-    _removeImage(container, id, isPreloaded) {
+    _removeGalleryImage(container, id, isPreloaded) {
         if (isPreloaded) {
             this.preloaded = this.preloaded.filter((p) => p.id !== id);
         } else {
             const index = parseInt(container.dataset.index, 10);
-
-            // Update indexes of subsequent items
-            this.uploadedContainer.querySelectorAll('.uploaded-image[data-index]').forEach((el) => {
-                const i = parseInt(el.dataset.index, 10);
-                if (i > index) el.dataset.index = i - 1;
-            });
-
+            this.uploadedContainer
+                .querySelectorAll('.uploaded-image[data-index]')
+                .forEach((el) => {
+                    const i = parseInt(el.dataset.index, 10);
+                    if (i > index) el.dataset.index = i - 1;
+                });
             this.dataTransfer.items.remove(index);
             this.input.files = this.dataTransfer.files;
         }
-
         container.remove();
-
         if (!this.uploadedContainer.children.length) {
             this.container.classList.remove('has-files');
         }
-
-        this._fireChange();
+        this._fireChange(this.dataTransfer.files, this.preloaded);
     }
-
-    // ── DRAG & DROP ─────────────────────────────────────
 
     _onDragHover(e, isOver) {
         e.preventDefault();
@@ -202,12 +306,18 @@ class ImageUploader {
         this.container.classList.toggle('drag-over', isOver);
     }
 
-    // ── VALIDATION ──────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // SHARED
+    // ═══════════════════════════════════════════════════════════════════
 
     _validateExt(file) {
         const ext = '.' + file.name.split('.').pop().toLowerCase();
         if (!this.settings.extensions.includes(ext)) {
-            this._error(`"${file.name}" — extension not allowed. Accepted: ${this.settings.extensions.join(', ')}`, file);
+            this._error(
+                '"' + file.name + '" — extension not allowed. Accepted: ' +
+                this.settings.extensions.join(', '),
+                file
+            );
             return false;
         }
         return true;
@@ -215,7 +325,10 @@ class ImageUploader {
 
     _validateMime(file) {
         if (!this.settings.mimes.includes(file.type)) {
-            this._error(`"${file.name}" — file type not allowed. Accepted: ${this.settings.mimes.join(', ')}`, file);
+            this._error(
+                '"' + file.name + '" — file type not allowed.',
+                file
+            );
             return false;
         }
         return true;
@@ -224,7 +337,10 @@ class ImageUploader {
     _validateSize(file) {
         if (file.size > this.settings.maxSize) {
             const mb = (this.settings.maxSize / 1024 / 1024).toFixed(1);
-            this._error(`"${file.name}" exceeds maximum size of ${mb}MB`, file);
+            this._error(
+                '"' + file.name + '" exceeds maximum size of ' + mb + 'MB',
+                file
+            );
             return false;
         }
         return true;
@@ -233,7 +349,10 @@ class ImageUploader {
     _validateMax(newCount, file) {
         const total = newCount + this.dataTransfer.items.length + this.preloaded.length;
         if (total >= this.settings.maxFiles) {
-            this._error(`"${file.name}" — maximum ${this.settings.maxFiles} files allowed`, file);
+            this._error(
+                '"' + file.name + '" — maximum ' + this.settings.maxFiles + ' files allowed',
+                file
+            );
             return false;
         }
         return true;
@@ -247,62 +366,46 @@ class ImageUploader {
         }
     }
 
-    // ── CALLBACKS ────────────────────────────────────────
-
-    _fireChange() {
+    _fireChange(files, preloaded) {
         if (typeof this.settings.onChange === 'function') {
-            this.settings.onChange(this.dataTransfer.files, this.preloaded);
+            this.settings.onChange(files, preloaded);
         }
     }
 
-    // ── PUBLIC API ───────────────────────────────────────
-
-    /** Get current files (FileList) */
-    getFiles() {
-        return this.dataTransfer.files;
-    }
-
-    /** Get remaining preloaded IDs */
-    getPreloaded() {
-        return this.preloaded.map((p) => p.id);
-    }
-
-    /** Reset to empty state */
-    reset() {
-        this.dataTransfer = new DataTransfer();
-        this.preloaded = [];
-        this.uploadedContainer.innerHTML = '';
-        this.input.files = this.dataTransfer.files;
-        this.container.classList.remove('has-files');
-        this._fireChange();
-    }
-
-    /** Destroy instance and restore original element */
-    destroy() {
-        if (this.container && this.container.parentNode) {
-            this.container.parentNode.removeChild(this.container);
-        }
-    }
-
-    // ── HELPERS ──────────────────────────────────────────
-
-    _createElement(tag, attrs = {}) {
+    _el(tag, attrs = {}) {
         const el = document.createElement(tag);
-        for (const [key, value] of Object.entries(attrs)) {
-            if (key === 'className') el.className = value;
-            else if (key === 'ariaLabel') el.setAttribute('aria-label', value);
-            else if (key in el) el[key] = value;
-            else el.setAttribute(key, value);
+        for (const [k, v] of Object.entries(attrs)) {
+            if (k === 'className') el.className = v;
+            else if (k === 'style') el.setAttribute('style', v);
+            else if (k in el) el[k] = v;
+            else el.setAttribute(k, v);
         }
         return el;
     }
 
-    _uid() {
-        return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    // ═══════════════════════════════════════════════════════════════════
+    // PUBLIC API
+    // ═══════════════════════════════════════════════════════════════════
+
+    getFiles()     { return this.dataTransfer.files; }
+    getPreloaded() { return this.preloaded.map((p) => p.id); }
+
+    reset() {
+        this.dataTransfer = new DataTransfer();
+        this.preloaded = [];
+        if (this.uploadedContainer) this.uploadedContainer.innerHTML = '';
+        if (this.input) this.input.files = this.dataTransfer.files;
+        if (this.container) this.container.classList.remove('has-files');
+        this._fireChange(this.dataTransfer.files, []);
+    }
+
+    destroy() {
+        const root = this.settings.mode === 'avatar' ? this._avatarRoot : this.container;
+        if (root && root.parentNode) root.parentNode.removeChild(root);
     }
 }
 
-// ── jQuery compat (optional) ────────────────────────────
+// ── jQuery compat ────────────────────────────────────────────────────
 if (typeof jQuery !== 'undefined') {
     jQuery.fn.imageUploader = function (options) {
         return this.each(function () {

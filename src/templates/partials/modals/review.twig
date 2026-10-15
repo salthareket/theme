@@ -1,0 +1,135 @@
+{#
+  partials/modals/review.twig
+  ─────────────────────────────────────────────────────────────────────────────
+  Kullanıcının kendi review'unu modal'da gösterir.
+  Onaylı/onaysız durumu, rating, içerik ve delete butonu içerir.
+
+  Context:
+    review — array:
+      id, content, rating, title, verified, approved, date,
+      author, avatar, post {id, title, link}, is_owner, is_admin
+#}
+
+<div class="modal-body p-4">
+
+    {# ── Status badge ──────────────────────────────────────────────────────── #}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+            {% if review.approved %}
+                <span class="badge bg-success-subtle text-success">
+                    ✓ {{ translate('Approved') }}
+                </span>
+            {% else %}
+                <span class="badge bg-warning text-dark">
+                    ⏳ {{ translate('Pending Approval') }}
+                </span>
+            {% endif %}
+
+            {% if review.verified %}
+                <span class="badge bg-primary-subtle text-primary" style="font-size:10px">
+                    ✓ {{ translate('Verified Purchase') }}
+                </span>
+            {% endif %}
+        </div>
+
+        {% if review.date %}
+        <small class="text-muted">{{ review.date }}</small>
+        {% endif %}
+    </div>
+
+    {# ── Author + Post ─────────────────────────────────────────────────────── #}
+    <div class="d-flex align-items-center gap-3 mb-3">
+        {% if review.avatar %}
+        <img src="{{ review.avatar }}" class="rounded-circle" width="48" height="48" alt="{{ review.author }}" />
+        {% endif %}
+        <div>
+            <div class="fw-semibold">{{ review.author }}</div>
+            {% if review.post.title %}
+            <small class="text-muted">
+                {{ fa_icon('file-alt', 'regular', 'me-1') }}
+                <a href="{{ review.post.link }}" class="text-reset text-decoration-none">{{ review.post.title }}</a>
+            </small>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Rating ────────────────────────────────────────────────────────────── #}
+    {% if review.rating %}
+    <div class="mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-warning fs-5">
+                {% for i in 1..5 %}{{ i <= review.rating ? '★' : '☆' }}{% endfor %}
+            </span>
+            <span class="fw-semibold small">{{ review.rating }}/5</span>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Title ────────────────────────────────────────────────────────────── #}
+    {% if review.title %}
+    <h5 class="fw-bold mb-2">{{ review.title }}</h5>
+    {% endif %}
+
+    {# ── Content ──────────────────────────────────────────────────────────── #}
+    {% if review.content %}
+    <div class="mb-3" style="color:#374151;line-height:1.6">
+        {{ review.content|nl2br }}
+    </div>
+    {% endif %}
+
+</div>
+
+<div class="modal-footer justify-content-between">
+    {# ── Post link ─────────────────────────────────────────────────────────── #}
+    {% if review.post.link and review.post.link != '#' %}
+    <a href="{{ review.post.link }}" class="btn btn-outline-secondary btn-sm">
+        {{ fa_icon('external-link', 'regular', 'me-1') }}{{ translate('View Post') }}
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+
+    {# ── Delete (sadece sahip veya admin) ──────────────────────────────────── #}
+    {% if review.is_owner or review.is_admin %}
+    <button type="button"
+            class="btn btn-outline-danger btn-sm"
+            data-id="{{ review.id }}"
+            onclick="shReviewDeleteFromModal(this)">
+        {{ fa_icon('trash', 'solid', 'me-1') }}{{ translate('Delete') }}
+    </button>
+    {% endif %}
+</div>
+
+<script>
+function shReviewDeleteFromModal(btn) {
+    var id = btn.dataset.id;
+    if (!id) return;
+    if (!confirm('{{ translate("Delete this review?") }}')) return;
+    btn.disabled = true;
+
+    var nonce   = (window.ajax_request_vars && ajax_request_vars.ajax_nonce) || '';
+    var apiBase = (window.ajax_request_vars && ajax_request_vars.site_url)
+        ? ajax_request_vars.site_url.replace(/\/$/, '') : '';
+
+    fetch(apiBase + '/api/sh_review_owner_action/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
+        body: JSON.stringify({ vars: { id: id, action: 'delete' } })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res) {
+        if (res.success || !res.error) {
+            if (typeof bootbox !== 'undefined') {
+                bootbox.hideAll();
+            } else {
+                $('.modal').modal('hide');
+            }
+            setTimeout(function(){ window.location.reload(); }, 300);
+        } else {
+            alert(res.message || 'Error');
+            btn.disabled = false;
+        }
+    })
+    .catch(function(){ btn.disabled = false; });
+}
+</script>

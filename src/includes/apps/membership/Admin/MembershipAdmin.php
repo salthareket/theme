@@ -18,7 +18,7 @@ class MembershipAdmin
         add_action( 'admin_action_sh_reject_user', [ self::class, 'handleSingleReject' ] );
         add_action( 'admin_action_sh_impersonate', [ self::class, 'handleImpersonation' ] );
         add_action( 'admin_action_sh_stop_impersonate', [ self::class, 'stopImpersonation' ] );
-        add_action( 'admin_menu', [ self::class, 'addMenuPage' ], 25 );
+        // add_action( 'admin_menu', [ self::class, 'addMenuPage' ], 25 ); // Dashboard üzerinden erişiliyor
         add_action( 'admin_head', [ self::class, 'hideNotices' ] );
         add_action( 'wp_ajax_sh_guest_stats', [ self::class, 'ajaxGuestStats' ] );
         add_action( 'wp_ajax_sh_membership_save_settings', [ self::class, 'ajaxSaveSettings' ] );
@@ -163,7 +163,6 @@ class MembershipAdmin
     {
         $mm     = MembershipManager::getInstance();
         $status = $mm->getActivationStatus( $user->ID );
-        $nonce  = wp_create_nonce( 'sh_membership_action_' . $user->ID );
         $reg    = get_user_meta( $user->ID, 'register_type', true ) ?: 'email';
         $act_at = get_user_meta( $user->ID, 'activated_at', true );
         $app_at = get_user_meta( $user->ID, 'approved_at', true );
@@ -196,16 +195,17 @@ class MembershipAdmin
     public static function renderPage(): void
     {
         if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorized' );
-
-        $tab   = sanitize_key( $_GET['tab'] ?? 'overview' );
-        $stats = self::getStats();
-        $total = array_sum( $stats );
+        $tab         = sanitize_key( $_GET['tab'] ?? 'overview' );
+        $stats       = self::getStats();
+        $total       = array_sum( $stats );
         $guest_stats = \SaltHareket\Membership\GuestIdentity::getStats();
         ?>
         <div class="sh-wrap" id="sh-membership-page">
-
         <div class="sh-toolbar">
-            <h1>👤 Membership</h1>
+            <?php $membership_enabled = (bool) \SaltHareket\Membership\MembershipSettings::getSetting('enable_membership'); ?>
+            <h1 style="display:inline-flex;align-items:center;gap:8px;">&#128100; Membership
+                <span id="sh-membership-header-badge" class="sh-badge <?php echo $membership_enabled ? 'sh-badge-green' : 'sh-badge-gray'; ?>" style="font-size:11px"><?php echo $membership_enabled ? 'Enabled' : 'Disabled'; ?></span>
+            </h1>
             <span class="sh-badge sh-badge-blue"><?php echo (int)$total; ?> member<?php echo $total !== 1 ? 's' : ''; ?></span>
             <?php if ( $stats['activated'] > 0 ) : ?>
                 <span class="sh-badge sh-badge-blue"><?php echo (int)$stats['activated']; ?> awaiting approval</span>
@@ -217,46 +217,79 @@ class MembershipAdmin
                 <a href="?page=sh-membership&tab=settings" class="sh-tab-btn <?php echo $tab==='settings'?'active':''; ?>">Settings</a>
             </div>
         </div>
-
         <?php
-        $titles = [
-            'overview' => [ 'title' => 'Membership Overview',  'desc' => 'Member statistics and account status breakdown.' ],
-            'pending'  => [ 'title' => 'Pending Approvals',    'desc' => 'Users who activated their account and are awaiting admin approval.' ],
-            'guests'   => [ 'title' => 'Guest Management',     'desc' => 'Anonymous visitors tracked via cookie. Cleanup inactive guests to keep the database lean.' ],
-            'settings' => [ 'title' => 'Membership Settings',  'desc' => 'Current membership configuration and available hooks.' ],
-        ];
-        $cur = $titles[$tab] ?? $titles['overview'];
-        ?>
-        <div class="sh-section-title">
-            <h2><?php echo esc_html($cur['title']); ?></h2>
-            <p><?php echo esc_html($cur['desc']); ?></p>
-        </div>
-
-        <?php if ( isset($_GET['sh_notice']) ) :
+        if ( isset($_GET['sh_notice']) ) {
             $n = sanitize_text_field($_GET['sh_notice']);
             if ($n==='approved') echo '<div class="sh-notice sh-notice-success sh-inline">&#10003; User approved.</div>';
             if ($n==='rejected') echo '<div class="sh-notice sh-notice-warning sh-inline">&#9888; User rejected.</div>';
-        endif; ?>
-        <?php if ( isset($_GET['sh_bulk_done']) ) : ?>
-            <div class="sh-notice sh-notice-success sh-inline">&#10003; <?php echo (int)$_GET['sh_bulk_done']; ?> users updated.</div>
-        <?php endif; ?>
-        <?php if ( isset($_GET['saved']) ) : ?>
-            <div class="sh-notice sh-notice-success sh-inline">&#10003; Settings saved.</div>
-        <?php endif; ?>
+        }
+        if ( isset($_GET['sh_bulk_done']) ) echo '<div class="sh-notice sh-notice-success sh-inline">&#10003; '.(int)$_GET['sh_bulk_done'].' users updated.</div>';
+        if ( isset($_GET['saved']) ) echo '<div class="sh-notice sh-notice-success sh-inline">&#10003; Settings saved.</div>';
 
+        // ── Enable Membership toggle ───────────────────────────────────────
+        $mem_nonce  = wp_create_nonce( 'sh_membership_admin' );
+        $mem_ajax   = esc_url( admin_url( 'admin-ajax.php' ) );
+        ?>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+            <strong style="font-size:13px;color:#1d2327;">Enable Membership</strong>
+            <label class="sh-toggle">
+                <input type="checkbox" id="sh-membership-app-toggle"
+                       <?php checked( $membership_enabled ); ?>
+                       onchange="shMembershipAppToggle(this.checked)">
+                <span class="sh-toggle-slider"></span>
+            </label>
+            <span id="sh-membership-app-label" style="font-size:12px;color:<?php echo $membership_enabled ? '#00a32a' : '#9ca3af'; ?>">
+                <?php echo $membership_enabled ? 'Enabled' : 'Disabled'; ?>
+            </span>
+            <span id="sh-membership-app-saving" style="display:none;font-size:12px;color:#9ca3af">
+                <span style="display:inline-block;width:12px;height:12px;border:2px solid #ddd;border-top-color:#2271b1;border-radius:50%;animation:sh-spin .6s linear infinite;vertical-align:middle;margin-right:4px"></span>Saving...
+            </span>
+        </div>
+        <script>
+        function shMembershipAppToggle(enabled) {
+            var label  = document.getElementById('sh-membership-app-label');
+            var saving = document.getElementById('sh-membership-app-saving');
+            var toggle = document.getElementById('sh-membership-app-toggle');
+            if (saving) saving.style.display = 'inline-flex';
+            if (label)  label.style.display  = 'none';
+            var fd = new FormData();
+            fd.append('action',   'sh_membership_save_settings');
+            fd.append('nonce',    <?php echo wp_json_encode( $mem_nonce ); ?>);
+            fd.append('settings[enable_membership]', enabled ? '1' : '0');
+            fetch(<?php echo wp_json_encode( $mem_ajax ); ?>, { method:'POST', body:fd, credentials:'same-origin' })
+                .then(function(r){ return r.json(); })
+                .then(function(res) {
+                    if (saving) saving.style.display = 'none';
+                    if (label)  label.style.display  = '';
+                    if (res.success) {
+                        label.textContent = enabled ? 'Enabled' : 'Disabled';
+                        label.style.color = enabled ? '#00a32a' : '#9ca3af';
+                        var hb = document.getElementById('sh-membership-header-badge');
+                        if (hb) { hb.textContent = enabled ? 'Enabled' : 'Disabled'; hb.className = 'sh-badge ' + (enabled ? 'sh-badge-green' : 'sh-badge-gray'); }
+                    } else {
+                        if (toggle) toggle.checked = !enabled;
+                        label.textContent = !enabled ? 'Enabled' : 'Disabled';
+                        label.style.color = !enabled ? '#00a32a' : '#9ca3af';
+                    }
+                })
+                .catch(function() {
+                    if (saving) saving.style.display = 'none';
+                    if (label)  label.style.display  = '';
+                    if (toggle) toggle.checked = !enabled;
+                });
+        }
+        </script>
         <?php
+
         if ( $tab === 'pending' )       self::renderPendingTab();
         elseif ( $tab === 'guests' )    self::renderGuestsTab( $guest_stats );
         elseif ( $tab === 'settings' )  self::renderSettingsTab();
         else                            self::renderOverviewTab( $stats, $total );
         ?>
-
         <div id="sh-toast"></div>
         </div>
         <?php
     }
-
-    // ─── Stats ────────────────────────────────────────────────────────────────
 
     private static function getStats(): array
     {
@@ -273,21 +306,17 @@ class MembershipAdmin
         return $counts;
     }
 
-    // ─── Overview Tab ─────────────────────────────────────────────────────────
-
     private static function renderOverviewTab( array $stats, int $total ): void
     {
-        $cfg = [
-            'pending'   => [ 'label' => 'Pending',   'color' => '#f0b429', 'icon' => '⏳' ],
-            'activated' => [ 'label' => 'Activated', 'color' => '#3b82f6', 'icon' => '✅' ],
-            'approved'  => [ 'label' => 'Approved',  'color' => '#22c55e', 'icon' => '👍' ],
-            'rejected'  => [ 'label' => 'Rejected',  'color' => '#ef4444', 'icon' => '❌' ],
+        $cfg    = [
+            'pending'   => [ 'label'=>'Pending',   'color'=>'#f0b429', 'icon'=>'⏳' ],
+            'activated' => [ 'label'=>'Activated', 'color'=>'#3b82f6', 'icon'=>'✅' ],
+            'approved'  => [ 'label'=>'Approved',  'color'=>'#22c55e', 'icon'=>'👍' ],
+            'rejected'  => [ 'label'=>'Rejected',  'color'=>'#ef4444', 'icon'=>'❌' ],
         ];
-        $recent = get_users( [ 'number' => 10, 'orderby' => 'registered', 'order' => 'DESC' ] );
+        $recent = get_users( [ 'number'=>10, 'orderby'=>'registered', 'order'=>'DESC' ] );
         ?>
-        <div class="sh-layout">
-        <div class="sh-main">
-
+        <div class="sh-layout"><div class="sh-main">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px">
             <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;text-align:center">
                 <div style="font-size:28px;font-weight:700;color:#1d2327"><?php echo $total; ?></div>
@@ -300,87 +329,98 @@ class MembershipAdmin
             </div>
             <?php endforeach; ?>
         </div>
-
         <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
             <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
                 <strong>Recent Members</strong>
-                <a href="<?php echo esc_url(admin_url('users.php')); ?>" class="sh-btn sh-btn-sm" style="font-size:12px">View All →</a>
+                <a href="<?php echo esc_url(admin_url('users.php')); ?>" class="sh-btn sh-btn-sm">View All →</a>
             </div>
-            <table style="width:100%;border-collapse:collapse">
-                <thead><tr>
-                    <?php foreach(['User','Email','Status','Registered','Actions'] as $h): ?>
-                    <th style="padding:10px 18px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #f3f4f6"><?php echo $h; ?></th>
-                    <?php endforeach; ?>
-                </tr></thead>
-                <tbody>
-                <?php foreach ( $recent as $u ) :
-                    $mm     = MembershipManager::getInstance();
-                    $status = $mm->getActivationStatus( $u->ID );
-                    $nonce  = wp_create_nonce( 'sh_membership_action_' . $u->ID );
-                    $colors = [ 'pending'=>'#f0b429','activated'=>'#3b82f6','approved'=>'#22c55e','rejected'=>'#ef4444' ];
-                    $col    = $colors[$status] ?? '#6b7280';
-                ?>
-                <tr style="border-bottom:1px solid #f9fafb">
-                    <td style="padding:10px 18px"><strong><?php echo esc_html($u->display_name); ?></strong></td>
-                    <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo esc_html($u->user_email); ?></td>
-                    <td style="padding:10px 18px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:<?php echo $col; ?>22;color:<?php echo $col; ?>"><?php echo esc_html(ucfirst($status)); ?></span></td>
-                    <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo esc_html(date('Y-m-d',strtotime($u->user_registered))); ?></td>
-                    <td style="padding:10px 18px"><?php echo self::renderActionBtns($u->ID); ?></td>
-                </tr>
+            <table style="width:100%;border-collapse:collapse"><thead><tr>
+                <?php foreach(['User','Email','Status','Registered','Actions'] as $h): ?>
+                <th style="padding:10px 18px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #f3f4f6"><?php echo $h; ?></th>
                 <?php endforeach; ?>
-                </tbody>
-            </table>
+            </tr></thead><tbody>
+            <?php foreach ( $recent as $u ) :
+                $mm=$mm??MembershipManager::getInstance(); $status=$mm->getActivationStatus($u->ID);
+                $colors=['pending'=>'#f0b429','activated'=>'#3b82f6','approved'=>'#22c55e','rejected'=>'#ef4444'];
+                $col=$colors[$status]??'#6b7280'; ?>
+            <tr style="border-bottom:1px solid #f9fafb">
+                <td style="padding:10px 18px"><strong><?php echo esc_html($u->display_name); ?></strong></td>
+                <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo esc_html($u->user_email); ?></td>
+                <td style="padding:10px 18px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:<?php echo $col; ?>22;color:<?php echo $col; ?>"><?php echo esc_html(ucfirst($status)); ?></span></td>
+                <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo esc_html(date('Y-m-d',strtotime($u->user_registered))); ?></td>
+                <td style="padding:10px 18px"><?php echo self::renderActionBtns($u->ID); ?></td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody></table>
         </div>
-
-        </div>
-        <div class="sh-sidebar"><?php self::renderSidebar(); ?></div>
-        </div>
+        </div><div class="sh-sidebar"><?php self::renderSidebar(); ?></div></div>
         <?php
     }
 
-    // ─── Pending Tab ──────────────────────────────────────────────────────────
-
     private static function renderPendingTab(): void
     {
-        $users = get_users( [ 'meta_key'=>'user_status','meta_value'=>'activated','number'=>100,'orderby'=>'registered','order'=>'DESC' ] );
+        $users = get_users(['meta_key'=>'user_status','meta_value'=>'activated','number'=>100,'orderby'=>'registered','order'=>'DESC']);
         ?>
-        <div class="sh-layout">
-        <div class="sh-main">
-        <?php if ( empty($users) ) : ?>
-            <div class="sh-empty-box">
-                <p style="margin:0 0 4px;font-weight:500;color:#50575e">No pending approvals</p>
-                <p style="margin:0;font-size:12px;color:#9ca3af">All activated users have been reviewed.</p>
-            </div>
+        <div class="sh-layout"><div class="sh-main">
+        <?php if (empty($users)) : ?>
+            <div class="sh-empty-box"><p style="margin:0 0 4px;font-weight:500">No pending approvals</p><p style="margin:0;font-size:12px;color:#9ca3af">All activated users have been reviewed.</p></div>
         <?php else : ?>
-            <div class="sh-filter-bar">
-                <span class="sh-count-label"><?php echo count($users); ?> user<?php echo count($users)!==1?'s':''; ?> awaiting approval</span>
-            </div>
             <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-                <thead><tr>
-                    <?php foreach(['User','Email','Register Type','Activated','Actions'] as $h): ?>
-                    <th style="padding:10px 18px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #f3f4f6"><?php echo $h; ?></th>
-                    <?php endforeach; ?>
-                </tr></thead>
+                <thead><tr><?php foreach(['User','Email','Register Type','Activated','Actions'] as $h): ?><th style="padding:10px 18px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #f3f4f6"><?php echo $h; ?></th><?php endforeach; ?></tr></thead>
                 <tbody>
-                <?php foreach ( $users as $u ) :
-                    $nonce  = wp_create_nonce( 'sh_membership_action_' . $u->ID );
-                    $reg    = get_user_meta( $u->ID, 'register_type', true ) ?: 'email';
-                    $act_at = get_user_meta( $u->ID, 'activated_at', true );
-                ?>
+                <?php foreach ($users as $u) :
+                    $nonce=wp_create_nonce('sh_membership_action_'.$u->ID);
+                    $reg=get_user_meta($u->ID,'register_type',true)?:'email';
+                    $act_at=get_user_meta($u->ID,'activated_at',true); ?>
                 <tr style="border-bottom:1px solid #f9fafb">
                     <td style="padding:10px 18px"><strong><?php echo esc_html($u->display_name); ?></strong><br><small style="color:#9ca3af">#<?php echo $u->ID; ?></small></td>
                     <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo esc_html($u->user_email); ?></td>
                     <td style="padding:10px 18px"><span class="sh-badge sh-badge-gray"><?php echo esc_html($reg); ?></span></td>
-                    <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo $act_at ? esc_html(date('Y-m-d H:i',$act_at)) : '—'; ?></td>
+                    <td style="padding:10px 18px;color:#6b7280;font-size:13px"><?php echo $act_at?esc_html(date('Y-m-d H:i',$act_at)):'—'; ?></td>
                     <td style="padding:10px 18px"><?php echo self::renderActionBtns($u->ID); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         <?php endif; ?>
+        </div><div class="sh-sidebar"><?php self::renderSidebar(); ?></div></div>
+        <?php
+    }
+
+    private static function renderGuestsTab( array $guest_stats ): void
+    {
+        ?>
+        <div class="sh-layout"><div class="sh-main">
+        <div class="sh-card">
+            <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6"><strong>Guest Statistics</strong></div>
+            <div style="padding:18px;display:flex;gap:20px;flex-wrap:wrap">
+                <?php foreach (['total'=>'Total','active_today'=>'Active Today','inactive'=>'Inactive'] as $k=>$l) : ?>
+                <div style="text-align:center;padding:16px 24px;background:#f9fafb;border-radius:8px">
+                    <div style="font-size:28px;font-weight:700"><?php echo (int)($guest_stats[$k]??0); ?></div>
+                    <div style="font-size:12px;color:#6b7280"><?php echo $l; ?></div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <div style="padding:0 18px 18px">
+                <button type="button" class="sh-btn" id="sh-purge-guests" style="color:#d63638">🗑 Purge Inactive Guests</button>
+            </div>
         </div>
-        <div class="sh-sidebar"><?php self::renderSidebar(); ?></div>
-        </div>
+        </div><div class="sh-sidebar"><?php self::renderSidebar(); ?></div></div>
+        <script>
+        (function(){
+            var btn = document.getElementById('sh-purge-guests');
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                if (!confirm('Purge all inactive guests?')) return;
+                btn.disabled = true; btn.textContent = 'Purging...';
+                fetch(ajaxurl + '?action=sh_guest_stats', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'nonce='+encodeURIComponent('<?php echo wp_create_nonce('sh_membership_admin'); ?>')+'&purge=1'})
+                .then(r=>r.json()).then(function(res){
+                    btn.disabled = false;
+                    btn.textContent = '🗑 Purge Inactive Guests';
+                });
+            });
+        })();
+        </script>
         <?php
     }
 
@@ -390,356 +430,46 @@ class MembershipAdmin
     {
         check_ajax_referer( 'sh_membership_admin', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Unauthorized' );
-
         $data = $_POST['settings'] ?? [];
+        if ( isset( $data['custom_roles'] ) && is_string( $data['custom_roles'] ) ) {
+            $data['custom_roles'] = json_decode( stripslashes( $data['custom_roles'] ), true ) ?? [];
+        }
+        if ( isset( $data['selectable_roles'] ) && is_string( $data['selectable_roles'] ) ) {
+            $data['selectable_roles'] = json_decode( stripslashes( $data['selectable_roles'] ), true ) ?? [];
+        }
+        if ( isset( $data['register_fields'] ) && is_string( $data['register_fields'] ) ) {
+            $data['register_fields'] = json_decode( stripslashes( $data['register_fields'] ), true ) ?? [];
+        }
+        \SaltHareket\Membership\MembershipSettings::save( $data );
 
-        \SaltHareket\Membership\MembershipSettings::save( [
-            'enable_membership'                 => ! empty( $data['enable_membership'] ),
-            'enable_membership_activation'      => ! empty( $data['enable_membership_activation'] ),
-            'membership_activation_type'        => sanitize_key( $data['membership_activation_type'] ?? 'email' ),
-            'enable_activation_email_autologin' => ! empty( $data['enable_activation_email_autologin'] ),
-            'enable_registration'               => ! empty( $data['enable_registration'] ),
-            'enable_remember_login'             => ! empty( $data['enable_remember_login'] ),
-            'enable_lost_password'              => ! empty( $data['enable_lost_password'] ),
-            'enable_password_recover'           => ! empty( $data['enable_password_recover'] ),
-            'password_recover_type'             => sanitize_key( $data['password_recover_type'] ?? 'link' ),
-            'enable_social_login'               => ! empty( $data['enable_social_login'] ),
-            'enable_postcode_validation'        => ! empty( $data['enable_postcode_validation'] ),
-            'enable_chat'                       => ! empty( $data['enable_chat'] ),
-        ] );
-
-        wp_send_json_success( [
-            'message'  => 'Settings saved. Page will reload.',
+        $response = [
+            'message'  => 'Settings saved.',
             'settings' => \SaltHareket\Membership\MembershipSettings::get(),
-        ] );
+        ];
+
+        // Activation type SMS seçildi ama SMS app disabled/unconfigured ise — dependency warning ekle
+        $activation_type = sanitize_text_field( $data['membership_activation_type'] ?? '' );
+        if (
+            $activation_type === 'sms' &&
+            class_exists( \SaltHareket\Sms\SmsApp::class ) &&
+            ! \SaltHareket\Sms\SmsApp::isAvailable()
+        ) {
+            $response['warnings'][] = [
+                'type'       => 'dependency',
+                'dependency' => \SaltHareket\Sms\SmsApp::dependency(),
+            ];
+        }
+
+        wp_send_json_success( $response );
     }
 
     private static function renderSettingsTab(): void
     {
-        $s     = \SaltHareket\Membership\MembershipSettings::get();
-        $nonce = wp_create_nonce( 'sh_membership_admin' );
-
-        $act_type = $s['membership_activation_type'] ?? 'email';
-        $pw_type  = $s['password_recover_type'] ?? 'link';
-        ?>
-        <div class="sh-layout">
-        <div class="sh-main">
-        <div id="sh-membership-toast" style="position:fixed;bottom:24px;right:24px;z-index:9999"></div>
-
-        <div class="sh-card">
-
-            <!-- Core toggle -->
-            <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:14px">
-                <span style="font-size:15px">👤</span>
-                <strong style="font-size:14px">Membership</strong>
-                <label class="sh-toggle" style="margin-left:4px">
-                    <input type="checkbox" id="shm-enable-membership" <?php checked( $s['enable_membership'] ); ?> onchange="shmToggle('membership',this.checked)">
-                    <span class="sh-toggle-slider"></span>
-                </label>
-                <span style="font-size:12px;color:#9ca3af">Üyelik sistemini aç/kapat</span>
-            </div>
-
-            <!-- Options wrap -->
-            <div id="shm-membership-opts" style="<?php echo ! $s['enable_membership'] ? 'display:none' : ''; ?>">
-
-            <!-- Account section -->
-            <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6">
-                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:12px">Account</div>
-                <?php
-                $social_ok = class_exists( 'NextendSocialLogin' );
-                foreach ( [
-                    [ 'shm-enable-registration',   'enable_registration',        'Enable Registration',       '',                                          true,  '' ],
-                    [ 'shm-enable-remember-login',  'enable_remember_login',     'Enable Remember Login',     '',                                          true,  '' ],
-                    [ 'shm-enable-social-login',    'enable_social_login',       'Enable Social Login',       'NextendSocialLogin plugin gerekli',          $social_ok, 'NextendSocialLogin' ],
-                    [ 'shm-enable-postcode',        'enable_postcode_validation','Enable Postcode Validation','',                                          true,  '' ],
-                ] as [ $id, $key, $label, $desc, $plugin_ok, $plugin_name ] ) :
-                    $is_disabled = ! $plugin_ok;
-                    $is_checked  = $plugin_ok && ( $s[$key] ?? false );
-                ?>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;<?php echo $is_disabled ? 'opacity:.55' : ''; ?>">
-                    <label class="sh-toggle"><input type="checkbox" id="<?php echo $id; ?>" <?php checked( $is_checked ); ?> <?php echo $is_disabled ? 'disabled' : ''; ?>><span class="sh-toggle-slider"></span></label>
-                    <div>
-                        <span style="font-size:13px;font-weight:500"><?php echo esc_html($label); ?></span>
-                        <?php if ($desc): ?><br><span style="font-size:11px;color:<?php echo $is_disabled ? '#e11d48' : '#9ca3af'; ?>"><?php echo esc_html($desc); ?></span><?php endif; ?>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-
-            <!-- Activation section -->
-            <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6">
-                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:12px">Activation</div>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-                    <label class="sh-toggle"><input type="checkbox" id="shm-enable-membership-activation" <?php checked($s['enable_membership_activation']); ?> onchange="shmToggle('activation',this.checked)"><span class="sh-toggle-slider"></span></label>
-                    <div><span style="font-size:13px;font-weight:500">Enable Membership Activation</span><br><span style="font-size:11px;color:#9ca3af">Kayıt sonrası aktivasyon gereksin mi?</span></div>
-                </div>
-                <div id="shm-activation-opts" style="margin-left:44px;<?php echo ! $s['enable_membership_activation'] ? 'display:none' : ''; ?>">
-                    <div style="display:flex;gap:20px;margin-bottom:10px">
-                        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="shm_activation_type" value="email" <?php checked($act_type,'email'); ?> onchange="shmToggle('activation_type','email')"> by Email</label>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="shm_activation_type" value="sms" <?php checked($act_type,'sms'); ?> onchange="shmToggle('activation_type','sms')"> by SMS</label>
-                    </div>
-                    <div id="shm-autologin-wrap" style="<?php echo $act_type!=='email' ? 'display:none' : ''; ?>">
-                        <div style="display:flex;align-items:center;gap:12px">
-                            <label class="sh-toggle"><input type="checkbox" id="shm-enable-activation-email-autologin" <?php checked($s['enable_activation_email_autologin']); ?>><span class="sh-toggle-slider"></span></label>
-                            <span style="font-size:13px;font-weight:500">Enable Auto-Login with activation code</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Password section -->
-            <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6">
-                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:12px">Password</div>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-                    <label class="sh-toggle"><input type="checkbox" id="shm-enable-lost-password" <?php checked($s['enable_lost_password']); ?>><span class="sh-toggle-slider"></span></label>
-                    <span style="font-size:13px;font-weight:500">Enable Lost Password</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-                    <label class="sh-toggle"><input type="checkbox" id="shm-enable-password-recover" <?php checked($s['enable_password_recover']); ?> onchange="shmToggle('password_recover',this.checked)"><span class="sh-toggle-slider"></span></label>
-                    <span style="font-size:13px;font-weight:500">Enable Password Recover</span>
-                </div>
-                <div id="shm-pw-recover-opts" style="margin-left:44px;<?php echo ! $s['enable_password_recover'] ? 'display:none' : ''; ?>">
-                    <div style="display:flex;gap:20px">
-                        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="shm_pw_recover_type" value="link" <?php checked($pw_type,'link'); ?>> Send link to create new one</label>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="shm_pw_recover_type" value="generated" <?php checked($pw_type,'generated'); ?>> Send a new generated password</label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Integrations section -->
-            <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6">
-                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:12px">Integrations</div>
-                <?php
-                $chat_ok       = class_exists( 'Redq_YoBro' );
-                $chat_disabled = ! $chat_ok;
-                $chat_checked  = $chat_ok && ( $s['enable_chat'] ?? false );
-                ?>
-                <div style="display:flex;align-items:center;gap:12px;<?php echo $chat_disabled ? 'opacity:.55' : ''; ?>">
-                    <label class="sh-toggle"><input type="checkbox" id="shm-enable-chat" <?php checked( $chat_checked ); ?> <?php echo $chat_disabled ? 'disabled' : ''; ?>><span class="sh-toggle-slider"></span></label>
-                    <div>
-                        <span style="font-size:13px;font-weight:500">Enable Chat</span><br>
-                        <span style="font-size:11px;color:<?php echo $chat_disabled ? '#e11d48' : '#9ca3af'; ?>">YoBro plugin gerekli</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Save -->
-            <div style="padding:16px 20px">
-                <button type="button" id="shm-save-settings" class="sh-btn sh-btn-primary">💾 Save Settings</button>
-            </div>
-
-            </div><!-- /shm-membership-opts -->
-        </div><!-- .sh-card -->
-
-        <!-- Hooks & Filters -->
-        <div class="sh-card" style="margin-top:20px">
-            <div style="padding:12px 20px;border-bottom:1px solid #f3f4f6"><strong style="font-size:13px">Hooks & Filters</strong></div>
-            <table style="width:100%;border-collapse:collapse"><tbody>
-            <?php foreach ( [
-                [ 'sh_account_activated',     'action', 'Hesap aktive edilince' ],
-                [ 'sh_account_approved',      'action', 'Admin onaylayınca' ],
-                [ 'sh_account_rejected',      'action', 'Admin reddedince' ],
-                [ 'sh_user_registered',       'action', 'Yeni kullanıcı kayıtlı' ],
-                [ 'sh_profile_updated',       'action', 'Profil güncellendi' ],
-                [ 'sh_password_changed',      'action', 'Şifre değiştirildi' ],
-                [ 'sh_membership_menu_items', 'filter', 'Hesap menüsüne item ekle' ],
-                [ 'sh_register_default_role', 'filter', 'Kayıt rolünü override et' ],
-            ] as [ $name, $type, $desc ] ) :
-                $col = $type === 'action' ? '#8b5cf6' : '#0ea5e9'; ?>
-            <tr style="border-bottom:1px solid #f9fafb">
-                <td style="padding:8px 20px;font-family:Consolas,monospace;font-size:12px"><?php echo esc_html($name); ?></td>
-                <td style="padding:8px 20px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:<?php echo $col; ?>22;color:<?php echo $col; ?>"><?php echo $type; ?></span></td>
-                <td style="padding:8px 20px;font-size:12px;color:#6b7280"><?php echo esc_html($desc); ?></td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody></table>
-        </div>
-
-        </div><!-- .sh-main -->
-        <div class="sh-sidebar"><?php self::renderSidebar(); ?></div>
-        </div><!-- .sh-layout -->
-
-        <script>
-        function shmToggle(type, val) {
-            var map = { membership:'shm-membership-opts', activation:'shm-activation-opts', password_recover:'shm-pw-recover-opts' };
-            if (map[type]) { document.getElementById(map[type]).style.display = val ? '' : 'none'; }
-            else if (type === 'activation_type') { document.getElementById('shm-autologin-wrap').style.display = (val==='email') ? '' : 'none'; }
-        }
-        function shmToast(msg, isError) {
-            var el = document.getElementById('sh-membership-toast');
-            if (!el) return;
-            var item = document.createElement('div');
-            item.className = 'sh-toast-item' + (isError ? ' sh-toast-error' : ' sh-toast-success');
-            item.textContent = msg; el.appendChild(item);
-            setTimeout(function(){ item.remove(); }, 3500);
-        }
-        jQuery(function($) {
-            $('#shm-save-settings').on('click', function() {
-                var $btn = $(this).prop('disabled', true).text('Saving...');
-                $.post(ajaxurl, { action:'sh_membership_save_settings', nonce:'<?php echo esc_js($nonce); ?>', settings:{
-                    enable_membership:                 $('#shm-enable-membership').is(':checked')?1:0,
-                    enable_registration:               $('#shm-enable-registration').is(':checked')?1:0,
-                    enable_remember_login:             $('#shm-enable-remember-login').is(':checked')?1:0,
-                    enable_social_login:               $('#shm-enable-social-login').is(':checked')?1:0,
-                    enable_postcode_validation:        $('#shm-enable-postcode').is(':checked')?1:0,
-                    enable_membership_activation:      $('#shm-enable-membership-activation').is(':checked')?1:0,
-                    membership_activation_type:        $('input[name="shm_activation_type"]:checked').val()||'email',
-                    enable_activation_email_autologin: $('#shm-enable-activation-email-autologin').is(':checked')?1:0,
-                    enable_lost_password:              $('#shm-enable-lost-password').is(':checked')?1:0,
-                    enable_password_recover:           $('#shm-enable-password-recover').is(':checked')?1:0,
-                    password_recover_type:             $('input[name="shm_pw_recover_type"]:checked').val()||'link',
-                    enable_chat:                       $('#shm-enable-chat').is(':checked')?1:0,
-                }}, function(res) {
-                    $btn.prop('disabled',false).text('💾 Save Settings');
-                    if (res.success) { shmToast('✓ Saved. Reloading...',false); setTimeout(function(){ location.reload(); },1200); }
-                    else shmToast('✗ '+(res.data||'Error'),true);
-                }).fail(function(){ $btn.prop('disabled',false).text('💾 Save Settings'); shmToast('✗ Request failed.',true); });
-            });
-        });
-        </script>
-        <?php
+        require_once __DIR__ . '/SettingsTabRenderer.php';
+        \SaltHareket\Membership\Admin\SettingsTabRenderer::render();
     }
 
-    // ─── Guests Tab ───────────────────────────────────────────────────────────
-
-    private static function renderGuestsTab( array $gs ): void
-    {
-        $cleanup_days = (int) get_option( 'sh_guest_cleanup_days', 90 );
-        $next_cron    = wp_next_scheduled( 'sh_guest_cleanup_cron' );
-        $nonce        = wp_create_nonce( 'sh_membership_admin' );
-        ?>
-        <div class="sh-layout">
-        <div class="sh-main">
-
-        <!-- Stats cards -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;">
-            <?php
-            $cards = [
-                [ 'Total Guests',    $gs['total'],      '#6b7280' ],
-                [ 'With Lead Data',  $gs['with_email'], '#2271b1' ],
-                [ 'Merged to User',  $gs['merged'],     '#22c55e' ],
-                [ 'Inactive',        $gs['inactive'],   '#f59e0b' ],
-                [ 'Purgeable',       $gs['purgeable'],  '#ef4444' ],
-            ];
-            foreach ( $cards as [ $label, $val, $color ] ) : ?>
-            <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;text-align:center;border-top:3px solid <?php echo $color; ?>;">
-                <div style="font-size:28px;font-weight:700;color:<?php echo $color; ?>;"><?php echo number_format_i18n( $val ); ?></div>
-                <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-top:4px;"><?php echo $label; ?></div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Cleanup info -->
-        <div class="sh-table-wrap" style="margin-bottom:20px;">
-            <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
-                <h2 style="margin:0;font-size:15px;font-weight:600;">&#128465; Guest Cleanup</h2>
-            </div>
-            <div style="padding:20px;">
-                <p style="margin:0 0 12px;font-size:13px;color:#6b7280;">
-                    Guests are purged if they are <strong>merged to a user</strong> OR have <strong>no lead data</strong> and haven't been active for <strong><?php echo $cleanup_days; ?> days</strong>.
-                </p>
-
-                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 16px;font-size:13px;">
-                        <strong style="color:#ef4444;"><?php echo number_format_i18n( $gs['purgeable'] ); ?></strong>
-                        <span style="color:#6b7280;"> guest<?php echo $gs['purgeable'] !== 1 ? 's' : ''; ?> ready to purge</span>
-                        <span style="color:#9ca3af;font-size:11px;margin-left:8px;">(<?php echo number_format_i18n( $gs['merged'] ); ?> merged + <?php echo number_format_i18n( $gs['inactive'] ); ?> inactive)</span>
-                    </div>
-
-                    <button type="button" id="sh-purge-guests-btn"
-                            class="sh-btn"
-                            style="background:#ef4444;color:#fff;border-color:#ef4444;<?php echo $gs['purgeable'] < 1 ? 'opacity:.5;cursor:not-allowed;' : ''; ?>"
-                            <?php echo $gs['purgeable'] < 1 ? 'disabled' : ''; ?>
-                            data-nonce="<?php echo esc_attr( $nonce ); ?>"
-                            data-days="<?php echo esc_attr( $cleanup_days ); ?>">
-                        &#128465; Purge Inactive Guests
-                    </button>
-                </div>
-
-                <div id="sh-purge-result" style="margin-top:12px;display:none;"></div>
-
-                <?php if ( $next_cron ) : ?>
-                <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">
-                    &#128337; Next automatic cleanup: <strong><?php echo esc_html( wp_date( 'd M Y H:i', $next_cron ) ); ?></strong>
-                </p>
-                <?php else : ?>
-                <p style="margin:16px 0 0;font-size:12px;color:#f59e0b;">
-                    &#9888; Cron not scheduled. Save settings to activate.
-                </p>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Settings -->
-        <div class="sh-table-wrap">
-            <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
-                <h2 style="margin:0;font-size:15px;font-weight:600;">&#9881; Cleanup Settings</h2>
-            </div>
-            <div style="padding:20px;">
-                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                    <?php wp_nonce_field( 'sh_save_guest_settings' ); ?>
-                    <input type="hidden" name="action" value="sh_save_guest_settings">
-                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                        <label style="font-size:13px;font-weight:500;">Purge inactive guests after</label>
-                        <input type="number" name="guest_cleanup_days"
-                               value="<?php echo esc_attr( $cleanup_days ); ?>"
-                               class="sh-input" min="7" max="3650" style="width:80px;">
-                        <span style="font-size:13px;color:#6b7280;">days of inactivity</span>
-                        <button type="submit" class="sh-btn sh-btn-primary">Save</button>
-                    </div>
-                    <p style="margin:8px 0 0;font-size:11px;color:#9ca3af;">
-                        Only guests with no lead data (no email) are auto-purged. Guests with email are kept regardless.
-                    </p>
-                </form>
-            </div>
-        </div>
-
-        </div><!-- .sh-main -->
-        <div class="sh-sidebar"><?php self::renderSidebar(); ?></div>
-        </div>
-
-        <script>
-        (function(){
-            var btn = document.getElementById('sh-purge-guests-btn');
-            if (!btn) return;
-            btn.addEventListener('click', function() {
-                if (!confirm('Purge ' + <?php echo (int)$gs['purgeable']; ?> + ' inactive guest(s)? This cannot be undone.')) return;
-                btn.disabled = true;
-                btn.textContent = 'Purging...';
-                var fd = new FormData();
-                fd.append('action', 'sh_purge_guests');
-                fd.append('nonce', btn.dataset.nonce);
-                fd.append('days', btn.dataset.days);
-                fetch('<?php echo esc_js( admin_url("admin-ajax.php") ); ?>', { method: 'POST', body: fd })
-                    .then(function(r){ return r.json(); })
-                    .then(function(res) {
-                        var el = document.getElementById('sh-purge-result');
-                        el.style.display = 'block';
-                        if (res.success) {
-                            var s = res.data.stats;
-                            el.innerHTML = '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;font-size:13px;color:#166534;">'
-                                + '&#10003; ' + res.data.message
-                                + '<br><span style="font-size:11px;color:#6b7280;margin-top:4px;display:block;">'
-                                + 'Remaining: ' + s.total + ' total &nbsp;|&nbsp; '
-                                + s.with_email + ' with lead data &nbsp;|&nbsp; '
-                                + s.merged + ' merged &nbsp;|&nbsp; '
-                                + s.inactive + ' inactive'
-                                + '</span></div>';
-                            // Purgeable sayısını güncelle
-                            btn.disabled = s.purgeable < 1;
-                            btn.style.opacity = s.purgeable < 1 ? '.5' : '1';
-                            btn.textContent = '\uD83D\uDDD1\uFE0F Purge Inactive Guests';
-                        } else {
-                            el.innerHTML = '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 16px;font-size:13px;color:#991b1b;">Error: ' + (res.data || 'Unknown error') + '</div>';
-                            btn.disabled = false;
-                            btn.textContent = '\uD83D\uDDD1\uFE0F Purge Inactive Guests';
-                        }
-                    });
-            });
-        })();
-        </script>
-        <?php
-    }
+    public static function renderSidebarPublic(): void { self::renderSidebar(); }
 
     // ─── Guest Stats AJAX ─────────────────────────────────────────────────────
 

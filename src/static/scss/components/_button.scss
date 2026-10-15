@@ -74,17 +74,18 @@
 }
 
 // Base: icon positioned left by default
-[class*="btn-fa"]:not(.btn-favorite) {
+[class*="btn-fa"] {
     position: relative;
     &:before {
         content: "";
-        font-family: var(--icon-font);
         position: absolute;
         font-size: 22px;
         line-height: 1;
-        font-weight: 400;
         left: 16px;
         font-style: normal;
+        // Mask-based SVG icon — boyut ve renk btnFa mixin ile set edilir
+        width: 1em;
+        height: 1em;
     }
 }
 

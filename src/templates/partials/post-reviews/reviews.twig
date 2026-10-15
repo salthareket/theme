@@ -1,0 +1,845 @@
+{#
+  reviews.twig — Ürün/post reviews ana bölümü.
+
+  Context:
+    reviews          : SaltComment[]
+    reviews_data     : {total, page, page_total, per_page}
+    reviews_stats    : {total, average, breakdown, percentage}
+    has_reviewed     : false|int
+    can_review       : bool
+    current_sort     : string
+    reviews_settings : array
+    reviews_criteria : array
+    rating_type      : string
+    post             : Timber\Post
+    user             : Timber\User
+#}
+{% import "partials/post-reviews/_macros.twig" as rm %}
+
+{% set _total   = reviews_stats.total   ?? 0 %}
+{% set _average = reviews_stats.average ?? 0 %}
+{% set _sort    = current_sort ?? 'recent' %}
+{% set rs       = reviews_settings ?? {} %}
+{% set _show_bd = rs.rating.show_breakdown ?? true %}
+{% set _criteria_display = rs.rating.criteria_display ?? 'inline' %}
+{% set _has_criteria     = reviews_criteria is defined and reviews_criteria is not empty %}
+
+<div class="sh-reviews"
+     id="sh-reviews"
+     data-post-id="{{ post.ID }}"
+     data-required-js="lightgallery"
+     data-html-whitelist=".sh-reviews,.sh-reviews-*,.sh-review-*,.sh-star,.sh-star-*,.sh-breakdown-*,.sh-verified-badge,.sh-vote-btn,.sh-reply-*,.sh-criteria-*,.sh-upload-*,.sh-preview-*,.sh-nps-*,.sh-thumb-*,.lightgallery,.gallery-item">
+
+    {# ════════════════════════════════════════════════════════════════════════
+       İstatistik Özeti
+    ════════════════════════════════════════════════════════════════════════ #}
+    <div class="sh-reviews-summary">
+
+        {# Ortalama skor + yıldızlar #}
+        <div class="sh-reviews-average">
+            {% if _has_criteria and _total > 0 %}
+                {#
+                  Genel ortalama: criteria varsa HER ZAMAN popover göster.
+                  criteria_display ayarına bakılmaksızın — bu ayar sadece
+                  review item'lardaki bireysel star rating için geçerli.
+                #}
+                <button type="button"
+                        class="sh-reviews-average-trigger btn-reset sh-criteria-popover-trigger"
+                        aria-label="{{ translate('Show criteria breakdown') }}"
+                        title="{{ translate('Click to see rating by criteria') }}">
+                    <span class="sh-reviews-score">{{ _total > 0 ? _average : 0 }}</span>
+                    <div class="sh-reviews-stars-display">
+                        {{ rm.stars(_average, 5) }}
+                    </div>
+                    <span class="sh-reviews-count">
+                        {{ _total }} {{ translate("review") }}
+                    </span>
+                    <span class="sh-criteria-popover-hint">
+                        {{ fa_icon('circle-info', 'regular', 'ms-1 opacity-50') }}
+                    </span>
+                    {# Popover panel — CSS hover + JS click ile açılır, Bootstrap bağımlılığı yok #}
+                    <div class="sh-criteria-popover-panel" role="tooltip" aria-hidden="true">
+                        <div class="sh-criteria-popover-arrow"></div>
+                        <div class="sh-criteria-popover-title">{{ translate('Rating Breakdown') }}</div>
+                        <div class="sh-criteria-popover-body">
+                        {% for criterion in reviews_criteria %}
+                            {% set _crit_avg = reviews_stats.criteria_averages[criterion.key] ?? 0 %}
+                            <div class="sh-criteria-popover-row">
+                                <span class="sh-criteria-popover-label">{{ criterion.label }}</span>
+                                <span class="sh-criteria-popover-stars">
+                                    {% for i in 1..5 %}
+                                        <svg class="sh-criteria-mini-star{% if i <= _crit_avg %} filled{% endif %}"
+                                             viewBox="0 0 24 24" width="12" height="12" fill="currentColor"
+                                             aria-hidden="true">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                    {% endfor %}
+                                    <span class="sh-criteria-popover-score">{{ _crit_avg > 0 ? _crit_avg|number_format(1) : '—' }}</span>
+                                </span>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </button>
+            {% else %}
+                {# Inline modu (default) — sadece skor + yıldızlar #}
+                <span class="sh-reviews-score">{{ _total > 0 ? _average : 0 }}</span>
+                <div class="sh-reviews-stars-display">
+                    {{ rm.stars(_average, 5) }}
+                </div>
+                <span class="sh-reviews-count">
+                    {{ _total }} {{ translate("review") }}
+                </span>
+            {% endif %}
+        </div>
+
+        {# Breakdown çubukları — _total==0 iken de göster, barlar 0 width #}
+        {% if _show_bd %}
+        <div class="sh-reviews-breakdown" role="list" aria-label="{{ translate('Rating breakdown') }}">
+            {% for star in [5,4,3,2,1] %}
+            {% set count = reviews_stats.breakdown[star] ?? 0 %}
+            {% set pct   = reviews_stats.percentage[star] ?? 0 %}
+            <div class="sh-breakdown-row{% if count == 0 %} sh-breakdown-row--empty{% endif %}"
+                 role="listitem"
+                 tabindex="{{ count > 0 ? '0' : '-1' }}"
+                 data-filter-rating="{{ star }}"
+                 title="{{ count }} {{ translate('reviews') }}"
+                 {% if count > 0 %}onclick="shReviewsFilterRating({{ star }}, this)"{% endif %}>
+
+                <span class="sh-breakdown-star">
+                    {{ fa_icon('star', 'solid', 'sh-bd-star-icon') }}
+                    {{ star }}
+                </span>
+                <div class="sh-breakdown-bar" role="progressbar"
+                     aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="sh-breakdown-fill" style="width:{{ pct }}%"></div>
+                </div>
+                <span class="sh-breakdown-count">{{ count }}</span>
+
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+
+    {# ════════════════════════════════════════════════════════════════════════
+       Yazma formu / durum mesajları
+    ════════════════════════════════════════════════════════════════════════ #}
+    {% if can_review %}
+        {% include "partials/post-reviews/review-form.twig" with {
+            target_type      : target_type ?? 'post',
+            target_id        : target_id ?? post.ID,
+            review_modes     : review_modes ?? ['rate','comment'],
+            reviews_criteria : reviews_criteria ?? [],
+            reviews_settings : reviews_settings ?? {},
+            rating_type      : rating_type ?? 'stars'
+        } %}
+    {% elseif has_reviewed %}
+        <div class="sh-review-notice sh-review-notice--info">
+            {{ fa_icon('circle-check','solid','me-2 text-success') }}
+            {{ translate("You have already reviewed this content.") }}
+            <button type="button"
+                    class="btn btn-link btn-sm p-0 ms-1 sh-open-review-modal"
+                    data-review-id="{{ has_reviewed }}"
+                    style="font-size:inherit;text-decoration:underline;">
+                {{ translate("View your comment") }}
+            </button>
+        </div>
+    {% elseif user is not defined or not user.logged %}
+        <div class="sh-review-notice">
+            {{ fa_icon('lock','solid','me-2 opacity-50') }}
+            <a href="{{ function('get_account_endpoint_url','my-account') }}">
+                {{ translate("Login to write a review") }}
+            </a>
+        </div>
+    {% endif %}
+
+    {# ════════════════════════════════════════════════════════════════════════
+       Toolbar — toplam sayı + sort dropdown
+    ════════════════════════════════════════════════════════════════════════ #}
+    {% if _total > 0 %}
+    <div class="sh-reviews-toolbar">
+        <span class="sh-reviews-toolbar-count">
+            {{ _total }} {{ translate("review") }}
+        </span>
+
+        <div class="sh-reviews-sort dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                    type="button"
+                    id="sh-sort-btn"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                <span id="sh-sort-label">
+                    {% if _sort == 'oldest'      %}{{ translate("Oldest") }}
+                    {% elseif _sort == 'rating_high' %}{{ translate("Highest Rated") }}
+                    {% elseif _sort == 'rating_low'  %}{{ translate("Lowest Rated") }}
+                    {% elseif _sort == 'helpful'     %}{{ translate("Most Helpful") }}
+                    {% else                          %}{{ translate("Most Recent") }}
+                    {% endif %}
+                </span>
+                {{ fa_icon('angle-down','light','ms-1') }}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sh-sort-btn">
+                {% set _sorts = {
+                    'recent'      : 'Most Recent',
+                    'oldest'      : 'Oldest',
+                    'rating_high' : 'Highest Rated',
+                    'rating_low'  : 'Lowest Rated',
+                    'helpful'     : 'Most Helpful'
+                } %}
+                {% for _sk, _sl in _sorts %}
+                <li>
+                    <button class="dropdown-item{% if _sort == _sk %} active{% endif %}"
+                            type="button"
+                            data-sort="{{ _sk }}"
+                            onclick="shReviewsSort('{{ _sk }}')">
+                        {{ translate(_sl) }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ════════════════════════════════════════════════════════════════════════
+       Review Listesi
+    ════════════════════════════════════════════════════════════════════════ #}
+    <div class="sh-reviews-list" id="sh-reviews-list">
+        {% if reviews %}
+            {% for review in reviews %}
+                {% include "partials/post-reviews/review-item.twig" with {
+                    review: review,
+                    reviews_settings: reviews_settings,
+                    reviews_criteria: reviews_criteria,
+                    rating_type: rating_type
+                } %}
+            {% endfor %}
+        {% else %}
+            <div class="sh-reviews-empty">
+                {{ fa_icon('star','regular','fa-3x opacity-25 d-block mb-3') }}
+                <p>{{ translate("No reviews yet. Be the first to review!") }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ════════════════════════════════════════════════════════════════════════
+       Pagination + Load More
+    ════════════════════════════════════════════════════════════════════════ #}
+    {% include "partials/post-reviews/_pagination.twig" with { reviews_data: reviews_data } %}
+
+    {% if reviews_data.page_total > 1 and reviews_data.page < reviews_data.page_total %}
+    <div class="sh-load-more-wrap">
+        <button type="button"
+                id="sh-load-more-btn"
+                class="btn btn-outline-secondary btn-sm sh-load-more-btn"
+                onclick="shReviewsLoadMore()">
+            {{ translate("Load More") }}
+        </button>
+    </div>
+    {% endif %}
+
+</div>
+
+{# ════ CSS ══════════════════════════════════════════════════════════════════ #}
+<style>
+/* ── Stars display (readonly) ── */
+.sh-stars { display:inline-flex; gap:2px; align-items:center; vertical-align:middle; }
+.sh-star svg, .sh-star .fa-icon { width:16px; height:16px; }
+.sh-star--full  svg { color:#f59e0b; }
+.sh-star--half  svg { color:#f59e0b; }
+.sh-star--empty svg { color:#d1d5db; }
+
+/* ── Summary ── */
+.sh-reviews-summary {
+    display:grid;
+    grid-template-columns: 90px 1fr;
+    gap:20px; align-items:start;
+    padding:20px; background:#f9fafb; border-radius:12px;
+    margin-bottom:24px;
+}
+@media (max-width:480px) {
+    .sh-reviews-summary { grid-template-columns:1fr; }
+}
+.sh-reviews-average {
+    display:flex; flex-direction:column; align-items:center;
+    gap:6px; text-align:center;
+}
+.sh-reviews-score { font-size:40px; font-weight:700; color:#111827; line-height:1; }
+.sh-reviews-stars-display .sh-stars { gap:3px; }
+.sh-reviews-stars-display .sh-star svg { width:18px; height:18px; }
+.sh-reviews-count { font-size:12px; color:#9ca3af; }
+
+/* ── Breakdown ── */
+.sh-reviews-breakdown { display:flex; flex-direction:column; gap:5px; }
+.sh-breakdown-row {
+    display:grid; grid-template-columns:36px 1fr 28px;
+    align-items:center; gap:8px; cursor:pointer; padding:3px 6px;
+    border-radius:6px; transition:background .15s;
+}
+.sh-breakdown-row:hover:not(.sh-breakdown-row--empty) { background:#f0f0f0; }
+.sh-breakdown-row.active { background:#fef9c3; }
+.sh-breakdown-row--empty { cursor:default; opacity:.5; }
+.sh-breakdown-star {
+    display:flex; align-items:center; gap:3px;
+    font-size:13px; font-weight:500; color:#374151;
+}
+.sh-bd-star-icon { width:12px; height:12px; color:#f59e0b; }
+.sh-breakdown-bar {
+    height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden;
+}
+.sh-breakdown-fill { height:100%; background:#f59e0b; border-radius:4px; transition:width .4s; }
+.sh-breakdown-count { font-size:12px; color:#9ca3af; text-align:right; }
+
+/* ── Toolbar ── */
+.sh-reviews-toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f0f0f0;
+}
+.sh-reviews-toolbar-count { font-size:14px; color:#6b7280; font-weight:500; }
+
+/* ── Review item ── */
+.sh-review-item {
+    padding:16px 0; border-bottom:1px solid #f3f4f6;
+    overflow: visible; /* popover panel dışarı taşsın */
+}
+.sh-review-item:last-child { border-bottom:none; }
+.sh-review-item--pending { opacity:.75; background:#fefce8; padding:12px; border-radius:8px; }
+
+.sh-review-item-header {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:12px; margin-bottom:10px;
+    overflow: visible; /* popover için */
+    position: relative;
+}
+.sh-reviews-list { overflow: visible; }
+.sh-review-item-author { display:flex; align-items:center; gap:10px; }
+.sh-review-item-author img { border-radius:50%; width:40px; height:40px; }
+.sh-review-item-meta { display:flex; flex-direction:column; gap:3px; }
+.sh-review-item-name { font-size:14px; font-weight:600; color:#111827; }
+.sh-review-item-date { font-size:12px; color:#9ca3af; }
+
+.sh-verified-badge {
+    display:inline-flex; align-items:center;
+    font-size:11px; background:#dcfce7; color:#15803d;
+    padding:2px 8px; border-radius:10px; font-weight:600;
+}
+.sh-verified-badge svg { width:11px; height:11px; }
+
+.sh-review-item-rating { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.sh-rating-num { font-size:12px; color:#9ca3af; }
+
+/* ── Criteria scores ── */
+.sh-criteria-scores {
+    display:flex; flex-direction:column; gap:6px;
+    margin:10px 0; padding:10px 14px;
+    background:#f9fafb; border-radius:8px;
+}
+.sh-criteria-score-row {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.sh-criteria-score-label { font-size:13px; font-weight:500; color:#374151; }
+
+/* ── Review body ── */
+.sh-review-item-title { font-size:15px; font-weight:600; margin:8px 0 4px; color:#111827; }
+.sh-review-item-content { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+
+/* ── Media ── */
+.sh-review-item-media { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.sh-review-media-thumb img {
+    width:80px; height:80px; object-fit:cover;
+    border-radius:8px; border:1px solid #e5e7eb;
+    transition:opacity .2s;
+}
+.sh-review-media-thumb:hover img { opacity:.85; }
+
+/* ── Footer ── */
+.sh-review-item-footer { display:flex; align-items:center; gap:16px; margin-top:8px; flex-wrap:wrap; }
+.sh-review-votes { display:flex; align-items:center; gap:8px; }
+.sh-votes-label { font-size:12px; color:#9ca3af; }
+.sh-vote-btn {
+    display:inline-flex; align-items:center; gap:4px;
+    background:none; border:1px solid #e5e7eb; border-radius:6px;
+    padding:4px 10px; font-size:13px; cursor:pointer; transition:all .2s; color:#6b7280;
+}
+.sh-vote-btn svg { width:13px; height:13px; }
+.sh-vote-btn:hover { border-color:#2271b1; color:#2271b1; }
+.sh-vote-btn.active { background:#dbeafe; border-color:#2271b1; color:#2271b1; }
+
+/* ── Replies ── */
+.sh-review-replies {
+    margin-top:12px; padding-left:16px;
+    border-left:3px solid #f0f0f0;
+}
+.sh-review-reply { padding:8px 0; border-bottom:1px solid #fafafa; }
+.sh-review-reply:last-child { border-bottom:none; }
+.sh-reply-header {
+    display:flex; align-items:center; gap:8px; margin-bottom:4px; font-size:13px;
+}
+.sh-reply-header img { border-radius:50%; width:28px; height:28px; }
+.sh-reply-header time { font-size:11px; color:#9ca3af; }
+.sh-reply-content { font-size:13px; color:#374151; margin:0; line-height:1.6; }
+.sh-reply-form { margin-top:10px; padding:12px; background:#f9fafb; border-radius:8px; }
+
+/* ── Notice ── */
+.sh-review-notice {
+    display:flex; align-items:center;
+    padding:12px 16px; background:#f9fafb;
+    border-radius:8px; font-size:14px; margin-bottom:16px;
+}
+.sh-review-notice--info { background:#eff6ff; color:#1d4ed8; }
+.sh-review-notice svg { width:16px; height:16px; flex-shrink:0; }
+
+/* ── Empty ── */
+.sh-reviews-empty {
+    text-align:center; padding:40px 20px; color:#9ca3af;
+}
+.sh-reviews-empty svg { display:block; margin:0 auto 12px; }
+
+/* ── Criteria popover trigger ── */
+.sh-reviews-average-trigger {
+    background: none; border: none; padding: 0; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; text-align: center; width: 100%;
+    /* opacity hover yok — children (panel dahil) etkilenir */
+    position: relative;
+    z-index: 1;
+    opacity: 1 !important;
+    transition: none !important;
+}
+.sh-reviews-average-trigger:hover,
+.sh-reviews-average-trigger:focus,
+.sh-reviews-average-trigger:focus-within,
+.sh-reviews-average-trigger:active,
+.sh-reviews-average-trigger.open {
+    opacity: 1 !important;
+    z-index: 1090;
+}
+/* Review item rating trigger */
+.sh-review-rating-popover-trigger {
+    background: none; border: none; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    position: relative;
+    z-index: 1;
+    opacity: 1 !important;
+    transition: none !important;
+}
+.sh-review-rating-popover-trigger:hover,
+.sh-review-rating-popover-trigger:focus,
+.sh-review-rating-popover-trigger:focus-within,
+.sh-review-rating-popover-trigger:active,
+.sh-review-rating-popover-trigger.open {
+    opacity: 1 !important;
+    z-index: 1090;
+}
+.sh-review-rating-popover-trigger:hover .sh-criteria-popover-panel,
+.sh-review-rating-popover-trigger:focus-within .sh-criteria-popover-panel,
+.sh-review-rating-popover-trigger.open .sh-criteria-popover-panel {
+    z-index: 1090;
+}
+.sh-criteria-popover-hint { display: inline-flex; align-items: center; font-size: 11px; color: #9ca3af; }
+.sh-criteria-popover-hint svg { width: 13px; height: 13px; }
+
+/* ── Popover panel ── */
+.sh-criteria-popover-panel {
+    display: none;
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1080;   /* Bootstrap modal=1055, dropdown=1000 — üstünde olsun */
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #374151;
+    opacity: 1 !important;
+    isolation: isolate;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    padding: 12px 14px;
+    min-width: 200px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+/* Aşağı açılan varyant (review item rating hover için) */
+.sh-criteria-popover-panel--down {
+    left: 50%;
+    top: calc(100% + 10px);
+    transform: translateX(-50%);
+}
+/* Mobilde ve --down: aşağı */
+@media (max-width: 576px) {
+    .sh-criteria-popover-panel:not(.sh-criteria-popover-panel--down) {
+        left: 50%;
+        top: auto;
+        bottom: calc(100% + 10px);
+        transform: translateX(-50%);
+    }
+}
+.sh-criteria-popover-trigger:hover .sh-criteria-popover-panel,
+.sh-criteria-popover-trigger:focus-within .sh-criteria-popover-panel,
+.sh-criteria-popover-trigger.open .sh-criteria-popover-panel {
+    display: block;
+    pointer-events: auto;
+}
+.sh-criteria-popover-title {
+    font-size: 12px; font-weight: 600; color: #374151;
+    margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid #f0f0f0;
+}
+/* Ok — sağdan açılan panel için (solda ok) */
+.sh-criteria-popover-arrow {
+    position: absolute;
+    left: -7px; top: 50%; 
+    width: 12px; height: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-right: none; border-top: none;
+    transform: translateY(-50%) rotate(45deg);
+}
+/* Ok — yukarıdan açılan panel için (üstte ok) */
+.sh-criteria-popover-arrow--up {
+    left: 50%; top: -7px;
+    background: #ffffff;
+    transform: translateX(-50%) rotate(135deg);
+    border-right: none; border-bottom: none;
+    border-left: 1px solid #e5e7eb; border-top: 1px solid #e5e7eb;
+}
+@media (max-width: 576px) {
+    .sh-criteria-popover-arrow:not(.sh-criteria-popover-arrow--up) {
+        left: 50%; top: auto; bottom: -7px;
+        transform: translateX(-50%) rotate(-135deg);
+    }
+}
+
+/* ── Criteria popover body ── */
+.sh-criteria-popover-body { display: flex; flex-direction: column; gap: 6px; }
+.sh-criteria-popover-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; font-size: 12px;
+}
+.sh-criteria-popover-label { color: #374151; font-weight: 500; flex-shrink: 0; }
+.sh-criteria-popover-stars {
+    display: inline-flex; align-items: center; gap: 2px;
+}
+.sh-criteria-mini-star { color: #d1d5db; }
+.sh-criteria-mini-star.filled { color: #f59e0b; }
+.sh-criteria-popover-score { font-size: 11px; color: #9ca3af; margin-left: 4px; }
+</style>
+
+{# ════ JS ════════════════════════════════════════════════════════════════════ #}
+<script>
+(function () {
+    var _postId  = {{ post.ID }};
+
+    /* ── Criteria popover — click toggle (mobil için) ────────────────────── */
+    (function initCriteriaPopovers() {
+        document.querySelectorAll('#sh-reviews .sh-criteria-popover-trigger').forEach(function(btn) {
+            // Panel hover ile CSS'den açılıyor; click ise .open toggle eder (mobil touch)
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                btn.classList.toggle('open');
+            });
+        });
+        // Dışarı tıklayınca kapat
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.sh-criteria-popover-trigger.open').forEach(function(el) {
+                el.classList.remove('open');
+            });
+        });
+    })();
+
+    /* ── shReviewOpenModal — AJAX ile review modal aç ───────────────────── */
+    /* Hem ürün sayfasında hem my-account'ta çalışır.                        */
+    /* my-reviews.twig zaten tanımlıysa override etme.                       */
+    if (typeof window.shReviewOpenModal !== 'function') {
+        window.shReviewOpenModal = function(commentId) {
+            function _openModal(html, title) {
+                if (typeof bootbox !== 'undefined') {
+                    bootbox.dialog({
+                        title: title || '{{ translate("Your Review") }}',
+                        message: html,
+                        size: 'md',
+                        closeButton: true,
+                        className: 'sh-review-modal'
+                    });
+                } else {
+                    var $m = $('<div class="modal fade" tabindex="-1"><div class="modal-dialog modal-md"><div class="modal-content"></div></div></div>');
+                    $m.find('.modal-content').html('<div class="modal-header"><h5 class="modal-title">'+(title||'{{ translate("Your Review") }}')+'</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>'+html);
+                    $('body').append($m);
+                    var bs = new bootstrap.Modal($m[0]);
+                    bs.show();
+                    $m.on('hidden.bs.modal', function(){ $m.remove(); });
+                }
+            }
+            var q = new ajax_query();
+            q.method = 'review_modal';
+            q.vars   = { id: commentId };
+            q.done   = function(res) {
+                if (res && !res.error && res.html) {
+                    _openModal(res.html, (res.data && res.data.title) || '{{ translate("Your Review") }}');
+                } else {
+                    alert((res && res.message) || '{{ translate("Review not found.") }}');
+                }
+            };
+            q.request();
+        };
+    }
+
+    /* ── .sh-open-review-modal — event delegation ile modal aç ─────────── */
+    /* your-review.twig ve reviews.twig'deki "View your comment" butonları   */
+    /* shReviewOpenModal load order'ından bağımsız çalışır                   */
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.sh-open-review-modal');
+        if (!btn) return;
+        e.preventDefault();
+        var reviewId = parseInt(btn.dataset.reviewId, 10);
+        if (!reviewId) return;
+        if (typeof window.shReviewOpenModal === 'function') {
+            window.shReviewOpenModal(reviewId);
+        }
+    });
+    var _ajaxUrl = '{{ function("admin_url","admin-ajax.php") }}';
+    var _nonce   = '{{ function("wp_create_nonce","sh_reviews_fetch") }}';
+    var _sort    = '{{ _sort }}';
+    var _page    = {{ reviews_data.page ?? 1 }};
+    var _pageTotal = {{ reviews_data.page_total ?? 1 }};
+    var _rating  = null;
+
+    var _sortLabels = {
+        'recent'      : '{{ translate("Most Recent") }}',
+        'oldest'      : '{{ translate("Oldest") }}',
+        'rating_high' : '{{ translate("Highest Rated") }}',
+        'rating_low'  : '{{ translate("Lowest Rated") }}',
+        'helpful'     : '{{ translate("Most Helpful") }}'
+    };
+
+    /* ── Public API ─────────────────────────────────────────────────────── */
+    window.shReviewsSort = function (sort) {
+        _sort = sort; _page = 1; _rating = null;
+        // Dropdown label güncelle
+        _updateSortLabel(sort);
+        _fetch();
+    };
+    window.shReviewsPage = function (page) {
+        _page = page; _fetch();
+    };
+    window.shReviewsLoadMore = function () {
+        if (_page < _pageTotal) { _page++; _fetchAppend(); }
+    };
+    window.shReviewsFilterRating = function (star, el) {
+        if (_rating === star) {
+            _rating = null;
+            document.querySelectorAll('.sh-breakdown-row').forEach(function (r) { r.classList.remove('active'); });
+        } else {
+            _rating = star;
+            document.querySelectorAll('.sh-breakdown-row').forEach(function (r) {
+                r.classList.toggle('active', parseInt(r.dataset.filterRating) === star);
+            });
+        }
+        _page = 1; _fetch();
+    };
+
+    /* ── Sort label güncelle ────────────────────────────────────────────── */
+    function _updateSortLabel(sort) {
+        // span#sh-sort-label varsa direkt güncelle
+        var lbl = document.getElementById('sh-sort-label');
+        if (lbl) lbl.textContent = _sortLabels[sort] || _sortLabels['recent'];
+        // Active state dropdown items
+        document.querySelectorAll('.sh-reviews-sort .dropdown-item').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.sort === sort);
+        });
+    }
+
+    /* ── Loading state ──────────────────────────────────────────────────── */
+    function _setLoading(on) {
+        var list = document.getElementById('sh-reviews-list');
+        var wrap = document.getElementById('sh-reviews');
+        if (!list) return;
+        if (on) {
+            list.classList.add('sh-reviews-loading');
+            list.style.pointerEvents = 'none';
+            // loading-process overlay ekle
+            if (!document.getElementById('sh-reviews-loader')) {
+                var ldr = document.createElement('div');
+                ldr.id = 'sh-reviews-loader';
+                ldr.className = 'loading-process loading-process--overlay';
+                ldr.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);border-radius:8px;z-index:10';
+                ldr.innerHTML = '<div class="loading-process__spinner" style="width:28px;height:28px;border:3px solid #e5e7eb;border-top-color:#374151;border-radius:50%;animation:sh-spin .7s linear infinite"></div>';
+                var listWrap = list.parentElement;
+                listWrap.style.position = 'relative';
+                listWrap.appendChild(ldr);
+            }
+        } else {
+            list.classList.remove('sh-reviews-loading');
+            list.style.pointerEvents = '';
+            var ldr = document.getElementById('sh-reviews-loader');
+            if (ldr) ldr.remove();
+        }
+    }
+
+    /* ── Re-init AJAX içeriği ───────────────────────────────────────────── */
+    function _reinitContent(container) {
+        // LightGallery: .lightgallery.init-me olan elementleri bul ve init et
+        container.querySelectorAll('.lightgallery.init-me').forEach(function (el) {
+            // init-me kalsın, init_lightGallery bunu işler
+        });
+        if (typeof init_lightGallery === 'function') {
+            setTimeout(init_lightGallery, 100);
+        }
+        // AjaxInitManager re-init
+        if (window.AjaxInitManager && typeof window.AjaxInitManager.run === 'function') {
+            try { window.AjaxInitManager.run($(container)); } catch(e) {}
+        }
+    }
+
+    /* ── Fetch — listeyi replace et ────────────────────────────────────── */
+    function _fetch() {
+        var list = document.getElementById('sh-reviews-list');
+        _setLoading(true);
+
+        var body = new URLSearchParams({
+            action: 'sh_reviews_fetch', post_id: _postId,
+            sort: _sort, page: _page, _wpnonce: _nonce
+        });
+        if (_rating) body.append('rating', _rating);
+
+        fetch(_ajaxUrl, { method:'POST', body:body })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                _setLoading(false);
+                if (!res.success) return;
+
+                if (list) {
+                    list.innerHTML = res.data.html;
+                    _reinitContent(list);
+                }
+
+                // Pagination güncelle
+                _updatePagination(res.data.pagination_html, res.data.data);
+
+                // Scroll to list
+                var wrap = document.getElementById('sh-reviews');
+                if (wrap) wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+            })
+            .catch(function () { _setLoading(false); });
+    }
+
+    /* ── Fetch append — load more ───────────────────────────────────────── */
+    function _fetchAppend() {
+        var list  = document.getElementById('sh-reviews-list');
+        var moreBtn = document.getElementById('sh-load-more-btn');
+        if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = '...'; }
+
+        var body = new URLSearchParams({
+            action: 'sh_reviews_fetch', post_id: _postId,
+            sort: _sort, page: _page, _wpnonce: _nonce
+        });
+        if (_rating) body.append('rating', _rating);
+
+        fetch(_ajaxUrl, { method:'POST', body:body })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.success) { if (moreBtn) { moreBtn.disabled = false; moreBtn.textContent = '{{ translate("Load More") }}'; } return; }
+
+                if (list && res.data.html) {
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = res.data.html;
+                    while (tmp.firstChild) list.appendChild(tmp.firstChild);
+                    _reinitContent(list);
+                }
+
+                _updatePagination(res.data.pagination_html, res.data.data);
+            })
+            .catch(function () { if (moreBtn) { moreBtn.disabled = false; moreBtn.textContent = '{{ translate("Load More") }}'; } });
+    }
+
+    /* ── Pagination / Load More güncelle ───────────────────────────────── */
+    function _updatePagination(paginationHtml, data) {
+        if (data) {
+            _page      = data.page      || _page;
+            _pageTotal = data.page_total || _pageTotal;
+        }
+
+        // Sayı tabanlı pagination
+        var pag = document.getElementById('sh-reviews-pagination');
+        if (pag && paginationHtml !== undefined) {
+            var tmp = document.createElement('div');
+            tmp.innerHTML = paginationHtml;
+            pag.replaceWith(tmp.firstElementChild || pag);
+        }
+
+        // Load More butonu
+        var moreBtn = document.getElementById('sh-load-more-btn');
+        if (moreBtn) {
+            if (_page >= _pageTotal) {
+                moreBtn.style.display = 'none';
+            } else {
+                moreBtn.disabled = false;
+                moreBtn.textContent = '{{ translate("Load More") }}';
+                moreBtn.style.display = '';
+            }
+        }
+    }
+
+    /* ── Global helpers — AJAX inject sonrası da çalışır ───────────────── */
+    // shReviewVote: review-form.twig yüklenmemiş olsa bile (has_reviewed, not-logged-in)
+    // AJAX inject edilen listede helpful butonları çalışmalı
+    if (typeof window.shReviewVote !== 'function') {
+        window.shReviewVote = function (btn) {
+            if (!btn) return;
+            fetch('{{ function("admin_url","admin-ajax.php") }}', {
+                method:'POST',
+                body: new URLSearchParams({
+                    action:'sh_review_vote', id:btn.dataset.id, type:btn.dataset.type,
+                    _wpnonce:'{{ function("wp_create_nonce","sh_review_vote") }}'
+                })
+            }).then(function(r){ return r.json(); }).then(function(res) {
+                if (!res.success) return;
+                var card = btn.closest('.sh-review-item');
+                if (!card) return;
+                var hBtn = card.querySelector('.sh-vote-btn[data-type="helpful"]');
+                var uBtn = card.querySelector('.sh-vote-btn[data-type="unhelpful"]');
+                if (hBtn) { hBtn.classList.remove('active'); hBtn.querySelector('.sh-vote-count').textContent = res.helpful ?? 0; }
+                if (uBtn) { uBtn.classList.remove('active'); uBtn.querySelector('.sh-vote-count').textContent = res.unhelpful ?? 0; }
+                if (res.voted === 'helpful'   && hBtn) hBtn.classList.add('active');
+                if (res.voted === 'unhelpful' && uBtn) uBtn.classList.add('active');
+            });
+        };
+    }
+    if (typeof window.shToggleReply !== 'function') {
+        window.shToggleReply = function (btn) {
+            var box = document.getElementById('sh-reply-' + btn.dataset.id);
+            if (box) box.style.display = box.style.display === 'none' ? '' : 'none';
+        };
+    }
+    if (typeof window.shSubmitReply !== 'function') {
+        window.shSubmitReply = function (btn) {
+            var id = btn.dataset.id;
+            var box = document.getElementById('sh-reply-' + id);
+            var content = box && box.querySelector('.sh-reply-text').value.trim();
+            if (!content) return;
+            btn.disabled = true;
+            fetch('{{ function("admin_url","admin-ajax.php") }}', {
+                method:'POST',
+                body: new URLSearchParams({
+                    action:'sh_review_reply', comment_id:id, content:content,
+                    _wpnonce:'{{ function("wp_create_nonce","sh_review_reply") }}'
+                })
+            }).then(function(r){ return r.json(); }).then(function(res) {
+                if (res.success) { box.style.display='none'; box.querySelector('.sh-reply-text').value=''; location.reload(); }
+                btn.disabled = false;
+            });
+        };
+    }
+
+    /* ── Spin keyframe ──────────────────────────────────────────────────── */
+    if (!document.getElementById('sh-spin-style')) {
+        var s = document.createElement('style');
+        s.id  = 'sh-spin-style';
+        s.textContent = '@keyframes sh-spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(s);
+    }
+})();
+</script>

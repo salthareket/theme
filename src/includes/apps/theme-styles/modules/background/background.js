@@ -46,6 +46,16 @@
             this.bindEvents();
             this.initMediaUpload();
             this.updatePreview();
+            // Sayfa yüklenince aktif gradient tab'larini init et
+            this.initActiveGradientPickers();
+        },
+
+        initActiveGradientPickers() {
+            // Aktif gradient tab'larindaki picker'lari init et
+            $('.ts-bg-tab[data-tab="gradient"].active').each(function() {
+                const control = $(this).find('[class*="ts-bg-gradient-picker-"]')[0];
+                if (control) initGradientPicker(control);
+            });
         },
 
         bindEvents() {
@@ -142,34 +152,36 @@
             const $link    = $preview.find('.ts-body-preview-link');
             const $visited = $preview.find('.ts-body-preview-link-visited');
 
-            $preview.css({ backgroundImage: '', backgroundColor: '' });
-            $preview.css('background-color', d.bg_color || '#ffffff');
+            // Önce temizle
+            $preview.css({ backgroundImage: 'none', backgroundColor: '', backgroundSize: '', backgroundPosition: '', backgroundRepeat: '', backgroundAttachment: '' });
 
-            const grad     = d.bg_gradient || '';
-            const hasImage = !!(d.bg_image_url);
-            const hasGrad  = !!grad;
-            const size     = d.bg_size === 'custom'
-                ? `${d.bg_size_w || '100%'} ${d.bg_size_h || 'auto'}`
-                : (d.bg_size || 'cover');
+            // Aktif type'a göre background uygula — type yoksa aktif butona bak
+            const bgType = d.bg_type
+                || $('#module-background .ts-bg-type-btn.active').first().data('type')
+                || 'color';
 
-            if (hasImage && hasGrad) {
-                $preview.css({
-                    backgroundImage:    `url(${d.bg_image_url}), ${grad}`,
-                    backgroundSize:     `${size}, cover`,
-                    backgroundPosition: `${d.bg_position || 'center center'}, center center`,
-                    backgroundRepeat:   `${d.bg_repeat || 'no-repeat'}, no-repeat`,
-                    backgroundAttachment: `${d.bg_attachment || 'scroll'}, scroll`,
-                });
-            } else if (hasImage) {
-                $preview.css({
-                    backgroundImage:    `url(${d.bg_image_url})`,
-                    backgroundSize:     size,
-                    backgroundPosition: d.bg_position || 'center center',
-                    backgroundRepeat:   d.bg_repeat || 'no-repeat',
-                    backgroundAttachment: d.bg_attachment || 'scroll',
-                });
-            } else if (hasGrad) {
-                $preview.css('backgroundImage', grad);
+            if (bgType === 'color') {
+                $preview.css({ backgroundColor: d.bg_color || '#ffffff', backgroundImage: 'none' });
+
+            } else if (bgType === 'gradient') {
+                const grad = d.bg_gradient || '';
+                $preview.css({ backgroundImage: grad || 'none', backgroundColor: '' });
+
+            } else if (bgType === 'image') {
+                if (d.bg_image_url) {
+                    const size = d.bg_size === 'custom'
+                        ? `${d.bg_size_w || '100%'} ${d.bg_size_h || 'auto'}`
+                        : (d.bg_size || 'cover');
+                    $preview.css({
+                        backgroundImage:      `url(${d.bg_image_url})`,
+                        backgroundSize:       size,
+                        backgroundPosition:   d.bg_position || 'center center',
+                        backgroundRepeat:     d.bg_repeat || 'no-repeat',
+                        backgroundAttachment: d.bg_attachment || 'scroll',
+                    });
+                } else {
+                    $preview.css({ backgroundImage: 'none', backgroundColor: d.bg_color || '#ffffff' });
+                }
             }
 
             $inner.css({ color: d.text_color || '#212529', fontSize: d.font_size || '16px', fontWeight: d.font_weight || '400', lineHeight: d.line_height || '1.6', letterSpacing: d.letter_spacing || '0' });

@@ -14,21 +14,28 @@ class Salt extends SaltBase {
         return self::$salt_instance;
     }
 
-    public function update_profile($vars=array(), $callback=""): array {
+    public function update_profile_old($vars=array(), $callback=""): array {
         $response = $this->response();
         $user_id = $this->user ? $this->user->ID : 0;
+        if (!$user_id) {
+            // Fallback: SaltBase user yüklenemediyse get_current_user_id ile dene
+            $user_id = get_current_user_id();
+            if ( $user_id && class_exists('User') ) {
+                $this->user = new User( $user_id );
+            }
+        }
         if (!$user_id) return $response;
 
         $membership_roles = Data::get("membership_roles");
 
         $action = isset($vars["action"])?$vars["action"]:"";
 
-        $action_admin = array("upgrade_approved", "upgrade_declined");
+        /*$action_admin = array("upgrade_approved", "upgrade_declined");
         if(in_array($action, $action_admin) && $this->user->get_role() != "administrator"){
           return $response;
-        }
+        }*/
 
-        $profile_completed = get_field("profile_completed", "user_".$user_id);
+        $profile_completed = true;//get_field("profile_completed", "user_".$user_id);
         switch($action){
 
             case "upgrade" :
@@ -59,7 +66,7 @@ class Salt extends SaltBase {
                     }
                 }
 
-                $profile_video = vars_fix($vars,"profile_video");
+                //$profile_video = vars_fix($vars,"profile_video");
                 $about = stripcslashes(vars_fix($vars,"about"));
                 $user_url = vars_fix($vars,"user_url");
                 $social_media = vars_fix($vars,"social_media");
@@ -87,7 +94,9 @@ class Salt extends SaltBase {
                     $response["refresh"] = true;
                 }
 
-                update_field( 'profile_video', $profile_video, "user_".$user_id );
+                //update_field( 'profile_video', $profile_video, "user_".$user_id );
+
+                error_log(print_r($user_data, true));
 
                 wp_update_user( $user_data );
 
@@ -200,6 +209,25 @@ class Salt extends SaltBase {
                 }
                 if(!empty($email)){
                     update_user_meta( $user_id, 'billing_email', $email );
+                }
+
+                // ── Register fields — MembershipSettings'ten oku, enabled olanları kaydet ──
+                $rf = (array) \SaltHareket\Membership\MembershipSettings::getSetting( 'register_fields', [] );
+                if ( ! empty( $rf['gender']['enabled'] ) ) {
+                    $gender = sanitize_text_field( $vars['gender'] ?? '' );
+                    if ( in_array( $gender, [ 'male', 'female', 'other', '' ], true ) ) {
+                        update_user_meta( $user_id, 'gender', $gender );
+                    }
+                }
+                if ( ! empty( $rf['shoe_size']['enabled'] ) ) {
+                    $shoe_size = sanitize_text_field( $vars['shoe_size'] ?? '' );
+                    if ( $shoe_size ) update_user_meta( $user_id, 'shoe_size', $shoe_size );
+                }
+                if ( ! empty( $rf['clothing_size']['enabled'] ) ) {
+                    $clothing_size = sanitize_text_field( $vars['clothing_size'] ?? '' );
+                    if ( in_array( $clothing_size, [ 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '' ], true ) ) {
+                        update_user_meta( $user_id, 'clothing_size', $clothing_size );
+                    }
                 }
                 if(!empty($timezone)){
                     update_user_meta( $user_id, '_wp_utz_opts', $timezone );

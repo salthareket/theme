@@ -125,7 +125,7 @@
                                         {% endfor %}
                                     </select>
                                     <input type="text" class="form-control border-start-0 pl-0" name="url" value="" placeholder="Url" aria-label="Url" autocomplete="off" data-update-placeholder required/>
-                                    <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete><i class="fa fa-times"></i></button>
+                                    <button class="btn-remove input-group-text bg-transparent text-muted" type="button" value="Delete" data-repeater-delete>{#<i class="fa fa-times"></i>#}{{ fa_icon('times', 'solid') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -193,7 +193,7 @@
                         <div class="form-group mb-0">
                             <label class="form-label">Country of Residence</label>
                             <select class="selectpicker- form-select form-select-chain" name="country" data-ajax-method="get_city_options" data-chain="city" data-chain-value="{{user.billing_country}}" data-chain-on-select="false" data-live-search="true" required>
-                                <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{'Please choose your country'|trans}}</option>
+                                <option value="" class="{% if user.billing_country is not empty %}d-none{% endif %}">{{translate('Select your country')}}</option>
                                 {% set countries = localization.countries %}
                                 {% for country in countries %}
                                     {% if country.iso2 == user.billing_country %}
@@ -210,7 +210,7 @@
                         <div class="form-group mb-0 {% if not country.states|boolval or user.city is empty %}d-none{% endif %}" data-condition="(states_view === '1' || states_view === 'true') && country" data-condition-reset="true">
                             <label class="form-label">City/State</label>
                             <select class="selectpicker- form-select" name="city" data-chain-value="{{user.city}}" data-live-search="true" required>
-                                <option value="" class="{% if user.city %}d-none{% endif %}">{{'Please choose your city/state'|trans}}</option>
+                                <option value="" class="{% if user.city %}d-none{% endif %}">{{translate('Select city/district')}}</option>
                                 {% if user.billing_country %}
                                     {% set cities = localization.states({"country_code" : user.billing_country}) %}
                                     {% if cities %}
@@ -328,7 +328,7 @@
                             <ul class="list-group list-group-flush">
                                 {# set meetIntegration = user.get_meet_access_token_validity(user.ID) %}
                                 <li class="list-group-item d-flex align-items-center">
-                                    <div><i class="fab fa-google me-2"></i> Google Meet</div>
+                                    <div>{#<i class="fab fa-google me-2"></i>#}{{ fa_icon('google', 'brands', 'me-2') }} Google Meet</div>
                                     <input type="hidden" name="meetIntegration" value="{% if meetIntegration.status %}true{% endif %}" data-msg="Please complete integration" required/>
                                     <a href="#" class="ms-auto btn {% if meetIntegration.status %}btn-success{% else %}btn-warning{% endif %}" {% if not meetIntegration.status %}data-ajax-method="googleMeet"{% endif %}>
                                         {% if meetIntegration.status %}
@@ -344,7 +344,7 @@
                                     {% set zoom_user = function("get_zoom_user",user.id) %}
                                 {% endif %}
                                 <li class="list-group-item d-flex align-items-center">
-                                    <div><i class="fab fa-google me-2"></i> Zoom</div>
+                                    <div>{#<i class="fab fa-google me-2"></i>#}{{ fa_icon('google', 'brands', 'me-2') }} Zoom</div>
                                     <input type="hidden" name="zoomIntegration" value="{% if zoomIntegration.status %}true{% endif %}" data-msg="Please complete integration" required/>
                                     <div>
                                         {{ zoom_user.display_name }}<br>
@@ -352,9 +352,11 @@
                                     </div>
                                     <a href="#" class="ms-auto btn btn-primary" {% if not zoomIntegration.status %}data-ajax-method="zoomMeet"{% endif %}>
                                         {% if zoomIntegration.status %}
-                                            <i class="fa fa-check me-2"></i>
+                                            {#<i class="fa fa-check me-2"></i>#}
+                                            {{ fa_icon('check', 'solid', 'me-2') }}
                                         {% else %}
-                                            <i class="fa fa-warning me-2"></i>
+                                            {#<i class="fa fa-warning me-2"></i>#}
+                                            {{ fa_icon('triangle-exclamation', 'solid', 'me-2') }}
                                         {% endif %}
                                         {{zoomIntegration.message}}
                                     </a>

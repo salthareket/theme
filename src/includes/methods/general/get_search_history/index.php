@@ -44,7 +44,7 @@ if ( $format === 'html' && ! empty( $result ) ) {
     $context['title']        = $title;
     $context['search_terms'] = $result;
     $context['vars']         = $vars;
-    $response['html'] = Timber::compile( 'partials/snippets/search-field-history.twig', $context );
+    $response['html'] = Timber::compile( 'partials/search/search-field-history.twig', $context );
 }
 
 echo json_encode( $response );

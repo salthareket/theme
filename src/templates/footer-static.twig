@@ -1,22 +1,29 @@
-<div class="row align-items-center">
+<div class="row align-items-center z-1 position-relative">
 
     <div class="col-12">
         <div class="container-xl mb-5">
             <ul class="nav nav-footer nav-collapsed justify-content-center-text-center" data-sm-skip="true">
-                {% include 'navigation/menu.twig' with { menu : get_menu(footer_options.menu.legal).get_items, parent_link : true, max_level : 1, collapsed: true } %}
+                {% set footer_menu_slug = footer_options.menu.legal %}
+                {% include 'navigation/menu.twig' with { menu : (menu[footer_menu_slug] is defined ? menu[footer_menu_slug].get_items : get_menu(footer_menu_slug).get_items), parent_link : true, max_level : 1, collapsed: true } %}
             </ul>
         </div>
     </div>
 
     <div class="col-lg-2 col-12 text-center text-lg-start">
-        <a class="navbar-brand d-inline-block align-self-center" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
-            {% if function('get_extension', footer_options.logo) == "svg" %}
-                {{function('inline_svg', footer_options.logo, {"class": "logo"})}}
+        {# Footer logo: context'teki 'logo_footer' (ACF image object) — header'daki 'logo' ile
+           ayni sistem (startersite.php options_logo_footer). Yoksa ana 'logo'ya fallback.
+           NOT: Eski kod 'footer_options.logo' okuyordu ama footer_options icinde SADECE
+           'resolved' var, logo yok — o yuzden footer logo hic gelmiyordu. #}
+        {% set _footer_logo = logo_footer.url ? logo_footer : logo %}
+        {% if _footer_logo.url %}
+        <a class="navbar-brand d-inline-block align-self-center" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Home")}}">
+            {% if function('get_extension', _footer_logo.url) == "svg" %}
+                {{ function('inline_svg', _footer_logo.url, {"class": "logo"}) }}
             {% else %}
-                {% set footer_logo_dim = function("get_attachment_dimensions_by_url", footer_options.logo) %}
-                <img data-src="{{footer_options.logo}}" class="logo img-fluid lazy" alt="{{site.name}}" width="{{footer_logo_dim.width}}" height="{{footer_logo_dim.height}}" />
+                <img data-src="{{ _footer_logo.url }}" class="logo img-fluid lazy" alt="{{ site.name }}" width="{{ _footer_logo.width }}" height="{{ _footer_logo.height }}" />
             {% endif %}
         </a>
+        {% endif %}
     </div>
     <div class="col-lg-10 col-12 d-flex align-items-lg-end justify-content-lg-end justify-content-center text-lg-end text-center mt-lg-0 mt-4">
         <ul class="list-contact list-inline d-flex m-0">
@@ -40,7 +47,7 @@
     </div>
 
     <div class="col-xl-6 col-12 text-xl-start text-center">
-        <a class="navbar-brand d-inline-block align-self-center mb-4" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Anasayfa")}}">
+        <a class="navbar-brand d-inline-block align-self-center mb-4" href="{%if is_home %}#home{%else%}{{site.url}}{%endif%}" rel="home" itemprop="url" title="{{translate("Home")}}">
             {% if function('get_extension', footer_options.logo) == "svg" %}
                 {{function('inline_svg', footer_options.logo, {"class": "logo"})}}
             {% else %}
@@ -88,4 +95,4 @@
     </div>#}
 
 </div>
-<div class="img-footer position-absolute-fill ignore-padding z-n1"></div>
+<div class="img-footer position-absolute-fill ignore-padding z-n1--"></div>

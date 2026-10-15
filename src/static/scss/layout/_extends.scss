@@ -367,8 +367,7 @@
         .accordion-body .list-files { padding-top: 20px; border-top: 1px solid #eee; margin-top: 40px; }
         &.active.out-viewport .accordion-header { position: sticky; top: 0; z-index: 1; .col-image { display: none; } }
         &.error .accordion-header .accordion-button:before {
-            content: "\f071";
-            font-family: var(--icon-font);
+            @include svgIcon('triangle-exclamation', 'solid');
             color: $danger;
             font-size: 22px;
             margin-right: 15px;

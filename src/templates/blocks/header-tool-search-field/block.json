@@ -1,0 +1,23 @@
+{
+    "name": "acf/header-tool-search-field",
+    "title": "Header Tool: Search Field",
+    "description": "Header Tool: Search Field",
+    "category": "headerblocks",
+    "icon": "search",
+    "keywords": ["header", "tool", "search-field"],
+    "parent": ["acf/header-tools", "acf/header-column"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": false,
+        "customClassName": false,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Header Tool: Search Field Duzenle"
+    }
+}

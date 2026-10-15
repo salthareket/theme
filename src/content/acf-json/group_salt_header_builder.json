@@ -1,0 +1,179 @@
+{
+    "key": "group_salt_header_builder",
+    "title": "Header Builder — Settings",
+    "fields": [
+        {
+            "key": "field_shb_fixed",
+            "label": "Fixed",
+            "name": "fixed",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "no": "No",
+                "top": "Top",
+                "bottom": "Bottom",
+                "bottom-start": "Bottom at Start"
+            },
+            "default_value": "no",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "no"
+        },
+        {
+            "key": "field_shb_affix",
+            "label": "Affix",
+            "name": "affix",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_shb_fixed",
+                        "operator": "==",
+                        "value": "top"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_shb_fixed",
+                        "operator": "==",
+                        "value": "bottom-start"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "15",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shb_affix_offset",
+            "label": "Affix Offset (px)",
+            "name": "affix_offset",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "Kac pixel asagiya kaydirinca affix moduna gecsin. Varsayilan: 50",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_shb_fixed",
+                        "operator": "==",
+                        "value": "top"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 50,
+            "min": 0,
+            "max": 2000,
+            "step": 1,
+            "placeholder": 50,
+            "prepend": "",
+            "append": "px",
+            "pll_default_value": 50
+        },
+        {
+            "key": "field_shb_hide_on_scroll",
+            "label": "Hide on Scroll Down",
+            "name": "hide_on_scroll",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shb_css_class",
+            "label": "CSS Class",
+            "name": "css_class",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "header-dark",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-builder"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786493997,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

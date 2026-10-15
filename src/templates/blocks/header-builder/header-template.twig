@@ -1,0 +1,29 @@
+{#
+    Header Template
+    ────────────────────────────────────────────────────────────────────────
+    Bu twig dosyasi header template post'u render edildiginde kullanilir.
+    resolve_header() tarafindan ob_start + Timber::render() ile cagrilir.
+
+    Icerigi:
+    1. Template post'un block'lari — header-builder block kendi <header> tag'ini uretir
+
+    NOT: Offcanvas panelleri artik OffcanvasRegistry (wp_footer'da getPrintable) ile
+    render ediliyor. Eski HeaderOffcanvasRegistry + partials/base/offcanvas-* sistemi kaldirildi.
+
+    Context degiskenleri:
+    - post           : template post (Timber\Post)
+    - page_settings  : sayfa ayarlari
+    - theme_styles   : tema stilleri
+    ────────────────────────────────────────────────────────────────────────
+#}
+
+{# header-builder block'u kendi <header id="header"> tag'ini urettigi icin
+   buraya ekstra wrapper eklenmez.
+   Sadece acf/header-builder block'u render edilir — template'e yanlisl
+   eklenmis core/paragraph vb. block'lar buradan gecmez. #}
+{% if post %}
+    {% if header_template_css %}
+        <style data-inline>{{ header_template_css }}</style>
+    {% endif %}
+    {{ fn('get_block', post.ID, 'acf/header-builder', true) | raw }}
+{% endif %}

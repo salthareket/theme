@@ -87,9 +87,10 @@ trait ManagesCache {
             json_encode($this->manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
         );
 
-        if (mt_rand(1, 100) <= 2) {
-            $this->purge_orphan_assets();
-        }
+        // NOT: purge_orphan_assets() buradan kaldırıldı.
+        // Fetch sırasında manifest henüz tüm sayfaların verilerini içermiyor.
+        // Başka sayfaların plugin bundle dosyaları yanlışlıkla orphan sayılıp siliniyordu.
+        // Orphan temizliği sadece cron veya manuel AJAX ile tetiklenmeli.
     }
 
     // =========================================================
@@ -112,7 +113,7 @@ trait ManagesCache {
      *   $path = $this->combine_and_cache_files('js', $js_files);
      *   // → 'js/cache/def456.js'
      */
-    public function combine_and_cache_files(string $type, array $files, array $whitelist = []) {
+    public function combine_and_cache_files(string $type, array $files, array $whitelist = [], bool $skip_purge = false) {
         if ($type !== 'css' && $type !== 'js') return false;
 
         if ($type === 'js') {
@@ -159,7 +160,7 @@ trait ManagesCache {
             }
         }
 
-        if ($type === 'css' && $combined_content !== '') {
+        if ($type === 'css' && $combined_content !== '' && !$skip_purge) {
             $combined_content = $this->remove_unused_css($this->html, $combined_content, '', $whitelist);
         }
 
@@ -394,6 +395,21 @@ trait ManagesCache {
     private function _maybe_delete_plugin_bundle_files(string $plugins_key): void {
         $pm = $this->manifest['plugins'][$plugins_key] ?? null;
         if (!$pm) return;
+
+        // Bu bundle'ı hâlâ kullanan başka içerik var mı?
+        // Varsa dosyaları silme — onlar da bu dosyaya point ediyor
+        $still_in_use = false;
+        foreach ( $this->manifest['content_usage'] as $ck => $cu ) {
+            if ( ( $cu['plugins_key'] ?? '' ) === $plugins_key ) {
+                $still_in_use = true;
+                break;
+            }
+        }
+        if ( $still_in_use ) {
+            $this->error_log("[PAE] SKIP delete bundle {$plugins_key} — still in use", 'cascade');
+            return;
+        }
+
         foreach (['css', 'css_rtl', 'js'] as $k) {
             if (!empty($pm[$k]) && $this->file_exists_rel($pm[$k])) {
                 $abs = rtrim(STATIC_PATH, '/') . '/' . ltrim($pm[$k], '/');
@@ -412,6 +428,11 @@ trait ManagesCache {
     private function cascade_rebuild_bundles(array $updated_plugins, string $skip_key): void {
         if (empty($updated_plugins)) return;
 
+        // cascade sırasında WP hook'larının tetiklenmesini önle
+        // update_post_meta → updated_post_meta → PAE hook → sonsuz döngü
+        $prev_disable_hooks = $this->disable_hooks;
+        $this->disable_hooks = true;
+
         $affected_keys = [];
         foreach ($this->manifest['plugins'] as $pk => $pm) {
             if ($pk === $skip_key) continue;
@@ -426,7 +447,10 @@ trait ManagesCache {
                     $check_files[] = STATIC_PATH . 'js/plugins/' . $p . '.css';
                 }
                 $current_mtime = $this->source_files_mtime_hash($check_files);
-                $expected_key  = sha1(json_encode($list) . '|' . $current_mtime);
+                // Sıra bağımsız hash — manifest'teki list zaten sorted olabilir ama garantilemek için
+                $list_sorted   = $list;
+                sort( $list_sorted );
+                $expected_key  = sha1(json_encode($list_sorted) . '|' . $current_mtime);
 
                 if ($expected_key !== $pk) {
                     $affected_keys[$pk] = [
@@ -458,8 +482,10 @@ trait ManagesCache {
                 $js_src[] = STATIC_PATH . 'js/plugins/' . $p . '-init.js';
             }
 
-            $new_css     = !empty($css_src) ? str_replace(STATIC_URL, '', $this->combine_and_cache_files('css', $css_src)) : '';
-            $new_css_rtl = !empty($css_rtl_src) ? str_replace(STATIC_URL, '', $this->combine_and_cache_files('css', $css_rtl_src)) : '';
+            // Cascade sırasında purge YAPMA — o an bellekteki HTML başka bir sayfaya ait
+            // Her sayfanın kendi HTML'iyle purge'ü zaten kendi fetch'inde yapılıyor
+            $new_css     = !empty($css_src)     ? str_replace(STATIC_URL, '', $this->combine_and_cache_files('css', $css_src,     [], true)) : '';
+            $new_css_rtl = !empty($css_rtl_src) ? str_replace(STATIC_URL, '', $this->combine_and_cache_files('css', $css_rtl_src, [], true)) : '';
             $js_src      = array_filter($js_src, 'file_exists');
             $new_js      = '';
             if (!empty($js_src)) {
@@ -494,10 +520,140 @@ trait ManagesCache {
                 }
             }
 
-            $this->error_log("[PAE] CASCADE DONE: old={$old_pk} → new={$new_key}", 'cascade');
-        }
+            // contents listesinde olmasa bile eski key'i referans eden tüm
+            // content_usage kayıtlarını güncelle (çeviriler buraya girer)
+            foreach ( $this->manifest['content_usage'] as $ck => &$cu ) {
+                if ( ( $cu['plugins_key'] ?? '' ) === $old_pk ) {
+                    $cu['plugins_key'] = $new_key;
+                    $parts = explode( ':', $ck, 2 );
+                    if ( count( $parts ) === 2 && is_numeric( $parts[1] ) ) {
+                        $meta = $this->meta_get( $parts[0], (int) $parts[1] );
+                        if ( is_array( $meta ) ) {
+                            $meta['plugin_js']      = $new_js;
+                            $meta['plugin_css']     = $new_css;
+                            $meta['plugin_css_rtl'] = $new_css_rtl;
+                            $this->meta_update( $parts[0], (int) $parts[1], $meta );
+                        }
+                    }
+                }
+            }
+            unset( $cu );
+
+            $this->error_log("[PAE] CASCADE DONE: old={$old_pk} → new={$new_key}", 'cascade');        }
 
         $this->manifest_write();
+        $this->disable_hooks = $prev_disable_hooks;
+    }
+
+    // =========================================================
+    //  ORPHAN TEMIZLEME
+    // =========================================================
+
+    /**
+     * Disk'teki CSS/JS cache dosyaları ile manifest'teki referansları karşılaştırır.
+     * Manifest'te referansı olmayan dosyaları orphan olarak döndürür.
+     *
+     * @return array ['css' => string[], 'js' => string[]]  — absolute paths
+     *
+     * @example
+     *   $orphans = $this->get_orphan_files();
+     *   // ['css' => ['/path/abc123.css', ...], 'js' => ['/path/def456.js', ...]]
+     */
+    public function get_orphan_files(): array
+    {
+        $this->manifest_read();
+
+        $static = rtrim( str_replace( '\\', '/', STATIC_PATH ), '/' ) . '/';
+
+        // ── Manifest'teki tüm aktif dosya relative path'lerini topla ─────────
+        $active = [];
+
+        // templates → tüm olası key isimleri (manifest versiyonuna göre farklı olabilir)
+        foreach ( $this->manifest['templates'] ?? [] as $fp => $tpl ) {
+            foreach ( [ 'css', 'css_rtl', 'css_page', 'css_page_rtl', 'css_critical', 'critical_css', 'plugin_css', 'plugin_css_rtl', 'plugin_js', 'plugin_module_js' ] as $k ) {
+                if ( ! empty( $tpl[ $k ] ) ) {
+                    $active[] = ltrim( str_replace( '\\', '/', $tpl[ $k ] ), '/' );
+                }
+            }
+        }
+
+        // plugins → css, css_rtl, js
+        foreach ( $this->manifest['plugins'] ?? [] as $pk => $pm ) {
+            foreach ( [ 'css', 'css_rtl', 'js' ] as $k ) {
+                if ( ! empty( $pm[ $k ] ) ) {
+                    $active[] = ltrim( str_replace( '\\', '/', $pm[ $k ] ), '/' );
+                }
+            }
+        }
+
+        $active = array_unique( array_filter( $active ) );
+
+        // ── Disk'teki cache dosyalarını tara ─────────────────────────────────
+        $disk_css = glob( $static . 'css/cache/*.css' ) ?: [];
+        $disk_js  = glob( $static . 'js/cache/*.js'  ) ?: [];
+
+        $orphan_css = [];
+        $orphan_js  = [];
+
+        foreach ( $disk_css as $abs ) {
+            $base = basename( $abs );
+            // purge-*.css → ara cache, manifest dışı, kasıtlı
+            // *-critical.css → critical CSS, ayrı sistemde yönetiliyor
+            if ( strpos( $base, 'purge-' ) === 0 ) continue;
+            if ( substr( $base, -13 ) === '-critical.css' ) continue;
+
+            $rel = 'css/cache/' . $base;
+            if ( ! in_array( $rel, $active, true ) ) {
+                $orphan_css[] = $abs;
+            }
+        }
+
+        foreach ( $disk_js as $abs ) {
+            $base = basename( $abs );
+            $rel  = 'js/cache/' . $base;
+            if ( ! in_array( $rel, $active, true ) ) {
+                $orphan_js[] = $abs;
+            }
+        }
+
+        return [ 'css' => $orphan_css, 'js' => $orphan_js ];
+    }
+
+    /**
+     * Orphan dosyaları siler.
+     *
+     * @return array ['deleted' => int, 'errors' => string[], 'css' => int, 'js' => int]
+     *
+     * @example
+     *   $result = $this->clean_orphan_files();
+     *   echo $result['deleted'] . ' orphan dosya silindi.';
+     */
+    public function clean_orphan_files(): array
+    {
+        $orphans = $this->get_orphan_files();
+        $deleted = 0;
+        $errors  = [];
+        $css_del = 0;
+        $js_del  = 0;
+
+        foreach ( $orphans['css'] as $abs ) {
+            if ( @unlink( $abs ) ) { $deleted++; $css_del++; }
+            else $errors[] = basename( $abs );
+        }
+
+        foreach ( $orphans['js'] as $abs ) {
+            if ( @unlink( $abs ) ) { $deleted++; $js_del++; }
+            else $errors[] = basename( $abs );
+        }
+
+        $this->error_log( "[PAE] clean_orphan_files: css={$css_del} js={$js_del} errors=" . count( $errors ) );
+
+        return [
+            'deleted' => $deleted,
+            'css'     => $css_del,
+            'js'      => $js_del,
+            'errors'  => $errors,
+        ];
     }
 
     // =========================================================
@@ -515,8 +671,8 @@ trait ManagesCache {
      */
     private function file_exists_rel(?string $rel): bool {
         if (!$rel) return false;
-        $rel = ltrim($rel, '/');
-        $abs = rtrim(STATIC_PATH, '/') . '/' . $rel;
+        $rel = ltrim(str_replace('\\', '/', $rel), '/');
+        $abs = rtrim(str_replace('\\', '/', STATIC_PATH), '/') . '/' . $rel;
         return file_exists($abs) && is_file($abs);
     }
 
@@ -528,19 +684,49 @@ trait ManagesCache {
      * @return string
      */
     private function normalize_content(string $content, string $type): string {
-        if ($type === 'js') {
-            $normalized = preg_replace("/\xEF\xBB\xBF/", '', $content);
-            $normalized = str_replace("\r", '', $normalized);
-            $normalized = preg_replace("/\n+/", "\n", $normalized);
-            return trim($normalized);
+        // BOM ve \r temizle
+        $content = preg_replace("/\xEF\xBB\xBF/", '', $content);
+        $content = str_replace("\r", '', $content);
+
+        if ( empty( $content ) ) return '';
+
+        // Development mode'da minify etme — kaynak okunabilirliği koru
+        $is_dev = class_exists( '\SaltHareket\AssetManager\AssetSettings' )
+            ? ! empty( \SaltHareket\AssetManager\AssetSettings::get()['enable_development'] )
+            : ( defined('ENABLE_DEVELOPMENT') && ENABLE_DEVELOPMENT );
+
+        if ( $is_dev ) {
+            // Sadece basic normalize
+            if ($type === 'js') {
+                return trim( preg_replace("/\n+/", "\n", $content) );
+            }
+            $content = preg_replace('!/\*.*?\*/!s', '', $content);
+            return trim( preg_replace("/\n+/", "\n", $content) );
         }
 
-        $normalized = preg_replace("/\xEF\xBB\xBF/", '', $content);
-        $normalized = str_replace("\r", '', $normalized);
-        $normalized = preg_replace('!/\*.*?\*/!s', '', $normalized);
-        $normalized = preg_replace('/[ \t]+/', ' ', $normalized);
-        $normalized = preg_replace("/\n+/", "\n", $normalized);
-        return trim($normalized);
+        // Production: gerçek minify
+        if ($type === 'js') {
+            try {
+                $minifier = new \MatthiasMullie\Minify\JS();
+                $minifier->add($content);
+                $minified = $minifier->minify();
+                return $minified ?: trim($content);
+            } catch (\Throwable $e) {
+                $this->error_log('[PAE] JS minify failed: ' . $e->getMessage());
+                return trim($content);
+            }
+        }
+
+        // CSS
+        try {
+            $minifier = new \MatthiasMullie\Minify\CSS();
+            $minifier->add($content);
+            $minified = $minifier->minify();
+            return $minified ?: trim($content);
+        } catch (\Throwable $e) {
+            $this->error_log('[PAE] CSS minify failed: ' . $e->getMessage());
+            return trim($content);
+        }
     }
 
     /**

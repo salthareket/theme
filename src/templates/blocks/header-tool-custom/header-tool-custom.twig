@@ -1,0 +1,29 @@
+{# Header Tool: Custom #}
+{% set tso = fields.style_overrides ?? {} %}
+{% set tool_class = 'tool-item-' ~ block.id %}
+{% set menu_type  = fields.menu_type ?? 'offcanvas' %}
+{% set menu_view  = fields.menu_view ?? '' %}
+{% set menu_class = (fields.menu_class ? fields.menu_class ~ ' ' : '') ~ tool_class %}
+{% set menu_custom = fields.menu_custom ?? '' %}
+
+{% if tso and (tso.icon_color or tso.icon_color_hover or tso.icon_size or tso.icon_dot_color or tso.link_color or tso.link_color_hover or tso.counter_color or tso.counter_bg or tso.toggler_color) %}
+<style>
+.{{ tool_class }} {
+    {% if tso.icon_color %}--header-icon-color: {{ tso.icon_color }};{% endif %}
+    {% if tso.icon_color_hover %}--header-icon-color-hover: {{ tso.icon_color_hover }};{% endif %}
+    {% if tso.icon_size %}--header-icon-font-size: {{ tso.icon_size }};{% endif %}
+    {% if tso.icon_dot_color %}--header-icon-dot-color: {{ tso.icon_dot_color }};{% endif %}
+    {% if tso.link_color %}--header-link-color: {{ tso.link_color }};{% endif %}
+    {% if tso.link_color_hover %}--header-link-color-hover: {{ tso.link_color_hover }};{% endif %}
+    {% if tso.counter_color %}--notification-count-color: {{ tso.counter_color }};{% endif %}
+    {% if tso.counter_bg %}--notification-count-bg-color: {{ tso.counter_bg }};{% endif %}
+    {% if tso.toggler_color %}--header-navbar-toggler-color: {{ tso.toggler_color }};{% endif %}
+}
+</style>
+{% endif %}
+
+{% if menu_custom %}
+    <div class="nav-item {{ menu_class }}">
+        {{ menu_custom|replace({"{{link}}" : site.url}) }}
+    </div>
+{% endif %}

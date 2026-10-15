@@ -1,0 +1,78 @@
+{#
+  partials/source/reactions/_archive.twig — DEFAULT implementation
+
+  view modu:
+    is_popup = true  (offcanvas/dropdown/modal) → {view}-body + {view}-footer wrapper'lı render
+    is_popup = false (my-account, feed, vb.)    → yalın feed, wrapper yok, footer yok
+#}
+
+{% set is_popup = view in ['offcanvas', 'dropdown', 'modal'] %}
+
+{% if is_popup %}<div class="{{ view }}-body">{% endif %}
+    <div class="source-container"
+         data-source="{{ source }}"
+         data-view="{{ view }}"
+         data-reaction-type="{{ reaction_type }}"
+         data-object-type="{{ object_type|default('post') }}"
+         data-post-type="{{ post_type_filter|default('') }}"
+         data-page="{{ meta.page|default(1) }}"
+         data-page-total="{{ meta.page_total|default(1) }}"
+         data-posts-per-page="{{ meta.per_page|default(15) }}">
+
+        {% if items %}
+            <ul class="source-list list-unstyled reactions-list reactions-list-{{ reaction_type }}">
+                {% for item in items %}
+                    {% include 'partials/source/reactions/tease.twig' with {
+                        item: item,
+                        view: view,
+                        reaction_type: reaction_type,
+                        object_type: object_type|default('post')
+                    } %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="content-centered d-flex flex-column h-100 align-items-center justify-content-center text-center py-5">
+                <div class="content-block d-flex flex-column align-items-center gap-3">
+                    {% if reaction_type == 'favorite' %}
+                        {{ fa_icon('heart', 'regular', 'fa-3x opacity-25') }}
+                        <p class="mb-0">{{ translate('Your favorites list is empty.') }}</p>
+                    {% elseif reaction_type == 'bookmark' %}
+                        {{ fa_icon('bookmark', 'regular', 'fa-3x opacity-25') }}
+                        <p class="mb-0">{{ translate('No saved content.') }}</p>
+                    {% elseif reaction_type == 'follow' %}
+                        {{ fa_icon('user-plus', 'regular', 'fa-3x opacity-25') }}
+                        <p class="mb-0">{{ translate('You are not following anyone yet.') }}</p>
+                    {% elseif reaction_type == 'like' %}
+                        {{ fa_icon('heart', 'solid', 'fa-3x opacity-25') }}
+                        <p class="mb-0">{{ translate('No liked content.') }}</p>
+                    {% else %}
+                        {{ fa_icon('face-smile', 'regular', 'fa-3x opacity-25') }}
+                        <p class="mb-0">{{ translate('No content.') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if meta.page < meta.page_total %}
+            <div class="source-load-more text-center py-2 d-none">
+                <button type="button" class="btn btn-sm btn-link source-load-more-btn"
+                        data-method="get_reactions"
+                        data-next-page="{{ meta.page + 1 }}">
+                    {{ translate('Load More') }}
+                </button>
+            </div>
+        {% endif %}
+
+    </div>
+{% if is_popup %}</div>{% endif %}
+
+{# Footer — sadece popup modda render edilir #}
+{% if is_popup %}
+<div class="{{ view }}-footer{% if not items %} d-none{% endif %}">
+    {% include 'partials/source/reactions/footer.twig' with {
+        meta: meta,
+        view: view,
+        reaction_type: reaction_type
+    } %}
+</div>
+{% endif %}

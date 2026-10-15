@@ -1,0 +1,67 @@
+{#
+  partials/source/reactions/tease.twig
+
+  Context:
+    item          — Timber post/user/term object
+    reaction_type — favorite | like | follow | bookmark | ...
+    object_type   — post | user | term | comment
+    view          — offcanvas | dropdown | modal
+#}
+
+<li class="source-item source-item-reaction source-item-reaction-{{ reaction_type }} notification-item infinite-item"
+    data-source="reaction:{{ reaction_type }}"
+    data-reaction-type="{{ reaction_type }}"
+    data-object-type="{{ object_type }}"
+    data-id="{{ item.id }}">
+
+    <div class="product-tease d-flex gap-3 align-items-start">
+
+        {# Görsel — post thumbnail veya user avatar #}
+        {% if object_type == 'user' %}
+            <a href="{{ item.link|default('#') }}" class="source-item-avatar flex-shrink-0">
+                <img src="{{ item.get_avatar_url ? item.get_avatar_url : '' }}"
+                     class="img-fluid rounded-circle"
+                     alt="{{ item.display_name }}"
+                     loading="lazy" />
+            </a>
+        {% else %}
+            <a href="{{ item.link }}" class="source-item-image flex-shrink-0 {% if not item.thumbnail %}img-placeholder img-not-found{% endif %}" style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                {% if item.thumbnail %}
+                <img src="{{ item.thumbnail.src }}"
+                     style="width:60px;height:60px;object-fit:cover;"
+                     alt="{{ item.title }}"
+                     loading="lazy" />
+                {% endif %}
+            </a>
+        {% endif %}
+
+        {# Detay #}
+        <div class="source-item-detail flex-grow-1 min-w-0">
+            {% if object_type == 'user' %}
+                <div class="source-item-title fw-semibold">{{ item.display_name }}</div>
+            {% else %}
+                <div class="source-item-title fw-semibold">
+                    <a href="{{ item.link }}" class="text-decoration-none">{{ item.title }}</a>
+                </div>
+                {% if item._price is defined %}
+                    <div class="source-item-price text-muted">
+                        {{ function('woo_get_currency_with_price', item._price) }}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {# Reaction kaldır butonu #}
+        <div class="source-item-action flex-shrink-0">
+            <button type="button"
+                    class="btn btn-remove reaction-remove"
+                    data-reaction-type="{{ reaction_type }}"
+                    data-object-type="{{ object_type }}"
+                    data-id="{{ item.id }}"
+                    aria-label="{{ translate('Remove') }}">
+                {{ fa_icon('xmark', 'solid') }}
+            </button>
+        </div>
+
+    </div>
+</li>

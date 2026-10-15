@@ -1,0 +1,457 @@
+{
+    "key": "group_salt_header_column",
+    "title": "Header Column — Settings",
+    "fields": [
+        {
+            "key": "field_shcol_behavior",
+            "label": "Genislik Davranisi",
+            "name": "col_behavior",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "Kolonun Bootstrap genislik davranisi. Sadece Basit mod aktifse gozukur.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "30",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "auto": "Icerigi Kadar (col-auto)",
+                "grow": "Kalan Alani Doldur (flex-grow-1)",
+                "responsive": "Mobilde Tam, lg+ Oto (col-12 col-lg-auto)"
+            },
+            "default_value": "auto",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "pll_default_value": "auto"
+        },
+        {
+            "key": "field_shcol_justify",
+            "label": "Icerik Hizalama",
+            "name": "justify",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "Kolon icindeki elemanlarin yatay hizalamasi.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "start": "Sola (start)",
+                "center": "Ortala (center)",
+                "end": "Saga (end)",
+                "between": "Iki Yana (between)",
+                "around": "Etrafinda Esit Bosluk (around)",
+                "evenly": "Esit Aralik (evenly)"
+            },
+            "default_value": "start",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "pll_default_value": "start"
+        },
+        {
+            "key": "field_shcol_visibility",
+            "label": "Gorunurluk",
+            "name": "visibility",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "Hangi breakpoint'lerde gorunsun?",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "all": "Her Yerde",
+                "lg-up": "Sadece lg+ (Masaustu)",
+                "xl-up": "Sadece xl+ (Genis Masaustu)",
+                "mobile-only": "Sadece Mobil (md-)"
+            },
+            "default_value": "all",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "pll_default_value": "all"
+        },
+        {
+            "key": "field_shcol_use_breakpoints",
+            "label": "Breakpoint Bazli Genislik",
+            "name": "use_breakpoints",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Aciksa her breakpoint icin ayri genislik girebilirsiniz. Row'da da Breakpoint Bazli Kolon acik olmalidir.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "BP Bazli",
+            "ui_off_text": "Basit",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shcol_col_widths",
+            "label": "Kolon Genislikleri (per breakpoint)",
+            "name": "col_widths",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "Her breakpoint icin Bootstrap col degeri: auto, 1-12, hidden. Bos birakilirsa bir onceki BP degerini devralir.",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_shcol_use_breakpoints",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "layout": "table",
+            "sub_fields": [
+                {
+                    "key": "field_shcol_cw_xs",
+                    "label": "xs",
+                    "name": "xs",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                },
+                {
+                    "key": "field_shcol_cw_sm",
+                    "label": "sm",
+                    "name": "sm",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                },
+                {
+                    "key": "field_shcol_cw_md",
+                    "label": "md",
+                    "name": "md",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                },
+                {
+                    "key": "field_shcol_cw_lg",
+                    "label": "lg",
+                    "name": "lg",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                },
+                {
+                    "key": "field_shcol_cw_xl",
+                    "label": "xl",
+                    "name": "xl",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                },
+                {
+                    "key": "field_shcol_cw_xxl",
+                    "label": "xxl",
+                    "name": "xxl",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                },
+                {
+                    "key": "field_shcol_cw_xxxl",
+                    "label": "xxxl",
+                    "name": "xxxl",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "": "—",
+                        "auto": "auto",
+                        "hidden": "hidden",
+                        "1": "1",
+                        "2": "2",
+                        "3": "3",
+                        "4": "4",
+                        "5": "5",
+                        "6": "6",
+                        "7": "7",
+                        "8": "8",
+                        "9": "9",
+                        "10": "10",
+                        "11": "11",
+                        "12": "12"
+                    },
+                    "default_value": "",
+                    "allow_null": 1,
+                    "return_format": "value",
+                    "ui": 0,
+                    "parent_repeater": "field_shcol_col_widths"
+                }
+            ],
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
+        },
+        {
+            "key": "field_shcol_class",
+            "label": "CSS Class",
+            "name": "col_class",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-column"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786460002,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

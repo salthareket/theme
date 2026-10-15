@@ -654,23 +654,26 @@ function woo_product_badges( $product, $free_shipping_min_amount, $types ) {
 function variation_url_rewrite($url){
     $query_json = array();
     $parsed_url = parse_url($url);
-    //if(array_key_exists("query", $parsed_url)){
     if(isset($parsed_url["query"])){
         $query = $parsed_url["query"];
         if(!empty($query)){
             $url = str_replace("?".$query, "", $url);
-            $query=explode("&", $query);
+            $query = explode("&", $query);
             foreach($query as $item){
-                $item=explode("=",$item);
-                $query_json[str_replace("attribute_pa_", "", $item[0])] = $item[1];
+                $item = explode("=", $item);
+                if ( count($item) < 2 ) continue;
+                $attr  = str_replace("attribute_pa_", "", $item[0]);
+                $value = $item[1];
+                $query_json[$attr] = $value;
             }
-            if(isset($query_json["color"])){
-                $url = $url."color-".$query_json["color"]."/";
+            // Tüm attribute'ları path'e ekle (color, shade, size, vb.)
+            foreach ( $query_json as $attr => $value ) {
+                if ( ! empty($attr) && ! empty($value) ) {
+                    $url = rtrim($url, '/') . '/' . $attr . '-' . $value . '/';
+                }
             }
-            
-        }       
+        }
     }
-    //}
     return $url;
 }
 

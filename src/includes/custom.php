@@ -211,7 +211,18 @@ class SaltBase{
 
             if (class_exists('PageAssetsExtractor')) {
                 $extractor = \PageAssetsExtractor::get_instance();
+                // Template post type icin twig_scan_includes kapat:
+                // collectTwigLoadedHtml() header/footer partial twig'lerini tarar ve
+                // yanlis plugin tespitine neden olur. Template kendi block HTML'ini render eder.
+                $prev_twig_scan = null;
+                if ( $post->post_type === 'template' ) {
+                    $prev_twig_scan = $extractor->get_twig_scan_includes();
+                    $extractor->set_twig_scan_includes( false );
+                }
                 $extractor->on_save_post($post_id, $post, $update);
+                if ( $prev_twig_scan !== null ) {
+                    $extractor->set_twig_scan_includes( $prev_twig_scan );
+                }
             }
             
             $this->reset_lcp_data_on_save($post_id);
@@ -269,7 +280,9 @@ class SaltBase{
         
         // Meta'yı güncelle
         update_post_meta($post_id, 'assets', $assets);
-        error_log("✅ LCP data reset for post #{$post_id}");
+        if ( defined('ENABLE_LOGS') && ENABLE_LOGS ) {
+            error_log("✅ LCP data reset for post #{$post_id}");
+        }
     }
     
     /**
@@ -293,7 +306,9 @@ class SaltBase{
         
         // Meta'yı güncelle
         update_term_meta($term_id, 'assets', $assets);
-        error_log("✅ LCP data reset for term #{$term_id} ({$taxonomy})");
+        if ( defined('ENABLE_LOGS') && ENABLE_LOGS ) {
+            error_log("✅ LCP data reset for term #{$term_id} ({$taxonomy})");
+        }
     }
     
     /**
@@ -317,7 +332,9 @@ class SaltBase{
         
         // Meta'yı güncelle
         update_user_meta($user_id, 'assets', $assets);
-        error_log("✅ LCP data reset for user #{$user_id}");
+        if ( defined('ENABLE_LOGS') && ENABLE_LOGS ) {
+            error_log("✅ LCP data reset for user #{$user_id}");
+        }
     }
     
     /**
@@ -343,7 +360,9 @@ class SaltBase{
         
         // Option'ı güncelle
         update_option($option_name, $assets);
-        error_log("✅ LCP data reset for option: {$option_name}");
+        if ( defined('ENABLE_LOGS') && ENABLE_LOGS ) {
+            error_log("✅ LCP data reset for option: {$option_name}");
+        }
     }
 
     public function on_post_delete( $post_id ){
@@ -380,7 +399,7 @@ class SaltBase{
         /*if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }*/
-        if (session_status() === PHP_SESSION_NONE){
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()){
             session_start();
         }
         $current_ip = $_SERVER['REMOTE_ADDR'];
@@ -449,8 +468,31 @@ class SaltBase{
                  break;
 
             case "status" :
-                $status = $wpdb->get_var( $wpdb->prepare("SELECT status FROM {$wpdb->prefix}newsletter WHERE email = %s", $email ) );
-                return $status=="C"?true:false;
+                // Performance fix: Newsletter status'u cache'le
+                $cache_key = "newsletter_status_" . md5($email);
+                $cached_status = wp_cache_get($cache_key);
+                if ($cached_status !== false) {
+                    return $cached_status === 'C';
+                }
+                
+                // Timeout ile SQL sorgusu
+                $original_timeout = ini_get('default_socket_timeout');
+                ini_set('default_socket_timeout', 5); // 5 saniye timeout
+                
+                try {
+                    $status = $wpdb->get_var( $wpdb->prepare("SELECT status FROM {$wpdb->prefix}newsletter WHERE email = %s", $email ) );
+                    $result = $status == "C" ? true : false;
+                    
+                    // 5 dakika cache
+                    wp_cache_set($cache_key, $status, null, 300);
+                    
+                    return $result;
+                } catch (Exception $e) {
+                    error_log("[NEWSLETTER_ERROR] Status query failed: " . $e->getMessage());
+                    return false;
+                } finally {
+                    ini_set('default_socket_timeout', $original_timeout);
+                }
                 break;
 
         }
@@ -495,6 +537,8 @@ class SaltBase{
         return \SaltHareket\Membership\MembershipManager::getInstance()->passwordRecover( $vars );
     }
     public function update_profile( $vars = [], $callback = '' ): array {
+        error_log(print_r("tests", true));
+        error_log(print_r($vars, true));
         return \SaltHareket\Membership\MembershipManager::getInstance()->updateProfile( $vars );
     }
     public function on_user_login( $user_login, $user ): void {
@@ -573,25 +617,85 @@ class SaltBase{
         }
     }
     public function on_login_redirect(): void {
-        if ( isset( $_SESSION['referer_url'] ) ) {
-            $url = $_SESSION['referer_url'];
+        // Login redirect artık HandlesAuth::login() içinde settings'e göre yapılıyor.
+        // Bu metod wp_login.php native form için fallback — session varsa kullan, yoksa settings'e bak.
+        $redirect_type   = \SaltHareket\Membership\MembershipSettings::getSetting( 'login_redirect_type', 'dashboard' );
+        $redirect_page_id = (int) \SaltHareket\Membership\MembershipSettings::getSetting( 'login_redirect_page_id', 0 );
+
+        // Referer modunda session'dan al
+        if ( $redirect_type === 'referer' && isset( $_SESSION['referer_url'] ) ) {
+            $url = esc_url_raw( $_SESSION['referer_url'] );
             session_write_close();
             session_destroy();
             wp_redirect( $url );
-        } else {
-            wp_redirect( get_account_endpoint_url( 'dashboard' ) );
+            return;
         }
+
+        // Diğer modlar
+        switch ( $redirect_type ) {
+            case 'profile':
+                $url = get_account_endpoint_url( 'profile' );
+                break;
+            case 'home':
+                $url = home_url( '/' );
+                break;
+            case 'custom':
+                if ( $redirect_page_id > 0 ) {
+                    if ( function_exists( 'pll_get_post' ) ) {
+                        $user_lang     = function_exists( 'pll_current_language' ) ? pll_current_language() : pll_default_language();
+                        $translated_id = pll_get_post( $redirect_page_id, $user_lang );
+                        $target_id     = ( $translated_id && $translated_id !== $redirect_page_id ) ? $translated_id : $redirect_page_id;
+                    } else {
+                        $target_id = $redirect_page_id;
+                    }
+                    $url = (string) get_permalink( $target_id );
+                } else {
+                    $url = get_account_endpoint_url( 'dashboard' );
+                }
+                break;
+            case 'dashboard':
+            default:
+                $url = get_account_endpoint_url( 'dashboard' );
+                break;
+        }
+
+        $url = (string) apply_filters( 'sh_login_redirect_url', $url, get_current_user_id() );
+        wp_redirect( $url );
     }
     public function notification_count(): int {
         return \SaltHareket\Membership\MembershipManager::getInstance()->getNotificationCount();
     }
+
+    public function user_exist( array $vars = [] ): string|false {
+        $email = trim( $vars['email'] ?? '' );
+        if ( empty( $email ) ) return false;
+        if ( isset( $vars['exclude'] ) && $vars['exclude'] === $email ) return false;
+        return email_exists( $email )
+            ? trans( 'That e-mail is already registered.' )
+            : false;
+    }
+
+    public function nickname_exist( array $vars = [] ): string|false {
+        global $wpdb;
+        $nickname = trim( $vars['nickname'] ?? '' );
+        if ( empty( $nickname ) ) return false;
+        if ( isset( $vars['exclude'] ) && $vars['exclude'] === $nickname ) return false;
+        $exists = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(ID)
+               FROM {$wpdb->users} u
+               JOIN {$wpdb->usermeta} m ON u.ID = m.user_id
+              WHERE m.meta_key = 'nickname'
+                AND m.meta_value = %s
+                AND u.ID <> %d",
+            $nickname,
+            get_current_user_id()
+        ) );
+        return $exists
+            ? trans( 'That username is already taken.' )
+            : false;
+    }
+
     // ── END MEMBERSHIP DELEGATES ──────────────────────────────────────────────
-
-
-
-
-
-
 
 
 
@@ -766,49 +870,6 @@ class SaltBase{
             ]
         );
     }
-
-
-    /*// events
-    public function after_store_new_message($message){
-        //print_r($message);
-        $attributes = $message["attributes"];
-        //print_r($attributes);
-        $conversation = yobro_get_conversation_row($attributes["conv_id"]);
-
-            $user = $GLOBALS["user"];
-            $attributes = $message["attributes"];
-            $conversation = yobro_get_conversation_row($attributes["conv_id"]);
-            if($conversation->reciever == $user->ID){
-                $other_id = $conversation->sender;
-            }else{
-                $other_id = $conversation->reciever;
-            }
-            global $wpdb;
-            $wpdb->query("UPDATE wp_yobro_messages SET reciever_id=".$other_id." WHERE id=".$attributes['id']);
-
-            $salt = new Salt();
-            $reciever_is_online = $salt->user_is_online($other_id);
-            
-            if(!$reciever_is_online){
-                $reciever = get_user_by( 'id', $other_id );
-                $reciever = new User($other_id);
-                $sender = get_user_by( 'id', $other_id);
-                $sender = $user;
-                
-                $attrs = array(
-                    "conv_id"  => $attributes["conv_id"],
-                    "sender"   => $sender,
-                    "user"     => $reciever,
-                    "message"  => $attributes["message"]
-                );
-                $this->notification($reciever->get_role()."/new-message", $attrs);                
-            }
-
-        return $message;
-    }*/
-
-    
-
     public function remove_cart_content(){
         global $woocommerce;
         if ( $woocommerce->cart->get_cart_contents_count() > 0 ) {
@@ -948,34 +1009,6 @@ class SaltBase{
             unset($_SESSION['error_message']);
         }
     }
-
-    public static function get_integration($slug=""){
-        $integrations = QueryCache::get_field("integrations", "options");
-        if ($integrations) {
-            foreach ($integrations as $integration) {
-                if ($integration['name'] === $slug) {
-                    return $integration['keys'];
-                }
-            }
-        }
-        return [];
-    }
-
-    public function measureLCP($url, $deviceType = 'desktop') {
-        $api = self::get_integration("google_pagespeed_insights");
-        if($api){
-            $apiKey = $api["key"] ?? '';
-            if(!empty($apiKey)){
-                $endpoint = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($url) . "&key=" . $apiKey . "&strategy=" . $deviceType;
-                $response = wp_remote_get( $endpoint, [ 'timeout' => 60 ] );
-                if ( ! is_wp_error( $response ) ) {
-                    $data = json_decode( wp_remote_retrieve_body( $response ), true );
-                    return $data['lighthouseResult']['audits']['largest-contentful-paint']['numericValue'] ?? false;
-                }
-            }
-        }
-        return false;
-    }
 }
 
 
@@ -1030,20 +1063,3 @@ if(!function_exists("pll_acfe_advanced_link")){
         return $data;
     }
 }
-
-
-
-
-/*
-add_action("admin_init", function(){
-    if (defined('DOING_AJAX') && DOING_AJAX) {
-        return;
-    }
-    if (defined('DOING_CRON') && DOING_CRON) {
-        return;
-    }
-   ////error_log(print_r(get_untranslated_terms("tr"), true));
-   //translate_post_ai(4021, 'tr');
-   //translate_post_ai(4161, 'tr');
-});
-*/

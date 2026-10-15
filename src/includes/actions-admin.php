@@ -1,7 +1,53 @@
 <?php
+// =============================================================================
+// ACTIONS ADMIN — Admin Hooks, SCSS Variables, Icon Picker
+// =============================================================================
+// @version 1.1.0
+//
+// @changelog
+//   1.1.0 - 2026-08-21
+//     - Remove: scss_variables_padding/color/image/array/font() ~60 satır kaldırıldı.
+//              Yeni tema stilleri sistemine geçildi (scss-variables.json).
+//     - Remove: dropdown_notification DEPRECATED comment satırı kaldırıldı.
+//     - Remove: sh_clear_icon_cache geçici endpoint kaldırıldı (tek seferlik kullanım bitti).
+//   1.0.0 - 2026-05-16
+//     - Add: Initial admin actions file
+// =============================================================================
 
 use Timber\Timber;
 use SaltHareket\Theme;
+
+// ─── Block Editör REST Preload Optimizasyonu ─────────────────────────────────
+// İçerik render eden (the_content → ACF blocks → Timber) ağır path'leri kaldır.
+// Bu path'ler her editör açılışında server-side REST dispatch yapar — Timber/Polylang çalışır.
+// Kaldırılan path'ler JS tarafından talep üzerine zaten alınır, preload şart değil.
+add_filter( 'block_editor_rest_api_preload_paths', function( $paths ) {
+
+    // Kayıtlı tüm post type'ların REST base'lerini dinamik olarak al
+    $post_types = get_post_types( [ 'show_in_rest' => true ], 'objects' );
+    $rest_bases = [];
+    foreach ( $post_types as $pt ) {
+        $rest_bases[] = ! empty( $pt->rest_base ) ? $pt->rest_base : $pt->name;
+    }
+    $bases_pattern = implode( '|', array_map( 'preg_quote', $rest_bases, array_fill( 0, count( $rest_bases ), '~' ) ) );
+
+    $skip_patterns = [
+        '~^/wp/v2/(' . $bases_pattern . ')/\d+\?context=edit~',  // post detail — the_content çalışır
+        '~^/wp/v2/(' . $bases_pattern . ')/\d+/autosaves~',       // autosaves — gereksiz
+        '~^/wp/v2/global-styles/\d+~',                             // global styles — yavaş
+        '~^/wp/v2/templates/lookup~',                              // template lookup — yavaş
+    ];
+
+    $filtered = array_filter( $paths, function( $path ) use ( $skip_patterns ) {
+        $url = is_array( $path ) ? $path[0] : $path;
+        foreach ( $skip_patterns as $pattern ) {
+            if ( preg_match( $pattern, $url ) ) return false;
+        }
+        return true;
+    });
+
+    return array_values( $filtered );
+}, 20 );
 
 add_action('wp_update_nav_menu', function($menu_id, $menu_data = []) {
     delete_transient('timber_menus');
@@ -94,69 +140,7 @@ function scss_variables_boolean($value=""){
     }
     return $value;
 }
-/*
-function scss_variables_padding($padding=""){
-    $padding = trim($padding);
-    $padding = str_replace("px", " ", $padding);
-    $padding = str_replace("  ", " ", $padding);
-    $padding = explode(" ", $padding);
-    $padding = trim(implode("px ", $padding))."px";
-    $padding = str_replace("pxpx", "px", $padding);
-    return $padding;
-}
-function scss_variables_color($value=""){
-    if(empty($value)){
-        $value = "transparent";
-    }
-    return $value;
-}
 
-function scss_variables_image($value=""){
-    if(empty($value)){
-        $value = "none";
-    }else{
-        $value = "url(".$value.")";
-    }
-    return $value;
-}
-function scss_variables_array($array=array()){
-    $temp = array();
-    foreach($array as $key => $item){
-        $temp[] = $key."---".$item;
-    }
-    $temp = implode("___", $temp);
-    $temp = preg_replace('/\s+/', '', $temp);
-    return $temp;
-}
-function scss_variables_font($font = ""){
-    if (empty($font)) return "";
-
-    // önce pipe karakterlerini temizle
-    $font = str_replace("|", "", $font);
-
-    // Eğer virgül var ise family + fallback ayrımı yap
-    if (strpos($font, ',') !== false) {
-        $parts = explode(',', $font, 2);
-        $family = trim($parts[0]); // family adı
-        $fallback = isset($parts[1]) ? trim($parts[1]) : '';
-
-        // family zaten tırnaklı değilse tırnakla sar
-        $family = trim($family, '"\''); // varsa fazladan tırnakları temizle
-        $family = '"' . $family . '"';
-
-        // fallback varsa ekle
-        if ($fallback !== '') {
-            return $family . ', ' . $fallback;
-        } else {
-            return $family;
-        }
-    } else {
-        // tek family varsa
-        $font = trim($font, '"\''); // varsa fazladan tırnakları temizle
-        return '"' . $font . '"';
-    }
-}
-*/
 function wp_scss_set_variables(){
     $host_url = get_stylesheet_directory_uri();
 
@@ -177,12 +161,12 @@ function wp_scss_set_variables(){
         "enable_notifications"    => boolval(ENABLE_NOTIFICATIONS) ? "true" : "false",
         "enable_sms_notifications"=> boolval(ENABLE_NOTIFICATIONS) && boolval(ENABLE_SMS_NOTIFICATIONS) ? "true" : "false",
         "search_history"          => boolval(ENABLE_SEARCH_HISTORY) ? "true" : "false",
-        "logo"                    => "'" . (function_exists('get_field') ? get_field("logo", "option") : '') . "'",
-        "dropdown_notification"   => boolval(header_has_dropdown()) ? "true" : "false",
+        "logo"                    => "'" . ( class_exists('\\SaltHareket\\SaltConfig') ? ( (string) ( \SaltHareket\SaltConfig::get('options_logo')['url'] ?? '' ) ) : ( function_exists('get_field') ? ( (string) ( get_field("logo", "option")['url'] ?? '' ) ) : '' ) ) . "'",
         "host_url"                => "'" . $host_url . "'",
         "node_modules_path"       => '"' . str_replace('\\', '/', NODE_MODULES_PATH) . '"',
         "theme_static_path"       => '"' . str_replace('\\', '/', THEME_STATIC_PATH) . '"',
         "sh_static_path"          => '"' . str_replace('\\', '/', SH_STATIC_PATH) . '"',
+        "svg_path"                => "'" . rtrim( STATIC_URL, '/' ) . "/svg'",
     ];
 
     if (file_exists(get_stylesheet_directory() . "/static/js/js_files_all.json")) {
@@ -299,15 +283,12 @@ if(ENABLE_ECOMMERCE){
 
 
 
-// Under Construction Cache Flush
-if (class_exists('underConstruction')) {
-    add_filter('option_underConstructionActivationStatus', function($status) {
-        if ($status == '1' && function_exists('rocket_clean_domain')) {
-            rocket_clean_domain();
-        }
-        return $status;
-    });
-}
+// ─── Maintenance App Cache Flush (WP Rocket) ─────────────────────────────────
+add_action( 'sh/maintenance/saved', function ( array $settings ) {
+    if ( function_exists( 'rocket_clean_domain' ) ) {
+        rocket_clean_domain();
+    }
+} );
 
 
 
@@ -342,8 +323,8 @@ function admin_plugins_activated($plugin, $network_activation) {
         if (function_exists('acf_development_methods_settings')) acf_development_methods_settings(1);
     }
     if ($plugin === 'underconstruction/underConstruction.php') {
-        $pid = wp_insert_post(['post_title' => 'Under Construction', 'post_content' => '', 'post_status' => 'publish', 'post_type' => 'page', 'page_template' => 'under-construction.php']);
-        update_option('under-construction-page', $pid);
+        // Maintenance App artık kendi sayfasını yönetiyor — plugin page oluşturma kaldırıldı
+        // Maintenance sayfası admin'den seçilir: WP Admin → Maintenance
     }
 }
 function admin_plugins_deactivated($plugin, $network_activation) {
@@ -355,8 +336,7 @@ function admin_plugins_deactivated($plugin, $network_activation) {
         if (function_exists('acf_development_methods_settings')) acf_development_methods_settings(1);
     }
     if ($plugin === 'underconstruction/underConstruction.php') {
-        $pid = (int) get_option('under-construction-page');
-        if ($pid) { wp_delete_post($pid, true); delete_option('under-construction-page'); }
+        // Maintenance App artık bağımsız çalışıyor — plugin sayfası silme kaldırıldı
     }
 }
 
@@ -535,3 +515,117 @@ function salt_enforce_page_shortcodes($post_id, $post, $update) {
     wp_update_post($update_args);
     add_action('save_post_page', 'salt_enforce_page_shortcodes', 20, 3);
 }
+
+
+// ─── SH Icon Picker — AJAX Endpoints ─────────────────────────────────────────
+
+/**
+ * FA icon listesi — admin icon picker için
+ * Request: { action: 'sh_fa_icon_list', style: 'solid', nonce: '...' }
+ * Response: { icons: string[], style: string }
+ */
+add_action( 'wp_ajax_sh_fa_icon_list', function () {
+    check_ajax_referer( 'sh_icon_picker_nonce', 'nonce' );
+    if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'Unauthorized' );
+
+    // 2MB+ JS dosyası parse edebilmek için limit artır
+    @ini_set( 'memory_limit', '256M' );
+    @set_time_limit( 60 );
+
+    $style     = sanitize_key( $_POST['style'] ?? 'solid' );
+    $cache_key = 'sh_fa_icon_names_v2_' . $style;
+    $cached    = get_transient( $cache_key );
+
+    if ( is_array( $cached ) && count( $cached ) > 0 ) {
+        wp_send_json_success( [ 'icons' => $cached, 'style' => $style ] );
+        return;
+    }
+
+    if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) {
+        if ( ! defined( 'SH_STATIC_PATH' ) ) define( 'SH_STATIC_PATH', get_template_directory() . '/vendor/salthareket/theme/src/static/' );
+        if ( ! defined( 'STATIC_PATH' ) ) define( 'STATIC_PATH', get_template_directory() . '/static/' );
+        require_once __DIR__ . '/../classes/class.fa-icon-manager.php';
+    }
+
+    if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) {
+        wp_send_json_error( 'FaIconManager not loaded' );
+        return;
+    }
+
+    $names = \SaltHareket\FaIconManager::getIconNames( $style );
+    if ( empty( $names ) ) {
+        wp_send_json_error( 'No icons found for style: ' . $style );
+        return;
+    }
+
+    set_transient( $cache_key, $names, 30 * DAY_IN_SECONDS );
+    wp_send_json_success( [ 'icons' => $names, 'style' => $style ] );
+} );
+
+/**
+ * Tek ikon SVG render — icon picker önizleme için
+ * Request: { action: 'sh_fa_icon_svg', style: 'solid', name: 'heart', nonce: '...' }
+ * Response: SVG string
+ */
+add_action( 'wp_ajax_sh_fa_icon_svg', function () {
+    check_ajax_referer( 'sh_icon_picker_nonce', 'nonce' );
+    if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'Unauthorized' );
+
+    $style = sanitize_key( $_POST['style'] ?? 'solid' );
+    $name  = sanitize_key( $_POST['name']  ?? '' );
+
+    if ( ! $name ) { wp_send_json_error( 'No name' ); return; }
+
+    if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) {
+        if ( ! defined( 'SH_STATIC_PATH' ) ) define( 'SH_STATIC_PATH', get_template_directory() . '/vendor/salthareket/theme/src/static/' );
+        if ( ! defined( 'STATIC_PATH' ) ) define( 'STATIC_PATH', get_template_directory() . '/static/' );
+        require_once __DIR__ . '/../classes/class.fa-icon-manager.php';
+    }
+
+    if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) { wp_send_json_error( 'FaIconManager not loaded' ); return; }
+
+    wp_send_json_success( \SaltHareket\FaIconManager::extractFromJs( $name, $style ) );
+} );
+
+/**
+ * Tüm admin sayfalarında icon picker nonce + config'i inject et
+ */
+add_action( 'admin_head', function () {
+    static $printed = false;
+    if ( $printed ) return;
+    $printed = true;
+
+    $nonce = wp_create_nonce( 'sh_icon_picker_nonce' );
+    echo '<script>window.shIconPickerConfig={ajaxUrl:' . wp_json_encode( admin_url( 'admin-ajax.php' ) ) . ',nonce:' . wp_json_encode( $nonce ) . '};</script>' . "\n";
+} );
+
+
+/**
+ * Toplu SVG render — icon picker dropdown için
+ * Request: { action: 'sh_fa_icon_svg_bulk', style: 'solid', names: ['heart','star',...], nonce: '...' }
+ * Response: { heart: '<svg>...</svg>', star: '<svg>...</svg>' }
+ */
+add_action( 'wp_ajax_sh_fa_icon_svg_bulk', function () {
+    check_ajax_referer( 'sh_icon_picker_nonce', 'nonce' );
+    if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'Unauthorized' );
+
+    $style = sanitize_key( $_POST['style'] ?? 'solid' );
+    $names = array_map( 'sanitize_key', (array) ( $_POST['names'] ?? [] ) );
+    $names = array_slice( $names, 0, 100 );
+
+    if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) {
+        if ( ! defined( 'SH_STATIC_PATH' ) ) define( 'SH_STATIC_PATH', get_template_directory() . '/vendor/salthareket/theme/src/static/' );
+        if ( ! defined( 'STATIC_PATH' ) ) define( 'STATIC_PATH', get_template_directory() . '/static/' );
+        require_once __DIR__ . '/../classes/class.fa-icon-manager.php';
+    }
+
+    if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) { wp_send_json_error( 'FaIconManager not loaded' ); return; }
+
+    $result = [];
+    foreach ( $names as $name ) {
+        if ( $name ) $result[ $name ] = \SaltHareket\FaIconManager::extractFromJs( $name, $style );
+    }
+    wp_send_json_success( $result );
+} );
+
+

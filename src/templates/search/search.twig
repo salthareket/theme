@@ -40,6 +40,8 @@
     {% set page_settings = page_settings_default %}
 {% endif %}
 
+{#
+DEPRECATED — eski ACF add_offcanvas sistemi. Yeni sistem base.twig default block'larinda.
 {% block sidebar_toggler %}
     {% if page_settings.add_offcanvas and page_settings.offcanvas.template != "" %}
         {{ block("sidebar_toggler", page_settings.offcanvas.template) }}
@@ -51,6 +53,7 @@
         {{ block("sidebar", page_settings.offcanvas.template) }}
     {% endif %}
 {% endblock %}
+#}
 
 {% block hero %}
 {% endblock %}
@@ -69,7 +72,7 @@
                 {{title}}
                 <small class="d-block">
                     {% if found_posts %}
-                        {{ translate_nooped_plural( _n_noop( '%s içerik bulundu.', '%s içerik bulundu.'), found_posts)|format(found_posts) }}
+                        {{ translate_nooped_plural( translate_n_noop( '%s result found.', '%s results found.'), found_posts)|format(found_posts) }}
                     {% endif %}
                 </small>
             </h1>
@@ -87,9 +90,21 @@
                     {% endfor %}
                 {% else %}
                     <div class="col py-5">
-                        <div class="d-flex flex-column text-center">
-                            <i class="fa-light fa-face-sad-sweat opacity-25 fa-5x mb-3"></i>
+                        <div class="d-flex flex-column text-center align-items-center gap-3">
+                            {{ fa_icon('face-sad-sweat', 'light', 'opacity-25 fa-5x mb-3') }}
                             <h4>{{ description }}</h4>
+
+                            {# Did you mean? — benzer terim/post önerisi #}
+                            {% if keyword %}
+                                {% set _did_you_mean = function('did_you_mean_search', keyword, 2) %}
+                                {% if _did_you_mean and _did_you_mean != keyword %}
+                                <p class="text-muted mb-0">
+                                    {{ translate('Did you mean %s?')|replace({'%s':
+                                        '<a href="' ~ function('home_url', '/search/') ~  _did_you_mean|url_encode ~ '" class="fw-semibold text-primary">' ~ _did_you_mean ~ '</a>'
+                                    })|raw }}
+                                </p>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     </div>
                 {% endif %}

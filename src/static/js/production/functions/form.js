@@ -141,11 +141,18 @@ function form_control_clear(){
             })
             .siblings('.btn-form-control-clear').click(function() {
                 $(this).siblings('.form-control-clear').val('').trigger('propertychange').focus();
-                if($(this).siblings('.form-control-clear').hasClass("typeahead")){
-                   var typeahead = $(this).siblings('.form-control-clear').data("typeahead");
-                       typeahead.$menu
-                       .removeClass("not-found")
-                       .empty();
+                if($(this).siblings('.form-control-clear').hasClass("typeahead") || $(this).siblings('.form-control-clear').hasClass("ts-select")){
+                    // Tom Select
+                    var $input = $(this).siblings('.form-control-clear');
+                    if ($input.data('tomselect')) {
+                        $input.data('tomselect').clear();
+                        $input.data('tomselect').clearOptions();
+                    }
+                    // Backward compat: eski typeahead
+                    else if ($input.data("typeahead")) {
+                        var typeahead = $input.data("typeahead");
+                        typeahead.$menu.removeClass("not-found").empty();
+                    }
                 }
                 var form = $field.closest("form");
                 if(form.length > 0){

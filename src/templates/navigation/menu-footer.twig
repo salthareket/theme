@@ -2,7 +2,7 @@
 {% set max_level = max_level is empty?9999:max_level %}
 
 {% if menu_level <= 1 %}
-<nav class="nav- nav-menu" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" data-single-parent="true" aria-label="{{ translate("Menü") }}">
+<nav class="nav- nav-menu" id="menu" role="navigation" itemscope itemtype="https://schema.org/SiteNavigationElement" data-single-parent="true" aria-label="{{ translate("Menu") }}">
      <ul class="nav {{class_name}}" data-sm-skip="true">
 {% endif %}
 
@@ -28,7 +28,10 @@
 			{% if item.get_children and (max_level and menu_level < max_level-1) %}
 				</ul>
 				{% if more %}
-					<a class="btn-more btn-loading-page mt-auto" href="{{item.get_link}}">{{__("Tümü", "ekoselectric")}} <i class="fas fa-angle-right fa-fw"></i></a>
+					<a class="btn-more btn-loading-page mt-auto" href="{{item.get_link}}">{{__("Tümü", "ekoselectric")}} 
+						{#<i class="fas fa-angle-right fa-fw"></i>#}
+						{{ fa_icon( 'angle-right', 'solid', 'fa-fw' )}}
+					</a>
 	            {% endif %}
 			{% endif %}
 		</li>

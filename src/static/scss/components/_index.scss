@@ -5,6 +5,7 @@
 @import 'loading';
 @import 'modal';
 @import 'navigation';
+@import 'offcanvas';
 @import 'pagination';
 @import 'svg';
 @import 'table';
@@ -17,14 +18,9 @@
 //@if variable-exists("favorites") or variable-exists("enable_chat") or variable-exists("enable_notifications") {
 //    @if $favorites or $enable_chat or $enable_notifications {
         @import 'toast';
-//    }
-//    @if $favorites {
-        @import 'btn-favorite';
-//    }
-//}
 
-@if variable-exists("dropdown_notification") {
-    @if $dropdown_notification {
+//@if variable-exists("dropdown_notification") {
+    //@if $dropdown_notification {
         @import 'dropdown';
-    }
-}
+    //}
+//}

@@ -1,17 +1,4 @@
 window.ajax_hooks = {};
-window.ajax_hooks['_offcanvas'] = (function($){$.fn._offcanvas=function(options){var settings=$.extend({title:"Offcanvas Title",body:"Offcanvas Content",position:"end",full:!1,onShow:null,onHide:null,closeButton:!0},options);return this.each(function(){var offcanvasId="offcanvas_"+Math.random().toString(36).substr(2,9);var dimensionStyle='';if(settings.full){if(settings.position==='start'||settings.position==='end'){dimensionStyle='width: 100vw;'}else if(settings.position==='top'||settings.position==='bottom'){dimensionStyle='height: 100vh;'}}
-var offcanvasTemplate=`
-<div class="offcanvas offcanvas-${settings.position}" tabindex="-1" id="${offcanvasId}" style="${dimensionStyle}" aria-labelledby="${offcanvasId}_label">
-<div class="offcanvas-header">
-<h5 class="offcanvas-title" id="${offcanvasId}_label">${settings.title}</h5>
-${settings.closeButton ? '<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>' : ''}
-</div>
-<div class="offcanvas-body">
-${settings.body}
-</div>
-</div>
-`;$('body').append(offcanvasTemplate);var offcanvasElement=new bootstrap.Offcanvas(document.getElementById(offcanvasId));$(this).on('click',function(){offcanvasElement.show();if(typeof settings.onShow==='function'){settings.onShow()}});$(`#${offcanvasId}`).on('hidden.bs.offcanvas',function(){if(typeof settings.onHide==='function'){settings.onHide()}
-$(`#${offcanvasId}`).remove()})})}}(jQuery));
 window.ajax_hooks['acf_layout_posts'] = {before:function(response,vars,form,objs){var obj=null;if(isset(objs.btn)){obj=$(objs.btn)}else if(isset(objs[0])){obj=$(objs[0])}else if(isset(objs.obj)){obj=$(objs.obj)}
 if(obj&&obj.length>0){obj.find(".item-total").html("SEARCHING...")}},after:function(response,vars,form,objs){var obj=null;if(isset(objs.btn)){obj=$(objs.btn)}else if(isset(objs[0])){obj=$(objs[0])}else if(isset(objs.obj)){obj=$(objs.obj)}
 if(!obj||obj.length===0)return;var btn=obj.find(".btn-next-page");btn.removeClass("loading processing");debugJS(vars,form,objs);var scroll_to=vars.page;if(vars.page_total==vars.page){scroll_to=vars.page}
@@ -26,13 +13,6 @@ if(typeof swiper[0].swiper!=="undefined"){swiper[0].swiper.update()}else{swiper.
 if($(".offcanvas-filters").length>0){$(".offcanvas-filters").offcanvas("hide")}
 if(response.data.page>=response.data.page_count_total&&vars.load_type!="default"){obj.find(".card-footer").remove()}
 response_view(response)}};
-window.ajax_hooks['change_activation_method'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){response_view(response)}};
-window.ajax_hooks['resend_otp'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){if(response.data.hasOwnProperty("otp_id")){$("input[name='otp_id']").val(response.data.otp_id);var obj=$(".countdown");var obj_new=obj.clone();obj_new.insertAfter(obj);obj.remove();obj_new.empty().off().attr("data-event-end",response.data.otp_expiry).removeClass("countdown-init");countdown()}
-response_view(response)}};
-window.ajax_hooks['reset_email_activation'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){debugJS(response,vars,form,objs);$("body").removeClass("loading-process");response_view(response)}};
-window.ajax_hooks['send_activation'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){debugJS(response,vars,form,objs);_alert("Your activation code has been sent");$("body").removeClass("loading-process")}};
-window.ajax_hooks['send_email_activation'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){debugJS(response,vars,form,objs);_alert("Your email activation code has been sent");$("body").removeClass("loading-process")}};
-window.ajax_hooks['verify_otp'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){response_view(response)}};
 window.ajax_hooks['comment_product'] = {before:function(response,vars,form,objs){debugJS(response)
 $("body").addClass("loading");response.vars=vars;$(form).addClass("form-reviewed");return response},after:function(response,vars,form,objs){$("#form-comment-product").find("textarea").addClass("form-control-editable");if(!IsBlank(response.data)){$("#form-comment-product").find("input[name='comment_id']").val(response.data)}
 $("#form-comment-product").find(".btn-submit").html("Update Your Comment");form_control_editable();$("body").removeClass("loading");$(form).removeClass("form-reviewed");_alert("",response.message)}};
@@ -45,6 +25,8 @@ vars.load_modal=load_modal;response.vars=vars;return response},after:function(re
 $(modal_id).modal("show")}else{if(!IsBlank(response.data)){$(modal_id).find(".modal-header .modal-title").html(response.data.title);$(modal_id).find(".modal-body").html(response.data.comment)}else{_alert("","error")}}}else{response_view(response)}
 $("body").removeClass("loading");$(modal_id).removeClass("loading");star_rating_readonly()}};
 window.ajax_hooks['get_post'] = {after:function(response,vars,form,objs){}};
+window.ajax_hooks['get_search_history'] = {before:function(response,vars,form,objs){debugJS(objs)
+objs.addClass("loading-process")},after:function(response,vars,form,objs){objs.removeClass("loading-process").html(response.html)}};
 window.ajax_hooks['pagination_ajax'] = {before:function(response,vars,form,objs){objs.btn.addClass("loading")},after:function(response,vars,form,objs){debugJS(vars,form,objs);var scroll_to=vars.page;if(vars.page_total==vars.page){scroll_to=vars.page}
 var url="";var paged_url=bool(vars.paged_url);if(vars.page>1&&paged_url){var url="";if(vars.url.indexOf("?")>-1){var url_parts=vars.url.split("?");if(!IsBlank(url_parts[1])){var url_json=url2json(vars.url);if(url_json){if(url_json.hasOwnProperty("paged")){}
 url_parts[1]=json2url(url_json)}
@@ -58,8 +40,6 @@ if(!IsBlank(response.data)){$(".result-count").html(response.data)}
 root.ui.scroll_to($(vars.container).find("[data-page='"+(scroll_to)+"']"))}};
 window.ajax_hooks['site_config'] = {init:function(meta=[]){var query=new ajax_query();query.method="site_config";let vars={meta:meta}
 query.vars=vars;query.request()},after:function(response,vars,form){let _self=this;site_config=response;if(site_config.hasOwnProperty("nonce")){if(!IsBlank(site_config)){ajax_request_vars.ajax_nonce=site_config.nonce}}
-if(site_config.hasOwnProperty("favorites")){if(!IsBlank(favorites)){var favorites=$.parseJSON(site_config.favorites);if(favorites.length>0){debugJS(favorites)
-$(".nav-item[data-type='favorites']").addClass("active");$(".btn-favorite").each(function(){var id=parseInt($(this).attr("data-id"));$(this).removeClass("active");debugJS();if(inArray(id,favorites)){$(this).addClass("active")}})}}}
 if(site_config.cart>0){var counter=$(".nav-item[data-type='cart'] > a").find(".notification-count");if(counter.length==0){$(".nav-item[data-type='cart'] > a").prepend("<div class='notification-count'>"+site_config.cart+"</div>")}}
 $("body").removeClass("not-logged");if(site_config.logged){}
 if(site_config.hasOwnProperty("lcp")){const platformKey=window.innerWidth<=768?"m":"d";const platformFull=window.innerWidth<=768?"mobile":"desktop";if(site_config.lcp[platformKey]===0){_self.loadLCPMeasure(platformFull);log("[LCP] Veri eksik, ölçüm scripti yükleniyor...")}else{log("[LCP] Veri zaten mevcut, ölçüme gerek yok.")}}},loadLCPMeasure:function(platform,measureScriptPath){if($("#lcp-main-js").length>0)return;let _self=this;let script=document.createElement('script');script.id='lcp-main-js';script.src=ajax_request_vars.theme_url+'vendor/salthareket/theme/src/static/js/measure-lcp.js';script.onload=function(){log("[LCP] Ana dosya yüklendi, şimdi kütüphaneye geçiliyor...");_self.loadWebVitals(platform)};document.head.appendChild(script);return},loadWebVitals:function(platform){if($("#lcp-measure-js").length>0)return;let script=document.createElement('script');script.id='lcp-measure-js';script.src=ajax_request_vars.theme_url+'static/js/plugins/web-vitals.js';script.onload=function(){webVitals.onLCP((metric)=>{if(typeof lcp_data_save==='function'){log(metric,platform);lcp_data_save(metric,platform)}})};document.head.appendChild(script)}};
@@ -89,7 +69,7 @@ if(account_dropdown.find("[data-type='messages']").length>0){if(account_dropdown
 if(messages_menu_item.length>0){messages_menu_item.html(response.data.count.message)}
 $(".nav-item-messages").addClass("has-notification");document.title="("+response.data.count.message+") "+ajax_request_vars.title}else{document.title=ajax_request_vars.title;$(".nav-item-messages").removeClass("has-notification")}}else{desktop_counter.find(".notification-count").remove();mobile_counter.find(".notification-count").remove();account_dropdown.find("[data-type='messages']").find(".notification-count").remove();document.title=ajax_request_vars.title}
 setTimeout('ajax_hooks["get_notification_alerts"].init()',10000)}else{response_view(response)}}};
-window.ajax_hooks['get_reviews'] = {after:function(response,vars,form,objs){objs.obj.find(">.card-body").append(response.html)}};
+window.ajax_hooks['get_reviews'] = {after:function(response,vars,form,objs){if(objs&&objs.obj&&objs.obj.length&&objs.obj.find(">.card-body").length){objs.obj.find(">.card-body").append(response.html)}}};
 window.ajax_hooks['login'] = {required:["bootbox"],before:function(response,vars,form,objs){debugJS(response)
 if(!form){form=objs.form}
 if(form.length){form.addClass("loading-process")}},after:function(response,vars,form,objs){debugJS(response)
@@ -100,12 +80,7 @@ window.ajax_hooks['password_recover'] = {before:function(response,vars,form,objs
 window.ajax_hooks['register'] = {before:function(response,vars,form,objs){form.addClass("loading-process")},after:function(response,vars,form,objs){debugJS(response)
 form.removeClass("loading-process");response_view(response)}};
 window.ajax_hooks['send_profile_message'] = {before:function(response,vars,form,objs){form.closest(".modal-content").addClass("loading-process")},after:function(response,vars,form,objs){if(IsBlank(response.redirect)){form.closest(".modal-content").removeClass("loading-process")}else{response_view(response)}}};
-window.ajax_hooks['update_profile'] = {before:function(response,vars,form,objs){if(vars.action=="expertise"||vars.action=="upgrade"){}
-$("body").addClass("loading-process")},after:function(response,vars,form,objs){if(vars.action=="upgrade_management"){$(".table-expert-request").find("#user-"+vars.id).remove()}
-var required_pages="";debugJS(response);if(response.data.hasOwnProperty("profile_completion")){if(response.data.hasOwnProperty("profile_completion").success){$(".alert-notification-top").remove();$("a[data-action='account_settings'] .icon").remove()}
-for(item in response.data.profile_completion){if(item!="success"){if(response.data.profile_completion[item].success){$("a[data-action='"+item+"'] .icon").remove()}else{required_pages+="<a href='"+site_config.base_urls.account+item+"' class='btn btn-primary mx-2 btn-extend'>"+item+"</a>"}}}
-if(!IsBlank(required_pages)){required_pages="<h5 class='text-danger mt-3'>Please complete following pages</h5>"+required_pages;response.message=response.message+required_pages}}
-response_view(response);$("body").removeClass("loading-process")}};
+window.ajax_hooks['update_profile'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){response_view(response);$("body").removeClass("loading-process")}};
 window.ajax_hooks['update_profile_photo'] = {before:function(response,vars,form,objs){form.find(".image-uploader").addClass("loading-process")},after:function(response,vars,form,objs){form.find(".image-uploader").removeClass("loading-process")}};
 window.ajax_hooks['validate_phone'] = {before:function(response,vars,form,objs){$("body").addClass("loading-process")},after:function(response,vars,form,objs){if(response.error){$("body").removeClass("loading-process")}
 response_view(response)}};

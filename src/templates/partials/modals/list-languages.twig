@@ -59,7 +59,7 @@
             </style>
 	    </div>
 		<div class="col">
-		    <labek class="form-label" for="country">{{ translate("Ülke") }}</labek>
+		    <labek class="form-label" for="country">{{ translate("Country") }}</labek>
 		    <select class="selectpicker" name="country" data-size="6" id="country" data-live-search="true">
 		        {% for country in countries %}
 			    <option data-content="<div class='d-flex align-items-center'><img src='{{site.theme.uri}}/static/img/flags/1x1/{{country.code}}.svg' width='20' height='15' class='me-3'/> <span>{{country.name}}</span></div>" value="{{ country.name }}" data-country-code="{{country.code}}" data-language="{{ country.lang }}" {% if data.user_country_code|lower == country.code %}selected{% endif %}>{{country.name}}</option>
@@ -68,7 +68,7 @@
 			<input type="hidden" name="countryCode" value="{{not data.user_country_code is empty?data.user_country_code:countries[0].code}}"/>
 		</div>
 		<div class="col">
-		    <labek class="form-label" for="language">{{ translate("Dil") }}</labek>
+		    <labek class="form-label" for="language">{{ translate("Language") }}</labek>
 		    <select class="selectpicker" name="language" data-size="6" id="language">
 		        {% for lang in languages %}
 		        	<option value="{{lang.name}}" {% if data.user_language == lang.name %}selected{% endif %}>{{lang.name_long }}</option>
@@ -76,7 +76,7 @@
 		    </select>
 		</div>
 		<div class="col-12 text-center">
-	        <button type="submit" class="btn btn-nova btn-outline-primary px-5">{{ translate("Uygula") }}</button>
+	        <button type="submit" class="btn btn-nova btn-outline-primary px-5">{{ translate("Apply") }}</button>
 		</div>
 	</div>
 	<script>

@@ -31,24 +31,49 @@ trait HandlesFrontendCss
         $this->cleanupWpStyles( $has_core_block, $settings );
 
         // Font faces inline
-        $this->inlineCssAdd( 'sh-font-faces', STATIC_PATH . 'css/font-faces.css' );
+        //$this->inlineCssAdd( 'sh-font-faces', STATIC_PATH . 'css/font-faces.css' );
 
         // Locale CSS
         $this->smartEnqueueLocale( 'css', \Data::get( 'language' ) ?? '' );
 
-        // Root CSS
-        wp_enqueue_style( 'sh-root', STATIC_URL . 'css/root.css', [], $this->version );
+        // Root CSS — root.css'in kendi filemtime'ı kullanılır (Theme Styles değişince cache bozulur)
+        $root_css_path = STATIC_PATH . 'css/root.css';
+        $root_css_ver  = file_exists( $root_css_path ) ? filemtime( $root_css_path ) : $this->version;
+        wp_enqueue_style( 'sh-root', STATIC_URL . 'css/root.css', [], $root_css_ver );
 
         // Conditional assets (page-specific)
         $this->handleConditionalCss( $settings, $is_rtl, $inline_css );
 
-        // Common CSS
-        wp_enqueue_style(
-            'sh-common',
-            STATIC_URL . 'css/common-all' . ( $is_rtl ? '-rtl' : '' ) . '.css',
-            [],
-            $this->version
-        );
+        // ── Header / Footer static CSS ────────────────────────────────────────
+        // common-all.css kaldırıldı. Header static ise common-header-bs.css,
+        // footer static ise common-footer-bs.css ayrı ayrı yüklenir.
+        // Dynamic template → css_page inline inject ediliyor, ekstra CSS gerekmez.
+        $header_static = \Data::get( '_header_is_static', false );
+        $footer_static = \Data::get( '_footer_is_static', false );
+
+        if ( $header_static ) {
+            $header_css = STATIC_PATH . 'css/common-header-bs' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+            if ( file_exists( $header_css ) ) {
+                wp_enqueue_style(
+                    'sh-common-header',
+                    STATIC_URL . 'css/common-header-bs' . ( $is_rtl ? '-rtl' : '' ) . '.css',
+                    [],
+                    $this->version
+                );
+            }
+        }
+
+        if ( $footer_static ) {
+            $footer_css = STATIC_PATH . 'css/common-footer-bs' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+            if ( file_exists( $footer_css ) ) {
+                wp_enqueue_style(
+                    'sh-common-footer',
+                    STATIC_URL . 'css/common-footer-bs' . ( $is_rtl ? '-rtl' : '' ) . '.css',
+                    [],
+                    $this->version
+                );
+            }
+        }
 
         // Dışarıdan eklenen CSS'ler
         $extra_styles = apply_filters( 'sh_frontend_styles', [] );
@@ -63,6 +88,10 @@ trait HandlesFrontendCss
                 $args['media'] ?? 'all'
             );
         }
+
+        // Not: Template CSS vars (--row-height, --header-total-height vs.) artik
+        // header-builder ve header-row render.php'de <style data-inline> olarak
+        // dogrudan template HTML'ine ekleniyor. Burada ekstra inject gerekmez.
     }
 
     // ─── Conditional Assets ───────────────────────────────────────────────────
@@ -83,19 +112,59 @@ trait HandlesFrontendCss
             if ( $plugin_css ) {
                 $this->inlineCssAdd( 'sh-conditional', STATIC_PATH . $assets[ $plugin_key ], $is_rtl );
             }
+            // Template plugin CSS — birden fazla template varsa her birinin bundle'ini yukle
+            $tmpl_css_files = $assets['template_plugin_css_files'] ?? [];
+            if ( empty( $tmpl_css_files ) && ! empty( $assets['template_plugin_css'] ) ) {
+                // Geriye uyumluluk: eski key varsa array'e cevir
+                $tmpl_css_files = [ $assets['template_plugin_css'] ];
+            }
+            foreach ( $tmpl_css_files as $i => $tmpl_css_path ) {
+                if ( ! empty( $tmpl_css_path ) && file_exists( STATIC_PATH . $tmpl_css_path ) ) {
+                    $this->inlineCssAdd( 'sh-template-conditional-' . $i, STATIC_PATH . $tmpl_css_path, $is_rtl );
+                }
+            }
+            // NOT: template_css_pages (template'in css_page dosyalari) burada eklenmez.
+            // Bu CSS'ler resolve_header() / resolve_footer() icinde header_template_css olarak
+            // dogrudan template HTML'ine inline inject ediliyor — duplikasyon olmamali.
+            $combined_path_inline = STATIC_PATH . 'css/main-combined' . ( $is_rtl ? '-rtl' : '' ) . '.css';
             $main_path = $css_page
                 ? STATIC_PATH . $assets[ $page_key ]
-                : STATIC_PATH . 'css/main-combined' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+                : ( file_exists( $combined_path_inline )
+                    ? STATIC_PATH . 'css/main-combined' . ( $is_rtl ? '-rtl' : '' ) . '.css'
+                    : STATIC_PATH . 'css/main' . ( $is_rtl ? '-rtl' : '' ) . '.css' );
             $this->inlineCssAdd( 'sh-main', $main_path, $is_rtl );
         } else {
             if ( $plugin_css ) {
                 wp_enqueue_style( 'sh-conditional', STATIC_URL . $assets[ $plugin_key ], [], $this->version );
             }
-            $main_url = $css_page
-                ? STATIC_URL . $assets[ $page_key ]
-                : STATIC_URL . 'css/main-combined' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+            // Template plugin CSS — birden fazla template varsa her birinin bundle'ini yukle
+            $tmpl_css_files = $assets['template_plugin_css_files'] ?? [];
+            if ( empty( $tmpl_css_files ) && ! empty( $assets['template_plugin_css'] ) ) {
+                $tmpl_css_files = [ $assets['template_plugin_css'] ];
+            }
+            foreach ( $tmpl_css_files as $i => $tmpl_css_path ) {
+                if ( ! empty( $tmpl_css_path ) && file_exists( STATIC_PATH . $tmpl_css_path ) ) {
+                    wp_enqueue_style(
+                        'sh-template-conditional-' . $i,
+                        STATIC_URL . $tmpl_css_path,
+                        [],
+                        $this->version
+                    );
+                }
+            }
+            // NOT: template_css_pages burada eklenmez — resolve_header/footer inline inject ediyor.
+            // css_page yoksa veya dosya gerçekten yoksa main.css'e fallback yap
+            $combined_path = STATIC_PATH . 'css/main-combined' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+            if ( $css_page ) {
+                $main_url = STATIC_URL . $assets[ $page_key ];
+            } elseif ( file_exists( $combined_path ) ) {
+                $main_url = STATIC_URL . 'css/main-combined' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+            } else {
+                $main_url = STATIC_URL . 'css/main' . ( $is_rtl ? '-rtl' : '' ) . '.css';
+            }
             wp_enqueue_style( 'sh-main', $main_url, [], $this->version );
         }
+
     }
 
     // ─── Cleanup ──────────────────────────────────────────────────────────────

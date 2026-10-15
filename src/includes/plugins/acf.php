@@ -36,7 +36,7 @@ if (ENABLE_MULTILANGUAGE){
  * acf_get_theme_styles() — Eski ACF tabanlı sistem kaldırıldı.
  * Yeni sistem: theme-styles app (Theme_Styles class).
  * Fonksiyon adı geriye uyumluluk için korundu.
- */
+
 if ( ! function_exists( 'acf_get_theme_styles' ) ) {
 function acf_get_theme_styles(): array {
     // Static cache — aynı request içinde tekrar okuma
@@ -66,7 +66,7 @@ function acf_get_theme_styles(): array {
     return $cache;
 }
 }
-
+ */
 
 // contact main location
 function acf_main_location($locations){
@@ -267,7 +267,7 @@ function get_archive_field($field = "", $post_type = "post"){
 }
 
 add_filter('acf_osm_marker_icon', function( $icon ) {
-    $img = QueryCache::get_field("logo_marker", "option");
+    $img = \SaltHareket\SaltConfig::get("options_logo_marker");
     if(empty($img)){
         return $icon;
     }

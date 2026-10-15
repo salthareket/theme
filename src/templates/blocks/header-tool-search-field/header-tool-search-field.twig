@@ -1,0 +1,70 @@
+{# Header Tool: Search Field
+   ─────────────────────────────────────────────────────────────
+   Offcanvas search bar — FiboSearch varsa shortcode render eder,
+   yoksa native WP search form'u gösterir.
+
+   Düzeltmeler:
+   - method GET (POST → URL'de ?s= oluşmuyordu)
+   - action {{ site.url }}/?s= yerine WP home_url() ile güvenli
+   - did_you_mean desteği eklendi
+   - search history desteği eklendi
+#}
+{% set tso = fields.style_overrides ?? {} %}
+{% set tool_class = 'tool-item-' ~ block.id %}
+{% set menu_class = (fields.menu_class ? fields.menu_class ~ ' ' : '') ~ tool_class %}
+
+{% if tso and (tso.icon_color or tso.icon_color_hover or tso.icon_size or tso.icon_dot_color or tso.link_color or tso.link_color_hover or tso.counter_color or tso.counter_bg or tso.toggler_color) %}
+<style>
+.{{ tool_class }} {
+    {% if tso.icon_color %}--header-icon-color: {{ tso.icon_color }};{% endif %}
+    {% if tso.icon_color_hover %}--header-icon-color-hover: {{ tso.icon_color_hover }};{% endif %}
+    {% if tso.icon_size %}--header-icon-font-size: {{ tso.icon_size }};{% endif %}
+    {% if tso.icon_dot_color %}--header-icon-dot-color: {{ tso.icon_dot_color }};{% endif %}
+    {% if tso.link_color %}--header-link-color: {{ tso.link_color }};{% endif %}
+    {% if tso.link_color_hover %}--header-link-color-hover: {{ tso.link_color_hover }};{% endif %}
+    {% if tso.counter_color %}--notification-count-color: {{ tso.counter_color }};{% endif %}
+    {% if tso.counter_bg %}--notification-count-bg-color: {{ tso.counter_bg }};{% endif %}
+    {% if tso.toggler_color %}--header-navbar-toggler-color: {{ tso.toggler_color }};{% endif %}
+}
+</style>
+{% endif %}
+
+{% set _search_url = function('home_url', '/search/') %}
+{% set _keyword = function('get_query_var', 's') %}
+
+<div class="nav-item nav-search-field {{ menu_class }}">
+    {% if function("class_exists", 'DGWT_WC_Ajax_Search') and not is_preview %}
+        {{ '[fibosearch]'|shortcodes }}
+    {% else %}
+        {#
+          action = site root, name="s" — WP native search.
+          method GET: arama yapılınca ?s=keyword URL'e eklenir.
+          POST kullanılırsa WP URL'e ?s= eklemez → /search/ boş gelir.
+        #}
+
+        <form class="form-search form form-validate form-group m-0"
+              action="{{ _search_url }}"
+              role="form"
+              method="get">
+            <div class="input-group bg-white rounded-5 overflow-hidden p-2">
+                <input type="text"
+                       class="form-control form-control-md border-0"
+                       name="s"
+                       placeholder="{{ translate('Search keyword') }}"
+                       aria-label="{{ translate('Search keyword') }}"
+                       autocomplete="off"
+                       value="{{ _keyword }}"
+                       data-minlength="3"
+                       minlength="3"
+                       data-msg="{{ translate('Please enter at least 3 characters') }}"
+                       required>
+                <button class="btn-submit btn px-3 mt-1"
+                        type="submit"
+                        aria-label="{{ translate('Search') }}">
+                    {{ fa_icon('search', 'regular', 'fa-2x') }}
+                </button>
+            </div>
+        </form>
+
+    {% endif %}
+</div>

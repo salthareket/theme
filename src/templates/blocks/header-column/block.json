@@ -1,0 +1,22 @@
+{
+    "name": "acf/header-column",
+    "title": "Header Column",
+    "description": "Header icin tek kolon. Icine Logo, Navigation veya Header Tools ekle.",
+    "category": "headerblocks",
+    "keywords": ["header", "column", "kolon"],
+    "parent": ["acf/header-row"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": false,
+        "customClassName": false,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Kolon Duzenle"
+    }
+}

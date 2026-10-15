@@ -1,0 +1,22 @@
+{
+    "name": "acf/header-tool-custom",
+    "title": "Header Tool: Custom",
+    "description": "Header Tool: Custom",
+    "category": "headerblocks",
+    "keywords": ["header", "tool", "custom"],
+    "parent": ["acf/header-tools", "acf/header-column"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": false,
+        "customClassName": false,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Header Tool: Custom Duzenle"
+    }
+}

@@ -67,9 +67,9 @@
 
 
 
-    {% set multiple_images = true %}
-    {% set show_variations = true %}
-    {% set swatch_tooltip  = true %}
+    {% set multiple_images = tease_multiple_images is defined ? tease_multiple_images : false %}
+    {% set show_variations = tease_show_variations is defined ? tease_show_variations : false %}
+    {% set swatch_tooltip  = tease_swatch_tooltip  is defined ? tease_swatch_tooltip  : false %}
 
 {# ── post_type tespiti ─────────────────────────────────────── #}
 {% set is_variation = post.post_type == 'product_variation' %}
@@ -98,7 +98,7 @@
     {% set images = post.variation_all_images('woocommerce_thumbnail') %}
 {% elseif multiple_images is defined and multiple_images
     and is_variable
-    and active_plugins['woocommerce-additional-variation-images'] is defined %}
+    and wc_has_variation_galleries is defined and wc_has_variation_galleries %}
     {% set images = post.default_variation_images('woocommerce_thumbnail') %}
 {% endif %}
 {% if images is empty %}
@@ -108,10 +108,10 @@
 {% set image_count = images|length %}
 
 {# ── Swatch ayarları ───────────────────────────────────────── #}
-{% set _swatch_limit    = swatch_limit is defined ? swatch_limit : 115 %}
-{% set _swatch_tooltip  = swatch_tooltip is defined ? swatch_tooltip : false %}
-{% set _show_oos        = show_oos_swatches is defined and show_oos_swatches %}
-{% set _iconic_active   = active_plugins['woocommerce-show-single-variations'] is defined %}
+{% set _swatch_limit    = swatch_limit is defined ? swatch_limit : (tease_swatch_limit is defined ? tease_swatch_limit : 115) %}
+{% set _swatch_tooltip  = swatch_tooltip is defined ? swatch_tooltip : (tease_swatch_tooltip is defined ? tease_swatch_tooltip : false) %}
+{% set _show_oos        = show_oos_swatches is defined and show_oos_swatches or (tease_show_oos_swatches is defined and tease_show_oos_swatches) %}
+{% set _iconic_active   = active_plugins['xt-woo-variations-as-singles'] is defined %}
 {% set _wvs_active      = active_plugins['woo-variation-swatches'] is defined
                           or active_plugins['woo-variation-swatches-pro'] is defined %}
 {% set _show_swatches   = show_variations is defined and show_variations
@@ -167,23 +167,38 @@
 {% do post.setup() %}
 
 {# ═══════════════════════════════════════════════════════════ #}
-<article class="tease tease-product card h-100 border-0 rounded-3 overflow---hidden position-relative{{ not is_in_stock ? ' is-out-of-stock' : '' }}{{ size is defined ? ' tease-' ~ size : '' }}"
+{# ── Çalışma zamanı değişkenleri — include ile override edilebilir ── #}
+{% set _img_ratio   = img_ratio   is defined ? img_ratio   : (tease_img_ratio   is defined ? tease_img_ratio   : '1x1') %}
+{% set _card_size   = size        is defined ? size        : (tease_default_size is defined ? tease_default_size : 'md') %}
+{% set _show_cat    = tease_show_category is defined ? tease_show_category : true %}
+{% set _show_price  = tease_show_price    is defined ? tease_show_price    : true %}
+{% set _show_sale_b = tease_show_sale_badge is defined ? tease_show_sale_badge : true %}
+{% set _show_feat_b = tease_show_feat_badge is defined ? tease_show_feat_badge : true %}
+{% set _show_oos_b  = tease_show_oos_badge  is defined ? tease_show_oos_badge  : true %}
+
+<article class="tease tease-product card h-100 border-0 rounded-3 overflow---hidden position-relative{{ not is_in_stock ? ' is-out-of-stock' : '' }} tease-{{ _card_size }}"
     itemscope itemtype="https://schema.org/Product"
     data-product-id="{{ post.ID }}"
     data-product-type="{{ product_type }}"
-    data-swatch-tooltip="{{ _swatch_tooltip ? '1' : '0' }}">
+    data-swatch-tooltip="{{ _swatch_tooltip ? '1' : '0' }}" data-html-whitelist=".rounded-circle">
 
+    {{ post.reaction_buttons() }}
+
+    {#% if enable_reactions %}
     <div class="d-flex-inline">
+        
         {{ post.reaction_button('clap')|raw }}
 
         {{ post.reaction_button('like')|raw }}
 
         {{ post.reaction_button('favorite')|raw }}
+        
     </div>
+    {% endif %#}
 
 
     {# ── GÖRSEL ALANI ──────────────────────────────────────── #}
-    <div class="tease-product__img ratio ratio-1x1 bg-light position-relative overflow-hidden">
+    <div class="tease-product__img ratio ratio-{{ _img_ratio }} bg-light position-relative overflow-hidden">
 
         {% if images is not empty %}
             {% for img_url in images %}
@@ -219,7 +234,8 @@
             {% endif %}
         {% else %}
             <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted position-absolute top-0 start-0">
-                <i class="fa-regular fa-image fa-2x opacity-25"></i>
+                {#<i class="fa-regular fa-image fa-2x opacity-25"></i>#}
+                {{ fa_icon('image', 'regular', 'fa-2x opacity-25') }}
             </div>
         {% endif %}
 
@@ -228,14 +244,14 @@
 
         {# Rozetler #}
         <div class="position-absolute top-0 start-0 p-2 d-flex flex-column gap-1" style="z-index:3;pointer-events:none;">
-            {% if is_on_sale %}
-                <span class="badge text-bg-danger fw-semibold" style="font-size:10px;letter-spacing:.04em;">{{ translate("İndirim") }}</span>
+            {% if _show_sale_b and is_on_sale %}
+                <span class="badge text-bg-danger fw-semibold" style="font-size:10px;letter-spacing:.04em;">{{ translate("Discount") }}</span>
             {% endif %}
-            {% if is_featured and not is_on_sale %}
-                <span class="badge fw-semibold" style="font-size:10px;letter-spacing:.04em;background:var(--bs-primary,#8c734b);">{{ translate("Yeni") }}</span>
+            {% if _show_feat_b and is_featured and not is_on_sale %}
+                <span class="badge fw-semibold" style="font-size:10px;letter-spacing:.04em;background:var(--bs-primary,#8c734b);">{{ translate("New") }}</span>
             {% endif %}
-            {% if not is_in_stock %}
-                <span class="badge text-bg-secondary fw-semibold" style="font-size:10px;letter-spacing:.04em;">{{ translate("Tükendi") }}</span>
+            {% if _show_oos_b and not is_in_stock %}
+                <span class="badge text-bg-secondary fw-semibold" style="font-size:10px;letter-spacing:.04em;">{{ translate("Out of Stock") }}</span>
             {% endif %}
         </div>
 
@@ -254,7 +270,7 @@
     <div class="card-body d-flex flex-column gap-1 px-3 pt-3 pb-2">
 
         {# Kategori #}
-        {% if category %}
+        {% if _show_cat and category %}
             <div class="tease-product__cat" style="font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;">
                 <a href="{{ category.link }}" class="text-decoration-none btn-loading-page" style="color:var(--bs-primary,#8c734b);">{{ category.name }}</a>
             </div>
@@ -266,6 +282,12 @@
                 {{ post.title }}
             </a>
         </h3>
+
+        {# Rating özeti — Reviews aktifse göster #}
+        {% if constant('ENABLE_REVIEWS') is not null and constant('ENABLE_REVIEWS') %}
+            {% import "partials/post-reviews/_macros.twig" as rm %}
+            {{ rm.product_rating(post, 'sm') }}
+        {% endif %}
 
         {# ── Varyasyon swatchları (variable product) ─────────── #}
         {% if _show_swatches and _swatch_terms is not empty %}
@@ -288,9 +310,13 @@
             {% endfor %}
 
             {% if _visible is not empty %}
+                {# Variation URL map — her term slug için doğru XT/WC permalink #}
+                {% set _var_url_map = post.variation_urls_by_attr(_swatch_slug) %}
+
                 <div class="tease-product__swatches d-flex flex-wrap align-items-center gap-1 mt-1">
                     {% for _term in _visible %}
-                        {% set _swatch_url = (post.link ~ '?attribute_pa_' ~ _swatch_slug ~ '=' ~ _term.slug)|variation_url_rewrite %}
+                        {# SEO-friendly variation URL: /product-slug/color-value/ #}
+                        {% set _swatch_url = (post.link|trim('/')) ~ '/' ~ _swatch_slug ~ '-' ~ _term.slug ~ '/' %}
                         {% set _swatch_img = _thumb_map[_term.slug] is defined ? _thumb_map[_term.slug] : '' %}
 
                         {% if _swatch_type == 'color' %}
@@ -362,11 +388,13 @@
         {% endif %}
 
         {# Fiyat #}
+        {% if _show_price %}
         <div class="tease-product__price mt-auto pt-2" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
             <meta itemprop="priceCurrency" content="{{ function('get_woocommerce_currency') }}">
             <meta itemprop="availability" content="{{ is_in_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}">
             <span class="price">{{ post.price_html()|raw }}</span>
         </div>
+        {% endif %}
 
     </div>{# /.card-body #}
 
@@ -378,28 +406,29 @@
                 <a href="{{ product_link }}"
                    class="btn btn-sm w-100 btn-loading-page"
                    style="background:#f0f0f0;color:#999;border-color:#e0e0e0;cursor:not-allowed;"
-                   aria-label="{{ translate('Tükendi') }}">
-                    {{ translate("Tükendi") }}
+                   aria-label="{{ translate('Out of Stock') }}">
+                    {{ translate("Out of Stock") }}
                 </a>
 
-            {% elseif (product_type == "simple") or (is_variation and variation_add_to_cart is defined and variation_add_to_cart) %}
-                <a href="#"
+            {% elseif (product_type == "simple") or (is_variation and variation_add_to_cart is defined and variation_add_to_cart) or (product_type == "bundle" and tease_bundle_cta is defined and tease_bundle_cta == "cart") %}                <a href="#"
                    class="btn btn-sm w-100 btn-add-to-cart"
                    style="background:var(--bs-primary,#8c734b);color:#fff;border-color:var(--bs-primary,#8c734b);"
                    data-ajax-method="add_to_cart"
                    {{ post.add_to_cart_attrs() }}
-                   aria-label="{{ translate('Sepete Ekle') }}">
-                    <i class="fa-regular fa-cart-plus me-1"></i>
-                    <span>{{ translate("Sepete Ekle") }}</span>
+                   aria-label="{{ translate('Add to Cart') }}">
+                    {#<i class="fa-regular fa-cart-plus me-1"></i>#}
+                    {{ fa_icon('cart-plus', 'regular', 'me-1') }}
+                    <span>{{ translate("Add to Cart") }}</span>
                 </a>
 
             {% else %}
                 <a href="{{ product_link }}"
                    class="btn btn-sm w-100 btn-loading-page"
                    style="background:var(--bs-primary,#8c734b);color:#fff;border-color:var(--bs-primary,#8c734b);"
-                   aria-label="{{ translate('Seçenekleri Gör') }}">
-                    <i class="fa-regular fa-eye me-1"></i>
-                    <span>{{ translate("Seçenekleri Gör") }}</span>
+                   aria-label="{{ translate('View Options') }}">
+                    {#<i class="fa-regular fa-eye me-1"></i>#}
+                    {{ fa_icon('eye', 'regular', 'me-1') }}
+                    <span>{{ translate("View Options") }}</span>
                 </a>
             {% endif %}
 
@@ -407,3 +436,15 @@
     {% endif %}
 
 </article>
+
+{% if constant('ENABLE_REVIEWS') is not null and constant('ENABLE_REVIEWS') %}
+<style>
+.sh-product-rating{display:flex;align-items:center;gap:4px;margin-top:3px;line-height:1;}
+.sh-product-rating--sm .sh-prs-svg{width:12px;height:12px;}
+.sh-product-rating--md .sh-prs-svg{width:16px;height:16px;}
+.sh-prs--full svg,.sh-prs--half svg{color:#f59e0b;}
+.sh-prs--empty svg{color:#d1d5db;}
+.sh-product-rating__avg{font-size:12px;font-weight:600;color:#374151;}
+.sh-product-rating__count{font-size:11px;color:#9ca3af;}
+</style>
+{% endif %}

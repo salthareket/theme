@@ -1,0 +1,38 @@
+{#
+    Page Settings Sidebar — SIDEBAR mode (is_sidebar / responsive)
+
+    Breakpoint üstünde normal sidebar column (server-side render — SEO + no flash).
+    Breakpoint altında Bootstrap responsive offcanvas'a dönüşür (toggler ile açılır).
+
+    Bootstrap `.offcanvas-{bp}` class'ı bunu otomatik yapar:
+      - bp üstünde → .offcanvas-body normal blok olarak görünür
+      - bp altında → offcanvas (toggle gerekir)
+
+    Beklenen context: page_settings.offcanvas
+      { id, template_id, template, title, position, breakpoint, width }
+#}
+{% set _oc = page_settings.offcanvas %}
+{% if _oc.is_sidebar and _oc.template_id %}
+<div class="col-12 col-{{ _oc.breakpoint }}-{{ _oc.width }} page-settings-sidebar-col">
+    <div class="offcanvas-{{ _oc.breakpoint }} offcanvas-{{ _oc.position }} page-settings-sidebar"
+         tabindex="-1"
+         id="{{ _oc.id }}"
+         aria-labelledby="{{ _oc.id }}-label">
+        <div class="offcanvas-header d-{{ _oc.breakpoint }}-none">
+            <h5 class="offcanvas-title" id="{{ _oc.id }}-label">{{ translate(_oc.title) }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ translate('Close') }}"></button>
+        </div>
+        <div class="offcanvas-body">
+            {# Server-side render — menü/nav içeriği direkt HTML'de (SEO-friendly, flash yok) #}
+            {% set _sidebar_post = fn('Timber::get_post', _oc.template_id) %}
+            {% if _sidebar_post %}
+                {{ _sidebar_post.content|raw }}
+                {% set _sidebar_css = _sidebar_post.meta('css') %}
+                {% if _sidebar_css %}
+                    <link rel="stylesheet" href="{{ fn('get_template_directory_uri') }}/theme/templates/_custom/{{ _sidebar_css }}" media="all" crossorigin="anonymous">
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}

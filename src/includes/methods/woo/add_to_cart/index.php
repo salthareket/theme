@@ -54,7 +54,7 @@ if ($added) {
     ];
 } else {
     $response['error']   = true;
-    $response['message'] = __('Ürün sepete eklenemedi.', 'woocommerce');
+    $response['message'] = __('This product cannot be added to the cart.', 'woocommerce');
 }
 
 echo json_encode($response);

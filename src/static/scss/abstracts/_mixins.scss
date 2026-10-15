@@ -3,6 +3,57 @@
 // Compass bağımlılığı yok. Sadece modern CSS.
 // ─────────────────────────────────────────────────────────────
 
+// ── SVG Icon (mask-image) — FA SVG Sistemi ────────────────────
+// Font Awesome SVG sistemi için pseudo-element mask-image mixin'i.
+// Compile sırasında SaltMinifier bu pattern'i tarar ve SVG'leri üretir.
+//
+// Kullanım:
+//   &:after  { @include svgIcon('chevron-down', 'solid'); }
+//   &:before { @include svgIcon('check', 'solid', 1em, currentColor); }
+//   &:after  { @include svgIcon('chevron-right', 'solid', 0.75em, rgba(255,255,255,0.6)); }
+//
+// Parametreler:
+//   $name    — FA icon adı (kebab-case, örn: 'chevron-down', 'xmark', 'play')
+//   $style   — FA stili: 'solid' | 'regular' | 'light' | 'brands'  (default: 'solid')
+//   $size    — Genişlik ve yükseklik  (default: 1em)
+//   $color   — background-color / renk  (default: currentColor)
+// ── SVG Icon (mask-image) — FA SVG Sistemi ────────────────────
+// Font Awesome SVG sistemi için pseudo-element mask-image mixin'i.
+// Compile sırasında SaltMinifier bu pattern'i tarar ve SVG'leri üretir.
+//
+// Renk → background-color: currentColor (CSS color/fill ile kontrol edilir)
+// Boyut → 1em (font-size ile kontrol edilir)
+// Dışarıdan override:
+//   &:after { @include svgIcon('chevron-down'); color: red; font-size: 14px; }
+//
+// Kullanım:
+//   &:after  { @include svgIcon('chevron-down'); }
+//   &:after  { @include svgIcon('check', 'solid'); }
+//   &:before { @include svgIcon('play', 'light'); }
+//   &:after  { @include svgIcon('instagram', 'brands'); }
+//
+// Parametreler:
+//   $name    — FA icon adı (kebab-case, örn: 'chevron-down', 'xmark', 'play')
+//   $style   — FA stili: 'solid' | 'regular' | 'light' | 'brands'  (default: 'solid')
+@mixin svgIcon($name, $style: 'solid') {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;  // renk CSS color property'sinden gelir
+    mask-image: url('#{$svg_path}/#{$style}/#{$name}.svg');
+    -webkit-mask-image: url('#{$svg_path}/#{$style}/#{$name}.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+    mask-position: center;
+    -webkit-mask-position: center;
+    vertical-align: middle;
+    border: none;
+    flex-shrink: 0;
+}
+
 // ── Compass replacement: transition ──────────────────────────
 // Compass'ın @include transition() yerine - vendor prefix üretmez
 @mixin transition($transitions...) {
@@ -101,7 +152,7 @@
 }
 
 // ── Font Awesome button icon ──────────────────────────────────
-@mixin btnFa($key, $font-weight: 400) {
+@mixin btnFaFont($key, $font-weight: 400) {
     $content: null;
     $font-var: null;
     @if map-has-key($fa-icons, $key) {
@@ -119,6 +170,20 @@
         }
     } @else {
         @warn "Icon `#{$key}` not found in $fa-icons or $fa-brand-icons.";
+    }
+}
+
+@mixin btnFa($icon-name, $style: 'solid') {
+    &:before {
+        content: '';
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        background-color: currentColor;  // rengi CSS'den alır
+        mask-image: url('#{$svg_path}/#{$style}/#{$icon-name}.svg');
+        mask-repeat: no-repeat;
+        mask-size: contain;
+        mask-position: center;
     }
 }
 

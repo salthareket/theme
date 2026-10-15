@@ -135,24 +135,11 @@ trait HandlesHelpers
     // ─── Cache Info ───────────────────────────────────────────────────────────
 
     /**
-     * Inline CSS cache bilgisi döndür.
+     * @deprecated Kullan: AssetManagerAdmin::getCacheInfo()
+     * Bu metod AssetManagerAdmin'e taşındı. Geriye uyumluluk için burada bırakıldı.
      */
     public static function getCacheInfo(): array
     {
-        $cache_dir = rtrim( STATIC_PATH, '/' ) . '/css/cache/';
-        $files     = glob( $cache_dir . '*-inline.css' ) ?: [];
-        $total     = 0;
-        foreach ( $files as $f ) $total += filesize( $f );
-
-        return [
-            'count'      => count( $files ),
-            'total_size' => size_format( $total, 2 ),
-            'dir'        => $cache_dir,
-            'files'      => array_map( fn( $f ) => [
-                'name'     => basename( $f ),
-                'size'     => size_format( filesize( $f ), 1 ),
-                'modified' => wp_date( 'Y-m-d H:i', filemtime( $f ) ),
-            ], $files ),
-        ];
+        return [];
     }
 }

@@ -334,18 +334,41 @@ function modal_handle_error(response, modal) {
 /**
  * modal_set_content
  * Response data'sına göre modal içeriğini yerleştirir.
- * content varsa → .modal-content'e, yoksa title+body ayrı ayrı.
+ * title + content geliyorsa her biri kendi yerine gider.
+ * Sadece content geliyorsa (title yoksa) .modal-content'e yaz.
  */
 function modal_set_content(response, modal) {
     var data = response.data;
     if (!data) return;
 
-    if (data.hasOwnProperty('content')) {
-        modal.find('.modal-content').html(data.content);
-    } else {
-        if (data.title   !== undefined) modal.find('.modal-title').html(data.title);
-        if (data.body    !== undefined) modal.find('.modal-body').html(data.body);
-        if (data.content !== undefined) modal.find('.modal-body').html(data.content);
+    var hasTitle   = data.title   !== undefined && data.title   !== '';
+    var hasBody    = data.body    !== undefined;
+    var hasContent = data.content !== undefined;
+
+    if (hasTitle) {
+        modal.find('.modal-title').html(data.title);
+    }
+
+    // Smart content injection:
+    // Gelen HTML'de modal-header/body/footer yapısı varsa → .modal-content'e direkt yaz
+    // (bootbox'ın kendi header/body/footer'ını replace eder)
+    // Yoksa → .modal-body'e yaz (normal davranış)
+    var html = hasBody ? data.body : (hasContent ? data.content : null);
+
+    if (html !== null) {
+        var $parsed = $('<div>').html(html);
+        var hasModalParts = $parsed.find('.modal-header, .modal-body, .modal-footer').length > 0;
+
+        if (hasModalParts) {
+            // HTML içinde modal yapısı var → modal-content'e doğrudan yerleştir
+            modal.find('.modal-content').html(html);
+        } else if (hasTitle || hasBody) {
+            // Normal: body içeriği modal-body'e
+            modal.find('.modal-body').html(html);
+        } else {
+            // title yok, content var → eski davranış: tüm modal-content replace
+            modal.find('.modal-content').html(html);
+        }
     }
 }
 

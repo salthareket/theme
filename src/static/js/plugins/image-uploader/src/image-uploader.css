@@ -1,8 +1,134 @@
-/*! Image Uploader - v2.0.0 - 2026-04-09
- * Vanilla JS rewrite — no jQuery dependency
- * Original by Christian Bayer (MIT), rewritten by SaltHareket */
+/*! Image Uploader - v3.0.0 - 2026-09-09
+ * Gallery mode + Avatar mode
+ * Vanilla CSS — no framework dependency */
 
-/* Icons — inline SVG fallback, no font dependency */
+/* ═══════════════════════════════════════════════════════════════════
+   AVATAR MODE
+   ═══════════════════════════════════════════════════════════════════ */
+
+.iu-avatar {
+    --iu-avatar-size: 88px;
+    --iu-avatar-border: 3px;
+    --iu-avatar-overlay-bg: rgba(0, 0, 0, 0.48);
+    --iu-avatar-accent: #fff;
+    --iu-avatar-transition: 0.22s ease;
+
+    position: relative;
+    display: inline-block;
+    width: var(--iu-avatar-size);
+    height: var(--iu-avatar-size);
+    border-radius: 50%;
+    cursor: pointer;
+    outline: none;
+    flex-shrink: 0;
+}
+
+/* Ring on focus */
+.iu-avatar:focus-visible {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.55);
+}
+
+/* Avatar image */
+.iu-avatar__img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    transition: filter var(--iu-avatar-transition);
+    background: #e5e7eb;
+}
+
+.iu-avatar:hover .iu-avatar__img,
+.iu-avatar:focus-visible .iu-avatar__img {
+    filter: brightness(0.72);
+}
+
+/* Hidden file input */
+.iu-avatar__input {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Overlay — camera icon + label */
+.iu-avatar__overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--iu-avatar-accent);
+    opacity: 0;
+    transition: opacity var(--iu-avatar-transition);
+    pointer-events: none;
+}
+
+.iu-avatar__overlay svg {
+    width: calc(var(--iu-avatar-size) * 0.28);
+    height: calc(var(--iu-avatar-size) * 0.28);
+    flex-shrink: 0;
+}
+
+.iu-avatar__overlay span {
+    font-size: calc(var(--iu-avatar-size) * 0.115);
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Hide label on very small avatars */
+.iu-avatar[style*="--iu-avatar-size: 5"] .iu-avatar__overlay span,
+.iu-avatar[style*="--iu-avatar-size: 4"] .iu-avatar__overlay span {
+    display: none;
+}
+
+.iu-avatar:hover .iu-avatar__overlay,
+.iu-avatar:focus-visible .iu-avatar__overlay {
+    opacity: 1;
+}
+
+/* Changed state — subtle ring */
+.iu-avatar--changed .iu-avatar__img {
+    box-shadow: 0 0 0 var(--iu-avatar-border) #3b82f6;
+}
+
+/* Loading state */
+.iu-avatar__loading {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.iu-avatar__spinner {
+    width: calc(var(--iu-avatar-size) * 0.32);
+    height: calc(var(--iu-avatar-size) * 0.32);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: iu-spin 0.7s linear infinite;
+}
+
+@keyframes iu-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GALLERY MODE
+   ═══════════════════════════════════════════════════════════════════ */
+
 .image-uploader {
     min-height: 10rem;
     border: 2px dashed #d0d0d0;
@@ -115,7 +241,7 @@
     line-height: 1;
 }
 
-/* Icons Font Face — kept for backward compat */
+/* Icon font */
 @font-face {
     font-family: 'Image Uploader Icons';
     src: url('../fonts/iu.eot');
@@ -143,28 +269,14 @@
 
 /* Responsive grid */
 @media (max-width: 1366px) {
-    .image-uploader .uploaded {
-        grid-template-columns: repeat(5, 1fr);
-    }
+    .image-uploader .uploaded { grid-template-columns: repeat(5, 1fr); }
 }
 @media (max-width: 992px) {
-    .image-uploader .uploaded {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.4rem;
-        padding: 0.4rem;
-    }
+    .image-uploader .uploaded { grid-template-columns: repeat(4, 1fr); gap: 0.4rem; padding: 0.4rem; }
 }
 @media (max-width: 768px) {
-    .image-uploader .uploaded {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.3rem;
-        padding: 0.3rem;
-    }
+    .image-uploader .uploaded { grid-template-columns: repeat(3, 1fr); gap: 0.3rem; padding: 0.3rem; }
 }
 @media (max-width: 450px) {
-    .image-uploader .uploaded {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.25rem;
-        padding: 0.25rem;
-    }
+    .image-uploader .uploaded { grid-template-columns: repeat(2, 1fr); gap: 0.25rem; padding: 0.25rem; }
 }

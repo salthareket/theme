@@ -1,0 +1,33 @@
+{# Header Logo Block #}
+
+    <div class="navbar-brand align-items-center d-flex{% if logo_affix %} has-logo-affix{% endif %}{% if logo_mobile %} has-logo-mobile logo-mobile-{{ logo_mobile_breakpoint }}{% endif %}">
+        <a href="{{ site.url }}" class="mh-100 h-100 d-block btn-loading-page {% if fields.logo_height %}h-100{% else %}h-inherit{% endif %}" rel="home" itemprop="url" title="{{ translate('Home') }}">
+
+            {% if logo.url %}
+                {% if function('get_extension', logo.url) == 'svg' %}
+                    {{ function('inline_svg', logo.url, {'class': 'logo-svg w-auto h-inherit'}) }}
+                {% else %}
+                    <img src="{{ logo.url }}" class="logo h-inherit" alt="{{ site.name }}" fetchpriority="high" decoding="sync" width="{{ logo.width }}" height="{{ logo.height }}" />
+                {% endif %}
+            {% else %}
+                <span class="logo-placeholder fw-bold">{{ site.name }}</span>
+            {% endif %}
+
+            {% if logo_affix.url %}
+                {% if function('get_extension', logo_affix.url) == 'svg' %}
+                    {{ function('inline_svg', logo_affix.url, {'class': 'logo-svg logo-affix w-auto h-inherit'}) }}
+                {% else %}
+                    <img src="{{ logo_affix.url }}" class="logo logo-affix h-inherit" alt="{{ site.name }}" width="{{ logo_affix.width }}" height="{{ logo_affix.height }}" />
+                {% endif %}
+            {% endif %}
+
+            {% if logo_mobile.url %}
+                {% if function('get_extension', logo_mobile.url) == 'svg' %}
+                    {{ function('inline_svg', logo_mobile.url, {'class': 'logo-svg logo-mobile w-auto h-inherit'}) }}
+                {% else %}
+                    <img src="{{ logo_mobile.url }}" class="logo logo-mobile h-inherit" alt="{{ site.name }}" fetchpriority="high" decoding="sync" width="{{ logo_mobile.width }}" height="{{ logo_mobile.height }}" />
+                {% endif %}
+            {% endif %}
+
+        </a>
+    </div>

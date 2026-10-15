@@ -27,8 +27,8 @@ trait HandlesFrontendJs
     {
         if ( is_admin() ) return;
 
-        // ENABLE_PRODUCTION variables.php'de define edilmiş
-        $is_production = ENABLE_PRODUCTION;
+        // ENABLE_DEVELOPMENT variables.php'de define edilmiş
+        $is_development = ENABLE_DEVELOPMENT;
         $settings      = AssetSettings::get();
 
         // Gereksiz script'leri dequeue et
@@ -70,7 +70,7 @@ trait HandlesFrontendJs
         // plugins key string veya array olabilir — her zaman array'e çevir
         $plugins_conditional = (array) ( $assets['plugins'] ?? [] );
 
-        if ( $is_production ) {
+        if ( $is_development ) {
             $this->loadProductionJs( $files, $plugins_conditional, $init_functions );
         } else {
             $this->loadDevJs( $files, $plugins_conditional, $init_functions, $assets );
@@ -131,11 +131,40 @@ trait HandlesFrontendJs
         wp_enqueue_script( 'pre', STATIC_URL . 'js/pre-combined.min.js', [ 'jquery' ], null, true );
         wp_add_inline_script( 'pre', '(function(){if(window.__preLoaded)return;window.__preLoaded=true;})();', 'before' );
 
-        if ( ! empty( $assets['plugin_js'] ) && ! isset( $_GET['fetch'] ) ) {
+        if ( ! empty( $assets['plugin_js'] ) && ! isset( $_GET['fetch'] ) && file_exists( STATIC_PATH . $assets['plugin_js'] ) ) {
             wp_enqueue_script( 'plugins-conditional', STATIC_URL . $assets['plugin_js'], [ 'jquery' ], null, true );
         }
 
-        wp_enqueue_script( 'main', STATIC_URL . 'js/main-combined.min.js', [ 'jquery', 'pre' ], null, true );
+        // Template plugin JS — birden fazla template varsa her birinin bundle'ini yukle
+        $template_plugins    = (array) ( $assets['template_plugins'] ?? [] );
+        $tmpl_js_files       = $assets['template_plugin_js_files'] ?? [];
+        if ( empty( $tmpl_js_files ) && ! empty( $assets['template_plugin_js'] ) ) {
+            // Geriye uyumluluk
+            $tmpl_js_files = [ $assets['template_plugin_js'] ];
+        }
+        foreach ( $tmpl_js_files as $i => $tmpl_js_path ) {
+            if ( ! empty( $tmpl_js_path ) && ! isset( $_GET['fetch'] ) && file_exists( STATIC_PATH . $tmpl_js_path ) ) {
+                $handle = 'plugins-template' . ( $i > 0 ? '-' . $i : '' );
+                wp_enqueue_script( $handle, STATIC_URL . $tmpl_js_path, [ 'jquery' ], null, true );
+                // Bu template bundle'ina ait init fonksiyonlarini inject et
+                $template_init_functions = [];
+                foreach ( $files['js']['plugins'] ?? [] as $plugin => $file ) {
+                    if ( in_array( $plugin, $template_plugins, true ) && ! empty( $file['init'] ) ) {
+                        $template_init_functions[ $plugin ] = $file['init'];
+                    }
+                }
+                if ( ! empty( $template_init_functions ) ) {
+                    $this->injectPluginInits( $handle, $template_init_functions );
+                }
+            }
+        }
+
+        // Sayfa bazlı JS varsa main-combined yerine onu yükle
+        if ( ! empty( $assets['js_page'] ) && ! isset( $_GET['fetch'] ) && file_exists( STATIC_PATH . $assets['js_page'] ) ) {
+            wp_enqueue_script( 'main', STATIC_URL . $assets['js_page'], [ 'jquery', 'pre' ], null, true );
+        } else {
+            wp_enqueue_script( 'main', STATIC_URL . 'js/main-combined.min.js', [ 'jquery', 'pre' ], null, true );
+        }
         wp_add_inline_script( 'main', '(function(){if(window.__mainLoaded)return;window.__mainLoaded=true;})();', 'before' );
 
         foreach ( $files['js']['plugins'] ?? [] as $plugin => $file ) {
@@ -161,11 +190,12 @@ trait HandlesFrontendJs
         }
 
         // Defer handles
-        $defer_handles = [ 'image-sizes', 'plugins-conditional' ];
+        $defer_handles = [ 'image-sizes', 'plugins-conditional', 'plugins-template', 'pre', 'main', 'locale' ];
         $extra_defer   = apply_filters( 'sh_defer_js_handles', $settings['defer_js_handles'] ?? [] );
         $defer_handles = array_unique( array_merge( $defer_handles, $extra_defer ) );
 
-        if ( in_array( $handle, $defer_handles, true ) ) {
+        if ( in_array( $handle, $defer_handles, true )
+             || preg_match( '/^plugins-template(-\d+)?$/', $handle ) ) {
             return str_replace( ' src=', ' defer src=', $tag );
         }
 

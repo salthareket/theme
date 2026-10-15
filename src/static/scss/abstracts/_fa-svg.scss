@@ -1,0 +1,78 @@
+// ─── FA SVG Icon System ───────────────────────────────────────────────────────
+// Webfont yerine inline SVG kullanımı için temel stiller.
+// fa_icon('heart', 'solid', 'my-class') ile render edilen SVG'lere uygulanır.
+//
+// Kullanım:
+//   PHP:  echo fa_icon('heart', 'solid', 'icon-sm text-red');
+//   Twig: {{ fa_icon('heart', 'solid', 'icon-sm text-red') }}
+//   Twig: {{ 'heart'|fa_icon }}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// SVG temel stil — currentColor ile renk CSS'den kontrol edilir
+svg.fa-icon,
+.fa-icon svg,
+svg.fa-solid,
+svg.fa-regular,
+svg.fa-light,
+svg.fa-brands {
+    display: inline-block;
+    height: 1em;            // sabit height — tüm ikonlar aynı yükseklikte
+    width: auto;            // viewBox'a göre auto genişlik — aspect ratio korunur
+    fill: currentColor;
+    vertical-align: -0.125em;  // baseline hizalaması (webfont davranışını taklit eder)
+    overflow: visible;
+    flex-shrink: 0;
+}
+
+// Boyut yardımcıları — Bootstrap icon size utility ile uyumlu
+.fa-xs  { font-size: 0.75em; }
+.fa-sm  { font-size: 0.875em; }
+.fa-lg  { font-size: 1.25em; }
+.fa-xl  { font-size: 1.5em; }
+.fa-2xl { font-size: 2em; }
+
+.fa-1x  { font-size: 1em; }
+.fa-2x  { font-size: 2em; }
+.fa-3x  { font-size: 3em; }
+.fa-4x  { font-size: 4em; }
+.fa-5x  { font-size: 5em; }
+
+// Fixed-width (liste ikonları için) — sadece genişlik sabitleniyor, height hâlâ auto
+.fa-fw svg,
+svg.fa-fw {
+    display: inline-block;
+    width: 1.25em;
+    text-align: center;
+}
+
+// Spin animasyonu
+@keyframes fa-spin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fa-spin svg,
+svg.fa-spin {
+    animation: fa-spin 1s linear infinite;
+}
+
+.fa-spin-pulse svg,
+svg.fa-spin-pulse {
+    animation: fa-spin 1s steps(8) infinite;
+}
+
+// Flip yardımcıları
+svg.fa-flip-horizontal,
+.fa-flip-horizontal svg {
+    transform: scaleX(-1);
+}
+
+svg.fa-flip-vertical,
+.fa-flip-vertical svg {
+    transform: scaleY(-1);
+}
+
+svg.fa-flip-both,
+.fa-flip-both svg {
+    transform: scale(-1);
+}

@@ -16,13 +16,19 @@
                </div>
                <div>
                   <div class="btn-group">
-                      <button type="button" class="btn text-white fs-4" data-bs-dismiss="offcanvas" aria-label="Close"><i class="fal fa-times"></i></button>
+                      <button type="button" class="btn text-white fs-4" data-bs-dismiss="offcanvas" aria-label="Close">
+                        <i class="fal fa-times d-none"></i>
+                        {{ fa_icon( 'times', 'light', '' )}}
+                      </button>
                   </div>
                </div>
             </div>
          </a>
       {% else %}
-         <button type="button" class="btn text-white fs-4 ps-2" data-bs-dismiss="offcanvas" aria-label="Close"><i class="fal fa-times"></i></button>
+         <button type="button" class="btn text-white fs-4 ps-2" data-bs-dismiss="offcanvas" aria-label="Close">
+            <i class="fal fa-times d-none"></i>
+            {{ fa_icon( 'times', 'light', '' )}}
+         </button>
       {% endif %}
    </div> #}
    <div class="offcanvas-body">
@@ -47,7 +53,11 @@
       </ul>
       {% endapply %}                    
       {% endif %}
-      {#<a href="{{function('get_account_endpoint_url', 'customer-logout')}}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Sign out</a>#}
+      {#<a href="{{function('get_account_endpoint_url', 'customer-logout')}}" class="nav-link">
+         <i class="fas fa-sign-out-alt d-none"></i>
+         {{ fa_icon( 'sign-out-alt', 'solid', '' )}}
+          Sign out
+      </a>#}
    </div>
    
 </div>

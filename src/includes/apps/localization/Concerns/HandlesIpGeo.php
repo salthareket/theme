@@ -118,9 +118,7 @@ trait HandlesIpGeo
             }
         }
 
-        // Localhost/private IP'leri de kabul et (dev ortamı)
-        return filter_var( $_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP )
-            ? $_SERVER['REMOTE_ADDR']
-            : null;
+        // Local/private IP — API çağrısı yapma, null döndür
+        return null;
     }
 }

@@ -3,9 +3,27 @@
 // =============================================================================
 // SALT BLOCK SYSTEM — V3 RENDER ENGINE
 // =============================================================================
-// @version 1.1.0
+// @version 1.4.0
 //
 // @changelog
+//   1.4.0 - 2026-08-21
+//     - Add: salt_get_context() helper — _salt_block_context dolu ise onu döndürür,
+//            yoksa Timber::context() çağırır. Tüm template dosyaları bunu kullanmalı.
+//     - Fix: $block['data'] varken de QueryCache kullanılıyor artık (data_hash bazlı key).
+//            Önceden acf_setup_meta + get_fields her request'te çalışıyordu (~100ms kayıp).
+//            Cache key: block_id + md5(serialize(block_data)). Invalidation: post save.
+//            Preview modunda cache bypass edilir.
+//     - Remove: [SALT-BLOCK] error_log production'dan kaldırıldı.
+//   1.3.0 - 2026-07-28
+//     - Add: salt_render_acf_block_reset_context() — static cache dirty flag ile sıfırlama.
+//     - Add: acf_setup_meta() + get_fields() + acf_reset_meta() kombinasyonu ile block data
+//            doğru parse ediliyor. Context kirlenme sorunu giderildi.
+//   1.2.0 - 2026-07-04
+//     - Add: salt_render_acf_block() içinde get_fields() sonuçları QueryCache::wrap() ile
+//            transient cache'e alındı. Block ID bazlı cache key, post save'de invalidate.
+//            Kazanç: ~58q per request (tüm block field query'leri tek seferlik)
+//     - Add: SaltProfiler mark'ları eklendi: block:{slug}:start, block:{slug}:end
+//            Her block'un query sayısı ve süresi artık log'da görünür.
 //   1.1.0 - 2026-05-18
 //     - Add: salt_inject_dummy_data() — 17 block için dummy data desteği
 //       image, video, audio, gallery, slider, slider-advanced, text, buttons,
@@ -250,6 +268,11 @@ function salt_inject_dummy_data( string $block_slug, array $fields ): array {
             }
             break;
 
+        case 'languages':
+            // Preview'da dummy dil listesi — enable_multilanguage false olsa da gosterilir
+            // Gercek frontend'de languages context'ten gelir
+            break;
+
         case 'accordion':
             if ( empty( $fields['posts'] ) && empty( $fields['posts_relation'] ) && empty( $fields['post_type'] ) ) {
                 $fields['custom']   = true;
@@ -391,13 +414,88 @@ function salt_inject_dummy_data( string $block_slug, array $fields ): array {
  * @param int         $post_id    İlgili post ID
  * @param string|null $twig_name  Twig dosya adını override etmek için (opsiyonel)
  */
+
+/**
+ * Context'i block render pipeline'a önceden enjekte eder.
+ * startersite.php add_to_context() sonunda çağrılır.
+ * Böylece base.twig'deki render_block(block_hero) sırasında
+ * salt_render_acf_block tekrar Timber::context() çağırmaz → +1217q önlenir.
+ *
+ * @param array $context Timber context array
+ */
+function salt_set_block_context( array $context ): void {
+    $GLOBALS['_salt_block_context'] = $context;
+}
+
+/**
+ * Hazır block context'i döndürür.
+ * add_to_context() hook'u zaten çalıştıysa Timber::context() tekrar çağırmaz.
+ * Tüm template dosyaları (page.php, single.php vb.) bunu kullanmalı.
+ */
+function salt_get_context(): array {
+    if ( ! empty( $GLOBALS['_salt_block_context'] ) ) {
+        return $GLOBALS['_salt_block_context'];
+    }
+    return \Timber\Timber::context();
+}
+
 function salt_render_acf_block( array $block, bool $is_preview, int $post_id, ?string $twig_name = null ): void {
     $block_slug = $twig_name ?? str_replace( 'acf/', '', $block['name'] );
 
-    // Timber::context() timber/context filter'ını tetikler — startersite.php'deki
-    // add_to_context çalışır, all_js, fetch, breakpoints vs otomatik gelir.
-    $context               = Timber::context();
-    $context['fields']     = get_fields() ?: [];
+    static $cached_context = null;
+    // _salt_block_context_dirty flag set edilmişse static cache'i sıfırla
+    if ( $cached_context === null || ! empty( $GLOBALS['_salt_block_context_dirty'] ) ) {
+        unset( $GLOBALS['_salt_block_context_dirty'] );
+        if ( ! empty( $GLOBALS['_salt_block_context'] ) ) {
+            $cached_context = $GLOBALS['_salt_block_context'];
+        } else {
+            $cached_context = Timber::context();
+        }
+    }
+    $context = $cached_context;
+    \SaltProfiler::mark( 'block:' . $block_slug . ':start' );
+
+    // get_fields() her block için DB sorgusu yapıyor (~1-17q arası).
+    // $block['id'] block'a özgü sabit ID — cache key olarak kullan.
+    // QueryCache::wrap() ile transient cache'e al.
+    // Invalidation: post save edilince bu post'un block cache'leri temizlenir.
+    $block_id = $block['id'] ?? '';
+
+    // Preview'da veya $block['data'] varsa — ACF meta'yı block data'dan setup et
+    // Bu olmadan get_fields() yanlış post'un field'larını döndürebilir.
+    // QueryCache ile sarmalıyoruz: aynı block_id + data hash gelirse acf_setup_meta/get_fields tekrar çalışmaz.
+    if ( ! empty( $block['data'] ) && ! empty( $block_id ) ) {
+        if ( class_exists( 'QueryCache' ) && \QueryCache::is_enabled() && ! $is_preview ) {
+            // Cache key: block_id + data içeriğinin hash'i
+            // Data değişince (post save) hash değişir → cache otomatik miss
+            $data_hash = md5( serialize( $block['data'] ) );
+            $cache_key = 'block_fields_data_' . md5( $block_id . $data_hash );
+            $context['fields'] = \QueryCache::wrap(
+                $cache_key,
+                static function() use ( $block, $block_id ) {
+                    acf_setup_meta( $block['data'], $block_id, false );
+                    $fields = get_fields( $block_id ) ?: [];
+                    acf_reset_meta( $block_id );
+                    return $fields;
+                },
+                [ 'post_id' => [ $post_id ] ]
+            );
+        } else {
+            // Preview veya cache kapalı — her zaman fresh çek
+            acf_setup_meta( $block['data'], $block_id, false );
+            $context['fields'] = get_fields( $block_id ) ?: [];
+            acf_reset_meta( $block_id );
+        }
+    } elseif ( $block_id && class_exists('QueryCache') && \QueryCache::is_enabled() ) {
+        $context['fields'] = \QueryCache::wrap(
+            'block_fields_' . md5( $block_id ),
+            static fn() => get_fields() ?: [],
+            [ 'post_id' => [ $post_id ] ]
+        );
+    } else {
+        $context['fields'] = get_fields() ?: [];
+    }
+
     $context['block']      = $block;
     $context['is_preview'] = $is_preview;
     $context['post_id']    = $post_id;
@@ -425,6 +523,8 @@ function salt_render_acf_block( array $block, bool $is_preview, int $post_id, ?s
     ];
 
     Timber::render( $templates, $context );
+
+    \SaltProfiler::mark( 'block:' . $block_slug . ':end' );
 }
 
 // =============================================================================
@@ -802,8 +902,8 @@ function block_responsive_column_classes($field = [], $type = "col-", $field_nam
 
 function block_container_class($container="", $add_padding = true){
     $padding = $add_padding?"px-4 px-lg-3":"";
-    $default = QueryCache::get_field("default_container", "options");//get_field("default_container", "options");
-    $default = $default=="no"?"":"container".(empty($default)?"":"-".$default) . " {padding}";
+    $default_raw = \SaltHareket\SaltConfig::get('options_default_container', '');
+    $default = $default_raw === "no" ? "" : "container" . (empty($default_raw) ? "" : "-" . $default_raw) . " {padding}";
     switch($container){
         case "" :
             $container = "container {padding}";
@@ -833,17 +933,17 @@ function block_container($container="", $stretch_height = false){
     return $container;
 }
 function block_title_size($size=""){
-    $default = get_option("options_default_title_size");
+    $default = \SaltHareket\SaltConfig::get('options_default_title_size', 'title-fluid');
     $default = empty($default) ? "title-fluid" : $default;
     return ($size == "default" || empty($size) ? $default : $size);
 }
 function block_text_size($size=""){
-    $default = get_option("options_default_text_size");
+    $default = \SaltHareket\SaltConfig::get('options_default_text_size', 'text-fluid');
     $default = empty($default) ? "text-fluid" : $default;
     return ($size == "default" || empty($size) ? $default : $size);
 }
 function block_ratio($ratio=""){
-    $default = get_option("options_default_ratio");
+    $default = \SaltHareket\SaltConfig::get('options_default_ratio', '16x9');
     $default = empty($default) ? "16x9" : $default;
     return ($ratio == "default" || empty($ratio) ? $default : $ratio);
 }
@@ -1117,7 +1217,13 @@ function block_spacing($settings) {
 function generate_spacing_classes($spacing, $prefix) {
     $classes = [];
     $directions = ['top' => 't', 'bottom' => 'b', 'left' => 's', 'right' => 'e'];
-    $default = QueryCache::get_option("default_" . ($prefix == "m" ? "margin" : "padding"), "options");//get_field("default_" . ($prefix == "m" ? "margin" : "padding"), "options");
+    $type = $prefix == "m" ? "margin" : "padding";
+    $default = [
+        'top'    => \SaltHareket\SaltConfig::get('options_default_' . $type . '_top',    ''),
+        'bottom' => \SaltHareket\SaltConfig::get('options_default_' . $type . '_bottom', ''),
+        'left'   => \SaltHareket\SaltConfig::get('options_default_' . $type . '_left',   ''),
+        'right'  => \SaltHareket\SaltConfig::get('options_default_' . $type . '_right',  ''),
+    ];
 
     // 'default' değerlerini doldur
     foreach ($spacing as $key => $item) {
@@ -2254,6 +2360,7 @@ function block_css($block, $fields, $block_column){
     $code_height = "";
     $code_bg_parallax = "";
     $code_svg = "";
+    $css = "";
     $media_query = [];
 
     $background = isset($fields["block_settings"]["background"])?$fields["block_settings"]["background"]:[];
@@ -2984,8 +3091,11 @@ function acf_block_id_fields($post_id){
 
             $data = $block['attrs']['data'];
 
-            $block_settings_field_id = $data['_block_settings'];//explode("_field", $data['_block_settings_hero'])[0];
+            // _block_settings yok ise (ornegin header-builder, header-row gibi block_settings field grubu
+            // olmayan block'lar) — custom_id/column_id inject'i atla
+            $block_settings_field_id = $data['_block_settings'] ?? null;
 
+            if ( $block_settings_field_id !== null ) {
             if (!isset($data['block_settings_custom_id']) || empty($data['block_settings_custom_id'])){
                 $block['attrs']['data']['_block_settings_custom_id'] = $block_settings_field_id."_field_674d65b2e1dd0";
                 $block['attrs']['data']['block_settings_custom_id'] = 'block_' . md5(uniqid('', true));
@@ -2998,6 +3108,7 @@ function acf_block_id_fields($post_id){
                 ////error_log("block : block_settings_column_id added");
                 $updated = true;
             }
+            } // end block_settings_field_id check
             if($block['blockName'] == "acf/bootstrap-columns"){
                 foreach ($data as $key => $value) {
                     if (str_ends_with($key, '_block_settings_column_id')) {
@@ -3153,4 +3264,12 @@ if(is_admin()){
     </script>
     <?php
     });    
+}
+
+/**
+ * salt_render_acf_block static $cached_context'i sıfırlar.
+ * resolve_header Timber::compile sonrası çağrılır — context kirlenmesin.
+ */
+function salt_render_acf_block_reset_context(): void {
+    $GLOBALS['_salt_block_context_dirty'] = true;
 }

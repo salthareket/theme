@@ -18,8 +18,8 @@
                 {% if post_type in ["yazarlar"] %}
                     <form class="woocommerce-ordering m-0" method="get" onsubmit="">
                         <select class="form-select" name="sortby" onchange="woocommerceOrderingSubmit(this)">
-                            <option value="name" {% if function("get_query_var", "sortby") == "name" or function("get_query_var", "sortby") == "" %}selected{% endif %}>{{translate("Yazar adı")}}</option>
-                            <option value="book_count" {% if function("get_query_var", "sortby") == "book_count" %}selected{% endif %}>{{translate("Kitap Sayısı")}}</option>
+                            <option value="name" {% if function("get_query_var", "sortby") == "name" or function("get_query_var", "sortby") == "" %}selected{% endif %}>{{translate("Author Name")}}</option>
+                            <option value="book_count" {% if function("get_query_var", "sortby") == "book_count" %}selected{% endif %}>{{translate("Book Count")}}</option>
                         </select>
                     </form>
                     <script>

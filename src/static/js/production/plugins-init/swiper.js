@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SwiperManager - Swiper.js initialization and management system
  * Handles all swiper-related functionality in a clean, modular way
  */
@@ -472,7 +472,7 @@ class SwiperManager {
         }
     }
     initSwiperObj($obj) {
-        if ($obj.find(".swiper-slide").length < 2) {
+        if ($obj.find(".swiper-slide").length < 1) {
             this.initSwiperVideoSlide([], $obj);
             if ($obj.hasClass("fade")) {
                 $obj.addClass("show");
@@ -485,6 +485,14 @@ class SwiperManager {
                 $obj.closest(".loading").removeClass("loading");
             }
             this.safeUpdateSlideColors($obj[0]);
+
+            // Product gallery efektleri — tek slide için de çalışmalı
+            if ($obj.hasClass('product-gallery__main')) {
+                if ($obj.find('[data-zoom]').length && typeof init_jquery_zoom === 'function') {
+                    setTimeout(init_jquery_zoom, 50);
+                }
+            }
+
             return;
         }
   
@@ -525,7 +533,7 @@ class SwiperManager {
         }
         
         var slidesPerView = $obj.attr("data-slider-slides-per-view") ?? 1;
-        var slidesPerGroup = $obj.attr("data-slider-slides-per-view") ?? 1;
+        var slidesPerGroup = Math.max(1, Math.floor(parseFloat($obj.attr("data-slider-slides-per-view") ?? 1)));
 
         var card_slider = $obj.closest(".card").length > 0 ? $obj.closest(".card") : false;
 
@@ -537,6 +545,8 @@ class SwiperManager {
         var $breakpoints = $obj.data("slider-breakpoints");
         var $gaps = $obj.data("slider-gaps");
         var $gap = $obj.data("slider-gap");
+
+        console.log($breakpoints);
         
         var $hasBreakPoints = this.processBreakpoints($breakpoints, $gaps, $gap, breakpoints);
 
@@ -555,6 +565,7 @@ class SwiperManager {
             card_slider, $obj, galleryThumbs, $hasBreakPoints, breakpoints, slidesPerGroup,
             $gaps, $gap
         });
+        console.log(options);
 
         var dataAttr = $obj.data();
         if (dataAttr) {
@@ -638,7 +649,7 @@ class SwiperManager {
                     
                     breakpoints[width] = {
                         slidesPerView: val === "auto" ? 1 : val,
-                        slidesPerGroup: val
+                        slidesPerGroup: val === "auto" ? 1 : Math.max(1, Math.floor(parseFloat(val)))
                     };
 
                     // Gap (boşluk) ayarları
@@ -660,15 +671,26 @@ class SwiperManager {
         if ($obj.find(".swiper-thumbs").length == 0) {
            $obj.append("<div class='swiper-thumbs'></div>");
         }
-        return new Swiper($obj.find(".swiper-thumbs"), {
-            spaceBetween: 10,
-            slidesPerView: 4,
+        var thumbCount = parseInt( $obj.data('thumb-count') ) || 4;
+        var thumbNav   = bool( $obj.data('thumb-nav'), false );
+        var thumbOpts  = {
+            spaceBetween: 8,
+            slidesPerView: thumbCount,
             freeMode: true,
             watchSlidesVisibility: true,
             watchSlidesProgress: true,
-            slideToClickedSlide: true
-        });
-    }    buildSwiperOptions(config) {
+            slideToClickedSlide: true,
+        };
+        if (thumbNav) {
+            var tnNext = $obj.find('.swiper-thumbs').siblings('.swiper-button-next')[0];
+            var tnPrev = $obj.find('.swiper-thumbs').siblings('.swiper-button-prev')[0];
+            if ( tnNext && tnPrev ) {
+                thumbOpts.navigation = { nextEl: tnNext, prevEl: tnPrev };
+            }
+        }
+        var thumbEl = $obj.find(".swiper-thumbs")[0];
+        if ( ! thumbEl ) return null;
+        return new Swiper( thumbEl, thumbOpts );    }    buildSwiperOptions(config) {
         const {
             slidesPerView, scrollbar, scrollbar_el, scrollbar_draggable, scrollbar_snap,
             grab, allow_touch_move, auto_height, speed, delay, autoplay, autoplay_pause,
@@ -718,6 +740,16 @@ class SwiperManager {
                     //remove if parent has loading
                     if ($el.closest(".loading").length > 0) {
                         $el.closest(".loading").removeClass("loading");
+                    }
+
+                    // Product gallery efektleri — swiper init bittikten sonra
+                    if ($el.hasClass('product-gallery__main')) {
+                        // zoom — swiper init sonrası tetikle
+                        if ($el.find('[data-zoom]').length && typeof init_jquery_zoom === 'function') {
+                            setTimeout(init_jquery_zoom, 50);
+                        }
+                        // lightgallery — conditional JS sistemi zaten tetikliyor (init-me class'ı var)
+                        // Burada tekrar tetikleme — sadece AJAX rebuild sonrası main.js'den tetiklenir
                     }
                 },
                 
@@ -898,40 +930,45 @@ class SwiperManager {
             nextEl: nextEl
         }
     }
-
-    setupPagination(options, $obj, card_slider, pagination, pagination_custom, pagination_visible) {
-        var pagination_obj = $obj.find('.swiper-pagination')[0];
-        if (!pagination_obj) {
-            if (card_slider) {
-                if (card_slider.find(".swiper-pagination").length > 0) {
-                    pagination_obj = card_slider.find(".swiper-pagination")[0];
-                } else {
-                   card_slider.append("<div class='swiper-pagination'></div>");
-                   pagination_obj = card_slider.find(".swiper-pagination")[0];
+    setupPagination(options,$obj,card_slider,pagination,pagination_custom,pagination_visible,pagination_el){
+                var pagination_obj=null;
+                if(pagination_el && $(pagination_el).length){
+                    pagination_obj=$(pagination_el)[0];
                 }
-            } else {
-                pagination_obj = $obj.parent().find('.swiper-pagination')[0];
-                if (!pagination_obj) {
-                    $obj.append("<div class='swiper-pagination'></div>");
-                    pagination_obj = $obj.find('.swiper-pagination')[0];
+                if(!pagination_obj){
+                    pagination_obj=$obj.find('.swiper-pagination')[0];
+                    if(!pagination_obj){
+                        if(card_slider){
+                            if(card_slider.find(".swiper-pagination").length>0){
+                                pagination_obj=card_slider.find(".swiper-pagination")[0]
+                            }else{
+                                card_slider.append("<div class='swiper-pagination'></div>");
+                                pagination_obj=card_slider.find(".swiper-pagination")[0]
+                            }
+                        }else{
+                            pagination_obj=$obj.parent().find('.swiper-pagination')[0];
+                            if(!pagination_obj){
+                                $obj.append("<div class='swiper-pagination'></div>");
+                                pagination_obj=$obj.find('.swiper-pagination')[0]
+                            }
+                        }
+                    }
                 }
-            }  
-        }
-        options["pagination"] = {
-            el: pagination_obj,
-            clickable: true,
-            type: pagination
-        }
-        if (pagination == "bullets") {
-           if (pagination_visible > 0) {
-              options["pagination"]["dynamicBullets"] = true;
-              options["pagination"]["dynamicMainBullets"] = pagination_visible;
-           }
-        }
-        if (pagination == "custom" && !IsBlank(pagination_custom)) {
-            options["pagination"]["renderBullet"] = pagination_custom;
-        }
-    }
+                options.pagination={
+                    el:pagination_obj,
+                    clickable:!0,
+                    type:pagination
+                };
+                if(pagination=="bullets"){
+                    if(pagination_visible>0){
+                        options.pagination.dynamicBullets=!0;
+                        options.pagination.dynamicMainBullets=pagination_visible;
+                    }
+                }
+                if(pagination=="custom"&&!IsBlank(pagination_custom)){
+                    options.pagination.renderBullet=pagination_custom;
+                }
+            }
 
     setupEffects(options, effect, crossFade) {
         switch (effect) {
@@ -1002,6 +1039,91 @@ function init_swiper_video_slide(swiper, obj) {
 
 function init_swiper_video(swiper) {
     return swiperManager.initSwiperVideo(swiper);
+}
+
+/**
+ * Product Gallery Thumb Swiper init.
+ * product-gallery.twig içindeki [data-product-gallery-thumbs] elementlerini init eder.
+ * Ana swiper ile iki yönlü bağlantı kurar: thumb'a tıklayınca ana slider geçer,
+ * ana slider değişince thumb aktif olur.
+ */
+function init_product_gallery_thumbs() {
+    $('[data-product-gallery-thumbs]').not('.pg-thumbs-init').each(function () {
+        var $thumbsEl  = $(this);
+        var mainId     = $thumbsEl.data('product-gallery-thumbs');
+        var $mainEl    = $('#' + mainId);
+        var thumbCount = parseInt( $thumbsEl.data('thumb-count') ) || 4;
+        var thumbNav   = $thumbsEl.data('thumb-nav') === 1 || $thumbsEl.data('thumb-nav') === '1';
+
+        if ( ! $mainEl.length ) return;
+
+        $thumbsEl.addClass('pg-thumbs-init');
+
+        // Thumb swiper — önce init et (ana swiper'dan önce olmalı)
+        var thumbsOpts = {
+            spaceBetween: 8,
+            slidesPerView: thumbCount,
+            freeMode: true,
+            watchSlidesVisibility: true,
+            watchSlidesProgress: true,
+            slideToClickedSlide: true,
+            breakpoints: {
+                0:   { slidesPerView: Math.min(3, thumbCount) },
+                576: { slidesPerView: Math.min(4, thumbCount) },
+                992: { slidesPerView: thumbCount }
+            }
+        };
+
+        if ( thumbNav ) {
+            var nextEl = $thumbsEl.find('.product-gallery__thumb-next')[0];
+            var prevEl = $thumbsEl.find('.product-gallery__thumb-prev')[0];
+            if ( nextEl && prevEl ) {
+                thumbsOpts.navigation = { nextEl: nextEl, prevEl: prevEl };
+            }
+        }
+
+        var thumbEl = $thumbsEl[0];
+        if ( ! thumbEl ) return;
+
+        // Boş wrapper ile Swiper init edilince getComputedStyle(null) hatası verir
+        if ( $thumbsEl.find('.swiper-slide').length === 0 ) return;
+
+        var thumbsSwiper = new Swiper( thumbEl, thumbsOpts );
+
+        // Ana swiper — mevcut instance varsa kullan
+        var mainSwiper = swiperManager.instances.get( $mainEl[0] );
+
+        if ( mainSwiper ) {
+            // Zaten init edilmiş — thumbs'ı sonradan bağla
+            mainSwiper.params.thumbs = { swiper: thumbsSwiper };
+            if ( mainSwiper.thumbs ) {
+                mainSwiper.thumbs.init();
+                mainSwiper.thumbs.update();
+            }
+        } else {
+            // Ana swiper henüz init edilmemiş — thumbs parametresiyle init et
+            // Önce mevcut data-slider-pagination-thumbs'ı kaldır, biz manuel bağlıyoruz
+            $mainEl.attr('data-slider-pagination-thumbs', 'false');
+            init_swiper( $mainEl );
+            mainSwiper = swiperManager.instances.get( $mainEl[0] );
+            if ( mainSwiper ) {
+                mainSwiper.params.thumbs = { swiper: thumbsSwiper };
+                if ( mainSwiper.thumbs ) {
+                    mainSwiper.thumbs.init();
+                    mainSwiper.thumbs.update();
+                }
+            }
+        }
+
+        // Thumb tıklanınca ana swiper'ı güncelle
+        if ( mainSwiper ) {
+            mainSwiper.on('slideChange', function () {
+                $thumbsEl.find('.product-gallery__thumb-slide').removeClass('swiper-slide-thumb-active')
+                    .eq(mainSwiper.activeIndex).addClass('swiper-slide-thumb-active');
+                thumbsSwiper.slideTo(mainSwiper.activeIndex);
+            });
+        }
+    });
 }
 
 // Product gallery initialization (legacy support)

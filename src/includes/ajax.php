@@ -13,7 +13,9 @@ class TurboApi {
     function __construct() {
         add_action('init', [$this, 'add_rewrite_rules']);
         add_filter('query_vars', [$this, 'add_query_vars']);
-        add_action('template_redirect', [$this, 'handle_api_request'], 1);
+        // Priority 0: Maintenance ve diğer template_redirect hook'larından önce çalış.
+        // API isteği ise DOING_AJAX define edilip exit() yapılır — maintenance hook'u hiç tetiklenmez.
+        add_action('template_redirect', [$this, 'handle_api_request'], 0);
 
         // Rewrite rule'ları flush et — sadece henüz yoksa (her request'te flush yapmaz)
         add_action('init', [$this, 'maybe_flush_rules'], 99);
@@ -21,7 +23,10 @@ class TurboApi {
 
     public function maybe_flush_rules() {
         $rules = get_option('rewrite_rules', []);
-        if ( ! is_array( $rules ) || ! isset( $rules['^' . $this->prefix . '/([^/]+)/?$'] ) ) {
+        // Hem dil prefix'siz hem de prefix'li rule'ların varlığını kontrol et
+        $has_plain = is_array( $rules ) && isset( $rules['^' . $this->prefix . '/([^/]+)/?$'] );
+        $has_lang  = is_array( $rules ) && isset( $rules['^[a-z]{2}/' . $this->prefix . '/([^/]+)/?$'] );
+        if ( ! $has_plain || ! $has_lang ) {
             flush_rewrite_rules( false ); // false = .htaccess'e dokunma, sadece DB
         }
     }
@@ -32,9 +37,15 @@ class TurboApi {
     }
 
     public function add_rewrite_rules() {
-        // site.com/api/search_stores/ yapısını yakalar
+        // site.com/api/method — prefix'siz
         add_rewrite_rule(
             '^' . $this->prefix . '/([^/]+)/?$',
+            'index.php?api_method=$matches[1]',
+            'top'
+        );
+        // site.com/tr/api/method — Polylang/WPML dil prefix'li (2 harfli dil kodu)
+        add_rewrite_rule(
+            '^[a-z]{2}/' . $this->prefix . '/([^/]+)/?$',
             'index.php?api_method=$matches[1]',
             'top'
         );
@@ -61,7 +72,7 @@ class TurboApi {
     private function process($method) {
         // 2. FETCH BODY OKUMA (Modern JSON Body)
         $raw_data = file_get_contents('php://input');
-        $data = json_decode($raw_data, true) ?: $_REQUEST;
+        $data     = json_decode($raw_data, true) ?: [];
 
         // Değişkenleri senin methods/index.php yapına hazırla
         $id       = isset($data["id"]) ? absint($data["id"]) : 0;
@@ -73,7 +84,9 @@ class TurboApi {
         // 3. GÜVENLİK (NONCE)
         // Fetch ile gönderdiğin X-WP-Nonce header'ını kontrol eder
         $nonce = $_SERVER['HTTP_X_WP_NONCE'] ?? ($data['_wpnonce'] ?? '');
-        $public_methods = ['site_config', 'message_upload'];
+        // download_request ve download_lead kendi erişim kontrollerini yapıyor
+        // (checkAccess + token sistemi) — TurboAPI nonce'una gerek yok.
+        $public_methods = ['site_config', 'message_upload', 'download_request', 'download_lead', 'download_stream'];
         
         if (!in_array($method, $public_methods) && !wp_verify_nonce($nonce, 'ajax')) {
             $this->respond_error('Security Check Failed');

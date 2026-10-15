@@ -1,0 +1,8 @@
+{#
+  partials/source/notifications/footer.twig
+  Context: meta, view
+#}
+<a href="{{ function('get_account_endpoint_url', 'notifications')|default('#') }}"
+   class="btn btn-primary btn-sm w-100">
+    {{ translate('View All Notifications') }}
+</a>

@@ -81,19 +81,20 @@
                                     {% if function('get_extension', cell.image.url) == "svg" %}
                                         {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                     {% else %}
-                                        <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                        <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" width="{{ cell.image.width }}" height="{{ cell.image.height }}" />
                                     {% endif %}
                                 {% elseif type == "file" and cell.file.id %}
                                     <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
                                 {% elseif type == "boolean" %}
-                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                    {#<i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>#}
+                                    {{ fa_icon('circle-check', 'solid', 'icon' ~ (cell.boolean ? ' active' : '')) }}
                                 {% elseif type == "text_image" %}
                                     {{ cell.text }}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
                                             {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
-                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" width="{{ cell.image.width }}" height="{{ cell.image.height }}" />
                                         {% endif %}
                                     {% endif %}
                                 {% elseif type == "text_file" %}
@@ -103,7 +104,8 @@
                                     {% endif %}
                                 {% elseif type == "text_boolean" %}
                                     {{ cell.text }}
-                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                    {#<i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>#}
+                                    {{ fa_icon('circle-check', 'solid', 'icon' ~ (cell.boolean ? ' active' : '')) }}
                                 {% endif %}
                             </div>
 
@@ -128,19 +130,20 @@
                                     {% if function('get_extension', cell.image.url) == "svg" %}
                                         {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                     {% else %}
-                                        <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                        <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" width="{{ cell.image.width }}" height="{{ cell.image.height }}" />
                                     {% endif %}
                                 {% elseif type == "file" and cell.file.id %}
                                     <a href="{{ cell.file.url }}" class="btn btn-primary" target="_blank">{{ "Download" }}</a>
                                 {% elseif type == "boolean" %}
-                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                    {#<i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>#}
+                                    {{ fa_icon('circle-check', 'solid', 'icon' ~ (cell.boolean ? ' active' : '')) }}
                                 {% elseif type == "text_image" %}
                                     {{ cell.text }}
                                     {% if cell.image.id %}
                                         {% if function('get_extension', cell.image.url) == "svg" %}
                                             {{cell.image.url|inline_svg({"class": "icon img-fluid"})}}
                                         {% else %}
-                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" />
+                                            <img {% if not is_preview %}data-{% endif %}src="{{cell.image.url}}" alt="{{cell.image.alt}}" class="icon img-fluid {% if not is_preview %}lazy{% endif %}" width="{{ cell.image.width }}" height="{{ cell.image.height }}" />
                                         {% endif %}
                                     {% endif %}
                                 {% elseif type == "text_file" %}
@@ -150,7 +153,8 @@
                                     {% endif %}
                                 {% elseif type == "text_boolean" %}
                                     {{ cell.text }}
-                                    <i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>
+                                    {#<i class="icon fa-solid fa-circle-check {% if cell.boolean %}active{% endif %}"></i>#}
+                                    {{ fa_icon('circle-check', 'solid', 'icon' ~ (cell.boolean ? ' active' : '')) }}
                                 {% endif %}
                             </div>
 

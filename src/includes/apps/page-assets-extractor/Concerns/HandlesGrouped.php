@@ -62,6 +62,36 @@ trait HandlesGrouped
             ));
             if ($term_id) {
                 $this->error_log("[PAE] find_richest_post(product): variable product id={$term_id}");
+
+                // Variable product'lar default variation URL'ine redirect yapar.
+                // PAE fetch sırasında ?fetch&nocache=true eklenince bu redirect kırılıyor.
+                // Çözüm: default variation'ın URL'ini direkt kullan — ama bu ID'yi döndürüyoruz.
+                // get_grouped_urls()'da product için URL'i parent URL olarak kullanıyoruz,
+                // redirect sorununu önlemek için ?is_variation=1 ekle ya da simple product'a düş.
+                // Alternatif: en fazla galeriye sahip simple product'ı seç (daha güvenli fetch)
+                $simple_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT p.ID
+                     FROM {$wpdb->posts} p
+                     LEFT JOIN {$wpdb->posts} v ON v.post_parent = p.ID AND v.post_type = 'product_variation'
+                     INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '_product_image_gallery'
+                     WHERE p.post_type = %s AND p.post_status = 'publish'
+                       AND v.ID IS NULL
+                       AND pm.meta_value != ''
+                     ORDER BY CHAR_LENGTH(pm.meta_value) DESC
+                     LIMIT 1",
+                    $post_type
+                ));
+
+                // Simple product varsa onu tercih et (redirect riski yok)
+                // Variable product daha zengin CSS class'lar içerse bile
+                // fetch başarısız olursa işe yaramaz
+                if ($simple_id) {
+                    $this->error_log("[PAE] find_richest_post(product): using simple product id={$simple_id} (avoids variable redirect)");
+                    return (int) $simple_id;
+                }
+
+                // Simple product yoksa variable product'ı kullan ama ID'yi döndür
+                // get_grouped_urls() URL üretirken permalink kullanacak
                 return (int) $term_id;
             }
 
@@ -144,8 +174,39 @@ trait HandlesGrouped
         }
 
         // Diğer taxonomy'ler için standart count bazlı seçim
+        // category taxonomy'sinde default category'yi atla (disable_default_cat açıksa)
+        if ( in_array($taxonomy, ['category', 'product_cat'], true) && defined('DISABLE_DEFAULT_CAT') && DISABLE_DEFAULT_CAT ) {
+            $option_key  = $taxonomy === 'product_cat' ? 'default_product_cat' : 'default_category';
+            $wp_default  = (int) get_option($option_key, 0);
+            $exclude_ids = [];
+            if ( $wp_default > 0 ) {
+                $exclude_ids = function_exists('pll_get_term_translations')
+                    ? array_values( pll_get_term_translations( $wp_default ) )
+                    : [ $wp_default ];
+                $exclude_ids = array_filter( array_map('intval', $exclude_ids) );
+            }
+            if ( ! empty($exclude_ids) ) {
+                $placeholders = implode(',', array_fill(0, count($exclude_ids), '%d'));
+                $query = $wpdb->prepare(
+                    "SELECT t.term_id FROM {$wpdb->terms} t
+                     INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
+                     WHERE tt.taxonomy = %s
+                       AND t.term_id NOT IN ({$placeholders})
+                     ORDER BY tt.count DESC LIMIT 1",
+                    array_merge([$taxonomy], $exclude_ids)
+                );
+                $id = $wpdb->get_var($query);
+                if ($id) {
+                    $this->error_log("[PAE] find_richest_term(category): skipped default, using term_id={$id}");
+                    return (int) $id;
+                }
+                // Non-default term yok — taxonomy skip edilecek
+                return null;
+            }
+        }
+
         return ($id = $wpdb->get_var($wpdb->prepare(
-            "SELECT t.term_id FROM {$wpdb->terms} t INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND tt.count > 0 ORDER BY tt.count DESC LIMIT 1", $taxonomy
+            "SELECT t.term_id FROM {$wpdb->terms} t INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s ORDER BY tt.count DESC LIMIT 1", $taxonomy
         ))) ? (int) $id : null;
     }
 
@@ -155,13 +216,29 @@ trait HandlesGrouped
         $source_assets = $this->meta_get($context, $source_id);
         if (!$source_assets || !is_array($source_assets)) return 0;
 
-        $shared_keys = ['plugins', 'plugin_js', 'plugin_css', 'plugin_css_rtl', 'css_page', 'css_page_rtl', 'wp_js', 'structure_fp', 'css', 'js'];
+        // css_page ve css_page_rtl kasıtlı olarak dışarıda bırakıldı:
+        // Her ürünün HTML'i farklı — kaynak ürünün purge edilmiş CSS'i
+        // diğer ürünlerde eksik class içerebilir. Bunun yerine plugin bundle'ı
+        // (plugin_js/plugin_css) paylaşılır; css_page her ürün için ayrı fetch edilir.
+        // wp_js da ürün bazında farklılaşabileceğinden paylaşmıyoruz.
+        $shared_keys = ['plugins', 'plugin_js', 'plugin_css', 'plugin_css_rtl', 'structure_fp'];
         $shared_data = array_intersect_key($source_assets, array_flip($shared_keys));
+
+        // css_page'i boş olarak zorla — HandlesFrontendCss'de fallback olarak
+        // main-combined.css yüklenecek. Her ürünün fetch sonrası kendi css_page'i oluşacak.
+        $shared_data['css_page']     = '';
+        $shared_data['css_page_rtl'] = '';
         if (empty($shared_data)) return 0;
 
+        // plugins array'inde duplicate olmasın
+        if ( ! empty( $shared_data['plugins'] ) && is_array( $shared_data['plugins'] ) ) {
+            $shared_data['plugins'] = array_values( array_unique( $shared_data['plugins'] ) );
+        }
+
         // Manifest: mark this group as using the plugin bundle (orphan protection)
+        // Page'ler grouped değil — her biri kendi CSS'ini kullanır
         $content_usage_key = "grouped:{$context}:{$post_type}";
-        if (!empty($source_assets['structure_fp'])) {
+        if ($context !== 'page' && !empty($source_assets['structure_fp'])) {
             $this->manifest['content_usage'][$content_usage_key] = [
                 'structure_fp' => $source_assets['structure_fp'],
                 'plugins_key'  => '',
@@ -193,7 +270,30 @@ trait HandlesGrouped
         $count = 0;
         foreach ($ids as $item_id) {
             $existing = $this->meta_get($context, $item_id) ?: [];
-            $merged = array_replace_recursive(self::ASSETS_STRUCTURE, $existing, $shared_data);
+
+            $shared_to_apply = $shared_data;
+
+            if ( ! empty( $existing['structure_fp'] ) ) {
+                // Bu item daha önce bireysel fetch edilmiş — kendi structure_fp ve css_page'ini koru
+                unset( $shared_to_apply['structure_fp'] );
+                // css_page: bireysel fetch varsa koru, aksi halde main-combined fallback için boş bırak
+                // Eski gruptan kopyalanmış css_page varsa sil — artık geçersiz
+                if ( ! empty( $existing['css_page'] ) ) {
+                    // Kendi css_page dosyası fiziksel olarak hâlâ var mı kontrol et
+                    $css_abs = rtrim( STATIC_PATH, '/' ) . '/' . ltrim( $existing['css_page'], '/' );
+                    if ( file_exists( $css_abs ) ) {
+                        // Geçerli bireysel css var — koru
+                        unset( $shared_to_apply['css_page'] );
+                        unset( $shared_to_apply['css_page_rtl'] );
+                    }
+                    // Yoksa shared_data'daki boş değer uygulanacak → fallback devreye girer
+                }
+            } elseif ( ! empty( $source_assets['structure_fp'] ) ) {
+                // Hiç fetch edilmemiş — structure_fp'yi source'tan al
+                $shared_to_apply['structure_fp'] = $source_assets['structure_fp'];
+            }
+
+            $merged = array_replace_recursive(self::ASSETS_STRUCTURE, $existing, $shared_to_apply);
             if (!isset($merged['meta'])) $merged['meta'] = ['type' => $context, 'id' => $item_id];
             if (!isset($merged['lcp'])) $merged['lcp'] = ['desktop' => [], 'mobile' => []];
             $this->meta_update($context, $item_id, $merged);
@@ -233,6 +333,12 @@ trait HandlesGrouped
             }
         }
 
+        // Dil sayısını bir kez hesapla — page/archive/dynamic item'larda real_count için
+        $global_lang_count = 1;
+        if ( function_exists('pll_languages_list') ) {
+            $global_lang_count = count( pll_languages_list(['fields' => 'slug']) ) ?: 1;
+        }
+
         foreach (get_post_types(['public' => true], 'objects') as $pt) {
             if ($this->is_post_type_excluded($pt->name)) continue;
 
@@ -244,7 +350,36 @@ trait HandlesGrouped
             $count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish'", $pt->name));
             if (!$count) continue;
 
-            // Page'ler gruplanmaz - her biri ayrı template kullanabilir
+            // Unique count: sadece default dil post'ları
+            // Polylang tüm dillerdeki post'ları ayrı row olarak tutar
+            $unique_count = $count;
+            $lang_count   = 1;
+            if ( function_exists('pll_default_language') && function_exists('pll_languages_list') ) {
+                $default_lang = pll_default_language();
+                $lang_count   = count( pll_languages_list(['fields' => 'slug']) ) ?: 1;
+                // Post type çevriliyorsa: Polylang language taxonomy'si atanmış mı?
+                // Polylang sadece kayıtlı post type'lara language ekler
+                if ( function_exists('pll_is_translated_post_type') && pll_is_translated_post_type( $pt->name ) ) {
+                    $unique_count = (int) $wpdb->get_var( $wpdb->prepare(
+                        "SELECT COUNT(DISTINCT p.ID)
+                         FROM {$wpdb->posts} p
+                         INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+                         INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                         INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+                         WHERE p.post_type = %s AND p.post_status = 'publish'
+                         AND tt.taxonomy = 'language' AND t.slug = %s",
+                        $pt->name, $default_lang
+                    ) );
+                    if ( ! $unique_count ) $unique_count = (int) ceil( $count / $lang_count );
+                }
+                // Çevrilmeyen post type: count olduğu gibi, lang_count=1
+                if ( ! function_exists('pll_is_translated_post_type') || ! pll_is_translated_post_type( $pt->name ) ) {
+                    $lang_count = 1;
+                    $unique_count = $count;
+                }
+            }
+
+            // Page'ler gruplanmaz
             // ML site ise sadece default language page'leri listele —
             // Fetch sırasında build_related_assets() diğer dillere zaten apply eder
             if ($pt->name === 'page') {
@@ -272,6 +407,7 @@ trait HandlesGrouped
                         'post_type'   => 'page',
                         'label'       => $title,
                         'count'       => 1,
+                        'real_count'  => $global_lang_count,
                         'url'         => $url,
                         'url_short'   => $url ? str_replace(home_url(), '', $url) : '',
                         'context'     => 'page',
@@ -288,7 +424,8 @@ trait HandlesGrouped
                 'type'        => 'post',
                 'post_type'   => $pt->name,
                 'label'       => $pt->labels->name,
-                'count'       => $count,
+                'count'       => $unique_count,
+                'real_count'  => $lang_count > 1 ? $count : $unique_count,
                 'url'         => $url,
                 'url_short'   => $url ? str_replace(home_url(), '', $url) : '',
                 'context'     => 'post',
@@ -302,6 +439,7 @@ trait HandlesGrouped
                     'post_type'   => $pt->name,
                     'label'       => $pt->labels->name . ' Archive',
                     'count'       => 1,
+                    'real_count'  => $global_lang_count,
                     'url'         => $au,
                     'url_short'   => str_replace(home_url(), '', $au),
                     'context'     => 'archive',
@@ -313,32 +451,71 @@ trait HandlesGrouped
         foreach (get_taxonomies(['public' => true], 'objects') as $tax) {
             if ($this->is_taxonomy_excluded($tax->name)) continue;
 
+            // publicly_queryable false ise frontend URL'i yok — skip
+            if ( isset( $tax->publicly_queryable ) && $tax->publicly_queryable === false ) continue;
+
+            // rewrite yoksa frontend URL'i yok — skip
+            if ( empty( $tax->rewrite ) || $tax->rewrite === false ) continue;
+
             // WooCommerce aktifse product_cat, product_tag'i ana tabloya ekleme
             if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE && in_array($tax->name, ['product_cat', 'product_tag'])) {
                 continue;
             }
 
-            $count = (int) wp_count_terms(['taxonomy' => $tax->name, 'hide_empty' => true]);
+            $count = (int) wp_count_terms(['taxonomy' => $tax->name, 'hide_empty' => false]);
             if (!$count) continue;
             $rid = $this->find_richest_term($tax->name);
-            $url = $rid ? get_term_link($rid, $tax->name) : '';
-            if (is_wp_error($url)) $url = '';
+
+            // Bulunan term geçerli bir URL'e sahip mi kontrol et
+            if ( ! $rid ) continue;
+            $url = get_term_link($rid, $tax->name);
+            if (is_wp_error($url)) continue;
+
+            // Unique term sayısı — default cat hariç, sadece default dil
+            // Polylang aktifse default dil term'lerini say, default cat hariç
+            $unique_count = $count;
+            $real_count   = $count;
+            if ( function_exists('pll_default_language') && function_exists('pll_get_term_language') ) {
+                $default_lang = pll_default_language();
+                $all_ids = get_terms(['taxonomy' => $tax->name, 'hide_empty' => false, 'fields' => 'ids']);
+                $excl = [];
+                if ( defined('DISABLE_DEFAULT_CAT') && DISABLE_DEFAULT_CAT ) {
+                    $opt = in_array($tax->name, ['category']) ? 'default_category' : 'default_product_cat';
+                    $def = (int) get_option($opt, 0);
+                    if ( $def > 0 ) {
+                        $excl = function_exists('pll_get_term_translations')
+                            ? array_values(pll_get_term_translations($def))
+                            : [$def];
+                    }
+                }
+                $unique_count = count(array_filter((array)$all_ids, function($tid) use ($default_lang, $excl) {
+                    if ( in_array((int)$tid, $excl, true) ) return false;
+                    return pll_get_term_language((int)$tid) === $default_lang;
+                }));
+                // real_count = tüm dillerdeki term'ler, default cat hariç
+                $real_count = count(array_filter((array)$all_ids, function($tid) use ($excl) {
+                    return ! in_array((int)$tid, $excl, true);
+                }));
+            }
+            if ( $unique_count <= 0 ) continue;
+
+            if ( is_wp_error($url) || empty($url) ) $url = '';
             $groups[] = [
                 'id'          => $rid ?: $tax->name,
                 'type'        => 'term',
                 'post_type'   => $tax->name,
                 'label'       => $tax->labels->name,
-                'count'       => $count,
+                'count'       => $unique_count,
+                'real_count'  => $real_count,
                 'url'         => $url,
                 'url_short'   => $url ? str_replace(home_url(), '', $url) : '',
                 'context'     => 'term',
                 'role_badges' => [],
-            ];
-        }
+            ];        }
 
         $groups[] = [
             'id' => 'search', 'type' => 'dynamic', 'post_type' => 'search',
-            'label' => 'Search', 'count' => 1,
+            'label' => 'Search', 'count' => 1, 'real_count' => 1,
             'url' => get_search_link('turbo-cache-warmup'),
             'url_short' => '/?s=turbo-cache-warmup',
             'context' => 'dynamic',
@@ -346,12 +523,40 @@ trait HandlesGrouped
         ];
         $groups[] = [
             'id' => '404', 'type' => 'dynamic', 'post_type' => '404',
-            'label' => '404', 'count' => 1,
+            'label' => '404', 'count' => 1, 'real_count' => 1,
             'url' => site_url('/404-css-cache-trigger'),
             'url_short' => '/404-css-cache-trigger',
             'context' => 'dynamic',
             'role_badges' => [['label' => '404', 'color' => '#ef4444', 'icon' => '⚠️']],
         ];
+
+        // Public profil sayfası — ENABLE_MEMBERSHIP + enable_public_profile aktifse
+        if (
+            defined('ENABLE_MEMBERSHIP') && ENABLE_MEMBERSHIP &&
+            \SaltHareket\Membership\MembershipSettings::getSetting('enable_public_profile')
+        ) {
+            $prefix = function_exists('membership_profile_url_prefix') ? rtrim( membership_profile_url_prefix(), '/' ) : 'profile';
+
+            // Fetch için gerçek bir kullanıcı slug'ı lazım — admin'i sample al
+            $admin_users = get_users(['role' => 'administrator', 'number' => 1, 'fields' => ['user_nicename']]);
+            $sample_slug = !empty($admin_users) ? $admin_users[0]->user_nicename : 'sample';
+
+            $profile_url   = trailingslashit( site_url( '/' . $prefix . '/' . $sample_slug ) );
+            $profile_short = '/' . $prefix . '/{user}/';  // PAE tablosunda okunabilir gösterim
+
+            $groups[] = [
+                'id'          => 'public_profile',
+                'type'        => 'dynamic',
+                'post_type'   => 'public_profile',
+                'label'       => 'Public Profile',
+                'count'       => 1,
+                'real_count'  => 1,
+                'url'         => $profile_url,
+                'url_short'   => $profile_short,
+                'context'     => 'dynamic',
+                'role_badges' => [['label' => 'Profile', 'color' => '#8b5cf6', 'icon' => '👤']],
+            ];
+        }
 
         // WooCommerce sayfaları (eğer WooCommerce yüklüyse)
         if (defined('ENABLE_ECOMMERCE') && ENABLE_ECOMMERCE) {
@@ -364,6 +569,7 @@ trait HandlesGrouped
                     'post_type'   => 'woo_account',
                     'label'       => $item['label'],
                     'count'       => 1,
+                    'real_count'  => 1,
                     'url'         => $item['url'],
                     'url_short'   => str_replace(home_url(), '', $item['url']),
                     'context'     => 'dynamic',
@@ -394,6 +600,7 @@ trait HandlesGrouped
                                 'post_type'   => 'woo_page',
                                 'label'       => $page_data['label'],
                                 'count'       => 1,
+                                'real_count'  => $global_lang_count,
                                 'url'         => $url,
                                 'url_short'   => str_replace(home_url(), '', $url),
                                 'context'     => 'page',
@@ -411,12 +618,72 @@ trait HandlesGrouped
                 if ($product_count > 0) {
                     $rid = $this->find_richest_post('product');
                     $url = $rid ? get_permalink($rid) : '';
+
+                    // Variable product ise WC default variation URL'ini kullan
+                    // Aksi halde PAE ?fetch&nocache=true ile fetch ederken redirect'e takılıyor
+                    if ( $rid && function_exists('wc_get_product') ) {
+                        $prod = wc_get_product($rid);
+                        if ( $prod && $prod->is_type('variable') ) {
+                            $default_attrs = $prod->get_default_attributes();
+                            if ( ! empty($default_attrs) ) {
+                                // Default variation'ı DB'den direkt bul — get_available_variations() ağır
+                                global $wpdb;
+                                $variation_id = null;
+                                $variations = $wpdb->get_results( $wpdb->prepare(
+                                    "SELECT ID FROM {$wpdb->posts}
+                                     WHERE post_parent = %d AND post_type = 'product_variation'
+                                     AND post_status = 'publish'
+                                     LIMIT 20",
+                                    $rid
+                                ) );
+                                foreach ( $variations as $v ) {
+                                    $var_attrs = get_post_meta( $v->ID );
+                                    $match = true;
+                                    foreach ( $default_attrs as $attr => $val ) {
+                                        $meta_key = 'attribute_' . $attr;
+                                        $var_val  = $var_attrs[ $meta_key ][0] ?? '';
+                                        if ( $var_val !== '' && $var_val !== $val ) {
+                                            $match = false; break;
+                                        }
+                                    }
+                                    if ( $match ) { $variation_id = (int) $v->ID; break; }
+                                }
+                                if ( $variation_id ) {
+                                    $var_url = get_permalink( $variation_id );
+                                    if ( ! $var_url || $var_url === $url ) {
+                                        // Variation permalink yok veya parent ile aynı — query string ekle
+                                        $var_url = add_query_arg( 'variation_id', $variation_id, $url );
+                                    }
+                                    $url = $var_url;
+                                    $this->error_log("[PAE] product richest: using default variation url={$url}");
+                                }
+                            }
+                        }
+                    }
+
+                    // Unique product count — Polylang varsa default dil ürünlerini say
+                    $unique_product_count = $product_count;
+                    if ( function_exists('pll_default_language') ) {
+                        $default_lang = pll_default_language();
+                        $unique_product_count = (int) $wpdb->get_var($wpdb->prepare(
+                            "SELECT COUNT(*) FROM {$wpdb->posts} p
+                             INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+                             INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                             INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+                             WHERE p.post_type = 'product' AND p.post_status = 'publish'
+                             AND tt.taxonomy = 'language' AND t.slug = %s",
+                            $default_lang
+                        ));
+                        if ( ! $unique_product_count ) $unique_product_count = (int) ceil( $product_count / max(1, count(pll_languages_list(['fields'=>'slug']))) );
+                    }
+
                     $groups[] = [
                         'id'          => $rid ?: 'product',
                         'type'        => 'post',
                         'post_type'   => 'product',
                         'label'       => 'Products',
-                        'count'       => $product_count,
+                        'count'       => $unique_product_count,
+                        'real_count'  => $product_count,
                         'url'         => $url,
                         'url_short'   => $url ? str_replace(home_url(), '', $url) : '',
                         'context'     => 'post',
@@ -425,22 +692,31 @@ trait HandlesGrouped
                         'role_badges' => [],
                     ];
 
-                    // Product archive
+                    // Product archive — Shop sayfasıyla aynı URL'e düşüyorsa ekleme (duplicate)
                     if (($au = get_post_type_archive_link('product'))) {
-                        $lang = $this->pae_lang_from_url($au);
-                        $groups[] = [
-                            'id'          => 'product_archive_' . $lang,
-                            'type'        => 'archive',
-                            'post_type'   => 'product',
-                            'label'       => 'Products Archive',
-                            'count'       => 1,
-                            'url'         => $au,
-                            'url_short'   => str_replace(home_url(), '', $au),
-                            'context'     => 'archive',
-                            'icon'        => 'woo',
-                            'woo_section' => true,
-                            'role_badges' => [],
-                        ];
+                        $shop_url = function_exists('wc_get_page_id')
+                            ? trailingslashit( get_permalink( wc_get_page_id('shop') ) )
+                            : '';
+                        $au_trailing = trailingslashit( $au );
+                        if ( $shop_url && rtrim($au_trailing,'/') === rtrim($shop_url,'/') ) {
+                            // Shop sayfası zaten listeye eklendi, archive duplicate — skip
+                        } else {
+                            $lang = $this->pae_lang_from_url($au);
+                            $groups[] = [
+                                'id'          => 'product_archive_' . $lang,
+                                'type'        => 'archive',
+                                'post_type'   => 'product',
+                                'label'       => 'Products Archive',
+                                'count'       => 1,
+                                'real_count'  => $global_lang_count,
+                                'url'         => $au,
+                                'url_short'   => str_replace(home_url(), '', $au),
+                                'context'     => 'archive',
+                                'icon'        => 'woo',
+                                'woo_section' => true,
+                                'role_badges' => [],
+                            ];
+                        }
                     }
                 }
             }
@@ -449,24 +725,50 @@ trait HandlesGrouped
             $woo_taxonomies = ['product_cat' => 'Product Categories', 'product_tag' => 'Product Tags'];
             foreach ($woo_taxonomies as $tax_name => $tax_label) {
                 if (taxonomy_exists($tax_name)) {
-                    $count = (int) wp_count_terms(['taxonomy' => $tax_name, 'hide_empty' => true]);
+                    $count = (int) wp_count_terms(['taxonomy' => $tax_name, 'hide_empty' => false]);
                     if ($count > 0) {
                         $rid = $this->find_richest_term($tax_name);
                         $url = $rid ? get_term_link($rid, $tax_name) : '';
                         if (!is_wp_error($url) && $url) {
-                            $groups[] = [
-                                'id'          => $rid ?: $tax_name,
-                                'type'        => 'term',
-                                'post_type'   => $tax_name,
-                                'label'       => $tax_label,
-                                'count'       => $count,
-                                'url'         => $url,
-                                'url_short'   => str_replace(home_url(), '', $url),
-                                'context'     => 'term',
-                                'icon'        => 'woo',
-                                'woo_section' => true,
-                                'role_badges' => [],
-                            ];
+                            $unique_woo_count = $count;
+                            $real_woo_count   = $count;
+                            if ( function_exists('pll_default_language') && function_exists('pll_get_term_language') ) {
+                                $default_lang = pll_default_language();
+                                $all_ids = get_terms(['taxonomy' => $tax_name, 'hide_empty' => false, 'fields' => 'ids']);
+                                $excl = [];
+                                if ( defined('DISABLE_DEFAULT_CAT') && DISABLE_DEFAULT_CAT && $tax_name === 'product_cat' ) {
+                                    $def = (int) get_option('default_product_cat', 0);
+                                    if ( $def > 0 ) {
+                                        $excl = function_exists('pll_get_term_translations')
+                                            ? array_values(pll_get_term_translations($def))
+                                            : [$def];
+                                    }
+                                }
+                                $unique_woo_count = count(array_filter((array)$all_ids, function($tid) use ($default_lang, $excl) {
+                                    if ( in_array((int)$tid, $excl, true) ) return false;
+                                    return pll_get_term_language((int)$tid) === $default_lang;
+                                }));
+                                // real_count = tüm dillerdeki term'ler, default cat hariç
+                                $real_woo_count = count(array_filter((array)$all_ids, function($tid) use ($excl) {
+                                    return ! in_array((int)$tid, $excl, true);
+                                }));
+                            }
+                            if ( $unique_woo_count > 0 ) {
+                                $groups[] = [
+                                    'id'          => $rid ?: $tax_name,
+                                    'type'        => 'term',
+                                    'post_type'   => $tax_name,
+                                    'label'       => $tax_label,
+                                    'count'       => $unique_woo_count,
+                                    'real_count'  => $real_woo_count,
+                                    'url'         => $url,
+                                    'url_short'   => str_replace(home_url(), '', $url),
+                                    'context'     => 'term',
+                                    'icon'        => 'woo',
+                                    'woo_section' => true,
+                                    'role_badges' => [],
+                                ];
+                            }
                         }
                     }
                 }
@@ -478,12 +780,12 @@ trait HandlesGrouped
                 if ($product_count > 0) {
                     $rid = $this->find_richest_post('product');
                     $url = $rid ? get_permalink($rid) : '';
-                    $groups[] = ['id' => $rid ?: 'product', 'type' => 'post', 'post_type' => 'product', 'label' => 'Products', 'count' => $product_count, 'url' => $url, 'url_short' => $url ? str_replace(home_url(), '', $url) : '', 'context' => 'post'];
+                    $groups[] = ['id' => $rid ?: 'product', 'type' => 'post', 'post_type' => 'product', 'label' => 'Products', 'count' => $product_count, 'real_count' => $product_count, 'url' => $url, 'url_short' => $url ? str_replace(home_url(), '', $url) : '', 'context' => 'post'];
                     
                     // Product archive
                     if (($au = get_post_type_archive_link('product'))) {
                         $lang = $this->pae_lang_from_url($au);
-                        $groups[] = ['id' => 'product_archive_'.$lang, 'type' => 'archive', 'post_type' => 'product', 'label' => 'Products Archive', 'count' => 1, 'url' => $au, 'url_short' => str_replace(home_url(), '', $au), 'context' => 'archive'];
+                        $groups[] = ['id' => 'product_archive_'.$lang, 'type' => 'archive', 'post_type' => 'product', 'label' => 'Products Archive', 'count' => 1, 'real_count' => $global_lang_count, 'url' => $au, 'url_short' => str_replace(home_url(), '', $au), 'context' => 'archive'];
                     }
                 }
             }
@@ -706,8 +1008,112 @@ trait HandlesGrouped
                 $this->error_log('[PAE] pt=' . $pt);
                 if ($pt) { $this->fetch_and_save_archives_assets($pt); }
 
+                // ── ML: Çeviri sayfalarını fetch et ─────────────────────────
+                // Default dil post'u fetch edildi. Polylang aktifse çevirilerinin
+                // css_page'i eksik veya HTML farklıysa bağımsız fetch tetikle.
+                // Heavy process lock aktif olduğu için shutdown hook'ta çalıştır.
+                if (
+                    function_exists('pll_get_post_language') &&
+                    function_exists('pll_default_language') &&
+                    function_exists('pll_get_post_translations')
+                ) {
+                    $post_lang = pll_get_post_language( (int) $id );
+                    $default   = pll_default_language();
+
+                    if ( $post_lang === $default ) {
+                        $source_hash  = get_post_meta( (int) $id, self::HTML_HASH_META_KEY, true ) ?: '';
+                        $translations = pll_get_post_translations( (int) $id );
+                        $queue        = [];
+
+                        foreach ( $translations as $l => $pid ) {
+                            if ( ! $pid || (int) $pid === (int) $id || $l === $default ) continue;
+
+                            $trans_hash = get_post_meta( (int) $pid, self::HTML_HASH_META_KEY, true ) ?: '';
+                            $trans_meta = $this->meta_get( 'post', $pid );
+                            $has_css    = ! empty( $trans_meta['css_page'] );
+
+                            // css_page varsa ve hash aynıysa fetch gerekmez
+                            if ( $has_css && $source_hash && $trans_hash && $source_hash === $trans_hash ) {
+                                $this->error_log( "[PAE] build_related: post:{$pid} lang={$l} css_page OK + hash match → skip" );
+                                continue;
+                            }
+
+                            $trans_url = get_permalink( (int) $pid );
+                            if ( ! $trans_url ) continue;
+
+                            $this->error_log( "[PAE] build_related: post:{$pid} lang={$l} css_page=" . ($has_css ? 'yes':'NO') . " hash_match=" . ($source_hash === $trans_hash ? 'yes':'NO') . " → queued shutdown" );
+                            $queue[] = [ 'url' => $trans_url, 'id' => $pid ];
+                        }
+
+                        if ( ! empty( $queue ) ) {
+                            $extractor = $this;
+                            add_action( 'shutdown', static function() use ( $extractor, $queue ) {
+                                foreach ( $queue as $item ) {
+                                    $extractor->error_log( "[PAE] shutdown fetch: url={$item['url']} id={$item['id']}" );
+                                    $prev   = $extractor->type;
+                                    $extractor->type         = 'post';
+                                    $extractor->disable_hooks = true; // döngü önleme
+                                    $extractor->fetch( $item['url'], $item['id'], 'post' );
+                                    $extractor->disable_hooks = false;
+                                    $extractor->type = $prev;
+                                }
+                            }, 99 );
+                        }
+                    }
+                }
+
             } elseif ($this->type === 'term') {
-                // Term çevirileri için özel bir eşleştirici yok; burada yalnız kendi dilinde çalışır.
+                // Term çevirileri — Polylang varsa default dil term'inin
+                // diğer dil çevirilerinin meta'sını güncelle
+                if (
+                    function_exists('pll_get_term_language') &&
+                    function_exists('pll_default_language') &&
+                    function_exists('pll_get_term_translations')
+                ) {
+                    $term_lang = pll_get_term_language( (int) $id );
+                    $default   = pll_default_language();
+                    if ( $term_lang === $default ) {
+                        $translations = pll_get_term_translations( (int) $id );
+                        $source_hash  = get_term_meta( (int) $id, self::HTML_HASH_META_KEY, true ) ?: '';
+                        $term_queue   = [];
+                        foreach ( $translations as $l => $tid ) {
+                            if ( ! $tid || (int) $tid === (int) $id || $l === $default ) continue;
+                            $trans_hash = get_term_meta( (int) $tid, self::HTML_HASH_META_KEY, true ) ?: '';
+                            $trans_meta = $this->meta_get( 'term', $tid );
+                            $has_css    = ! empty( $trans_meta['css_page'] );
+                            if ( $has_css && $source_hash && $trans_hash && $source_hash === $trans_hash ) {
+                                $this->error_log( "[PAE] build_related: term:{$tid} lang={$l} OK → skip" );
+                                continue;
+                            }
+                            $trans_url = get_term_link( (int) $tid );
+                            if ( is_wp_error( $trans_url ) || ! $trans_url ) continue;
+                            $this->error_log( "[PAE] build_related: term:{$tid} lang={$l} → queued shutdown" );
+                            $term_queue[] = [ 'url' => $trans_url, 'id' => $tid ];
+                        }
+                        if ( ! empty( $term_queue ) ) {
+                            $extractor = $this;
+                            add_action( 'shutdown', static function() use ( $extractor, $term_queue ) {
+                                foreach ( $term_queue as $item ) {
+                                    $extractor->error_log( "[PAE] shutdown fetch term: url={$item['url']}" );
+                                    $prev   = $extractor->type;
+                                    $extractor->type         = 'term';
+                                    $extractor->disable_hooks = true; // döngü önleme
+                                    $extractor->fetch( $item['url'], $item['id'], 'term' );
+                                    $extractor->disable_hooks = false;
+                                    $extractor->type = $prev;
+                                }
+                            }, 99 );
+                        }
+
+                        // maybe_copy — hash match'li olanlar için plugin bundle kopyala
+                        $existing_meta = $this->meta_get( 'term', $id );
+                        if ( is_array( $existing_meta ) && ! empty( $existing_meta ) ) {
+                            $this->disable_hooks = false;
+                            $this->maybe_copy_meta_to_translations( $id, $existing_meta );
+                            $this->disable_hooks = true;
+                        }
+                    }
+                }
             }
         } catch (\Throwable $e) {
             $this->error_log("build_related_assets error: " . $e->getMessage());

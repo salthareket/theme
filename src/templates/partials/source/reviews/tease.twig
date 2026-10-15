@@ -1,0 +1,163 @@
+{#
+  partials/source/reviews/tease.twig
+
+  Context:
+    item — review object {id, content, post{id,title,link}, author{name,avatar}, rating, date, read, approved}
+    view — offcanvas | dropdown | modal | my-account | feed | ...
+
+  Feed modu (my-account): daha detaylı kart görünümü
+  Popup modu (offcanvas/dropdown/modal): kompakt liste item
+#}
+
+{% set is_popup = view in ['offcanvas', 'dropdown', 'modal'] %}
+
+{% if is_popup %}
+
+    {# ── Popup: kompakt liste item ─────────────────────────────── #}
+    <li class="source-item source-item-review{% if not item.read %} unread{% endif %}"
+        data-source="reviews"
+        data-id="{{ item.id }}">
+
+        <a href="{{ item.post.link|default('#') }}" class="d-flex gap-3 align-items-start text-decoration-none">
+
+            {% if item.author.avatar %}
+                <div class="source-item-avatar flex-shrink-0">
+                    <img src="{{ item.author.avatar }}"
+                         class="img-fluid rounded-circle"
+                         alt="{{ item.author.name }}"
+                         loading="lazy" />
+                </div>
+            {% endif %}
+
+            <div class="source-item-detail flex-grow-1 min-w-0">
+                <div class="source-item-title fw-semibold">{{ item.author.name }}</div>
+
+                {% if item.post.title %}
+                    <div class="source-item-meta text-muted small">{{ item.post.title }}</div>
+                {% endif %}
+
+                {% if item.rating %}
+                    <div class="source-item-rating">
+                        {% for i in 1..5 %}
+                            {{ fa_icon('star', i <= item.rating ? 'solid' : 'regular', 'text-warning') }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if item.content %}
+                    <div class="source-item-message text-muted text-truncate small">{{ item.content }}</div>
+                {% endif %}
+
+                {% if item.date %}
+                    <small class="source-item-time text-muted">{{ item.date }}</small>
+                {% endif %}
+            </div>
+
+            {% if not item.read %}
+                <span class="source-item-badge badge bg-primary rounded-circle p-1 flex-shrink-0"></span>
+            {% endif %}
+
+        </a>
+    </li>
+
+{% else %}
+
+    {# ── Feed (my-account vb.): detaylı kart ─────────────────────── #}
+    <li class="review-item list-unstyled border-bottom pb-3 mb-3{% if item.approved is defined and not item.approved %} review-pending{% endif %}"
+        data-source="reviews"
+        data-id="{{ item.id }}">
+
+        {# Üst satır: Rating + Tarih + Durum badge'leri #}
+        <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+
+            <div class="d-flex align-items-center gap-2">
+                {% if item.rating %}
+                    <span class="review-stars text-warning">
+                        {% for i in 1..5 %}{{ i <= item.rating ? '★' : '☆' }}{% endfor %}
+                    </span>
+                    <span class="review-score fw-semibold small">{{ item.rating }}/5</span>
+                {% endif %}
+
+                {% if item.verified is defined and item.verified %}
+                    <span class="badge bg-success-subtle text-success" style="font-size:10px">
+                        ✓ {{ translate('Verified') }}
+                    </span>
+                {% endif %}
+
+                {% if item.approved is defined and not item.approved %}
+                    <span class="badge bg-warning text-dark" style="font-size:10px">
+                        {{ translate('Pending Approval') }}
+                    </span>
+                {% endif %}
+
+                {% if not item.read %}
+                    <span class="badge bg-primary" style="font-size:10px">
+                        {{ translate('New') }}
+                    </span>
+                {% endif %}
+            </div>
+
+            {% if item.date %}
+                <small class="text-muted">{{ item.date }}</small>
+            {% endif %}
+        </div>
+
+        {# İçerik #}
+        {% if item.content %}
+            <p class="mb-2 small" style="color:#374151;line-height:1.5">{{ item.content }}</p>
+        {% endif %}
+
+        {# Post linki #}
+        {% if item.post.title %}
+            <small class="text-muted">
+                {{ fa_icon('file-alt', 'regular', 'me-1') }}
+                <a href="{{ item.post.link|default('#') }}" class="text-reset">
+                    {{ item.post.title }}
+                </a>
+            </small>
+        {% endif %}
+
+        {# Butonlar — mode'a göre #}
+        {% if mode in ['on_me', 'on_posts', 'received'] %}
+        {# Sahibi approve/reject + view yapabilir — sil yok (etik) #}
+        <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                    data-id="{{ item.id }}" onclick="shReviewOpenModal({{ item.id }})">
+                {{ fa_icon('eye','regular','me-1') }}{{ translate("View") }}
+            </button>
+            {% if not item.approved %}
+            <button type="button" class="btn btn-sm btn-success"
+                    data-id="{{ item.id }}" onclick="shReviewAction(this,'approve')">
+                {{ fa_icon('check','solid','me-1') }}{{ translate("Approve") }}
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-sm btn-outline-warning"
+                    data-id="{{ item.id }}" onclick="shReviewAction(this,'reject')">
+                {{ fa_icon('xmark','solid','me-1') }}{{ translate("Reject") }}
+            </button>
+            {% endif %}
+        </div>
+        {% elseif mode == 'authored' %}
+        {# Yazan kişi — view + delete #}
+        <div class="d-flex gap-2 mt-2 align-items-center">
+            <small class="text-muted me-2">
+                {% if item.approved %}
+                    <span class="text-success">{{ fa_icon('check','solid','me-1') }}{{ translate("Approved") }}</span>
+                {% else %}
+                    <span class="text-warning">{{ fa_icon('clock','regular','me-1') }}{{ translate("Pending Approval") }}</span>
+                {% endif %}
+            </small>
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                    data-id="{{ item.id }}" onclick="shReviewOpenModal({{ item.id }})">
+                {{ fa_icon('eye','regular','me-1') }}{{ translate("View") }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-id="{{ item.id }}" onclick="shReviewAction(this,'delete')">
+                {{ fa_icon('trash','solid','me-1') }}{{ translate("Delete") }}
+            </button>
+        </div>
+        {% endif %}
+
+    </li>
+
+{% endif %}

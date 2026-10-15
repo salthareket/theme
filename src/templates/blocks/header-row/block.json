@@ -1,0 +1,22 @@
+{
+    "name": "acf/header-row",
+    "title": "Header Row",
+    "description": "Header icinde tek bir navbar satiri. Birden fazla eklenebilir.",
+    "category": "headerblocks",
+    "keywords": ["header", "row", "navbar"],
+    "parent": ["acf/header-builder"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": false,
+        "customClassName": false,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Row Duzenle"
+    }
+}

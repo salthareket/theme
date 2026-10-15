@@ -46,19 +46,22 @@ add_filter('timber/cache/location', function($path) {
 add_filter('timber/twig/environment/options', function ($options) {
     $cache_dir = STATIC_PATH . 'twig_cache';
 
-    if (defined('ENABLE_TWIG_CACHE') && ENABLE_TWIG_CACHE) {
+    // Development mode açıkken twig cache üretilmez — enable_twig_cache değeri değiştirilmez
+    $dev_mode = defined('ENABLE_DEVELOPMENT') && ENABLE_DEVELOPMENT;
+
+    if ( ! $dev_mode && defined('ENABLE_TWIG_CACHE') && ENABLE_TWIG_CACHE) {
         // Eğer klasör yoksa oluştur
         if (!file_exists($cache_dir)) {
             wp_mkdir_p($cache_dir);
         }
         
         $options['cache'] = $cache_dir;
-        $options['auto_reload'] = !ENABLE_PRODUCTION;
+        // auto_reload: cache'li twig dosyalarının disk değişikliklerini takip eder.
+        $options['auto_reload'] = false;
     } else {
-        // BURASI KRİTİK: Eğer cache kapalıysa, Timber'ın vendor içine gitmesini 
-        // engellemek için burayı kesin olarak false yapmalısın.
+        // Cache kapalı — development modda veya enable_twig_cache=false
         $options['cache'] = false;
     }
 
     return $options;
-}, 999); // Önceliği yüksek tutalım ki başka eklenti ezmesin
+}, 999);

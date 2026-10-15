@@ -14,19 +14,19 @@
  *
  * @see         https://woocommerce.com/document/template-structure/
  * @package     WooCommerce\Templates
- * @version     9.9.0
+ * @version     10.8.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="woocommerce-result-count result-count m-0">
+<div class="woocommerce-result-count result-count" role="status" aria-relevant="all" <?php echo ( empty( $orderedby ) || 1 === intval( $total ) ) ? '' : 'data-is-sorted-by="true"'; ?>>
 	<?php
 	// phpcs:disable WordPress.Security
 	if ( 1 === intval( $total ) ) {
-		_e('Showing the single result', 'woocommerce');
-	} elseif ($total <= $per_page || -1 === $per_page) {
+		_e( 'Showing the single result', 'woocommerce' );
+	} elseif ( $total <= $per_page || -1 === $per_page ) {
 		$orderedby_placeholder = empty( $orderedby ) ? '%2$s' : '<span class="screen-reader-text">%2$s</span>';
 		/* translators: 1: total results 2: sorted by */
 		printf( _n( 'Showing all %1$d result', 'Showing all %1$d results', $total, 'woocommerce' ) . $orderedby_placeholder, $total, esc_html( $orderedby ) );

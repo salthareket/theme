@@ -1,51 +1,341 @@
+{#
+  security.twig
+  Güvenlik sayfası — üç bölüm:
+  1. Şifre değişikliği (her zaman)
+  2. 2FA kurulumu (LOGIN_2FA_METHOD aktifse) — TOTP QR veya SMS toggle
+  3. Güvenilir cihazlar (trusted_device_days > 0 ise)
+  AJAX: update_profile (şifre) | setup_totp | verify_totp_setup | disable_2fa | revoke_trusted_device
+#}
 
 
-<form class="form form-validate" id="form-update-profile" autocomplete="off" method="post" data-ajax-method="update_profile">
+{# ── 1. Şifre Değişikliği ─────────────────────────────────────────────────── #}
+<div class="sh-section mb-5" data-required-js="bootbox">
+    <h5 class="fw-bold mb-4 border-bottom pb-3">{{ translate("Change Password") }}</h5>
 
-    <div class="card-container card card-reset">
-        <div class="card-body"> 
+    <form id="form-change-password"
+          class="form form-validate needs-validation"
+          autocomplete="off"
+          method="post"
+          novalidate
+          data-ajax-method="update_profile">
 
-            <div class="card-container-solid card card-reset">
-                <div class="card-header">
-                    <h1 class="card-title pb-4">
-                       {{ title }}
-                    </h1>
-                </div>
-                <div class="card-body pt-0">
-                    <div class="row g-3">
-                        {% if user.meta("password_set") %}
-                                <div class="col-md-6">
-                                    <div class="form-group mb-0">
-                                        <label class="form-label">Password</label>
-                                        <input type="password" name="password" autocomplete="new-password" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                </div>
-                        {% endif %}
-                        <div class="col-md-6">
-                            <div class="form-group mb-0">
-                                <label class="form-label">New Password</label>
-                                <input type="password" id="password_1" name="password_1" value="" autocomplete="new-password" class="form-control form-control-password-toggle" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-0">
-                                <label class="form-label">Confirm New Password</label>
-                                <input type="password" id="password_2" name="password_2" value="" autocomplete="new-password" class="form-control form-control-password-toggle" data-rule-equalto="#password_1[name='password_1']" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <label for="sec-current-pw" class="form-label fw-semibold small">
+                    {{ translate("Current Password") }}
+                </label>
+                <input type="password"
+                       id="sec-current-pw"
+                       name="password"
+                       class="form-control"
+                       autocomplete="current-password"
+                       placeholder="••••••••"/>
+                <div class="form-text text-muted small">{{ translate("Leave blank if you signed up via social login.") }}</div>
+            </div>
+            <div class="col-md-6"></div>
+
+            <div class="col-md-6">
+                <label for="sec-new-pw" class="form-label fw-semibold small">
+                    {{ translate("New Password") }} <span class="text-danger">*</span>
+                </label>
+                <input type="password"
+                       id="sec-new-pw"
+                       name="password_1"
+                       class="form-control"
+                       autocomplete="new-password"
+                       placeholder="••••••••"
+                       minlength="8"
+                       required/>
+                <div class="form-text text-muted small">{{ translate("Minimum 8 characters.") }}</div>
+            </div>
+
+            <div class="col-md-6">
+                <label for="sec-confirm-pw" class="form-label fw-semibold small">
+                    {{ translate("Confirm New Password") }} <span class="text-danger">*</span>
+                </label>
+                <input type="password"
+                       id="sec-confirm-pw"
+                       name="password_2"
+                       class="form-control"
+                       autocomplete="new-password"
+                       placeholder="••••••••"
+                       data-rule-equalto="#sec-new-pw"
+                       data-msg="{{ translate('Passwords do not match.') }}"
+                       required/>
             </div>
 
         </div>
-        <div class="card-footer d-flex justify-content-center pt-4">
-            <input type="hidden" name="action" value="{{type}}"/>
-            <button type="submit" class="btn-submit btn btn-secondary fw-bold btn-lg">SAVE CHANGES</button>
-        </div>
-    </div>
-</form>
 
-{% block appendix %}
-{% endblock %}
+        <div class="mt-4">
+            <button type="submit" class="btn-submit btn btn-primary fw-bold px-5">
+                {{ translate("Update Password") }}
+            </button>
+        </div>
+
+    </form>
+</div>
+
+{# ── 2. İki Faktörlü Kimlik Doğrulama ────────────────────────────────────── #}
+{% if login_2fa_method is defined and login_2fa_method != "none" %}
+<div class="sh-section mb-5">
+    <h5 class="fw-bold mb-1 border-bottom pb-3">{{ translate("Two-Factor Authentication") }}</h5>
+    <p class="text-muted small mb-4">
+        {% if login_2fa_method == "sms" %}
+            {{ translate("Your account is protected with SMS verification. After login, a one-time code is sent to your registered phone number.") }}
+        {% elseif login_2fa_method == "totp" %}
+            {{ translate("Your account can be protected with an authenticator app (Google Authenticator, Authy). Set it up below.") }}
+        {% endif %}
+    </p>
+
+    {# ── TOTP Setup ─────────────────────────────────────────────────────── #}
+    {% if login_2fa_method == "totp" %}
+
+        {% set totp_enabled = user.meta("totp_enabled") %}
+
+        {% if not totp_enabled %}
+
+        {# Kurulum başlat #}
+        <div id="totp-setup-start">
+            <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 mb-3">
+                {{ fa_icon('shield-xmark', 'regular', 'fa-2x text-muted') }}
+                <div>
+                    <div class="fw-semibold small">{{ translate("Authenticator App") }}</div>
+                    <div class="text-muted small">{{ translate("Not enabled — set up to secure your account.") }}</div>
+                </div>
+                <button type="button"
+                        class="btn btn-outline-primary btn-sm ms-auto fw-semibold"
+                        id="btn-totp-setup">
+                    {{ translate("Set Up") }}
+                </button>
+            </div>
+        </div>
+
+        {# QR code adımı — JS ile gösterilir #}
+        <div id="totp-setup-step" style="display:none">
+
+            <div class="card border-0 rounded-4 shadow-sm">
+            <div class="card-body p-4">
+
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;font-size:14px;font-weight:700">1</div>
+                    <div>
+                        <div class="fw-semibold small mb-1">{{ translate("Download an authenticator app") }}</div>
+                        <div class="text-muted small">{{ translate("Google Authenticator, Authy, Microsoft Authenticator or similar.") }}</div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;font-size:14px;font-weight:700">2</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold small mb-2">{{ translate("Scan this QR code") }}</div>
+                        <div id="totp-qr-image" class="mb-2">
+                            <div class="placeholder-glow">
+                                <div class="placeholder rounded" style="width:180px;height:180px;display:block"></div>
+                            </div>
+                        </div>
+                        <div class="text-muted small mb-1">{{ translate("Or enter this key manually:") }}</div>
+                        <code id="totp-secret-key" class="user-select-all small text-break bg-light px-2 py-1 rounded d-inline-block"></code>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-start gap-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;font-size:14px;font-weight:700">3</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold small mb-2">{{ translate("Enter the 6-digit code to confirm") }}</div>
+                        <form id="form-totp-activate"
+                              class="form form-validate needs-validation"
+                              novalidate
+                              data-ajax-method="activate_totp">
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="text"
+                                       name="totp_code"
+                                       class="form-control text-center fw-bold fs-5"
+                                       style="max-width:160px;letter-spacing:.3em"
+                                       maxlength="6" minlength="6"
+                                       inputmode="numeric"
+                                       autocomplete="one-time-code"
+                                       placeholder="000000"
+                                       required/>
+                                <button type="submit" class="btn-submit btn btn-primary fw-bold">
+                                    {{ translate("Activate") }}
+                                </button>
+                            </div>
+                            <input type="hidden" name="action" value="activate_totp"/>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link text-muted small p-0" id="btn-totp-cancel">
+                    {{ translate("Cancel") }}
+                </button>
+            </div>
+
+        </div>{# /totp-setup-step #}
+
+        {% else %}
+
+        {# TOTP aktif — devre dışı bırak #}
+        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
+            {{ fa_icon('shield-check', 'solid', 'fa-2x text-success') }}
+            <div>
+                <div class="fw-semibold small">{{ translate("Authenticator App") }}</div>
+                <div class="text-muted small">{{ translate("Enabled — your account is protected.") }}</div>
+            </div>
+            <button type="button"
+                    class="btn btn-outline-danger btn-sm ms-auto fw-semibold"
+                    data-ajax-method="disable_totp">
+                {{ translate("Disable") }}
+            </button>
+        </div>
+
+        {% endif %}{# totp_enabled #}
+
+    {# ── SMS 2FA bilgi ──────────────────────────────────────────────────── #}
+    {% elseif login_2fa_method == "sms" %}
+
+        {% if user.get_phone() %}
+        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
+            {{ fa_icon('mobile-signal', 'regular', 'fa-2x text-success') }}
+            <div>
+                <div class="fw-semibold small">{{ translate("SMS Verification") }}</div>
+                <div class="text-muted small">
+                    {{ translate("Codes will be sent to") }}
+                    <strong>{{ user.get_phone()|masked_text(4) }}</strong>
+                </div>
+            </div>
+            <a href="{{ base_urls.account }}profile/" class="btn btn-outline-secondary btn-sm ms-auto">
+                {{ translate("Change phone") }}
+            </a>
+        </div>
+        {% else %}
+        <div class="alert alert-warning rounded-3 d-flex gap-3">
+            {{ fa_icon('triangle-exclamation', 'solid', 'mt-1 flex-shrink-0') }}
+            <div>
+                <div class="fw-semibold small">{{ translate("Phone number missing") }}</div>
+                <div class="small">{{ translate("Add a phone number to your profile to enable SMS 2FA.") }}
+                    <a href="{{ base_urls.account }}profile/" class="fw-semibold">{{ translate("Update profile →") }}</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    {% endif %}{# login_2fa_method #}
+
+</div>{# /2FA section #}
+{% endif %}
+
+{# ── 3. Güvenilir Cihazlar ───────────────────────────────────────────────── #}
+{% if trusted_device_days is defined and trusted_device_days > 0 %}
+<div class="sh-section">
+    <h5 class="fw-bold mb-1 border-bottom pb-3">{{ translate("Trusted Devices") }}</h5>
+    <p class="text-muted small mb-4">
+        {{ translate("Devices you've verified with 2FA. You won't be asked for a code again on trusted devices for") }}
+        <strong>{{ trusted_device_days }} {{ translate("days") }}</strong>.
+    </p>
+
+    {% set trusted_devices = user.meta("sh_trusted_devices") %}
+    {% if trusted_devices and trusted_devices is iterable and trusted_devices|length %}
+
+    <div class="list-group list-group-flush border rounded-3 mb-3">
+        {% for device in trusted_devices %}
+        <div class="list-group-item d-flex align-items-center gap-3 py-3">
+            {{ fa_icon('laptop', 'regular', 'text-muted flex-shrink-0') }}
+            <div class="flex-grow-1 min-w-0">
+                <div class="small fw-semibold text-truncate">
+                    {% if device.user_agent %}
+                        {{ device.user_agent|slice(0, 60) }}{% if device.user_agent|length > 60 %}…{% endif %}
+                    {% else %}
+                        {{ translate("Unknown device") }}
+                    {% endif %}
+                </div>
+                {% if device.created_at %}
+                <div class="text-muted" style="font-size:11px">
+                    {{ translate("Trusted") }} {{ device.created_at|date("d M Y") }}
+                </div>
+                {% endif %}
+            </div>
+            <button type="button"
+                    class="btn btn-link text-danger btn-sm p-0 flex-shrink-0"
+                    data-ajax-method="revoke_trusted_device"
+                    data-token="{{ device.token }}">
+                {{ translate("Remove") }}
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="button"
+            class="btn btn-outline-danger btn-sm fw-semibold"
+            data-ajax-method="revoke_all_trusted_devices">
+        {{ translate("Remove all trusted devices") }}
+    </button>
+
+    {% else %}
+    <p class="text-muted small mb-0">{{ translate("No trusted devices yet.") }}</p>
+    {% endif %}
+
+</div>
+{% endif %}
+
+{# ── JS: TOTP setup AJAX ──────────────────────────────────────────────────── #}
+{% if login_2fa_method is defined and login_2fa_method == "totp" %}
+<script>
+(function($){
+
+    // Sayfa load'da form state'ini temizle — PAE cached disabled state'i düzelt
+    $(document).ready(function(){
+        $('#form-totp-activate [type="submit"]').prop('disabled', false).removeAttr('disabled');
+        $('#form-totp-activate input[name="totp_code"]').val('');
+    });
+
+    // TOTP setup başlat — QR kodu çek
+    $('#btn-totp-setup').on('click', function(){
+        var $btn = $(this).prop('disabled', true).text('{{ translate("Loading...") }}');
+
+        var q = new ajax_query();
+        q.method = 'generate_totp_secret';
+        q.vars   = {};
+        q.done   = function(res){
+            $btn.prop('disabled', false).text('{{ translate("Set Up") }}');
+            if (res.error || !res.data) return;
+
+            var d = res.data;
+            if (d.qr_image) {
+                $('#totp-qr-image').html('<img src="' + d.qr_image + '" alt="QR" class="rounded border" style="width:180px;height:180px">');
+            } else if (d.qr_url) {
+                // Fallback: QR image yoksa QR URL'yi göster
+                $('#totp-qr-image').html('<p class="small text-muted">{{ translate("Open this URL in your authenticator app:") }}<br><a href="' + d.qr_url + '" class="text-break small">' + d.qr_url + '</a></p>');
+            }
+            if (d.secret) {
+                $('#totp-secret-key').text(d.secret);
+            }
+
+            $('#totp-setup-start').hide();
+            $('#totp-setup-step').show();
+            $('#form-totp-activate input[name="totp_code"]').focus();
+        };
+        q.request();
+    });
+
+    // TOTP iptal
+    $('#btn-totp-cancel').on('click', function(){
+        $('#totp-setup-step').hide();
+        $('#totp-setup-start').show();
+    });
+
+    // TOTP activate — hata durumunda input temizle + button enable
+    // Success + reload: data-ajax-method + refresh:true PHP'den geliyor
+    $(document).on('ajax_query:complete', function(e, obj){
+        if (obj && obj.method === 'activate_totp') {
+            $('#form-totp-activate [type="submit"]').prop('disabled', false).removeAttr('disabled');
+        }
+    });
+
+})(jQuery);
+</script>
+{% endif %}

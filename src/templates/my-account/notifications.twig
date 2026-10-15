@@ -1,27 +1,49 @@
-<div class="card-container card-container-solid card card-reset ajax-paginate"
-     data-posts_per_page="5"
-     data-user="{{ user.id }}"
-     data-order="desc"
-     data-load_type="scroll"
-     data-set_seen="true"
-     data-view="my-account"
-     data-ajax-method="get_notifications">
-    <div class="card-header">
-        <h1 class="card-title">
-            {{ title }}
-            {% if description %}<small>{{ description }}</small>{% endif %}
-        </h1>
-    </div>
-    <div class="card-body list-cards pt-4 pb-2"></div>
-    <div class="card-footer justify-content-end viewport">
-        <a href="#" class="btn-next-page btn btn-light btn-extend w-100 loading" data-init="true">
-            <span>Load <span class="item-left"></span> More</span>
-        </a>
-    </div>
-</div>
+{#
+  my-account/notifications.twig
 
-{% block appendix %}
-<script>
-$( document ).ready(function() {});
-</script>
-{% endblock %}
+  Context:
+    title       — sayfa başlığı
+    user        — current user
+    posts_per_page — per page (default 15)
+
+  Sistem:
+    ajax-paginate engine sayfayı açınca data-init="true" btn'yi trigger eder
+    → get_notifications AJAX çağrısı
+    → view="my-account" ile feed modu (wrapper yok)
+    → response.html → .list-cards'a append edilir
+    → data-load_type="scroll" → scroll'da sonraki sayfayı otomatik yükle
+#}
+
+{% set _ppp = posts_per_page|default(15) %}
+
+<div class="card-container card card-reset">
+
+    {% if title %}
+        <div class="card-header">
+            <h2 class="card-title h4 mb-0">{{ title }}</h2>
+        </div>
+    {% endif %}
+
+    <div class="ajax-paginate"
+         data-ajax-method="get_notifications"
+         data-view="my-account"
+         data-posts_per_page="{{ _ppp }}"
+         data-user="{{ user.id }}"
+         data-order="desc"
+         data-load_type="scroll"
+         data-set_seen="true"
+         data-page="1">
+
+        <ul class="list-cards source-list list-unstyled notifications-list mb-0"></ul>
+
+        <div class="card-footer justify-content-end">
+            <a href="#"
+               class="btn-next-page btn btn-light btn-extend w-100 loading"
+               data-init="true">
+                <span>{{ translate('Load More') }} <span class="item-left"></span></span>
+            </a>
+        </div>
+
+    </div>
+
+</div>

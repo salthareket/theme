@@ -12,7 +12,7 @@
  *
  * @see https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
- * @version 7.0.1
+ * @version 10.2.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,57 +20,67 @@ defined( 'ABSPATH' ) || exit;
 global $product;
 
 if ( ! $product->is_purchasable() ) {
-	 return;
+	return;
 }
 
 echo wc_get_stock_html( $product ); // WPCS: XSS ok.
 
-if ( ENABLE_REACTIONS ) {
-    $uid         = get_current_user_id();
-    $product_id  = $product->get_id();
-    $is_favorite = $uid > 0 && \SaltHareket\Reactions\Reactions::has( 'favorite', $product_id, 'post', $uid );
-    $fav_count   = \SaltHareket\Reactions\Reactions::count( 'favorite', $product_id, 'post' );
+if ( defined( 'ENABLE_REACTIONS' ) && ENABLE_REACTIONS ) {
+	$uid         = get_current_user_id();
+	$product_id  = $product->get_id();
+	$is_favorite = $uid > 0 && \SaltHareket\Reactions\Reactions::has( 'favorite', $product_id, 'post', $uid );
+	$fav_count   = \SaltHareket\Reactions\Reactions::count( 'favorite', $product_id, 'post' );
 }
 
 if ( $product->is_in_stock() ) : ?>
 
 	<?php do_action( 'woocommerce_before_add_to_cart_form' ); ?>
-    <div class="product-buy mt-4">
-		<form class="cart" action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>" method="post" enctype='multipart/form-data'>
-			<div class="row g-3 justify-content-center justify-content-lg-start">
-				<?php do_action( 'woocommerce_before_add_to_cart_button' ); 
-              if(ENABLE_CART){
-				?>
-               <?php if($product->get_min_purchase_quantity() != $product->get_max_purchase_quantity()){ ?>
-                <div class="col-6 col-lg-3">
-					<?php
-					do_action( 'woocommerce_before_add_to_cart_quantity' );
 
-					woocommerce_quantity_input( array(
-						'min_value'   => apply_filters( 'woocommerce_quantity_input_min', $product->get_min_purchase_quantity(), $product ),
-						'max_value'   => apply_filters( 'woocommerce_quantity_input_max', $product->get_max_purchase_quantity(), $product ),
-						'input_value' => isset( $_POST['quantity'] ) ? wc_stock_amount( wp_unslash( $_POST['quantity'] ) ) : $product->get_min_purchase_quantity(), // WPCS: CSRF ok, input var ok.
-					) );
+	<div class="product-buy mt-4">
+		<form class="cart" action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>" method="post" enctype="multipart/form-data">
+			<div class="row g-3 justify-content-center justify-content-lg-start align-items-center">
 
-					do_action( 'woocommerce_after_add_to_cart_quantity' );
-					?>
-			    </div>
-			    <?php } ?>
-			    <div class="<?php if($product->get_min_purchase_quantity() != $product->get_max_purchase_quantity()){ ?>col-6 col-lg-auto<?php }else{ ?>col-auto<?php } ?>">
-					    <button type="submit" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>" class="btn btn-lg btn-loading-page btn-extend btn-outline-light single_add_to_cart_button button-- alt--"><?php echo esc_html( $product->single_add_to_cart_text() ); ?></button>
+				<?php do_action( 'woocommerce_before_add_to_cart_button' ); ?>
+
+				<?php if ( defined( 'ENABLE_CART' ) && ENABLE_CART ) : ?>
+
+					<?php $show_qty = $product->get_min_purchase_quantity() !== $product->get_max_purchase_quantity(); ?>
+
+					<?php if ( $show_qty ) : ?>
+					<div class="col-6 col-lg-3">
+						<?php
+						do_action( 'woocommerce_before_add_to_cart_quantity' );
+
+						woocommerce_quantity_input( array(
+							'min_value'   => apply_filters( 'woocommerce_quantity_input_min', $product->get_min_purchase_quantity(), $product ),
+							'max_value'   => apply_filters( 'woocommerce_quantity_input_max', $product->get_max_purchase_quantity(), $product ),
+							'input_value' => isset( $_POST['quantity'] ) ? wc_stock_amount( wp_unslash( $_POST['quantity'] ) ) : $product->get_min_purchase_quantity(), // phpcs:ignore WordPress.Security.NonceVerification.Missing
+						) );
+
+						do_action( 'woocommerce_after_add_to_cart_quantity' );
+						?>
+					</div>
+					<?php endif; ?>
+
+					<div class="<?php echo $show_qty ? 'col-6 col-lg-auto' : 'col-auto'; ?>">
+						<button type="submit" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>" class="btn btn-lg btn-loading-page btn-extend btn-outline-light single_add_to_cart_button">
+							<?php echo esc_html( $product->single_add_to_cart_text() ); ?>
+						</button>
+					</div>
+
+				<?php endif; ?>
+
+				<?php if ( defined( 'ENABLE_REACTIONS' ) && ENABLE_REACTIONS ) : ?>
+				<div class="col-auto">
+					<?php echo \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $product->get_id(), 'post', 'favorite', [ 'style' => 'icon-only', 'class' => 'btn-product-action' ] ); ?>
 				</div>
-				<?php 
-				  } 
-				 ?>
-			   <div class="col-auto">
-			    	<?php if ( ENABLE_REACTIONS ) : ?>
-			        <?php echo \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $product->get_id(), 'post', 'favorite', ['style' => 'icon-only', 'class' => 'btn-product-action'] ); ?>
-			        <?php endif; ?>
-		        </div>
+				<?php endif; ?>
+
 				<?php do_action( 'woocommerce_after_add_to_cart_button' ); ?>
-		    </div>
+
+			</div>
 		</form>
-    </div>
+	</div>
 
 	<?php do_action( 'woocommerce_after_add_to_cart_form' ); ?>
 

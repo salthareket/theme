@@ -1,0 +1,93 @@
+{#
+  woo/partials/product-stats.twig — Ürün istatistik snippet'i.
+
+  Context:
+    stats           : {views, carts, purchases, favorites, likes, reactions}
+    show_views      : bool (default true)
+    show_carts      : bool (default true)
+    show_purchases  : bool (default true)
+    show_favorites  : bool (default true)
+
+  Kullanım — istediğin yere ekle:
+    {% do action('sh_product_stats', post.id) %}
+
+  Veya doğrudan include (context'ten stats varsa):
+    {% include 'woo/partials/product-stats.twig' with {stats: product_stats} %}
+#}
+
+{% set _views     = stats.views     ?? 0 %}
+{% set _carts     = stats.carts     ?? 0 %}
+{% set _purchases = stats.purchases ?? 0 %}
+{% set _favorites = stats.favorites ?? 0 %}
+{% set _likes     = stats.likes     ?? 0 %}
+
+{# En az bir değer > 0 ise göster #}
+{% if _views > 0 or _carts > 0 or _purchases > 0 or _favorites > 0 or _likes > 0 %}
+
+<div class="sh-product-stats d-flex flex-wrap align-items-center gap-3"
+     data-html-whitelist=".sh-product-stats,.sh-pstat-*">
+
+    {% if show_views is not defined or show_views %}
+        {% if _views > 0 %}
+        <span class="sh-pstat sh-pstat--views" title="{{ translate('Views') }}">
+            {{ fa_icon('eye','regular','sh-pstat__icon') }}
+            <span class="sh-pstat__count">{{ _views }}</span>
+            <span class="sh-pstat__label">{{ translate("views") }}</span>
+        </span>
+        {% endif %}
+    {% endif %}
+
+    {% if show_carts is not defined or show_carts %}
+        {% if _carts > 0 %}
+        <span class="sh-pstat sh-pstat--carts" title="{{ translate('Added to cart') }}">
+            {{ fa_icon('shopping-cart','regular','sh-pstat__icon') }}
+            <span class="sh-pstat__count">{{ _carts }}</span>
+            <span class="sh-pstat__label">{{ translate("in carts") }}</span>
+        </span>
+        {% endif %}
+    {% endif %}
+
+    {% if show_purchases is not defined or show_purchases %}
+        {% if _purchases > 0 %}
+        <span class="sh-pstat sh-pstat--purchases" title="{{ translate('Purchases') }}">
+            {{ fa_icon('bag-shopping','solid','sh-pstat__icon') }}
+            <span class="sh-pstat__count">{{ _purchases }}</span>
+            <span class="sh-pstat__label">{{ translate("sold") }}</span>
+        </span>
+        {% endif %}
+    {% endif %}
+
+    {% if show_favorites is not defined or show_favorites %}
+        {% if _favorites > 0 %}
+        <span class="sh-pstat sh-pstat--favorites" title="{{ translate('Favorited') }}">
+            {{ fa_icon('star','solid','sh-pstat__icon sh-pstat__icon--favorite') }}
+            <span class="sh-pstat__count">{{ _favorites }}</span>
+            <span class="sh-pstat__label">{{ translate("favorited") }}</span>
+        </span>
+        {% endif %}
+    {% endif %}
+
+    {# Diğer aktif reactions (like vs.) #}
+    {% if stats.reactions is defined %}
+        {% for type, count in stats.reactions %}
+            {% if type != 'favorite' and count > 0 %}
+            <span class="sh-pstat sh-pstat--{{ type }}" title="{{ type }}">
+                <span class="sh-pstat__count">{{ count }}</span>
+                <span class="sh-pstat__label">{{ type }}</span>
+            </span>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+</div>
+
+<style>
+.sh-product-stats{font-size:12px;color:#6b7280;}
+.sh-pstat{display:inline-flex;align-items:center;gap:4px;}
+.sh-pstat__icon{width:13px;height:13px;opacity:.7;}
+.sh-pstat__icon--favorite{color:#f59e0b;opacity:1;}
+.sh-pstat__count{font-weight:600;color:#374151;}
+.sh-pstat__label{color:#9ca3af;}
+</style>
+
+{% endif %}

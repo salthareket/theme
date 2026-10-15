@@ -13,7 +13,9 @@ label.form-label {
     font-size: var(--form-label-font-size, 15px);
     display: flex;
     flex: 1 0 100%;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 3px;
+    flex-wrap: nowrap;
 
     &.form-label-fake {
         text-indent: -9999px;
@@ -55,7 +57,7 @@ label.form-label {
         &:focus { box-shadow: none !important; }
     }
     &.date .form-control { min-width: 80px; }
-    .typeahead { flex: 1 1 auto; width: auto; }
+    .typeahead, .ts-wrapper { flex: 1 1 auto; width: auto; }
     .form-control.tt-input:focus { z-index: 3; }
 }
 
@@ -116,7 +118,8 @@ label.form-label {
     // ── Clear button ──────────────────────────────────────────
     &.form-control-clear {
         + .btn-form-control-clear,
-        + .typeahead + .btn-form-control-clear {
+        + .typeahead + .btn-form-control-clear,
+        + .ts-wrapper + .btn-form-control-clear {
             display: flex;
             align-items: center;
             padding: 0 10px;
@@ -127,9 +130,9 @@ label.form-label {
             margin-left: -1px;
 
             &::before {
-                font-family: var(--icon-font);
-                content: '\f00d';
-                font-weight: 300;
+                @include svgIcon('xmark', 'solid');
+                color: var(--primary-color);
+                font-size: 0.85em;
             }
 
             &:last-child {
@@ -139,7 +142,8 @@ label.form-label {
         }
 
         &:focus + .btn-form-control-clear,
-        &:focus + .typeahead + .btn-form-control-clear {
+        &:focus + .typeahead + .btn-form-control-clear,
+        &:focus + .ts-wrapper + .btn-form-control-clear {
             background-color: var(--form-input-bg-focus, #fff);
             border: var(--form-input-border-focus, 1px solid #aaa);
             border-left: none;
@@ -173,8 +177,9 @@ label.form-label {
         border: var(--form-input-border, 1px solid #ddd);
     }
 
-    // ── Typeahead dropdown ────────────────────────────────────
-    &.typeahead.dropdown-menu {
+    // ── Typeahead / Tom Select dropdown ──────────────────────
+    &.typeahead.dropdown-menu,
+    &.ts-select.dropdown-menu {
         touch-action: pan-y !important;
         overflow-scrolling: touch !important;
         overflow-y: auto !important;
@@ -230,6 +235,7 @@ em.is-valid {
 }
 em.is-invalid { color: var(--form-invalid-color, #dc3545); }
 em.is-valid   { color: var(--form-valid-color, #198754); }
+em.is-invalid:empty{display:none!important;}
 
 // ── Switch sizes ──────────────────────────────────────────────
 @mixin switch($res: 'sm') {

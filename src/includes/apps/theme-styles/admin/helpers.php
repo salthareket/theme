@@ -128,8 +128,8 @@ function theme_styles_get_font_choices() {
         'inherit' => 'inherit'
     ];
     
-    // Custom Fonts from Yabe Webfont
-    if (class_exists('YABE_WEBFONT') && function_exists('yabe_get_fonts')) {
+    // Custom Fonts from Jooosi Fon (eski adı: Yabe Webfont)
+    if ( ( class_exists('JooosiFon\Plugin') || class_exists('YABE_WEBFONT') ) && function_exists('yabe_get_fonts') ) {
         $yabe_fonts = yabe_get_fonts();
         if (!empty($yabe_fonts)) {
             $custom_fonts = [];
@@ -150,10 +150,10 @@ function theme_styles_get_font_choices() {
     }
     
     // Icon Fonts
-    $font_choices[__('Icon Fonts', 'theme-styles')] = [
+    /*$font_choices[__('Icon Fonts', 'theme-styles')] = [
         'Font Awesome 6 Pro' => 'Font Awesome 6 Pro',
         'Font Awesome 6 Brands' => 'Font Awesome 6 Brands'
-    ];
+    ];*/
     
     // System Fonts
     $font_choices[__('System Fonts', 'theme-styles')] = [

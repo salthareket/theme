@@ -1,0 +1,35 @@
+{#
+  _pagination.twig — sadece pagination HTML'i render eder (AJAX için).
+  Context: reviews_data { page, page_total }
+#}
+{% if reviews_data.page_total > 1 %}
+<div class="sh-reviews-pagination" id="sh-reviews-pagination"
+     data-page="{{ reviews_data.page }}"
+     data-page-total="{{ reviews_data.page_total }}">
+
+    <button type="button"
+            class="btn btn-outline-secondary btn-sm"
+            onclick="shReviewsPage({{ reviews_data.page - 1 }})"
+            {% if reviews_data.page <= 1 %}disabled{% endif %}>
+        ←
+    </button>
+
+    {% for p in 1..reviews_data.page_total %}
+        <button type="button"
+                class="btn btn-sm {% if p == reviews_data.page %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                onclick="shReviewsPage({{ p }})">
+            {{ p }}
+        </button>
+    {% endfor %}
+
+    <button type="button"
+            class="btn btn-outline-secondary btn-sm"
+            onclick="shReviewsPage({{ reviews_data.page + 1 }})"
+            {% if reviews_data.page >= reviews_data.page_total %}disabled{% endif %}>
+        →
+    </button>
+
+</div>
+{% else %}
+<div id="sh-reviews-pagination"></div>
+{% endif %}

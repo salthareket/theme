@@ -82,6 +82,22 @@ function init_leaflet(context) {
 
     $maps.each(function () {
         var obj = $(this);
+
+        // ── Cift-init koruması (hizli + kesin) ──────────────────────────────
+        // 1. Katman (yukarida, jQuery seciciyle): .not('.leaflet-init') → zaten
+        //    init edilmisler doNGuye HIC girmez (en hizli on eleme).
+        // 2. Katman (burada, O(1) property check): iki init akisi yarissa class
+        //    henuz yazilmadan ikinci L.map() cagrilabilir → "already initialized".
+        //    Leaflet init edilen container'a _leaflet_id ekler; onu kontrol edip
+        //    zaten init'liyse ATLA. DOM query yok, dogrudan element property → hizli.
+        // Kesin sinyal: Leaflet map init edince container'a '.leaflet-container'
+        // class'i ekler. _leaflet_id ise L.stamp ile event bag lay inca da eklenebilir
+        // (yaniltici olabilir), o yuzden asil kontrol class + _leafletMap referansi.
+        if (this.classList.contains('leaflet-container') || this._leafletMap) {
+            obj.addClass(token_init);
+            return;
+        }
+
         obj.addClass(token_init);
 
         // ID garantisi
@@ -121,10 +137,15 @@ function init_leaflet(context) {
             map_config.zoomControl = false;
         }
 
-        var map = L.map(id, map_config).setView([39.9, 32.8], 6);
+        // L.map'e string id DEĞİL, DOGRUDAN DOM ELEMENTINI ver.
+        // Sebep: ayni içerik birden cok yerde acilirsa (offcanvas + sayfa + AJAX)
+        // duplicate id olusabilir. L.map(id) string alinca getElementById ile HEP
+        // ilk elementi bulur → yanlis element / "already initialized". Element
+        // referansi verince tam bu container init edilir, cakisma olmaz.
+        var map = L.map(obj[0], map_config).setView([39.9, 32.8], 6);
 
         // DEBUG: container boyutunu logla – tile sorununun kaynağını görmek için
-        var _cont = document.getElementById(id);
+        var _cont = obj[0];
         log('[Leaflet] container boyutu init anında:', id, _cont ? _cont.offsetWidth + 'x' + _cont.offsetHeight : 'BULUNAMADI');
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -171,18 +192,18 @@ function init_leaflet(context) {
 
                 // Popup bağla
                 if (popup_cfg.active && ['click', 'mouseover'].indexOf(popup_cfg.type) > -1) {
-                    _bindPopup(marker_item, map, latlng, loc, popup_cfg);
+                    _bindPopup(marker_item, loc, popup_cfg);
                 }
 
                 // Callback
                 if (config.callback && typeof window[config.callback] === 'function') {
-                    marker_item.on('click', function (e) {
+                    marker_item.on('click', function () {
                         window[config.callback](map, this);
                     });
                 } else if (config.callback && typeof config.callback === 'string' && config.callback !== '') {
                     try {
                         var cbFn = new Function('map', 'marker', config.callback);
-                        marker_item.on('click', function (e) { cbFn(map, this); });
+                        marker_item.on('click', function () { cbFn(map, this); });
                     } catch(ex) { console.warn('Leaflet callback hatası', ex); }
                 }
 
@@ -241,7 +262,7 @@ function init_leaflet(context) {
 
         // ── Butonlar ────────────────────────────────────────────────────────
         if (buttons) {
-            _addButtons(map, buttons, config);
+            _addButtons(map, buttons);
         }
 
         // Map referansını sakla (modal invalidateSize için)
@@ -285,10 +306,10 @@ function _addStaticPopup(map, latlng, loc, popup_cfg, markerList) {
 }
 
 // ─── 6. Yardımcı: Click/mouseover popup ──────────────────────────────────────
-function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
+function _bindPopup(marker_item, loc, popup_cfg) {
     var popupOpts = {
         minWidth:    120,
-        maxWidth:    popup_cfg.width || 300,
+        maxWidth:    parseInt(popup_cfg.width, 10) || 300,  // string gelebilir, int'e çevir
         closeButton: false,
         closeOnClick: popup_cfg.type === 'click',
         autoClose:   popup_cfg.type === 'click',
@@ -296,17 +317,18 @@ function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
     };
 
     if (popup_cfg.ajax && popup_cfg.template !== 'default') {
-        // AJAX popup
+        // AJAX popup — bindPopup boş string ile bağlanır, content click'te set edilir
         marker_item.bindPopup('', popupOpts);
 
         marker_item.on(popup_cfg.type, function () {
             var self = this;
-            if (self.isPopupOpen()) {
-                self.closePopup();
+            // bindPopup kendi click handler'ını da tetikler — isPopupOpen kontrolü önemli
+            if (self._popupLoaded) {
+                // İçerik zaten yüklü — bindPopup'ın native davranışı halleder
                 return;
             }
-            if (self._popupLoaded) {
-                self.openPopup();
+            if (self.isPopupOpen()) {
+                self.closePopup();
                 return;
             }
             self.setPopupContent('<span class="leaflet-loading">...</span>');
@@ -333,14 +355,13 @@ function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
     } else {
         // Inline / twig popup
         if (popup_cfg.template === 'default') {
+            // bindPopup Leaflet'in kendi click handler'ını aktifleştirir — ayrıca on('click') bağlama
             marker_item.bindPopup(loc.title || '', popupOpts);
-            marker_item.on(popup_cfg.type, function () {
-                if (this.isPopupOpen()) { this.closePopup(); return; }
-                this.openPopup();
-            });
             if (popup_cfg.type === 'mouseover') {
-                marker_item.on('mouseout', function () { this.closePopup(); });
+                marker_item.on('mouseover', function () { this.openPopup(); });
+                marker_item.on('mouseout',  function () { this.closePopup(); });
             }
+            // 'click' için bindPopup yeterli — Leaflet default davranışı ile açılır
         } else {
             requirePlugin("twig", function() {
                 twig({
@@ -350,12 +371,10 @@ function _bindPopup(marker_item, map, latlng, loc, popup_cfg) {
                     load: function (template) {
                         var html = template.render(loc);
                         marker_item.bindPopup(html, popupOpts);
-                        marker_item.on(popup_cfg.type, function () {
-                            if (this.isPopupOpen()) { this.closePopup(); return; }
-                            this.openPopup();
-                        });
+                        // 'click' için bindPopup yeterli — on('click') ekleme, toggle loop oluşturur
                         if (popup_cfg.type === 'mouseover') {
-                            marker_item.on('mouseout', function () { this.closePopup(); });
+                            marker_item.on('mouseover', function () { this.openPopup(); });
+                            marker_item.on('mouseout',  function () { this.closePopup(); });
                         }
                     }
                 });
@@ -382,7 +401,7 @@ function _fitMap(map, locations, markerList) {
 }
 
 // ─── 8. Yardımcı: Butonlar ───────────────────────────────────────────────────
-function _addButtons(map, buttons, config) {
+function _addButtons(map, buttons) {
     if (buttons.zoom_position) {
         L.control.zoom({ position: buttons.zoom_position }).addTo(map);
     }

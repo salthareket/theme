@@ -1,0 +1,18 @@
+{#
+  _review-list.twig — AJAX için sadece review item listesi.
+  Context: reviews, reviews_settings, reviews_criteria, rating_type
+#}
+{% if reviews %}
+    {% for review in reviews %}
+        {% include "partials/post-reviews/review-item.twig" with {
+            review           : review,
+            reviews_settings : reviews_settings,
+            reviews_criteria : reviews_criteria,
+            rating_type      : rating_type
+        } %}
+    {% endfor %}
+{% else %}
+    <div class="sh-reviews-empty text-center py-4 text-muted">
+        <p>{{ translate("No reviews found.") }}</p>
+    </div>
+{% endif %}

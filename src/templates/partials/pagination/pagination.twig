@@ -1,6 +1,7 @@
+
 {% block pagination %}
 
-	<nav class="pagination-container" role="navigation" aria-label="{{ translate("Sayfalama") }}">
+	<nav class="pagination-container" role="navigation" aria-label="{{ translate("Pagination") }}">
 		<ul class="pagination">
 
 		   {% if post_pagination[post_type].type in ["button", "scroll"] %}
@@ -8,11 +9,11 @@
 		   	    {% if direction == "next" %}
 		   	    	{% set condition = posts.pagination.next %}
 		   	    	{% set page = posts.pagination.current+1 %}
-		   	    	{% set title = translate("Sonraki Sayfa") %}
+		   	    	{% set title = translate("Next Page") %}
 		   	    {% else %}
 		   	    	{% set condition = posts.pagination.prev or paged > 1 %}
 		   	    	{% set page = posts.pagination.current-1 %}
-		   	    	{% set title = translate("Önceki Sayfa") %}
+		   	    	{% set title = translate("Previous Page") %}
 		   	    {% endif %}
 
 		    	{% if condition %}
@@ -42,7 +43,7 @@
 				  {% if posts.pagination.prev %}
 					  <li class="page-item prev {{posts.pagination.prev.link|length ? '' : 'invisible'}}">
 						  <a href="{{posts.pagination.prev.link}}" class="page-link btn-loading-page" aria-label="Previous">
-							<span aria-hidden="true"></span>
+							<span aria-hidden="true">{{ fa_icon( theme_styles.pagination.prev_icon.icon, theme_styles.pagination.prev_icon.icon_style, '' ) }}</span>
 						  </a>
 					  </li>
 				  {% endif %}
@@ -58,7 +59,7 @@
 				  {% if posts.pagination.next %}
 					<li class="page-item next {{posts.pagination.next.link|length ? '' : 'invisible'}}">
 						<a href="{{posts.pagination.next.link}}" class="page-link btn-loading-page" aria-label="Next">
-						  <span aria-hidden="true"></span>
+						  <span aria-hidden="true">{{ fa_icon( theme_styles.pagination.next_icon.icon, theme_styles.pagination.next_icon.icon_style, '' ) }}</span>
 						</a>
 					</li>
 				  {% endif %}

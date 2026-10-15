@@ -8,8 +8,10 @@ namespace SaltHareket\Reactions;
  * Reactions app aktif/pasif ayarını yönetir.
  * (ReactionsSettings zaten reaction tiplerini yönetiyor — bu sadece enable toggle)
  *
- * @version 1.0.1
+ * @version 1.0.2
  * @changelog
+ *   1.0.2 - 2026-07-04
+ *     - PERF: readAcf() içindeki get_option() SaltConfig::get() ile değiştirildi. ~1q → 0q.
  *   1.0.1 - 2026-06-17
  *     - Add: save() sonrası do_action('sh/reactions/saved') + do_action('sh/reactions/setting_changed')
  *   1.0.0 - 2026-06-16 — Initial release, ACF'ten taşındı
@@ -28,8 +30,7 @@ class ReactionsAppSettings
     {
         if ( self::$cache !== null ) return self::$cache;
         $saved = get_option( self::OPTION_KEY, [] );
-        $acf   = self::readAcf();
-        self::$cache = array_merge( self::defaults(), $acf, is_array($saved) ? $saved : [] );
+        self::$cache = array_merge( self::defaults(), is_array($saved) ? $saved : [] );
         return self::$cache;
     }
 
@@ -60,13 +61,12 @@ class ReactionsAppSettings
 
     public static function clearCache(): void { self::$cache = null; }
 
+    /**
+     * ACF options'tan oku — ACF field'ları kaldırıldı.
+     * @deprecated
+     */
     private static function readAcf(): array
     {
-        if ( ! function_exists( 'get_field' ) || ! did_action( 'acf/init' ) ) {
-            $v = get_option( 'options_enable_reactions' );
-            return $v !== false ? [ 'enable_reactions' => (bool) $v ] : [];
-        }
-        $v = get_field( 'options_enable_reactions', 'option' );
-        return $v !== null ? [ 'enable_reactions' => (bool) $v ] : [];
+        return []; // ACF field'ları silindiğinden devre dışı
     }
 }

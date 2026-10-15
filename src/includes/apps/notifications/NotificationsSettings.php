@@ -13,8 +13,11 @@ namespace SaltHareket\Notifications;
  *   require_once SH_INCLUDES_PATH . 'apps/notifications/NotificationsSettings.php';
  *   define("ENABLE_NOTIFICATIONS", NotificationsSettings::getSetting('enable_notifications'));
  *
- * @version 1.0.2
+ * @version 1.0.3
  * @changelog
+ *   1.0.3 - 2026-07-04
+ *     - PERF: readAcfFallback() içindeki get_option() çağrıları SaltConfig::get() ile
+ *             değiştirildi. ~3 DB query → 0 query.
  *   1.0.2 - 2026-06-17
  *     - Add: save() sonrası do_action('sh/notifications/saved') + do_action('sh/notifications/setting_changed')
  *   1.0.1 - 2026-06-16
@@ -54,9 +57,7 @@ class NotificationsSettings
         $saved = get_option( self::OPTION_KEY, [] );
         $saved = is_array( $saved ) ? $saved : [];
 
-        $acf = self::readAcfFallback();
-
-        self::$cache = array_merge( self::defaults(), $acf, $saved );
+        self::$cache = array_merge( self::defaults(), $saved );
         return self::$cache;
     }
 
@@ -111,20 +112,12 @@ class NotificationsSettings
 
     // ─── ACF Fallback ─────────────────────────────────────────────────────────
 
+    /**
+     * ACF options'tan oku — ACF field'ları kaldırıldı, artık kullanılmıyor.
+     * @deprecated
+     */
     private static function readAcfFallback(): array
     {
-        if ( ! function_exists( 'get_field' ) || ! did_action( 'acf/init' ) ) {
-            return array_filter( [
-                'enable_notifications'     => get_option( 'options_enable_notifications' ) ?: null,
-                'enable_sms_notifications' => get_option( 'options_enable_sms_notifications' ) ?: null,
-                'enable_web_push'          => get_option( 'options_enable_web_push' ) ?: null,
-            ], fn( $v ) => $v !== null );
-        }
-
-        return array_filter( [
-            'enable_notifications'     => get_field( 'options_enable_notifications', 'option' ) ?: null,
-            'enable_sms_notifications' => get_field( 'options_enable_sms_notifications', 'option' ) ?: null,
-            'enable_web_push'          => get_field( 'options_enable_web_push', 'option' ) ?: null,
-        ], fn( $v ) => $v !== null );
+        return []; // ACF field'ları silindiğinden bu metod devre dışı
     }
 }

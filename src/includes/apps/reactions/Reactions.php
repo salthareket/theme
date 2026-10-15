@@ -8,8 +8,15 @@ namespace SaltHareket\Reactions;
  * Post, User, Comment, Term ve herhangi bir object type'a uygulanabilir.
  * Toggle, Additive ve Cumulative (Medium-style clap) modlarini destekler.
  *
- * @version 1.2.0
+ * @version 1.3.0
  * @changelog
+ *   1.3.0 - 2026-08-25
+ *     - Add: object_subtype kolonu — post_type (post), taxonomy (term), role (user) otomatik kaydediliyor
+ *     - Add: detectSubtype() — interact() içinde otomatik tespit, DB'ye yazılır
+ *     - Add: getByUser() — opsiyonel object_subtype filtresi (4. parametre)
+ *     - Add: count() — opsiyonel object_subtype filtresi (4. parametre)
+ *     - Add: createTable() migration — object_subtype kolonu + subtype_idx KEY
+ *     - Fix: interactToggle/Additive/Cumulative — object_subtype DB'ye yazılıyor
  *   1.2.0 - 2026-05-08
  *     - Add: interact() — mode'a gore toggle/additive/cumulative dispatch
  *     - Add: interactCumulative() — amount parametresi, limit kontrolu, tek AJAX ile bulk increment
@@ -115,6 +122,9 @@ class Reactions
         // Böylece EN'de favorite yapılan post TR'de de aynı ID ile görünür.
         $object_id = self::normalizeObjectId( $object_id, $object_type );
 
+        // object_subtype otomatik tespit: post_type | taxonomy | user_role
+        $object_subtype = self::detectSubtype( $object_id, $object_type );
+
         $type_config = ReactionsSettings::getType( $type );
         if ( ! $type_config ) {
             return [ 'success' => false, 'message' => 'Unknown reaction type: ' . $type ];
@@ -124,18 +134,16 @@ class Reactions
 
         switch ( $mode ) {
             case 'cumulative':
-                return self::interactCumulative( $type, $type_config, $object_id, $object_type, $user_id, max(1, $amount), $guest_id );
+                return self::interactCumulative( $type, $type_config, $object_id, $object_type, $object_subtype, $user_id, max(1, $amount), $guest_id );
             case 'additive':
-                return self::interactAdditive( $type, $type_config, $object_id, $object_type, $user_id, $guest_id );
+                return self::interactAdditive( $type, $type_config, $object_id, $object_type, $object_subtype, $user_id, $guest_id );
             default:
-                return self::interactToggle( $type, $type_config, $object_id, $object_type, $user_id, $guest_id );
+                return self::interactToggle( $type, $type_config, $object_id, $object_type, $object_subtype, $user_id, $guest_id );
         }
     }
 
     /**
      * Polylang aktifse post/term ID'sini default dildeki karşılığına normalize eder.
-     * Farklı dillerdeki aynı içeriğin tek bir ID altında toplanması için kullanılır.
-     * Polylang yoksa veya çeviri bulunamazsa orijinal ID döner.
      */
     private static function normalizeObjectId( int $object_id, string $object_type ): int
     {
@@ -159,6 +167,33 @@ class Reactions
     }
 
     /**
+     * object_subtype otomatik tespit.
+     * post → post_type | term → taxonomy | user → primary role | comment → ''
+     */
+    private static function detectSubtype( int $object_id, string $object_type ): string
+    {
+        if ( $object_id < 1 ) return '';
+        switch ( $object_type ) {
+            case 'post':
+                return (string) ( get_post_type( $object_id ) ?: '' );
+            case 'term':
+                $term = get_term( $object_id );
+                return ( $term && ! is_wp_error( $term ) ) ? $term->taxonomy : '';
+            case 'user':
+                $user = get_userdata( $object_id );
+                if ( $user && ! empty( $user->roles ) ) {
+                    return (string) reset( $user->roles );
+                }
+                return '';
+            case 'comment':
+                $comment = get_comment( $object_id );
+                return ( $comment && $comment->comment_type !== '' ) ? $comment->comment_type : 'comment';
+            default:
+                return '';
+        }
+    }
+
+    /**
      * Geriye uyumluluk — toggle() hala calisir.
      */
     public static function toggle(
@@ -177,6 +212,7 @@ class Reactions
         array  $type_config,
         int    $object_id,
         string $object_type,
+        string $object_subtype,
         int    $user_id,
         string $guest_id = ''
     ): array {
@@ -197,13 +233,14 @@ class Reactions
             self::maybeDeleteNotify( $type, $type_config, $object_id, $object_type, $user_id );
         } else {
             $wpdb->insert( $table, array_filter( [
-                'user_id'     => $user_id > 0 ? $user_id : 0,
-                'guest_id'    => $guest_id ?: null,
-                'object_id'   => $object_id,
-                'object_type' => $object_type,
-                'type'        => $type,
-                'value'       => 1,
-                'created_at'  => gmdate( 'Y-m-d H:i:s' ),
+                'user_id'        => $user_id > 0 ? $user_id : 0,
+                'guest_id'       => $guest_id ?: null,
+                'object_id'      => $object_id,
+                'object_type'    => $object_type,
+                'object_subtype' => $object_subtype ?: null,
+                'type'           => $type,
+                'value'          => 1,
+                'created_at'     => gmdate( 'Y-m-d H:i:s' ),
             ], fn($v) => $v !== null ) );
             $action = 'added';
             do_action( "reactions/{$type}/added", $object_id, $object_type, $user_id );
@@ -228,6 +265,7 @@ class Reactions
         array  $type_config,
         int    $object_id,
         string $object_type,
+        string $object_subtype,
         int    $user_id,
         string $guest_id = ''
     ): array {
@@ -246,13 +284,14 @@ class Reactions
         }
 
         $wpdb->insert( $table, array_filter( [
-            'user_id'     => $user_id > 0 ? $user_id : 0,
-            'guest_id'    => $guest_id ?: null,
-            'object_id'   => $object_id,
-            'object_type' => $object_type,
-            'type'        => $type,
-            'value'       => 1,
-            'created_at'  => gmdate( 'Y-m-d H:i:s' ),
+            'user_id'        => $user_id > 0 ? $user_id : 0,
+            'guest_id'       => $guest_id ?: null,
+            'object_id'      => $object_id,
+            'object_type'    => $object_type,
+            'object_subtype' => $object_subtype ?: null,
+            'type'           => $type,
+            'value'          => 1,
+            'created_at'     => gmdate( 'Y-m-d H:i:s' ),
         ], fn($v) => $v !== null ) );
 
         do_action( "reactions/{$type}/added", $object_id, $object_type, $user_id );
@@ -269,6 +308,7 @@ class Reactions
         array  $type_config,
         int    $object_id,
         string $object_type,
+        string $object_subtype,
         int    $user_id,
         int    $amount = 1,
         string $guest_id = ''
@@ -296,13 +336,14 @@ class Reactions
             $wpdb->update( $table, [ 'value' => $new_value ], [ 'id' => (int) $row->id ] );
         } else {
             $wpdb->insert( $table, array_filter( [
-                'user_id'     => $user_id > 0 ? $user_id : 0,
-                'guest_id'    => $guest_id ?: null,
-                'object_id'   => $object_id,
-                'object_type' => $object_type,
-                'type'        => $type,
-                'value'       => $new_value,
-                'created_at'  => gmdate( 'Y-m-d H:i:s' ),
+                'user_id'        => $user_id > 0 ? $user_id : 0,
+                'guest_id'       => $guest_id ?: null,
+                'object_id'      => $object_id,
+                'object_type'    => $object_type,
+                'object_subtype' => $object_subtype ?: null,
+                'type'           => $type,
+                'value'          => $new_value,
+                'created_at'     => gmdate( 'Y-m-d H:i:s' ),
             ], fn($v) => $v !== null ) );
             self::maybeNotify( $type, $type_config, $object_id, $object_type, $user_id );
         }
@@ -335,14 +376,23 @@ class Reactions
     ): bool {
         $user_id = $user_id ?: (int) get_current_user_id();
 
+        // wp_cache kontrolu — prefetch() tarafindan doldurulan cache'i once kontrol et
+        if ( $user_id > 0 ) {
+            $cache_key = "sh_reaction_has_{$type}_{$object_type}_{$object_id}_u{$user_id}";
+            $cached    = wp_cache_get( $cache_key, 'reactions' );
+            if ( $cached !== false ) return (bool) $cached;
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . self::TABLE;
 
         if ( $user_id > 0 ) {
-            return (bool) $wpdb->get_var( $wpdb->prepare(
+            $result = (bool) $wpdb->get_var( $wpdb->prepare(
                 "SELECT id FROM {$table} WHERE user_id = %d AND object_id = %d AND object_type = %s AND type = %s LIMIT 1",
                 $user_id, $object_id, $object_type, $type
             ) );
+            wp_cache_set( $cache_key, $result, 'reactions', 300 );
+            return $result;
         }
 
         if ( $guest_id ) {
@@ -357,13 +407,15 @@ class Reactions
 
     /**
      * Reaction sayisi — cumulative modda SUM(value), diger modlarda COUNT(*).
+     * object_subtype filtresi opsiyonel — sadece o subtype'daki reaction'ları sayar.
      */
     public static function count(
         string $type,
         int    $object_id,
-        string $object_type
+        string $object_type,
+        string $object_subtype = ''
     ): int {
-        $cache_key = "sh_reaction_{$type}_{$object_type}_{$object_id}";
+        $cache_key = "sh_reaction_{$type}_{$object_type}_{$object_id}" . ( $object_subtype ? "_{$object_subtype}" : '' );
         $cached    = wp_cache_get( $cache_key, 'reactions' );
         if ( $cached !== false ) return (int) $cached;
 
@@ -373,16 +425,18 @@ class Reactions
         $type_config = ReactionsSettings::getType( $type );
         $mode        = $type_config['mode'] ?? 'toggle';
 
+        $subtype_sql = $object_subtype !== '' ? $wpdb->prepare( " AND object_subtype = %s", $object_subtype ) : '';
+
         if ( $mode === 'cumulative' ) {
-            $count = (int) $wpdb->get_var( $wpdb->prepare(
+            $count = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore
                 "SELECT COALESCE(SUM(value), 0) FROM {$table}
-                 WHERE object_id = %d AND object_type = %s AND type = %s",
+                 WHERE object_id = %d AND object_type = %s AND type = %s{$subtype_sql}",
                 $object_id, $object_type, $type
             ) );
         } else {
-            $count = (int) $wpdb->get_var( $wpdb->prepare(
+            $count = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore
                 "SELECT COUNT(*) FROM {$table}
-                 WHERE object_id = %d AND object_type = %s AND type = %s",
+                 WHERE object_id = %d AND object_type = %s AND type = %s{$subtype_sql}",
                 $object_id, $object_type, $type
             ) );
         }
@@ -461,17 +515,35 @@ class Reactions
     public static function getByUser(
         int    $user_id,
         string $type,
-        string $object_type
+        string $object_type,
+        string $object_subtype = ''
     ): array {
         global $wpdb;
         $table = $wpdb->prefix . self::TABLE;
 
-        $ids = $wpdb->get_col( $wpdb->prepare(
-            "SELECT object_id FROM {$table}
-             WHERE user_id = %d AND type = %s AND object_type = %s
-             ORDER BY created_at DESC",
-            $user_id, $type, $object_type
-        ) );
+        if ( $object_subtype !== '' ) {
+            // product seçilmişse product_variation'ı da dahil et
+            $subtypes = [ $object_subtype ];
+            if ( $object_subtype === 'product' ) {
+                $subtypes[] = 'product_variation';
+            }
+            $placeholders = implode( ',', array_fill( 0, count( $subtypes ), '%s' ) );
+            $params = array_merge( [ $user_id, $type, $object_type ], $subtypes );
+
+            $ids = $wpdb->get_col( $wpdb->prepare(
+                "SELECT object_id FROM {$table}
+                 WHERE user_id = %d AND type = %s AND object_type = %s AND object_subtype IN ({$placeholders})
+                 ORDER BY created_at DESC",
+                ...$params
+            ) );
+        } else {
+            $ids = $wpdb->get_col( $wpdb->prepare(
+                "SELECT object_id FROM {$table}
+                 WHERE user_id = %d AND type = %s AND object_type = %s
+                 ORDER BY created_at DESC",
+                $user_id, $type, $object_type
+            ) );
+        }
 
         return array_map( 'intval', $ids );
     }
@@ -599,25 +671,27 @@ class Reactions
         $table           = $wpdb->prefix . self::TABLE;
 
         $sql = "CREATE TABLE IF NOT EXISTS {$table} (
-            id          bigint(20)   NOT NULL AUTO_INCREMENT,
-            user_id     bigint(20)   NOT NULL DEFAULT 0,
-            guest_id    varchar(64)  NULL,
-            object_id   bigint(20)   NOT NULL,
-            object_type varchar(50)  NOT NULL,
-            type        varchar(50)  NOT NULL,
-            value       int(11)      NOT NULL DEFAULT 1,
-            created_at  datetime     NOT NULL,
+            id             bigint(20)   NOT NULL AUTO_INCREMENT,
+            user_id        bigint(20)   NOT NULL DEFAULT 0,
+            guest_id       varchar(64)  NULL,
+            object_id      bigint(20)   NOT NULL,
+            object_type    varchar(50)  NOT NULL,
+            object_subtype varchar(100) NULL,
+            type           varchar(50)  NOT NULL,
+            value          int(11)      NOT NULL DEFAULT 1,
+            created_at     datetime     NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY reaction_unique (user_id, guest_id, object_id, object_type, type),
-            KEY object_idx  (object_id, object_type, type),
-            KEY user_idx    (user_id, type, object_type),
-            KEY guest_idx   (guest_id(32))
+            KEY object_idx   (object_id, object_type, type),
+            KEY user_idx     (user_id, type, object_type),
+            KEY subtype_idx  (object_type, object_subtype, type),
+            KEY guest_idx    (guest_id(32))
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
 
-        // value kolonu yoksa ekle (mevcut kurulumlar icin migration)
+        // Migration: mevcut kurulumlar için eksik kolonları ekle
         $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
         if ( ! in_array( 'value', $cols, true ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN value int(11) NOT NULL DEFAULT 1 AFTER type" );
@@ -626,13 +700,23 @@ class Reactions
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN guest_id varchar(64) NULL AFTER user_id" );
             $wpdb->query( "ALTER TABLE {$table} ADD KEY guest_idx (guest_id(32))" );
         }
+        if ( ! in_array( 'object_subtype', $cols, true ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN object_subtype varchar(100) NULL AFTER object_type" );
+            $wpdb->query( "ALTER TABLE {$table} ADD KEY subtype_idx (object_type, object_subtype, type)" );
+        }
     }
 
     // ─── PRIVATE ─────────────────────────────────────────────────────────────
 
     private static function clearCache( string $type, int $object_id, string $object_type ): void
     {
+        // Count cache
         wp_cache_delete( "sh_reaction_{$type}_{$object_type}_{$object_id}", 'reactions' );
+        // Has cache — mevcut kullanici icin
+        $user_id = (int) get_current_user_id();
+        if ( $user_id > 0 ) {
+            wp_cache_delete( "sh_reaction_has_{$type}_{$object_type}_{$object_id}_u{$user_id}", 'reactions' );
+        }
     }
 
     /**

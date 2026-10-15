@@ -1,12 +1,17 @@
 <?php
 
 /**
- * Post Type Registration — Contact + Template
+ * Post Type Registration — Contact
+ *
+ * contact post type hardcoded olarak register edilir.
+ * contact-type taxonomy sadece contact post type'ına bağlıdır.
+ * ACF field group (group_63e6945ee6760) options_contact_post_types seçimine göre
+ * dinamik olarak ek post type'lara assign edilir.
+ *
+ * Template post type → apps/templates/bootstrap.php
  */
 
-// ═══════════════════════════════════════════════════════════════
-// CONTACT POST TYPE
-// ═══════════════════════════════════════════════════════════════
+// ─── CONTACT POST TYPE ───────────────────────────────────────
 
 register_post_type('contact', [
     'labels' => [
@@ -37,456 +42,157 @@ register_post_type('contact', [
     'taxonomies'          => ['contact-type'],
 ]);
 
-if (is_admin()) {
+if ( is_admin() ) {
     add_action('admin_menu', function() {
         add_submenu_page('anasayfa', 'İletişim Bilgileri', 'İletişim Bilgileri', 'edit_theme_options', 'edit.php?post_type=contact', '', 10);
         add_submenu_page('anasayfa', 'İletişim Kategorileri', 'İletişim Kategorileri', 'edit_theme_options', 'edit-tags.php?taxonomy=contact-type&post_type=contact', '', 11);
     });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// TEMPLATE POST TYPE
-// ═══════════════════════════════════════════════════════════════
+// ─── CONTACT-TYPE TAXONOMY ───────────────────────────────────
 
-register_post_type('template', [
-    'labels' => [
-        'name'               => 'Templates',
-        'singular_name'      => 'Template',
-        'add_new'            => 'Add New',
-        'add_new_item'       => 'Add New Template',
-        'edit_item'          => 'Edit Template',
-        'new_item'           => 'New Template',
-        'all_items'          => 'All Templates',
-        'view_item'          => 'View Template',
-        'search_items'       => 'Search Templates',
-        'not_found'          => 'No Templates found',
-        'not_found_in_trash' => 'No Templates found in Trash',
-        'menu_name'          => 'Templates',
-    ],
-    'public'               => true,
-    'show_ui'              => true,
-    'show_in_menu'         => true,
-    'supports'             => ['title', 'editor'],
-    'show_in_rest'         => true,
-    'publicly_queryable'   => true,
-    'exclude_from_search'  => true,
-]);
+add_action( 'init', function() {
 
-register_taxonomy('template-types', 'template', [
-    'hierarchical'      => true,
-    'label'             => 'Template Types',
-    'show_ui'           => true,
-    'show_admin_column' => true,
-    'query_var'         => true,
-    'rewrite'           => ['slug' => 'template-type'],
-]);
+    register_taxonomy( 'contact-type', 'contact', [
+        'public'            => true,
+        'show_admin_column' => true,
+        'hierarchical'      => true,
+        'show_in_rest'      => true,
+        'labels' => [
+            'name'          => 'Contact Types',
+            'singular_name' => 'Contact Type',
+            'menu_name'     => 'Contact Type',
+            'all_items'     => 'All Contact Types',
+            'edit_item'     => 'Edit Contact Type',
+            'add_new_item'  => 'Add New Contact Type',
+        ],
+        'rewrite' => [
+            'with_front' => true,
+            'slug'       => 'contact/contact-type',
+        ],
+        'capabilities' => [
+            'manage_terms' => 'edit_users',
+            'edit_terms'   => 'edit_users',
+            'delete_terms' => 'edit_users',
+            'assign_terms' => 'read',
+        ],
+    ] );
 
-
-// ─── Template: Admin UI ─────────────────────────────────────
-
-if (is_admin()) {
-
-    // Term seeding (version controlled)
-    add_action('admin_init', function() {
-        $terms   = ['custom', 'header', 'footer', 'modal', 'offcanvas', 'sidebar'];
-        $version = 'v1.1';
-        $opt     = 'template_types_created_' . $version;
-
-        if (get_option($opt)) return;
-        if (!taxonomy_exists('template-types')) return;
-
-        foreach ($terms as $slug) {
-            if (!term_exists($slug, 'template-types')) {
-                wp_insert_term(ucfirst($slug), 'template-types', ['slug' => $slug]);
+    // Default term seeding (bir kez)
+    if ( is_admin() ) {
+        $opt = 'contact_type_seeded_v1.0';
+        if ( ! get_option($opt) ) {
+            $defaults = ['main' => 'Ana Lokasyon', 'standard' => 'Standart Lokasyon'];
+            foreach ( $defaults as $slug => $name ) {
+                if ( ! term_exists($slug, 'contact-type') ) {
+                    $r = wp_insert_term($name, 'contact-type', ['slug' => $slug]);
+                    if ( ! is_wp_error($r) ) {
+                        add_term_meta($r['term_id'], 'delete-protect', true, true);
+                        add_option('contact_type_' . $slug, $r['term_id']);
+                    }
+                }
             }
-        }
-        update_option($opt, true);
-    });
-
-    // Block editor toggle — template type'a göre
-    add_action('current_screen', function($screen) {
-        if (!$screen || $screen->post_type !== 'template') return;
-
-        $block_terms = ['header', 'footer', 'modal', 'offcanvas'];
-
-        add_filter('use_block_editor_for_post', function($use, $post) use ($block_terms) {
-            $terms = wp_get_post_terms($post->ID, 'template-types', ['fields' => 'slugs']);
-            $term  = $terms[0] ?? ($_GET['template-types'] ?? 'custom');
-            return in_array($term, $block_terms);
-        }, 10, 2);
-
-        // Editor support toggle
-        $term = 'custom';
-        if (isset($_GET['post'])) {
-            $t = wp_get_post_terms((int) $_GET['post'], 'template-types', ['fields' => 'slugs']);
-            if (!is_wp_error($t) && !empty($t)) $term = $t[0];
-        } elseif (isset($_GET['template-types'])) {
-            $term = sanitize_text_field($_GET['template-types']);
-        }
-
-        if (in_array($term, $block_terms)) {
-            add_post_type_support('template', 'editor');
-        } else {
-            remove_post_type_support('template', 'editor');
-        }
-    });
-
-    // Admin menü — template-types bazlı alt menüler
-    add_action('admin_menu', function() {
-        remove_menu_page('edit.php?post_type=template');
-        remove_meta_box('template-typesdiv', 'template', 'side');
-
-        $parent = 'edit.php?post_type=template&template-types=custom';
-
-        add_menu_page('Templates', 'Templates', 'edit_posts', $parent, '', 'dashicons-layout', 25);
-
-        $terms = get_terms(['taxonomy' => 'template-types', 'hide_empty' => false]);
-        if (is_wp_error($terms) || empty($terms)) return;
-
-        foreach ($terms as $t) {
-            if ($t->slug === 'custom') continue;
-            add_submenu_page($parent, $t->name . ' Templates', ucfirst($t->name), 'edit_posts', 'edit.php?post_type=template&template-types=' . $t->slug, '', 1);
-        }
-    });
-
-    // Edit/New link'lerine template-types parametresi ekle
-    add_filter('get_edit_post_link', function($link, $post_id, $context) {
-        if (get_post_type($post_id) === 'template' && isset($_GET['template-types'])) {
-            $link = add_query_arg('template-types', sanitize_text_field($_GET['template-types']), $link);
-        }
-        return $link;
-    }, 10, 3);
-
-    add_action('admin_footer-edit.php', function() {
-        global $typenow;
-        if ($typenow !== 'template' || !isset($_GET['template-types'])) return;
-        $term = esc_attr($_GET['template-types']);
-        echo "<script>document.addEventListener('DOMContentLoaded',function(){var b=document.querySelector('.page-title-action');if(b)b.href+='&template-types={$term}';});</script>";
-    });
-
-    add_action('admin_footer-post.php', function() {
-        global $post, $typenow;
-        if ($typenow !== 'template') return;
-        $terms = wp_get_post_terms($post->ID, 'template-types', ['fields' => 'slugs']);
-        $term  = esc_js($terms[0] ?? 'custom');
-        echo "<script>document.addEventListener('DOMContentLoaded',function(){var b=document.querySelector('.page-title-action');if(b&&!b.href.includes('template-types'))b.href+='&template-types={$term}';});</script>";
-    });
-
-    // Template Type metabox (select dropdown)
-    add_action('add_meta_boxes', function() {
-        add_meta_box('template_type_select_box', 'Template Type', 'render_template_type_metabox', 'template', 'side', 'high');
-    });
-
-    function render_template_type_metabox($post) {
-        $current = wp_get_object_terms($post->ID, 'template-types');
-        $sel_id  = (!empty($current) && !is_wp_error($current)) ? $current[0]->term_id : '';
-        $terms   = get_terms(['taxonomy' => 'template-types', 'hide_empty' => false]);
-
-        wp_nonce_field('save_template_type_nonce', 'template_type_nonce');
-
-        echo '<select name="template_type_id" id="template_type_id" style="width:100%;height:35px;">';
-        echo '<option value="">Select Type...</option>';
-        if (!is_wp_error($terms)) {
-            foreach ($terms as $t) {
-                echo '<option value="' . (int) $t->term_id . '"' . selected($sel_id, $t->term_id, false) . '>' . esc_html($t->name) . '</option>';
-            }
-        }
-        echo '</select>';
-        echo '<p class="description" style="margin-top:8px;">Choose a single type for this template.</p>';
-    }
-
-    // ACF field visibility — template type'a göre modal/offcanvas field'larını gizle/göster
-    add_filter('acf/prepare_field/name=modal', 'template_type_field_visibility');
-    add_filter('acf/prepare_field/name=offcanvas', 'template_type_field_visibility');
-
-    function template_type_field_visibility($field) {
-        global $post;
-        if (!$post || !is_admin()) return $field;
-
-        $terms = wp_get_post_terms($post->ID, 'template-types', ['fields' => 'slugs']);
-        if (!in_array($field['_name'], $terms)) {
-            $field['wrapper']['class'] .= ' custom-taxonomy-logic';
-        }
-        return $field;
-    }
-
-    // ACF field toggle JS
-    add_action('admin_footer', function() {
-        global $typenow;
-        if ($typenow !== 'template') return;
-        ?>
-        <script>
-        (function($){
-            if(typeof acf==='undefined')return;
-            function check(){
-                var sel=$('#template_type_select_box select option:selected').text().trim().toLowerCase();
-                $('.acf-field[data-name="modal"]').toggle(sel==='modal');
-                $('.acf-field[data-name="offcanvas"]').toggle(sel==='offcanvas');
-            }
-            $(document).on('change','#template_type_select_box select',check);
-            acf.add_action('load',check);
-        })(jQuery);
-        </script>
-        <?php
-    });
-
-    // Redirect'te template-types parametresini koru
-    add_filter('redirect_post_location', function($location) {
-        if (isset($_REQUEST['post_type'], $_REQUEST['template-types']) && $_REQUEST['post_type'] === 'template') {
-            $location = add_query_arg('template-types', sanitize_text_field($_REQUEST['template-types']), $location);
-        }
-        return $location;
-    });
-
-} // end is_admin()
-
-
-// ─── Template: Save Post — Twig Dosyası Oluşturma ──────────
-
-add_action('save_post', function($post_id, $post, $update) {
-    if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return;
-    if (!($post instanceof WP_Post)) $post = get_post($post_id);
-    if (!$post || $post->post_type !== 'template') return;
-    if (!in_array(get_post_status($post_id), ['publish', 'draft', 'pending'])) return;
-
-    $taxonomy  = 'template-types';
-    $terms     = wp_get_post_terms($post_id, $taxonomy, ['fields' => 'slugs']);
-    $term_slug = (!empty($terms) && !is_wp_error($terms)) ? $terms[0] : 'custom';
-
-    $theme_dir  = get_stylesheet_directory();
-    $render_dir = trailingslashit($theme_dir) . 'theme/templates/_custom/';
-    if (!file_exists($render_dir)) wp_mkdir_p($render_dir);
-
-    $post_slug = get_post_field('post_name', $post_id) ?: sanitize_title($post->post_title);
-
-    // ── CUSTOM: ACF content field ──
-    if ($term_slug === 'custom') {
-        $content = get_field('content', $post_id);
-        if (empty($content)) return;
-        $filename = $post_slug . '.twig';
-        _template_save_file($render_dir, $filename, $content, $post_id);
-        return;
-    }
-
-    // ── BLOCK EDITOR: header, footer, modal, offcanvas, sidebar ──
-    if (!class_exists('Timber')) return;
-    $timber_post = Timber::get_post($post_id);
-    if (!$timber_post) return;
-
-    // Admin cookie'leri — logged fetch icin
-    $auth_cookies = [];
-    foreach ($_COOKIE as $name => $value) {
-        if (strpos($name, 'wordpress_logged_in') === 0 || strpos($name, 'wordpress_sec') === 0) {
-            $auth_cookies[] = new WP_Http_Cookie(['name' => $name, 'value' => $value]);
+            update_option($opt, true);
         }
     }
 
-    // ── 1. LOGOUT FETCH (cookie'siz) ──
-    $logout_result = _template_fetch_and_process($post_id, $timber_post, $post_slug, []);
+}, 20 );
 
-    // ── 2. LOGGED FETCH (cookie ile) ──
-    $logged_result = !empty($auth_cookies)
-        ? _template_fetch_and_process($post_id, $timber_post, $post_slug, $auth_cookies)
-        : null;
+// ─── ACF Field Group — Runtime location (fallback) ───────────
+// acf/save_post ile DB güncellenir, bu filter ara durumlarda çalışır
 
-    // ── 3. MERGE — iki fetch'in CSS'ini birlestir ──
-    $final_css = '';
-    $html_output = '';
+add_filter( 'acf/load_field_group', function( $group ) {
+    if ( ( $group['key'] ?? '' ) !== 'group_63e6945ee6760' ) return $group;
 
-    if ($logout_result) {
-        $final_css .= $logout_result['css'];
-        $html_output = $logout_result['html'];
-    }
-    if ($logged_result) {
-        $final_css .= "\n" . $logged_result['css'];
-        if (empty($html_output)) $html_output = $logged_result['html'];
-    }
+    $extra = get_option( 'options_contact_post_types', [] );
+    if ( ! is_array($extra) ) $extra = ! empty($extra) ? [$extra] : [];
+    $flat = [];
+    array_walk_recursive($extra, function($v) use (&$flat) {
+        if ( is_string($v) && ! empty($v) ) $flat[] = $v;
+    });
+    $flat[] = 'contact';
+    $extra_types = array_values( array_unique( array_filter($flat) ) );
 
-    if (empty($html_output) && empty($final_css)) return;
-
-    // CSS minify
-    if (!empty($final_css) && class_exists('MatthiasMullie\Minify\CSS')) {
-        $css_minifier = new \MatthiasMullie\Minify\CSS();
-        $css_minifier->add($final_css);
-        $final_css = $css_minifier->minify();
-    }
-
-    // Tek CSS dosyasi
-    file_put_contents($render_dir . $post_id . '.css', $final_css);
-
-    // Twig dosyasi
-    $html_output .= "<style type='text/css'>" . $final_css . '</style>';
-
-    $file_lang = 'default';
-    if (function_exists('pll_get_post_language'))  $file_lang = pll_get_post_language($post_id);
-    elseif (function_exists('qtranxf_getLanguage')) $file_lang = qtranxf_getLanguage();
-
-    $filename = sprintf('%s_%s.twig', $post_id, $file_lang);
-    _template_save_file($render_dir, $filename, $html_output, $post_id);
-
-    update_post_meta($post_id, 'template', $filename);
-    update_post_meta($post_id, 'css', $post_id . '.css');
-}, 20, 3);
-
-/**
- * Template fetch + CSS process helper.
- * @return array|false ['html' => string, 'css' => string]
- */
-function _template_fetch_and_process($post_id, $timber_post, $post_slug, $cookies = []) {
-    $fetch_url = get_permalink($post_id);
-    $fetch_body = '';
-    $final_css = '';
-
-    if ($fetch_url) {
-        $fetch_url = add_query_arg('fetch', '1', $fetch_url);
-        $args = [
-            'timeout'   => 30,
-            'sslverify' => false,
-            'headers'   => ['X-Internal-Fetch' => '1'],
-        ];
-        if (!empty($cookies)) {
-            $args['cookies'] = $cookies;
-        }
-        $response = wp_remote_get($fetch_url, $args);
-        $fetch_body = wp_remote_retrieve_body($response);
-    }
-
-    $blocks_raw = '';
-    if (!empty($fetch_body)) {
-        $dom = new \DOMDocument();
-        @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $fetch_body, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        $xpath = new \DOMXPath($dom);
-        $main = $xpath->query('//main');
-        if ($main && $main->length > 0) {
-            foreach ($main as $node) {
-                $blocks_raw .= $dom->saveHTML($node);
-            }
-        } else {
-            $blocks_raw = $fetch_body;
-        }
-    } else {
-        // Fallback: admin render
-        if (method_exists($timber_post, 'get_blocks')) {
-            $blocks_raw = $timber_post->get_blocks(['seperate_css' => false, 'seperate_js' => false])['html'];
-        } else {
-            foreach (parse_blocks($timber_post->post_content ?? '') as $b) {
-                $blocks_raw .= render_block($b);
+    $location = $group['location'] ?? [];
+    $existing = [];
+    foreach ( $location as $group_rules ) {
+        foreach ( $group_rules as $rule ) {
+            if ( ($rule['param'] ?? '') === 'post_type' && ($rule['operator'] ?? '') === '==' ) {
+                $existing[] = $rule['value'];
             }
         }
     }
-
-    if (empty($blocks_raw)) return false;
-
-    // CSS'i HTML'den ayikla
-    $html_output = preg_replace_callback('/<style\b[^>]*>(.*?)<\/style>/is', function($m) use (&$final_css) {
-        $final_css .= $m[1] . "\n";
-        return '';
-    }, $blocks_raw);
-    $html_output = $timber_post->strip_tags($html_output, '<style>');
-
-    // Unused CSS temizligi
-    if (class_exists('SaltHareket\AssetManager\RemoveUnusedCss') && defined('STATIC_PATH')) {
-        $main_css = @file_get_contents(STATIC_PATH . 'css/main-combined.css');
-        if ($main_css) {
-            $remover = new \SaltHareket\AssetManager\RemoveUnusedCss($html_output, $main_css, '', [], false, [
-                'ignore_whitelist'      => true,
-                'black_list'            => ['html', 'body', 'footer'],
-                'scope'                 => '.' . $post_slug,
-                'ignore_root_variables' => true,
-            ]);
-            $final_css = $remover->process() . $final_css;
+    foreach ( $extra_types as $pt ) {
+        if ( ! in_array($pt, $existing, true) ) {
+            $location[] = [[ 'param' => 'post_type', 'operator' => '==', 'value' => $pt ]];
         }
     }
+    $group['location'] = $location;
+    return $group;
+} );
 
-    // PAE inline CSS
-    $pae_assets = get_post_meta($post_id, 'assets', true);
-    if (is_array($pae_assets) && !empty($pae_assets['css'])) {
-        $pae_css = is_array($pae_assets['css']) ? implode("\n", $pae_assets['css']) : $pae_assets['css'];
-        if (!empty(trim($pae_css))) {
-            $final_css .= "\n" . $pae_css;
-        }
+// ─── ACF Options Save → Field Group DB Update ────────────────
+// contact_post_types seçimi değiştiğinde field group location'ı DB'ye yaz
+// Böylece her page load'da kurallar doğru çalışır
+
+add_action( 'acf/save_post', function( $post_id ) {
+    if ( $post_id !== 'options' ) return;
+    if ( ! function_exists('acf_get_field_group') || ! function_exists('acf_update_field_group') ) return;
+
+    $group = acf_get_field_group( 'group_63e6945ee6760' );
+    if ( ! $group ) return;
+
+    $extra = get_field( 'contact_post_types', 'options' ) ?: [];
+    if ( ! is_array($extra) ) $extra = ! empty($extra) ? [$extra] : [];
+    $flat = [];
+    array_walk_recursive($extra, function($v) use (&$flat) {
+        if ( is_string($v) && ! empty($v) ) $flat[] = $v;
+    });
+    $flat[] = 'contact';
+    $post_types = array_values( array_unique( array_filter($flat) ) );
+
+    $location = [];
+    foreach ( $post_types as $pt ) {
+        $location[] = [[ 'param' => 'post_type', 'operator' => '==', 'value' => $pt ]];
     }
 
-    // Head style tag'lari
-    if (!empty($fetch_body)) {
-        $head_css = '';
-        if (preg_match('/<head[^>]*>(.*?)<\/head>/is', $fetch_body, $head_match)) {
-            preg_replace_callback('/<style\b[^>]*>(.*?)<\/style>/is', function($m) use (&$head_css) {
-                $head_css .= $m[1] . "\n";
-                return '';
-            }, $head_match[1]);
-        }
-        if (!empty(trim($head_css))) {
-            $final_css .= "\n" . $head_css;
-        }
+    $group['location'] = $location;
+    acf_update_field_group( $group );
+
+}, 20 );
+
+// ─── ACF Field — Contact Post Types Choices Dinamik ──────────
+// contact_post_types select field'ına tüm public post type'ları listele
+
+add_filter( 'acf/load_field/name=contact_post_types', function( $field ) {
+    $post_types = get_post_types( ['public' => true, 'show_ui' => true], 'objects' );
+    $choices    = [];
+    $skip       = ['attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'contact', 'template'];
+    foreach ( $post_types as $pt ) {
+        if ( in_array($pt->name, $skip, true) ) continue;
+        $choices[$pt->name] = $pt->labels->name . ' (' . $pt->name . ')';
     }
+    $field['choices'] = $choices;
+    return $field;
+} );
 
-    // Minify
-    if (!empty($final_css) && class_exists('MatthiasMullie\Minify\CSS')) {
-        $css_minifier = new \MatthiasMullie\Minify\CSS();
-        $css_minifier->add($final_css);
-        $final_css = $css_minifier->minify();
+// ─── Delete Protection ───────────────────────────────────────
+
+add_action( 'category_edit_form', function( $term, $taxonomy ) {
+    if ( get_term_meta($term->term_id, 'delete-protect', true) ) {
+        echo '<style>#tag-' . (int)$term->term_id . ' .delete { display: none !important; }</style>';
     }
+}, 10, 2 );
 
-    return ['html' => $html_output, 'css' => $final_css];
-}
-
-/**
- * Template dosyasini hash kontrolu ile kaydet.
- */
-function _template_save_file($render_dir, $filename, $content, $post_id) {
-    $filepath = $render_dir . $filename;
-    $new_hash = md5($content);
-    $old_hash = get_post_meta($post_id, '_rendered_html_hash', true);
-
-    if ($old_hash === $new_hash && file_exists($filepath)) return;
-
-    $tmp = wp_tempnam($filepath);
-    if ($tmp) {
-        file_put_contents($tmp, $content);
-        rename($tmp, $filepath);
-        @chmod($filepath, 0644);
-    } else {
-        file_put_contents($filepath, $content);
-    }
-    update_post_meta($post_id, '_rendered_html_hash', $new_hash);
-}
-
-// ─── Template: Term Ataması (Save) ──────────────────────────
-
-add_action('save_post_template', function($post_id, $post, $update) {
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
-    if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return;
-    if (!current_user_can('edit_post', $post_id)) return;
-
-    $taxonomy = 'template-types';
-
-    // Metabox'tan seçim yapıldıysa
-    if (isset($_POST['template_type_id']) && wp_verify_nonce($_POST['template_type_nonce'] ?? '', 'save_template_type_nonce')) {
-        $term_id = (int) $_POST['template_type_id'];
-        wp_set_object_terms($post_id, $term_id > 0 ? $term_id : null, $taxonomy, false);
-        return;
-    }
-
-    // Otomatik atama — term yoksa URL'den veya default 'custom'
-    $current = wp_get_post_terms($post_id, $taxonomy, ['fields' => 'slugs']);
-    if (empty($current)) {
-        $slug = sanitize_text_field($_GET['template-types'] ?? 'custom');
-        wp_set_object_terms($post_id, $slug, $taxonomy);
-    }
-}, 10, 3);
-
-// ─── Template: Twig Dosyası Silme ───────────────────────────
-
-add_action('before_delete_post', function($post_id) {
-    if (get_post_type($post_id) !== 'template') return;
-
-    $filename = get_post_meta($post_id, 'template', true);
-    if (empty($filename)) return;
-
-    $filepath = get_stylesheet_directory() . '/theme/templates/_custom/' . $filename;
-    if (file_exists($filepath)) @unlink($filepath);
-
-    $css_file = get_stylesheet_directory() . '/theme/templates/_custom/' . $post_id . '.css';
-    if (file_exists($css_file)) @unlink($css_file);
-});
+add_action( 'pre_delete_term', function( $term_id ) {
+    if ( ! get_term_meta($term_id, 'delete-protect', true) ) return;
+    $term = get_term($term_id);
+    $name = $term ? $term->name : "#{$term_id}";
+    wp_die(
+        '<h2>Delete Protection Active!</h2>' .
+        'You cannot delete "' . esc_html($name) . '"<br>' .
+        '<a href="javascript:history.back()">Go Back</a>',
+        'Protected Term',
+        ['response' => 403]
+    );
+} );

@@ -1,0 +1,67 @@
+{#
+  partials/source/cart/tease.twig
+
+  Context:
+    item — cart item object {id, key, title, url, image, price, price_sale, price_regular, quantity, variations}
+    view — offcanvas | dropdown | modal
+#}
+
+<li class="source-item source-item-cart notification-item"
+    data-source="cart"
+    data-id="{{ item.id }}"
+    data-key="{{ item.key }}">
+
+    <div class="product-tease d-flex gap-3 align-items-start">
+
+        {# Görsel — NOT: woo_get_cart_object() item'da 'url' anahtari kullanir ('link' degil) #}
+        <a href="{{ item.url }}" class="product-tease-image flex-shrink-0">
+            <img src="{{ item.image }}" class="img-fluid" alt="{{ item.title }}" loading="lazy" />
+        </a>
+
+        {# Detay #}
+        <div class="product-tease-detail flex-grow-1">
+            <div class="title">
+                <a href="{{ item.url }}">{{ item.title }}</a>
+            </div>
+
+            <div class="price">
+                {% if item.price_sale %}
+                    <span class="price-current">{{ function('woo_get_currency_with_price', item.price_sale) }}</span>
+                    {% if item.price_regular %}
+                        <span class="price-old">{{ function('woo_get_currency_with_price', item.price_regular) }}</span>
+                    {% endif %}
+                {% else %}
+                    {% if item.price is iterable %}
+                        <span class="price-current">
+                            {{ function('woo_get_currency_with_price', item.price|first) }} -
+                            {{ function('woo_get_currency_with_price', item.price|last) }}
+                        </span>
+                    {% else %}
+                        <span class="price-current">{{ function('woo_get_currency_with_price', item.price) }}</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {% if item.quantity %}
+                <div class="meta text-sm text-muted">
+                    {{ item.quantity }} {{ translate('qty') }}
+                    {% for variation in item.variations %}
+                        — {{ variation }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        {# Sil butonu #}
+        <div class="product-tease-action flex-shrink-0">
+            <button type="button"
+                    class="btn btn-remove cart-item-remove"
+                    data-source="cart"
+                    data-key="{{ item.key }}"
+                    aria-label="{{ translate('Remove') }}">
+                {{ fa_icon('xmark', 'solid') }}
+            </button>
+        </div>
+
+    </div>
+</li>

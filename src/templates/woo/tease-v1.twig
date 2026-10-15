@@ -21,10 +21,11 @@
                 {% if not size in ["xs", "xxs"] %}
                 <div class="release-date mt-4 {% if will_release %}next bg-danger p-3{% endif %}" style="color:{% if will_release %}#fff{% else %}{{post.thumbnail.meta('contrast_color')|default('#fff')}}{% endif %}!important;">
                     {% if will_release %}
-                        <i class="icon fa-light fa-timer mx-0"></i>
-                        <div class="title">{{ translate("Yayımlanacağı Tarihi") }}</div>
+                        {#<i class="icon fa-light fa-timer mx-0"></i>#}
+                        {{ fa_icon('timer', 'light', 'icon mx-0') }}
+                        <div class="title">{{ translate("Upcoming Date") }}</div>
                     {% else %}
-                        <div class="title">{{ translate("Yayımlanma Tarihi") }}</div>
+                        <div class="title">{{ translate("Publication Date") }}</div>
                     {% endif %}
                     <date class="date">{{ post.meta("book_release_date")|date('F Y') }}</date>
                 </div>
@@ -78,7 +79,8 @@
         {% if size != "sm" %}
             <div class="release-date {% if url_query_vars.action == "siradakiler" or date(post.meta("book_release_date")) > date('now') %}next{% endif %}">
                 <span>
-                    <i class="fa-regular fa-timer"></i>
+                    {#<i class="fa-regular fa-timer"></i>#}
+                    {{ fa_icon('timer', 'regular') }}
                     {{ post.meta("book_release_date")|date('F Y') }}
                 </span>
             </div>

@@ -87,6 +87,13 @@ class AlertCarrier implements NotifyCarrier
             return NotifyResult::fail( 'alert', $wpdb->last_error ?: 'DB insert failed' );
         }
 
+        // Alicinin unseen badge cache'i bayat kalmasin — aninda invalidate.
+        if ( class_exists( 'User' ) && method_exists( 'User', 'invalidate_source_badge' ) ) {
+            \User::invalidate_source_badge( 'notifications', (int) $payload->receiver_id );
+        } else {
+            wp_cache_delete( 'sh_notifications_unseen_' . (int) $payload->receiver_id, 'notifications' );
+        }
+
         return NotifyResult::ok( 'alert', (int) $wpdb->insert_id );
     }
 }

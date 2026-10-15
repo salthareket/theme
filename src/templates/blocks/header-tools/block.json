@@ -1,0 +1,23 @@
+{
+    "name": "acf/header-tools",
+    "title": "Header Tools",
+    "description": "Header toolbar wrapper. Icine tool item bloklari ekle.",
+    "category": "headerblocks",
+    "icon": "admin-tools",
+    "keywords": ["header", "tools", "toolbar"],
+    "parent": ["acf/header-column"],
+    "supports": {
+        "align": false,
+        "multiple": true,
+        "anchor": false,
+        "customClassName": false,
+        "reusable": false
+    },
+    "acf": {
+        "blockVersion": 3,
+        "renderTemplate": "render.php",
+        "mode": "preview",
+        "hideFieldsInSidebar": true,
+        "expandedEditorButtonText": "Tools Duzenle"
+    }
+}

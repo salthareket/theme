@@ -1,75 +1,245 @@
 // base icon class definition
 // -------------------------
+@use 'variables' as v;
+@use 'mixins' as m;
 
-.#{$fa-css-prefix} {
-  font-family: var(--#{$fa-css-prefix}-style-family, '#{$fa-style-family}');
-  font-weight: var(--#{$fa-css-prefix}-style, #{$fa-style});
-}
-
-.#{$fa-css-prefix},
-.#{$fa-css-prefix}-classic,
-.#{$fa-css-prefix}-sharp,
+.#{v.$css-prefix}-solid,
+.#{v.$css-prefix}-regular,
+.#{v.$css-prefix}-brands,
+.#{v.$css-prefix}-classic,
 .fas,
-.#{$fa-css-prefix}-solid,
 .far,
-.#{$fa-css-prefix}-regular,
-.fasr,
-.fal,
-.#{$fa-css-prefix}-light,
-.fasl,
-.fat,
-.#{$fa-css-prefix}-thin,
-.fast,
-.fad,
-.#{$fa-css-prefix}-duotone,
-.fass,
-.#{$fa-css-prefix}-sharp-solid,
 .fab,
-.#{$fa-css-prefix}-brands {
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-font-smoothing: antialiased;
-  display: var(--#{$fa-css-prefix}-display, #{$fa-display});
-  font-style: normal;
-  font-variant: normal;
-  line-height: 1;
-  text-rendering: auto;
-}
-
-.fas,
-.#{$fa-css-prefix}-classic,
-.#{$fa-css-prefix}-solid,
-.far,
-.#{$fa-css-prefix}-regular,
 .fal,
-.#{$fa-css-prefix}-light,
 .fat,
-.#{$fa-css-prefix}-thin {
-  font-family: 'Font Awesome 6 Pro';
-}
-
-.fab,
-.#{$fa-css-prefix}-brands {
-  font-family: 'Font Awesome 6 Brands';
-}
-
 .fad,
-.#{$fa-css-prefix}-classic.#{$fa-css-prefix}-duotone,
-.#{$fa-css-prefix}-duotone {
-  font-family: 'Font Awesome 6 Duotone';
-}
-
+.fadr,
+.fadl,
+.fadt,
 .fass,
 .fasr,
 .fasl,
 .fast,
-.#{$fa-css-prefix}-sharp {
-  font-family: 'Font Awesome 6 Sharp';
-}
-.fass,
-.#{$fa-css-prefix}-sharp {
-  font-weight: 900;
+.fasds,
+.fasdr,
+.fasdl,
+.fasdt,
+.faslr,
+.faslpr,
+.fawsb,
+.fatl,
+.fans,
+.fands,
+.faes,
+.fagt,
+.fajr,
+.fajfr,
+.fajdr,
+.facr,
+.fausb,
+.faudsb,
+.faufsb,
+.#{v.$css-prefix}-solid,
+.#{v.$css-prefix}-semibold,
+.#{v.$css-prefix}-regular,
+.#{v.$css-prefix}-light,
+.#{v.$css-prefix}-thin,
+.#{v.$css-prefix}-brands,
+.#{v.$css-prefix}-classic,
+.#{v.$css-prefix}-duotone,
+.#{v.$css-prefix}-sharp,
+.#{v.$css-prefix}-sharp-duotone,
+.#{v.$css-prefix}-chisel,
+.#{v.$css-prefix}-etch,
+.#{v.$css-prefix}-graphite,
+.#{v.$css-prefix}-jelly,
+.#{v.$css-prefix}-jelly-duo,
+.#{v.$css-prefix}-jelly-fill,
+.#{v.$css-prefix}-notdog,
+.#{v.$css-prefix}-notdog-duo,
+.#{v.$css-prefix}-slab,
+.#{v.$css-prefix}-slab-press,
+.#{v.$css-prefix}-thumbprint,
+.#{v.$css-prefix}-utility,
+.#{v.$css-prefix}-utility-duo,
+.#{v.$css-prefix}-utility-fill,
+.#{v.$css-prefix}-whiteboard,
+.#{v.$css-prefix} {
+  @include m.fa-icon();
 }
 
-%fa-icon {
-  @include fa-icon;
+:is(
+  .fas,
+  .fass,
+  .far,
+  .fasr,
+  .fal,
+  .fasl,
+  .fat,
+  .fast,
+  .fad,
+  .fadr,
+  .fadl,
+  .fadt,
+  .fasds,
+  .fasdr,
+  .fasdl,
+  .fasdt,
+  .fab,
+  .faslr,
+  .faslpr,
+  .fawsb,
+  .fatl,
+  .fans,
+  .fands,
+  .faes,
+  .fagt,
+  .fajr,
+  .fajfr,
+  .fajdr,
+  .facr,
+  .fausb,
+  .faudsb,
+  .faufsb,
+  .#{v.$css-prefix}-solid,
+  .#{v.$css-prefix}-semibold,
+  .#{v.$css-prefix}-regular,
+  .#{v.$css-prefix}-light,
+  .#{v.$css-prefix}-thin,
+  .#{v.$css-prefix}-brands,
+  .#{v.$css-prefix}-classic,
+  .#{v.$css-prefix}-duotone,
+  .#{v.$css-prefix}-sharp,
+  .#{v.$css-prefix}-sharp-duotone,
+  .#{v.$css-prefix}-chisel,
+  .#{v.$css-prefix}-etch,
+  .#{v.$css-prefix}-graphite,
+  .#{v.$css-prefix}-jelly,
+  .#{v.$css-prefix}-jelly-duo,
+  .#{v.$css-prefix}-jelly-fill,
+  .#{v.$css-prefix}-notdog,
+  .#{v.$css-prefix}-notdog-duo,
+  .#{v.$css-prefix}-slab,
+  .#{v.$css-prefix}-slab-press,
+  .#{v.$css-prefix}-thumbprint,
+  .#{v.$css-prefix}-utility,
+  .#{v.$css-prefix}-utility-duo,
+  .#{v.$css-prefix}-utility-fill,
+  .#{v.$css-prefix}-whiteboard,
+  .fa
+)::before {
+  content: var(#{v.$icon-property})/"";
+}
+
+@supports not (content: ''/'') {
+:is(
+  .fas,
+  .fass,
+  .far,
+  .fasr,
+  .fal,
+  .fasl,
+  .fat,
+  .fast,
+  .fad,
+  .fadr,
+  .fadl,
+  .fadt,
+  .fasds,
+  .fasdr,
+  .fasdl,
+  .fasdt,
+  .fab,
+  .faslr,
+  .faslpr,
+  .fawsb,
+  .fatl,
+  .fans,
+  .fands,
+  .faes,
+  .fagt,
+  .fajr,
+  .fajfr,
+  .fajdr,
+  .facr,
+  .fausb,
+  .faudsb,
+  .faufsb,
+  .#{v.$css-prefix}-solid,
+  .#{v.$css-prefix}-semibold,
+  .#{v.$css-prefix}-regular,
+  .#{v.$css-prefix}-light,
+  .#{v.$css-prefix}-thin,
+  .#{v.$css-prefix}-brands,
+  .#{v.$css-prefix}-classic,
+  .#{v.$css-prefix}-duotone,
+  .#{v.$css-prefix}-sharp,
+  .#{v.$css-prefix}-sharp-duotone,
+  .#{v.$css-prefix}-chisel,
+  .#{v.$css-prefix}-etch,
+  .#{v.$css-prefix}-graphite,
+  .#{v.$css-prefix}-jelly,
+  .#{v.$css-prefix}-jelly-duo,
+  .#{v.$css-prefix}-jelly-fill,
+  .#{v.$css-prefix}-notdog,
+  .#{v.$css-prefix}-notdog-duo,
+  .#{v.$css-prefix}-slab,
+  .#{v.$css-prefix}-slab-press,
+  .#{v.$css-prefix}-thumbprint,
+  .#{v.$css-prefix}-utility,
+  .#{v.$css-prefix}-utility-duo,
+  .#{v.$css-prefix}-utility-fill,
+  .#{v.$css-prefix}-whiteboard,
+  .fa
+)::before {
+    content: var(#{v.$icon-property});
+  }
+}
+:is(
+  .fad,
+  .#{v.$css-prefix}-duotone,
+  .fadr,
+  .fadl,
+  .fadt,
+  .fasds,
+  .#{v.$css-prefix}-sharp-duotone,
+  .fasdr,
+  .fasdl,
+  .fasdt,
+  .fatl,
+  .#{v.$css-prefix}-thumbprint,
+  .fands,
+  .#{v.$css-prefix}-notdog-duo,
+  .fajdr,
+  .#{v.$css-prefix}-jelly-duo,
+  .faudsb,
+  .#{v.$css-prefix}-utility-duo
+)::after {
+  content: var(#{v.$icon-property})/"";
+  font-feature-settings: "ss01";
+}
+
+@supports not (content: ''/'') {
+:is(
+  .fad,
+  .#{v.$css-prefix}-duotone,
+  .fadr,
+  .fadl,
+  .fadt,
+  .fasds,
+  .#{v.$css-prefix}-sharp-duotone,
+  .fasdr,
+  .fasdl,
+  .fasdt,
+  .fatl,
+  .#{v.$css-prefix}-thumbprint,
+  .fands,
+  .#{v.$css-prefix}-notdog-duo,
+  .fajdr,
+  .#{v.$css-prefix}-jelly-duo,
+  .faudsb,
+  .#{v.$css-prefix}-utility-duo
+)::after {
+    content: var(#{v.$icon-property});
+  }
 }

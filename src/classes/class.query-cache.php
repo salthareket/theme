@@ -1,7 +1,7 @@
 <?php
 /**
  * ============================================================
- *  QueryCache Engine v11.0 — "Precision Invalidation"
+ *  QueryCache Engine v11.2 — "Precision Invalidation"
  * ============================================================
  *
  * KULLANIM:
@@ -31,6 +31,26 @@
  *   - Admin panelinde çalışmaz (enable_admin:true ile açılabilir).
  *   - format=false ile çağrılan get_field ayrı cache key kullanır (çakışma yok).
  *
+ * v11.3 DEĞİŞİKLİKLER (v11.2'den):
+ *   - PERF: get_timber_posts() — request-scoped Timber obje cache eklendi.
+ *           $timber_objects_cache static array'i: aynı request içinde aynı
+ *           query için WP_Query ikinci kez çalıştırılmaz. Timber objeleri
+ *           serialize edilemediğinden transient'a yazılamaz ama RAM'de tutulur.
+ *           Kazanım: tease-list gibi aynı query'nin birden fazla blokta tekrar
+ *           edilmesi durumunda 2. ve sonraki hit'ler sıfır query ile döner.
+ *   - PERF: $timber_objects_cache — clear_all_cache() ve purge_type() metodları
+ *           gerektiğinde bu cache'i de temizler.
+ *
+ * v11.2 DEĞİŞİKLİKLER (v11.1'den):
+ *   - BUG FIX: on_option_change() — _transient_ ve _site_transient_ prefix'li option'lar
+ *              artık atlanıyor. set_transient() çağrısı sonsuz döngü yaratıyordu:
+ *              set_transient → updated_option → on_option_change → _invalidate_options_bulks
+ *              → shutdown'da +128q, bu fix ile düzeltildi.
+ *
+ * v11.1 DEĞİŞİKLİKLER (v11.0'dan):
+ *   - PERF: RUNTIME_LIMIT 1000'e yükseltildi (eviction azaltıldı)
+ *   - PERF: debug: false (production overhead kaldırıldı)
+ *
  * v11.0 DEĞİŞİKLİKLER (v10'dan):
  *   - BUG FIX: get_cached_menu() ve wp_query() eksik metotları eklendi.
  *   - BUG FIX: Timber bridge kaldırıldı (Timber v2'de bu filter'lar yok).
@@ -55,11 +75,11 @@ class QueryCache {
     // SABİTLER
     // =========================================================================
 
-    private const VERSION     = '11.1';
+    private const VERSION     = '11.3';
     private const PREFIX      = 'qcache_';
     private const DEFAULT_TTL = 30 * DAY_IN_SECONDS;
     private const NOT_FOUND   = '__QC_NF__';
-    private const RUNTIME_LIMIT = 500;
+    private const RUNTIME_LIMIT = 1000;
     private const MANIFEST_KEY  = 'qcache_manifest';
 
     /** ACF get_field("x", "options") sonuçları — format_value geçmiş */
@@ -131,6 +151,15 @@ class QueryCache {
 
     /** Manifest cache — request başına tek DB okuması */
     private static ?array $manifest_cache = null;
+
+    /**
+     * Request-scoped Timber obje cache — Timber post/query objeleri serialize
+     * edilemez, transient'a yazılamaz. Ama aynı request içinde aynı query için
+     * WP_Query'yi ikinci kez çalıştırmak gereksizdir. Bu map bunu önler.
+     *
+     * Key: $full_key (qcache_ prefix'li) → Value: Timber\PostQuery veya array
+     */
+    private static array $timber_objects_cache = [];
 
 
     // =========================================================================
@@ -484,34 +513,44 @@ class QueryCache {
 
         $full_key = self::PREFIX . $cache_key;
 
-        // RAM hit
+        // ── 1. Request-scoped Timber obje cache (en hızlı — sıfır query) ──
+        // Timber objeleri serialize edilemez, transient'a yazılamaz.
+        // Ama aynı request'te aynı query tekrar istenirse WP_Query sıfırlanır.
+        if ( isset( self::$timber_objects_cache[ $full_key ] ) ) {
+            return self::$timber_objects_cache[ $full_key ];
+        }
+
+        // ── 2. RAM hit — ID'ler var, Timber objeleri yeniden oluştur ──
         if ( array_key_exists( $full_key, self::$runtime_cache ) ) {
             $cached = self::$runtime_cache[ $full_key ];
             if ( $cached !== self::NOT_FOUND && is_array( $cached ) && isset( $cached['ids'] ) ) {
-                return self::_timber_posts_from_ids( $cached['ids'], $cached['found'] ?? 0, $args );
+                $result = self::_timber_posts_from_ids( $cached['ids'], $cached['found'] ?? 0, $args );
+                self::$timber_objects_cache[ $full_key ] = $result;
+                return $result;
             }
         }
 
-        // Transient hit
+        // ── 3. Transient hit — ID'ler DB'de, Timber objeleri oluştur ──
         $transient = get_transient( $full_key );
         if ( $transient !== false && is_array( $transient ) && isset( $transient['ids'] ) ) {
             self::$runtime_cache[ $full_key ]  = $transient;
             self::$initial_hashes[ $full_key ] = md5( serialize( $transient ) );
-            if ( ! empty( $deps ) ) {
-                self::_register_dep( $full_key, $deps );
-            }
-            return self::_timber_posts_from_ids( $transient['ids'], $transient['found'] ?? 0, $args );
+            // Transient hit — dep zaten manifest'te kayıtlı, tekrar register etme
+            $result = self::_timber_posts_from_ids( $transient['ids'], $transient['found'] ?? 0, $args );
+            self::$timber_objects_cache[ $full_key ] = $result;
+            return $result;
         }
 
-        // Miss → Timber'dan çek, ID'leri cache'le
+        // ── 4. Miss → Timber'dan çek, ID'leri cache'le ──
         $result = \Timber::get_posts( $args );
 
         $ids   = [];
         $found = 0;
 
+        // Timber v2: get_posts() PostQuery veya PostArrayObject döner — her ikisini de handle et
         if ( $result instanceof \Timber\PostQuery ) {
             foreach ( $result as $post ) {
-                if ( isset( $post->ID ) ) {
+                if ( is_object( $post ) && isset( $post->ID ) ) {
                     $ids[] = $post->ID;
                 }
             }
@@ -522,15 +561,25 @@ class QueryCache {
                     $found = (int) $pagination->total;
                 }
             } catch ( \Throwable ) {}
-
             if ( $found === 0 ) {
                 $found = count( $ids );
             }
+        } elseif ( $result instanceof \Timber\PostArrayObject || is_array( $result ) ) {
+            // PostArrayObject (Timber v2 — paged olmayan get_posts sonucu)
+            foreach ( $result as $post ) {
+                if ( is_object( $post ) && isset( $post->ID ) ) {
+                    $ids[] = $post->ID;
+                }
+            }
+            $found = count( $ids );
         }
 
         $to_store = ! empty( $ids ) ? [ 'ids' => $ids, 'found' => $found ] : self::NOT_FOUND;
         self::$runtime_cache[ $full_key ] = $to_store;
         self::$dirty_keys[ $full_key ]    = true;
+
+        // Objeyi de request-scoped cache'e al
+        self::$timber_objects_cache[ $full_key ] = $result;
 
         if ( ! empty( $deps ) ) {
             self::_register_dep( $full_key, $deps );
@@ -556,15 +605,22 @@ class QueryCache {
 
         $full_key = self::PREFIX . $cache_key;
 
-        // RAM hit
+        // ── 1. Request-scoped Timber obje cache ──
+        if ( isset( self::$timber_objects_cache[ $full_key ] ) ) {
+            return self::$timber_objects_cache[ $full_key ];
+        }
+
+        // ── 2. RAM hit ──
         if ( array_key_exists( $full_key, self::$runtime_cache ) ) {
             $cached = self::$runtime_cache[ $full_key ];
             if ( $cached !== self::NOT_FOUND && is_array( $cached ) ) {
-                return \Timber::get_terms( [ 'include' => $cached, 'hide_empty' => false ] );
+                $result = \Timber::get_terms( [ 'include' => $cached, 'hide_empty' => false ] );
+                self::$timber_objects_cache[ $full_key ] = $result;
+                return $result;
             }
         }
 
-        // Transient hit
+        // ── 3. Transient hit ──
         $transient = get_transient( $full_key );
         if ( $transient !== false && is_array( $transient ) ) {
             self::$runtime_cache[ $full_key ]  = $transient;
@@ -572,10 +628,12 @@ class QueryCache {
             if ( ! empty( $deps ) ) {
                 self::_register_dep( $full_key, $deps );
             }
-            return \Timber::get_terms( [ 'include' => $transient, 'hide_empty' => false ] );
+            $result = \Timber::get_terms( [ 'include' => $transient, 'hide_empty' => false ] );
+            self::$timber_objects_cache[ $full_key ] = $result;
+            return $result;
         }
 
-        // Miss
+        // ── 4. Miss ──
         $result = \Timber::get_terms( $args );
 
         $ids = [];
@@ -589,6 +647,7 @@ class QueryCache {
         $to_store = ! empty( $ids ) ? $ids : self::NOT_FOUND;
         self::$runtime_cache[ $full_key ] = $to_store;
         self::$dirty_keys[ $full_key ]    = true;
+        self::$timber_objects_cache[ $full_key ] = $result;
 
         if ( ! empty( $deps ) ) {
             self::_register_dep( $full_key, $deps );
@@ -615,6 +674,23 @@ class QueryCache {
             'orderby'        => 'post__in',
             'no_found_rows'  => true,
         ];
+
+        // WooCommerce ürünlerini batch prefetch — WP object cache'e doldur.
+        // Bu sayede Timber nesneleri oluşturulurken her post için ayrı
+        // wc_get_product() sorgusu gitmez; is_in_stock(), price_html() vb.
+        // WP object cache'den 0q okur.
+        $post_type = $original_args['post_type'] ?? 'any';
+        if (
+            function_exists( 'wc_get_products' ) &&
+            ( $post_type === 'product' || $post_type === 'product_variation' ||
+              ( is_array( $post_type ) && array_intersect( (array) $post_type, [ 'product', 'product_variation' ] ) ) )
+        ) {
+            wc_get_products( [
+                'include' => $ids,
+                'limit'   => count( $ids ),
+                'return'  => 'objects', // WC object cache'e doldurur, sonuç kullanılmaz
+            ] );
+        }
 
         return \Timber::get_posts( $args );
     }
@@ -755,40 +831,39 @@ class QueryCache {
 
     public static function get_cached_menu( string $location ): mixed {
         if ( ! self::$cache || ! self::$config['menu'] ) {
-            return class_exists( 'Timber\\Menu' ) ? new \Timber\Menu( $location ) : null;
+            return class_exists( 'Timber\\Timber' ) ? \Timber\Timber::get_menu( $location ) : null;
         }
 
         $lang     = function_exists( 'pll_current_language' ) ? pll_current_language() : get_locale();
         $full_key = self::PREFIX . 'menu_timber_' . md5( $location . '_' . $lang );
 
-        // RAM
-        if ( array_key_exists( $full_key, self::$runtime_cache ) ) {
-            $cached = self::$runtime_cache[ $full_key ];
-            if ( $cached === self::NOT_FOUND ) return null;
-            // Cache'te menu term_id var — objeyi yeniden oluştur
-            return class_exists( 'Timber\\Menu' ) ? new \Timber\Menu( $cached ) : null;
+        // RAM — Timber Menu nesnesi (request içi)
+        if ( array_key_exists( $full_key, self::$timber_objects_cache ) ) {
+            return self::$timber_objects_cache[ $full_key ] ?: null;
         }
 
         // Transient — menu term_id saklanıyor (obje değil)
+        // Serialize edilmiş Menu nesnesi kullanmıyoruz — MenuItem lazy properties unserialize sonrası DB'ye gidiyor
         $transient = get_transient( $full_key );
-        if ( $transient !== false ) {
+        if ( $transient !== false && is_numeric( $transient ) ) {
             self::$runtime_cache[ $full_key ]  = $transient;
             self::$initial_hashes[ $full_key ] = md5( (string) $transient );
-            if ( $transient === self::NOT_FOUND ) return null;
-            return class_exists( 'Timber\\Menu' ) ? new \Timber\Menu( $transient ) : null;
+            $menu = class_exists( 'Timber\\Timber' ) ? \Timber\Timber::get_menu( (int) $transient ) : null;
+            self::$timber_objects_cache[ $full_key ] = $menu;
+            return $menu;
         }
 
-        // Miss — menu oluştur, term_id'yi cache'le
-        if ( ! class_exists( 'Timber\\Menu' ) ) return null;
+        // Miss — Timber factory ile menu oluştur, term_id'yi cache'le
+        if ( ! class_exists( 'Timber\\Timber' ) ) return null;
 
-        $menu = new \Timber\Menu( $location );
+        $menu = \Timber\Timber::get_menu( $location );
 
         // Timber\Menu'nun term_id'sini al — serialize yerine sadece ID cache'lenir
-        $term_id = $menu->term_id ?? $menu->ID ?? null;
+        $term_id  = $menu->term_id ?? $menu->ID ?? null;
         $to_store = $term_id ? (int) $term_id : self::NOT_FOUND;
 
-        self::$runtime_cache[ $full_key ] = $to_store;
-        self::$dirty_keys[ $full_key ]    = true;
+        set_transient( $full_key, $to_store, DAY_IN_SECONDS );
+        self::$timber_objects_cache[ $full_key ] = $menu;
 
         return $menu;
     }
@@ -848,12 +923,18 @@ class QueryCache {
         self::$is_saving = true;
         $debug_written = [];
 
-        // --- 1. Sadece dirty key'leri DB'ye yaz ---
+        // --- 1. Sadece dirty key'leri DB'ye yaz — içerik değişmediyse yazma ---
         foreach ( self::$dirty_keys as $key => $_ ) {
             if ( ! array_key_exists( $key, self::$runtime_cache ) ) continue;
 
             $data    = self::$runtime_cache[ $key ];
             $to_save = ( $data === null || $data === false || $data === '' ) ? self::NOT_FOUND : $data;
+
+            // Hash kontrolü: DB'den okunan veriyle aynıysa yazma (gereksiz DB write önleme)
+            $current_hash = md5( serialize( $to_save ) );
+            if ( isset( self::$initial_hashes[ $key ] ) && self::$initial_hashes[ $key ] === $current_hash ) {
+                continue;
+            }
 
             if ( self::_is_bulk_key( $key ) ) {
                 update_option( $key, $to_save, 'no' );
@@ -887,7 +968,7 @@ class QueryCache {
             }
         }
 
-        if ( self::$config['debug'] && ! empty( $debug_written ) ) {
+        if ( self::$config['debug'] && defined('WP_DEBUG') && WP_DEBUG && ! empty( $debug_written ) ) {
             error_log( '[QueryCache v11] written: ' . implode( ', ', $debug_written ) );
         }
 
@@ -905,11 +986,22 @@ class QueryCache {
         // Kendi cache key'lerimizi atla — sonsuz döngü önleme
         if ( str_starts_with( $option, self::PREFIX ) ) return;
 
+        // WP transient'ları atla — bunlar wp_options'ta _transient_ prefix'li saklanır
+        // set_transient() çağrısı → updated_option → on_option_change → _invalidate_options_bulks → sonsuz döngü
+        if ( str_starts_with( $option, '_transient_' ) || str_starts_with( $option, '_site_transient_' ) ) return;
+
+        // theme_styles_data değişince wrap cache'ini temizle
+        // (startersite.php'de wrap('theme_styles_*') ile cache'leniyor)
+        if ( $option === 'theme_styles_data' ) {
+            self::purge_type( 'wrap' );
+        }
+
         // ACF options_ prefix'li key'ler → bulk invalidation
         if (
             str_starts_with( $option, 'options_' )
             || $option === self::ACF_OPTIONS_BULK_KEY
             || $option === self::WP_OPTIONS_BULK_KEY
+            || str_ends_with( $option, '_assets' )   // PAE asset option'ları (woo_account_*_assets vb.)
         ) {
             self::_invalidate_options_bulks();
 
@@ -923,8 +1015,11 @@ class QueryCache {
                 self::purge_type( 'menu' );
             }
 
-            // ACF field cache'ini temizle - get_field eski deger donmesin
-            self::purge_type( 'get_field' );
+            // ACF field cache'ini temizle — sadece admin ortamında veya gerçek ACF save'de
+            // Frontend request'lerde options_ değişimi yoktur, bu hook sadece admin write'larında tetiklenir
+            if ( is_admin() || ( defined('DOING_AJAX') && DOING_AJAX ) ) {
+                self::purge_type( 'get_field' );
+            }
         }
     }
 
@@ -1021,6 +1116,16 @@ class QueryCache {
         if ( $prefix === null ) return;
         self::_purge_db_prefix( $prefix );
         self::_purge_runtime_prefix( self::PREFIX . $prefix );
+
+        // timber_posts veya timber_terms purge'de RAM'deki Timber objeleri de temizle
+        if ( str_starts_with( $type, 'timber_' ) ) {
+            $obj_prefix = self::PREFIX . $prefix;
+            foreach ( array_keys( self::$timber_objects_cache ) as $key ) {
+                if ( str_starts_with( $key, $obj_prefix ) ) {
+                    unset( self::$timber_objects_cache[ $key ] );
+                }
+            }
+        }
     }
 
     public static function clear_all_cache(): void {
@@ -1048,6 +1153,7 @@ class QueryCache {
         self::$dirty_keys     = [];
         self::$pending_deps   = [];
         self::$manifest_cache = null;
+        self::$timber_objects_cache = [];
 
         if ( function_exists( 'wp_cache_flush' ) ) {
             wp_cache_flush();
@@ -1427,6 +1533,6 @@ QueryCache::init( [
         'get_term'   => in_array( 'get_term',   $object_cache_types ),
         'menu'       => in_array( 'menu',       $object_cache_types ),
         'wp_options' => in_array( 'wp_options',  $object_cache_types ),
-        'debug'      => false,
+        'debug'      => false,  // Production'da kapalı — debug log overhead önlenir
     ],
 ] );

@@ -44,9 +44,9 @@
         // li'ler arasında boşluk bırakmak için:
         // Her elemanın başına (LTR'de sol, RTL'de sağ) boşluk ekle
         // Ama en baştakine ekleme
-        &:not(:first-child) {
+        /*&:not(:first-child) {
             margin-inline-start: 15px; 
-        }
+        }*/
 
         a {
             display: inline-block;
@@ -58,5 +58,19 @@
                 transform: translateY(-2px); // Sosyal medya ikonlarına yakışır
             }
         }
+    }
+}
+
+
+.list-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $list-inline-padding;
+    padding-left: 0;
+    list-style: none;
+
+    .list-inline-item {
+        display: block;
+        margin-right: 0!important; // BS override
     }
 }

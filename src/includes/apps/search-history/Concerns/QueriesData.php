@@ -641,66 +641,368 @@ trait QueriesData {
     }
 
     // =========================================================================
-    // LEVENSHTEIN
+    // LEVENSHTEIN — İKİ KATMANLI DID YOU MEAN MOTORu
     // =========================================================================
 
     /**
-     * "Bunu mu demek istediniz?" önerisi.
+     * "Bunu mu demek istediniz?" — iki katmanlı profesyonel öneri motoru.
      *
-     * @param  string   $input
-     * @param  int      $max_distance
-     * @param  int      $limit
-     * @return string|null
+     * Tier 1 — Search History (hızlı):
+     *   wp_search_terms tablosundan no_results=0 olan, daha önce başarıyla
+     *   sonuç vermiş terimler taranır. rank'e göre sıralı olduğu için
+     *   popüler terimler önce gelir.
+     *
+     * Tier 2 — Site içeriği (kapsamlı fallback):
+     *   Tier 1'de eşleşme bulunamazsa WP post başlıkları (publish, product
+     *   öncelikli) ve WooCommerce product_cat / product_tag terimleri taranır.
+     *   Bu katman sitede GERÇEKTEN var olan içeriklere dayanır — hiç aranmamış
+     *   ama sitede mevcut terimleri de yakalar.
+     *
+     * Skor: levenshtein mesafesi + longest common substring bonus — mesafe
+     *   eşit olduğunda ortak alt string uzun olanı öne çıkarır.
+     *
+     * @param  string $input        Aranan (yanlış yazılmış) kelime
+     * @param  int    $max_distance Levenshtein max mesafesi (default 2)
+     * @return string|null          En iyi öneri veya null
      *
      * @example
-     *   $sh->did_you_mean('iphne', 2); // 'iphone'
+     *   $sh->did_you_mean('iphne', 2);     // 'iphone'
+     *   $sh->did_you_mean('lipglas', 2);   // 'lip gloss' (post başlığından)
+     *   $sh->did_you_mean('masckara', 2);  // 'mascara'
      */
-    public function did_you_mean( string $input, int $max_distance = 2, int $limit = 200 ): ?string {
-        $results = $this->levenshtein_search( $input, $max_distance, $limit, 1 );
-        return $results[0] ?? null;
+    public function did_you_mean( string $input, int $max_distance = 2 ): ?string {
+        $input = trim( mb_strtolower( $input ) );
+        if ( '' === $input || mb_strlen( $input ) < self::MIN_TERM_LENGTH ) return null;
+
+        // Kısa kelimeler için max_distance'ı kısıt — yanlış önerileri azalt
+        // 4 karakter ve altı: max 1, 5-6 karakter: max 2, 7+: parametre değeri
+        $input_len = mb_strlen( $input );
+        if ( $input_len <= 4 ) {
+            $max_distance = min( $max_distance, 1 );
+        } elseif ( $input_len <= 6 ) {
+            $max_distance = min( $max_distance, 2 );
+        }
+
+        // ── Tier 1: Search History ────────────────────────────────────────────
+        $result = $this->did_you_mean_from_history( $input, $max_distance );
+        if ( null !== $result ) return $result;
+
+        // ── Tier 2: Post başlıkları + WC taxonomy terms ───────────────────────
+        return $this->did_you_mean_from_content( $input, $max_distance );
     }
 
     /**
-     * Levenshtein tabanlı arama önerileri.
+     * Levenshtein tabanlı çoklu öneri (autocomplete, suggestions widget için).
      *
-     * @param  string $input
-     * @param  int    $count
-     * @param  int    $max_distance
-     * @param  int    $limit
-     * @return string[]
+     * Tier 1 → Tier 2 cascade — Tier 1 sonuçları doldurana kadar Tier 2 tamamlar.
+     *
+     * @param  string $input        Aranan kelime
+     * @param  int    $count        Kaç öneri isteniyor
+     * @param  int    $max_distance Levenshtein max mesafesi
+     * @return string[]             En iyi $count öneri
      *
      * @example
-     *   $sh->suggestions('iphne', 5, 3, 200);
+     *   $sh->suggestions('iphne', 5, 3);
      */
-    public function suggestions( string $input, int $count = 5, int $max_distance = 6, int $limit = 200 ): array {
-        return $this->levenshtein_search( $input, $max_distance, $limit, $count );
-    }
-
-    /**
-     * Ortak Levenshtein motoru.
-     */
-    private function levenshtein_search( string $input, int $max_distance, int $limit, int $count ): array {
-        global $wpdb;
-
+    public function suggestions( string $input, int $count = 5, int $max_distance = 6 ): array {
         $input = trim( mb_strtolower( $input ) );
         if ( '' === $input ) return [];
 
-        $terms = $wpdb->get_col( $wpdb->prepare(
-            "SELECT name FROM `{$this->table_name}`
-             WHERE no_results = 0 ORDER BY `rank` DESC LIMIT %d",
-            $limit
-        ) );
+        // Tier 1
+        $tier1 = $this->score_candidates(
+            $input,
+            $this->get_history_candidates( $max_distance * 100 ),
+            $max_distance
+        );
 
-        if ( empty( $terms ) ) return [];
+        if ( count( $tier1 ) >= $count ) {
+            return array_slice( array_keys( $tier1 ), 0, $count );
+        }
 
-        $matches = [];
-        foreach ( $terms as $term ) {
-            if ( $term === $input ) continue;
-            $d = levenshtein( $input, $term );
-            if ( $d <= $max_distance ) $matches[ $term ] = $d;
+        // Tier 2 — eksik kalanı tamamla
+        $already = array_keys( $tier1 );
+        $tier2   = $this->score_candidates(
+            $input,
+            $this->get_content_candidates( $max_distance * 100 ),
+            $max_distance
+        );
+
+        // Merge — Tier 1 önce
+        $merged = $tier1;
+        foreach ( $tier2 as $term => $score ) {
+            if ( ! isset( $merged[ $term ] ) && ! in_array( $term, $already, true ) ) {
+                $merged[ $term ] = $score;
+            }
+        }
+        asort( $merged );
+
+        return array_slice( array_keys( $merged ), 0, $count );
+    }
+
+    // ── Tier 1: Search History ─────────────────────────────────────────────────
+
+    /**
+     * Tier 1 motoru — sadece search history tablosundan.
+     */
+    private function did_you_mean_from_history( string $input, int $max_distance ): ?string {
+        $candidates = $this->get_history_candidates( 300 );
+        if ( empty( $candidates ) ) return null;
+
+        $matches = $this->score_candidates( $input, $candidates, $max_distance );
+        if ( empty( $matches ) ) return null;
+
+        asort( $matches );
+        return array_key_first( $matches );
+    }
+
+    /**
+     * Search history tablosundan aday terimler.
+     * no_results=0 → başarılı aramalar, rank DESC → popüler önce.
+     *
+     * @param  int $limit Kaç aday çekilsin
+     * @return string[]
+     */
+    private function get_history_candidates( int $limit = 300 ): array {
+        global $wpdb;
+
+        // QueryCache varsa cache'le — çok sık çağrılabilir
+        $fetcher = function () use ( $limit ) {
+            global $wpdb;
+            return $wpdb->get_col( $wpdb->prepare(
+                "SELECT name FROM `{$this->table_name}`
+                 WHERE no_results = 0
+                 ORDER BY `rank` DESC LIMIT %d",
+                $limit
+            ) );
+        };
+
+        $cache_key = "sh_history_candidates_{$limit}";
+        if ( class_exists( 'QueryCache' ) ) {
+            return \QueryCache::wrap( $cache_key, $fetcher ) ?: [];
+        }
+        return $fetcher() ?: [];
+    }
+
+    // ── Tier 2: Site içeriği ───────────────────────────────────────────────────
+
+    /**
+     * Tier 2 motoru — post başlıkları + WC taxonomy.
+     */
+    private function did_you_mean_from_content( string $input, int $max_distance ): ?string {
+        $candidates = $this->get_content_candidates( 500 );
+        if ( empty( $candidates ) ) return null;
+
+        $matches = $this->score_candidates( $input, $candidates, $max_distance );
+        if ( empty( $matches ) ) return null;
+
+        asort( $matches );
+        return array_key_first( $matches );
+    }
+
+    /**
+     * Site içerik adayları — post başlıkları + WC terms.
+     *
+     * Post başlıkları: product (önce), post, page — published.
+     * WC terms: product_cat, product_tag — term adları.
+     *
+     * @param  int $limit Her kaynaktan max kaç aday
+     * @return string[]   Normalize edilmiş (lowercase, trim) benzersiz terimler
+     */
+    private function get_content_candidates( int $limit = 500 ): array {
+        $fetcher = function () use ( $limit ) {
+            global $wpdb;
+            $candidates = [];
+
+            // ── Post başlıkları ──────────────────────────────────────────────
+            // product önce (WC siteleri için daha alakalı), sonra diğer tipler
+            $post_rows = $wpdb->get_col( $wpdb->prepare(
+                "SELECT post_title FROM `{$wpdb->posts}`
+                 WHERE post_status = 'publish'
+                   AND post_type IN ('product', 'post', 'page')
+                   AND post_title != ''
+                 ORDER BY FIELD(post_type, 'product', 'post', 'page'), post_date DESC
+                 LIMIT %d",
+                $limit
+            ) );
+
+            foreach ( $post_rows as $title ) {
+                // Başlığı tek kelimeye değil tüm başlığa karşı da karşılaştır
+                $normalized = trim( mb_strtolower( $title ) );
+                if ( '' !== $normalized ) {
+                    $candidates[] = $normalized;
+                }
+
+                // Başlıktaki her kelimeyi ayrı aday olarak da ekle (tek-kelime eşleşme için)
+                $words = preg_split( '/[\s\-\/,]+/u', $normalized, -1, PREG_SPLIT_NO_EMPTY );
+                foreach ( $words as $word ) {
+                    if ( mb_strlen( $word ) >= self::MIN_TERM_LENGTH ) {
+                        $candidates[] = $word;
+                    }
+                }
+            }
+
+            // ── WC taxonomy terms ────────────────────────────────────────────
+            if ( taxonomy_exists( 'product_cat' ) || taxonomy_exists( 'product_tag' ) ) {
+                $taxonomies   = [];
+                if ( taxonomy_exists( 'product_cat' ) ) $taxonomies[] = 'product_cat';
+                if ( taxonomy_exists( 'product_tag' ) ) $taxonomies[] = 'product_tag';
+
+                $tax_in       = "'" . implode( "','", array_map( 'esc_sql', $taxonomies ) ) . "'";
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $term_rows    = $wpdb->get_col( $wpdb->prepare(
+                    "SELECT t.name FROM `{$wpdb->terms}` t
+                     INNER JOIN `{$wpdb->term_taxonomy}` tt ON tt.term_id = t.term_id
+                     WHERE tt.taxonomy IN ({$tax_in})
+                       AND tt.count > 0
+                     ORDER BY tt.count DESC LIMIT %d",
+                    $limit
+                ) );
+
+                foreach ( $term_rows as $term_name ) {
+                    $normalized = trim( mb_strtolower( $term_name ) );
+                    if ( '' !== $normalized ) {
+                        $candidates[] = $normalized;
+                    }
+                }
+            }
+
+            // Benzersiz hale getir, input ile aynı olanları sil (zaten aranmış)
+            return array_values( array_unique( $candidates ) );
+        };
+
+        $cache_key = 'sh_content_candidates_' . $limit;
+        if ( class_exists( 'QueryCache' ) ) {
+            return \QueryCache::wrap( $cache_key, $fetcher ) ?: []; // default TTL
+        }
+        return $fetcher() ?: [];
+    }
+
+    // ── Ortak Levenshtein Skorlama Motoru ──────────────────────────────────────
+
+    /**
+     * Türkçe/Almanca/Fransızca vb. aksan karakterlerini ASCII'ye normalize et.
+     * Sadece KARŞILAŞTIRMA için kullanılır — orijinal string değişmez.
+     *
+     * ö→o, ü→u, ş→s, ğ→g, ı→i, ç→c, â→a, î→i, û→u, ê→e, ä→a vb.
+     *
+     * @param  string $s
+     * @return string
+     */
+    private function normalize_for_comparison( string $s ): string {
+        static $map = null;
+        if ( null === $map ) {
+            $map = [
+                // Türkçe
+                'ş' => 's', 'Ş' => 's',
+                'ğ' => 'g', 'Ğ' => 'g',
+                'ı' => 'i', 'İ' => 'i',
+                'ç' => 'c', 'Ç' => 'c',
+                'ö' => 'o', 'Ö' => 'o',
+                'ü' => 'u', 'Ü' => 'u',
+                // Almanca (WC ürünler için ekstra)
+                'ä' => 'a', 'Ä' => 'a',
+                'ß' => 'ss',
+                // Fransızca / İspanyolca / İtalyanca
+                'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a',
+                'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
+                'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+                'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o',
+                'ù' => 'u', 'ú' => 'u', 'û' => 'u',
+                'ý' => 'y', 'ÿ' => 'y',
+                'ñ' => 'n',
+                'ć' => 'c', 'č' => 'c',
+                'ž' => 'z',
+                'ř' => 'r',
+                'ě' => 'e',
+                'ś' => 's',
+                'ź' => 'z', 'ż' => 'z',
+            ];
+        }
+        return mb_strtolower( strtr( $s, $map ) );
+    }
+
+    /**
+     * Aday listesini input'a göre skor ver, max_distance içindekilerini döndür.
+     *
+     * Karşılaştırma normalize edilmiş formlar üzerinden yapılır:
+     *   "lipglass" vs "lip glöss" → normalize → "lipglass" vs "lip gloss" → mesafe 1
+     *   "lipglass" === "lipgloss" normalize → mesafe 0 → öneri çıkmaz (zaten sonuç bulur)
+     *
+     * Skor = levenshtein_distance - longest_common_substring_bonus
+     * Düşük skor = daha iyi eşleşme.
+     *
+     * @param  string   $input        Normalize edilmiş input
+     * @param  string[] $candidates   Adaylar (orijinal — normalize içerde yapılır)
+     * @param  int      $max_distance Levenshtein max mesafesi
+     * @return array<string,float>    term (orijinal) => skor (asort ile sıralanabilir)
+     */
+    private function score_candidates( string $input, array $candidates, int $max_distance ): array {
+        // Input'u normalize et — karşılaştırma için
+        $input_norm = $this->normalize_for_comparison( $input );
+        $matches    = [];
+
+        foreach ( $candidates as $candidate ) {
+            if ( $candidate === $input ) continue;
+            if ( '' === $candidate ) continue;
+
+            $candidate_norm = $this->normalize_for_comparison( $candidate );
+
+            // Normalize edilmiş formlar eşitse bu zaten doğru yazılmış → öneri çıkmasın
+            if ( $candidate_norm === $input_norm ) continue;
+
+            // Performans: uzunluk farkı max_distance'dan büyükse levenshtein çağırma
+            $len_diff = abs( mb_strlen( $input_norm ) - mb_strlen( $candidate_norm ) );
+            if ( $len_diff > $max_distance ) continue;
+
+            // Levenshtein normalize formlar üzerinden
+            $distance = levenshtein( $input_norm, $candidate_norm );
+            if ( $distance > $max_distance ) continue;
+
+            // Bonus: ortak en uzun substring (normalize formlar üzerinden)
+            $lcs_len = $this->longest_common_substring_length( $input_norm, $candidate_norm );
+
+            // Hiç ortak substring yoksa alakasız — öneri çıkmasın
+            if ( $lcs_len === 0 ) continue;
+
+            // Ortak substring oranı çok düşükse de atla (örn: "pank" → "ana" gibi)
+            $lcs_ratio = $lcs_len / max( mb_strlen( $input_norm ), mb_strlen( $candidate_norm ) );
+            if ( $lcs_ratio < 0.5 ) continue;
+            $bonus   = $lcs_len > 0 ? ( $lcs_len / max( mb_strlen( $input_norm ), mb_strlen( $candidate_norm ) ) ) * 0.5 : 0;
+            $score   = $distance - $bonus;
+
+            // Orijinal candidate'i key olarak sakla (kullanıcıya gösterilecek olan)
+            $matches[ $candidate ] = $score;
         }
 
         asort( $matches );
-        return array_slice( array_keys( $matches ), 0, $count );
+        return $matches;
+    }
+
+    /**
+     * İki string arasındaki en uzun ortak alt dizinin uzunluğu.
+     * Skor bonusu için kullanılır.
+     *
+     * @param  string $a
+     * @param  string $b
+     * @return int
+     */
+    private function longest_common_substring_length( string $a, string $b ): int {
+        $a_len  = mb_strlen( $a );
+        $b_len  = mb_strlen( $b );
+        $max    = 0;
+        $matrix = array_fill( 0, $a_len + 1, array_fill( 0, $b_len + 1, 0 ) );
+
+        for ( $i = 1; $i <= $a_len; $i++ ) {
+            for ( $j = 1; $j <= $b_len; $j++ ) {
+                if ( mb_substr( $a, $i - 1, 1 ) === mb_substr( $b, $j - 1, 1 ) ) {
+                    $matrix[ $i ][ $j ] = $matrix[ $i - 1 ][ $j - 1 ] + 1;
+                    if ( $matrix[ $i ][ $j ] > $max ) {
+                        $max = $matrix[ $i ][ $j ];
+                    }
+                }
+            }
+        }
+
+        return $max;
     }
 }

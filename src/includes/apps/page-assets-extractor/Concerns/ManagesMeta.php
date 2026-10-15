@@ -260,6 +260,11 @@ trait ManagesMeta {
 
         $merged = array_replace_recursive(self::ASSETS_STRUCTURE, $existing, $result);
 
+        // plugins array'inde duplicate olmasın
+        if ( ! empty( $merged['plugins'] ) && is_array( $merged['plugins'] ) ) {
+            $merged['plugins'] = array_values( array_unique( $merged['plugins'] ) );
+        }
+
         if (!empty($existing_raw) || $existing_raw === '0') {
             $this->meta_update($this->type, $id, $merged);
         } else {
@@ -308,28 +313,74 @@ trait ManagesMeta {
                 $translations = pll_get_post_translations($id);
                 if (!is_array($translations)) return;
 
-                if (isset($GLOBALS['polylang'])) {
+                if (isset($GLOBALS['polylang']) && isset($GLOBALS['polylang']->sync_post) && method_exists($GLOBALS['polylang']->sync_post, 'save_post')) {
                     remove_action('save_post', [$GLOBALS['polylang']->sync_post, 'save_post'], 10);
                 }
 
                 $prev = $this->disable_hooks;
                 $this->disable_hooks = true;
 
+                // Source HTML hash — bu fetch'te üretilen HTML'nin hash'i
+                $source_html_hash = get_post_meta( (int) $id, self::HTML_HASH_META_KEY, true ) ?: '';
+
                 foreach ($translations as $l => $pid) {
                     if (!$pid || (int) $pid === (int) $id || $l === $default) continue;
-                    $current_data = $merged;
-                    if ($this->is_lang_rtl($l) && !empty($current_data['css'])) {
-                        $current_data['css'] = $this->flip_css_rtl($current_data['css']);
+
+                    // ── ML Optimizasyon: HTML hash karşılaştırması ──────────────
+                    // Çevirinin daha önce fetch edilmiş HTML hash'i varsa karşılaştır.
+                    // Aynıysa: asset kopyala (aynı HTML yapısı → aynı CSS yeterli).
+                    // Farklıysa veya hash yoksa: bağımsız fetch gerekli, sadece plugin bundle kopyala.
+                    $trans_html_hash = get_post_meta( (int) $pid, self::HTML_HASH_META_KEY, true ) ?: '';
+                    $html_match      = $source_html_hash && $trans_html_hash && $source_html_hash === $trans_html_hash;
+
+                    if ( $html_match ) {
+                        // Aynı HTML yapısı → tam asset kopyala (sadece RTL varsa CSS çevir)
+                        $current_data = $merged;
+                        if ($this->is_lang_rtl($l) && !empty($current_data['css'])) {
+                            $current_data['css'] = $this->flip_css_rtl($current_data['css']);
+                        }
+                        $this->error_log("[PAE] maybe_copy: post:{$pid} lang={$l} HTML_MATCH → full copy");
+                    } else {
+                        // Farklı HTML → sadece plugin bundle paylaş, css_page sıfırla
+                        // Bir sonraki ziyarette bağımsız fetch tetiklenecek
+                        $current_data                  = $merged;
+                        $current_data['css_page']      = '';
+                        $current_data['css_page_rtl']  = '';
+                        $current_data['structure_fp']  = '';
+                        $this->error_log("[PAE] maybe_copy: post:{$pid} lang={$l} HTML_DIFF → plugin-only copy, css_page cleared");
                     }
+
                     delete_post_meta((int) $pid, self::META_KEY);
                     $res = add_post_meta((int) $pid, self::META_KEY, $current_data, true);
                     if (!$res) {
                         update_post_meta((int) $pid, self::META_KEY, $current_data);
                     }
+
+                    // ── Manifest content_usage kaydı — orphan cleanup'tan korunsun ──
+                    $content_key        = 'post:' . $pid;
+                    $source_usage       = $this->manifest['content_usage'][ 'post:' . $id ] ?? [];
+                    $source_structure   = $source_usage['structure_fp'] ?? ( $merged['structure_fp'] ?? '' );
+                    $source_plugins_key = $source_usage['plugins_key']  ?? '';
+                    if ( isset( $this->manifest['content_usage'] ) ) {
+                        $this->manifest['content_usage'][ $content_key ] = [
+                            'structure_fp'    => $html_match ? $source_structure : '',
+                            'plugins_key'     => $source_plugins_key,
+                            'source_id'       => (int) $id,
+                            'translated_from' => (int) $id,
+                            'lang'            => $l,
+                            'html_match'      => $html_match,
+                            'last_fetched'    => time(),
+                        ];
+                    }
+                }
+
+                // Manifest'i kaydet
+                if ( method_exists( $this, 'manifest_write' ) ) {
+                    $this->manifest_write();
                 }
 
                 $this->disable_hooks = $prev;
-                if (isset($GLOBALS['polylang'])) {
+                if (isset($GLOBALS['polylang']) && isset($GLOBALS['polylang']->sync_post) && method_exists($GLOBALS['polylang']->sync_post, 'save_post')) {
                     add_action('save_post', [$GLOBALS['polylang']->sync_post, 'save_post'], 10, 3);
                 }
                 return;
@@ -346,13 +397,52 @@ trait ManagesMeta {
                 $prev = $this->disable_hooks;
                 $this->disable_hooks = true;
 
+                // Term HTML hash — term meta'da saklanıyor
+                $source_html_hash = get_term_meta( (int) $id, self::HTML_HASH_META_KEY, true ) ?: '';
+
                 foreach ($translations as $l => $tid) {
                     if (!$tid || (int) $tid === (int) $id) continue;
-                    $current_data = $merged;
-                    if ($this->is_lang_rtl($l) && !empty($current_data['css'])) {
-                        $current_data['css'] = $this->flip_css_rtl($current_data['css']);
+
+                    $trans_html_hash = get_term_meta( (int) $tid, self::HTML_HASH_META_KEY, true ) ?: '';
+                    $html_match      = $source_html_hash && $trans_html_hash && $source_html_hash === $trans_html_hash;
+
+                    if ( $html_match ) {
+                        $current_data = $merged;
+                        if ($this->is_lang_rtl($l) && !empty($current_data['css'])) {
+                            $current_data['css'] = $this->flip_css_rtl($current_data['css']);
+                        }
+                        $this->error_log("[PAE] maybe_copy: term:{$tid} lang={$l} HTML_MATCH → full copy");
+                    } else {
+                        $current_data                  = $merged;
+                        $current_data['css_page']      = '';
+                        $current_data['css_page_rtl']  = '';
+                        $current_data['structure_fp']  = '';
+                        $this->error_log("[PAE] maybe_copy: term:{$tid} lang={$l} HTML_DIFF → plugin-only copy, css_page cleared");
                     }
+
                     update_term_meta((int) $tid, self::META_KEY, $current_data);
+
+                    // ── Manifest content_usage kaydı ──
+                    $content_key        = 'term:' . $tid;
+                    $source_usage_t     = $this->manifest['content_usage'][ 'term:' . $id ] ?? [];
+                    $source_structure_t = $source_usage_t['structure_fp'] ?? ( $merged['structure_fp'] ?? '' );
+                    $source_pk_t        = $source_usage_t['plugins_key']  ?? '';
+                    if ( isset( $this->manifest['content_usage'] ) ) {
+                        $this->manifest['content_usage'][ $content_key ] = [
+                            'structure_fp'    => $html_match ? $source_structure_t : '',
+                            'plugins_key'     => $source_pk_t,
+                            'source_id'       => (int) $id,
+                            'translated_from' => (int) $id,
+                            'lang'            => $l,
+                            'html_match'      => $html_match,
+                            'last_fetched'    => time(),
+                        ];
+                    }
+                }
+
+                // Manifest'i kaydet
+                if ( method_exists( $this, 'manifest_write' ) ) {
+                    $this->manifest_write();
                 }
 
                 $this->disable_hooks = $prev;

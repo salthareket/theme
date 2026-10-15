@@ -80,9 +80,13 @@ class NotifyDispatcher
         self::$carriers = [
             'alert' => new AlertCarrier(),
             'email' => new EmailCarrier(),
-            'sms'   => new SmsCarrier(),
             'push'  => new WebPushCarrier(),
         ];
+
+        // SMS — sadece ENABLE_SMS aktif ve SmsCarrier yüklüyse ekle
+        if ( defined('ENABLE_SMS') && ENABLE_SMS && class_exists( SmsCarrier::class ) ) {
+            self::$carriers['sms'] = new SmsCarrier();
+        }
     }
 
     /**

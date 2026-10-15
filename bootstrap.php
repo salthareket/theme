@@ -18,6 +18,4 @@ require_once $base_path . 'startersite.php';
 if (is_admin()) {
     // Admin tarafında lazım olan ağır abiler
     require_once $base_path . 'update.php';
-    require_once $base_path . 'plugin-manager.php';
-    require_once $base_path . 'plugins.php';
 }

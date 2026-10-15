@@ -253,6 +253,9 @@ class ReactionsAjax {
         string $type,
         array  $options = []
     ): string {
+        // Reactions kapalıysa render etme
+        if ( ! defined('ENABLE_REACTIONS') || ! ENABLE_REACTIONS ) return '';
+
         $type_def = ReactionsSettings::getType( $type );
         if ( ! $type_def ) return '';
 
@@ -294,7 +297,15 @@ class ReactionsAjax {
 
         // State
         $is_logged_in = is_user_logged_in();
-        $has          = $is_logged_in ? Reactions::has( $type, $object_id, $object_type ) : false;
+        if ( $is_logged_in ) {
+            $has = Reactions::has( $type, $object_id, $object_type );
+        } else {
+            // Guest: cookie'den guest_id oku, DB'de var mı kontrol et
+            $guest_id = class_exists( '\\SaltHareket\\Membership\\GuestIdentity' )
+                ? \SaltHareket\Membership\GuestIdentity::getId()
+                : '';
+            $has = $guest_id ? Reactions::has( $type, $object_id, $object_type, 0, $guest_id ) : false;
+        }
         $count        = (bool) $show_count ? Reactions::count( $type, $object_id, $object_type ) : 0;
         $mode         = $type_def['mode'] ?? 'toggle';
         $limit        = (int) ( $type_def['limit'] ?? 0 );
@@ -500,6 +511,78 @@ class ReactionsAjax {
      * Saved buttons'da bu object_type + type kombinasyonu pasif mi?
      * Pasifse renderButton boş döner.
      */
+    /**
+     * Reaction count + has verilerini toplu olarak wp_cache'e yukler.
+     * tease-list gibi cok sayida post render eden yerlerde, render baslamadan once
+     * cagrilmalidir. renderButton() zaten wp_cache'i kontrol ettigi icin cache doluysa
+     * DB'ye gitmez.
+     *
+     * Kac sorgu yapilir:
+     *   - count: her (object_type x type) kombinasyonu icin 1 IN sorgusu
+     *   - has:   her (object_type x type) kombinasyonu icin 1 IN sorgusu (login'li kullanici)
+     *   Toplam: 2 * (tiplerin sayisi) sorgu — post sayisindan bagimsiz.
+     *
+     * @param int[]    $object_ids    Post/term/user ID listesi
+     * @param string   $object_type   'post' | 'term' | 'user' | 'comment'
+     * @param string[] $types         Prefetch yapilacak tipler, orn. ['like', 'favorite', 'clap']
+     *                                Bos birakilirsa aktif tum tipler kullanilir.
+     * @return void
+     *
+     * @example
+     *   // PHP'den:
+     *   $ids = wp_list_pluck($posts, 'ID');
+     *   ReactionsAjax::prefetch($ids, 'post', ['like', 'favorite', 'clap']);
+     *
+     * @example
+     *   // Twig'den (posts_prefetch Twig fonksiyonu uzerinden):
+     *   {% do posts_prefetch(term.posts, 'post') %}
+     */
+    public static function prefetch( array $object_ids, string $object_type = 'post', array $types = [] ): void {
+        $object_ids = array_filter( array_map( 'intval', $object_ids ) );
+        if ( empty( $object_ids ) ) return;
+
+        // Tip listesi belirtilmemisse aktif tum tipleri kullan
+        if ( empty( $types ) ) {
+            $all_types = ReactionsSettings::getTypes();
+            $types     = array_keys( array_filter( $all_types, fn( $t ) => ! empty( $t['enabled'] ) ) );
+        }
+        if ( empty( $types ) ) return;
+
+        // ── Count prefetch — her tip icin tek IN sorgusu ─────────────────────
+        foreach ( $types as $type ) {
+            $counts = Reactions::counts( $object_ids, $object_type, $type );
+            foreach ( $counts as $oid => $cnt ) {
+                $cache_key = "sh_reaction_{$type}_{$object_type}_{$oid}";
+                wp_cache_set( $cache_key, $cnt, 'reactions', 300 );
+            }
+        }
+
+        // ── Has prefetch — login'li kullanici icin tek IN sorgusu per tip ─────
+        $user_id = (int) get_current_user_id();
+        if ( $user_id <= 0 ) return;
+
+        global $wpdb;
+        $table       = $wpdb->prefix . 'reactions';
+        $ids_escaped = implode( ',', $object_ids ); // zaten intval'den gectik
+
+        foreach ( $types as $type ) {
+            // Tek bulk sorgu: bu kullanicinin hangi ID'lere reaction yaptigi
+            $rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore
+                "SELECT object_id FROM {$table}
+                 WHERE user_id = %d AND object_type = %s AND type = %s
+                 AND object_id IN ({$ids_escaped})",
+                $user_id, $object_type, $type
+            ) );
+
+            // Reaction yapilanlari true, yapilmayanlari false olarak cache'e yaz
+            $has_ids = array_fill_keys( wp_list_pluck( $rows, 'object_id' ), true );
+            foreach ( $object_ids as $oid ) {
+                $cache_key = "sh_reaction_has_{$type}_{$object_type}_{$oid}_u{$user_id}";
+                wp_cache_set( $cache_key, isset( $has_ids[ $oid ] ), 'reactions', 300 );
+            }
+        }
+    }
+
     private static function isButtonDisabled( string $object_type, string $type ): bool {
         static $cache = null;
         if ( $cache === null ) {
@@ -577,19 +660,53 @@ class ReactionsAjax {
      * Icon HTML uret — FA class veya attachment ID.
      */
     private static function renderIconHtml( string $value, string $color = '#6b7280' ): string {
-        if ( is_numeric( $value ) && (int) $value > 0 ) {
-            $att_id  = (int) $value;
-            $att_url = wp_get_attachment_url( $att_id );
-            $mime    = get_post_mime_type( $att_id );
+        if ( ! $value ) return '';
+
+        // Yeni format: img:ID
+        if ( str_starts_with( $value, 'img:' ) ) {
+            $att_id  = (int) substr( $value, 4 );
+            $att_url = $att_id ? wp_get_attachment_url( $att_id ) : '';
+            $mime    = $att_id ? get_post_mime_type( $att_id ) : '';
             if ( $att_url ) {
-                if ( $mime === 'image/svg+xml' && function_exists('inline_svg') ) {
+                if ( $mime === 'image/svg+xml' && function_exists( 'inline_svg' ) ) {
                     return '<span class="salt-reaction-icon" aria-hidden="true" style="display:inline-flex;width:1em;height:1em;">'
                          . inline_svg( $att_url, ['width' => 18, 'height' => 18] )
                          . '</span>';
                 }
                 return '<img src="' . esc_url( $att_url ) . '" class="salt-reaction-icon" style="width:1em;height:1em;object-fit:contain;" alt="" aria-hidden="true">';
             }
+            return '';
         }
+
+        // Yeni format: style:name (SVG)
+        if ( strpos( $value, ':' ) !== false && ! str_starts_with( $value, 'fa' ) ) {
+            [ $style, $name ] = explode( ':', $value, 2 );
+            if ( class_exists( '\SaltHareket\FaIconManager' ) ) {
+                $svg = \SaltHareket\FaIconManager::render( $name, $style );
+                if ( $svg ) {
+                    return '<span class="salt-reaction-icon" aria-hidden="true" style="display:inline-flex;width:1em;height:1em;color:' . esc_attr( $color ) . ';">' . $svg . '</span>';
+                }
+            }
+            return '';
+        }
+
+        // Eski format: numeric attachment ID
+        if ( is_numeric( $value ) && (int) $value > 0 ) {
+            $att_id  = (int) $value;
+            $att_url = wp_get_attachment_url( $att_id );
+            $mime    = get_post_mime_type( $att_id );
+            if ( $att_url ) {
+                if ( $mime === 'image/svg+xml' && function_exists( 'inline_svg' ) ) {
+                    return '<span class="salt-reaction-icon" aria-hidden="true" style="display:inline-flex;width:1em;height:1em;">'
+                         . inline_svg( $att_url, ['width' => 18, 'height' => 18] )
+                         . '</span>';
+                }
+                return '<img src="' . esc_url( $att_url ) . '" class="salt-reaction-icon" style="width:1em;height:1em;object-fit:contain;" alt="" aria-hidden="true">';
+            }
+            return '';
+        }
+
+        // Eski format: FA class string (backward compat)
         return '<i class="' . esc_attr( $value ) . '" aria-hidden="true"></i>';
     }
 

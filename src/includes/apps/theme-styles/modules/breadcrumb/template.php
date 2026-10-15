@@ -150,7 +150,21 @@ $data = $data ?? [];
             <div class="ts-field-row ts-field-row-4">
                 <div>
                     <label class="ts-field-label"><?php _e('Separator Icon', 'theme-styles'); ?></label>
-                    <input type="text" class="ts-field-input" data-field="separator_icon" value="<?php echo esc_attr($data['separator_icon'] ?? '\f054'); ?>" placeholder="\f054" />
+                    <?php
+                    // Mevcut değeri parse et: "solid:chevron-right" veya eski "\f054" format
+                    $sep_val   = $data['separator_icon'] ?? '';
+                    $sep_style = 'solid';
+                    $sep_name  = '';
+                    if ( $sep_val && strpos( $sep_val, ':' ) !== false ) {
+                        [ $sep_style, $sep_name ] = explode( ':', $sep_val, 2 );
+                    }
+                    ?>
+                    <input type="hidden"
+                           class="ts-field-input"
+                           data-field="separator_icon"
+                           data-sh-icon-picker
+                           data-placeholder="<?php esc_attr_e( 'İkon ara...', 'theme-styles' ); ?>"
+                           value="<?php echo esc_attr( $sep_style && $sep_name ? "$sep_style:$sep_name" : '' ); ?>" />
                 </div>
                 <div>
                     <label class="ts-field-label"><?php _e('Separator Color', 'theme-styles'); ?></label>

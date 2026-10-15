@@ -66,6 +66,9 @@
  *   $suggestion = $sh->did_you_mean('iphne', 2); // 'iphone'
  */
 
+// ── REST API ──────────────────────────────────────────────────────────────────
+require_once __DIR__ . '/rest.php';
+
 // ── Trait'leri yükle ──────────────────────────────────────────────────────────
 require_once __DIR__ . '/Concerns/ManagesTable.php';
 require_once __DIR__ . '/Concerns/ManagesBlacklist.php';
@@ -125,19 +128,23 @@ class SearchHistory {
         if ( self::$hooks_registered ) return;
         self::$hooks_registered = true;
 
-        // Frontend: WP native search + FiboSearch takibi
-        add_filter( 'the_posts',                    [ $this, 'auto_track_search' ],    10, 2 );
-        add_filter( 'dgwt/wcas/search_query/args',  [ $this, 'track_fibosearch_query' ], 10, 1 );
+        // Admin menu + AJAX handler'lar — tek seferlik kayıt
+        if ( is_admin() || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+            add_action( 'admin_menu',                   [ $this, 'register_admin_page' ], 25 );
+            add_action( 'wp_ajax_sh_delete_term',       [ $this, 'ajax_delete_term' ] );
+            add_action( 'wp_ajax_sh_delete_all',        [ $this, 'ajax_delete_all' ] );
+            add_action( 'wp_ajax_sh_delete_clicks',     [ $this, 'ajax_delete_clicks' ] );
+            add_action( 'wp_ajax_sh_export_csv',        [ $this, 'ajax_export_csv' ] );
+            add_action( 'wp_ajax_sh_blacklist_add',     [ $this, 'ajax_blacklist_add' ] );
+            add_action( 'wp_ajax_sh_blacklist_remove',  [ $this, 'ajax_blacklist_remove' ] );
+            add_action( 'wp_ajax_sh_search_history_save_toggle', [ $this, 'ajax_save_toggle' ] );
+        }
 
-        // Admin: sayfa + AJAX handler'lar
-        add_action( 'admin_menu',                   [ $this, 'register_admin_page' ] );
-        add_action( 'wp_ajax_sh_delete_term',       [ $this, 'ajax_delete_term' ] );
-        add_action( 'wp_ajax_sh_delete_all',        [ $this, 'ajax_delete_all' ] );
-        add_action( 'wp_ajax_sh_delete_clicks',     [ $this, 'ajax_delete_clicks' ] );
-        add_action( 'wp_ajax_sh_export_csv',        [ $this, 'ajax_export_csv' ] );
-        add_action( 'wp_ajax_sh_blacklist_add',     [ $this, 'ajax_blacklist_add' ] );
-        add_action( 'wp_ajax_sh_blacklist_remove',  [ $this, 'ajax_blacklist_remove' ] );
-        add_action( 'wp_ajax_sh_search_history_save_toggle', [ $this, 'ajax_save_toggle' ] );
+        // Frontend: WP native search + FiboSearch takibi — sadece aktifken
+        if ( defined( 'ENABLE_SEARCH_HISTORY' ) && ENABLE_SEARCH_HISTORY ) {
+            add_filter( 'the_posts',                    [ $this, 'auto_track_search' ],    10, 2 );
+            add_filter( 'dgwt/wcas/search_query/args',  [ $this, 'track_fibosearch_query' ], 10, 1 );
+        }
 
         // Cron: günlük temizlik
         add_action( self::CRON_HOOK, [ __CLASS__, 'run_cleanup' ] );

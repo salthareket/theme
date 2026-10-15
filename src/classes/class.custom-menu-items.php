@@ -97,6 +97,50 @@ class custom_menu_items {
 
 			if ( ! empty( $new_items ) ) {
 				foreach ( $new_items as $new_item ) {
+                    $fake_id = $new_item['ID'] ?? 0;
+                    if ( $fake_id ) {
+                        // Meta cache — Timber MenuItem::__construct get_post_meta() için
+                        if ( ! wp_cache_get( $fake_id, 'post_meta' ) ) {
+                            wp_cache_set( $fake_id, [
+                                '_menu_item_type'             => [ $new_item['type'] ?? '' ],
+                                '_menu_item_menu_item_parent' => [ $new_item['parent'] ?? 0 ],
+                                '_menu_item_object_id'        => [ $new_item['object_id'] ?? 0 ],
+                                '_menu_item_object'           => [ $new_item['object'] ?? '' ],
+                                '_menu_item_url'              => [ $new_item['url'] ?? '' ],
+                                // Polylang _pll_menu_item key'ini arar — boş set et, DB'ye gitmesin
+                                '_pll_menu_item'              => [ '' ],
+                                // Polylang get_ancestors() için
+                                '_menu_item_classes'          => [ [ 'menu-item' ] ],
+                                '_menu_item_xfn'              => [ '' ],
+                                '_menu_item_target'           => [ '' ],
+                                // ACF / link_type için
+                                'link_type'                   => [ '' ],
+                                'has_condition'               => [ '' ],
+                            ], 'post_meta' );
+                        }
+                        // Post cache — get_post($fake_id) DB sorgusu yapmasın
+                        // false yerine stub WP_Post — get_post() false'ı cache miss sanıyor
+                        if ( ! wp_cache_get( $fake_id, 'posts' ) ) {
+                            $stub              = new \stdClass();
+                            $stub->ID          = $fake_id;
+                            $stub->post_title  = $new_item['title'] ?? '';
+                            $stub->post_name   = $new_item['slug'] ?? '';
+                            $stub->post_type   = 'nav_menu_item';
+                            $stub->post_status = 'publish';
+                            $stub->post_parent = (int) ( $new_item['post_parent'] ?? 0 );
+                            $stub->guid        = $new_item['url'] ?? '';
+                            $stub->post_content= '';
+                            $stub->post_excerpt= '';
+                            $stub->post_author = 0;
+                            $stub->post_date   = '0000-00-00 00:00:00';
+                            $stub->post_date_gmt='0000-00-00 00:00:00';
+                            $stub->comment_status='closed';
+                            $stub->ping_status = 'closed';
+                            $stub->menu_order  = (int) ( $new_item['order'] ?? 0 );
+                            $stub->filter      = 'raw';
+                            wp_cache_set( $fake_id, new \WP_Post( $stub ), 'posts' );
+                        }
+                    }
 					$items[] = $this->make_item_obj( $new_item );
 				}
 			}

@@ -306,13 +306,30 @@ class User extends Timber\User {
     }
     public function get_social_media(){
         $social_media = [];
-        $providers = $GLOBALS['wp_social_media'] ?? [];
-        foreach ($providers as $item) {
-            $data = get_field($item['slug'], 'user_' . $this->id);
-            if (!empty($data)) {
-                $social_media[$item['slug']] = $data;
+
+        // Yeni sistem: membership_social_networks() fonksiyonundan network listesini al,
+        // her biri için user_meta'da değer var mı kontrol et
+        if ( function_exists( 'membership_social_networks' ) ) {
+            $networks = membership_social_networks();
+            foreach ( $networks as $key => $net ) {
+                $val = get_user_meta( $this->ID, $key, true );
+                if ( ! empty( $val ) ) {
+                    $social_media[ $key ] = $val;
+                }
             }
         }
+
+        // Eski sistem fallback: $GLOBALS['wp_social_media'] (ACF tabanlı)
+        if ( empty( $social_media ) ) {
+            $providers = $GLOBALS['wp_social_media'] ?? [];
+            foreach ( $providers as $item ) {
+                $data = function_exists( 'get_field' ) ? get_field( $item['slug'], 'user_' . $this->id ) : '';
+                if ( ! empty( $data ) ) {
+                    $social_media[ $item['slug'] ] = $data;
+                }
+            }
+        }
+
         return $social_media;
     }
     public function get_terms($taxonomy = "") {
@@ -465,6 +482,77 @@ class User extends Timber\User {
         return Reviews::rating( $this->ID, 'user' )['total'];
     }
 
+    public function get_reviews_unread_count(): int {
+        if ( ! class_exists( '\SaltHareket\Reviews\Reviews' ) ) return 0;
+        return \SaltHareket\Reviews\Reviews::getUnreadCount( $this->ID );
+    }
+
+    /**
+     * Okunmamis bildirim sayisi (badge). Convention: get_{source}_unread_count().
+     * Kisa TTL wp_cache (60s) — yazma olayinda invalidate edilir (bkz. Notifications app).
+     * Twig: {{ user.get_notifications_unseen_count() }}
+     */
+    public function get_notifications_unseen_count(): int {
+        if ( ! ( defined( 'ENABLE_NOTIFICATIONS' ) && ENABLE_NOTIFICATIONS ) ) return 0;
+        if ( ! class_exists( 'Notifications' ) ) return 0;
+
+        $cache_key = "sh_notifications_unseen_{$this->ID}";
+        $cached    = wp_cache_get( $cache_key, 'notifications' );
+        if ( $cached !== false ) return (int) $cached;
+
+        $notifications = new \Notifications( $this );
+        $count = method_exists( $notifications, 'get_unseen_notifications_count' )
+            ? (int) $notifications->get_unseen_notifications_count()
+            : 0;
+
+        wp_cache_set( $cache_key, $count, 'notifications', 60 );
+        return $count;
+    }
+
+    /**
+     * Okunmamis mesaj sayisi (badge). Convention: get_{source}_unread_count().
+     * Kisa TTL wp_cache (60s) — Messenger::count() yavas oldugundan cache kritik.
+     * Twig: {{ user.get_messages_unread_count() }}
+     */
+    public function get_messages_unread_count(): int {
+        if ( ! ( defined( 'ENABLE_CHAT' ) && ENABLE_CHAT ) ) return 0;
+        if ( ! class_exists( 'Messenger' ) ) return 0;
+
+        $cache_key = "sh_messages_unread_{$this->ID}";
+        $cached    = wp_cache_get( $cache_key, 'messages' );
+        if ( $cached !== false ) return (int) $cached;
+
+        $count = (int) \Messenger::count();
+
+        wp_cache_set( $cache_key, $count, 'messages', 60 );
+        return $count;
+    }
+
+    /**
+     * Badge sayac cache invalidation — kullanici bir source'ta degisiklik yaptiginda
+     * (yeni bildirim, mesaj gonder/oku) ilgili sayac cache'i aninda temizlenir ki
+     * kullanici asla bayat sayac gormesin. Global patlatma YOK — sadece {user_id}.
+     *
+     * @param string $source  notifications | messages | reviews
+     * @param int    $user_id 0 => current user
+     */
+    public static function invalidate_source_badge( string $source, int $user_id = 0 ): void {
+        $user_id = $user_id ?: (int) get_current_user_id();
+        if ( $user_id < 1 ) return;
+
+        switch ( $source ) {
+            case 'notifications':
+                wp_cache_delete( "sh_notifications_unseen_{$user_id}", 'notifications' );
+                break;
+            case 'messages':
+                wp_cache_delete( "sh_messages_unread_{$user_id}", 'messages' );
+                break;
+            case 'reviews':
+                wp_cache_delete( "sh_reviews_unread_{$user_id}", 'reviews' );
+                break;
+        }
+    }
+
     public function set_review_approve( int $id = 0 ): array {
         if ( ! class_exists( 'Reviews' ) ) return [];
         $reviews = new Reviews();
@@ -533,6 +621,56 @@ class User extends Timber\User {
     public function reaction_button( string $type = 'follow', array $options = [] ): string {
         if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
         return \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->ID, 'user', $type, $options );
+    }
+
+    /**
+     * User tipine göre kayıtlı tüm aktif reaction butonlarını render eder.
+     * Twig: {{ user.reaction_buttons()|raw }}
+     */
+    public function reaction_buttons( array $options = [], string $wrapper_tag = 'div', string $wrapper_class = 'd-flex gap-1 align-items-center' ): string {
+        if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
+        if ( ! defined('ENABLE_REACTIONS') || ! ENABLE_REACTIONS ) return '';
+
+        static $btn_cache = null;
+        if ( $btn_cache === null ) $btn_cache = (array) get_option( 'sh_reactions_buttons', [] );
+
+        $html = '';
+
+        // Generator'dan kayıtlı user butonlarını dene
+        foreach ( $btn_cache as $btn ) {
+            if ( ( $btn['object_type'] ?? '' ) !== 'user' ) continue;
+            if ( isset( $btn['active'] ) && ! $btn['active'] ) continue;
+            $type = $btn['type'] ?? '';
+            if ( ! $type ) continue;
+            // Subtype filtresi — 'user:administrator' gibi varsa eşleşmeli
+            $btn_subtype = $btn['subtype'] ?? '';
+            if ( $btn_subtype ) {
+                $user_obj   = get_userdata( $this->ID );
+                $user_role  = $user_obj && ! empty( $user_obj->roles ) ? reset( $user_obj->roles ) : '';
+                if ( $btn_subtype !== $user_role ) continue;
+            }
+            $html .= \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->ID, 'user', $type, $options );
+        }
+
+        // Generator'da kayıt yoksa ReactionsSettings::getForObject() config'inden fallback
+        if ( $html === '' ) {
+            $user_obj  = get_userdata( $this->ID );
+            $user_role = $user_obj && ! empty( $user_obj->roles ) ? reset( $user_obj->roles ) : '';
+            $reactions = \SaltHareket\Reactions\ReactionsSettings::getForObject( 'user', $user_role );
+            foreach ( $reactions as $reaction ) {
+                $type  = $reaction['type']  ?? '';
+                $style = $reaction['style'] ?? 'icon-count';
+                if ( ! $type ) continue;
+                $html .= \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton(
+                    $this->ID, 'user', $type,
+                    array_merge( [ 'style' => $style ], $options )
+                );
+            }
+        }
+
+        if ( $html === '' ) return '';
+        if ( $wrapper_tag === '' ) return $html;
+        return "<{$wrapper_tag} class=\"" . esc_attr($wrapper_class) . "\">{$html}</{$wrapper_tag}>";
     }
 
     /**

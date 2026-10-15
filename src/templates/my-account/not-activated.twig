@@ -1,98 +1,322 @@
-<div class="container-sm">
+{#
+  not-activated.twig
+  Aktive edilmemiş kullanıcıya gösterilir.
+  activation_type: "email" | "sms"
+  SMS akışında telefon/isim/ülke eksikse önce form, tamamsa OTP girişi.
+#}
+{% set activation_type = membership_activation_type %}
+{% set _user_activation_type = user.meta('activation_type') %}
+{% if _user_activation_type %}
+    {% set activation_type = _user_activation_type %}
+{% endif %}
 
-    {% set activation_type = membership_activation_type %}
-    {% if user.activation_type and user.activation_type != activation_type %}
-       {% set activation_type = user.activation_type %}
-    {% endif %}
+<div class="container-sm py-5">
+<div class="row justify-content-center">
+<div class="col-md-8 col-lg-6">
 
+    {# ── Email aktivasyon ───────────────────────────────────────────────── #}
     {% if activation_type == "email" %}
-        <div class="text-center">
-            <i class="fa-light fa-user-lock opacity-25 fa-5x"></i>
-            <h4 class="title mt-3 mb-0">Your account is not activated!</h4>
-            <p>An email has been sent to your email address <b>({{user.user_email}})</b> containing an activation link. Please click on the link to activate your account.<br><br>
-                If you do not click the link your account will remain inactive and you will not receive further emails. If you do not receive the email within a few minutes, please check your spam folder.
-            </p>
-            <a href="#" class="btn btn-primary px-5 btn-lg text-uppercase fw-bold mt-4" data-ajax-method="send_activation" data-id="{{user.id}}">Resend Activaton Code</a>
-            <p class="pt-4">If you have a problem to getting email, please try <a href="#" class="btn-link fw-bold" data-ajax-method="change_activation_method" data-user_id="{{user.id}}" data-activation_method="sms">activation with OTP.</a></p>
-        </div>
 
-    {% elseif activation_type == "sms" %}
+    <div class="text-center mb-4">
+        {{ fa_icon('envelope-open-text', 'light', 'fa-4x text-secondary opacity-50') }}
+        <h2 class="fw-bold mt-3 mb-1">{{ translate("Check your email") }}</h2>
+        <p class="text-muted">
+            {{ translate("An activation link has been sent to") }}
+            <strong>{{ user.user_email }}</strong>.
+            {{ translate("Click the link to activate your account.") }}
+        </p>
+        <p class="text-muted small">
+            {{ translate("If you don't see the email, check your spam folder.") }}
+        </p>
+    </div>
 
-        {% if user.get_phone() is empty or user.get_title() is empty or user.billing_country is empty or user.billing_state is empty %}
-           
-           <form class="form form-validate" id="form-save-sms-requirements" method="post" data-ajax-method="update_profile" autocomplete="off">
-               <div class="card card-reset text-center">
-                    <div class="card-header">
-                        <i class="fa-light fa-message-sms opacity-25 fa-5x"></i>
-                        <h4 class="title fs-4 mt-3 mb-0">Please enter your details before send OTP</h4>
-                    </div>
-                    <div class="card-body py-4">
-                        <div class="row">
-                        {% include "partials/modals/fields-localization.twig" %}
-                        </div>
-                    </div>
-                    <div class="card-footer text-center">
-                        <input type="hidden" name="role" value="{{user.get_role()}}"/>
-                        <input type="hidden" name="action" value="save_sms_requirements"/>
-                        <input type="hidden" name="refresh" value="true"/>
-                        <button type="submit" class="btn btn-submit btn-secondary btn-lg fw-bold text-uppercase btn-fa-angle-right btn-fa-end">{{translate("Next")}}</button>
-                    </div>
-                </div>
-            </form>
+    <div class="card shadow-sm border-0 rounded-4">
+    <div class="card-body p-4 text-center">
 
-            <script>
-            $( document ).ready(function() {
-                $("select[name='country']").on("change", function(){
-                    var country = $(this).val();
-                    if(!IsBlank(country)){
-                        var $phone_code = $(this).find("option:selected").attr("data-phonecode");
-                        $("input[name='phone_code']").val($phone_code).trigger("change");
-                        $(".phone-code").text($phone_code);
+        <button type="button"
+                class="btn btn-outline-primary btn-lg px-5 fw-bold mb-3"
+                data-ajax-method="send_activation"
+                data-id="{{ user.id }}">
+            {{ translate("Resend Activation Email") }}
+        </button>
 
-                        var $states_count = parseInt($(this).find("option:selected").attr("data-states"));
-                        var $states_view = true;
-                        if($states_count == 0){
-                           $states_view = false;
-                        }
-                        $("input[name='states_view']").val($states_view).trigger("change");
-                        
-                    }
-                });
-                if(IsBlank($("input[name='phone_code']").val())){
-                   $("select[name='country']").trigger("change");
-                }
-            });
-            </script>
-
-        {% else %}
-
-            <form class="form form-validate" id="form-otp" method="post" data-ajax-method="verify_otp" autocomplete="off">
-                <div class="card card-reset text-center">
-                    <div class="card-header">
-                        <i class="fa-light fa-message-sms opacity-25 fa-5x"></i>
-                        <h4 class="title fs-4 mt-3 mb-0">Please enter the one time password<br>to verify your account</h4>
-                        <p>
-                             A code has been sent to <strong class="text-secondary">{{user.get_phone|masked_text(4)}}</strong>
-                        </p>
-                    </div>
-                    <div class="card-body pb-4 pt-3">
-                        <div class="countdown text-danger fw-bold" data-event-end="{{user.get_local_date(user.otp_expiry,'GMT', user.get_timezone)}}" data-event-completed="Code expired."></div>
-                        <div class="form-group text-center mb-2 mt-3">
-                            <input type="text" class="form-control fs-1 input-lg rounded-5 text-center d-inline-block" name="otp_code" minlength="6" maxlength="6" number="true" autocomplete="off" style="letter-spacing:20px;max-width:320px;" required />
-                        </div>
-                    </div>
-                    <div class="card-footer text-center">
-                        <input type="hidden" name="otp_id" value="{{user.otp_id}}"/>
-                        <button type="submit" class="btn btn-submit btn-secondary btn-lg fw-bold text-uppercase">{{translate("verify code")}}</button>
-                    </div>
-                    <div class="card-footer text-center pt-4">
-                        <p>Didn't get the code <a href="#" class="btn-link fw-bold" data-ajax-method="resend_otp" data-user_id="{{user.id}}" data-otp_id="{{user.otp_id}}">Resend</a></p>
-                        <p>If you have a problem to getting OTP SMS messages, please try <a href="#" class="btn-link fw-bold" data-ajax-method="change_activation_method" data-user_id="{{user.id}}" data-activation_method="email">activation with email.</a></p>
-                    </div>
-                </div>
-            </form>
-
+        {% if enable_sms is defined and enable_sms %}
+        <p class="text-muted small mb-0">
+            {{ translate("Having trouble? Try") }}
+            <a href="#"
+               class="fw-semibold"
+               data-ajax-method="change_activation_method"
+               data-user_id="{{ user.id }}"
+               data-activation_method="sms">
+               {{ translate("SMS activation instead") }}
+            </a>.
+        </p>
         {% endif %}
 
+    </div>
+    </div>
+
+    {# ── SMS aktivasyon ─────────────────────────────────────────────────── #}
+    {% elseif activation_type == "sms" %}
+
+        {# Alt senaryo 1 — telefon eksik (country artık zorunlu değil) #}
+        {% set _sms_phone = user.get_phone() ?: user.meta('billing_phone') %}
+        {% if _sms_phone is empty %}
+
+        <div class="text-center mb-4">
+            {{ fa_icon('message-sms', 'light', 'fa-4x text-secondary opacity-50') }}
+            <h2 class="fw-bold mt-3 mb-1">{{ translate("Complete your details") }}</h2>
+            <p class="text-muted small">{{ translate("We need a few more details before we can send your activation code.") }}</p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+
+            <form id="form-save-sms-requirements"
+                  class="form form-validate needs-validation"
+                  method="post"
+                  novalidate
+                  data-ajax-method="update_profile"
+                  autocomplete="off">
+
+                <div class="row g-3">
+                    {% include "partials/modals/fields-localization.twig" %}
+                </div>
+
+                <input type="hidden" name="role" value="{{ user.get_role() }}"/>
+                <input type="hidden" name="action" value="save_sms_requirements"/>
+                <input type="hidden" name="refresh" value="true"/>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Continue") }}
+                        {{ fa_icon('angle-right', 'light', '') }}
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+        </div>
+
+        <script>
+        (function($){
+            $("select[name='country']").on("change", function(){
+                var $opt = $(this).find("option:selected");
+                $("input[name='phone_code']").val($opt.data("phonecode")).trigger("change");
+                $(".phone-code").text($opt.data("phonecode"));
+                var hasStates = parseInt($opt.data("states")) > 0;
+                $("input[name='states_view']").val(hasStates).trigger("change");
+            });
+            if (!$("input[name='phone_code']").val()) {
+                $("select[name='country']").trigger("change");
+            }
+        })(jQuery);
+        </script>
+
+        {# Alt senaryo 2 — bilgiler tamam, OTP giriş formu #}
+        {% else %}
+
+        {% set _otp_length = otp_length ?? 6 %}
+        {% set _otp_expiry = user.meta('otp_expiry') %}
+        {% set _otp_id     = user.meta('otp_id') %}
+
+        <div class="text-center mb-4">
+            {{ fa_icon('message-sms', 'light', 'fa-4x text-secondary opacity-50') }}
+            <h2 class="fw-bold mt-3 mb-1">{{ translate("Enter verification code") }}</h2>
+            <p class="text-muted" id="sh-activation-otp-desc">
+                {{ translate("A code has been sent to") }}
+                <strong>{{ _sms_phone|masked_text(4) }}</strong>.
+            </p>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+
+            <form id="form-otp"
+                  class="form needs-validation"
+                  method="post"
+                  novalidate
+                  autocomplete="off"
+                  data-ajax-method="verify_otp">
+
+                {# OTP kutucuklar #}
+                {% include "my-account/partials/otp-input.twig" with {
+                    otp_length  : _otp_length,
+                    input_name  : "otp_code",
+                    input_class : "sh-activation-otp-code",
+                    wrap_id     : "sh-otp-activation"
+                } %}
+
+                <input type="hidden" name="otp_id" class="sh-activation-otp-id" value="{{ _otp_id }}"/>
+                <input type="hidden" name="user_id" value="{{ user.id }}"/>
+
+                <div class="d-grid mb-3 mt-4">
+                    <button type="submit" class="btn-submit btn btn-primary btn-lg fw-bold">
+                        {{ translate("Verify Code") }}
+                    </button>
+                </div>
+
+                {# Countdown + Resend #}
+                <div class="text-center">
+                    <div class="text-muted small mb-2">
+                        {{ translate("Code expires in") }}
+                        <span id="sh-activation-countdown" class="fw-semibold">--:--</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-link text-muted small p-0"
+                            id="sh-activation-resend-btn"
+                            data-user_id="{{ user.id }}"
+                            data-otp_id="{{ _otp_id }}"
+                            disabled>
+                        {{ translate("Resend code") }}
+                        <span id="sh-activation-resend-count" class="text-muted" style="font-size:11px"></span>
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="text-center mt-3">
+                <p class="text-muted small mb-0">
+                    {{ translate("Having trouble with SMS?") }}
+                    <a href="#"
+                       class="fw-semibold"
+                       data-ajax-method="change_activation_method"
+                       data-user_id="{{ user.id }}"
+                       data-activation_method="email">
+                        {{ translate("Activate by email instead") }}
+                    </a>
+                </p>
+            </div>
+
+        </div>
+        </div>
+
+        <script>
+        (function($){
+            'use strict';
+
+            var _otpExpiry  = parseInt('{{ _otp_expiry }}') || 0;
+            var _maxResend  = parseInt('{{ otp_max_resend ?? 3 }}') || 3;
+            var _resendCount = 0;
+            var _cdTimer    = null;
+
+            // ── OTP input init ───────────────────────────────────────────────
+            function shInitActivationOtp() {
+                var $wrap = $('#sh-otp-activation');
+                if (!$wrap.length) return;
+                if ($wrap.data('otp-init')) return;
+
+                if (typeof shInitOtpWrap === 'function') {
+                    shInitOtpWrap($wrap[0]);
+                    $wrap.data('otp-init', true);
+                    return;
+                }
+
+                // Fallback — otp-input-digit class'lı kutucuklar
+                var $cells  = $wrap.find('input.otp-input-digit');
+                var $hidden = $('#sh-otp-activation-value');
+                if (!$cells.length) return;
+                $wrap.data('otp-init', true);
+
+                function collectVal() {
+                    var v = '';
+                    $cells.each(function(){ v += $(this).val() || ''; });
+                    $hidden.val(v);
+                }
+
+                $cells.on('input', function(){
+                    var $cur = $(this);
+                    var val  = $cur.val().replace(/\D/g, '');
+                    $cur.val(val.slice(-1));
+                    collectVal();
+                    if (val && $cur.next('.otp-input-digit').length) {
+                        $cur.next('.otp-input-digit').focus();
+                    }
+                }).on('keydown', function(e){
+                    if (e.key === 'Backspace' && !$(this).val()) {
+                        $(this).prev('.otp-input-digit').focus();
+                    }
+                }).on('paste', function(e){
+                    e.preventDefault();
+                    var text = (e.originalEvent.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+                    $cells.each(function(i){ $(this).val(text[i] || ''); });
+                    collectVal();
+                    $cells.filter(function(){ return !$(this).val(); }).first().focus() || $cells.last().focus();
+                });
+
+                $cells.first().focus();
+            }
+
+            $(document).ready(function(){ shInitActivationOtp(); });
+            $(window).on('load', function(){ shInitActivationOtp(); });
+
+            // ── Countdown ────────────────────────────────────────────────────
+            function shActivationCountdown(endTimestamp) {
+                if (_cdTimer) clearInterval(_cdTimer);
+                var $cd  = $('#sh-activation-countdown');
+                var $btn = $('#sh-activation-resend-btn');
+                $btn.prop('disabled', true);
+
+                function _tick() {
+                    var rem = Math.max(0, endTimestamp - Math.floor(Date.now() / 1000));
+                    var m   = Math.floor(rem / 60);
+                    var s   = rem % 60;
+                    $cd.text((m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s);
+                    if (rem <= 0) {
+                        clearInterval(_cdTimer);
+                        if (_resendCount < _maxResend) $btn.prop('disabled', false);
+                        else $btn.text('{{ translate("Max resend reached") }}').prop('disabled', true);
+                    }
+                }
+                _tick();
+                _cdTimer = setInterval(_tick, 1000);
+            }
+
+            if (_otpExpiry > 0 && _otpExpiry > Math.floor(Date.now() / 1000)) {
+                shActivationCountdown(_otpExpiry);
+            } else {
+                // Süre dolmuş veya yeni OTP gelmemiş — resend butonunu hemen aç
+                $('#sh-activation-countdown').text('00:00');
+                $('#sh-activation-resend-btn').prop('disabled', false);
+            }
+
+            // ── Resend ───────────────────────────────────────────────────────
+            $(document).on('click', '#sh-activation-resend-btn', function(){
+                if (_resendCount >= _maxResend) return;
+                var $btn    = $(this);
+                var otp_id  = $btn.data('otp_id');
+                var user_id = $btn.data('user_id');
+                $btn.prop('disabled', true);
+
+                var q = new ajax_query();
+                q.method = 'resend_otp';
+                q.vars   = { otp_id: otp_id, user_id: user_id };
+                q.done   = function(res){
+                    if (res && res.error) {
+                        if (typeof response_view === 'function') response_view(res);
+                        $btn.prop('disabled', false);
+                        return;
+                    }
+                    _resendCount++;
+                    $('#sh-activation-resend-count').text('(' + _resendCount + '/' + _maxResend + ')');
+                    var d = (res.data && typeof res.data === 'object') ? res.data : {};
+                    if (d.otp_id) {
+                        $('.sh-activation-otp-id').val(d.otp_id);
+                        $btn.data('otp_id', d.otp_id);
+                    }
+                    var newExpiry = d.otp_expiry || (_otpExpiry + 300);
+                    shActivationCountdown(newExpiry);
+                };
+                q.request();
+            });
+
+        })(jQuery);
+        </script>
+
+        {% endif %}
     {% endif %}
+
+</div>
+</div>
 </div>

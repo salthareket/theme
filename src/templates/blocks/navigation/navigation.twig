@@ -18,27 +18,49 @@
   ApiVersion: 2
 #}
 {% set block_main_field = [""] %}
-{% set block_extras = { "container" : "z-1 position-relative" } %}
+{% set block_extras = fields.show_offcanvas_toggle ? {} : { "container" : "z-1 position-relative" } %}
 {% extends "blocks/_block-container.twig" %}
 
 {% block block_content %}
 
     {% set align_item = function("block_align", fields.align_item, true, fields.slider) %}
 
-    {% if fields.menu_view and fields.menu %}
-        {% include "blocks/navigation/menu-" ~ fields.menu_view ~ ".twig" with {
-            'menu': get_menu(fields.menu).get_items,
-            'is_child': false,
-            'parent_link' : fields.parent_link,
-            "max_level": fields.max_level
-        } %}
-    {% elseif is_preview %}
-        <nav class="d-flex gap-3 align-items-center py-2">
-            <a href="#" class="nav-link">Ana Sayfa</a>
-            <a href="#" class="nav-link">Hakkımızda</a>
-            <a href="#" class="nav-link dropdown-toggle">Hizmetler</a>
-            <a href="#" class="nav-link">İletişim</a>
-        </nav>
+    {# Offcanvas toggler — show_offcanvas_toggle aktifse hamburger butonu goster #}
+    {% if fields.show_offcanvas_toggle %}
+    <div class="nav-item nav-toggler">
+        <a href="#" class="nav-toggler-custom{% if user.notifications_count > 0 or user.messages_count > 0 %} has-notification{% endif %}"
+           data-bs-toggle="offcanvas"
+           data-bs-target="#main-mobile"
+           aria-controls="main-mobile"
+           title="{{ translate("Menu") }}">
+            <span></span>
+        </a>
+    </div>
+    {% else %}
+
+        {% if fields.menu_view and fields.menu %}
+            {% set nav_menu_slug = fields.menu %}
+            {# Direkt Timber::get_menu() ile al — populate fake item'larini da getirir #}
+            {% set nav_menu_obj = fn('Timber\\Timber::get_menu', nav_menu_slug) %}
+            {% if nav_menu_obj %}
+                {% include "blocks/navigation/menu-" ~ fields.menu_view ~ ".twig" with {
+                    'menu'        : nav_menu_obj.get_items,
+                    'is_child'    : false,
+                    'parent_link' : fields.parent_link,
+                    'max_level'   : (fields.max_level and fields.max_level > 0) ? fields.max_level : 9999,
+                    'direction'   : fields.direction ?? 'horizontal',
+                    'align'       : fields.align ?? 'start'
+                } %}
+            {% endif %}
+        {% elseif is_preview %}
+            <nav class="d-flex gap-3 align-items-center py-2">
+                <a href="#" class="nav-link">Ana Sayfa</a>
+                <a href="#" class="nav-link">Hakkımızda</a>
+                <a href="#" class="nav-link dropdown-toggle">Hizmetler</a>
+                <a href="#" class="nav-link">İletişim</a>
+            </nav>
+        {% endif %}
+
     {% endif %}
 
 {% endblock %}

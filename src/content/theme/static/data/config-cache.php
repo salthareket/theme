@@ -1,47 +1,44 @@
 <?php
-/** SaltConfig Auto Generated Cache — 2026-06-17 14:46:21 **/
+/** SaltConfig Auto Generated Cache — 2026-10-14 20:37:15 **/
 return array (
+  '__version' => 14,
   'options_disable_default_cat' => '1',
-  'options_disable_review_approve' => '0',
-  'options_enable_activation_email_autologin' => '1',
   'options_enable_cart' => '1',
-  'options_enable_chat' => '0',
-  'options_enable_console_logs' => '1',
-  'options_enable_reactions' => '1',
-  'options_enable_ip2country' => '0',
-  'options_enable_location_db' => '0',
-  'options_enable_logs' => '1',
-  'options_enable_lost_password' => '1',
-  'options_enable_membership' => '1',
-  'options_enable_membership_activation' => '1',
-  'options_enable_notifications' => '1',
-  'options_enable_password_recover' => '1',
-  'options_enable_postcode_validation' => '0',
-  'options_enable_production' => '1',
-  'options_enable_regional_posts' => false,
-  'options_enable_registration' => '1',
-  'options_enable_remember_login' => '1',
-  'options_enable_search_history' => '1',
-  'options_enable_sms_notifications' => '1',
-  'options_enable_social_login' => '1',
-  'options_enable_twig_cache' => '0',
-  'options_enable_woo_api' => '0',
+  'options_disable_wc_frontend' => '',
+  'options_enable_woo_api' => '',
   'options_exclude_from_search' => 
   array (
-    0 => 'shop_order',
-    1 => 'template',
-    2 => 'contact',
   ),
-  'options_google_maps_api_key' => false,
-  'options_inline_css' => '0',
-  'options_inline_js' => '0',
-  'options_ip2country_settings' => false,
-  'options_membership_activation_settings' => 'email',
-  'options_password_recover_settings' => 'renew',
-  'options_role_themes' => '',
-  'options_seperate_css' => '1',
-  'options_seperate_js' => '1',
-  'options_white_pages' => '',
+  'options_taxonomy_prefix_remove' => 
+  array (
+    0 => 'category',
+    1 => 'product_cat',
+  ),
+  'options_add_sticky_support' => 
+  array (
+  ),
+  'options_contact_post_types' => 
+  array (
+  ),
+  'options_post_pagination' => 
+  array (
+    0 => 
+    array (
+      'post_type' => 'product',
+      'paged' => true,
+      'type' => 'scroll',
+      'catalog_rows' => 3,
+      'catalog_columns' => 4,
+    ),
+  ),
+  'options_search_pagination' => 
+  array (
+    'paged' => true,
+    'type' => 'default',
+    'catalog_rows' => 1,
+    'catalog_columns' => 1,
+  ),
+  'options_google_maps_api_key' => '',
   'sh_theme_tasks_status' => 
   array (
     'fix_packages' => true,
@@ -59,6 +56,159 @@ return array (
     'compile_js_css' => true,
     'defaults' => true,
   ),
-  'underConstructionActivationStatus' => false,
-  'woocommerce_enable_myaccount_registration' => 'yes',
+  'options_woo_api_local' => 
+  array (
+    'client' => '',
+    'client_secret' => '',
+  ),
+  'options_woo_api_live' => 
+  array (
+    'client' => '',
+    'client_secret' => '',
+  ),
+  'vp_enabled' => false,
+  'options_breadcrumb_remove_home' => '1',
+  'options_breadcrumb_remove_current' => '1',
+  'options_breadcrumb_from_menu' => '',
+  'options_breadcrumb_add_page_path' => 
+  array (
+  ),
+  'options_breadcrumb_add_product_brand' => '',
+  'options_breadcrumb_add_product_taxonomy' => '',
+  'options_untranslatable_taxonomies' => '',
+  'options_untranslatable_post_types' => '',
+  'options_synchronized_pages' => '',
+  'options_sync_taxonomies_to_language' => 
+  array (
+    0 => '',
+  ),
+  'sh_asset_manager_settings' => 
+  array (
+    'enable_development' => true,
+    'enable_logs' => false,
+    'enable_console_logs' => false,
+    'enable_twig_cache' => true,
+    'seperate_css' => true,
+    'seperate_js' => true,
+    'inline_css' => false,
+    'inline_js' => false,
+    'remove_global_styles' => 'auto',
+    'remove_block_styles' => 'auto',
+    'remove_classic_theme_styles' => true,
+    'remove_woocommerce_styles' => false,
+    'block_google_fonts' => true,
+    'css_lazy_load' => false,
+    'js_defer' => true,
+    'auto_fetch' => false,
+    'lazy_css_handles' => 
+    array (
+    ),
+    'defer_js_handles' => 
+    array (
+    ),
+    'dequeue_styles' => 
+    array (
+    ),
+    'dequeue_scripts' => 
+    array (
+    ),
+  ),
+  'options_logo' => 
+  array (
+    'ID' => 8451,
+    'id' => 8451,
+    'url' => 'http://localhost/salthub/wp-content/uploads/logo-salt-hareket-1.webp',
+    'width' => 380,
+    'height' => 380,
+  ),
+  'options_logo_affix' => 
+  array (
+    'ID' => 8452,
+    'id' => 8452,
+    'url' => 'http://localhost/salthub/wp-content/uploads/instagram-icon-300x300-2.webp',
+    'width' => 300,
+    'height' => 300,
+  ),
+  'options_logo_footer' => 
+  array (
+    'ID' => 8451,
+    'id' => 8451,
+    'url' => 'http://localhost/salthub/wp-content/uploads/logo-salt-hareket-1.webp',
+    'width' => 380,
+    'height' => 380,
+  ),
+  'options_logo_mobile' => 
+  array (
+    'ID' => 8936,
+    'id' => 8936,
+    'url' => 'http://localhost/salthub/wp-content/uploads/midea-favicon.webp',
+    'width' => 260,
+    'height' => 260,
+  ),
+  'options_logo_mobile_breakpoint' => 'lg',
+  'options_logo_icon' => '',
+  'options_logo_marker' => '',
+  'options_logo_not_found' => 
+  array (
+    'ID' => 8936,
+    'id' => 8936,
+    'url' => 'http://localhost/salthub/wp-content/uploads/midea-favicon.webp',
+    'width' => 260,
+    'height' => 260,
+  ),
+  'options_default_container' => '',
+  'options_default_margin_top' => '',
+  'options_default_margin_bottom' => '',
+  'options_default_margin_left' => '',
+  'options_default_margin_right' => '',
+  'options_default_padding_top' => '',
+  'options_default_padding_bottom' => '',
+  'options_default_padding_left' => '',
+  'options_default_padding_right' => '',
+  'options_default_ratio' => '16x9',
+  'options_default_title_size' => 'title-fluid',
+  'options_default_text_size' => 'text-fluid',
+  'options_default_footer_template' => 'static',
+  'options_map_service' => 'leaflet',
+  'options_map_view' => 'js',
+  'options_map_marker' => 
+  array (
+    'ID' => 6184,
+    'url' => 'http://localhost/salthub/wp-content/uploads/logo-salt-hareket.webp',
+    'width' => 380,
+    'height' => 380,
+  ),
+  'options_tease_settings' => 
+  array (
+    'multiple_images' => true,
+    'show_variations' => true,
+    'swatch_tooltip' => true,
+    'show_oos_swatches' => true,
+    'show_sale_badge' => true,
+    'show_feat_badge' => true,
+    'show_oos_badge' => true,
+    'show_category' => true,
+    'show_price' => true,
+    'swatch_limit' => 115,
+    'img_ratio' => '1x1',
+    'default_size' => 'lg',
+    'bundle_cta' => 'view',
+  ),
+  'options_gallery_settings' => 
+  array (
+    'type' => 'swiper',
+    'ratio' => 'original',
+    'object_fit' => 'cover',
+    'hover' => 'lightbox',
+    'lightbox' => false,
+    'navigation' => true,
+    'loop' => false,
+    'thumbs' => true,
+    'variation_update' => true,
+    'pagination' => 'bullets',
+    'slides_per_view' => 1,
+    'thumb_count' => 4,
+    'thumb_nav' => true,
+    'stack_gap' => 8,
+  ),
 );

@@ -3,8 +3,10 @@
 
 
 .image-uploader-single{
-    width:100%;
-    min-width:100%;
+    width:80px;
+    max-width:80px;
+    height:80px;
+    max-height:80px;
     .image-uploader{
         padding:0;
         border:none;
@@ -284,3 +286,5 @@
         }
     }
 }
+
+

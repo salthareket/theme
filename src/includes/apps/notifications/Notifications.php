@@ -221,6 +221,9 @@ class Notifications
 
             if ( isset( $args['set_seen'] ) && $ids_sql ) {
                 $wpdb->query( "UPDATE {$table} SET status = 'read' WHERE id IN ({$ids_sql})" ); // phpcs:ignore
+                // Seen sonrasi unseen badge cache'i bayat kalmasin.
+                $uid = (int) ( $this->user->ID ?? get_current_user_id() );
+                if ( $uid > 0 ) wp_cache_delete( "sh_notifications_unseen_{$uid}", 'notifications' );
             }
         }
 

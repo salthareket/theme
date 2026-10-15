@@ -1,37 +1,4 @@
 <?php
-add_action('wp_ajax_get_post_type_taxonomies', 'get_post_type_taxonomies');
-add_action('wp_ajax_nopriv_get_post_type_taxonomies', 'get_post_type_taxonomies');
-function get_post_type_taxonomies() {
-$response = ['error' => false, 'message' => '', 'html' => '', 'data' => ''];
-$selected   = sanitize_text_field($_POST['selected'] ?? '');
-$post_type  = sanitize_text_field($_POST['value'] ?? '');
-$taxonomies = empty($post_type)
-? get_taxonomies([], 'objects')
-: get_object_taxonomies(['post_type' => $post_type], 'objects');
-$taxonomies = array_filter($taxonomies ?? [], fn($t) => $t->public);
-$options = '<option value=""' . (empty($selected) ? ' selected' : '') . '>'
-. ($taxonomies ? "Don't add Taxonomies" : 'Not found any taxonomy')
-. '</option>';
-$ids = [];
-foreach ($taxonomies as $taxonomy) {
-$ids[]    = $taxonomy;
-$sel      = ($selected === $taxonomy->name) ? ' selected' : '';
-$options .= '<option value="' . esc_attr($taxonomy->name) . '"' . $sel . '>' . esc_html($taxonomy->label) . '</option>';
-}
-$response['html'] = $options;
-$response['data']  = ['selected' => $selected, 'ids' => $ids, 'count' => 0];
-echo json_encode($response);
-wp_die();
-}
-function post_type_ui_render_field($field) {
-if (empty($field['value'])) return;
-$js = 'if(typeof acf!=="undefined"&&typeof acf.add_action!=="undefined"){'
-. 'acf.addAction("new_field/key=' . esc_js($field['key']) . '",function(e){'
-. 'if(e.$el.closest(".acf-clone").length==0){e.$el.attr("data-val","%s")}'
-. '});}';
-printf('<script>' . $js . '</script>', esc_js($field['value']));
-}
-add_action('acf/render_field/name=menu_item_taxonomy', 'post_type_ui_render_field');
 /**
 * Admin Pages Table — Template column.
 */
@@ -65,6 +32,81 @@ function admin_make_modified_date_sortable($columns) {
 $columns['modified_date'] = 'modified';
 return $columns;
 }
+/**
+* Admin Product List — ProductStats kolonları (views, carts, purchases, favorites, rating).
+*/
+add_filter( 'manage_product_posts_columns', function ( $columns ) {
+$columns['sh_views']     = '<span title="Views">👁</span>';
+$columns['sh_carts']     = '<span title="Added to Cart">🛒</span>';
+$columns['sh_purchases'] = '<span title="Purchases">💳</span>';
+$columns['sh_favorites'] = '<span title="Favorites">⭐</span>';
+$columns['sh_rating']    = '<span title="Rating">★</span>';
+return $columns;
+}, 20 );
+add_action( 'manage_product_posts_custom_column', function ( $column, $post_id ) {
+$zero = '<span style="color:#ccc;">—</span>';
+// Polylang: her zaman default dildeki ürünün verisini göster
+$data_id = $post_id;
+if ( function_exists( 'pll_get_post' ) && function_exists( 'pll_default_language' ) ) {
+$default_id = pll_get_post( $post_id, pll_default_language() );
+if ( $default_id ) $data_id = $default_id;
+}
+switch ( $column ) {
+case 'sh_views':
+$v = (int) get_post_meta( $data_id, '_product_view_count', true );
+echo $v > 0 ? '<strong>' . number_format( $v ) . '</strong>' : $zero;
+break;
+case 'sh_carts':
+$v = (int) get_post_meta( $data_id, '_product_cart_count', true );
+echo $v > 0 ? '<strong>' . number_format( $v ) . '</strong>' : $zero;
+break;
+case 'sh_purchases':
+$v = (int) get_post_meta( $data_id, '_product_purchase_count', true );
+echo $v > 0 ? '<strong style="color:#0a8c3e;">' . number_format( $v ) . '</strong>' : $zero;
+break;
+case 'sh_favorites':
+$v = 0;
+if ( class_exists( '\SaltHareket\Reactions\Reactions' ) ) {
+$v = (int) \SaltHareket\Reactions\Reactions::count( 'favorite', $data_id, 'post' );
+}
+echo $v > 0 ? '<strong style="color:#d97706;">' . number_format( $v ) . '</strong>' : $zero;
+break;
+case 'sh_rating':
+$avg   = (float) get_post_meta( $data_id, '_post_rating', true );
+$count = (int)   get_post_meta( $data_id, '_post_rating_count', true );
+echo $count > 0
+? '<strong style="color:#1d4ed8;">' . number_format( $avg, 1 ) . '</strong> <small>(' . $count . ')</small>'
+: $zero;
+break;
+}
+}, 10, 2 );
+add_filter( 'manage_edit-product_sortable_columns', function ( $columns ) {
+$columns['sh_views']     = 'sh_views';
+$columns['sh_carts']     = 'sh_carts';
+$columns['sh_purchases'] = 'sh_purchases';
+$columns['sh_rating']    = 'sh_rating';
+return $columns;
+} );
+add_action( 'pre_get_posts', function ( $query ) {
+if ( ! is_admin() || ! $query->is_main_query() ) return;
+if ( $query->get( 'post_type' ) !== 'product' ) return;
+$map = [
+'sh_views'     => '_product_view_count',
+'sh_carts'     => '_product_cart_count',
+'sh_purchases' => '_product_purchase_count',
+'sh_rating'    => '_post_rating',
+];
+$orderby = $query->get( 'orderby' );
+if ( isset( $map[ $orderby ] ) ) {
+$query->set( 'meta_key', $map[ $orderby ] );
+$query->set( 'orderby', 'meta_value_num' );
+}
+} );
+add_action( 'admin_head', function () {
+$screen = get_current_screen();
+if ( ! $screen || $screen->id !== 'edit-product' ) return;
+echo '<style>.column-sh_views,.column-sh_carts,.column-sh_purchases,.column-sh_favorites,.column-sh_rating{width:36px;text-align:center;}</style>';
+} );
 /**
 * Sticky Posts Column — Admin list table'da sticky toggle checkbox'ı.
 */
@@ -187,9 +229,9 @@ $new_styles[] = ['title' => 'Styles', 'items' => $base_styles];
 $breakpoints = Data::get('breakpoints');
 if ($breakpoints) {
 $typography    = [];
-$theme_styles  = function_exists('acf_get_theme_styles') ? acf_get_theme_styles() : [];
-if (isset($theme_styles['typography'])) {
-$typography = $theme_styles['typography'];
+if ( class_exists( 'Theme_Styles' ) ) {
+$ts = Theme_Styles::init()->get_data();
+$typography = $ts['typography'] ?? [];
 }
 $title_classes = [];
 $text_classes  = [];

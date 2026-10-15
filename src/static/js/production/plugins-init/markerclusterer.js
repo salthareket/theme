@@ -519,6 +519,7 @@ class GoogleMaps{
 }
 
 function init_google_maps(){
+	if (typeof google === 'undefined' || !google.maps) { return; }
 	const maps = new GoogleMaps();
 		  maps.init()
 }

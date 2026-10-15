@@ -7,8 +7,8 @@
 .font-secondary     { font-family: var(--font-secondary); }
 .font-header        { font-family: var(--header-font); }
 .font-nav           { font-family: var(--nav-font); }
-.font-icon          { font-family: var(--icon-font); }
-.font-icon-brands   { font-family: var(--icon-font-brands); }
+//.font-icon          { font-family: var(--icon-font); }
+//.font-icon-brands   { font-family: var(--icon-font-brands); }
 
 // Headings font
 @for $i from 1 through 6 {

@@ -1,0 +1,76 @@
+{% set url = function("home_url") ~ "/search/" %}
+
+<div class="offcanvas-body align-items-center">
+    <div class="container-md text-center">
+                        {% if function("class_exists", 'DGWT_WC_Ajax_Search' ) %}
+                            {{ '[fibosearch]'|shortcodes }}
+                            {% if not _keyword %}
+                                {% set _popular = function('sh_get_popular_search_terms', 'search', 10) %}
+                                {% if _popular %}
+                                <div class="search-history-terms text-center mt-2">
+                                    <label>Popular searches</label>
+                                    <ul class="list-inline mb-0 justify-content-center">
+                                        {% for term in _popular %}
+                                        <li class="list-inline-item mb-1">
+                                            <a href="{{ url }}{{ term }}"
+                                               class="btn btn-sm btn-outline-primary btn-loading-page">
+                                                {{ term }}
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+{#
+
+                        {% set search_param = "s" %}
+                        {% set class = "" %}
+                        {% if atts.post_type != "search" %}
+                            {% set search_param = "q" %}
+                            {% set class = "form-search-custom" %}
+                        {% endif %}
+
+                        <form class="form-search {{class}} form form-validate mt-5 mb-3 form-group rounded-3 border" action="{{url}}" role="form" method="post">
+                            {% set search_term = "" %}
+                            {% set query_var = function('get_query_var','s') %}
+                            <div class="input-group  bg-white rounded-3 overflow-hidden p-2">
+                                <input type="text" class="form-control border-0" name="{{search_param}}" placeholder="{{atts.placeholder|default(translate("Keyword"))}}" aria-label="{{atts.placeholder|default(translate("Keyword"))}}" autocomplete="off" value="{{keyword|urldecode}}" data-minlength="3" minlength="3" data-msg="{{__("Please enter 3 characters at least", "mdmco")}}" required>
+                                <input type="hidden" name="post_type" value="{{atts.post_type=="search"?"search":atts.post_type}}" />
+                                <input type="hidden" name="post_type_pagination" value="{{atts.post_type_pagination}}" />
+                                <button class="btn-submit btn btn-secondary px-3 rounded-3" type="submit" aria-label="{{ translate('Search') }}">{{translate("SEARCH")}}</button>
+                            </div>
+                        </form>
+
+                        <form class="form-search form form-validate mt-5 form-group" action="{{site.url}}/search/" role="form" method="post">
+                            {% set search_term = "" %}
+                            {% set query_var = function('get_query_var','s') %}
+                            <div class="input-group input-group-lg bg-white rounded-5 overflow-hidden p-2">
+                                <input type="text" class="form-control border-0" name="s" placeholder="{{translate("Search keyword")}}" aria-label="{{translate("Search keyword")}}" autocomplete="off" value="{{query_var}}" data-minlength="3" minlength="3" data-msg="{{translate("Please enter at least 3 characters")}}" required>
+                                <button class="btn-submit btn px-3 mt-1" type="submit" aria-label="{{ translate('Search') }}">
+                                    {{ fa_icon( 'search', 'regular', 'fa-2x' )}}
+                                </button>
+                            </div>
+                            {% if not _keyword %}
+                                {% set _popular = function('sh_get_popular_search_terms', 'search', 10) %}
+                                {% if _popular %}
+                                <div class="search-history-terms text-center mt-2">
+                                    <ul class="list-inline mb-0">
+                                        {% for term in _popular %}
+                                        <li class="list-inline-item mb-1">
+                                            <a href="{{ url }}{{ term }}"
+                                               class="btn btn-sm btn-outline-secondary btn-loading-page">
+                                                {{ term }}
+                                            </a>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </form>
+ #}
+                        <button type="button" class="btn btn-outline-light px-5 mt-5" data-bs-dismiss="offcanvas" aria-label="{{translate("Close")}}">{{translate("Close")}}</button>
+    </div>
+</div>

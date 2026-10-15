@@ -30,7 +30,9 @@
         "irmmr/rtlcss": "^1.4",
         "nesbot/carbon": "^3.10",
         "mck89/peast": "^1.17",
-        "minishlink/web-push": "^10.0"
+        "minishlink/web-push": "^10.0",
+        "pragmarx/google2fa-qrcode": "3.0",
+        "giggsey/libphonenumber-for-php": "^8.13"
     },
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4"
@@ -45,4 +47,3 @@
     }
 
 }
-

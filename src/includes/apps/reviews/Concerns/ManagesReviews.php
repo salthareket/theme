@@ -32,13 +32,16 @@ trait ManagesReviews
 
         // --- Validasyon ---
         if ( $target_id < 1 )    return $this->error( 'invalid_target',  trans( 'Hedef belirtilmedi.' ) );
-        if ( $rating < 1 )       return $this->error( 'invalid_rating',  trans( 'Lütfen bir puan verin.' ) );
-        if ( empty( $content ) ) return $this->error( 'empty_content',   trans( 'Yorum içeriği boş olamaz.' ) );
+        // Rating ve content en az biri zorunlu (Trendyol pattern: sadece puan da verilebilir)
+        if ( $rating < 1 && empty( $content ) ) return $this->error( 'empty_review', trans( 'Lütfen bir puan verin veya yorum yazın.' ) );
         if ( $author_id < 1 )    return $this->error( 'not_logged_in',   trans( 'Giriş yapmanız gerekiyor.' ) );
 
         // --- Spam / rate limit ---
         if ( $this->isRateLimited( $author_id ) ) {
-            return $this->error( 'rate_limited', trans( 'Çok fazla yorum gönderdiniz. Lütfen bekleyin.' ) );
+            $retry_after = $this->getRateLimitRetryAfter( $author_id );
+            $result = $this->error( 'rate_limited', trans( 'Çok fazla yorum gönderdiniz. Lütfen bekleyin.' ) );
+            $result['retry_after'] = $retry_after; // Unix timestamp — ne zaman tekrar deneyebilir
+            return $result;
         }
 
         // --- Permission ---
@@ -92,6 +95,9 @@ trait ManagesReviews
 
         // --- Dinamik meta ---
         $this->saveMeta( $comment_id, $data['meta'] ?? [] );
+
+        // --- Okunmamis flag — badge sistemi icin (0=okunmamis, 1=okunmus) ---
+        add_comment_meta( $comment_id, '_sh_review_read', 0, true );
 
         // --- Rating cache ---
         if ( $approved ) {
@@ -333,9 +339,12 @@ trait ManagesReviews
 
     private function isRateLimited( int $user_id ): bool
     {
+        $limit = (int) \SaltHareket\Reviews\ReviewsSettings::get( 'general.rate_limit_per_hour', 5 );
+        if ( $limit <= 0 ) return false; // 0 = devre dışı
+
         $key   = "reviews_rl_{$user_id}";
         $count = (int) get_transient( $key );
-        return $count >= apply_filters( 'reviews/rate_limit', 5 ); // 5 review / saat
+        return $count >= apply_filters( 'reviews/rate_limit', $limit );
     }
 
     private function recordRateLimit( int $user_id ): void
@@ -343,6 +352,18 @@ trait ManagesReviews
         $key   = "reviews_rl_{$user_id}";
         $count = (int) get_transient( $key );
         set_transient( $key, $count + 1, HOUR_IN_SECONDS );
+    }
+
+    /**
+     * Rate limit sona erme zamanını döndür (Unix timestamp).
+     * Transient expiry'yi doğrudan okuyamayız — en az 1 saat sonrasını hesapla.
+     */
+    private function getRateLimitRetryAfter( int $user_id ): int
+    {
+        // Transient'in expire timestamp'ini al
+        $key       = '_transient_timeout_reviews_rl_' . $user_id;
+        $timeout   = (int) get_option( $key, 0 );
+        return $timeout > 0 ? $timeout : ( time() + HOUR_IN_SECONDS );
     }
 
     // ─── 4 Katmanlı Approval ─────────────────────────────────────────────────

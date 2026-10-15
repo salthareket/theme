@@ -1,0 +1,53 @@
+{#
+  partials/source-login-prompt.twig
+  ─────────────────────────────────────────────────────────────────────────────
+  Login gerektiren dropdown / offcanvas / modal içerikleri için login prompt.
+  PHP response_login_required() tarafından render edilir.
+
+  Değişkenler:
+    view_type  : string — 'dropdown' | 'offcanvas' | 'modal'
+    login_url  : string — login sayfası URL'si
+    message    : string — opsiyonel özel mesaj
+  ─────────────────────────────────────────────────────────────────────────────
+#}
+
+{% set _compact = view_type == 'dropdown' %}
+
+<div class="{{ view_type }}-body">
+    <div class="source-login-prompt d-flex flex-column align-items-center justify-content-center text-center gap-3 px-4 {{ _compact ? 'py-4' : 'py-5' }}">
+
+        {# İkon #}
+        <div class="source-login-prompt__icon rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:{{ _compact ? '48px' : '64px' }};height:{{ _compact ? '48px' : '64px' }};">
+            {{ fa_icon('lock', 'regular', _compact ? 'fa-lg text-muted' : 'fa-2x text-muted') }}
+        </div>
+
+        {# Mesaj #}
+        <div>
+            <div class="fw-semibold {{ _compact ? 'small' : '' }}" style="color:var(--bs-body-color)">
+                {{ message ?? translate("Login required") }}
+            </div>
+            {% if not _compact %}
+            <div class="text-muted small mt-1">
+                {{ translate("Sign in to continue.") }}
+            </div>
+            {% endif %}
+        </div>
+
+        {# Butonlar #}
+        <div class="d-flex {{ _compact ? 'gap-2' : 'gap-3' }} flex-wrap justify-content-center">
+            <a href="{{ login_url }}"
+               class="btn btn-primary btn-loading-page {{ _compact ? 'btn-sm' : '' }} fw-semibold px-4">
+                {{ fa_icon('arrow-right-to-bracket', 'regular', 'me-1') }}
+                {{ translate("Login") }}
+            </a>
+            {% if enable_registration %}
+            <a href="{{ register_url ?? login_url }}"
+               class="btn btn-outline-secondary btn-loading-page {{ _compact ? 'btn-sm' : '' }} fw-semibold px-4">
+                {{ translate("Sign Up") }}
+            </a>
+            {% endif %}
+        </div>
+
+    </div>
+</div>

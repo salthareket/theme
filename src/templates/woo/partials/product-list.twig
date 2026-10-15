@@ -1,0 +1,178 @@
+{#
+  woo/partials/product-list.twig
+
+  Minimum kullanım — sadece list_type yeter:
+    {% include 'woo/partials/product-list.twig' with {'list_type':'related'} %}
+
+  posts opsiyonel — verilmezse context'ten list_type~'_products' değişkeni okunur.
+  title opsiyonel — verilmezse cfg'den, o da yoksa default translate.
+#}
+
+{% set _default_titles = {
+    'related'         : translate('Related Products'),
+    'upsell'          : translate('You May Also Like'),
+    'crosssell'       : translate('Complete The Look'),
+    'recently_viewed' : translate('Recently Viewed'),
+    'new_in_store'    : translate('New in Store')
+} %}
+
+{# cfg'yi pl_cfg'den al #}
+{% set _type_cfg = pl_cfg[list_type] ?? {} %}
+
+{% set _bp   = _type_cfg.breakpoints ?? {} %}
+{% set _spv  = _bp.spv  ?? {} %}
+{% set _gaps = _bp.gaps ?? {} %}
+
+{# Navigation — desktop ve mobile ayrı #}
+{% set _nav_desktop = _type_cfg.nav_desktop ?? 'arrows' %}
+{% set _nav_mobile  = _type_cfg.nav_mobile  ?? 'dots' %}
+
+{# nav helper — arrows/dots/scrollbar/arrows_dots/none → boolean flags #}
+{% set _has_arrows_d   = _nav_desktop in ['arrows', 'arrows_dots'] %}
+{% set _has_dots_d     = _nav_desktop in ['dots', 'arrows_dots'] %}
+{% set _has_scroll_d   = _nav_desktop == 'scrollbar' %}
+{% set _has_arrows_m   = _nav_mobile in ['arrows', 'arrows_dots'] %}
+{% set _has_dots_m     = _nav_mobile in ['dots', 'arrows_dots'] %}
+{% set _has_scroll_m   = _nav_mobile == 'scrollbar' %}
+
+{# Default breakpoints — settings'ten gelir, yoksa xxxl dahil fallback #}
+{% set _bp_json  = _spv  ? _spv|json_encode  : '{"xs":1.5,"sm":2,"md":3,"lg":4,"xl":4,"xxl":5,"xxxl":5}' %}
+{% set _gap_json = _gaps ? _gaps|json_encode : '{"xs":10,"sm":12,"md":15,"lg":20,"xl":20,"xxl":24,"xxxl":24}' %}
+
+{# posts: parametre > context'ten otomatik al #}
+{% set _posts = posts ?? attribute(_context, list_type ~ '_products') ?? [] %}
+
+{# title resolve #}
+{% set _title = title ?? (_type_cfg.title ?: (_default_titles[list_type] ?? '')) %}
+
+{# diğer ayarlar #}
+{% set _enabled = _type_cfg.enabled ?? false %}
+{% set _layout  = _type_cfg.layout  ?? 'carousel' %}
+{% set _size    = _type_cfg.size    ?? 'md' %}
+
+{% if _enabled is not empty and _enabled and _posts|length > 0 %}
+
+{% set _list_id = 'sh-product-list-' ~ list_type %}
+
+<section class="sh-product-list sh-product-list--{{ list_type }} sh-product-list--{{ _layout }} py-5"
+         data-list-type="{{ list_type }}"
+         data-list-layout="{{ _layout }}" data-template="woo/tease"
+         style="position:relative">
+    <div class="container">
+
+        {% if _title %}
+        <div class="sh-product-list__header d-flex align-items-center justify-content-between mb-4">
+            <h2 class="sh-product-list__title h4 mb-0">{{ _title }}</h2>
+        </div>
+        {% endif %}
+
+        {% if _layout == 'carousel' %}
+        {% set _count  = _posts|length %}
+
+        {# Pagination dışarıda — swiper overflow:hidden ile kesilmemesi için #}
+        {% if _has_dots_d or _has_dots_m %}
+        <div id="{{ _list_id }}-pagination" class="sh-product-list__pagination swiper-pagination" style="text-align:center;margin-top:12px"></div>
+        {% endif %}
+        {% if _has_scroll_d or _has_scroll_m %}
+        <div id="{{ _list_id }}-scrollbar" class="sh-product-list__scrollbar swiper-scrollbar" style="margin-top:8px"></div>
+        {% endif %}
+
+        <div id="{{ _list_id }}"
+             class="swiper swiper-slider sh-product-list__swiper"
+             data-slider-slides-per-view="1"
+             data-slider-breakpoints="{{ _bp_json|e('html_attr') }}"
+             data-slider-gaps="{{ _gap_json|e('html_attr') }}"
+             data-slider-navigation="{{ (_has_arrows_d or _has_arrows_m) ? 'true' : 'false' }}"
+             data-slider-nav-desktop="{{ _nav_desktop }}"
+             data-slider-nav-mobile="{{ _nav_mobile }}"
+             data-slider-loop="false"
+             data-slider-grab="true"
+             data-slider-pagination="{{ (_has_dots_d or _has_dots_m) ? 'bullets' : 'none' }}"
+             data-slider-pagination-el="{{ (_has_dots_d or _has_dots_m) ? '#' ~ _list_id ~ '-pagination' : '' }}"
+             data-slider-scrollbar="{{ (_has_scroll_d or _has_scroll_m) ? 'true' : 'false' }}"
+             data-slider-scrollbar-el="{{ (_has_scroll_d or _has_scroll_m) ? '#' ~ _list_id ~ '-scrollbar' : '' }}"
+             data-slider-effect="slide"
+             style="align-items:stretch">
+            <div class="swiper-wrapper">
+                {% for p in _posts %}
+                <div class="swiper-slide">
+                    {% include ['woo/tease-' ~ _size ~ '.twig', 'woo/tease.twig'] with {'post': p} %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if _has_arrows_d or _has_arrows_m %}
+            <div class="swiper-button-prev sh-pl-nav-arrows"></div>
+            <div class="swiper-button-next sh-pl-nav-arrows"></div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="sh-product-list__grid row g-3">
+            {% for p in _posts %}
+            <div class="col-6 col-md-4 col-lg-3">
+                {% include ['woo/tease-' ~ _size ~ '.twig', 'woo/tease.twig'] with {'post': p} %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+{% if _layout == 'carousel' %}
+<script>
+(function() {
+    var listId     = {{ _list_id|json_encode|raw }};
+    var navDesktop = {{ _nav_desktop|json_encode|raw }};
+    var navMobile  = {{ _nav_mobile|json_encode|raw }};
+
+    // mobile: <= 768px
+    var mq = window.matchMedia('(max-width: 768px)');
+
+    function applyNav(isMobile) {
+        var nav = isMobile ? navMobile : navDesktop;
+        var $el = $('#' + listId);
+        if (!$el.length) return;
+
+        var swiper = (typeof swiperManager !== 'undefined')
+            ? swiperManager.instances.get($el[0])
+            : null;
+
+        if (!swiper) return;
+
+        // Arrows
+        var hasArrows = nav === 'arrows' || nav === 'arrows_dots';
+        if (swiper.navigation) {
+            if (hasArrows) { swiper.navigation.init(); swiper.navigation.update(); }
+            else { swiper.navigation.destroy(); }
+        }
+        $el.find('.sh-pl-nav-arrows').toggle(hasArrows);
+
+        // Pagination (dots)
+        var hasDots = nav === 'dots' || nav === 'arrows_dots';
+        if (swiper.pagination) {
+            if (hasDots) { swiper.pagination.init(); swiper.pagination.render(); swiper.pagination.update(); }
+            else { swiper.pagination.destroy(); }
+        }
+        $el.find('.sh-pl-nav-dots').toggle(hasDots);
+
+        // Scrollbar
+        var hasScrollbar = nav === 'scrollbar';
+        if (swiper.scrollbar) {
+            if (hasScrollbar) { swiper.scrollbar.init(); swiper.scrollbar.updateSize(); swiper.scrollbar.setTranslate(); }
+            else { swiper.scrollbar.destroy(); }
+        }
+        $el.find('.sh-pl-nav-scrollbar').toggle(hasScrollbar);
+    }
+
+    // Swiper init sonrası çalıştır (init_swiper async olabilir)
+    $(document).ready(function() {
+        setTimeout(function() { applyNav(mq.matches); }, 400);
+    });
+
+    // Resize'da güncelle
+    mq.addEventListener('change', function(e) { applyNav(e.matches); });
+})();
+</script>
+{% endif %}
+
+{% endif %}

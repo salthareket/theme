@@ -1,0 +1,121 @@
+{
+    "key": "group_salt_header_nav",
+    "title": "Header Navigation — Settings",
+    "fields": [
+        {
+            "key": "field_shnav_menu",
+            "label": "Menu Location",
+            "name": "menu",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "Registered menu location secin",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "40",
+                "class": "acf-menu-locations",
+                "id": ""
+            },
+            "choices": {
+                "header-menu": "Header Menu",
+                "footer-menu": "Footer Menu"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "allow_null": 1,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": false
+        },
+        {
+            "key": "field_shnav_align",
+            "label": "Align",
+            "name": "align",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "start": "Left",
+                "center": "Center",
+                "end": "Right"
+            },
+            "default_value": "center",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "center"
+        },
+        {
+            "key": "field_shnav_parent_link",
+            "label": "Parent Link",
+            "name": "parent_link",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Parent menu item'i tiklnabilir link olsun.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 0
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-nav"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786398695,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

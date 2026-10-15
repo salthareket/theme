@@ -42,10 +42,40 @@
 .sh-toolbar-right { margin-left: auto; display: flex; gap: 6px; }
 
 /* ── Tabs ──────────────────────────────────────────────────────────────────── */
-.sh-tab-btn { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: var(--ts-radius); font-size: 13px; font-weight: 500; color: var(--ts-gray-700); text-decoration: none; border: 1px solid transparent; transition: var(--ts-transition); }
+.sh-tab-btn { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: var(--ts-radius); font-size: 13px; font-weight: 500; color: var(--ts-gray-700); text-decoration: none; border: 1px solid transparent; transition: var(--ts-transition); cursor: pointer; background: none; }
 .sh-tab-btn:hover { background: var(--ts-gray-50); color: var(--ts-gray-900); }
 .sh-tab-btn.active { background: var(--ts-primary); color: var(--ts-white); border-color: var(--ts-primary); }
 
+/* Tab group wrapper — sh-card-header içinde tab butonlarını sarar */
+.sh-tab-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+/* ── Form Fields (sh-gs-field) ─────────────────────────────────────────────── */
+/* GeneralSettings ve benzeri app form elemanları için ortak stil */
+.sh-wrap .sh-gs-field[type="number"],
+.sh-wrap select.sh-gs-field {
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    padding: 0 6px;
+    font-size: 12px;
+    background-color: #fff;
+    color: var(--ts-gray-900);
+    line-height: 28px;
+}
+/* Genişlik varyantları — min-width tek inline kalabilir */
+.sh-wrap select.sh-gs-field.sh-fw-pt   { width: 200px; flex-shrink: 0; }
+.sh-wrap select.sh-gs-field.sh-fw-menu { min-width: 130px; }
+.sh-wrap select.sh-gs-field.sh-fw-ob   { min-width: 120px; }
+.sh-wrap select.sh-gs-field.sh-fw-ord  { min-width: 80px; }
+.sh-wrap input.sh-gs-field.sh-fw-num   { min-width: 80px; width: 80px; }
+
+/* ── Field Group (label top, element bottom) ────────────────────────────────── */
+.sh-field-group { margin-bottom: 16px; }
+.sh-field-group label { font-size: 12px; font-weight: 600; color: var(--ts-gray-600); }
+.sh-field-group .sh-input,
+.sh-field-group .sh-select { width: 100%; }
+.sh-fields-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 4px; }
+.sh-fields-row .sh-field-group { flex: 1; min-width: 140px; }
 /* ── Badges ────────────────────────────────────────────────────────────────── */
 .sh-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .sh-badge-blue { background: #dbeafe; color: #1d4ed8; }
@@ -60,6 +90,7 @@
 .sh-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
 .sh-main { min-width: 0; }
 .sh-sidebar { position: sticky; top: 90px; }
+.sh-sidebar .sh-card { padding: 14px 16px; }
 @media (max-width: 900px) { .sh-layout { grid-template-columns: 1fr; } }
 
 /* ── Filter Bar ────────────────────────────────────────────────────────────── */
@@ -120,7 +151,7 @@
 .sh-form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .sh-form-col { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 4px; }
 .sh-form-col-sm { flex: 0 0 140px; }
-.sh-form-col label { font-size: 11px; font-weight: 600; color: var(--ts-gray-600); text-transform: uppercase; letter-spacing: .5px; }
+.sh-form-col label { font-size: 12px; font-weight: 600; color: var(--ts-gray-700); }
 .sh-form-footer { display: flex; gap: 8px; padding-top: 4px; }
 
 /* ── Inputs ────────────────────────────────────────────────────────────────── */
@@ -148,7 +179,9 @@
 .sh-icon-edit:hover { background: #dbeafe; }
 
 /* ── Card ──────────────────────────────────────────────────────────────────── */
-.sh-card { background: var(--ts-white); border: 1px solid var(--ts-gray-200); border-radius: var(--ts-radius-lg); padding: 24px; margin-bottom: 16px; box-shadow: var(--ts-shadow-sm); }
+/* sh-card: varsayılan padding 16px. Paddingsiz kullanım (tablo vs.) için sh-card-p-0 ekle */
+.sh-card { background: #fff; border: 1px solid var(--ts-gray-200); border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: var(--ts-shadow-sm); padding: 16px; }
+.sh-card.sh-card-p-0 { padding: 0; }
 
 /* ── Empty State ───────────────────────────────────────────────────────────── */
 .sh-empty-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; background: var(--ts-gray-50); border: 2px dashed var(--ts-gray-300); border-radius: 12px; text-align: center; }
@@ -160,9 +193,33 @@
 
 /* ── Toast ─────────────────────────────────────────────────────────────────── */
 #sh-toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-.sh-toast-item { background: var(--ts-gray-900); color: var(--ts-white); padding: 10px 18px; border-radius: var(--ts-radius-lg); font-size: 13px; box-shadow: var(--ts-shadow-md); animation: shToastIn .2s ease; }
-.sh-toast-success { background: var(--ts-success); }
-.sh-toast-error { background: var(--ts-danger); }
+.sh-toast-item { background: #1e2733; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-shadow: 0 4px 6px -1px rgba(0,0,0,.15); animation: shToastIn .2s ease; }
+.sh-toast-success { background: #00a32a; }
+.sh-toast-error { background: #d63638; }
+
+/* ── Dependency Notice (persistent — no auto-dismiss) ──────────────────────── */
+.sh-dependency-notice { display: flex; align-items: center; gap: 12px; padding: 14px 18px; margin-bottom: 16px; background: #fff8e1; border: 1px solid #f0c060; border-left: 4px solid var(--ts-warning); border-radius: var(--ts-radius); font-size: 13px; animation: shSlideDown .2s ease; pointer-events: all; }
+.sh-dependency-notice .sh-dep-icon { font-size: 18px; flex-shrink: 0; line-height: 1; }
+.sh-dependency-notice .sh-dep-body { flex: 1; }
+.sh-dependency-notice .sh-dep-title { font-weight: 600; color: var(--ts-gray-900); margin-bottom: 2px; }
+.sh-dependency-notice .sh-dep-reason { color: var(--ts-gray-700); }
+.sh-dependency-notice .sh-dep-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 5px 12px; background: var(--ts-warning); color: #fff; border-radius: var(--ts-radius); font-size: 12px; font-weight: 600; text-decoration: none; transition: var(--ts-transition); }
+.sh-dependency-notice .sh-dep-link:hover { background: #c49600; color: #fff; }
+.sh-dependency-notice .sh-dep-dismiss { margin-left: auto; padding: 4px; cursor: pointer; color: var(--ts-gray-400); background: none; border: none; font-size: 16px; line-height: 1; transition: var(--ts-transition); flex-shrink: 0; }
+.sh-dependency-notice .sh-dep-dismiss:hover { color: var(--ts-gray-700); }
+
+/* ── Channel Badge — disabled state (SMS disabled vb.) ─────────────────────── */
+.sh-ch-badge.sh-ch-disabled { opacity: .4; cursor: default; filter: grayscale(1); }
+.sh-ch-badge.sh-ch-disabled.active { background: var(--ts-gray-300) !important; color: var(--ts-gray-600) !important; }
+
+/* ── Rule card — warning state (active channel disabled) ───────────────────── */
+.sh-rule-card.sh-rule-warning { background: #fff8f0; border-left: 3px solid var(--ts-warning); }
+.sh-rule-dep-warn { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
+
+/* ── Carrier — unavailable state ───────────────────────────────────────────── */
+.sh-carrier-unavailable { opacity: .5; }
+.sh-carrier-unavailable .sh-carrier-header { cursor: default !important; }
+.sh-carrier-unavailable .sh-carrier-body { display: none !important; }
 @keyframes shToastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shSlideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -363,7 +420,7 @@
 
 /* ── Carrier Fields ─────────────────────────────────────────────────────────── */
 .sh-field { margin-bottom: 10px; }
-.sh-field label { display: block; font-size: 11px; font-weight: 600; color: var(--ts-gray-600); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.sh-field label { display: block; font-size: 12px; font-weight: 600; color: var(--ts-gray-700); margin-bottom: 4px; }
 .sh-field-row { display: flex; align-items: center; gap: 10px; }
 .sh-field-row label { margin-bottom: 0; }
 .sh-template-hint { font-size: 11px; color: var(--ts-gray-400); }
@@ -530,9 +587,37 @@
 .sh-log-stream .sh-log-prefix { opacity: .4; margin-right: 6px; }
 
 /* Card */
-.sh-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
-.sh-card-header { padding: 14px 18px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; }
-.sh-card-body   { padding: 18px; }
+/* sh-card tanımı yukarıda (line ~158) — burada tekrar tanımlanmıyor */
+/* sh-card-header: varsayılan row (tab butonları için) */
+.sh-card-header {
+    padding: 12px 18px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+/* sh-card-header--col: başlık + desc için column layout */
+.sh-card-header--col {
+    padding: 14px 18px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.sh-card-header--col .sh-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ts-gray-900);
+    margin: 0;
+}
+.sh-card-header--col .sh-card-desc {
+    font-size: 12px;
+    color: var(--ts-gray-500);
+    margin: 0;
+}
+.sh-card-body { padding: 0; }
+.sh-card.sh-card-p-0 .sh-card-body { padding: 18px; }
 
 /* Large Button */
 .sh-btn-lg { padding: 10px 24px; font-size: 14px; }
@@ -546,4 +631,259 @@
 @keyframes sh-spin {
     0%   { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* ─── Button Spinner ──────────────────────────────────────── */
+.sh-btn-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: sh-spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+.sh-btn:not(.sh-btn-primary) .sh-btn-spinner {
+    border-color: rgba(0,0,0,0.15);
+    border-top-color: #374151;
+}
+@keyframes sh-spin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SH ADMIN UTILITY CLASSES
+   Bootstrap benzeri yardımcı sınıflar — inline style yazmak yerine bunları kullan.
+   Prefix: sh- (WP core ile çakışmayı önler)
+
+   PADDING
+   sh-p-0 → 0      sh-p-xs → 6px    sh-p-sm → 12px
+   sh-p-md → 18px  sh-p-lg → 24px   sh-p-xl → 32px
+
+   MARGIN
+   sh-m-0 → 0      sh-m-xs → 4px    sh-m-sm → 8px
+   sh-m-md → 16px  sh-m-lg → 24px   sh-m-xl → 32px
+   sh-mb-* / sh-mt-* / sh-ms-* / sh-me-* yön bazlı varyantlar
+
+   BORDER RADIUS
+   sh-rounded-sm → 4px   sh-rounded → 6px   sh-rounded-md → 8px
+   sh-rounded-lg → 12px  sh-rounded-full → 9999px
+
+   DISPLAY
+   sh-flex  sh-inline-flex  sh-grid  sh-block  sh-inline-block  sh-none
+
+   FLEX HELPERS
+   sh-items-center  sh-items-start  sh-items-end
+   sh-justify-start sh-justify-end  sh-justify-between sh-justify-center
+   sh-gap-xs → 4px  sh-gap-sm → 8px  sh-gap-md → 16px  sh-gap-lg → 24px
+   sh-flex-wrap  sh-flex-col
+
+   TEXT
+   sh-text-xs → 11px  sh-text-sm → 12px  sh-text-base → 13px  sh-text-md → 14px
+   sh-text-muted → gray-500  sh-text-label → gray-700
+   sh-font-medium  sh-font-semibold  sh-font-bold
+   sh-truncate
+
+   BACKGROUND
+   sh-bg-white  sh-bg-gray  sh-bg-light
+
+   CARD VARIANTS
+   sh-card-flat (border yok, shadow yok)
+   sh-card-gray (gri arka plan)
+   sh-card-inset (içe gömük görünüm için)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Spacing Scale ─────────────────────────────────────────────────────────── */
+.sh-wrap .sh-p-0  { padding: 0 !important; }
+.sh-wrap .sh-p-xs { padding: 6px !important; }
+.sh-wrap .sh-p-sm { padding: 12px !important; }
+.sh-wrap .sh-p-md { padding: 18px !important; }
+.sh-wrap .sh-p-lg { padding: 24px !important; }
+.sh-wrap .sh-p-xl { padding: 32px !important; }
+
+/* Padding yön bazlı */
+.sh-wrap .sh-pt-0  { padding-top: 0 !important; }
+.sh-wrap .sh-pt-xs { padding-top: 6px !important; }
+.sh-wrap .sh-pt-sm { padding-top: 12px !important; }
+.sh-wrap .sh-pt-md { padding-top: 18px !important; }
+.sh-wrap .sh-pt-lg { padding-top: 24px !important; }
+
+.sh-wrap .sh-pb-0  { padding-bottom: 0 !important; }
+.sh-wrap .sh-pb-xs { padding-bottom: 6px !important; }
+.sh-wrap .sh-pb-sm { padding-bottom: 12px !important; }
+.sh-wrap .sh-pb-md { padding-bottom: 18px !important; }
+.sh-wrap .sh-pb-lg { padding-bottom: 24px !important; }
+
+.sh-wrap .sh-ps-0  { padding-left: 0 !important; }
+.sh-wrap .sh-ps-sm { padding-left: 12px !important; }
+.sh-wrap .sh-ps-md { padding-left: 18px !important; }
+.sh-wrap .sh-ps-lg { padding-left: 24px !important; }
+
+.sh-wrap .sh-pe-0  { padding-right: 0 !important; }
+.sh-wrap .sh-pe-sm { padding-right: 12px !important; }
+.sh-wrap .sh-pe-md { padding-right: 18px !important; }
+.sh-wrap .sh-pe-lg { padding-right: 24px !important; }
+
+.sh-wrap .sh-px-0  { padding-left: 0 !important; padding-right: 0 !important; }
+.sh-wrap .sh-px-sm { padding-left: 12px !important; padding-right: 12px !important; }
+.sh-wrap .sh-px-md { padding-left: 18px !important; padding-right: 18px !important; }
+.sh-wrap .sh-px-lg { padding-left: 24px !important; padding-right: 24px !important; }
+
+.sh-wrap .sh-py-0  { padding-top: 0 !important; padding-bottom: 0 !important; }
+.sh-wrap .sh-py-sm { padding-top: 12px !important; padding-bottom: 12px !important; }
+.sh-wrap .sh-py-md { padding-top: 18px !important; padding-bottom: 18px !important; }
+.sh-wrap .sh-py-lg { padding-top: 24px !important; padding-bottom: 24px !important; }
+
+/* ── Margin ────────────────────────────────────────────────────────────────── */
+.sh-wrap .sh-m-0  { margin: 0 !important; }
+.sh-wrap .sh-m-xs { margin: 4px !important; }
+.sh-wrap .sh-m-sm { margin: 8px !important; }
+.sh-wrap .sh-m-md { margin: 16px !important; }
+.sh-wrap .sh-m-lg { margin: 24px !important; }
+.sh-wrap .sh-m-xl { margin: 32px !important; }
+
+.sh-wrap .sh-mt-0  { margin-top: 0 !important; }
+.sh-wrap .sh-mt-xs { margin-top: 4px !important; }
+.sh-wrap .sh-mt-sm { margin-top: 8px !important; }
+.sh-wrap .sh-mt-md { margin-top: 16px !important; }
+.sh-wrap .sh-mt-lg { margin-top: 24px !important; }
+
+.sh-wrap .sh-mb-0  { margin-bottom: 0 !important; }
+.sh-wrap .sh-mb-xs { margin-bottom: 4px !important; }
+.sh-wrap .sh-mb-sm { margin-bottom: 8px !important; }
+.sh-wrap .sh-mb-md { margin-bottom: 16px !important; }
+.sh-wrap .sh-mb-lg { margin-bottom: 24px !important; }
+
+.sh-wrap .sh-ms-0  { margin-left: 0 !important; }
+.sh-wrap .sh-ms-xs { margin-left: 4px !important; }
+.sh-wrap .sh-ms-sm { margin-left: 8px !important; }
+.sh-wrap .sh-ms-md { margin-left: 16px !important; }
+
+.sh-wrap .sh-me-0  { margin-right: 0 !important; }
+.sh-wrap .sh-me-xs { margin-right: 4px !important; }
+.sh-wrap .sh-me-sm { margin-right: 8px !important; }
+.sh-wrap .sh-me-md { margin-right: 16px !important; }
+
+.sh-wrap .sh-mx-auto { margin-left: auto !important; margin-right: auto !important; }
+
+/* ── Border Radius ─────────────────────────────────────────────────────────── */
+.sh-wrap .sh-rounded-none { border-radius: 0 !important; }
+.sh-wrap .sh-rounded-sm   { border-radius: 4px !important; }
+.sh-wrap .sh-rounded      { border-radius: 6px !important; }
+.sh-wrap .sh-rounded-md   { border-radius: 8px !important; }
+.sh-wrap .sh-rounded-lg   { border-radius: 12px !important; }
+.sh-wrap .sh-rounded-full { border-radius: 9999px !important; }
+
+/* ── Display ───────────────────────────────────────────────────────────────── */
+.sh-wrap .sh-flex         { display: flex !important; }
+.sh-wrap .sh-inline-flex  { display: inline-flex !important; }
+.sh-wrap .sh-grid         { display: grid !important; }
+.sh-wrap .sh-block        { display: block !important; }
+.sh-wrap .sh-inline-block { display: inline-block !important; }
+.sh-wrap .sh-none         { display: none !important; }
+
+/* ── Flex Helpers ──────────────────────────────────────────────────────────── */
+.sh-wrap .sh-flex-wrap    { flex-wrap: wrap !important; }
+.sh-wrap .sh-flex-nowrap  { flex-wrap: nowrap !important; }
+.sh-wrap .sh-flex-col     { flex-direction: column !important; }
+.sh-wrap .sh-flex-1       { flex: 1 !important; }
+.sh-wrap .sh-flex-shrink-0 { flex-shrink: 0 !important; }
+
+.sh-wrap .sh-items-start   { align-items: flex-start !important; }
+.sh-wrap .sh-items-center  { align-items: center !important; }
+.sh-wrap .sh-items-end     { align-items: flex-end !important; }
+.sh-wrap .sh-items-stretch { align-items: stretch !important; }
+
+.sh-wrap .sh-justify-start   { justify-content: flex-start !important; }
+.sh-wrap .sh-justify-center  { justify-content: center !important; }
+.sh-wrap .sh-justify-end     { justify-content: flex-end !important; }
+.sh-wrap .sh-justify-between { justify-content: space-between !important; }
+
+.sh-wrap .sh-gap-0  { gap: 0 !important; }
+.sh-wrap .sh-gap-xs { gap: 4px !important; }
+.sh-wrap .sh-gap-sm { gap: 8px !important; }
+.sh-wrap .sh-gap-md { gap: 16px !important; }
+.sh-wrap .sh-gap-lg { gap: 24px !important; }
+
+/* ── Text ──────────────────────────────────────────────────────────────────── */
+.sh-wrap .sh-text-xs   { font-size: 11px !important; }
+.sh-wrap .sh-text-sm   { font-size: 12px !important; }
+.sh-wrap .sh-text-base { font-size: 13px !important; }
+.sh-wrap .sh-text-md   { font-size: 14px !important; }
+.sh-wrap .sh-text-lg   { font-size: 16px !important; }
+
+.sh-wrap .sh-text-muted   { color: var(--ts-gray-500) !important; }
+.sh-wrap .sh-text-label   { color: var(--ts-gray-700) !important; }
+.sh-wrap .sh-text-primary { color: var(--ts-primary) !important; }
+.sh-wrap .sh-text-danger  { color: var(--ts-danger) !important; }
+.sh-wrap .sh-text-success { color: var(--ts-success) !important; }
+.sh-wrap .sh-text-white   { color: #fff !important; }
+
+.sh-wrap .sh-font-normal   { font-weight: 400 !important; }
+.sh-wrap .sh-font-medium   { font-weight: 500 !important; }
+.sh-wrap .sh-font-semibold { font-weight: 600 !important; }
+.sh-wrap .sh-font-bold     { font-weight: 700 !important; }
+
+.sh-wrap .sh-truncate      { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sh-wrap .sh-whitespace-nowrap { white-space: nowrap !important; }
+.sh-wrap .sh-text-center   { text-align: center !important; }
+.sh-wrap .sh-text-right    { text-align: right !important; }
+
+/* ── Background ────────────────────────────────────────────────────────────── */
+.sh-wrap .sh-bg-white { background: #fff !important; }
+.sh-wrap .sh-bg-gray  { background: var(--ts-gray-50) !important; }
+.sh-wrap .sh-bg-light { background: var(--ts-gray-100) !important; }
+
+/* ── Width / Height ────────────────────────────────────────────────────────── */
+.sh-wrap .sh-w-full { width: 100% !important; }
+.sh-wrap .sh-w-auto { width: auto !important; }
+.sh-wrap .sh-h-full { height: 100% !important; }
+
+/* ── Card Variants ─────────────────────────────────────────────────────────── */
+/* Düz: border yok, shadow yok — iç içe kartlar için */
+.sh-wrap .sh-card-flat {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+/* Gri arka planlı kart — içe gömük bölümler için */
+.sh-wrap .sh-card-gray {
+    background: var(--ts-gray-50);
+    border-color: var(--ts-gray-200);
+}
+/* İçe gömük görünüm — parent card içindeki sub-section'lar için */
+.sh-wrap .sh-card-inset {
+    background: var(--ts-gray-50);
+    border: 1px solid var(--ts-gray-200);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+/* ── Divider ───────────────────────────────────────────────────────────────── */
+.sh-wrap .sh-divider {
+    border: 0;
+    border-top: 1px solid var(--ts-gray-200);
+    margin: 16px 0;
+}
+.sh-wrap .sh-divider-sm { margin: 8px 0; }
+.sh-wrap .sh-divider-lg { margin: 24px 0; }
+
+/* ── Reactions Generator — Drag-drop sortable ── */
+.sh-btn-drag-handle { cursor: grab; }
+.sh-btn-drag-handle:active { cursor: grabbing; }
+.sh-rule-card-placeholder {
+    border: 2px dashed #d1d5db;
+    border-radius: 6px;
+    background: #f9fafb;
+    height: 52px;
+    margin-bottom: 8px;
+}
+.sh-rule-card.ui-sortable-helper {
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    opacity: .95;
 }

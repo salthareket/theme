@@ -1,0 +1,267 @@
+// ─────────────────────────────────────────────────────────────
+// OFFCANVAS
+// Tüm variable'lar --offcanvas-* prefix'i ile root.css'de tanımlı.
+// processor.php bunları theme-styles admin'den override eder.
+// _button.twig → data-offcanvas-style → _applyCustomStyle() ile per-instance override.
+//
+// Desteklenen CSS custom properties:
+//   --offcanvas-bg              : arkaplan rengi (hex/rgb/transparent)
+//   --offcanvas-bg-rgb          : RGB bileşenleri (rgba() için)
+//   --offcanvas-bg-gradient     : arkaplan gradient (none veya CSS gradient)
+//   --offcanvas-bg-image        : arkaplan görsel (none veya url(...))
+//   --offcanvas-color           : metin rengi
+//   --offcanvas-width           : panel genişliği
+//   --offcanvas-box-shadow      : panel gölgesi
+//   --offcanvas-padding-x/y     : body padding
+//   --offcanvas-header-*        : header stil variable'ları
+//   --offcanvas-footer-*        : footer stil variable'ları
+//   --offcanvas-item-*          : nav item variable'ları
+//   --offcanvas-dropdown-*      : sub menu variable'ları
+//   --backdrop-bg / --backdrop-opacity : backdrop (modal ile paylaşımlı)
+// ─────────────────────────────────────────────────────────────
+
+.offcanvas {
+    // ── Background ───────────────────────────────────────────
+    // --offcanvas-bg-color tutarsızlığı DÜZELTİLDİ:
+    // Tüm yerler --offcanvas-bg kullanıyor (root.css, processor.php, _applyCustomStyle, _button.twig)
+    background-color:     var(--offcanvas-bg, var(--bs-offcanvas-bg, var(--bs-body-bg)));
+    // --offcanvas-bg-gradient hem gradient string'i hem image url()'sini taşır
+    // image modunda processor bu variable'a url() yazar; gradient modunda gradient string yazar
+    background-image:     var(--offcanvas-bg-gradient, none);
+    background-size:      var(--offcanvas-bg-size, cover);
+    background-position:  var(--offcanvas-bg-position, center center);
+    background-repeat:    var(--offcanvas-bg-repeat, no-repeat);
+    background-attachment: var(--offcanvas-bg-attachment, scroll);
+
+    // ── Base ─────────────────────────────────────────────────
+    color:      var(--offcanvas-color, var(--bs-offcanvas-color, var(--bs-body-color)));
+    box-shadow: var(--offcanvas-box-shadow, var(--bs-offcanvas-box-shadow, none));
+
+    // Width — BS5 kendi --bs-offcanvas-width variable'ını kullanıyor, bridge ediyoruz
+    // Circular reference önlemek için --bs-offcanvas-width'i doğrudan override et
+    &.offcanvas-start,
+    &.offcanvas-end {
+        width: var(--offcanvas-width, var(--bs-offcanvas-width, 400px));
+    }
+    &.offcanvas-top,
+    &.offcanvas-bottom {
+        height: var(--offcanvas-height, var(--bs-offcanvas-height, 30vh));
+    }
+
+    // ── Header ───────────────────────────────────────────────
+    .offcanvas-header {
+        background-color:    var(--offcanvas-header-bg, transparent);
+        color:               var(--offcanvas-header-color, inherit);
+        padding:             var(--offcanvas-header-padding, 1rem);
+        border-bottom-color: var(--offcanvas-header-border-color, transparent);
+        border-bottom-width: var(--offcanvas-header-border-width, 0);
+        border-bottom-style: solid;
+        font-size:           var(--offcanvas-header-font-size, inherit);
+        font-weight:         var(--offcanvas-header-font-weight, inherit);
+        font-family:         var(--offcanvas-header-font, inherit);
+
+        .offcanvas-title {
+            line-height: var(--offcanvas-title-line-height, 1.5);
+        }
+
+        // Close button
+        .btn-close {
+            color:   var(--offcanvas-header-icon-color, inherit);
+            opacity: .6;
+            font-size: var(--offcanvas-header-icon-font-size, 1rem);
+            &:hover { opacity: 1; }
+        }
+    }
+
+    // ── Footer ───────────────────────────────────────────────
+    .offcanvas-footer {
+        background-color:  var(--offcanvas-footer-bg, transparent);
+        color:             var(--offcanvas-footer-color, inherit);
+        padding:           var(--offcanvas-footer-padding, 1rem);
+        border-top-color:  var(--offcanvas-footer-border-color, transparent);
+        border-top-width:  var(--offcanvas-footer-border-width, 0);
+        border-top-style:  solid;
+        flex-shrink: 0;
+    }
+
+    // ── Top offcanvas — height auto ───────────────────────────
+    &.offcanvas-top {
+        bottom: auto;
+        &:not(.offcanvas-fullscreen) {
+            --bs-offcanvas-height: auto;
+        }
+    }
+
+    // ── Body ─────────────────────────────────────────────────
+    .offcanvas-body {
+        display:        flex;
+        align-items:    var(--offcanvas-align-vr);
+        text-align:     var(--offcanvas-align-hr);
+        justify-content: var(--offcanvas-align-hr);
+        overflow-x:     hidden;
+
+        // Dikey scroll sadece .offcanvas-body'de.
+        // SCSS spec: bir eksen 'visible' dışıysa diğer eksen otomatik 'auto' olur.
+        // Bu nedenle iç elemanlar overflow:visible; yatay taşma parent tarafından engellenir.
+        &.scrollable {
+            overflow-y:     auto;
+            flex-direction: column;
+            align-items:    stretch;
+            justify-content: flex-start;
+        }
+
+        // Source container'lar — overflow visible (üst bölümde açıklandı)
+        .load-container,
+        .source-list,
+        .source-container {
+            overflow:   visible;
+            max-width:  100%;
+            width:      100%;
+            word-break: break-word;
+            flex:       0 0 auto;
+        }
+
+        .source-item {
+            overflow:   visible;
+            max-width:  100%;
+            word-break: break-word;
+        }
+    }
+
+    // ── Menu offcanvas ────────────────────────────────────────
+    &.offcanvas-menu {
+        // --offcanvas-bg-color KALDIRILDI — --offcanvas-bg kullanıyoruz (tutarlı)
+        background-color: var(--offcanvas-bg, transparent);
+        background-image: var(--offcanvas-bg-gradient, var(--offcanvas-bg-image, none));
+        background-size:  cover;
+        background-position: center;
+
+        font-family:  var(--offcanvas-item-font);
+        font-size:    var(--offcanvas-item-font-size);
+        font-weight:  var(--offcanvas-item-font-weight);
+        color:        var(--offcanvas-item-color);
+        border: none;
+        padding: var(--offcanvas-padding, var(--offcanvas-padding-y, 1rem) var(--offcanvas-padding-x, 1rem));
+
+        .offcanvas-body {
+            width: 100%;
+
+            .nav-menu {
+                width: 100%;
+
+                ul li {
+                    display:        flex;
+                    flex-direction: column;
+
+                    @media (min-width: 768px) {
+                        align-items: var(--offcanvas-item-align-hr);
+                    }
+
+                    // Back button (sub menu header)
+                    &.header .back {
+                        display:     flex;
+                        font-family: var(--offcanvas-header-font);
+                        font-size:   var(--offcanvas-header-font-size);
+                        font-weight: var(--offcanvas-header-font-weight);
+                        color:       var(--offcanvas-header-color);
+                        padding:     var(--offcanvas-header-padding);
+
+                        .title {
+                            color:   var(--offcanvas-header-color);
+                            padding: 0 0 0 15px;
+                        }
+
+                        &:before {
+                            position:  relative;
+                            left:      0;
+                            color:     var(--offcanvas-header-icon-color);
+                            font-size: var(--offcanvas-header-icon-font-size);
+                            opacity:   .8;
+                            flex:      0;
+                        }
+                    }
+
+                    // Nav link
+                    a {
+                        position:         relative;
+                        color:            var(--offcanvas-item-color);
+                        padding:          var(--offcanvas-item-padding);
+                        background-color: var(--offcanvas-item-bg);
+                        text-align:       left;
+                        @include transition(color .3s ease-out, background-color .3s ease-out);
+
+                        &:hover {
+                            color:            var(--offcanvas-item-color-hover);
+                            background-color: var(--offcanvas-item-bg-hover);
+                        }
+
+                        // Has sub menu
+                        &.next {
+                            padding: var(--offcanvas-item-padding);
+                            > span { padding-right: 15px; }
+
+                            &:after {
+                                position:    absolute;
+                                right:       0;
+                                color:       var(--offcanvas-item-color);
+                                opacity:     .8;
+                                font-weight: 400;
+                            }
+
+                            @include media-breakpoint-down(lg) { width: 100%; }
+                        }
+
+                        &:not(.next) { padding-right: 0; }
+
+                        // Sub menu items
+                        + ul > li > a {
+                            font-size:        var(--offcanvas-dropdown-item-font-size);
+                            font-weight:      var(--offcanvas-dropdown-item-font-weight);
+                            color:            var(--offcanvas-dropdown-item-font-color);
+                            padding:          var(--offcanvas-dropdown-item-padding);
+                            background-color: var(--offcanvas-dropdown-item-bg);
+                            border:           var(--offcanvas-dropdown-item-border, none);
+                            font-family:      var(--offcanvas-dropdown-item-font-family, inherit);
+                            @include transition(color .3s ease-out, background-color .3s ease-out);
+
+                            &:hover {
+                                color:            var(--offcanvas-dropdown-item-font-color-hover);
+                                font-weight:      var(--offcanvas-dropdown-item-font-weight-hover);
+                                background-color: var(--offcanvas-dropdown-item-bg-hover);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Fullscreen ────────────────────────────────────────────
+    &.offcanvas-fullscreen {
+        min-height: 100vh;
+        width:      100% !important;
+    }
+}
+
+// ── Sub menu container ────────────────────────────────────────
+.offcanvas-menu .offcanvas-body .nav-menu ul li + ul {
+    background-color: var(--offcanvas-dropdown-bg);
+    padding:          var(--offcanvas-dropdown-padding);
+}
+
+// ── Fullscreen with header offset ────────────────────────────
+.affixed .offcanvas.offcanvas-fullscreen.exclude-header {
+    padding-top: var(--header-height);
+}
+
+// ── Backdrop — modal ile paylaşımlı ──────────────────────────
+// --backdrop-bg ve --backdrop-opacity her iki component'te de geçerli.
+.offcanvas-backdrop,
+.modal-backdrop {
+    background-color: var(--backdrop-bg, rgba(0, 0, 0, 1));
+    background-image: none;
+
+    &.show {
+        opacity: var(--backdrop-opacity, .5);
+    }
+}

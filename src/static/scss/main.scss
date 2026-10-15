@@ -4,6 +4,7 @@
 
 // abstracts: functions, mixins, variables (derlenmez, sadece tanımlar)
 @import 'abstracts/index';
+@import 'abstracts/fa-svg';
 
 // vendors: Bootstrap + container responsive
 @import 'vendors/index';

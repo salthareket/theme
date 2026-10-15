@@ -1,0 +1,96 @@
+{#
+  _macros.twig — Reviews sistemi için shared Twig macro'ları.
+  Import: {% import "partials/post-reviews/_macros.twig" as rm %}
+#}
+
+{# ── Yıldız gösterimi — FA SVG, readonly display ─────────────────────────────
+   rm.stars(rating, max)
+   Örn: {{ rm.stars(3.5, 5) }}
+#}
+{% macro stars(rating, max) %}
+{% set max   = max ?? 5 %}
+{% set val   = rating|default(0)|round(1) %}
+{% set full  = val|round(0,'floor') %}
+{% set half  = ((val - full) >= 0.4) ? 1 : 0 %}
+{% set empty_count = max - full - half %}
+<span class="sh-stars" data-rating="{{ val }}" aria-label="{{ val }}/{{ max }}">
+    {%- for i in 1..5 -%}
+        {%- if i <= full -%}
+            <span class="sh-star sh-star--full">{{ fa_icon('star','solid','sh-star-svg') }}</span>
+        {%- elseif half and i == (full + 1) -%}
+            <span class="sh-star sh-star--half">{{ fa_icon('star-half-stroke','solid','sh-star-svg') }}</span>
+        {%- else -%}
+            <span class="sh-star sh-star--empty">{{ fa_icon('star','regular','sh-star-svg') }}</span>
+        {%- endif -%}
+    {%- endfor -%}
+</span>
+{% endmacro %}
+
+{# ── Interaktif yıldız picker — form içinde ──────────────────────────────────
+   rm.star_picker(key, max, size)
+   key  : hidden input id suffix ('rating' → id="sh-ri-rating")
+   max  : kaç yıldız (default 5)
+   size : 'sm' | 'md' | 'lg' (default 'md')
+#}
+{% macro star_picker(key, max, size) %}
+{% set max  = max ?? 5 %}
+{% set size = size ?? 'md' %}
+<div class="sh-star-picker sh-star-picker--{{ size }}"
+     id="sh-sp-{{ key }}"
+     data-key="{{ key }}"
+     data-max="{{ max }}"
+     role="group"
+     aria-label="Rate {{ max }} stars">
+    {% for i in 1..max %}
+    <button type="button"
+            class="sh-star-pick"
+            data-value="{{ i }}"
+            aria-label="{{ i }} star{{ i > 1 ? 's' : '' }}"
+            onclick="shStarPickerSet('{{ key }}', {{ i }})">
+        {{ fa_icon('star', 'regular', 'sh-star-svg') }}
+    </button>
+    {% endfor %}
+</div>
+<input type="hidden" name="{{ key }}" id="sh-ri-{{ key }}" value="0">
+{% endmacro %}
+
+{# ── Ürün rating özeti — tease ve single page için ───────────────────────────
+   rm.product_rating(post)
+   _post_rating      : float  — ortalama puan (Salt Reviews meta)
+   _post_rating_count: int    — toplam yorum sayısı
+   Örn: {{ rm.product_rating(post) }}
+   size: 'sm' (tease default) | 'md' (single page)
+#}
+{% macro product_rating(post, size) %}
+{% set _size    = size ?? 'sm' %}
+{# _wc_average_rating / _wc_review_count — sh_sync_wc_product_rating() tarafından güncelleniyor.
+   _post_rating fallback: eski meta key, geçiş dönemi için korunuyor. #}
+{% set _avg     = post.meta('_wc_average_rating')|default(post.meta('_post_rating'))|default(0) %}
+{% set _count   = post.meta('_wc_review_count')|default(post.meta('_post_rating_count'))|default(0) %}
+<div class="sh-product-rating sh-product-rating--{{ _size }}{% if _count < 1 %} sh-product-rating--empty{% endif %}"
+     {% if _count > 0 %}itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating"{% endif %}>
+    {% if _count > 0 %}
+    <meta itemprop="ratingValue"  content="{{ _avg }}">
+    <meta itemprop="reviewCount"  content="{{ _count }}">
+    {% endif %}
+    <span class="sh-product-rating__stars">
+        {% set _full  = _avg|round(0,'floor') %}
+        {% set _half  = ((_avg - _full) >= 0.4) ? 1 : 0 %}
+        {%- for i in 1..5 -%}
+            {%- if i <= _full -%}
+                <span class="sh-prs sh-prs--full">{{ fa_icon('star','solid','sh-prs-svg') }}</span>
+            {%- elseif _half and i == (_full + 1) -%}
+                <span class="sh-prs sh-prs--half">{{ fa_icon('star-half-stroke','solid','sh-prs-svg') }}</span>
+            {%- else -%}
+                <span class="sh-prs sh-prs--empty">{{ fa_icon('star','regular','sh-prs-svg') }}</span>
+            {%- endif -%}
+        {%- endfor -%}
+    </span>
+    {% if _count > 0 %}
+    <span class="sh-product-rating__avg">{{ _avg }}</span>
+    <span class="sh-product-rating__count">({{ _count }})</span>
+    {% else %}
+    <span class="sh-product-rating__count sh-product-rating__count--none">{{ translate("No reviews yet") }}</span>
+    {% endif %}
+</div>
+{% endmacro %}

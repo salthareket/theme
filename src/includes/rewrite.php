@@ -11,12 +11,8 @@ function query_var_isset($var_name) {
 function get_sh_taxonomy_removals() {
     static $removals = null;
     if ($removals === null) {
-        $removals = QueryCache::get_option("options_taxonomy_prefix_remove", []);
-        if (empty($removals)) {
-            $removals = [];
-        } else {
-            $removals = is_array($removals) ? $removals : (array)$removals;
-        }
+        $removals = \SaltHareket\SaltConfig::get('options_taxonomy_prefix_remove', []);
+        $removals = is_array($removals) ? $removals : [];
     }
     return $removals;
 }
@@ -38,6 +34,7 @@ add_filter('request', function($query) {
     if (empty($slug)) return $query;
 
     foreach ($taxonomies as $tax) {
+        if (empty($tax)) continue;
         $term = get_term_by('slug', $slug, $tax);
         
         if ($term && !is_wp_error($term)) {
@@ -67,11 +64,18 @@ add_filter('request', function($query) {
 }, 1, 1);
 
 add_filter('term_link', function($url, $term, $taxonomy) {
+    static $tax_slug_cache = [];
     $taxonomies = get_sh_taxonomy_removals();
-    if (in_array($taxonomy, $taxonomies)) {
-        return str_replace('/' . $taxonomy . '/', '/', $url);
+    if ( empty($taxonomies) || ! in_array($taxonomy, $taxonomies) ) return $url;
+
+    // rewrite slug'ı static cache'le — her URL için get_taxonomy() gitmesin
+    if ( ! isset( $tax_slug_cache[$taxonomy] ) ) {
+        $tax_obj = get_taxonomy($taxonomy);
+        $tax_slug_cache[$taxonomy] = ($tax_obj && !empty($tax_obj->rewrite['slug']))
+            ? $tax_obj->rewrite['slug']
+            : $taxonomy;
     }
-    return $url;
+    return str_replace('/' . $tax_slug_cache[$taxonomy] . '/', '/', $url);
 }, 10, 3);
 
 add_action('template_redirect', function() {
@@ -80,8 +84,13 @@ add_action('template_redirect', function() {
     if (empty($taxonomies)) return;
     $uri = $_SERVER['REQUEST_URI'];
     foreach ($taxonomies as $tax) {
-        if (strpos($uri, '/' . $tax . '/') !== false) {
-            $new_url = str_replace('/' . $tax . '/', '/', home_url($uri));
+        if (empty($tax)) continue;
+        $tax_obj = get_taxonomy($tax);
+        $rewrite_slug = ($tax_obj && !empty($tax_obj->rewrite['slug']))
+            ? $tax_obj->rewrite['slug']
+            : $tax;
+        if (strpos($uri, '/' . $rewrite_slug . '/') !== false) {
+            $new_url = str_replace('/' . $rewrite_slug . '/', '/', home_url($uri));
             wp_redirect($new_url, 301);
             exit;
         }

@@ -97,7 +97,6 @@ $height_same = !empty($htg['height_header']);
         <div class="ts-section">
             <h3 class="ts-section-title">Social Icons</h3>
             <div class="ts-field-row ts-field-row-4">
-                <div><?php theme_styles_render_font_family_field('social.font_family', $hts['font_family'] ?? 'inherit', ['label' => 'Font Family']); ?></div>
                 <div><label class="ts-field-label">Font Size</label><input type="text" class="ts-field-input" data-field="social.font_size" value="<?php echo esc_attr($hts['font_size'] ?? '24px'); ?>" placeholder="24px" /></div>
                 <div><label class="ts-field-label">Color</label><input type="text" class="ts-field-input ts-color-input" data-field="social.color" value="<?php echo esc_attr($hts['color'] ?? ''); ?>" /></div>
                 <div><label class="ts-field-label">Color Hover</label><input type="text" class="ts-field-input ts-color-input" data-field="social.color_hover" value="<?php echo esc_attr($hts['color_hover'] ?? ''); ?>" /></div>
@@ -111,7 +110,6 @@ $height_same = !empty($htg['height_header']);
         <div class="ts-section">
             <h3 class="ts-section-title">Icons</h3>
             <div class="ts-field-row ts-field-row-4">
-                <div><?php theme_styles_render_font_family_field('icons.font_family', $hti['font_family'] ?? 'inherit', ['label' => 'Font Family']); ?></div>
                 <div><label class="ts-field-label">Font Size</label><input type="text" class="ts-field-input" data-field="icons.font_size" value="<?php echo esc_attr($hti['font_size'] ?? '20px'); ?>" placeholder="20px" /></div>
                 <div><label class="ts-field-label">Color</label><input type="text" class="ts-field-input ts-color-input" data-field="icons.color" value="<?php echo esc_attr($hti['color'] ?? ''); ?>" /></div>
                 <div><label class="ts-field-label">Color Hover</label><input type="text" class="ts-field-input ts-color-input" data-field="icons.color_hover" value="<?php echo esc_attr($hti['color_hover'] ?? ''); ?>" /></div>

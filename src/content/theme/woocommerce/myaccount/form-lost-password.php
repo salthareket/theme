@@ -10,9 +10,9 @@
  * happen. When this occurs the version of the template file will be bumped and
  * the readme will list any important changes.
  *
- * @see https://docs.woocommerce.com/document/template-structure/
- * @package WooCommerce/Templates
- * @version 3.5.2
+ * @see https://woocommerce.com/document/template-structure/
+ * @package WooCommerce\Templates
+ * @version 9.2.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -27,10 +27,9 @@ do_action( 'woocommerce_before_lost_password_form' );
 			<div class="alert alert-warning"><?php echo apply_filters( 'woocommerce_lost_password_message', esc_html__( 'Lost your password? Please enter your username or email address. You will receive a link to create a new password via email.', 'woocommerce' ) ); ?></div><?php // @codingStandardsIgnoreLine ?>
 
 			<div class="form-group">
-				<label class="form-label text-light" for="user_login"><?php esc_html_e( 'Username or email', 'woocommerce' ); ?></label>
-				<input class="form-control form-control-lg" type="text" name="user_login" id="user_login" placeholder="<?php esc_html_e( 'Username or email', 'woocommerce' ); ?>" autocomplete="username" required/>
+				<label class="form-label text-light" for="user_login"><?php esc_html_e( 'Username or email', 'woocommerce' ); ?>&nbsp;<span class="required" aria-hidden="true">*</span><span class="screen-reader-text"><?php esc_html_e( 'Required', 'woocommerce' ); ?></span></label>
+				<input class="form-control form-control-lg" type="text" name="user_login" id="user_login" placeholder="<?php esc_html_e( 'Username or email', 'woocommerce' ); ?>" autocomplete="username" required aria-required="true" />
 			</div>
-
 
 			<?php do_action( 'woocommerce_lostpassword_form' ); ?>
 

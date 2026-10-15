@@ -1,0 +1,33 @@
+{#
+  partials/source/messages/tease.twig
+
+  Context:
+    item — message object {id, title, message, time, url, read, sender{name, image}}
+    view — offcanvas | dropdown | modal
+#}
+
+<li class="source-item source-item-message notification-item infinite-item{% if not item.read %} unread{% endif %}"
+    data-source="messages"
+    data-id="{{ item.id }}">
+
+    <a href="{{ item.url|default(function('wc_get_account_endpoint_url', 'messages')) }}"
+       class="d-flex gap-3 align-items-start text-decoration-none">
+
+        {% if item.sender.image %}
+            <div class="source-item-avatar flex-shrink-0">
+                {{ item.sender.image|raw }}
+            </div>
+        {% endif %}
+
+        <div class="source-item-detail flex-grow-1 min-w-0">
+            <div class="source-item-title fw-semibold">{{ item.sender.name }}</div>
+            <div class="source-item-message text-muted text-truncate">{{ item.message|truncate(8) }}</div>
+            <small class="source-item-time text-muted">{{ item.time }}</small>
+        </div>
+
+        {% if not item.read %}
+            <span class="source-item-badge badge bg-primary rounded-circle p-1 flex-shrink-0"></span>
+        {% endif %}
+
+    </a>
+</li>

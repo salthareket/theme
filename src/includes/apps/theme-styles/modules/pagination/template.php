@@ -21,7 +21,7 @@ $data = $data ?? [];
                 <ul class="pagination">
                     <li class="page-item page-item-prev">
                         <a class="page-link" href="#" onclick="return false;">
-                            <i class="pagination-icon-prev"></i>
+                            <span class="pagination-icon-prev"></span>
                             <span class="pagination-text-prev">Previous</span>
                         </a>
                     </li>
@@ -33,7 +33,7 @@ $data = $data ?? [];
                     <li class="page-item page-item-next">
                         <a class="page-link" href="#" onclick="return false;">
                             <span class="pagination-text-next">Next</span>
-                            <i class="pagination-icon-next"></i>
+                            <span class="pagination-icon-next"></span>
                         </a>
                     </li>
                 </ul>
@@ -333,11 +333,37 @@ $data = $data ?? [];
             <div class="ts-field-row ts-field-row-3">
                 <div>
                     <label class="ts-field-label"><?php _e('Prev Icon', 'theme-styles'); ?></label>
-                    <input type="text" class="ts-field-input" data-field="nav_prev_icon" value="<?php echo esc_attr($data['nav_prev_icon'] ?? '\f053'); ?>" placeholder="\f053" />
+                    <?php
+                    $prev_val   = $data['prev_icon'] ?? '';
+                    $prev_style = 'regular';
+                    $prev_name  = '';
+                    if ( $prev_val && strpos( $prev_val, ':' ) !== false ) {
+                        [ $prev_style, $prev_name ] = explode( ':', $prev_val, 2 );
+                    }
+                    ?>
+                    <input type="hidden"
+                           class="ts-field-input"
+                           data-field="prev_icon"
+                           data-sh-icon-picker
+                           data-placeholder="<?php esc_attr_e( 'İkon ara...', 'theme-styles' ); ?>"
+                           value="<?php echo esc_attr( $prev_style && $prev_name ? "$prev_style:$prev_name" : '' ); ?>" />
                 </div>
                 <div>
                     <label class="ts-field-label"><?php _e('Next Icon', 'theme-styles'); ?></label>
-                    <input type="text" class="ts-field-input" data-field="nav_next_icon" value="<?php echo esc_attr($data['nav_next_icon'] ?? '\f054'); ?>" placeholder="\f054" />
+                    <?php
+                    $next_val   = $data['next_icon'] ?? '';
+                    $next_style = 'regular';
+                    $next_name  = '';
+                    if ( $next_val && strpos( $next_val, ':' ) !== false ) {
+                        [ $next_style, $next_name ] = explode( ':', $next_val, 2 );
+                    }
+                    ?>
+                    <input type="hidden"
+                           class="ts-field-input"
+                           data-field="next_icon"
+                           data-sh-icon-picker
+                           data-placeholder="<?php esc_attr_e( 'İkon ara...', 'theme-styles' ); ?>"
+                           value="<?php echo esc_attr( $next_style && $next_name ? "$next_style:$next_name" : '' ); ?>" />
                 </div>
                 <div>
                     <label class="ts-field-label"><?php _e('Border Radius', 'theme-styles'); ?></label>

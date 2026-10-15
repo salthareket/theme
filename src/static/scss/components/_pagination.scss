@@ -63,14 +63,14 @@
                         border:           var(--pagination-nav-border-hover) !important;
                     }
 
-                    span:before { content: ""; font-family: var(--pagination-nav-font-family); }
+                    //span:before { content: ""; font-family: var(--pagination-nav-font-family); }
                 }
 
                 &.disabled a { color: var(--pagination-nav-color-disabled); }
             }
 
-            &.prev > a.page-link span:before { content: var(--pagination-nav-prev-icon, "\f053"); }
-            &.next   a.page-link span:before { content: var(--pagination-nav-next-icon, "\f054"); }
+            /*&.prev > a.page-link span:before { content: var(--pagination-nav-prev-icon, "\f053"); }
+            &.next   a.page-link span:before { content: var(--pagination-nav-next-icon, "\f054"); }*/
         }
     }
 }

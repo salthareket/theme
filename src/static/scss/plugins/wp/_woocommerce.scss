@@ -6,63 +6,6 @@
 	@extend .form-control !optional;
 }
 
-
-input[type='number']{
-    //visibility:hidden;
-}
-.product-quantity{
-    .input-group{
-        align-items:center;
-        overflow:hidden;
-        border:1px solid #ddd;
-        border-radius:22px;
-        .form-control{
-            border-color:transparent;
-        }
-        .btn{
-            display:flex;
-            justify-content:center;
-            border-color:transparent;
-            background-color:$form-spinner-button-bg-color;
-            color:$form-spinner-button-color;
-            &:hover{
-                color:$form-spinner-button-color-hover;
-                background-color:$form-spinner-button-bg-color-hover;
-            }
-            strong{
-                font-size: 28px;
-                font-weight: normal;
-                line-height:1;
-            }
-        }
-        input[type='number']{
-            //visibility:visible;
-        }
-    }
-
-    &.product-quantity-lg{
-        .input-group{
-            max-width:180px;
-        }
-    }
-    &.product-quantity-md{
-        .input-group{
-            max-width:160px;
-        }
-    }
-    &.product-quantity-sm{
-        .input-group{
-            max-width:140px;
-        }
-    }
-    &.product-quantity-sm{
-        .input-group{
-            max-width:120px;
-        }
-    }  
-}
-
-
 .woocommerce-notices-wrapper,
 .woocommerce-NoticeGroup--{
 	position:relative;//fixed;
@@ -507,4 +450,228 @@ select#billing_state{
 }
 .CardBrandIcon-container{
    display:block!important;
+}
+
+
+// ── Quantity Stepper ─────────────────────────────────────────────────────────
+// BEM naming: .sh-qty-stepper (WC .quantity wrapper'ı)
+// Modifier'lar (general settings'den class olarak atanır):
+//   .sh-qty-stepper-sm / -md (default) / -lg   → boyut
+//   .sh-qty-stepper-pill                        → tam yuvarlak
+//   .sh-qty-stepper-filled                      → arka plan renkli
+// PurgeCSS whitelist: sh-qty-stepper-*
+
+$_sh-qty-h:        40px;
+$_sh-qty-h-sm:     32px;
+$_sh-qty-h-lg:     52px;
+$_sh-qty-btn-w:    40px;
+$_sh-qty-btn-w-sm: 32px;
+$_sh-qty-btn-w-lg: 52px;
+$_sh-qty-in-w:     48px;
+$_sh-qty-radius:   .5rem;
+
+.quantity.sh-qty-stepper,
+.sh-qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    height: $_sh-qty-h;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: $_sh-qty-radius;
+    background: var(--bs-body-bg, #fff);
+    overflow: hidden;
+    transition: border-color .15s ease, box-shadow .15s ease;
+
+    &:focus-within {
+        border-color: var(--bs-primary, #0d6efd);
+        box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb, 13 110 253) / .2);
+    }
+
+    // ── Butonlar ─────────────────────────────────────────────────────────
+    .qty-stepper__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: $_sh-qty-btn-w;
+        height: 100%;
+        border: none;
+        background: transparent;
+        color: var(--bs-body-color, #212529);
+        font-size: 1.15rem;
+        font-weight: 500;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s, color .15s;
+        user-select: none;
+
+        &:hover:not(:disabled) {
+            background: var(--bs-secondary-bg, #f8f9fa);
+            color: var(--bs-primary, #0d6efd);
+        }
+        &:active:not(:disabled) {
+            background: var(--bs-tertiary-bg, #e9ecef);
+        }
+        &:disabled {
+            opacity: .38;
+            cursor: not-allowed;
+        }
+        &--minus { border-right: 1px solid var(--bs-border-color, #dee2e6); }
+        &--plus  { border-left:  1px solid var(--bs-border-color, #dee2e6); }
+    }
+
+    // ── Input ─────────────────────────────────────────────────────────────
+    .qty-stepper__input,
+    input.qty {
+        width: $_sh-qty-in-w !important;
+        height: 100% !important;
+        min-height: unset !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        text-align: center !important;
+        font-size: .95rem;
+        font-weight: 500;
+        color: var(--bs-body-color, #212529);
+        padding: 0 .25rem !important;
+        box-shadow: none !important;
+        outline: none !important;
+        // Native spin butonlarını gizle
+        -moz-appearance: textfield;
+        appearance: textfield;
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    }
+
+    // ── Size modifiers ────────────────────────────────────────────────────
+    &.sh-qty-stepper-sm {
+        height: $_sh-qty-h-sm;
+        .qty-stepper__btn { width: $_sh-qty-btn-w-sm; font-size: .95rem; }
+        .qty-stepper__input, input.qty { width: 38px !important; font-size: .85rem; }
+    }
+    &.sh-qty-stepper-lg {
+        height: $_sh-qty-h-lg;
+        .qty-stepper__btn { width: $_sh-qty-btn-w-lg; font-size: 1.3rem; }
+        .qty-stepper__input, input.qty { width: 56px !important; font-size: 1.05rem; }
+    }
+
+    // ── Varyantlar ────────────────────────────────────────────────────────
+    &.sh-qty-stepper-pill {
+        border-radius: 999px;
+        .qty-stepper__btn--minus { border-radius: 999px 0 0 999px; }
+        .qty-stepper__btn--plus  { border-radius: 0 999px 999px 0; }
+    }
+    &.sh-qty-stepper-filled {
+        background: var(--bs-secondary-bg, #f8f9fa);
+        border-color: transparent;
+        &:focus-within { border-color: var(--bs-primary, #0d6efd); }
+        .qty-stepper__btn:hover:not(:disabled) {
+            background: rgba(var(--bs-primary-rgb, 13 110 253) / .1);
+        }
+    }
+}
+
+
+// ── Sticky Add to Cart Bar ───────────────────────────────────────────────────
+// data-html-whitelist: .sh-sticky-atc,.sh-sticky-atc--*
+
+.sh-sticky-atc {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    background: var(--bs-body-bg, #fff);
+    border-top: 1px solid var(--bs-border-color, #dee2e6);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
+    opacity: 0;
+    pointer-events: none;
+
+    &--bottom { bottom: 0; top: auto; transform: translateY(101%); box-shadow: 0 -4px 16px rgba(0,0,0,.08); }
+    &--top    { top: 0; bottom: auto; transform: translateY(-101%); box-shadow: 0 4px 16px rgba(0,0,0,.08); border-top: none; border-bottom: 1px solid var(--bs-border-color, #dee2e6); }
+
+    &.is-visible {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    &__inner {
+        padding: .625rem 0;
+        min-height: 60px;
+    }
+
+    &__img {
+        width: 48px;
+        height: 48px;
+    }
+
+    &__title {
+        font-size: .9rem;
+        line-height: 1.3;
+    }
+
+    &__price {
+        font-size: .85rem;
+        color: var(--bs-secondary-color, #6c757d);
+
+        // WC price override — küçük boyut
+        .price {
+            font-size: inherit !important;
+            margin: 0 !important;
+        }
+    }
+
+    &__btn {
+        white-space: nowrap;
+        font-size: .9rem;
+        padding: .4rem 1rem;
+    }
+}
+
+
+// ── Product List Swiper — eşit yükseklik ─────────────────────────────────────
+.sh-product-list__swiper {
+    // Tüm slide'lar aynı yükseklikte olsun
+    .swiper-wrapper {
+        align-items: stretch !important;
+    }
+
+    .swiper-slide {
+        height: auto !important;
+        display: flex !important;
+        flex-direction: column;
+
+        // İlk direkt child'ı (tease card) slide yüksekliğine yay
+        > article,
+        > div {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+
+            > .card {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+
+                .card-body {
+                    flex: 1;
+                }
+            }
+        }
+    }
+}
+
+
+.product-description p:empty{
+	display:none;
+}
+
+.woocommerce #content div.product div.summary,
+.woocommerce div.product div.summary,
+.woocommerce-page #content div.product div.summary,
+.woocommerce-page div.product div.summary{
+	float:none;
+	width:100%;
 }

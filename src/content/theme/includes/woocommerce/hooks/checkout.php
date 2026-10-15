@@ -21,6 +21,26 @@ add_filter( 'woocommerce_shipping_calculator_enable_city', '__return_false' );  
 add_filter( 'woocommerce_shipping_calculator_enable_postcode', '__return_false' );// 3. Posta kodunu devre dışı bırak
 
 
+// ── Postcode field'ına form-control-postal-code class'ı ekle ────────────────
+// ENABLE_POSTCODE_VALIDATION aktifse billing/shipping postcode input'una
+// inputmask sisteminin tanıdığı class'ı ekler.
+// woocommerce_default_address_fields: billing + shipping her ikisini de kapsar.
+if ( defined('ENABLE_POSTCODE_VALIDATION') && ENABLE_POSTCODE_VALIDATION ) {
+    add_filter( 'woocommerce_default_address_fields', 'sh_postcode_add_inputmask_class', 20 );
+    function sh_postcode_add_inputmask_class( $fields ) {
+        if ( isset( $fields['postcode'] ) ) {
+            // input_class → doğrudan <input> elementine eklenir
+            $existing = isset( $fields['postcode']['input_class'] ) ? (array) $fields['postcode']['input_class'] : [];
+            if ( ! in_array( 'form-control-postal-code', $existing, true ) ) {
+                $existing[] = 'form-control-postal-code';
+            }
+            $fields['postcode']['input_class'] = $existing;
+        }
+        return $fields;
+    }
+}
+
+
 
 // Checkout sayfasından fatura bilgileri alanlarını kaldırıyoruz:
 // - Şirket Adı, İlçe/Şehir, Posta Kodu, Ülke, İl, Adres 1 ve Adres 2

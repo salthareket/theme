@@ -1,5 +1,5 @@
 <?php
-$map_service = QueryCache::get_field('map_service', 'options') ?: 'leaflet';
+$map_service = \SaltHareket\SaltConfig::get('options_map_service') ?: 'leaflet';
 $map_id      = absint($vars['id'] ?? 0);
 $map_ids     = $vars['ids'] ?? [];
 $lat         = $vars['lat'] ?? '';

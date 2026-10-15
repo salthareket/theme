@@ -14,7 +14,11 @@
 {% endif %}
 
 {% if not user_link %}
-    {% set user_link = user_item.link %}
+    {# user_item.link WordPress author URL üretir (administrator/slug) — membership prefix ile override et #}
+    {% set _ul_prefix = function('membership_profile_url_prefix') %}
+    {% set _ul_slug   = user_item.generate_url_slug() %}
+    {% set _site_base = site.url ends with '/' ? site.url|slice(0, -1) : site.url %}
+    {% set user_link  = _site_base ~ '/' ~ _ul_prefix ~ _ul_slug %}
 {% endif %}
 
 
@@ -22,25 +26,68 @@
     <div class="image">
         <div class="image-wrap d-flex flex-column">
             {% if photo_edit %}
-                <form class="form form-validate m-0" id="form-profile-photo" autocomplete="off" method="post" enctype="multipart/form-data" data-ajax-method="update_profile_photo">
-                    <div class="profile-photo-main image-uploader-single sh-uploader">
-                        {{"<script>"}}
-                        document.addEventListener('DOMContentLoaded', function() {
-                            const uploader = new ImageUploader('.profile-photo-main', {
-                                preloaded: [{ id: 1, src: "{{user_item.get_avatar_url}}" }],
+                <div class="profile-photo-main image-uploader-single sh-uploader" id="profile-photo-wrap">
+                    {{"<script>"}}
+                    (function(){
+                        var _avatarSrc = '{{ user_item.get_avatar_url }}';
+                        var _uploader;
+
+                        document.addEventListener('DOMContentLoaded', function(){
+                            var wrap = document.getElementById('profile-photo-wrap');
+                            if (!wrap || typeof ImageUploader === 'undefined') return;
+
+                            _uploader = new ImageUploader(wrap, {
+                                mode:       'avatar',
+                                avatarSrc:  _avatarSrc,
+                                avatarLabel: 'Change photo',
                                 imagesInputName: 'profile_photo_main',
-                                preloadedInputName: 'old',
-                                extensions: ['.jpg', '.jpeg', '.png'],
-                                maxSize: 2 * 1024 * 1024,
-                                maxFiles: 1,
-                                onChange: function() {
-                                    document.getElementById('form-profile-photo').submit();
-                                }
+                                extensions: ['.jpg', '.jpeg', '.png', '.webp'],
+                                mimes:      ['image/jpeg', 'image/png', 'image/webp'],
+                                maxSize:    5 * 1024 * 1024,
+                                onChange: function(files) {
+                                    if (!files || !files[0]) return;
+                                    _uploader.setLoading(true);
+
+                                    var formData = new FormData();
+                                    formData.append('profile_photo_main[]', files[0]);
+                                    formData.append('vars[action]', 'update_profile_photo');
+                                    formData.append('vars[lang]', (window.root && root.lang) ? root.lang : 'tr');
+
+                                    var nonce = (window.ajax_request_vars && ajax_request_vars.ajax_nonce) || '';
+                                    var apiUrl = (window.ajax_request_vars && ajax_request_vars.site_url)
+                                        ? ajax_request_vars.site_url.replace(/\/$/, '') + '/api/update_profile_photo/'
+                                        : '/api/update_profile_photo/';
+
+                                    fetch(apiUrl, {
+                                        method: 'POST',
+                                        headers: nonce ? { 'X-WP-Nonce': nonce } : {},
+                                        body: formData,
+                                        credentials: 'same-origin',
+                                    })
+                                    .then(function(r){ return r.json(); })
+                                    .then(function(res){
+                                        _uploader.setLoading(false);
+                                        if (res && !res.error) {
+                                            var newSrc = (res.data && typeof res.data === 'object' && res.data.avatar_url)
+                                                ? res.data.avatar_url
+                                                : (typeof res.data === 'string' ? res.data : '');
+                                            if (newSrc) _uploader.setAvatarSrc(newSrc);
+                                        } else {
+                                            // Hata — avatar'ı sıfırla
+                                            _uploader.setAvatarSrc(_avatarSrc);
+                                            if (typeof response_view === 'function') response_view(res);
+                                        }
+                                    })
+                                    .catch(function(){
+                                        _uploader.setLoading(false);
+                                        _uploader.setAvatarSrc(_avatarSrc);
+                                    });
+                                },
                             });
                         });
-                        {{"</script>"}}
-                    </div>
-                </form>
+                    })();
+                    {{"</script>"}}
+                </div>
             {% else %}
                 {% if user_item.is_online %}
                     <span></span>
@@ -61,8 +108,8 @@
             <{{heading|default("h4")}} class="title-custom">{{ user_title_custom }}</{{heading|default("h4")}}>
         {% endif %}
         {% if show_rating %}
-            <a href="{{user_item.link}}#reviews" title="{{user_item.get_title}} Reviews">
-                <div class="star-rating-readonly-ui star-rating-readonly-xs mb-1" data-value="{{user_item._user_rating}}"></div>
+            <a href="{{ user_link }}#reviews" title="{{ user_item.get_title }} Reviews">
+                <div class="star-rating-readonly-ui star-rating-readonly-xs mb-1" data-value="{{ user_item._user_rating }}"></div>
             </a>
         {% endif %}
         {% if current_page_type != "author" %}
@@ -87,15 +134,17 @@
         {% endif %}
         {% if location %}
             <div class="location">
-                <i class="fa-regular fa-location-dot"></i> {{user_item.get_location}} - UTC{{user_item.get_gmt()}}
+                {#<i class="fa-regular fa-location-dot"></i>#}
+                {{ fa_icon('location-dot', 'regular', '') }}
+                {{user_item.get_location}} - UTC{{user_item.get_gmt()}}
             </div>
         {% endif %}
         
     </div>
 
-    {% set show_follow     = show_follow|boolval     and enable_follow    and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
-    {% set show_favorite   = show_favorite   and enable_reactions and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
-    {% set show_message    = show_message    and enable_chat      and user.get_role != user_item.get_role and user.id != user_item.id and user.logged %}
+    {% set show_follow     = show_follow|boolval     and enable_follow    and user.id != user_item.id and user.logged %}
+    {% set show_favorite   = show_favorite   and enable_reactions and user.id != user_item.id and user.logged %}
+    {% set show_message    = show_message    and enable_chat      and user.id != user_item.id and user.logged %}
     {% set review_approve  = review_approve  and not disable_review_approve and user.id == user_item.id and user.logged %}
 
     {% if show_follow or show_favorite or show_message or profile or review_approve or profile_link %}
@@ -144,7 +193,11 @@
             {% endif %}
 
             {% if profile_link %}
-                <a href="{{user_item.link}}" class="btn btn-secondary btn-sm text-uppercase fw-bold border-0 {% if not user_item.is_profile_completed() %}disabled{% endif %}" target="_blank" title="{{user_item.get_title}} public profile">View Public Profile</a>
+                {% set _pub_prefix = function('membership_profile_url_prefix') %}
+                {% set _pub_slug   = user_item.generate_url_slug() %}
+                {% set _site_base  = site.url ends with '/' ? site.url|slice(0, -1) : site.url %}
+                {% set _pub_url    = _site_base ~ '/' ~ _pub_prefix ~ _pub_slug %}
+                <a href="{{ _pub_url }}" class="btn btn-secondary btn-sm text-uppercase fw-bold border-0 {% if not user_item.is_profile_completed() %}disabled---{% endif %}" target="_blank" title="{{ user_item.get_title }} public profile">View Public Profile</a>
             {% endif %}
         </div>
     {% endif %}

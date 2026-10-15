@@ -1,153 +1,185 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin Login Page Styles
+// CSS custom properties (--al-*) are injected inline via custom-login.php.
+// Compile → static/css/admin-login.css
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Mixins ──────────────────────────────────────────────────────────────────
+@mixin reset-wp-decorations {
+    background-image:   none !important;
+    box-shadow:         none !important;
+    -webkit-box-shadow: none !important;
+    text-shadow:        none !important;
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+body.login {
+    background-color:    var(--al-page-bg-color, #1d2327) !important;
+    background-image:    var(--al-page-bg-image, none) !important;
+    background-size:     var(--al-page-bg-size, cover) !important;
+    background-position: var(--al-page-bg-pos, center center) !important;
+    background-repeat:   var(--al-page-bg-repeat, no-repeat) !important;
+    background-attachment: var(--al-page-bg-att, fixed) !important;
+    display:             flex !important;
+    justify-content:     center !important;
+    align-items:         center !important;
+    flex-direction:      column !important;
+    min-height:          100vh !important;
+}
+
+// ─── Login wrapper ───────────────────────────────────────────────────────────
+#login {
+    width:     var(--al-box-width, 360px) !important;
+    max-width: 96% !important;
+    padding:   0 !important;
+}
+
+// ─── Form / Box ──────────────────────────────────────────────────────────────
+#loginform,
+.login form {
+    @include reset-wp-decorations;
+    background:    var(--al-box-bg, transparent) !important;
+    border-radius: var(--al-box-radius, 8px) !important;
+    padding:       var(--al-box-padding, 24px) !important;
+    box-shadow:    var(--al-box-shadow, none) !important;
+    border:        none !important;
+}
+
+// ─── Logo ────────────────────────────────────────────────────────────────────
+.login h1 {
+    margin:  0 auto;
+    padding: 0;
+    width:   auto;
+    height:  auto;
+
+    a {
+        display:          block;
+        width:            auto;
+        height:           auto;
+        margin:           0 auto;
+        padding:          0;
+        text-indent:      0 !important;
+        background-image: none !important;
+
+        img {
+            display:    block;
+            margin:     0 auto;
+            max-height: var(--al-logo-max-height, 80px) !important;
+            max-width:  var(--al-logo-max-width, 200px) !important;
+            width:      auto !important;
+            height:     auto !important;
+        }
+    }
+
+    &.admin-email__heading {
+        color:       var(--al-text-color, inherit) !important;
+        text-align:  center;
+        font-size:   24px;
+        font-weight: 600;
+    }
+}
+
+// ─── Labels ──────────────────────────────────────────────────────────────────
 .login {
-    form {
-      border: 0 none;
-      -webkit-box-shadow: none;
-      box-shadow: none;
-      background-color: transparent;
-      label {
-        //color: #fff;
-        input {
-          border-radius: 4px;
-        }
-      }
-    }
-    h1 {
-        margin: 0 auto;
-        padding: 0;
-        width:auto;
-        height:auto;
-        a{
-          display: block;
-          width:auto;
-          height:auto;
-          margin:auto;
-          padding: 0;
-          text-indent:0!important;
-          background-image:none!important;
-          &:link, &:visited, &:hover, &:active {
-            background-position: center bottom;
-          }
-          img{
-              max-height:150px;
-          }
-        }
-        &.admin-email__heading{
-            //color: #fff;
-            width: auto;
-            height: auto;
-            text-align: center;
-            //border-color: rgba(#fff, .4);
-            font-size: 24px;
-            font-weight: 600;
-        }
+    label,
+    form label {
+        color: var(--al-label-color, inherit) !important;
     }
 }
 
-p{
-    &.admin-email__details{
-        //color: #fff;
-        width: auto;
-        height: auto;
-        text-align: center;
-        //border-color: rgba(#fff, .4);
-        font-size: 24px;
-    }
-    &.admin-email__actions{
-        text-align:center;
-    }
-}
-
-p.message {
-   margin-top: 30px;
-}
-
-.wp-core-ui .button-primary {
-    //background-color: transparent;
-    background-image: none;
-    //border-color: rgba(255, 255, 255, 0.3);
-    -webkit-box-shadow: none;
-    box-shadow: none;
-    //color: #fff;
-    text-decoration: none;
-    text-shadow: none;
-    font-weight: 700;
-    text-transform: uppercase;
-    transition: background-color .3s ease-out, color .3s ease-out;
-    &:hover {
-        //background-color: #fff;
-        background-image: none;
-        border-color: transparent;
-        border-bottom-color: none;
-        -webkit-box-shadow: none;
-        box-shadow: none;
-        //color: #be1e2d;
-        text-decoration: none;
-        text-shadow: none;
-    }
-}
-
-/*
-.login #nav, 
-.login #backtoblog { text-shadow: #FFF 0 1px 0; }*/
-
+// ─── Text ────────────────────────────────────────────────────────────────────
 .login {
-    #nav{
-      text-align:center;
+    p.admin-email__details,
+    .description {
+        color: var(--al-text-color, inherit) !important;
     }
-    #nav a, #backtoblog a {
-      //color: #fff !important;
-      transition: background-color .3s ease-out, color .3s ease-out;
-    }
-    #nav a:hover, #backtoblog a:hover {
-      //color: #f7941e !important;
-    }
-    #backtoblog{
-        display:none;
-    }
-    label {
-      //color: #f7941e;
-    }
-    .description{
-       //color:#fff;
-       line-height:16px;
-       .indicator-hint{
+}
 
-       }
-    }
-    .submit{
-        display:flex;
-        justify-content:end;
-        .button{
-            &:disabled{
-                //background-color: rgba(#fff,.2) !important;
-                //border-color: rgba(#fff,.4) !important;
-                //color: rgba(#fff,.4) !important;
+// ─── Inputs ──────────────────────────────────────────────────────────────────
+.login {
+    input {
+        &[type="text"],
+        &[type="password"],
+        &[type="email"] {
+            background-color:    var(--al-input-bg, transparent) !important;
+            color:               var(--al-input-color, inherit) !important;
+            border-color:        var(--al-input-border, transparent) !important;
+            border-radius:       var(--al-input-radius, 4px) !important;
+            box-shadow:          none !important;
+            -webkit-box-shadow:  none !important;
+            transition:          border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+
+            &:focus {
+                border-color: var(--al-input-border-focus, transparent) !important;
+                box-shadow:   0 0 0 2px var(--al-input-border-focus-shadow, transparent) !important;
+                outline:      none !important;
             }
         }
     }
 }
 
+// ─── Submit / Button ─────────────────────────────────────────────────────────
+.wp-core-ui .button-primary,
+.login .button-primary,
+input[type="submit"].button-primary {
+    @include reset-wp-decorations;
+    background:     var(--al-btn-bg, transparent) !important;
+    border-color:   var(--al-btn-border, transparent) !important;
+    color:          var(--al-btn-color, inherit) !important;
+    border-radius:  var(--al-btn-radius, 3px) !important;
+    text-transform: var(--al-btn-transform, none) !important;
+    font-weight:    var(--al-btn-weight, 600) !important;
+    transition:     background .2s ease, border-color .2s ease, color .2s ease;
 
+    &:hover,
+    &:focus {
+        @include reset-wp-decorations;
+        background:   var(--al-btn-bg-hover, transparent) !important;
+        border-color: var(--al-btn-border-hover, transparent) !important;
+        color:        var(--al-btn-color-hover, inherit) !important;
+    }
 
-
-/*
-.login h1 a {
-  -webkit-transition: 0 ease;
-     -moz-transition: 0 ease;
-       -o-transition: 0 ease;
-      -ms-transition: 0 ease;
-          transition: 0 ease;
+    &:disabled {
+        opacity:        .5 !important;
+        pointer-events: none !important;
+    }
 }
-#login {
-  -webkit-transition: .3s ease;
-     -moz-transition: .3s ease;
-       -o-transition: .3s ease;
-      -ms-transition: .3s ease;
-          transition: .3s ease;
-}*/
 
-@media only screen and (min-width: 768px) {
-  #login {
-    width: 400px;
-  }
+// ─── Links ───────────────────────────────────────────────────────────────────
+.login {
+    #nav,
+    #backtoblog {
+        a {
+            color:      var(--al-link-color, inherit) !important;
+            transition: color .15s ease;
+
+            &:hover { color: var(--al-link-hover, inherit) !important; }
+        }
+    }
+
+    #nav      { text-align: center; }
+    #backtoblog { display: none !important; }
+}
+
+// ─── Submit row ──────────────────────────────────────────────────────────────
+.login .submit {
+    display:         flex !important;
+    justify-content: flex-end !important;
+}
+
+// ─── Error / Message ─────────────────────────────────────────────────────────
+.login {
+    #login_error,
+    .message.error {
+        background:        var(--al-error-bg, transparent) !important;
+        border-left-color: var(--al-error-border, transparent) !important;
+        color:             var(--al-error-color, inherit) !important;
+    }
+
+    .message { margin-top: 30px; }
+}
+
+// ─── Responsive ──────────────────────────────────────────────────────────────
+@media (min-width: 768px) {
+    #login { width: var(--al-box-width, 400px); }
 }

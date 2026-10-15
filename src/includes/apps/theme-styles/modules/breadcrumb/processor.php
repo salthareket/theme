@@ -19,9 +19,30 @@ function theme_styles_process_breadcrumb($data, $generator) {
     if (!empty($bc['text_decoration_hover']))  $vars['breadcrumb-item-text-decoration-hover']  = $bc['text_decoration_hover'];
     if (!empty($bc['text_decoration_active'])) $vars['breadcrumb-item-text-decoration-active'] = $bc['text_decoration_active'];
 
-    // Separator: template'de separator_icon, eski sistemde separator
-    $sep = $bc['separator_icon'] ?? ($bc['separator'] ?? '');
-    if (!empty($sep)) $vars['breadcrumb-sep'] = '"' . $sep . '"';
+    // Separator: SVG'ye geçildi — CSS variable'a artık yazılmıyor
+    // Eski unicode format geriye uyumluluk için korundu (CSS content olarak)
+    $sep_raw = $bc['separator_icon'] ?? ($bc['separator'] ?? '');
+    if ( ! empty( $sep_raw ) && strpos( $sep_raw, ':' ) === false ) {
+        // Eski format \f054 — hâlâ CSS content olarak yaz
+        $vars['breadcrumb-sep'] = '"' . $sep_raw . '"';
+    }
+
+    // Yeni format solid:angle-right → SVG mask için CSS variable üret
+    if ( ! empty( $sep_raw ) && strpos( $sep_raw, ':' ) !== false ) {
+        $sep_parts  = explode( ':', $sep_raw, 2 );
+        $sep_style  = $sep_parts[0] ?? 'regular';
+        $sep_name   = $sep_parts[1] ?? '';
+        if ( $sep_name && class_exists( 'SaltHareket\FaIconManager' ) ) {
+            $svg = \SaltHareket\FaIconManager::extractFromJs( $sep_name, $sep_style );
+            if ( $svg ) {
+                // xmlns gerekiyor
+                if ( strpos( $svg, 'xmlns=' ) === false ) {
+                    $svg = str_replace( '<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ', $svg );
+                }
+                $vars['breadcrumb-sep-svg'] = 'url("data:image/svg+xml,' . rawurlencode( $svg ) . '")';
+            }
+        }
+    }
 
     if (!empty($bc['separator_color'])) $vars['breadcrumb-sep-color'] = $bc['separator_color'];
     if (!empty($bc['separator_size']))  $vars['breadcrumb-sep-size']  = $bc['separator_size'];

@@ -214,8 +214,44 @@ trait HandlesActivation
 
         switch ( $activation_type ) {
             case 'sms':
+                // SMS app disabled ise email'e düş
+                $sms_enabled   = defined( 'ENABLE_SMS' ) && ENABLE_SMS;
+                $sms_class_ok  = class_exists( \SaltHareket\Sms\SmsApp::class );
+                $sms_available = $sms_class_ok && \SaltHareket\Sms\SmsApp::isAvailable();
+
+                if ( defined( 'ENABLE_DEVELOPMENT' ) && ENABLE_DEVELOPMENT ) {
+                    error_log( '[Activation] SMS check — ENABLE_SMS=' . var_export( $sms_enabled, true )
+                        . ' | class_exists=' . var_export( $sms_class_ok, true )
+                        . ' | isAvailable=' . var_export( $sms_available, true ) );
+                }
+
+                if ( ! $sms_enabled || ! $sms_available ) {
+                    update_user_meta( $user_id, 'activation_type', 'email' );
+                    return $this->sendActivation( $user_id );
+                }
+
                 $user_obj = class_exists( 'User' ) ? new \User( $user_id ) : $user;
-                $phone    = method_exists( $user_obj, 'get_phone' ) ? $user_obj->get_phone() : '';
+
+                // get_phone() deneme → boşsa billing_phone user_meta'dan al
+                $phone = '';
+                if ( method_exists( $user_obj, 'get_phone' ) ) {
+                    $phone = (string) $user_obj->get_phone();
+                }
+                if ( empty( $phone ) ) {
+                    $phone_code = get_user_meta( $user_id, 'billing_phone_code', true ) ?: '';
+                    $phone_num  = get_user_meta( $user_id, 'billing_phone',      true ) ?: '';
+                    if ( $phone_num ) {
+                        $phone = preg_replace( '/\s+/', '', $phone_code )
+                               . preg_replace( '/^0+/', '', preg_replace( '/\D/', '', $phone_num ) );
+                    }
+                }
+
+                if ( defined( 'ENABLE_DEVELOPMENT' ) && ENABLE_DEVELOPMENT ) {
+                    error_log( '[Activation] SMS phone check — user_id=' . $user_id
+                        . ' | phone=' . $phone
+                        . ' | User_class=' . var_export( class_exists( 'User' ), true )
+                        . ' | has_get_phone=' . var_export( method_exists( $user_obj, 'get_phone' ), true ) );
+                }
 
                 if ( empty( $phone ) ) {
                     // Telefon yoksa email'e düş
@@ -223,12 +259,11 @@ trait HandlesActivation
                     return $this->sendActivation( $user_id );
                 }
 
-                $sms      = new \Sms( [
-                    'user_id'   => $user_id,
-                    'recipient' => $phone,
-                    'content'   => 'Your activation code is {}',
-                ] );
-                $response = $sms->generate();
+                $response = \SaltHareket\Sms\SmsManager::driver()->generateOtp(
+                    $phone,
+                    $user_id,
+                    'Your activation code is {}'
+                );
 
                 if ( $response['error'] ) {
                     // SMS başarısız → email'e düş
@@ -236,7 +271,39 @@ trait HandlesActivation
                     return $this->sendActivation( $user_id );
                 }
 
+                // otp_id ve expiry'yi user_meta'ya yaz — twig'de user.meta('otp_id') ile erişilir
+                $otp_id     = $response['data']['otp_id'] ?? ( $response['otp_id'] ?? '' );
+                $otp_expiry_raw = $response['data']['otp_expiry'] ?? ( $response['otp_expiry'] ?? '' );
+
+                // otp_expiry her zaman Unix timestamp olarak sakla
+                if ( $otp_expiry_raw ) {
+                    if ( is_numeric( $otp_expiry_raw ) && $otp_expiry_raw > 1000000000 ) {
+                        // Zaten Unix timestamp
+                        $otp_expiry = (int) $otp_expiry_raw;
+                    } elseif ( is_numeric( $otp_expiry_raw ) ) {
+                        // Saniye cinsinden süre (örn: 300) — şimdiki zamana ekle
+                        $otp_expiry = time() + (int) $otp_expiry_raw;
+                    } else {
+                        // Datetime string (örn: "2026-09-08 21:53:39") — parse et
+                        $parsed = strtotime( $otp_expiry_raw );
+                        $otp_expiry = $parsed ?: ( time() + 300 );
+                    }
+                } else {
+                    $otp_expiry = time() + 300;
+                }
+
+                if ( defined( 'ENABLE_DEVELOPMENT' ) && ENABLE_DEVELOPMENT ) {
+                    error_log( '[Activation] generateOtp response=' . json_encode( $response )
+                        . ' | otp_id=' . $otp_id . ' | otp_expiry=' . $otp_expiry );
+                }
+
+                if ( $otp_id ) {
+                    update_user_meta( $user_id, 'otp_id',     $otp_id );
+                    update_user_meta( $user_id, 'otp_expiry', $otp_expiry );
+                }
+
                 update_user_meta( $user_id, 'activation_type', 'sms' );
+                $response['refresh'] = true;
                 return $response;
 
             case 'email':
@@ -346,12 +413,20 @@ trait HandlesActivation
     {
         if ( ! $this->user ) return array_merge( $this->response(), [ 'error' => true, 'message' => 'Not logged in.' ] );
 
-        $sms      = new \Sms( [
-            'user_id'  => $this->user->ID,
-            'otp_id'   => $vars['otp_id'] ?? '',
-            'otp_code' => $vars['otp_code'] ?? '',
-        ] );
-        $response = $sms->verify();
+        if ( ! ( defined( 'ENABLE_SMS' ) && ENABLE_SMS ) ) {
+            return array_merge( $this->response(), [
+                'error'      => true,
+                'message'    => 'SMS is currently disabled.',
+                'dependency' => class_exists( \SaltHareket\Sms\SmsApp::class )
+                    ? \SaltHareket\Sms\SmsApp::dependency()
+                    : null,
+            ] );
+        }
+
+        $response = \SaltHareket\Sms\SmsManager::driver()->verifyOtp(
+            $vars['otp_id'] ?? '',
+            $vars['otp_code'] ?? ''
+        );
 
         if ( isset( $response['data']['status'] ) && $response['data']['status'] === 'APPROVED' ) {
             $this->activateUser( $this->user->ID );
@@ -367,11 +442,14 @@ trait HandlesActivation
     {
         if ( ! $this->user ) return array_merge( $this->response(), [ 'error' => true ] );
 
-        $sms = new \Sms( [
-            'user_id' => $this->user->ID,
-            'otp_id'  => $vars['otp_id'] ?? '',
-        ] );
-        return $sms->otp_status();
+        if ( ! ( defined( 'ENABLE_SMS' ) && ENABLE_SMS ) ) {
+            return array_merge( $this->response(), [ 'error' => true, 'message' => 'SMS is currently disabled.' ] );
+        }
+
+        return \SaltHareket\Sms\SmsManager::driver()->resendOtp(
+            $vars['otp_id'] ?? '',
+            $this->user->ID
+        );
     }
 
     /**
@@ -382,23 +460,31 @@ trait HandlesActivation
     {
         if ( ! $this->user ) return array_merge( $this->response(), [ 'error' => true ] );
 
-        $sms      = new \Sms( [
-            'user_id' => $this->user->ID,
-            'otp_id'  => $vars['otp_id'] ?? '',
-        ] );
-        $response = $sms->resend();
+        if ( ! ( defined( 'ENABLE_SMS' ) && ENABLE_SMS ) ) {
+            return array_merge( $this->response(), [
+                'error'      => true,
+                'message'    => 'SMS is currently disabled.',
+                'dependency' => class_exists( \SaltHareket\Sms\SmsApp::class )
+                    ? \SaltHareket\Sms\SmsApp::dependency()
+                    : null,
+            ] );
+        }
+
+        $response = \SaltHareket\Sms\SmsManager::driver()->resendOtp(
+            $vars['otp_id'] ?? '',
+            $this->user->ID
+        );
 
         // Süresi dolmuşsa yeni OTP üret
         if ( isset( $response['data']['status'] ) && $response['data']['status'] === 'EXPIRED' ) {
             $user_obj = class_exists( 'User' ) ? new \User( $this->user->ID ) : $this->user;
             $phone    = method_exists( $user_obj, 'get_phone' ) ? $user_obj->get_phone() : '';
 
-            $sms      = new \Sms( [
-                'user_id'   => $this->user->ID,
-                'recipient' => $phone,
-                'content'   => 'Your activation code is {}',
-            ] );
-            $response            = $sms->generate();
+            $response            = \SaltHareket\Sms\SmsManager::driver()->generateOtp(
+                $phone,
+                $this->user->ID,
+                'Your activation code is {}'
+            );
             $response['refresh'] = true;
         }
 
@@ -409,11 +495,24 @@ trait HandlesActivation
 
     /**
      * Aktivasyon yöntemini değiştir (email ↔ SMS).
+     *
+     * Her iki modda da sayfa yenilenir:
+     * - SMS: OTP gönderilir, otp_id user_meta'ya yazılır → refresh sonrası OTP adımı görünür
+     * - Email: Link gönderilir → refresh sonrası email adımı görünür
      */
     public function changeActivationMethod( array $vars = [] ): array
     {
         $method  = sanitize_text_field( $vars['activation_method'] ?? 'email' );
         $user_id = (int) ( $vars['user_id'] ?? ( $this->user->ID ?? 0 ) );
+
+        if ( defined( 'ENABLE_DEVELOPMENT' ) && ENABLE_DEVELOPMENT ) {
+            error_log( '[changeActivationMethod] vars=' . json_encode( $vars )
+                . ' | method=' . $method . ' | user_id=' . $user_id );
+        }
+
+        if ( ! $user_id ) {
+            return array_merge( $this->response(), [ 'error' => true, 'message' => 'User not found.' ] );
+        }
 
         update_user_meta( $user_id, 'activation_type', $method );
 

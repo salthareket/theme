@@ -41,6 +41,9 @@ class MethodClass {
         $indexPhpContent = $this->getIndexPhpHeader($platform);
         $indexJsContent  = $this->getIndexJsHeader($platform);
 
+        // Frontend platform'da method isimlerini topla
+        $collected_methods = [];
+
         // Methods klasörlerini işle
         foreach ($methodsDirs as $methodsDir) {
             // Methods klasöründe gezinme
@@ -52,7 +55,7 @@ class MethodClass {
                         if ($methodDir == "woo" && (!defined('ENABLE_ECOMMERCE') || !ENABLE_ECOMMERCE)) {
                             continue;
                         }
-                        $this->processSubfolder($methodsDir . $methodDir, $methodDir, $indexPhpContent, $indexJsContent, $includeParentFolderName, $platform);
+                        $this->processSubfolder($methodsDir . $methodDir, $methodDir, $indexPhpContent, $indexJsContent, $includeParentFolderName, $platform, $collected_methods);
                     }
                 }
             }
@@ -60,6 +63,12 @@ class MethodClass {
         
         $indexPhpContent .= $this->getIndexPhpFooter($platform);
         $indexJsContent  .= $this->getIndexJsFooter($platform);
+
+        // Frontend platform'da method listesini PHP fonksiyonu olarak ekle
+        if ( $platform === 'frontend' && ! empty( $collected_methods ) ) {
+            $methods_export = array_map( function( $m ) { return "'" . addslashes( $m ) . "'"; }, $collected_methods );
+            $indexPhpContent .= "\nfunction get_ajax_methods() {\n    return [" . implode( ', ', $methods_export ) . "];\n}\n";
+        }
 
         // index.php dosyasını geçici olarak oluşturma
         $tempPhpFilePath = $storeDir . 'index_temp.php';
@@ -174,7 +183,7 @@ class MethodClass {
         return $negate ? !$value : $value;
     }
 
-    private function processSubfolder($subfolderPath, $subfolderName, &$indexPhpContent, &$indexJsContent, $includeParentFolderName, $platform) {
+    private function processSubfolder($subfolderPath, $subfolderName, &$indexPhpContent, &$indexJsContent, $includeParentFolderName, $platform, &$collected_methods = []) {
         $phpFilePath = $subfolderPath . '/index.php';
         if (file_exists($phpFilePath)) {
             // index.php dosyasını oluşturma
@@ -183,6 +192,7 @@ class MethodClass {
             if (!empty($phpContent)) {
                 if ($platform == "frontend") {
                     $indexPhpContent .= "    case '{$subfolderName}':\n";
+                    $collected_methods[] = $subfolderName; // method adını kaydet
                 }
 
                 $indexPhpContent .= $this->removeEchoTags($phpContent);
@@ -217,7 +227,7 @@ class MethodClass {
                     continue;
                 }
                 $pathName = ($includeParentFolderName ? $subfolderName . '/' : '') . $subDir;
-                $this->processSubfolder($subfolderPath . '/' . $subDir, $pathName, $indexPhpContent, $indexJsContent, $includeParentFolderName, $platform);
+                $this->processSubfolder($subfolderPath . '/' . $subDir, $pathName, $indexPhpContent, $indexJsContent, $includeParentFolderName, $platform, $collected_methods);
             }
         }
     }

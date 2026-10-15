@@ -1,0 +1,638 @@
+{
+    "key": "group_salt_header_row",
+    "title": "Header Row — Settings",
+    "fields": [
+        {
+            "key": "field_shr_container",
+            "label": "Container",
+            "name": "container",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "15",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "default": "Default",
+                "xxl": "XXLarge",
+                "xl": "XLarge",
+                "lg": "Large",
+                "md": "Medium",
+                "sm": "Small",
+                "xs": "XSmall",
+                "no": "No Container"
+            },
+            "default_value": "default",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "default"
+        },
+        {
+            "key": "field_shr_flex_wrap",
+            "label": "Flex Wrap (Mobil Davranis)",
+            "name": "flex_wrap",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Kolonlarin mobilde alt alta gecmesi icin Wrap secin. Kapali = flex-nowrap (kolon genislikleri korumur).",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "Wrap",
+            "ui_off_text": "Nowrap",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shr_col_breakpoint_mode",
+            "label": "Breakpoint Bazli Kolon",
+            "name": "col_breakpoint_mode",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Aciksa her kolon kendi BP genisliklerini girer. Kapali = Basit mod (behavior+justify+visibility).",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "BP Bazli",
+            "ui_off_text": "Basit",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shr_justify_content",
+            "label": "Kolon Dagilimi (justify-content)",
+            "name": "justify_content",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "Row icindeki kolonlarin yatay dagilimi. Between = kolonlar iki yana yaslanir (klasik header davranisi).",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "between": "Iki Yana (between)",
+                "start": "Sola (start)",
+                "center": "Ortala (center)",
+                "end": "Saga (end)",
+                "around": "Etrafinda Esit Bosluk (around)",
+                "evenly": "Esit Aralik (evenly)"
+            },
+            "default_value": "between",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "pll_default_value": "between"
+        },
+        {
+            "key": "field_shr_hide_on_affix",
+            "label": "Hide on Affix",
+            "name": "hide_on_affix",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Affix olunca bu row gizlensin.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "15",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shr_equal",
+            "label": "Equal Start\/End",
+            "name": "equal",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "15",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 0,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 0
+        },
+        {
+            "key": "field_shr_equal_on",
+            "label": "Equal On",
+            "name": "equal_on",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_shr_equal",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "10",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "xs": "xs",
+                "sm": "sm",
+                "md": "md",
+                "lg": "lg",
+                "xl": "xl",
+                "xxl": "xxl",
+                "xxxl": "xxxl"
+            },
+            "default_value": "xl",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "xl"
+        },
+        {
+            "key": "field_shr_css_class",
+            "label": "CSS Class",
+            "name": "css_class",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shr_bg_color",
+            "label": "Bg Color",
+            "name": "bg_color",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "12",
+                "class": "",
+                "id": ""
+            },
+            "enable_opacity": 1,
+            "return_format": "string",
+            "default_value": "",
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true,
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shr_bg_color_affix",
+            "label": "Bg Color (Affix)",
+            "name": "bg_color_affix",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "12",
+                "class": "",
+                "id": ""
+            },
+            "enable_opacity": 1,
+            "return_format": "string",
+            "default_value": "",
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true,
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shr_height",
+            "label": "Height (per breakpoint)",
+            "name": "height",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "layout": "table",
+            "sub_fields": [
+                {
+                    "key": "field_shr_h_xs",
+                    "label": "xs",
+                    "name": "xs",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "60px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_h_sm",
+                    "label": "sm",
+                    "name": "sm",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_h_md",
+                    "label": "md",
+                    "name": "md",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_h_lg",
+                    "label": "lg",
+                    "name": "lg",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "70px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_h_xl",
+                    "label": "xl",
+                    "name": "xl",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_h_xxl",
+                    "label": "xxl",
+                    "name": "xxl",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "80px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_h_xxxl",
+                    "label": "xxxl",
+                    "name": "xxxl",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                }
+            ],
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
+        },
+        {
+            "key": "field_shr_height_affix",
+            "label": "Height Affix (per breakpoint)",
+            "name": "height_affix",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "layout": "table",
+            "sub_fields": [
+                {
+                    "key": "field_shr_ha_xs",
+                    "label": "xs",
+                    "name": "xs",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "50px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_ha_sm",
+                    "label": "sm",
+                    "name": "sm",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_ha_md",
+                    "label": "md",
+                    "name": "md",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_ha_lg",
+                    "label": "lg",
+                    "name": "lg",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "60px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_ha_xl",
+                    "label": "xl",
+                    "name": "xl",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_ha_xxl",
+                    "label": "xxl",
+                    "name": "xxl",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "70px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shr_ha_xxxl",
+                    "label": "xxxl",
+                    "name": "xxxl",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                }
+            ],
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-row"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786460001,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

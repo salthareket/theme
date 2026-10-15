@@ -96,7 +96,7 @@ class Theme_Styles {
         Theme_Styles_Module_Manager::init();
         
         // Hooks
-        add_action('admin_menu', [$this, 'add_admin_menu']);
+        // add_action('admin_menu', [$this, 'add_admin_menu']); // Dashboard üzerinden erişiliyor
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         // theme-styles.css frontend'e enqueue edilmiyor — root.css yeterli
         // add_action('wp_enqueue_scripts', [$this, 'enqueue_frontend_assets']);
@@ -108,6 +108,123 @@ class Theme_Styles {
     public static function get_modules() {
         return Theme_Styles_Module_Manager::get_all();
     }
+
+    /**
+     * Twig context için işlenmiş data döndür.
+     * Icon field'larını (solid:chevron-up formatı) icon + icon_style olarak split eder.
+     * Boş değerler için default'lar atanır.
+     * startersite.php'de theme_styles context değişkeni için kullanılır.
+     *
+     * @return array
+     */
+    public function get_context_data(): array {
+        $data = $this->get_data();
+        $data = self::process_icon_fields( $data );
+        return $data;
+    }
+
+    /**
+     * Icon field default'ları.
+     * dot-notation path → default değer (style:name formatında)
+     */
+    private static function icon_defaults(): array {
+        return [
+            'utilities.scroll_to_top.icon' => 'regular:angle-up',
+            'breadcrumb.separator_icon'    => 'regular:angle-right',
+            'pagination.prev_icon'         => 'regular:angle-left',
+            'pagination.next_icon'         => 'regular:angle-right',
+        ];
+    }
+
+    /**
+     * Icon field'larını process eder:
+     * 1. Boş değerlere default atar
+     * 2. 'solid:chevron-up' → { icon, icon_style, icon_raw } array'e çevirir
+     *
+     * @param array $data
+     * @return array
+     */
+    private static function process_icon_fields( array $data ): array {
+        $defaults  = self::icon_defaults();
+        $icon_keys = [ 'icon', 'separator_icon', 'prev_icon', 'next_icon' ];
+
+        // Önce default'ları path bazlı ata
+        foreach ( $defaults as $path => $default_val ) {
+            $keys = explode( '.', $path );
+            $ref  = &$data;
+            $valid = true;
+            foreach ( $keys as $i => $k ) {
+                if ( $i === count( $keys ) - 1 ) {
+                    // Son key — değer boşsa default ata
+                    if ( empty( $ref[ $k ] ) || ( is_string( $ref[ $k ] ) && strpos( $ref[ $k ], '<i ' ) !== false ) ) {
+                        $ref[ $k ] = $default_val;
+                    }
+                } else {
+                    if ( ! isset( $ref[ $k ] ) || ! is_array( $ref[ $k ] ) ) {
+                        $valid = false;
+                        break;
+                    }
+                    $ref = &$ref[ $k ];
+                }
+            }
+            unset( $ref );
+        }
+
+        // Sonra tüm icon key'lerini parse et
+        return self::split_icon_fields_recursive( $data, $icon_keys );
+    }
+
+    /**
+     * Recursive olarak icon field'larını split eder.
+     * 'solid:chevron-up' → { icon, icon_style, icon_raw, icon_svg_url }
+     * icon_svg_url: CSS url() içinde kullanılabilir format (background-image, content vb.)
+     */
+    private static function split_icon_fields_recursive( array $data, array $icon_keys ): array {
+        foreach ( $data as $key => &$value ) {
+            if ( is_array( $value ) ) {
+                $value = self::split_icon_fields_recursive( $value, $icon_keys );
+            } elseif ( is_string( $value ) && in_array( $key, $icon_keys, true ) ) {
+                // Prefix'siz eski format ('chevron-up') → default style ekle
+                if ( $value && strpos( $value, ':' ) === false && strpos( $value, '<i ' ) === false ) {
+                    $value = 'regular:' . $value;
+                }
+                // Eski HTML format
+                if ( strpos( $value, '<i ' ) !== false ) {
+                    preg_match( '/fa-(solid|regular|light|brands)\s+fa-([a-z0-9-]+)/', $value, $m );
+                    $value = isset( $m[1], $m[2] ) ? $m[1] . ':' . $m[2] : 'regular:angle-right';
+                }
+
+                if ( strpos( $value, ':' ) !== false ) {
+                    $parts      = explode( ':', $value, 2 );
+                    $icon_style = $parts[0] ?? 'regular';
+                    $icon_name  = $parts[1] ?? '';
+
+                    $svg_raw = '';
+                    if ( $icon_name && class_exists( 'SaltHareket\FaIconManager' ) ) {
+                        $svg_raw = \SaltHareket\FaIconManager::extractFromJs( $icon_name, $icon_style );
+                    }
+
+                    $icon_svg_url = '';
+                    if ( $svg_raw ) {
+                        $svg_for_css = str_replace( '<path d=', '<path fill="currentColor" d=', $svg_raw );
+                        if ( strpos( $svg_for_css, 'xmlns=' ) === false ) {
+                            $svg_for_css = str_replace( '<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ', $svg_for_css );
+                        }
+                        $icon_svg_url = "url(\"data:image/svg+xml," . rawurlencode( $svg_for_css ) . "\")";
+                    }
+
+                    $value = [
+                        'icon'         => $icon_name,
+                        'icon_style'   => $icon_style,
+                        'icon_raw'     => $value,
+                        'icon_svg_url' => $icon_svg_url,
+                    ];
+                }
+            }
+        }
+        unset( $value );
+        return $data;
+    }
     
     /**
      * Add admin menu
@@ -118,7 +235,7 @@ class Theme_Styles {
             __('🎨 Tema Stilleri', 'theme-styles'),
             __('🎨 Tema Stilleri', 'theme-styles'),
             'manage_options',
-            'theme-styles',
+            'sh-theme-styles',
             [$this, 'render_admin_page']
         );
     }
@@ -134,7 +251,7 @@ class Theme_Styles {
      * Enqueue admin assets
      */
     public function enqueue_admin_assets($hook) {
-        if ($hook !== 'theme-settings_page_theme-styles') {
+        if ($hook !== 'theme-settings_page_sh-theme-styles') {
             return;
         }
         
@@ -288,6 +405,18 @@ class Theme_Styles {
         // WP Media for image upload
         wp_enqueue_media();
 
+        // Admin Login module JS (live preview)
+        $al_js = THEME_STYLES_PATH . '/modules/admin_login/admin-login.js';
+        if ( file_exists( $al_js ) ) {
+            wp_enqueue_script(
+                'theme-styles-admin-login',
+                THEME_STYLES_URL . '/modules/admin_login/admin-login.js',
+                [ 'jquery', 'theme-styles-admin' ],
+                THEME_STYLES_VERSION,
+                true
+            );
+        }
+
         // Footer module JS
         wp_enqueue_script(
             'theme-styles-footer',
@@ -305,6 +434,52 @@ class Theme_Styles {
             THEME_STYLES_VERSION,
             true
         );
+
+        // Offcanvas Panel module JS
+        wp_enqueue_script(
+            'theme-styles-offcanvas-panel',
+            THEME_STYLES_URL . '/modules/offcanvas_panel/offcanvas-panel.js',
+            ['jquery', 'theme-styles-admin'],
+            THEME_STYLES_VERSION,
+            true
+        );
+
+        // Modal module JS
+        wp_enqueue_script(
+            'theme-styles-modal',
+            THEME_STYLES_URL . '/modules/modal/modal.js',
+            ['jquery', 'theme-styles-admin'],
+            THEME_STYLES_VERSION,
+            true
+        );
+
+        // Dropdown module JS
+        wp_enqueue_script(
+            'theme-styles-dropdown',
+            THEME_STYLES_URL . '/modules/dropdown/dropdown.js',
+            ['jquery', 'theme-styles-admin'],
+            THEME_STYLES_VERSION,
+            true
+        );
+
+        // Popover module JS
+        wp_enqueue_script(
+            'theme-styles-popover',
+            THEME_STYLES_URL . '/modules/popover/popover.js',
+            ['jquery', 'theme-styles-admin'],
+            THEME_STYLES_VERSION,
+            true
+        );
+
+        // SH Icon Picker — evrensel FA SVG icon picker component
+        $ip_css = SH_INCLUDES_PATH . 'apps/sh-icon-picker.css';
+        $ip_js  = SH_INCLUDES_PATH . 'apps/sh-icon-picker.js';
+        if ( file_exists( $ip_css ) ) {
+            wp_enqueue_style( 'sh-icon-picker', SH_INCLUDES_URL . 'apps/sh-icon-picker.css', [], filemtime( $ip_css ) );
+        }
+        if ( file_exists( $ip_js ) ) {
+            wp_enqueue_script( 'sh-icon-picker', SH_INCLUDES_URL . 'apps/sh-icon-picker.js', [ 'jquery' ], filemtime( $ip_js ), true );
+        }
     }
     
     /**
@@ -396,6 +571,13 @@ class Theme_Styles {
         // Clear cache
         delete_transient('theme_styles_cache');
         self::$data = null;
+
+        // QueryCache wrap cache'ini temizle — startersite.php'de wrap() ile cache'lenen
+        // theme_styles_* key'leri (dil başına bir tane) invalidate et.
+        // on_option_change() wrap türünü temizlemiyor; burada doğrudan purge ediyoruz.
+        if ( class_exists( 'QueryCache' ) ) {
+            QueryCache::purge_type( 'wrap' );
+        }
         
         // Generate CSS
         $generator = new Theme_Styles_CSS_Generator();

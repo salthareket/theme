@@ -2,7 +2,85 @@
 
 class MenuItem extends Timber\MenuItem{
 
+	/**
+	 * Request-level cache for get_properties() results.
+	 * Key: md5(item_id + serialized args)
+	 */
+	private static $_props_cache = [];
+
+	/**
+	 * Request-level cache for link_type meta (avoids ACF __get per item).
+	 */
+	private ?string $_link_type_cached = null;
+
+	/**
+	 * link_type'i ACF'den bir kez okur, sonra cache'den döner.
+	 * Fake populate item'lar (ID >= 1000000) için boş string döner.
+	 */
+	public function get_link_type(): string {
+		if ( $this->_link_type_cached !== null ) {
+			return $this->_link_type_cached;
+		}
+		// Fake populate item — ACF meta yok
+		if ( (int) $this->ID >= 1000000 ) {
+			return $this->_link_type_cached = '';
+		}
+		$val = get_post_meta( $this->ID, 'link_type', true );
+		return $this->_link_type_cached = ( $val ?: '' );
+	}
+
 	public function get_properties($args=array()){
+
+		// ── Request-level cache ───────────────────────────────────────────────
+		$cache_key = $this->ID . '_' . md5( serialize( $args ) );
+		if ( isset( self::$_props_cache[ $cache_key ] ) ) {
+			return self::$_props_cache[ $cache_key ];
+		}
+
+		// ── Fake populate item — meta sorgusu yok, minimal properties ─────────
+		// ID >= 1000000 → bric_menu_build_tree tarafından oluşturulan dinamik item
+		// Bu item'ların ACF meta'sı yok. meta() çağrısı → ACF → WooOrder decode → get_post() zinciri
+		// get_properties içindeki switch/meta çağrılarını tamamen atla.
+		if ( (int) $this->ID >= 1000000 ) {
+			$active = in_array( $this->object_id, $args['nodes'] ?? [] )
+			       || in_array( $this->ID,        $args['nodes'] ?? [] );
+
+			$item_classes = [ 'nav-item', $active ? 'active' : '' ];
+			$link_classes = [];
+			$has_children = ! empty( $this->children );
+			$at_max_level = ( $args['max_level'] ?? 9999 ) > 0
+			             && ( $args['menu_level'] ?? 1 ) >= ( $args['max_level'] ?? 9999 );
+
+			if ( $has_children && ! $at_max_level ) {
+				$item_classes[] = 'dropdown ' . ( $args['menu_level'] ?? 0 ) . ' ' . ( $args['max_level'] ?? 0 );
+				$link_classes[] = 'dropdown-toggle nav-link';
+				$href           = '#';
+				$bs_toggle      = 'dropdown';
+			} else {
+				$link_classes[] = 'nav-link';
+				$link_classes[] = $this->parent ? 'dropdown-item' : '';
+				$href           = $this->url ?? $this->link ?? '#';
+				$bs_toggle      = '';
+			}
+
+			$link_attrs = $bs_toggle ? 'data-bs-toggle="' . $bs_toggle . '"' : '';
+
+			$props = [
+				'link' => [
+					'class'  => trim( implode( ' ', $link_classes ) ),
+					'href'   => $href,
+					'target' => '',
+					'attrs'  => $link_attrs,
+				],
+				'item' => [
+					'class' => trim( implode( ' ', $item_classes ) ),
+					'attrs' => '',
+				],
+				'megamenu' => false,
+			];
+
+			return self::$_props_cache[ $cache_key ] = $props;
+		}
 
 		if(!isset($args["parent_link"])){
 			$args["parent_link"] = false;
@@ -93,7 +171,7 @@ class MenuItem extends Timber\MenuItem{
 		$itemClass = array();
 		$itemAttrs = array();
 
-		$link_type = $this->link_type;
+		$link_type = $this->get_link_type();
         
         $itemClass[] = "nav-item";
         $itemClass[] = $active ?'active':'';
@@ -196,7 +274,10 @@ class MenuItem extends Timber\MenuItem{
 
         $properties["item"]["class"] = implode(" ", $itemClass);
         $properties["item"]["attrs"] = array2Attrs($itemAttrs);
-		
+
+		// Cache'e yaz — aynı item için tekrar çağrılırsa DB'ye gitme
+		self::$_props_cache[ $cache_key ] = $properties;
+
 		return $properties;
 	}
 }

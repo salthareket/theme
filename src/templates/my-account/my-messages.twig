@@ -3,7 +3,11 @@
 	<div class="card-container card card-reset">
 	    <div class="card-header">
 	        <h1 class="card-title card-title-sm">
-	            <a href="{{base_urls.messages}}"><i class="fa-regular fa-angle-left"></i> {{user.get_title}} vs. {{ chatUser.get_title }}</a>
+	            <a href="{{base_urls.messages}}">
+	            	{#<i class="fa-regular fa-angle-left"></i>#}
+	            	{{ fa_icon('angle-left', 'regular', '') }}
+	               {{user.get_title}} vs. {{ chatUser.get_title }}
+	            </a>
 	            {% if description %}
 	            <small>{{description}}</small>
 	            {% endif %}
@@ -15,7 +19,8 @@
 				    {% include "user/tease.twig" with { size : "xs", user_item: chatUser, title: false, rating: true, class: "m-0", application: false } %}
 				    <div class="action ms-auto">
 						<button type="button" class="btn btn-light -dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-							<i class="fa fa-ellipsis-v"></i>
+							{#<i class="fa fa-ellipsis-v"></i>#}
+							{{ fa_icon('ellipsis', 'regular', '') }}
 						</button>
 						<ul class="dropdown-menu dropdown-menu-end">
 							<li><a href="{{chatUser.link}}" class="dropdown-item">View Profile</a></li>
@@ -66,7 +71,7 @@
 			           	{% set chatUserId = message.reciever.id %}
 			        {% endif %}
 			        {% set sender = TimberUser(chatUserId, "User") %}
-			        {% include "partials/messages/tease.twig" with {sender: sender, message:message} %}
+			        {% include "my-account/messages/tease.twig" with {sender: sender, message:message} %}
 			      {% endfor %}
 			{% else %}
 		        No any messages yet...

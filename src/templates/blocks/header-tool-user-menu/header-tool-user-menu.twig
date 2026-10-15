@@ -1,0 +1,85 @@
+{# Header Tool: User Menu #}
+{% set tso = fields.style_overrides ?? {} %}
+{% set tool_class = 'tool-item-' ~ block.id %}
+{% set menu_type  = fields.menu_type ?? 'offcanvas' %}
+{% set menu_class = (fields.menu_class ? fields.menu_class ~ ' ' : '') ~ tool_class %}
+
+{% if tso and (tso.icon_color or tso.icon_color_hover or tso.icon_size or tso.icon_dot_color or tso.link_color or tso.link_color_hover or tso.counter_color or tso.counter_bg or tso.toggler_color) %}
+<style>
+.{{ tool_class }} {
+    {% if tso.icon_color %}--header-icon-color: {{ tso.icon_color }};{% endif %}
+    {% if tso.icon_color_hover %}--header-icon-color-hover: {{ tso.icon_color_hover }};{% endif %}
+    {% if tso.icon_size %}--header-icon-font-size: {{ tso.icon_size }};{% endif %}
+    {% if tso.icon_dot_color %}--header-icon-dot-color: {{ tso.icon_dot_color }};{% endif %}
+    {% if tso.link_color %}--header-link-color: {{ tso.link_color }};{% endif %}
+    {% if tso.link_color_hover %}--header-link-color-hover: {{ tso.link_color_hover }};{% endif %}
+    {% if tso.counter_color %}--notification-count-color: {{ tso.counter_color }};{% endif %}
+    {% if tso.counter_bg %}--notification-count-bg-color: {{ tso.counter_bg }};{% endif %}
+    {% if tso.toggler_color %}--header-navbar-toggler-color: {{ tso.toggler_color }};{% endif %}
+}
+</style>
+{% endif %}
+
+{% if enable_membership %}
+    {% if menu_type == "dropdown" %}
+        {% set toggle = "dropdown" %}
+        {% set nav_class = menu_class ~ " dropdown dropdown-notifications dropdown-form" %}
+        {% set target = "" %}
+    {% else %}
+        {% set toggle = "offcanvas" %}
+        {% set nav_class = menu_class %}
+        {% set target = "offcanvasUserMenu" %}
+    {% endif %}
+
+    <div class="nav-item {{ nav_class }}" data-type="account">
+        <a href="#{{ target }}" role="button" data-bs-toggle="{{ toggle }}" aria-controls="{{ target }}"
+           title="{{ user.logged ? user.get_title() : translate("My Account") }}">
+            {% if avatar %}
+                {{ avatar }}
+            {% else %}
+                {% if not user.logged and enable_registration %}
+                    <div class="btn btn-outline-dark">{{ translate("Sign Up") }}</div>
+                {% endif %}
+            {% endif %}
+        </a>
+
+        {% if menu_type == "dropdown" %}
+        <div class="dropdown-menu">
+            <div class="dropdown-header">
+                <div class="title">
+                    {{ user.logged ? user.get_title() : translate("Your Account") }}
+                </div>
+                <div class="action">
+                    <a href="#" data-dismiss="dropdown">{{ translate("Close") }}</a>
+                </div>
+            </div>
+            <div class="dropdown-container has-dropdown-item">
+                <div class="dropdown-body {% if not user.logged %}content-centered{% endif %}">
+                    {% if user.logged %}
+                        {% if user.menu %}
+                            {% for item in user.menu %}
+                                <a class="dropdown-item" href="{{ item.url }}">{{ item.title }}</a>
+                            {% endfor %}
+                        {% endif %}
+                        <a class="dropdown-item" href="{{ function('get_account_endpoint_url', 'customer-logout') }}">{{ translate("Logout") }}</a>
+                    {% else %}
+                        <div class="content-block">
+                            <i class="icon-account"></i>
+                            {{ translate("Not logged in") }}
+                        </div>
+                    {% endif %}
+                </div>
+                {% if not user.logged and enable_registration %}
+                    {% set login_url = function('get_login_url') %}
+                    <div class="dropdown-footer no-border">
+                        <div class="btn-group input-group-gap">
+                            <a href="{{ login_url }}" class="btn btn-primary">{{ translate("Sign Up") }}</a>
+                            <a href="{{ login_url }}" class="btn btn-primary">{{ translate("Login") }}</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+{% endif %}

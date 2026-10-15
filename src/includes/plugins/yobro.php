@@ -33,12 +33,15 @@ class Messenger {
      * Mevcut konuşmaya mesaj ekler.
      */
     public static function store(int $conv_id, int $sender, int $reciever, string $message) {
-        return do_store_message([
+        $result = do_store_message([
             'conv_id'     => $conv_id,
             'message'     => $message,
             'sender_id'   => $sender,
             'reciever_id' => $reciever,
         ]);
+        // Alicinin okunmamis mesaj badge cache'i bayat kalmasin.
+        if ( $reciever > 0 ) wp_cache_delete( "sh_messages_unread_{$reciever}", 'messages' );
+        return $result;
     }
 
     // ─── Konuşma Oluşturma & Arama ─────────────────────────
@@ -59,10 +62,13 @@ class Messenger {
         );
 
         if ($message !== '') {
-            return \YoBro\App\Message::create([
+            $created = \YoBro\App\Message::create([
                 'conv_id' => $conv_id, 'sender_id' => $sender, 'reciever_id' => $reciever,
                 'message' => encrypt_decrypt($message, $sender), 'created_at' => $created_at,
             ]);
+            // Alicinin okunmamis mesaj badge cache'i bayat kalmasin.
+            if ($reciever > 0) wp_cache_delete("sh_messages_unread_{$reciever}", 'messages');
+            return $created;
         }
         return $conv_id;
     }

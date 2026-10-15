@@ -11,7 +11,7 @@ window.AjaxInitManager = {
     // Element-Init Mapping (Selector → Function Name)
     initMap: {
         // Buttons & Interactive Elements
-        '.btn-favorite': 'btn_favorite',
+        //'.btn-favorite': 'btn_favorite',
         '.btn-ajax-method:not(.btn-ajax-method-init)': 'btn_ajax_method',
         '.btn-loading-page:not(.btn-loading-page-init)': 'btn_loading_page',
         '.btn-loading-self:not(.btn-loading-self-init)': 'btn_loading_self',
@@ -20,8 +20,8 @@ window.AjaxInitManager = {
         // AJAX & Pagination
         '.ajax-paginate:not(.ajax-paginate-init)': 'ajax_paginate',
         
-        // Forms
-        'form:not(.form-initialized)': 'init_forms',
+        // Forms — init_forms implement edilmemiş, bu entry kaldırıldı
+        // 'form:not(.form-initialized)': 'init_forms',
         
         // Custom Components
         '.nav-equal:not(.nav-equal-initialized)': 'init_nav_equal',
@@ -38,15 +38,15 @@ window.AjaxInitManager = {
     // Plugin config data (JSON'dan yüklenen ham data)
     pluginConfigData: {},
     
-    // Critical init'ler (her zaman çalışmalı)
-    criticalInits: ['btn_favorite', 'btn_ajax_method'],
+    // Critical init'ler (her zaman çalışmalı) removed: 'btn_favorite'
+    criticalInits: ['btn_ajax_method'],
     
     // Container-aware fonksiyonlar (container parametresi alabilir)
     containerAwareFunctions: [
         'btn_ajax_method',
-        'btn_favorite',
+        //'btn_favorite',
         'ajax_paginate',
-        'init_forms',
+        //'init_forms',
         'init_tease_image_zones',
         'init_tease_swatch_hover'
     ],
@@ -427,6 +427,33 @@ window.AjaxInitManager = {
         if ($container.find('[data-bs-toggle="popover"]').length > 0) {
             this.initBootstrapPopovers($container);
         }
+
+        // data-required-js="plugin1,plugin2" — DOM'da class yoksa bile zorla yükle
+        // Örnek: modal butonlarına data-required-js="bootbox" eklenerek bootbox'ın
+        // her sayfada yüklenmesi sağlanır.
+        this.initRequiredJs($container);
+    },
+
+    /**
+     * data-required-js attribute'u olan elementleri tara,
+     * listelenen plugin'leri function_secure ile yükle/init et.
+     */
+    initRequiredJs: function($container) {
+        var self = this;
+        $container.find('[data-required-js]').addBack('[data-required-js]').each(function() {
+            var val = $(this).attr('data-required-js') || '';
+            val.split(',').forEach(function(pluginKey) {
+                pluginKey = pluginKey.trim();
+                if (!pluginKey) return;
+                var initFunc = (self.pluginConfigData && self.pluginConfigData[pluginKey] && self.pluginConfigData[pluginKey].init)
+                    ? self.pluginConfigData[pluginKey].init
+                    : ('init_' + pluginKey);
+                log('📦 data-required-js: yükle → ' + pluginKey + ' / ' + initFunc);
+                if (typeof function_secure === 'function') {
+                    function_secure(pluginKey, initFunc, [$container]);
+                }
+            });
+        });
     },
     
     initBootstrapTooltips: function($container) {

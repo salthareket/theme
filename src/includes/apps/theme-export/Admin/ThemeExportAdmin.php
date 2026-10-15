@@ -16,7 +16,7 @@ class ThemeExportAdmin
 {
     public static function register(): void
     {
-        add_action( 'admin_menu',             [ self::class, 'addMenuPage' ], 30 );
+        // add_action( 'admin_menu',             [ self::class, 'addMenuPage' ], 30 ); // Dashboard üzerinden erişiliyor
         add_action( 'admin_head',             [ self::class, 'hideNotices' ] );
         add_action( 'admin_enqueue_scripts',  [ self::class, 'enqueueAssets' ] );
         add_action( 'wp_ajax_' . ThemeExporter::getAjaxExport(),   [ self::class, 'handleExport' ] );
@@ -24,6 +24,8 @@ class ThemeExportAdmin
         add_action( 'wp_ajax_' . ThemeExporter::getAjaxCancel(),   [ self::class, 'handleCancel' ] );
         add_action( 'wp_ajax_' . ThemeExporter::getAjaxDownload(), [ self::class, 'handleDownload' ] );
         add_action( 'wp_ajax_sh_export_save_settings',             [ self::class, 'handleSaveSettings' ] );
+        add_action( 'wp_ajax_acf_export_field_groups',        [ self::class, 'handleAcfExport' ] );
+        add_action( 'wp_ajax_nopriv_acf_export_field_groups', [ self::class, 'handleAcfExport' ] );
     }
 
     public static function addMenuPage(): void
@@ -74,6 +76,89 @@ class ThemeExportAdmin
         check_ajax_referer( ThemeExporter::getNonceAction(), ThemeExporter::getNonceField() );
         ThemeExporter::saveSettings( $_POST['settings'] ?? [] );
         wp_send_json_success( 'Settings saved.' );
+    }
+
+    /**
+     * ACF field group JSON'larını ZIP olarak dışa aktarır.
+     * Taşındı: acf-admin.php'deki acf_export_field_groups_to_json() fonksiyonundan.
+     * Tetikleyici: wp_ajax_acf_export_field_groups
+     */
+    public static function handleAcfExport(): void
+    {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => 'Unauthorized' ] );
+            exit;
+        }
+
+        $theme      = wp_get_theme();
+        $textDomain = $theme->get( 'TextDomain' );
+        $groups     = acf_get_field_groups();
+
+        $filtered_groups = array_filter( $groups, function ( $group ) use ( $textDomain ) {
+            if ( isset( $group['acfe_categories'] ) ) {
+                $categories = array_keys( $group['acfe_categories'] );
+                if ( in_array( $textDomain, $categories ) ) {
+                    return false;
+                }
+                return array_intersect( $categories, [ 'block', 'common', 'general' ] );
+            }
+            return false;
+        } );
+
+        if ( ! $filtered_groups ) {
+            wp_send_json_error( [ 'message' => 'No matching field groups found' ] );
+            exit;
+        }
+
+        $upload_dir = wp_upload_dir();
+        $json_files = [];
+
+        foreach ( $filtered_groups as $group ) {
+            if ( isset( $group['local_file'] ) && file_exists( $group['local_file'] ) ) {
+                $json_data = json_decode( file_get_contents( $group['local_file'] ), true );
+
+                if ( ! $json_data ) {
+                    continue;
+                }
+
+                if ( $group['key'] === 'group_66e309dc049c4' ) {
+                    if ( isset( $json_data['fields'] ) && is_array( $json_data['fields'] ) ) {
+                        foreach ( $json_data['fields'] as &$field ) {
+                            if ( isset( $field['name'] ) && $field['name'] === 'acf_block_columns' ) {
+                                if ( isset( $field['layouts'] ) ) {
+                                    $field['layouts'] = (object) [];
+                                }
+                            }
+                        }
+                        unset( $field );
+                    }
+                }
+
+                $file_name    = sanitize_title( $group['key'] ) . '.json';
+                $json_path    = $upload_dir['basedir'] . '/' . $file_name;
+                file_put_contents( $json_path, json_encode( $json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+                $json_files[] = $json_path;
+            }
+        }
+
+        $zip_file = $upload_dir['basedir'] . '/acf-field-groups.zip';
+        $zip      = new \ZipArchive();
+
+        if ( $zip->open( $zip_file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE ) === true ) {
+            foreach ( $json_files as $file ) {
+                $zip->addFile( $file, basename( $file ) );
+            }
+            $zip->close();
+        } else {
+            wp_send_json_error( [ 'message' => 'Failed to create ZIP file' ] );
+            exit;
+        }
+
+        foreach ( $json_files as $file ) {
+            unlink( $file );
+        }
+
+        wp_send_json_success( [ 'zip_url' => $upload_dir['baseurl'] . '/acf-field-groups.zip' ] );
     }
 
     // ─── Main Page ────────────────────────────────────────────────────────────
@@ -164,9 +249,10 @@ class ThemeExportAdmin
                     <div class="sh-mode-cards" id="sh-mode-selector">
                         <?php
                         $modes = [
-                            'full'  => [ 'icon' => '🌐', 'title' => 'Full Export',  'desc' => 'DB + WP Core + Theme + wp-content' ],
-                            'db'    => [ 'icon' => '🗄️', 'title' => 'Database Only', 'desc' => 'MySQL dump with URL replacement' ],
-                            'theme' => [ 'icon' => '🎨', 'title' => 'Theme Only',    'desc' => 'Active theme files only' ],
+                            'full'       => [ 'icon' => '🌐', 'title' => 'Full Export',  'desc' => 'DB + WP Core + Theme + wp-content' ],
+                            'db'         => [ 'icon' => '🗄️', 'title' => 'Database Only', 'desc' => 'MySQL dump with URL replacement' ],
+                            'theme'      => [ 'icon' => '🎨', 'title' => 'Theme Only',    'desc' => 'Active theme files only' ],
+                            'acf_fields' => [ 'icon' => '📋', 'title' => 'ACF Fields',    'desc' => 'Download field groups used in the salthareket/theme repository' ],
                         ];
                         foreach ( $modes as $slug => $mode ) :
                         ?>
@@ -474,7 +560,8 @@ class ThemeExportAdmin
             <ul style="margin:0;padding:0;list-style:none;font-size:12px;color:#6b7280">
                 <li style="padding:5px 0;border-bottom:1px solid #f3f4f6"><strong>Full</strong> — DB + Core + wp-content</li>
                 <li style="padding:5px 0;border-bottom:1px solid #f3f4f6"><strong>Database</strong> — MySQL dump only</li>
-                <li style="padding:5px 0"><strong>Theme</strong> — Active theme files only</li>
+                <li style="padding:5px 0;border-bottom:1px solid #f3f4f6"><strong>Theme</strong> — Active theme files only</li>
+                <li style="padding:5px 0"><strong>ACF Fields</strong> — Field group JSONs used in the salthareket/theme repository</li>
             </ul>
         </div>
         <div class="sh-sidebar-box" style="margin-top:12px">

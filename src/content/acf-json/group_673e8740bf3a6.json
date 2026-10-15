@@ -57,6 +57,64 @@
             "acfe_seamless_style": 0
         },
         {
+            "key": "field_6a7c98a6760c0",
+            "label": "Direction",
+            "name": "direction",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "row": "Horizontal",
+                "column": "Vertical"
+            },
+            "default_value": "row",
+            "return_format": "value",
+            "multiple": 0,
+            "allow_custom": 0,
+            "placeholder": "",
+            "search_placeholder": "",
+            "translations": "sync",
+            "allow_null": 0,
+            "allow_in_bindings": 0,
+            "ui": 0,
+            "ajax": 0,
+            "create_options": 0,
+            "save_options": 0,
+            "pll_default_value": "row"
+        },
+        {
+            "key": "field_6a7c992762e45",
+            "label": "Gap",
+            "name": "gap",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 10,
+            "translations": "sync",
+            "min": "",
+            "max": "",
+            "allow_in_bindings": 0,
+            "placeholder": "",
+            "step": 1,
+            "prepend": "",
+            "append": "",
+            "pll_default_value": 10
+        },
+        {
             "key": "field_673e87c4a0c46_field_673e873ce1eac",
             "label": "",
             "name": "",
@@ -103,13 +161,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_autosync": [
-        "json"
-    ],
-    "acfe_form": 0,
-    "acfe_meta": "",
-    "acfe_note": "",
-    "modified": 1774822312,
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786550611,
     "acfe_categories": {
         "block": "Block"
     }

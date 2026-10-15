@@ -22,8 +22,8 @@ if (is_user_logged_in()) {
         'notifications' => array_merge($messages, $notifications_posts),
     ];
 } else {
-    $response['error'] = true;
-    $response['message'] = 'Not logged in';
+    echo json_encode( response_login_required( $vars['view'] ?? 'dropdown' ) );
+    wp_die();
 }
 
 echo json_encode($response);

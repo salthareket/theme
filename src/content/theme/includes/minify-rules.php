@@ -1,10 +1,10 @@
 <?php
 
-function compile_files_plugins($enable_production=false){
+function compile_files_plugins($enable_development=false){
 
 	$node_path = get_home_path() .'node_modules/';
 	$node_path_uri = site_url() .'/node_modules/';
-	if($enable_production){
+	if($enable_development){
 	   $node_path = $node_path_uri;
 	}
 

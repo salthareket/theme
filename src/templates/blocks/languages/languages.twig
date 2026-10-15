@@ -1,0 +1,151 @@
+{% if is_preview and (not enable_multilanguage or languages|length < 2) %}
+    {% set languages = [
+        { name: 'TR', name_long: 'Türkçe', locale: 'tr_TR', url: '#', active: true },
+        { name: 'EN', name_long: 'English', locale: 'en_US', url: '#', active: false },
+        { name: 'DE', name_long: 'Deutsch', locale: 'de_DE', url: '#', active: false }
+    ] %}
+    {% set language = 'TR' %}
+    {% set enable_multilanguage = true %}
+{% endif %}
+
+{% if enable_multilanguage and languages|length > 1 %}{% set display_mode     = fields.display_mode     ?? 'inline' %}
+{% set show_active      = fields.show_active is defined ? fields.show_active : true %}
+{% set view             = fields.view             ?? 'label' %}
+{% set label_type       = fields.label_type       ?? 'code' %}
+{% set flag_style       = fields.flag_style       ?? 'emoji' %}
+{% set flag_position    = fields.flag_position    ?? 'start' %}
+{% set dropdown_trigger = fields.dropdown_trigger ?? 'hover' %}
+{% set extra_class      = fields.css_class        ?? '' %}
+
+{% set block_class = 'nav-language' %}
+{% if extra_class %}
+    {% set block_class = block_class ~ ' ' ~ extra_class %}
+{% endif %}
+
+{# Flag render macro #}
+{% macro flag_el(item, flag_style) %}
+    {%- set code = item.name|lower -%}
+    {%- if flag_style == 'emoji' -%}
+        <span class="lang-flag lang-flag-emoji" aria-hidden="true" data-lang="{{ code }}" style="font-style:normal;background:none !important;background-image:none !important;width:auto;height:auto;display:inline;font-family:inherit"></span>
+    {%- elseif flag_style == 'svg' -%}
+        <span class="lang-flag lang-flag-svg flag-{{ code }}" aria-hidden="true"></span>
+    {%- elseif flag_style == 'img' -%}
+        {% if item.flag and '<img' in item.flag %}
+            <span class="lang-flag lang-flag-img">{{ item.flag | raw }}</span>
+        {% elseif item.flag_url %}
+            <img class="lang-flag lang-flag-img" src="{{ item.flag_url }}" alt="{{ item.name|upper }}" width="16" height="11" loading="lazy">
+        {% elseif item.flag %}
+            <img class="lang-flag lang-flag-img" src="{{ item.flag }}" alt="{{ item.name|upper }}" width="16" height="11" loading="lazy">
+        {% else %}
+            <span class="lang-flag lang-flag-code">{{ item.name|upper }}</span>
+        {% endif %}
+    {%- endif -%}
+{% endmacro %}
+
+{# Label render macro #}
+{% macro label_el(item, label_type) %}
+    {%- if label_type == 'code' -%}
+        <span class="lang-label">{{- item.name|upper -}}</span>
+    {%- elseif label_type == 'name' -%}
+        <span class="lang-label">{{- item.name_long -}}</span>
+    {%- elseif label_type == 'native' -%}
+        <span class="lang-label">{{- item.name_long -}}</span>
+    {%- else -%}
+        <span class="lang-label">{{- item.name|upper -}}</span>
+    {%- endif -%}
+{% endmacro %}
+
+{# Full item render macro — view + position'a gore birlestir #}
+{% macro item_content(item, view, label_type, flag_style, flag_position) %}
+    {%- if view == 'flag' -%}
+        {{- _self.flag_el(item, flag_style) -}}
+    {%- elseif view == 'label' -%}
+        {{- _self.label_el(item, label_type) -}}
+    {%- elseif view == 'both' -%}
+        {%- if flag_position == 'start' -%}
+            {{- _self.flag_el(item, flag_style) -}}{{- _self.label_el(item, label_type) -}}
+        {%- else -%}
+            {{- _self.label_el(item, label_type) -}}{{- _self.flag_el(item, flag_style) -}}
+        {%- endif -%}
+    {%- else -%}
+        {{- _self.label_el(item, label_type) -}}
+    {%- endif -%}
+{% endmacro %}
+
+{#<div class="{{ block_class }}">#}
+
+    {% if display_mode == 'dropdown' %}
+
+        {% set active_item = null %}
+        {% for item in languages %}
+            {% if item.active %}{% set active_item = item %}{% endif %}
+        {% endfor %}
+
+        <div class="nav-languages dropdown {% if dropdown_trigger == 'hover' %}dropdown-hover{% endif %}">
+            <a class="nav-link dropdown-toggle lang-trigger"
+               href="#"
+               role="button"
+               data-bs-toggle="dropdown"
+               aria-expanded="false"
+               aria-haspopup="true"
+               title="{{ active_item.name_long ?? language|upper }}">
+                {% if active_item %}
+                    {{ _self.item_content(active_item, view, label_type, flag_style, flag_position) }}
+                {% else %}
+                    {{ language|upper }}
+                {% endif %}
+                <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end lang-dropdown" aria-label="{{ translate('Languages') }}">
+                {% for item in languages %}
+                    {% if show_active or not item.active %}
+                    <li>
+                        <a href="{{ item.url }}"
+                           class="dropdown-item lang-item {% if item.active %}active{% endif %} btn-loading-page"
+                           hreflang="{{ item.locale ?? item.name }}"
+                           title="{{ item.name_long }}">
+                            {{ _self.item_content(item, view, label_type, flag_style, flag_position) }}
+                        </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+
+    {% else %}
+
+        <ul class="list-inline mb-0" aria-label="{{ translate('Languages') }}">
+            {% for item in languages %}
+                {% if show_active or not item.active %}
+                <li class="list-inline-item" lang="{{ item.locale ?? item.name }}">
+                    <a href="{{ item.url }}"
+                       class="{% if item.active %}active{% endif %} btn-loading-page"
+                       hreflang="{{ item.locale ?? item.name }}"
+                       title="{{ item.name_long }}">
+                        {{ _self.item_content(item, view, label_type, flag_style, flag_position) }}
+                    </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+    {% endif %}
+
+{#</div>#}
+
+{# Flag emoji JS — data-lang attribute'u kullanarak unicode emoji inject eder #}
+{% if view in ['flag', 'both'] and flag_style == 'emoji' %}
+<script data-inline>
+(function() {
+    document.querySelectorAll('.block-languages .lang-flag-emoji[data-lang]').forEach(function(el) {
+        var code = el.getAttribute('data-lang').toUpperCase();
+        if (code.length === 2) {
+            el.textContent = String.fromCodePoint(code.charCodeAt(0) - 65 + 127462)
+                           + String.fromCodePoint(code.charCodeAt(1) - 65 + 127462);
+        }
+    });
+})();
+</script>
+{% endif %}
+
+{% endif %}

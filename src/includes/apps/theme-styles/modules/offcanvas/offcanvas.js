@@ -11,6 +11,28 @@
             if (!$('#module-offcanvas').length) return;
             this.updatePreview();
             this.bindEvents();
+            // Sayfa yüklenince aktif gradient tab'larini init et
+            $('.ts-bg-tab[data-tab="gradient"].active').each(function() {
+                const control = $(this).find('[class*="ts-bg-gradient-picker-"]')[0];
+                if (control && !control.dataset.init) {
+                    control.dataset.init = '1';
+                    const $input = $(control).closest('.ts-bg-field-wrapper').find('.ts-gradient-input');
+                    if ($input.length && wp && wp.element && wp.components) {
+                        const { createElement, useState } = wp.element;
+                        const { GradientPicker } = wp.components;
+                        const defaultGrad = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                        const Picker = () => {
+                            const [val, setVal] = useState($input.val() || defaultGrad);
+                            return createElement(GradientPicker, {
+                                value: val,
+                                onChange: (v) => { setVal(v); $input.val(v).trigger('change'); ThemeStylesOffcanvas.updatePreview(); }
+                            });
+                        };
+                        if (wp.element.createRoot) wp.element.createRoot(control).render(createElement(Picker));
+                        else wp.element.render(createElement(Picker), control);
+                    }
+                }
+            });
         },
 
         updatePreview() {
@@ -44,9 +66,9 @@
             $panel.css('background', bg);
 
             // Padding & align
-            const padding  = getField('offcanvas.padding') || '15px 0 40px 0';
-            const alignHr  = getField('offcanvas.align_hr') || 'start';
-            const alignVr  = getField('offcanvas.align_vr') || 'center';
+            const padding  = getField('padding') || '15px 0 40px 0';
+            const alignHr  = getField('align_hr') || 'start';
+            const alignVr  = getField('align_vr') || 'center';
             $panel.css('padding', padding);
 
             const flexMap = { start: 'flex-start', center: 'center', end: 'flex-end' };

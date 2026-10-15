@@ -27,11 +27,6 @@ $response['html'] = Timber::compile('acf-query-field/loop.twig', $context);
 echo json_encode($response);
 wp_die();
 break;
-case 'change_activation_method':
-$salt = \Salt::get_instance();
-echo json_encode($salt->change_activation_method($vars));
-wp_die();
-break;
 case 'comment_product':
 $salt = \Salt::get_instance();
 echo $salt->comment_product($vars);
@@ -190,6 +185,50 @@ $response['message'] = $message;
 $response['data']    = $post_data;
 $response['html']    = $html;
 echo json_encode($response);
+wp_die();
+break;
+case 'get_search_history':
+/**
+* get_search_history — AJAX handler
+*
+* Kullanıcının son aramaları veya popüler aramaları döner.
+* Yeni format: { terms: string[], title: string }
+* Eski format (html) de desteklenir — geriye uyumluluk için.
+*
+* POST params:
+*   history   = 'user' | 'popular'
+*   post_type = 'search' | 'product' | ...
+*   lang      = '' | 'tr' | 'en' (opsiyonel, ML siteler için)
+*   format    = 'json' | 'html' (default: json)
+*/
+$user         = is_user_logged_in() ? wp_get_current_user() : null;
+$search_history = new SearchHistory();
+$history_type = sanitize_key( $vars['history']   ?? 'popular' );
+$post_type    = sanitize_key( $vars['post_type']  ?? 'search' );
+$lang         = sanitize_key( $vars['lang']       ?? '' );
+$format       = sanitize_key( $vars['format']     ?? 'json' );
+if ( $history_type === 'popular' ) {
+$title  = trans( 'Popular search terms' );
+$result = $search_history->get_popular_terms( $post_type, 10, $lang );
+} else {
+$title  = trans( 'Your last searches' );
+$result = $user
+? $search_history->get_user_terms( $user->ID, $post_type, 10 )
+: [];
+}
+// Yeni format: terms array — JS dropdown tarafından render edilir
+$response['terms'] = array_values( $result ?: [] );
+$response['title'] = $title;
+$response['type']  = $history_type;
+// Geriye uyumluluk: format=html isterse eski twig'i de derle
+if ( $format === 'html' && ! empty( $result ) ) {
+$context                 = Timber::context();
+$context['title']        = $title;
+$context['search_terms'] = $result;
+$context['vars']         = $vars;
+$response['html'] = Timber::compile( 'partials/search/search-field-history.twig', $context );
+}
+echo json_encode( $response );
 wp_die();
 break;
 case 'pagination_ajax':
@@ -414,7 +453,7 @@ echo json_encode($response);
 wp_die();
 break;
 case 'map_modal':
-$map_service = QueryCache::get_field('map_service', 'options') ?: 'leaflet';
+$map_service = \SaltHareket\SaltConfig::get('options_map_service') ?: 'leaflet';
 $map_id      = absint($vars['id'] ?? 0);
 $map_ids     = $vars['ids'] ?? [];
 $lat         = $vars['lat'] ?? '';
@@ -567,6 +606,74 @@ $response['data']    = $post_data;
 echo json_encode($response);
 wp_die();
 break;
+case 'review_modal':
+/**
+* review_modal — Kullanıcının kendi yorumunu modal'da göster.
+* Onaylı/onaysız fark etmez — comment_id ile doğrudan DB'den çekilir.
+* Status badge, rating, içerik ve delete butonu gösterir.
+*
+* vars:
+*   id — comment ID
+*/
+$comment_id = (int) ( $vars['id'] ?? 0 );
+if ( $comment_id < 1 ) {
+$response['error']   = true;
+$response['message'] = 'Invalid review ID';
+echo json_encode( $response );
+wp_die();
+}
+$comment = get_comment( $comment_id );
+if ( ! $comment ) {
+$response['error']   = true;
+$response['message'] = 'Review not found';
+echo json_encode( $response );
+wp_die();
+}
+// Sadece yorumun sahibi veya admin görebilir
+$is_owner = (int) $comment->user_id === get_current_user_id();
+$is_admin = current_user_can( 'moderate_comments' );
+if ( ! $is_owner && ! $is_admin ) {
+$response['error']   = true;
+$response['message'] = 'Unauthorized';
+echo json_encode( $response );
+wp_die();
+}
+$rating     = (int) get_comment_meta( $comment_id, 'rating', true );
+$title      = get_comment_meta( $comment_id, 'review_title', true ) ?: '';
+$verified   = (bool) get_comment_meta( $comment_id, 'verified', true );
+$approved   = $comment->comment_approved === '1';
+$post_id    = (int) $comment->comment_post_ID;
+$post_title = $post_id ? get_the_title( $post_id ) : '';
+$post_link   = $post_id ? get_permalink( $post_id ) : '#';
+$context                 = Timber::context();
+$context['review']       = [
+'id'       => $comment_id,
+'content'  => $comment->comment_content,
+'rating'   => $rating,
+'title'    => $title,
+'verified' => $verified,
+'approved' => $approved,
+'date'     => mysql2date( get_option( 'date_format' ), $comment->comment_date ),
+'author'   => $comment->comment_author,
+'avatar'   => get_avatar_url( $comment->comment_author_email, [ 'size' => 64 ] ),
+'post'     => [
+'id'    => $post_id,
+'title' => $post_title,
+'link'  => $post_link,
+],
+'is_owner' => $is_owner,
+'is_admin' => $is_admin,
+];
+$html = Timber::compile( [ 'partials/modals/review.twig' ], $context );
+$response['error']   = false;
+$response['message']  = '';
+$response['html']     = $html;
+$response['data']     = [
+'title' => $title ?: ( $post_title ? 'Review on ' . $post_title : 'Your Review' ),
+];
+echo json_encode( $response );
+wp_die();
+break;
 case 'template_modal':
 $error   = true;
 $message = 'Template not found';
@@ -604,47 +711,42 @@ $response['data'] = [
 'notifications' => array_merge($messages, $notifications_posts),
 ];
 } else {
-$response['error'] = true;
-$response['message'] = 'Not logged in';
+echo json_encode( response_login_required( $vars['view'] ?? 'dropdown' ) );
+wp_die();
 }
 echo json_encode($response);
 wp_die();
 break;
 case 'get_notifications':
 if ( ! is_user_logged_in() ) {
-$response['error']   = true;
-$response['message'] = 'Not logged in';
-echo json_encode( $response );
+echo json_encode( response_login_required( $vars['view'] ?? 'dropdown' ) );
 wp_die();
 }
 $user          = Timber::get_user( wp_get_current_user() );
 $notifications = new Notifications( $user );
-$view          = $vars['view'] ?? '';
-// ── Offcanvas modu: sadece okunmamışları al, okundu işaretle ──────────────
-if ( $view === 'offcanvas' ) {
-$posts   = $notifications->get_unseen_notifications();
-$context = Timber::context();
-$context['type']  = 'notifications';
-$context['posts'] = $posts;
-$response['data'] = [ 'count' => 0 ];
-$response['html'] = Timber::compile( 'partials/offcanvas/archive.twig', $context );
-echo json_encode( $response );
-wp_die();
-}
-// ── my-account / ajax-paginate modu: tüm bildirimleri paginate ile al ─────
-$set_seen = ! empty( $vars['set_seen'] );
-$result   = $notifications->get_notifications( array_merge( $vars, [ 'set_seen' => $set_seen ] ) );
-$posts    = $result['posts'] ?? [];
-$html     = '';
-$timeAgo  = class_exists( '\\Westsworld\\TimeAgo' ) ? new \Westsworld\TimeAgo() : null;
+$view          = $vars['view'] ?? 'dropdown';
+$page          = (int) ( $vars['page'] ?? 1 );
+$per_page      = (int) ( $vars['posts_per_page'] ?? 15 );
+$set_seen      = ! empty( $vars['set_seen'] );
+$result     = $notifications->get_notifications( array_merge( $vars, [
+'set_seen'       => $set_seen,
+'page'           => $page,
+'posts_per_page' => $per_page,
+] ) );
+$posts      = $result['posts'] ?? [];
+$data       = $result['data'] ?? [];
+$page_total = (int) ( $data['page_total'] ?? 1 );
+// ── Post listesini twig-friendly format'a çevir ───────────────────────────
+$timeAgo = class_exists( '\\Westsworld\\TimeAgo' ) ? new \Westsworld\TimeAgo() : null;
+$items   = [];
 foreach ( $posts as $row ) {
 $sender = new User( $row->sender_id );
-$url    = '';
+$url    = '#';
 if ( function_exists( 'notification_url_map' ) ) {
 $ndata   = json_decode( $row->data ?? '{}', true );
 $post_id = (int) ( $ndata['post_id'] ?? 0 );
-$user_id = (int) ( $ndata['user_id'] ?? 0 );
-$url     = notification_url_map( $row->event, $post_id, $user_id );
+$uid     = (int) ( $ndata['user_id'] ?? 0 );
+$url     = notification_url_map( $row->event, $post_id, $uid ) ?: '#';
 }
 $time = $row->created_at;
 if ( $timeAgo && method_exists( $user, 'get_local_date' ) ) {
@@ -652,62 +754,286 @@ $time = $timeAgo->inWordsFromStrings(
 $user->get_local_date( $row->created_at, $sender->get_timezone(), $user->get_timezone() )
 );
 }
-$ctx         = Timber::context();
-$ctx['post'] = [
-'id'      => $row->id,
-'status'  => $row->status,
-'event'   => $row->event,
-'message' => strip_tags( $row->message ),
-'url'     => $url ?: '#',
-'time'    => $time,
-'sender'  => [
+$items[] = [
+'id'     => $row->id,
+'event'  => $row->event,
+'message' => strip_tags( $row->message ?? '' ),
+'url'    => $url,
+'time'   => $time,
+'read'   => (bool) ( $row->status ?? false ),
+'sender' => [
 'image' => get_avatar( $sender->ID, 40, 'mystery', $sender->get_title() ),
 'name'  => $sender->get_title(),
 ],
 ];
-$ctx['type'] = 'notifications';
-$html       .= Timber::compile( 'my-account/notification-item.twig', $ctx );
 }
-$response['data'] = $result['data'] ?? [];
+$context           = Timber::context();
+$context['source'] = 'notifications';
+$context['view']   = $view;
+$context['items']  = $items;
+// Standart zarf (convention): count = toplam, unread_count = okunmamış (unseen).
+// Notifications sınıfı 'count'/'total'/'unread'/'unseen' anahtarlarından hangisini verirse normalize et.
+$count        = (int) ( $data['count'] ?? $data['total'] ?? count( $items ) );
+$unread_count = (int) ( $data['unread_count'] ?? $data['unseen'] ?? $data['unread'] ?? 0 );
+if ( method_exists( $user, 'get_notifications_unseen_count' ) ) {
+$unread_count = (int) $user->get_notifications_unseen_count();
+}
+unset( $data['total'], $data['unseen'], $data['unread'] );
+$data['count']        = $count;
+$data['page']         = (int) $page;
+$data['page_total']   = (int) $page_total;
+$data['per_page']     = (int) $per_page;
+$data['unread_count'] = $unread_count;
+$context['meta']   = [
+'count'        => $count,
+'page'         => (int) $page,
+'page_total'   => (int) $page_total,
+'per_page'     => (int) $per_page,
+'unread_count' => $unread_count,
+];
+// Feed modu (my-account): sadece tease'ler. Popup: archive (+ archive-{view} override fallback).
+$popup_views = [ 'offcanvas', 'dropdown', 'modal' ];
+if ( ! in_array( $view, $popup_views, true ) ) {
+$html = '';
+foreach ( $items as $item ) {
+$html .= Timber::compile( 'partials/source/notifications/tease.twig', array_merge( $context, [ 'item' => $item ] ) );
+}
+$data['loader'] = $vars['loader'] ?? 'ul';
 $response['html'] = $html;
+} else {
+$response['html'] = Timber::compile(
+[ "partials/source/notifications/archive-{$view}.twig", 'partials/source/notifications/archive.twig' ],
+$context
+);
+}
+// data'yı en son set et — loader gibi sonradan eklenen key'ler dahil olsun
+$response['data'] = $data;
+echo json_encode( $response );
+wp_die();
+break;
+case 'get_reactions':
+/**
+* get_reactions — Kullanıcının belirli bir reaction tipindeki içeriklerini döndürür.
+*
+* vars:
+*   reaction_type  — favorite | like | follow | bookmark | clap | ...
+*   object_type    — post | user | term | comment  (default: post)
+*   view           — offcanvas | dropdown | modal   (default: dropdown)
+*   page           — sayfa numarası (default: 1)
+*   posts_per_page — sayfa başı öğe (default: 12)
+*   post_type      — (object_type=post)    post type filtresi (örn: product)
+*   comment_type   — (object_type=comment) comment type filtresi (örn: review)
+*/
+if ( ! is_user_logged_in() ) {
+echo json_encode( response_login_required( $vars['view'] ?? 'dropdown' ) );
+wp_die();
+}
+$reaction_type = sanitize_key( $vars['reaction_type'] ?? 'favorite' );
+$object_type   = sanitize_key( $vars['object_type']   ?? 'post' );
+$view          = sanitize_key( $vars['view']           ?? 'dropdown' );
+$page          = max( 1, (int) ( $vars['page']           ?? 1 ) );
+$per_page      = max( 1, (int) ( $vars['posts_per_page'] ?? 12 ) );
+$user_id       = get_current_user_id();
+// ── Subtype filtresi — object_type'a göre doğru filtreyi seç ─────────────
+$post_type_filter    = sanitize_key( $vars['post_type']    ?? '' );
+$comment_type_filter = sanitize_key( $vars['comment_type'] ?? '' );
+$object_subtype_filter = '';
+if ( $object_type === 'post' && $post_type_filter !== '' ) {
+$object_subtype_filter = $post_type_filter;
+} elseif ( $object_type === 'comment' && $comment_type_filter !== '' ) {
+$object_subtype_filter = $comment_type_filter;
+}
+// ── Reaction ID'lerini çek (subtype filtresiyle) ──────────────────────────
+$all_ids = \SaltHareket\Reactions\Reactions::getByUser( $user_id, $reaction_type, $object_type, $object_subtype_filter );
+$total   = count( $all_ids );
+// Paginate
+$offset     = ( $page - 1 ) * $per_page;
+$paged_ids  = array_slice( $all_ids, $offset, $per_page );
+$page_total = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
+// ── Object'leri yükle ─────────────────────────────────────────────────────
+$items = [];
+if ( ! empty( $paged_ids ) ) {
+if ( $object_type === 'post' ) {
+// product seçilmişse product_variation'ı da dahil et
+$query_post_type = 'any';
+if ( $post_type_filter === 'product' ) {
+$query_post_type = [ 'product', 'product_variation' ];
+} elseif ( $post_type_filter !== '' ) {
+$query_post_type = $post_type_filter;
+}
+$timber_posts = Timber::get_posts( [
+'post__in'       => $paged_ids,
+'orderby'        => 'post__in',
+'posts_per_page' => $per_page,
+'post_type'      => $query_post_type,
+'post_status'    => 'publish',
+'lang'           => '', // Polylang: tüm dillerdeki postları getir
+] );
+if ( $timber_posts ) {
+foreach ( $timber_posts as $p ) {
+$items[] = $p;
+}
+}
+} elseif ( $object_type === 'user' ) {
+foreach ( $paged_ids as $uid ) {
+$timber_user = Timber::get_user( $uid );
+if ( $timber_user ) $items[] = $timber_user;
+}
+} elseif ( $object_type === 'term' ) {
+foreach ( $paged_ids as $term_id ) {
+$timber_term = Timber::get_term( $term_id );
+if ( $timber_term ) $items[] = $timber_term;
+}
+} elseif ( $object_type === 'comment' ) {
+foreach ( $paged_ids as $comment_id ) {
+$comment = get_comment( $comment_id );
+if ( $comment ) $items[] = $comment;
+}
+}
+}
+$context                     = Timber::context();
+$context['source']           = 'reaction:' . $reaction_type;
+$context['reaction_type']    = $reaction_type;
+$context['object_type']      = $object_type;
+$context['post_type_filter'] = $post_type_filter;     // pagination'da filtre korunur
+$context['comment_type_filter'] = $comment_type_filter;
+$context['view']             = $view;
+$context['items']            = $items;
+$context['meta']             = [
+'count'      => $total,
+'page'       => $page,
+'page_total' => $page_total,
+'per_page'   => $per_page,
+];
+// Standart zarf (convention): data = { count, page, page_total, per_page }.
+// reaction'da "okunmamış" kavramı yok → unread_count YOK.
+$response['data'] = [
+'count'      => (int) $total,
+'page'       => (int) $page,
+'page_total' => (int) $page_total,
+'per_page'   => (int) $per_page,
+];
+// Feed modu (my-account): sadece tease'ler. Popup (offcanvas/dropdown/modal): archive.
+// archive-{view}.twig varsa onu, yoksa archive.twig'i kullan (view override fallback).
+$popup_views = [ 'offcanvas', 'dropdown', 'modal' ];
+if ( ! in_array( $view, $popup_views, true ) ) {
+$html = '';
+foreach ( $items as $item ) {
+$html .= Timber::compile( 'partials/source/reactions/tease.twig', array_merge( $context, [ 'item' => $item ] ) );
+}
+$response['html'] = $html;
+} else {
+$response['html'] = Timber::compile(
+[ "partials/source/reactions/archive-{$view}.twig", 'partials/source/reactions/archive.twig' ],
+$context
+);
+}
 echo json_encode( $response );
 wp_die();
 break;
 case 'get_reviews':
-if ( ! is_user_logged_in() ) {
-$response['error']   = true;
-$response['message'] = 'Not logged in';
-echo json_encode( $response );
-wp_die();
-}
-if ( ! class_exists( 'Reviews' ) ) {
+// Login zorunlu değil — public profil sayfasında herkes review görebilir
+// Yazma işlemi ayrıca kontrol edilir
+if ( ! class_exists( '\SaltHareket\Reviews\Reviews' ) ) {
 $response['error']   = true;
 $response['message'] = 'Reviews not available';
 echo json_encode( $response );
 wp_die();
 }
-$user_id  = (int) ( $vars['user'] ?? get_current_user_id() );
-$reviews  = new Reviews( $user_id );
-$args = [
-'page'     => (int) ( $vars['page']           ?? 1 ),
-'per_page' => (int) ( $vars['posts_per_page']  ?? 10 ),
-'order'    => sanitize_key( $vars['order']     ?? 'desc' ),
-'status'   => isset( $vars['status'] ) && $vars['status'] === '0' ? 'hold' : 'approve',
+$view      = sanitize_key( $vars['view'] ?? 'list' );
+$user_id   = (int) ( $vars['user'] ?? $vars['user_id'] ?? 0 );
+$page      = max( 1, (int) ( $vars['page'] ?? 1 ) );
+$per_page  = max( 1, (int) ( $vars['posts_per_page'] ?? 10 ) );
+$reviews   = new \SaltHareket\Reviews\Reviews( $user_id );
+// Hangi review kümesi?
+$popup_views  = [ 'offcanvas', 'dropdown', 'modal' ];
+$default_mode = in_array( $view, $popup_views, true ) ? 'received' : 'authored';
+$mode         = sanitize_key( $vars['mode'] ?? $default_mode );
+$args      = [
+'page'     => $page,
+'per_page' => $per_page,
+'order'    => sanitize_key( $vars['order'] ?? 'desc' ),
+'status'   => ( isset( $vars['status'] ) && (string) $vars['status'] === '0' ) ? 'hold' : 'approve',
 ];
-$result = $reviews->getByAuthor( $user_id, $args );
-$posts  = $result['reviews'] ?? [];
-$html   = '';
-foreach ( $posts as $review ) {
-$ctx                    = Timber::context();
-$ctx['review']          = $review;
-$ctx['reviews_settings'] = \SaltHareket\Reviews\ReviewsSettings::all();
-$ctx['reviews_criteria'] = \SaltHareket\Reviews\ReviewsSettings::getCriteria(
-get_post_type( $review->comment_post_ID ?? 0 ) ?: 'post'
-);
-$html .= Timber::compile( 'my-account/review-item.twig', $ctx );
+// authored mode'da status parametresi gelmediyse tüm yorumlar
+if ( $mode === 'authored' && ! isset( $vars['status'] ) ) {
+$args['status'] = 'all';
 }
-$response['data'] = $result['data'] ?? [];
+$result     = ( $mode === 'authored' )
+? $reviews->getByAuthor( $user_id, $args )
+: ( ( $mode === 'profile' || $mode === 'on_me' )
+? $reviews->getForUser( $user_id, $args )
+: ( $mode === 'on_posts'
+? $reviews->getForPosts( $user_id, $args )
+: $reviews->getReceived( $user_id, $args ) ) );
+$raw        = $result['reviews'] ?? [];
+$data       = $result['data'] ?? [];
+$page_total = (int) ( $data['page_total'] ?? 1 );
+// data.count normalize — runQuery 'total' döndürür, diğer source'lar 'count' kullanır.
+// unread_count her zaman badge kümesiyle (getUnreadCount) tutarlı olsun.
+$data['count']        = (int) ( $data['count'] ?? $data['total'] ?? count( $raw ) );
+$data['unread_count'] = \SaltHareket\Reviews\Reviews::getUnreadCount( get_current_user_id() );
+unset( $data['total'] );
+// ── Twig-friendly format ──────────────────────────────────────────────────
+$items = [];
+foreach ( $raw as $review ) {
+$post_id    = (int) ( $review->comment_post_ID ?? 0 );
+$post_title = $post_id ? get_the_title( $post_id ) : '';
+$post_link  = $post_id ? get_permalink( $post_id ) : '#';
+$author_id     = (int) ( $review->user_id ?? 0 );
+$author_name   = $review->comment_author ?? '';
+$author_avatar = $author_id ? get_avatar_url( $author_id, [ 'size' => 40 ] ) : '';
+$items[] = [
+'id'       => $review->comment_ID,
+'content'  => wp_strip_all_tags( $review->comment_content ?? '' ),
+'rating'   => (int) get_comment_meta( $review->comment_ID, 'rating', true ),
+'date'     => mysql2date( get_option( 'date_format' ), $review->comment_date ),
+'read'     => (bool) get_comment_meta( $review->comment_ID, '_sh_review_read', true ),
+'approved' => $review->comment_approved === '1',
+'verified' => (bool) get_comment_meta( $review->comment_ID, 'verified', true ),
+'post'    => [
+'id'    => $post_id,
+'title' => $post_title,
+'link'  => $post_link,
+],
+'author'  => [
+'name'   => $author_name,
+'avatar' => $author_avatar,
+],
+];
+}
+$context           = Timber::context();
+$context['source'] = 'reviews';
+$context['view']   = $view;
+$context['mode']   = $mode;
+$context['items']  = $items;
+$context['meta']   = [
+'count'        => $data['count'],
+'page'         => $page,
+'page_total'   => $page_total,
+'unread_count' => $data['unread_count'],
+];
+// Feed modu: sadece tease'ler, popup modu: tam archive ($popup_views yukarıda tanımlı)
+if ( ! in_array( $view, $popup_views, true ) ) {
+$html = '';
+foreach ( $items as $item ) {
+$html .= Timber::compile( 'partials/source/reviews/tease.twig', array_merge( $context, [ 'item' => $item ] ) );
+}
+// Boşsa not-found mesajı
+if ( empty( $items ) ) {
+$html = Timber::compile( 'partials/not-found/reviews.twig', $context );
+}
+$data['loader'] = $vars['loader'] ?? 'ul';
 $response['html'] = $html;
+} else {
+// archive-{view}.twig varsa onu, yoksa archive.twig (view override fallback).
+$response['html'] = Timber::compile(
+[ "partials/source/reviews/archive-{$view}.twig", 'partials/source/reviews/archive.twig' ],
+$context
+);
+}
+// data'yı en son set et — loader dahil
+$response['data'] = $data;
 echo json_encode( $response );
 wp_die();
 break;
@@ -772,6 +1098,71 @@ $response['redirect'] = Data::get('base_urls.messages') . $conversation->conv_id
 $conversation = before_store_new_message($conversation);
 after_store_new_message($conversation);
 echo json_encode($response);
+wp_die();
+break;
+case 'sh_review_owner_action':
+/**
+* sh_review_owner_action — Review sahibinin approve/reject/delete yapması
+*
+* vars:
+*   id     — comment ID
+*   action — approve | reject | delete
+*/
+if ( ! is_user_logged_in() ) {
+echo json_encode( [ 'success' => false, 'message' => 'Not logged in.' ] );
+wp_die();
+}
+$comment_id = (int) ( $vars['id'] ?? 0 );
+$action     = sanitize_key( $vars['action'] ?? '' );
+$user_id    = get_current_user_id();
+if ( ! $comment_id || ! in_array( $action, [ 'approve', 'reject', 'delete' ], true ) ) {
+echo json_encode( [ 'success' => false, 'message' => 'Invalid parameters.' ] );
+wp_die();
+}
+$comment = get_comment( $comment_id );
+if ( ! $comment || $comment->comment_type !== 'review' ) {
+echo json_encode( [ 'success' => false, 'message' => 'Review not found.' ] );
+wp_die();
+}
+// Yetki: kullanıcı bu yorumun hedefi olmalı
+//   a) comment_profile meta = bu kullanıcı (profile review)
+//   b) comment_post_ID'nin post_author = bu kullanıcı (post review)
+$profile_target = (int) get_comment_meta( $comment_id, 'comment_profile', true );
+$post_author    = $comment->comment_post_ID ? (int) get_post_field( 'post_author', $comment->comment_post_ID ) : 0;
+$is_authorized = ( $profile_target === $user_id ) || ( $post_author === $user_id );
+// Admin her zaman yapabilir
+if ( current_user_can( 'moderate_comments' ) ) {
+$is_authorized = true;
+}
+if ( ! $is_authorized ) {
+echo json_encode( [ 'success' => false, 'message' => 'Unauthorized.' ] );
+wp_die();
+}
+switch ( $action ) {
+case 'approve':
+wp_set_comment_status( $comment_id, 'approve' );
+update_comment_meta( $comment_id, '_sh_review_read', 1 );
+if ( class_exists( '\SaltHareket\Reviews\Reviews' ) ) {
+( new \SaltHareket\Reviews\Reviews() )->approve( $comment_id );
+}
+echo json_encode( [ 'success' => true, 'message' => 'Approved.' ] );
+break;
+case 'reject':
+wp_set_comment_status( $comment_id, 'hold' );
+if ( class_exists( '\SaltHareket\Reviews\Reviews' ) ) {
+( new \SaltHareket\Reviews\Reviews() )->reject( $comment_id );
+}
+echo json_encode( [ 'success' => true, 'message' => 'Rejected.' ] );
+break;
+case 'delete':
+if ( class_exists( '\SaltHareket\Reviews\Reviews' ) ) {
+( new \SaltHareket\Reviews\Reviews() )->delete( $comment_id );
+} else {
+wp_delete_comment( $comment_id, true );
+}
+echo json_encode( [ 'success' => true, 'message' => 'Deleted.' ] );
+break;
+}
 wp_die();
 break;
 case 'update_profile':
@@ -848,6 +1239,26 @@ $status = $salt->validate_phone($vars['phone'] ?? '', $vars['country'] ?? '', $v
 echo json_encode($status);
 wp_die();
 break;
+case 'verify_2fa_totp':
+/**
+* verify_2fa_totp — TOTP kodunu doğrula, login'i tamamla.
+*
+* vars:
+*   pending_token — setPending2FA()'dan gelen token
+*   totp_code     — authenticator app'den gelen 6 haneli kod
+*   remember      — (opsiyonel) bool
+*   redirect_url  — (opsiyonel) string
+*/
+if ( ! $required_setting ) {
+$response['error']   = true;
+$response['message'] = 'Membership is not enabled.';
+echo json_encode( $response );
+wp_die();
+}
+$mm = \SaltHareket\Membership\MembershipManager::getInstance();
+echo json_encode( $mm->verify2FATOTP( $vars ) );
+wp_die();
+break;
 case 'add_to_cart':
 global $woocommerce;
 $product_id   = absint($vars['product_id'] ?? $vars['productId'] ?? 0);
@@ -895,7 +1306,7 @@ $response['data'] = [
 ];
 } else {
 $response['error']   = true;
-$response['message'] = __('Ürün sepete eklenemedi.', 'woocommerce');
+$response['message'] = __('This product cannot be added to the cart.', 'woocommerce');
 }
 echo json_encode($response);
 wp_die();
@@ -906,17 +1317,33 @@ wp_die();
 break;
 case 'get_cart':
 global $woocommerce;
+$view    = $vars['view'] ?? 'dropdown';
 $cart    = woo_get_cart_object();
-$context = Timber::context();
-$context['type'] = 'cart';
-$context['cart'] = $cart;
-$view = $vars['view'] ?? 'dropdown';
-$template = 'partials/' . $view . '/archive.twig';
-$response['data'] = [
-'count' => $woocommerce->cart->get_cart_contents_count(),
+$items   = $cart['items'] ?? [];
+$count   = $woocommerce->cart->get_cart_contents_count();
+$context            = Timber::context();
+$context['source']  = 'cart';
+$context['view']    = $view;
+$context['items']   = $items;
+$context['meta']    = [
+'count'      => $count,
+'page'       => 1,
+'page_total' => 1,
+'per_page'   => $count > 0 ? $count : 1,
+'total'      => $cart['total'] ?? '',
 ];
-$response['html'] = Timber::compile($template, $context);
-echo json_encode($response);
+// Standart zarf. Cart paginate edilmez → page=1, page_total=1.
+$response['data'] = [
+'count'      => $count,
+'page'       => 1,
+'page_total' => 1,
+];
+// archive-{view}.twig varsa onu, yoksa archive.twig (cart .load-container istisnası korunur).
+$response['html'] = Timber::compile(
+[ "partials/source/cart/archive-{$view}.twig", 'partials/source/cart/archive.twig' ],
+$context
+);
+echo json_encode( $response );
 wp_die();
 break;
 case 'get_products':
@@ -987,28 +1414,64 @@ break;
 case 'wc_cart_clear':
 global $woocommerce;
 $woocommerce->cart->empty_cart();
+// Standart zarf — sepet temizlendi, count = 0.
+$response['data'] = [
+'count'      => 0,
+'page'       => 1,
+'page_total' => 1,
+];
+echo json_encode( $response );
 wp_die();
 break;
 case 'wc_cart_item_remove':
 global $woocommerce;
-$woocommerce->cart->remove_cart_item($vars['key']);
-$cart    = woo_get_cart_object();
-$context = Timber::context();
-$context['type'] = 'cart';
-$context['cart'] = $cart;
-$view = $vars['view'] ?? 'dropdown';
-$template = 'partials/' . $view . '/archive.twig';
-$response['data'] = [
-'count' => $woocommerce->cart->get_cart_contents_count(),
+$woocommerce->cart->remove_cart_item( $vars['key'] );
+$view  = sanitize_key( $vars['view'] ?? 'dropdown' );
+$cart  = woo_get_cart_object();
+$count = (int) $woocommerce->cart->get_cart_contents_count();
+$context            = Timber::context();
+$context['source']  = 'cart';
+$context['type']    = 'cart';        // geriye dönük uyum
+$context['view']    = $view;
+$context['cart']    = $cart;
+$context['items']   = $cart['items'] ?? [];
+$context['meta']    = [
+'count' => $count,
+'total' => $cart['total'] ?? '',
 ];
-$response['html'] = Timber::compile($template, $context);
-echo json_encode($response);
+// Convention: source/cart/archive.twig (eski partials/{view}/archive.twig değil).
+// archive-{view}.twig varsa onu, yoksa archive.twig.
+$response['data'] = [ 'count' => $count ];
+$response['html'] = Timber::compile(
+[ "partials/source/cart/archive-{$view}.twig", 'partials/source/cart/archive.twig' ],
+$context
+);
+echo json_encode( $response );
 wp_die();
 break;
 case 'wc_cart_quantity_update':
 global $woocommerce;
-$woocommerce->cart->set_quantity($vars['key'], (int) $vars['count']);
-echo json_encode(woo_get_cart_object());
+$woocommerce->cart->set_quantity( $vars['key'], (int) $vars['count'] );
+$view  = sanitize_key( $vars['view'] ?? 'dropdown' );
+$cart  = woo_get_cart_object();
+$count = (int) $woocommerce->cart->get_cart_contents_count();
+$context            = Timber::context();
+$context['source']  = 'cart';
+$context['type']    = 'cart';
+$context['view']    = $view;
+$context['cart']    = $cart;
+$context['items']   = $cart['items'] ?? [];
+$context['meta']    = [
+'count' => $count,
+'total' => $cart['total'] ?? '',
+];
+// Standart zarf. data içinde cart nesnesi de korunur (fragment/JS tüketimi için).
+$response['data'] = array_merge( (array) $cart, [ 'count' => $count ] );
+$response['html'] = Timber::compile(
+[ "partials/source/cart/archive-{$view}.twig", 'partials/source/cart/archive.twig' ],
+$context
+);
+echo json_encode( $response );
 wp_die();
 break;
 case 'wc_modal_page_template':
@@ -1078,4 +1541,132 @@ $response['html'] = Timber::compile($vars['template'] . '.twig', $context);
 echo json_encode($response);
 wp_die();
 break;
+case 'woo_get_variation_gallery':
+/**
+* woo_get_variation_gallery
+*
+* Bir variation veya variable ürünün tüm görsel URL'lerini döndürür.
+* product-gallery.twig'i AJAX ile güncellemek için kullanılır.
+*
+* vars:
+*   product_id  — variation veya parent product ID
+*   size        — WP image size (default: woocommerce_single)
+*/
+$product_id = (int) ( $vars['product_id'] ?? 0 );
+$size       = sanitize_key( $vars['size'] ?? 'woocommerce_single' );
+if ( ! $product_id ) {
+$response['error']   = true;
+$response['message'] = 'Invalid product_id';
+echo json_encode( $response );
+wp_die();
+}
+$p = wc_get_product( $product_id );
+if ( ! $p ) {
+$response['error']   = true;
+$response['message'] = 'Product not found';
+echo json_encode( $response );
+wp_die();
+}
+$images      = [];
+$thumb_images = [];
+if ( $p->is_type('variation') ) {
+// Variation: kendi ana görseli + ek görseller
+$image_id = $p->get_image_id();
+if ( $image_id ) {
+$url = wp_get_attachment_image_url( $image_id, $size );
+if ( $url ) $images[] = $url;
+}
+// WC 11.1 core variation gallery
+$gallery_ids = $p->get_gallery_image_ids();
+foreach ( $gallery_ids as $gid ) {
+$url = wp_get_attachment_image_url( $gid, $size );
+if ( $url ) $images[] = $url;
+}
+// Fallback: eski _wc_additional_variation_images meta
+if ( count( $images ) <= 1 ) {
+$additional = get_post_meta( $product_id, '_wc_additional_variation_images', true );
+if ( $additional ) {
+foreach ( array_filter( explode(',', $additional) ) as $add_id ) {
+$add_id = (int) trim($add_id);
+if ( $add_id ) {
+$url = wp_get_attachment_image_url( $add_id, $size );
+if ( $url && ! in_array($url, $images) ) $images[] = $url;
+}
+}
+}
+}
+// Hiç görsel yoksa parent'ın ana görselini kullan
+if ( empty( $images ) ) {
+$parent = wc_get_product( $p->get_parent_id() );
+if ( $parent ) {
+$pid = $parent->get_image_id();
+if ( $pid ) {
+$url = wp_get_attachment_image_url( $pid, $size );
+if ( $url ) $images[] = $url;
+}
+}
+}
+} elseif ( $p->is_type('variable') ) {
+// Variable parent: sadece ana ürün görseli + galeri
+// (Variation seçilmemiş durumu — clear basıldığında)
+$pid = $p->get_image_id();
+if ( $pid ) {
+$url = wp_get_attachment_image_url( $pid, $size );
+if ( $url ) $images[] = $url;
+}
+foreach ( $p->get_gallery_image_ids() as $gid ) {
+$url = wp_get_attachment_image_url( $gid, $size );
+if ( $url ) $images[] = $url;
+}
+// Galeri boşsa default variation görsellerini kullan
+if ( empty( $images ) ) {
+$seen = [];
+foreach ( $p->get_children() as $child_id ) {
+$child    = wc_get_product( $child_id );
+if ( ! $child ) continue;
+$image_id = $child->get_image_id();
+if ( $image_id && ! isset($seen[$image_id]) ) {
+$url = wp_get_attachment_image_url( $image_id, $size );
+if ( $url ) { $images[] = $url; $seen[$image_id] = true; }
+}
+}
+}
+} else {
+// Simple: ana görsel + galeri
+$pid = $p->get_image_id();
+if ( $pid ) {
+$url = wp_get_attachment_image_url( $pid, $size );
+if ( $url ) $images[] = $url;
+}
+foreach ( $p->get_gallery_image_ids() as $gid ) {
+$url = wp_get_attachment_image_url( $gid, $size );
+if ( $url ) $images[] = $url;
+}
+}
+// Thumbnail ve zoom görselleri
+$zoom_images  = [];
+foreach ( $images as $img_url ) {
+$att_id = attachment_url_to_postid( $img_url );
+if ( $att_id ) {
+$thumb_url     = wp_get_attachment_image_url( $att_id, 'woocommerce_thumbnail' );
+$thumb_images[] = $thumb_url ?: $img_url;
+$zoom_url      = wp_get_attachment_image_url( $att_id, 'full' );
+$zoom_images[]  = $zoom_url ?: $img_url;
+} else {
+$thumb_images[] = $img_url;
+$zoom_images[]  = $img_url;
+}
+}
+$response['data'] = [
+'images'       => $images,
+'thumb_images' => $thumb_images,
+'zoom_images'  => $zoom_images,
+'count'        => count( $images ),
+];
+echo json_encode( $response );
+wp_die();
+break;
+}
+function get_ajax_methods() {
+return ['acf_layout_posts', 'comment_product', 'comment_product_detail', 'comment_product_modal', 'autocomplete_terms', 'get_post', 'get_search_history', 'pagination_ajax', 'site_config', 'twig_render', 'custom_modal', 'form_modal', 'iframe_modal', 'map_modal', 'page_modal', 'review_modal', 'template_modal', 'get_notification_alerts', 'get_notifications', 'get_reactions', 'get_reviews', 'login', 'nickname_exist', 'password_recover', 'register', 'search_terms_add', 'search_terms_remove', 'send_profile_message', 'sh_review_owner_action', 'update_profile', 'update_profile_photo', 'user_exist', 'validate_phone', 'verify_2fa_totp', 'add_to_cart', 'custom_track_product_view', 'get_cart', 'get_products', 'pay_now', 'salt_recently_viewed_products', 'wc_api_create_product', 'wc_api_create_product_variation', 'wc_api_filter_products', 'wc_api_update_product', 'wc_cart_clear', 'wc_cart_item_remove', 'wc_cart_quantity_update', 'wc_modal_page_template', 'wc_order_list', 'woo_get_product_variation_thumbnails', 'woo_get_variation_gallery'];
 }

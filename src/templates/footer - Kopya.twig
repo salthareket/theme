@@ -1,0 +1,52 @@
+
+
+{% if page_settings.footer_template is empty or page_settings.footer_template == "default" %}
+    {% if footer_options.template == "default" %}
+        {% set template = function("_get_option", "options_default_footer_template")|default("static") %}
+    {% else %}
+        {% set template = footer_options.template %}
+    {% endif %}
+{% else %}
+    {% set template = page_settings.footer_template %}
+{% endif %}
+
+{% set path = "" %}
+{% set footer_id = "footer" %}
+{% set footer_class = "footer z-0" %}
+{% set template_post = [] %}
+{% if template == "static" %}
+    {% set footer_class = footer_class ~ " pt-5 pb-4" %}
+    {% set path = "footer-static.twig" %}
+{% else %}
+    {% set footer_id = footer_id ~ "-custom" %}
+
+    {% set template_post = get_post(template) %}
+    {% set footer_class = footer_class ~ " " ~ template_post.slug %}
+
+    {% if template_post.meta("render_template") %}
+        {% if template_post.meta("template") %}
+            {% set twig_file = 'theme/templates/_custom/' ~ template_post.meta("template") %}
+            {% if function('file_exists', site.theme.path ~ '/' ~ twig_file) %}
+                {% set path = twig_file %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+    
+{% endif %}
+
+<footer class="footer {{ footer_class }}" itemtype="https://schema.org/WPFooter" itemscope="" id="{{ footer_id }}" role="contentinfo">
+   aaa:{{ footer_options|print_r }} 
+    {% if path %}
+        <div class="{{footer_options.container}}">
+            {% include path %}
+        </div>
+    {% elseif template_post %}
+        {{ template_post.get_blocks().html }}
+        {% set css = template_post.meta('css') %}
+        {% if css %}
+            <link id='footer-css' rel='preload' href='{{site.theme.uri}}/theme/templates/_custom/{{ css }}' as='style' media="all" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
+            <noscript><link rel='stylesheet' href='{{site.theme.uri}}/theme/templates/_custom/{{ css }}'></noscript>
+        {% endif %}
+    {% endif %}
+
+</footer>

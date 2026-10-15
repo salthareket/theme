@@ -34,8 +34,11 @@ class RemoveUnusedCss {
         ".h-100",
         ".show",
         ".affix",
+        ".affix-*",
         ".affixed",
         ".header-hide",
+        ".header-affix-*",
+        ".header-fixed-*",
         ".fixed-*",
         ".resizing",
         ".scroll-down",
@@ -50,8 +53,11 @@ class RemoveUnusedCss {
         ".menu-open",
         ".menu-show-header",
 
+        ".notifications-open",
+
         ".offcanvas-open",
         ".offcanvas-fullscreen-open",
+        ".showing-offcanvas",
 
         ".search-open",
         ".filter-open",
@@ -78,11 +84,12 @@ class RemoveUnusedCss {
         ".dgwt-wcas-open",
 
         ".screen-reader-response",
-        ".wpcf7-not-valid-tip"
+        ".wpcf7-not-valid-tip",
+        
     ];
     public $white_list_map = [];
     public $black_list = [
-        '.dropdown-notifications',
+        //'.dropdown-notifications',
     ];
     private $root_variable_whitelist = [
         '--bs-breakpoint-xs', 
@@ -1135,7 +1142,6 @@ class RemoveUnusedCss {
     private function filterUsedCss() {
         $dom = $this->html;
         if (!$dom) {
-            //error_log("Error parsing HTML");
             return;
         }
 
@@ -1164,26 +1170,7 @@ class RemoveUnusedCss {
             }
         }
 
-        /*if ($extra_html) {
-            // Eklenen fragmenti logla
-            //error_log('[RemoveUnusedCss] collected extra html length=' . strlen($extra_html));
-
-            // NOT: innertext string kabul eder; doğrudan $extra_html kullanıyoruz
-            $bodyNode = $dom->find('body', 0);
-            if ($bodyNode) {
-                $bodyNode->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
-                //error_log('[RemoveUnusedCss] extra html appended into <body>');
-            } else {
-                $dom->innertext .= '<div id="__twig_extra__">' . $extra_html . '</div>';
-                //error_log('[RemoveUnusedCss] extra html appended into root (no body)');
-            }
-        } else {
-            //error_log('[RemoveUnusedCss] no extra twig html collected');
-        }*/
-        
         $this->addHtmlWhitelist($dom);
-
-        //$dom = $this->cleanDom($dom);
         $this->updateWhiteList($dom);
         ////error_log(print_r($this->white_list, true));
         $this->processFonts();
@@ -1387,13 +1374,27 @@ class RemoveUnusedCss {
     }
 
     private function processKeyframes() {
+        // css_temp'te biriken tüm CSS içeriğinden animation referanslarını da tara
+        preg_match_all('/animation(?:-name)?\s*:\s*([\w-]+)/', $this->css_temp, $anim_matches);
+        foreach ($anim_matches[1] as $anim_name) {
+            $key = trim($anim_name);
+            if ($key !== 'none' && $key !== 'inherit' && $key !== 'initial') {
+                $this->animations_used[$key] = $key;
+            }
+        }
+
+        $keyframes_css = '';
         foreach ($this->css_structure["keyframes"] as $keyframe_type => $keyframes) {
             foreach ($keyframes as $keyframe_name => $keyframe_content) {
-                // Sadece kullanılan animasyonlar eklenecek
                 if (isset($this->animations_used[$keyframe_name])) {
-                    $this->css_temp .= "$keyframe_type $keyframe_name {\n$keyframe_content\n}\n";
+                    $keyframes_css .= "$keyframe_type $keyframe_name {\n$keyframe_content\n}\n";
                 }
             }
+        }
+
+        // Keyframe'leri en başa ekle — Firefox CSS sırası sorununu önler
+        if ($keyframes_css) {
+            $this->css_temp = $keyframes_css . $this->css_temp;
         }
     }
 
@@ -1536,7 +1537,9 @@ class RemoveUnusedCss {
         }
 
         // 1. Seçiciyi atomik parçalara ayır (.toast.showing -> ['.toast', '.showing'])
-        preg_match_all('/([.#][a-zA-Z0-9\-_*]+|\[[^\]]+\])/', $selector, $matches);
+        // NOT: -- içeren BEM modifier class'ları (örn: .select2-container--bootstrap-5)
+        // düzgün parse edilmesi için tüm class adını tek parça olarak yakala
+        preg_match_all('/([.#][a-zA-Z0-9][a-zA-Z0-9\-_*]*|\[[^\]]+\])/', $selector, $matches);
         $parts = !empty($matches[0]) ? $matches[0] : [$selector];
 
         // 2. HER BİR PARÇA geçerli olmak zorunda (AND Mantığı)

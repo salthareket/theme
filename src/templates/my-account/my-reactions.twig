@@ -1,0 +1,144 @@
+{#
+  my-reactions.twig — Private reaction sayfası (Favorites, Saved vb.)
+  ─────────────────────────────────────────────────────────────────────────────
+  Context (renderReactionContent() PHP'den):
+    title           — Sayfa başlığı (type label)
+    reaction_type   — 'favorite' | 'bookmark' | herhangi private type key
+    type_def        — ReactionsSettings type config (label, icon_off, icon_on, color)
+    tabs            — { post: 12, user: 3, term: 1 } — dolu object type'lar
+    active_tab      — aktif tab key ('post', 'user', 'term')
+    total           — toplam kayıt sayısı
+  ─────────────────────────────────────────────────────────────────────────────
+#}
+{% block hero %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+
+{% set _icon     = type_def.icon_on  ?? type_def.icon_off ?? 'far fa-star' %}
+{% set _color    = type_def.color ?? '#f59e0b' %}
+{% set _tab_labels = { post: translate("Posts"), user: translate("People"), term: translate("Categories") } %}
+
+<div class="card card-reset container">
+
+    <div class="card-header pb-3 d-flex align-items-center gap-3">
+        <span style="width:40px;height:40px;border-radius:50%;background:{{ _color }}22;display:inline-flex;align-items:center;justify-content:center;">
+            {# icon_on format: 'solid:heart' veya eski 'fas fa-heart' #}
+            {% if ':' in _icon %}
+                {% set _icon_parts = _icon|split(':') %}
+                {{ fa_icon(_icon_parts[1], _icon_parts[0], '') }}
+            {% else %}
+                <i class="{{ _icon }}" style="color:{{ _color }}"></i>
+            {% endif %}
+        </span>
+        <h1 class="card-title mb-0">{{ title }}</h1>
+        {% if total %}
+        <span class="badge rounded-pill ms-2" style="background:{{ _color }};font-size:12px;">{{ total }}</span>
+        {% endif %}
+    </div>
+
+    {% if not tabs %}
+
+        {# Hiç kayıt yok #}
+        <div class="card-body py-5 text-center text-muted">
+            {% if ':' in _icon %}
+                {% set _icon_parts = _icon|split(':') %}
+                {{ fa_icon(_icon_parts[1], _icon_parts[0], 'fa-3x mb-3 d-block opacity-25') }}
+            {% else %}
+                <i class="{{ _icon }} fa-3x mb-3 d-block opacity-25"></i>
+            {% endif %}
+            <p class="mb-0 fw-semibold">{{ translate("No saved content.") }}</p>
+            <p class="small mt-1 mb-0">{{ translate("Items you save will appear here.") }}</p>
+        </div>
+
+    {% else %}
+
+        {# Object type tab'ları #}
+        {% if tabs|length > 1 %}
+        <div class="card-header border-bottom-0 pb-0 pt-3">
+            <ul class="nav nav-tabs border-0 gap-1" id="reaction-tabs">
+                {% for _tab_key, _tab_count in tabs %}
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link {% if _tab_key == active_tab %}active{% endif %} d-flex align-items-center gap-2"
+                            data-reaction-tab="{{ _tab_key }}"
+                            onclick="shReactionTabSwitch('{{ _tab_key }}', this)">
+                        {{ _tab_labels[_tab_key] ?? _tab_key|capitalize }}
+                        <span class="badge rounded-pill bg-secondary">{{ _tab_count }}</span>
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {# Her tab için AJAX paginate container #}
+        {% for _tab_key, _tab_count in tabs %}
+        <div class="reaction-tab-panel" id="reaction-panel-{{ _tab_key }}"
+             style="{{ _tab_key != active_tab ? 'display:none' : '' }}">
+
+            <div class="ajax-paginate"
+                 id="reaction-list-{{ _tab_key }}"
+                 data-reaction_type="{{ reaction_type }}"
+                 data-object_type="{{ _tab_key }}"
+                 data-view="list"
+                 data-posts_per_page="12"
+                 data-load="button"
+                 data-ajax-method="get_reactions"
+                 data-notfound="partials/source/reactions/not-found">
+
+                {# Products için grid, diğerleri için liste #}
+                {% if _tab_key == 'post' %}
+                <div class="card-body">
+                    <ul class="products row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4 list-cards list-unstyled"></ul>
+                </div>
+                {% elseif _tab_key == 'user' %}
+                <div class="card-body">
+                    <ul class="row g-3 list-cards list-unstyled"></ul>
+                </div>
+                {% else %}
+                <div class="card-body">
+                    <ul class="list-group list-group-flush list-cards"></ul>
+                </div>
+                {% endif %}
+
+                <div class="card-footer text-center p-0 border-0">
+                    <a href="#" class="btn-next-page btn btn-outline-secondary btn-sm w-100 text-uppercase fw-semibold" data-init="true">
+                        <span class="text">{{ translate("Load") }} <span class="item-left"></span> {{ translate("More") }}</span>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+
+    {% endif %}
+
+</div>
+
+<script>
+(function($){
+    function initReactionPaginators() {
+        if (typeof ajax_paginate === 'function') {
+            ajax_paginate();
+        }
+    }
+    // 150ms bekle — ajax_paginate fonksiyonu yüklenmiş olsun
+    setTimeout(initReactionPaginators, 150);
+
+    window.shReactionTabSwitch = function(tabKey, btn) {
+        document.querySelectorAll('[data-reaction-tab]').forEach(function(b) {
+            b.classList.toggle('active', b.dataset.reactionTab === tabKey);
+        });
+        document.querySelectorAll('.reaction-tab-panel').forEach(function(p) {
+            p.style.display = p.id === 'reaction-panel-' + tabKey ? '' : 'none';
+        });
+        var $list = $('#reaction-list-' + tabKey);
+        if ($list.length && !$list.hasClass('ajax-paginate-init') && typeof ajax_paginate === 'function') {
+            ajax_paginate($list);
+        }
+    };
+})(jQuery);
+</script>
+
+{% endblock %}

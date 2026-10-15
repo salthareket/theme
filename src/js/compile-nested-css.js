@@ -1,6 +1,7 @@
 const fs = require('fs');
 const postcss = require('postcss');
-const nested = require('postcss-nested');
+const nestedModule = require('postcss-nested');
+const nested = nestedModule.default || nestedModule;
 
 // Args: input.css output.css
 const input = process.argv[2];

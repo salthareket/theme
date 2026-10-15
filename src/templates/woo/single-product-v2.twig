@@ -1,0 +1,155 @@
+{# <?php #}
+{% extends "base.twig" %}
+
+{% set page_settings_default = {
+                full : true,
+                classes : {
+                    body : "",
+                    main : "pb-0",
+                    container : "",
+                    gap : "",
+                },
+                add_offcanvas : 0,
+                offcanvas : {
+                    individual : false,
+                    size : "md",
+                    width : 3,
+                    position : "start",
+                    template : "",
+                    title : "",
+                },
+                alert : {
+                    type : "danger",
+                    title : "",
+                    message : "",
+                    position : "bottom",
+                    fixed : false,
+                    class : "",
+                    html : ""
+                },
+                paging : {
+                    posts_per_page : 10,
+                    page : 1
+                }
+            }
+%}
+{% if page_settings %}
+   {% set page_settings = page_settings_default|array_merge_recursive_items(page_settings) %}
+{% else %}
+    {% set page_settings = page_settings_default %}
+{% endif %}
+
+{% block shop_header %}
+    {% include "woo/header.twig" %}
+{% endblock %}
+
+{% set prev = post.prev() %}
+{% set next = post.next() %}
+
+{% set product_type = post.get_product_type %}
+
+{% if product_type == "simple" %}
+    {% set book_author = post.get_author() %}
+    {% set is_in_grouped = post.is_in_grouped() %}
+    {% set grouped_posts = [] %}
+    {% if is_in_grouped %}
+        {% for grouped in is_in_grouped %}
+            {% set grouped = get_post(grouped) %}
+            {% set grouped_posts = grouped_posts|merge([grouped]) %}
+        {% endfor %}
+    {% endif %}
+{% endif %}
+
+{% if product_type == "grouped" %}
+    {% set books = post.meta("_children") %}
+    {% set grouped_books = [] %}
+    {% for book in books %}
+        {% set book = get_post(book) %}
+        {% set grouped_books = grouped_books|merge([book]) %}
+    {% endfor %}
+{% endif %}
+
+{% block content %}
+
+    <div itemscope itemtype="http://schema.org/Product" class="product single-product-details {{ post.class }}">
+        <div class="row gx-lg-5">
+            <div class="col-lg-5">
+                <div class="sticky-top">
+                    {{ post.product_gallery() }}
+                </div>
+            </div>
+            <div class="col-lg-7">
+
+                {% do action('woocommerce_before_single_product') %}
+
+                 <h1 class="card-title text-lg-start text-center mb-{% if product_type == "simple" %}2{% else %}0{% endif %} product_title entry-title">{{post.title}}</h1>
+
+                {# ── Rating özeti — Reviews aktifse title altında göster ── #}
+                {% do action('sh_product_rating_summary', post.id) %}
+
+                {# ── Ürün istatistikleri — görüntülenme / sepet / satış / favori ── #}
+                {% do action('sh_product_stats', post.id) %}
+
+                <meta itemprop="url" content="{{ post.link }}" />
+
+                <a href="{{author.link}}">{{ author.title }}</a>
+
+                <div class="woocommerce-product-details__short-description">
+                    {{ post.content }}
+                </div>
+
+                {#% do action('woocommerce_before_single_product_summary') %#}
+
+                <div class="summary entry-summary">
+                    {% do action('woocommerce_single_product_summary') %}
+                </div>
+
+                {#% do action('woocommerce_after_single_product_summary') %#}
+
+                {# ── Product Tabs ── #}
+                {# Settings: General Settings → WooCommerce → Product Tabs #}
+                {% include 'woo/partials/product-tabs.twig' %}
+
+                {% do action('woocommerce_after_single_product') %}
+
+            </div>
+        </div>
+    </div>
+
+    {# ── Sticky Add to Cart — varsayılan konum (body kapanmadan önce) ── #}
+    {# Manuel yerleştirmek istersen buradan kaldırıp istediğin yere taşı #}
+    {% include 'woo/partials/sticky-atc.twig' %}
+
+    {# ════════════════════════════════════════════════════════════════════════ #}
+    {# ── Related Products ── #}
+    {% include 'woo/partials/product-list.twig' with {'list_type':'related'} %}
+
+    {# ── Upsell Products ── #}
+    {% include 'woo/partials/product-list.twig' with {'list_type':'upsell'} %}
+
+    {# ── Cross-sell Products ── #}
+    {% include 'woo/partials/product-list.twig' with {'list_type':'crosssell'} %}
+
+    {# ── Recently Viewed — WC cookie'den PHP ile doldurulur ── #}
+    {% include 'woo/partials/product-list.twig' with {'list_type':'recently_viewed'} %}
+
+    {# ════ KOPYALA/YAPISTIR ═════════════════════════════════════════════════ #}
+    {# {% include 'woo/partials/product-list.twig' with {                      #}
+    {#     'list_type' : 'related',   ← related/upsell/crosssell               #}
+    {#     'posts'     : related_products,                                      #}
+    {#     'title'     : 'Özel Başlık'  ← opsiyonel, boş bırakılabilir         #}
+    {# } %}                                                                     #}
+    {# ════════════════════════════════════════════════════════════════════════ #}
+
+
+
+{% endblock  %}
+
+{% block appendix %}
+    
+    <script>
+    $(document).ready(function() {
+        text2clipboard();
+    });
+    </script>
+{% endblock %}

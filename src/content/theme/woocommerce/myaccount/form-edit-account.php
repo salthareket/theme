@@ -85,7 +85,7 @@ do_action( 'woocommerce_before_edit_account_form' );
 								<div class="form-group">
 									<label class="form-label form-label-md mb-2" for="password_current"><?php esc_html_e( 'Current password', 'woocommerce' ); ?></label>
 									<input type="password" class="form-control" name="password_current" id="password_current" value="" autocomplete="new-password" />
-									<script> window.load() = function(){document.getElementById("password_current").value = "";}</script>
+									<div class="form-text text-muted small"><?php esc_html_e( 'Leave blank if you signed up via social login.', 'woocommerce' ); ?></div>
 								</div>
 						    </div>
 							<div class="col-sm-6">
@@ -97,7 +97,9 @@ do_action( 'woocommerce_before_edit_account_form' );
 							<div class="col-sm-6">
 								<div class="form-group">
 									<label class="form-label form-label-md mb-2" for="password_2"><?php esc_html_e( 'Confirm new password', 'woocommerce' ); ?></label>
-									<input type="password" class="form-control" name="password_2" id="password_2" value="" autocomplete="off" data-rule-equalto="input[name='password_1']" data-msg="Your passwords should match!" />
+									<input type="password" class="form-control" name="password_2" id="password_2" value="" autocomplete="off"
+									       data-rule-equalto="#password_1"
+									       data-msg="<?php esc_attr_e( 'Passwords do not match.', 'woocommerce' ); ?>" />
 								</div>
 							</div>
 						</div>

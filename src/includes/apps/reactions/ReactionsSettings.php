@@ -107,6 +107,7 @@ class ReactionsSettings
                 'mode'         => 'toggle',
                 'limit'        => 0,
                 'notify_event' => '',
+                'private'      => true,
             ],
             'bookmark' => [
                 'label'        => 'Save',
@@ -117,13 +118,14 @@ class ReactionsSettings
                 'mode'         => 'toggle',
                 'limit'        => 0,
                 'notify_event' => '',
+                'private'      => true,
             ],
         ];
     }
 
     /**
-     * Default object type → reaction mapping.
-     * Her object type için hangi reaction'ların aktif olduğu ve nasıl görüneceği.
+     * Default object type → reaction + review mapping.
+     * Her object type için hangi reaction'ların ve review config'inin aktif olduğu.
      * Admin'den override edilebilir, post_type bazlı da tanımlanabilir.
      */
     public static function defaultObjectTypes(): array
@@ -137,6 +139,11 @@ class ReactionsSettings
                     ['type' => 'follow',   'style' => 'pill',       'position' => 'inline'],
                     ['type' => 'bookmark', 'style' => 'icon-only',  'position' => 'inline'],
                 ],
+                'review' => [
+                    'enabled'  => false,
+                    'modes'    => ['rate', 'comment'],
+                    'criteria' => [],
+                ],
             ],
             // ── User ──
             'user' => [
@@ -144,12 +151,18 @@ class ReactionsSettings
                     ['type' => 'follow', 'style' => 'pill',       'position' => 'inline'],
                     ['type' => 'like',   'style' => 'icon-count', 'position' => 'inline'],
                 ],
+                'review' => [
+                    'enabled'  => true,
+                    'modes'    => ['rate', 'comment'],
+                    'criteria' => [],
+                ],
             ],
             // ── Comment / Review ──
             'comment' => [
                 'reactions' => [
                     ['type' => 'like', 'style' => 'icon-count', 'position' => 'inline'],
                 ],
+                'review' => [ 'enabled' => false, 'modes' => [], 'criteria' => [] ],
             ],
             // ── Term (kategori, tag, custom taxonomy) ──
             'term' => [
@@ -157,6 +170,7 @@ class ReactionsSettings
                     ['type' => 'follow',   'style' => 'pill',      'position' => 'inline'],
                     ['type' => 'favorite', 'style' => 'icon-only', 'position' => 'inline'],
                 ],
+                'review' => [ 'enabled' => false, 'modes' => [], 'criteria' => [] ],
             ],
         ];
     }
@@ -172,6 +186,31 @@ class ReactionsSettings
         $saved   = get_option( self::OPTION_KEY . '_types', [] );
         $merged  = array_merge( self::defaultTypes(), is_array( $saved ) ? $saved : [], $runtime );
         return $merged;
+    }
+
+    /**
+     * Private reaction type'larını döndür — My Account menüsünde gösterilecek tipler.
+     * private:true olan ve enabled tipler.
+     */
+    public static function getPrivateTypes(): array
+    {
+        return array_filter( self::getTypes(), fn( $t ) => ! empty( $t['private'] ) && ( $t['enabled'] ?? true ) );
+    }
+
+    /**
+     * Sortable reaction type'larını döndür — WC shop sort dropdown'ında gösterilecek tipler.
+     * sortable:true olan ve enabled tipler.
+     *
+     * @return array<string, array>  key => type config
+     *
+     * @example
+     *   foreach ( ReactionsSettings::getSortableTypes() as $key => $def ) {
+     *       // $key = 'favorite', $def['label'] = 'Favorite' vb.
+     *   }
+     */
+    public static function getSortableTypes(): array
+    {
+        return array_filter( self::getTypes(), fn( $t ) => ! empty( $t['sortable'] ) && ( $t['enabled'] ?? true ) );
     }
 
     /**

@@ -84,88 +84,93 @@
             const navBorderDisabled = `${data.nav_border_width_disabled || '0px'} ${data.nav_border_style_disabled || 'none'} ${data.nav_border_color_disabled || 'transparent'}`;
             
             const navBorderRadius = data.nav_border_radius || '4px';
-            const navPrevIcon = data.nav_prev_icon || '\\f053';
-            const navNextIcon = data.nav_next_icon || '\\f054';
             
-            // Apply styles
-            const css = `
-                <style id="ts-pagination-preview-style">
-                    #ts-pagination-demo .pagination {
-                        gap: ${gap};
-                    }
-                    
-                    /* Page Items */
-                    #ts-pagination-demo .page-item:not(.page-item-prev):not(.page-item-next) .page-link {
-                        font-family: ${itemFontFamily};
-                        font-size: ${itemFontSize};
-                        font-weight: ${itemFontWeight};
-                        color: ${itemColor};
-                        background: ${itemBg};
-                        border: ${itemBorder};
-                        border-radius: ${itemBorderRadius};
-                        padding: ${itemPadding};
-                    }
-                    
-                    #ts-pagination-demo .page-item:not(.page-item-prev):not(.page-item-next):hover .page-link {
-                        font-weight: ${itemFontWeightHover};
-                        color: ${itemColorHover};
-                        background: ${itemBgHover};
-                        border: ${itemBorderHover};
-                    }
-                    
-                    #ts-pagination-demo .page-item.active .page-link {
-                        font-weight: ${itemFontWeightActive} !important;
-                        color: ${itemColorActive} !important;
-                        background: ${itemBgActive} !important;
-                        border: ${itemBorderActive} !important;
-                    }
-                    
-                    /* Nav Items (Prev/Next) */
-                    #ts-pagination-demo .page-item-prev .page-link,
-                    #ts-pagination-demo .page-item-next .page-link {
-                        font-family: ${navFontFamily};
-                        font-size: ${navFontSize};
-                        font-weight: ${navFontWeight};
-                        color: ${navColor};
-                        background: ${navBg};
-                        border: ${navBorder};
-                        border-radius: ${navBorderRadius};
-                        padding: ${itemPadding};
-                    }
-                    
-                    #ts-pagination-demo .page-item-prev:hover .page-link,
-                    #ts-pagination-demo .page-item-next:hover .page-link {
-                        color: ${navColorHover};
-                        background: ${navBgHover};
-                        border: ${navBorderHover};
-                    }
-                    
-                    #ts-pagination-demo .page-item.disabled .page-link {
-                        color: ${navColorDisabled};
-                    }
-                    
-                    /* Icons */
-                    #ts-pagination-demo .pagination-icon-prev::before {
-                        content: "${navPrevIcon}";
-                        font-family: "Font Awesome 6 Free";
-                        font-weight: 900;
-                        margin-right: 6px;
-                    }
-                    
-                    #ts-pagination-demo .pagination-icon-next::before {
-                        content: "${navNextIcon}";
-                        font-family: "Font Awesome 6 Free";
-                        font-weight: 900;
-                        margin-left: 6px;
-                    }
-                </style>
-            `;
-            
-            // Remove old style
-            $('#ts-pagination-preview-style').remove();
-            
-            // Add new style
-            $('head').append(css);
+            // Icon preview — AJAX SVG fetch (breadcrumb ile aynı yöntem)
+            const navPrevIconRaw = data.prev_icon || 'regular:angle-left';
+            const navNextIconRaw = data.next_icon || 'regular:angle-right';
+
+            const self = this;
+            const navColor_ref = navColor;
+
+            // Her iki icon için SVG fetch yap, sonra preview'ı uygula
+            const applyPreview = (prevSvgUrl, nextSvgUrl) => {
+                const iconCss = (svgUrl, selector, margin) => svgUrl ? `
+                    ${selector} {
+                        display: inline-block;
+                        width: 0.85em;
+                        height: 0.85em;
+                        flex-shrink: 0;
+                        ${margin}
+                        background-color: currentColor;
+                        -webkit-mask-image: ${svgUrl};
+                        mask-image: ${svgUrl};
+                        -webkit-mask-repeat: no-repeat;
+                        mask-repeat: no-repeat;
+                        -webkit-mask-position: center;
+                        mask-position: center;
+                        -webkit-mask-size: contain;
+                        mask-size: contain;
+                        vertical-align: middle;
+                    }` : '';
+
+                const css = `
+                    <style id="ts-pagination-preview-style">
+                        #ts-pagination-demo .pagination { gap: ${gap}; }
+                        #ts-pagination-demo .page-item:not(.page-item-prev):not(.page-item-next) .page-link {
+                            font-family: ${itemFontFamily}; font-size: ${itemFontSize}; font-weight: ${itemFontWeight};
+                            color: ${itemColor}; background: ${itemBg}; border: ${itemBorder};
+                            border-radius: ${itemBorderRadius}; padding: ${itemPadding};
+                        }
+                        #ts-pagination-demo .page-item:not(.page-item-prev):not(.page-item-next):hover .page-link {
+                            font-weight: ${itemFontWeightHover}; color: ${itemColorHover};
+                            background: ${itemBgHover}; border: ${itemBorderHover};
+                        }
+                        #ts-pagination-demo .page-item.active .page-link {
+                            font-weight: ${itemFontWeightActive} !important; color: ${itemColorActive} !important;
+                            background: ${itemBgActive} !important; border: ${itemBorderActive} !important;
+                        }
+                        #ts-pagination-demo .page-item-prev .page-link,
+                        #ts-pagination-demo .page-item-next .page-link {
+                            font-family: ${navFontFamily}; font-size: ${navFontSize}; font-weight: ${navFontWeight};
+                            color: ${navColor}; background: ${navBg}; border: ${navBorder};
+                            border-radius: ${navBorderRadius}; padding: ${itemPadding};
+                        }
+                        #ts-pagination-demo .page-item-prev:hover .page-link,
+                        #ts-pagination-demo .page-item-next:hover .page-link {
+                            color: ${navColorHover}; background: ${navBgHover}; border: ${navBorderHover};
+                        }
+                        #ts-pagination-demo .page-item.disabled .page-link { color: ${navColorDisabled}; }
+                        ${iconCss(prevSvgUrl, '#ts-pagination-demo .pagination-icon-prev', 'margin-right: 6px;')}
+                        ${iconCss(nextSvgUrl, '#ts-pagination-demo .pagination-icon-next', 'margin-left: 6px;')}
+                    </style>
+                `;
+                $('#ts-pagination-preview-style').remove();
+                $('head').append(css);
+            };
+
+            // Her iki ikon için AJAX SVG çek
+            const fetchSvg = (raw, cb) => {
+                if (!raw || raw.indexOf(':') === -1) { cb(''); return; }
+                const [style, name] = raw.split(':');
+                const cfg = window.shIconPickerConfig || {};
+                $.post(cfg.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php', {
+                    action: 'sh_fa_icon_svg', style, name, nonce: cfg.nonce || ''
+                }, function(res) {
+                    if (res && res.success && res.data) {
+                        let svg = res.data;
+                        if (svg.indexOf('xmlns=') === -1) {
+                            svg = svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+                        }
+                        cb('url("data:image/svg+xml,' + encodeURIComponent(svg) + '")');
+                    } else { cb(''); }
+                }).fail(() => cb(''));
+            };
+
+            // Paralel fetch — ikisi de hazır olunca preview'ı uygula
+            let prevSvgUrl = '', nextSvgUrl = '', fetched = 0;
+            const tryApply = () => { if (++fetched === 2) applyPreview(prevSvgUrl, nextSvgUrl); };
+            fetchSvg(navPrevIconRaw, url => { prevSvgUrl = url; tryApply(); });
+            fetchSvg(navNextIconRaw, url => { nextSvgUrl = url; tryApply(); });
         },
         
         /**

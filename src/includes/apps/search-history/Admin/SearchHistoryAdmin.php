@@ -40,18 +40,18 @@ trait SearchHistoryAdmin {
             __( '🔍 Search Ranks', 'salthareket' ),
             __( '🔍 Search Ranks', 'salthareket' ),
             'manage_options',
-            'search-history',
+            'sh-search-history',
             [ $this, 'render_admin_page' ]
         );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_action( 'admin_head', function() {
-            if ( ( $_GET['page'] ?? '' ) !== 'search-history' ) return;
+            if ( ( $_GET['page'] ?? '' ) !== 'sh-search-history' ) return;
             echo '<style>body .notice:not(.sh-inline),body .updated:not(.sh-inline),body .error:not(.sh-inline){display:none!important;}</style>';
         });
     }
 
     public function enqueue_admin_assets( string $hook = '' ): void {
-        if ( ( $_GET['page'] ?? '' ) !== 'search-history' ) return;
+        if ( ( $_GET['page'] ?? '' ) !== 'sh-search-history' ) return;
         // Chart.js
         add_action( 'admin_head', function() {
             echo '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>' . "\n";
@@ -110,13 +110,16 @@ trait SearchHistoryAdmin {
         ?>
         <div class="wrap sh-wrap" id="sh-admin-page">
         <style>
-        body.theme-settings_page_search-history .notice,
-        body.theme-settings_page_search-history .updated,
-        body.theme-settings_page_search-history .error{display:none!important;}
+        body.theme-settings_page_sh-search-history .notice,
+        body.theme-settings_page_sh-search-history .updated,
+        body.theme-settings_page_sh-search-history .error{display:none!important;}
         </style>
 
         <div class="sh-toolbar">
-            <h1>&#128269; Search Ranks</h1>
+            <?php $sh_enabled = (bool) \SaltHareket\SearchHistory\SearchHistorySettings::getSetting('enable_search_history'); ?>
+            <h1 style="display:inline-flex;align-items:center;gap:8px;">&#128269; Search Ranks
+                <span class="sh-badge <?php echo $sh_enabled ? 'sh-badge-green' : 'sh-badge-gray'; ?>" style="font-size:11px"><?php echo $sh_enabled ? 'Enabled' : 'Disabled'; ?></span>
+            </h1>
             <span class="sh-badge sh-badge-blue">Toplam: <strong><?php echo esc_html(number_format_i18n($stats['total_searches'])); ?></strong></span>
             <?php if ($stats['no_results_count'] > 0): ?><span class="sh-badge sh-badge-red">Sonucsuz: <strong><?php echo esc_html(number_format_i18n($stats['no_results_count'])); ?></strong></span><?php endif; ?>
             <?php if ($stats['top_type']): ?><span class="sh-badge sh-badge-orange">Top: <strong><?php echo esc_html($stats['top_type']); ?></strong></span><?php endif; ?>
@@ -164,6 +167,9 @@ trait SearchHistoryAdmin {
                     if (res.success) {
                         label.textContent = enabled ? 'Enabled' : 'Disabled';
                         label.style.color = enabled ? '#00a32a' : '#9ca3af';
+                        // header badge sync
+                        var hb = document.querySelector('.sh-toolbar h1 .sh-badge');
+                        if (hb) { hb.textContent = enabled ? 'Enabled' : 'Disabled'; hb.className = 'sh-badge ' + (enabled ? 'sh-badge-green' : 'sh-badge-gray'); }
                         if (typeof window.shShowToast === 'function') window.shShowToast(enabled ? 'Search History enabled' : 'Search History disabled', 'success');
                     } else {
                         toggle.checked = !enabled;

@@ -45,7 +45,14 @@
     $(document).on('click', '.sh-type-edit-btn', function (e) {
         e.stopPropagation();
         var $card = $(this).closest('.sh-rule-card');
-        $card.find('.sh-rule-form').slideDown(150);
+        $card.find('.sh-rule-form').slideDown(150, function () {
+            // Form açıldıktan sonra icon picker'ları init et (henüz init edilmemişse)
+            $card.find('[data-sh-icon-picker]').each(function () {
+                if (window.shIconPicker) {
+                    window.shIconPicker.init(this);
+                }
+            });
+        });
         initColorPicker($card);
     });
 
@@ -93,60 +100,83 @@
         $card.find('.sh-code-php-min').text(phpCode);
     });
 
-    // ── Types: icon live preview (FA class) ──────────────────────────────────
+    // ── Types: icon field v2 — tab switch ────────────────────────────────────
 
-    $(document).on('input', '.sh-type-icon-off', function () {
-        var val   = $(this).val();
-        var $prev = $(this).closest('.sh-icon-field').find('.sh-icon-preview');
-        if (val && !isNumeric(val)) {
-            $prev.html('<i class="' + val + '" style="font-size:18px;color:#9ca3af;"></i>');
+    $(document).on('click', '.sh-icon-tab-btn', function () {
+        var $btn    = $(this);
+        var $field  = $btn.closest('.sh-icon-field-v2');
+        var mode    = $btn.data('mode');
+
+        // Tab buton stilleri
+        $field.find('.sh-icon-tab-btn').each(function () {
+            var active = $(this).data('mode') === mode;
+            $(this).css({
+                background: active ? '#2271b1' : '#f9fafb',
+                color:      active ? '#fff'    : '#374151'
+            }).toggleClass('active', active);
+        });
+
+        // Panel göster/gizle — değerlere DOKUNMA, sadece görünürlük
+        $field.find('.sh-icon-panel-icon').toggle(mode === 'icon');
+        $field.find('.sh-icon-panel-img').toggle(mode === 'img');
+
+        // Aktif panelin mevcut değerini hidden input'a yaz
+        if (mode === 'icon') {
+            var iconVal = $field.find('.sh-icon-picker-input').val();
+            $field.find('.sh-icon-v2-value').val(iconVal);
+        } else {
+            var imgId = $field.find('.sh-img-id-input').val();
+            $field.find('.sh-icon-v2-value').val(imgId ? 'img:' + imgId : '');
         }
     });
 
-    $(document).on('input', '.sh-type-icon-on', function () {
-        var val   = $(this).val();
-        var $card = $(this).closest('.sh-rule-card');
-        var color = $card.find('.sh-type-color').val() || '#2271b1';
-        var $prev = $(this).closest('.sh-icon-field').find('.sh-icon-preview');
-        if (val && !isNumeric(val)) {
-            $prev.html('<i class="' + val + '" style="font-size:18px;color:' + color + ';"></i>');
-        }
+    // ── Types: icon picker değişince hidden input'u güncelle ─────────────────
+
+    $(document).on('change', '.sh-icon-picker-input', function () {
+        var $picker = $(this);
+        var val     = $picker.val(); // 'solid:heart'
+        var $field  = $picker.closest('.sh-icon-field-v2');
+        $field.find('.sh-icon-v2-value').val(val);
     });
 
-    function isNumeric(val) { return /^\d+$/.test(String(val).trim()); }
+    // ── Types: media pick v2 ──────────────────────────────────────────────────
 
-    // ── Types: WP Media Picker for icons ─────────────────────────────────────
-
-    $(document).on('click', '.sh-media-pick-btn', function (e) {
+    $(document).on('click', '.sh-icon-panel-img .sh-media-pick-btn', function (e) {
         e.preventDefault();
         var $btn    = $(this);
-        var $field  = $btn.closest('.sh-icon-field');
-        var $input  = $field.find('.sh-type-icon-off, .sh-type-icon-on').first();
-        var $preview = $field.find('.sh-icon-preview');
+        var $panel  = $btn.closest('.sh-icon-panel-img');
+        var $field  = $btn.closest('.sh-icon-field-v2');
 
         var frame = wp.media({
-            title:    'Select Icon',
-            button:   { text: 'Use this icon' },
+            title:    'Select Icon Image',
+            button:   { text: 'Use this image' },
             multiple: false,
             library:  { type: ['image', 'image/svg+xml'] }
         });
 
         frame.on('select', function () {
             var att = frame.state().get('selection').first().toJSON();
-            $input.val(att.id);
-            $preview.html('<img src="' + att.url + '" style="width:22px;height:22px;object-fit:contain;border-radius:3px;" alt="">');
+            $panel.find('.sh-img-id-input').val(att.id);
+            $panel.find('.sh-img-preview').html('<img src="' + att.url + '" style="width:28px;height:28px;object-fit:contain;border-radius:3px;" alt="">');
+            $panel.find('.sh-media-pick-btn').text('📷 Değiştir');
+            $panel.find('.sh-icon-clear-btn').show();
+            // Hidden value güncelle
+            $field.find('.sh-icon-v2-value').val('img:' + att.id);
         });
 
         frame.open();
     });
 
-    // Clear icon — attachment ID'yi temizle
-    $(document).on('click', '.sh-icon-clear-btn', function () {
-        var $field  = $(this).closest('.sh-icon-field');
-        var $input  = $field.find('.sh-type-icon-off, .sh-type-icon-on').first();
-        var $preview = $field.find('.sh-icon-preview');
-        $input.val('');
-        $preview.html('<i class="far fa-circle" style="font-size:18px;color:#9ca3af;"></i>');
+    // ── Types: media clear v2 ─────────────────────────────────────────────────
+
+    $(document).on('click', '.sh-icon-panel-img .sh-icon-clear-btn', function () {
+        var $panel = $(this).closest('.sh-icon-panel-img');
+        var $field = $(this).closest('.sh-icon-field-v2');
+        $panel.find('.sh-img-id-input').val('');
+        $panel.find('.sh-img-preview').empty();
+        $panel.find('.sh-media-pick-btn').text('📷 Seç');
+        $(this).hide();
+        $field.find('.sh-icon-v2-value').val('');
     });
 
     // ── Types: save ───────────────────────────────────────────────────────────
@@ -164,6 +194,20 @@
             $card.attr('data-key', key);
         }
 
+        // Save öncesi her icon field v2'nin aktif tab değerini senkronize et
+        $card.find('.sh-icon-field-v2').each(function () {
+            var $field   = $(this);
+            var $active  = $field.find('.sh-icon-tab-btn.active');
+            var mode     = $active.data('mode') || 'icon';
+            if (mode === 'icon') {
+                var iconVal = $field.find('.sh-icon-picker-input').val();
+                $field.find('.sh-icon-v2-value').val(iconVal);
+            } else {
+                var imgId = $field.find('.sh-img-id-input').val();
+                $field.find('.sh-icon-v2-value').val(imgId ? 'img:' + imgId : '');
+            }
+        });
+
         $btn.text('Saving...').prop('disabled', true);
 
         $.post(AJAX, {
@@ -178,10 +222,20 @@
             notify_event: $card.find('.sh-type-notify').val(),
             mode:         $card.find('.sh-type-mode').val(),
             limit:        $card.find('.sh-type-limit').val(),
-            enabled:      $card.find('.sh-type-enabled-toggle').is(':checked') ? 1 : 0
+            enabled:      $card.find('.sh-type-enabled-toggle').is(':checked') ? 1 : 0,
+            private:      $card.find('.sh-type-private').is(':checked') ? 1 : 0,
+            sortable:     $card.find('.sh-type-sortable').is(':checked') ? 1 : 0
         }, function (res) {
             if (res.success) {
-                $card.replaceWith(res.data.html);
+                var $newCard = $(res.data.html);
+                $card.replaceWith($newCard);
+                // SH Icon Picker re-init — replaceWith sonrası yeni DOM'da picker'ları başlat
+                $newCard.find('[data-sh-icon-picker]').each(function () {
+                    if (window.shIconPicker) {
+                        window.shIconPicker.init(this);
+                    }
+                });
+                initColorPicker($newCard);
                 toast('Saved!');
             } else {
                 toast(res.data || 'Error', true);
@@ -316,6 +370,8 @@
     });
 
     // ── Placements: style dropdown -> live preview + twig code ────────────────
+
+    function isNumeric(val) { return /^\d+$/.test(String(val).trim()); }
 
     function buildPreview(style, iconOff, iconOn, label, labelOn, color, iconOffUrl, iconOnUrl) {
         // iconOff/iconOn: FA class veya attachment ID

@@ -1,0 +1,5 @@
+{# partials/source/messages/footer.twig #}
+<a href="{{ function('wc_get_account_endpoint_url', 'messages') }}"
+   class="btn btn-primary btn-sm w-100">
+    {{ items ? translate('View All Messages') : translate('Go to Messages') }}
+</a>

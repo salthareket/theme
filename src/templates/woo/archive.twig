@@ -96,7 +96,7 @@
         {% endif %}
 
         {% include "partials/pagination/pagination-advanced.twig" with { container : ".products", post_type : "product", direction : "prev"} %}
-        
+
         <div class="card-body">
             {% do action('woocommerce_before_shop_loop') %}
 

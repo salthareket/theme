@@ -22,7 +22,7 @@ trait HandlesVotes
      */
     public static function vote( int $comment_id, int $user_id, string $type = 'helpful' ): array
     {
-        if ( $user_id < 1 ) {
+        if ( $user_id === 0 ) {
             return [ 'success' => false, 'message' => trans( 'Giriş yapmanız gerekiyor.' ) ];
         }
 

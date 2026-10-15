@@ -21,13 +21,33 @@
             display: flex;
             align-items: center;
             &:before {
-                content: var(--breadcrumb-sep, '\f105') !important;
-                font-family: var(--icon-font);
-                color: var(--breadcrumb-sep-color);
-                font-size: var(--breadcrumb-sep-size, 12px);
-                font-weight: 600;
-                opacity: .6;
+                content: '';
+                display: inline-block;
+                width: var(--breadcrumb-sep-size, 12px);
+                height: var(--breadcrumb-sep-size, 12px);
+                flex-shrink: 0;
                 margin: 0 5px;
+                background-color: var(--breadcrumb-sep-color, currentColor);
+                opacity: .6;
+                // SVG mask — renk CSS variable ile kontrol edilir
+                -webkit-mask-image: var(--breadcrumb-sep-svg);
+                mask-image: var(--breadcrumb-sep-svg);
+                -webkit-mask-repeat: no-repeat;
+                mask-repeat: no-repeat;
+                -webkit-mask-position: center;
+                mask-position: center;
+                -webkit-mask-size: contain;
+                mask-size: contain;
+                // Fallback: SVG yoksa eski content yöntemi
+                @supports not (mask-image: none) {
+                    content: var(--breadcrumb-sep, '>') !important;
+                    background-color: transparent;
+                    color: var(--breadcrumb-sep-color);
+                    font-size: var(--breadcrumb-sep-size, 12px);
+                    font-weight: 600;
+                    width: auto;
+                    height: auto;
+                }
             }
         }
 

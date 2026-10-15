@@ -1,0 +1,6 @@
+// acf/column block — innerblocks container full width + equal height support
+.block-column {
+    > .acf-innerblocks-container {
+        width: 100%;
+    }
+}

@@ -1,0 +1,48 @@
+{#
+  woo/partials/product-tab-content.twig
+  ─────────────────────────────────────────────────────────────────────────────
+  Tek bir tab'ın içeriğini render eder.
+  product-tabs.twig tarafından include edilir.
+
+  Parametreler:
+    tab  : array  — tab config objesi
+    post : object — Timber post
+  ─────────────────────────────────────────────────────────────────────────────
+#}
+
+{% set _type = tab.type ?? 'wc_description' %}
+
+{# ── WC Açıklama ──────────────────────────────────────────────────────────── #}
+{% if _type == 'wc_description' %}
+    <div class="woocommerce-product-details__short-description entry-content">
+        {{ post.content }}
+    </div>
+
+{# ── WC Ek Bilgiler ───────────────────────────────────────────────────────── #}
+{% elseif _type == 'wc_additional' %}
+    <div class="woocommerce-product-attributes">
+        {% do action('sh_wc_additional_information', post.id) %}
+    </div>
+
+{# ── Salt Reviews App ─────────────────────────────────────────────────────── #}
+{% elseif _type == 'sh_reviews' %}
+    <div class="sh-product-reviews">
+        {% do action('sh_product_reviews', post.id) %}
+    </div>
+
+{# ── Custom Product Field ─────────────────────────────────────────────────── #}
+{% elseif _type == 'custom_field' %}
+    {% set _field_id = tab.field_id ?? '' %}
+    {% if _field_id %}
+    <div class="sh-product-custom-field sh-product-custom-field--{{ _field_id }}">
+        {{ post.meta(_field_id)|raw }}
+    </div>
+    {% endif %}
+
+{# ── Serbest HTML ─────────────────────────────────────────────────────────── #}
+{% elseif _type == 'html' %}
+    <div class="sh-product-html-content">
+        {{ tab.html_content|raw }}
+    </div>
+
+{% endif %}

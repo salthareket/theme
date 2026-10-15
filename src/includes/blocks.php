@@ -8,17 +8,33 @@ if(is_admin()){
     function wp_block_category_logic( $categories, $post ) {
         if ( ! is_admin() ) return $categories;
 
-        $main_category = [
-            'slug'  => 'saltblocks',
-            'title' => 'Salt Blocks',
-            'icon'  => 'dashicons-admin-generic'
+        // Header template edit sayfasında headerblocks önce gelsin
+        $is_header_template = false;
+        if ( $post && get_post_type( $post ) === 'template' ) {
+            $terms = wp_get_post_terms( $post->ID, 'template-types', [ 'fields' => 'slugs' ] );
+            $term  = ( ! is_wp_error( $terms ) && ! empty( $terms ) ) ? $terms[0] : ( $_GET['template-types'] ?? '' );
+            $is_header_template = ( $term === 'header' );
+        }
+
+        $main_categories = [
+            [
+                'slug'  => 'saltblocks',
+                'title' => 'Salt Blocks',
+                'icon'  => 'dashicons-admin-generic'
+            ],
+            [
+                'slug'  => 'headerblocks',
+                'title' => 'Header Blocks',
+                'icon'  => 'dashicons-align-center'
+            ]
         ];
 
-        // Önce kendi kategorilerini birleştir
-        // $main_category'i [ ] içine alıyoruz ki tek bir eleman olarak eklensin
-        $my_custom_categories = array_merge( [ $main_category ], Data::get('block_categories') ?? [] );
+        // Header template'de headerblocks önce, saltblocks sonra
+        if ( $is_header_template ) {
+            $main_categories = array_reverse( $main_categories );
+        }
 
-        // Bunları mevcut kategorilerin en başına ekle
+        $my_custom_categories = array_merge( $main_categories, Data::get('block_categories') ?? [] );
         return array_merge( $my_custom_categories, $categories );
     }
     add_filter( 'block_categories_all', 'wp_block_category_logic', 10, 2 );
@@ -70,21 +86,62 @@ if(is_admin()){
 
     function wp_block_editor_width() {
         echo '<style>
-            /* Standart CSS formatına çekildi */
+            /* Editor max width */
             @media (min-width: 1200px) {
-                .wp-block, 
-                .wp-block .container-xxl, 
-                .wp-block .container { 
-                    max-width: 1140px !important; 
+                .wp-block,
+                .wp-block .container-xxl,
+                .wp-block .container {
+                    max-width: 1140px !important;
                 }
             }
             .wp-block[data-align="full"] { max-width: none !important; }
 
-            /* ── Column block editor genişlik fix ── */
-            /* column block içindeki is-preview ve acf-innerblocks-container 100% genişlik alsın */
+            /* Column block 100% genişlik */
             .wp-block[data-type="acf/column"]:not(.has-blocks) .is-preview,
             .wp-block[data-type="acf/column"]:not(.has-blocks) .acf-innerblocks-container {
                 width: 100% !important;
+            }
+
+            /* Column Widths: varsayilan gizli, sadece row_cols=false oldugunda gosterilir */
+            .acf-block-form-modal .acf-field-salt-single-col-widths {
+                display: none !important;
+            }
+            .acf-block-form-modal.salt-show-col-widths .acf-field-salt-single-col-widths {
+                display: block !important;
+            }
+            .wp-block[data-type="acf/columns"] .is-preview.block-columns {
+                display: block !important;
+                flex-direction: unset !important;
+                justify-content: unset !important;
+                align-items: unset !important;
+            }
+
+            /* acf/column wp-block margin sifirla - editor-styles-wrapper override */
+            .wp-block[data-type="acf/columns"] .acf-block-preview .wp-block,
+            .wp-block[data-type="acf/columns"] .acf-innerblocks-container .wp-block,
+            .wp-block-acf-column .wp-block,
+            .wp-block-acf-column > * {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            /* column row inner blocks margin sifirla */
+            .wp-block[data-type="acf/columns"] .acf-innerblocks-container.row > .wp-block {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            /* column innerblocks container full width */
+            .block-column .acf-innerblocks-container,
+            .wp-block-acf-column .acf-innerblocks-container {
+                width: 100% !important;
+            }
+
+            /* Admin preview: col-* class JS ile wrapper a kopyalanıyor.
+               Bootstrap media query adminde calismiyor.
+               col-md-6 gibi classlar, wrappera kopyalaninca genislik dogru olur. */
+            .block-salt-theme.is-preview.block-columns .acf-innerblocks-container.row > [data-type="acf/column"] {
+                min-width: 0;
             }
         </style>';
     }
@@ -136,30 +193,245 @@ if(is_admin()){
      * Devre dışı bırakmak için: define('SALT_ACF_EDITOR_CANCELABLE', false);
      */
     if ( ! defined( 'SALT_ACF_EDITOR_CANCELABLE' ) ) {
-        define( 'SALT_ACF_EDITOR_CANCELABLE', false );
+        define( 'SALT_ACF_EDITOR_CANCELABLE', true );
     }
 
-    //add_action( 'enqueue_block_editor_assets', 'salt_block_editor_scripts' );
+    add_action( 'enqueue_block_editor_assets', 'salt_block_editor_scripts' );
     function salt_block_editor_scripts() {
-        wp_add_inline_script( 'wp-blocks', '
-            (function() {
-                function updateColumnHasBlocks() {
-                    document.querySelectorAll(\'[data-type="acf/column"]\').forEach(function(el) {
-                        var container = el.querySelector(\'.acf-innerblocks-container\');
-                        if (!container) return;
-                        // block-list-appender hariç gerçek blockları say
-                        var realBlocks = container.querySelectorAll(\'.wp-block:not(.block-list-appender):not(.block-editor-default-block-appender)\');
-                        var hasBlocks = realBlocks.length > 0;
-                        el.classList.toggle(\'has-blocks\', hasBlocks);
-                    });
+
+        // Header template edit sayfasında headerblocks kategorisini en üste taşı
+        $is_header_template = false;
+        $post_id = absint( $_GET['post'] ?? 0 );
+        if ( $post_id && get_post_type( $post_id ) === 'template' ) {
+            $terms = wp_get_post_terms( $post_id, 'template-types', [ 'fields' => 'slugs' ] );
+            $term  = ( ! is_wp_error( $terms ) && ! empty( $terms ) ) ? $terms[0] : ( $_GET['template-types'] ?? '' );
+            $is_header_template = ( $term === 'header' );
+        } elseif ( isset( $_GET['template-types'] ) && $_GET['template-types'] === 'header' ) {
+            $is_header_template = true;
+        }
+
+        if ( $is_header_template ) {
+            wp_add_inline_script( 'wp-blocks', '
+(function() {
+    var unsub = wp.data.subscribe(function() {
+        var cats = wp.data.select("core/blocks").getCategories();
+        if (!cats || !cats.length) return;
+        var headerIdx = cats.findIndex(function(c) { return c.slug === "headerblocks"; });
+        if (headerIdx <= 0) { unsub(); return; }
+        var reordered = cats.slice();
+        var header = reordered.splice(headerIdx, 1)[0];
+        reordered.unshift(header);
+        wp.data.dispatch("core/blocks").setCategories(reordered);
+        unsub();
+    });
+})();
+            ' );
+        }
+        // iframe icinde de calisan editor CSS — column margin fix
+        wp_add_inline_style( 'wp-block-editor', '
+            .wp-block[data-type="acf/columns"] .acf-block-preview .wp-block,
+            .wp-block[data-type="acf/columns"] .acf-innerblocks-container .wp-block,
+            .wp-block-acf-column .wp-block,
+            .wp-block-acf-column > * {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            .wp-block[data-type="acf/columns"] .acf-innerblocks-container.row > .wp-block {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            /* Block preview icindeki linklerin navigate etmesini engelle.
+               JS blockEditorLinks() ile de engelleniyor ama CSS fallback olarak da koy. */
+            .is-preview a[href]:not([href="#"]):not([href^="javascript:"]):not([data-bs-toggle]):not([data-bs-target]) {
+                pointer-events: none !important;
+                cursor: default !important;
+            }
+        ' );        $js = <<<'SALTJS'
+(function() {
+    'use strict';
+
+    // ── has-blocks class ───────────────────────────────────────────────────
+    function updateColumnHasBlocks(doc) {
+        doc = doc || document;
+        doc.querySelectorAll('[data-type="acf/column"]').forEach(function(el) {
+            var container = el.querySelector('.acf-innerblocks-container');
+            if (!container) return;
+            var real = container.querySelectorAll('.wp-block:not(.block-list-appender):not(.block-editor-default-block-appender)');
+            el.classList.toggle('has-blocks', real.length > 0);
+        });
+    }
+
+    // ── Column ekleme ───────────────────────────────────────────────────────
+    function saltAddColumn(btn, wpRef) {
+        var select   = wpRef.data.select('core/block-editor');
+        var dispatch = wpRef.data.dispatch('core/block-editor');
+
+        // iframe'de veya parent'ta [data-type="acf/columns"] ara
+        var colsWrapper = btn.closest('[data-type="acf/columns"]');
+
+        // iframe'de bulunamazsa parent document'te ara
+        if (!colsWrapper) {
+            try {
+                var parentDoc = window.parent ? window.parent.document : null;
+                if (parentDoc) {
+                    // Secili block'u bul
+                    colsWrapper = parentDoc.querySelector('[data-type="acf/columns"].is-selected')
+                               || parentDoc.querySelector('[data-type="acf/columns"]:focus-within')
+                               || parentDoc.querySelector('[data-type="acf/columns"]');
                 }
-                var columnObserver = new MutationObserver(updateColumnHasBlocks);
-                document.addEventListener(\'DOMContentLoaded\', function() {
-                    columnObserver.observe(document.body, { childList: true, subtree: true });
-                    updateColumnHasBlocks();
+            } catch(err) {}
+        }
+
+        var clientId = colsWrapper ? colsWrapper.getAttribute('data-block') : null;
+
+        // wp.data store'dan bul
+        if (!clientId) {
+            (function find(blocks) {
+                for (var i = 0; i < blocks.length; i++) {
+                    if (blocks[i].name === 'acf/columns') { clientId = blocks[i].clientId; return; }
+                    if (blocks[i].innerBlocks && blocks[i].innerBlocks.length) find(blocks[i].innerBlocks);
+                }
+            })(select.getBlocks());
+        }
+
+        console.log('[salt-columns] clientId:', clientId);
+        if (!clientId) { console.warn('[salt-columns] clientId bulunamadi'); return; }
+
+        var newBlock   = wpRef.blocks.createBlock('acf/column', {});
+        var innerOrder = select.getBlockOrder(clientId);
+        dispatch.insertBlock(newBlock, innerOrder.length, clientId, false);
+    }
+
+    // ── Col wrapper class fix — block-column class'larini Gutenberg wrapper'a kopyala ──
+    function saltFixColumnWrappers(doc) {
+        doc = doc || document;
+        var rows = doc.querySelectorAll(
+            '.block-salt-theme.is-preview.block-columns .row'
+        );
+        rows.forEach(function(rowDiv) {
+            Array.from(rowDiv.children).filter(function(el) {
+                return el.dataset && el.dataset.type === 'acf/column';
+            }).forEach(function(wrapper) {
+                var colDiv = wrapper.querySelector('.block-salt-theme.is-preview.block-column');
+                if (!colDiv) return;
+                Array.from(colDiv.classList).filter(function(c) {
+                    return /^col(-[a-z]+)?(-\d+)?$/.test(c);
+                }).forEach(function(c) {
+                    if (!wrapper.classList.contains(c)) wrapper.classList.add(c);
                 });
-            })();
-        ' );
+            });
+        });
+    }
+
+    // ── Bir document'e click listener ekle ─────────────────────────────────
+    function bindClickHandler(doc, wpRef) {
+        doc.addEventListener('click', function(e) {
+            var btn = e.target.closest('.salt-add-column-btn');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            saltAddColumn(btn, wpRef);
+        }, true);
+    }
+
+    // ── Editor iframe içindeki linklerin navigate etmesini engelle ──────────
+    function blockEditorLinks(doc) {
+        if (!doc || doc._saltLinksBlocked) return;
+        doc._saltLinksBlocked = true;
+        doc.addEventListener('click', function(e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            var href = link.getAttribute('href');
+            // Sadece gerçek navigasyon linkleri — # ve javascript: hariç
+            if (!href || href === '#' || href.startsWith('javascript:')) return;
+            // Fragment (#id) linkleri serbest bırak — accordion/collapse için
+            if (href.startsWith('#')) return;
+            // data-bs-toggle olan bootstrap trigger'lara dokunma
+            if (link.hasAttribute('data-bs-toggle') || link.hasAttribute('data-bs-target')) return;
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
+    }
+
+    // ── Ana frame ──────────────────────────────────────────────────────────
+    function saltInitMainFrame() {
+        if (!window.wp || !window.wp.data || !window.wp.blocks) return;
+        var target = document.body || document.documentElement;
+        if (!target) { setTimeout(saltInitMainFrame, 50); return; }
+        bindClickHandler(document, window.wp);
+        blockEditorLinks(document);
+        try {
+            new MutationObserver(function() {
+                updateColumnHasBlocks(document);
+                saltFixColumnWrappers(document);
+            }).observe(target, { childList: true, subtree: true });
+        } catch(e) {}
+        updateColumnHasBlocks(document);
+        saltFixColumnWrappers(document);
+    }
+    document.addEventListener('DOMContentLoaded', saltInitMainFrame);
+    if (document.readyState !== 'loading') saltInitMainFrame();
+
+    // ── Editor iframe ───────────────────────────────────────────────────────
+    // Gutenberg iframe'i gecikmeyle olusturuluyor, MutationObserver ile bekle
+    function tryBindIframe() {
+        var iframe = document.querySelector('iframe[name="editor-canvas"]');
+        if (!iframe) iframe = document.querySelector('iframe.editor-canvas__iframe');
+        if (!iframe || !iframe.contentDocument) return;
+
+        var iDoc = iframe.contentDocument;
+        var iWin = iframe.contentWindow;
+
+        // wp objesi iframe'de yoksa parent'tan al
+        var wpRef = (iWin.wp && iWin.wp.data && iWin.wp.blocks) ? iWin.wp : window.wp;
+        if (!wpRef || !wpRef.data || !wpRef.blocks) return;
+
+        if (iDoc._saltBound) {
+            // Zaten bind edildi ama class'lari yenile
+            saltFixColumnWrappers(iDoc);
+            return;
+        }
+        iDoc._saltBound = true;
+
+        bindClickHandler(iDoc, wpRef);
+        blockEditorLinks(iDoc);
+
+        try {
+            new MutationObserver(function() {
+                updateColumnHasBlocks(iDoc);
+                saltFixColumnWrappers(iDoc);
+            }).observe(iDoc.body || iDoc.documentElement, { childList: true, subtree: true });
+        } catch(e) {}
+        updateColumnHasBlocks(iDoc);
+        saltFixColumnWrappers(iDoc);
+        setTimeout(function() { saltFixColumnWrappers(iDoc); }, 300);
+
+        console.log('[salt-columns] iframe bind edildi');
+    }
+
+    // iframe DOM'a eklenince baglaniyor
+    try {
+        new MutationObserver(function() {
+            tryBindIframe();
+        }).observe(document.body || document.documentElement, { childList: true, subtree: true });
+    } catch(e) {
+        document.addEventListener('DOMContentLoaded', function() {
+            new MutationObserver(function() { tryBindIframe(); })
+                .observe(document.body, { childList: true, subtree: true });
+        });
+    }
+
+    // Sayfa yuklendikten sonra da dene
+    document.addEventListener('DOMContentLoaded', function() { tryBindIframe(); });
+    setTimeout(tryBindIframe, 500);
+    setTimeout(tryBindIframe, 1500);
+    setTimeout(tryBindIframe, 3000);
+
+})();
+SALTJS;
+        wp_add_inline_script( 'wp-blocks', $js );
     }
 
     if ( SALT_ACF_EDITOR_CANCELABLE ) {
@@ -204,6 +476,50 @@ if(is_admin()){
 
         return $block_content;
     }, 10, 2 );
+
+    /**
+     * acf/column block - row_cols aktifse col_widths field'ini gizle
+     * acf/prepare_field filter her field render edilmeden once calisir
+     */
+    add_filter( 'acf/prepare_field/key=field_salt_single_col_widths', function( $field ) {
+        // Global fallback — columns render.php set ediyor
+        global $salt_columns_row_cols_active;
+        if ( ! empty( $salt_columns_row_cols_active ) ) {
+            return false;
+        }
+
+        // AJAX block fetch sirasinda $_POST'tan context oku
+        if ( defined('DOING_AJAX') && DOING_AJAX ) {
+            $query = isset( $_POST['query'] ) ? wp_unslash( $_POST['query'] ) : '';
+            if ( is_string( $query ) ) {
+                $decoded = json_decode( $query, true );
+                if ( is_array( $decoded ) ) {
+                    $query = $decoded;
+                }
+            }
+            if ( is_array( $query ) ) {
+                $context = $query['context'] ?? [];
+                if ( is_string( $context ) ) {
+                    $context = json_decode( $context, true ) ?: [];
+                }
+                $row_cols_raw = $context['acf/columns/row_cols'] ?? null;
+                if ( $row_cols_raw ) {
+                    if ( is_string( $row_cols_raw ) ) {
+                        $decoded2 = json_decode( $row_cols_raw, true );
+                        $row_cols_active = ! empty( $decoded2['row_cols'] );
+                    } elseif ( is_array( $row_cols_raw ) ) {
+                        $row_cols_active = ! empty( $row_cols_raw['row_cols'] );
+                    } else {
+                        $row_cols_active = (bool) $row_cols_raw;
+                    }
+                    if ( $row_cols_active ) return false;
+                }
+            }
+        }
+
+        return $field;
+    } );
+
     function salt_acf_expanded_editor_cancel_button() {
         ?>
         <style>
@@ -369,6 +685,32 @@ if(is_admin()){
                                 takeSnapshot(clientId);
                             }
                             addCancelButton($modal, clientId);
+
+                            // row_cols aktifse Column Widths field'ini gizle
+                            if (clientId && window.wp && wp.data) {
+                                var select = wp.data.select('core/block-editor');
+                                var blockName = select.getBlockName(clientId);
+                                console.log('[salt-col-widths] modal clientId:', clientId, 'blockName:', blockName);
+                                if (blockName === 'acf/column') {
+                                    var parentId = select.getBlockRootClientId(clientId);
+                                    console.log('[salt-col-widths] parentId:', parentId);
+                                    if (parentId) {
+                                        var parentAttrs = select.getBlockAttributes(parentId);
+                                        var rowColsActive = !!(parentAttrs && parentAttrs.data && (
+                                            parentAttrs.data.row_cols == '1' ||
+                                            parentAttrs.data.row_cols === true ||
+                                            parentAttrs.data.field_salt_col_row_cols_switch == '1'
+                                        ));
+                                        console.log('[salt-col-widths] rowColsActive:', rowColsActive);
+                                        if (rowColsActive) {
+                                            // row_cols aktif — col widths zaten CSS ile gizli
+                                        } else {
+                                            // row_cols pasif — col widths goster
+                                            $modal.addClass('salt-show-col-widths');
+                                        }
+                                    }
+                                }
+                            }
                         }, 150);
                     });
                 });
@@ -528,3 +870,114 @@ add_filter( 'acf/register_block_type_args', function( $args ) {
     return $args;
 }, 99 );
 */
+
+
+// ── Header Builder: Salt Block Settings Override + Nav Item Wrap ──────────────
+// header-builder icindeki salt block'lara:
+// 1. block_settings.container=no, hero=false, sticky_top=false, height=auto/100%
+// 2. header-tools icindeki salt block'lar nav-item wrapper alir
+//
+// Yontem: pre_render_block filter ile header-builder render baslayinca
+// render_block_data filter'i aktiflesir. Inner block'lar render edilirken
+// bu filter onlarin data'sini override eder.
+// header-tools block'u render edilirken global flag set edilir,
+// inner salt block'lari nav-item ile wrap edilir.
+// header-builder render bitince tum filter'lar kaldirilir.
+
+add_filter( 'pre_render_block', function ( $pre_render, array $block ) {
+
+    if ( ( $block['blockName'] ?? '' ) !== 'acf/header-builder' ) {
+        return $pre_render;
+    }
+
+    // Header-tools icine ne eklenirse eklensin block_settings override alinir.
+    // acf/ prefix'li olmayan core block'lar (core/paragraph vb.) override edilmez.
+    $is_acf_block = function ( string $name ): bool {
+        return strpos( $name, 'acf/' ) === 0;
+    };
+
+    // 1. Block settings override filter — acf/ block'lara uygulanir
+    $settings_filter = function ( array $parsed_block ) use ( $is_acf_block ): array {
+        if ( ! $is_acf_block( $parsed_block['blockName'] ?? '' ) ) {
+            return $parsed_block;
+        }
+        // header-builder kendi block'larini etkilemesin
+        $header_blocks = [
+            'acf/header-builder', 'acf/header-row', 'acf/header-column',
+            'acf/header-tools', 'acf/header-logo',
+            'acf/header-tool-cart', 'acf/header-tool-favorites',
+            'acf/header-tool-search', 'acf/header-tool-search-field',
+            'acf/header-tool-messages', 'acf/header-tool-notifications',
+            'acf/header-tool-user-menu', 'acf/header-tool-login',
+            'acf/header-tool-custom',
+        ];
+        if ( in_array( $parsed_block['blockName'], $header_blocks, true ) ) {
+            return $parsed_block;
+        }
+        if ( isset( $parsed_block['attrs']['data'] ) ) {
+            $parsed_block['attrs']['data']['block_settings_container']  = 'no';
+            $parsed_block['attrs']['data']['block_settings_hero']       = false;
+            $parsed_block['attrs']['data']['block_settings_sticky_top'] = false;
+            $h = $parsed_block['attrs']['data']['block_settings_height'] ?? '';
+            if ( ! in_array( $h, [ 'auto', '100%' ], true ) ) {
+                $parsed_block['attrs']['data']['block_settings_height'] = 'auto';
+            }
+        }
+        return $parsed_block;
+    };
+
+    // 2. nav-item wrap filter — header-tools icindeyken gelen her acf/ block sarilir.
+    // header-tool-* kendi wrapper'larini zaten uretir, sarmalanmaz.
+    $wrap_filter = function ( string $content, array $inner_block ) use ( $is_acf_block ): string {
+        if ( empty( $GLOBALS['_salt_in_header_tools'] ) ) {
+            return $content;
+        }
+        $name = $inner_block['blockName'] ?? '';
+        if ( ! $is_acf_block( $name ) ) {
+            return $content;
+        }
+        // header-tool-* block'lari zaten kendi wraper'larina sahip, sarmalama
+        if ( strpos( $name, 'acf/header-tool' ) === 0 || $name === 'acf/header-tools' ) {
+            return $content;
+        }
+        $slug = str_replace( 'acf/', '', $name );
+        return '<div class="nav-item nav-' . esc_attr( $slug ) . '">' . $content . '</div>';
+    };
+
+    // 3. header-tools start tracking
+    $tools_pre_filter = function ( $pre, array $b ) {
+        if ( ( $b['blockName'] ?? '' ) === 'acf/header-tools' ) {
+            $GLOBALS['_salt_in_header_tools'] = true;
+        }
+        return $pre;
+    };
+
+    // 4. header-tools end tracking
+    $tools_end_filter = function ( string $content, array $b ) {
+        if ( ( $b['blockName'] ?? '' ) === 'acf/header-tools' ) {
+            unset( $GLOBALS['_salt_in_header_tools'] );
+        }
+        return $content;
+    };
+
+    add_filter( 'render_block_data', $settings_filter, 5 );
+    add_filter( 'pre_render_block',  $tools_pre_filter, 6, 2 );
+    add_filter( 'render_block',      $tools_end_filter, 5, 2 );
+    add_filter( 'render_block',      $wrap_filter,      6, 2 );
+
+    // 5. header-builder bitince tum filter'lari kaldir
+    add_filter( 'render_block', function ( string $c, array $b ) use (
+        $settings_filter, $tools_pre_filter, $tools_end_filter, $wrap_filter
+    ) {
+        if ( ( $b['blockName'] ?? '' ) !== 'acf/header-builder' ) return $c;
+        remove_filter( 'render_block_data', $settings_filter, 5 );
+        remove_filter( 'pre_render_block',  $tools_pre_filter, 6 );
+        remove_filter( 'render_block',      $tools_end_filter, 5 );
+        remove_filter( 'render_block',      $wrap_filter,      6 );
+        unset( $GLOBALS['_salt_in_header_tools'] );
+        return $c;
+    }, 999, 2 );
+
+    return $pre_render;
+
+}, 5, 2 );

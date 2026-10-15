@@ -1,0 +1,300 @@
+{
+    "key": "group_salt_languages_block",
+    "title": "Block Languages",
+    "fields": [
+        {
+            "key": "field_lang_display_mode",
+            "label": "Display Mode",
+            "name": "display_mode",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "inline": "Inline (yan yana)",
+                "dropdown": "Dropdown (aktif + liste)"
+            },
+            "default_value": "inline",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "inline"
+        },
+        {
+            "key": "field_lang_view",
+            "label": "View",
+            "name": "view",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "label": "Label only",
+                "flag": "Flag only",
+                "both": "Flag + Label"
+            },
+            "default_value": "label",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "label"
+        },
+        {
+            "key": "field_lang_label_type",
+            "label": "Label Type",
+            "name": "label_type",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_lang_view",
+                        "operator": "!=",
+                        "value": "flag"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "code": "Code (TR, EN)",
+                "name": "Name (Türkçe, English)",
+                "native": "Native (kendi dilinde)"
+            },
+            "default_value": "code",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "code"
+        },
+        {
+            "key": "field_lang_flag_position",
+            "label": "Flag Position",
+            "name": "flag_position",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_lang_view",
+                        "operator": "==",
+                        "value": "both"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "start": "Before label",
+                "end": "After label"
+            },
+            "default_value": "start",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "start"
+        },
+        {
+            "key": "field_lang_flag_style",
+            "label": "Flag Style",
+            "name": "flag_style",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_lang_view",
+                        "operator": "!=",
+                        "value": "label"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "img": "Image (Polylang\/WPML native)",
+                "emoji": "Emoji (🇹🇷)",
+                "svg": "SVG (CSS mask)"
+            },
+            "default_value": "img",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "img"
+        },
+        {
+            "key": "field_lang_show_active",
+            "label": "Show Active Language",
+            "name": "show_active",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Aktif dili listede goster",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 1,
+            "ui": 1,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "pll_default_value": 1
+        },
+        {
+            "key": "field_lang_dropdown_trigger",
+            "label": "Dropdown Trigger",
+            "name": "dropdown_trigger",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_lang_display_mode",
+                        "operator": "==",
+                        "value": "dropdown"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "hover": "Hover",
+                "click": "Click"
+            },
+            "default_value": "hover",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "hover"
+        },
+        {
+            "key": "field_lang_css_class",
+            "label": "CSS Class",
+            "name": "css_class",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "ekstra class",
+            "maxlength": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/languages"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786541540,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

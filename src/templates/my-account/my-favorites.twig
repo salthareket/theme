@@ -13,7 +13,8 @@
         {% if favorites_empty %}
 
             <div class="card-body py-5 text-center text-muted">
-                <i class="fa-regular fa-heart fa-3x mb-3 d-block"></i>
+                {#<i class="fa-regular fa-heart fa-3x mb-3 d-block"></i>#}
+                {{ fa_icon('heart', 'regular', 'fa-3x mb-3 d-block') }}
                 <p class="mb-0">{{ translate("You haven't added any favorites yet.") }}</p>
             </div>
 

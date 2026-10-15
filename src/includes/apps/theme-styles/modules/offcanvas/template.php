@@ -5,7 +5,7 @@
  */
 if (!defined('ABSPATH')) exit;
 $data = $data ?? [];
-$oc   = $data['offcanvas']  ?? [];
+$oc   = $data;  // render_fields zaten offcanvas section verisini $data olarak geçiyor
 $mh   = $data['header']     ?? [];
 $ni   = $data['nav_item']   ?? [];
 $ns   = $data['nav_sub']    ?? [];
@@ -54,47 +54,13 @@ $weights = ['100','200','300','400','500','600','700','800','900'];
 
     <!-- Module Tabs -->
     <div class="ts-module-tabs">
-        <button type="button" class="ts-module-tab-btn active" data-module-tab="oc_general">General</button>
-        <button type="button" class="ts-module-tab-btn" data-module-tab="oc_header">Menu Header</button>
+        <button type="button" class="ts-module-tab-btn active" data-module-tab="oc_header">Menu Header</button>
         <button type="button" class="ts-module-tab-btn" data-module-tab="oc_item">Menu Item</button>
         <button type="button" class="ts-module-tab-btn" data-module-tab="oc_sub">Sub Menu</button>
     </div>
 
-    <!-- ═══ GENERAL ═══ -->
-    <div class="ts-module-tab-content active" data-module-tab-content="oc_general">
-        <div class="ts-section">
-            <h3 class="ts-section-title"><?php _e('Background', 'theme-styles'); ?></h3>
-            <?php theme_styles_render_background_field('bg', $oc, ['label' => '', 'show_image' => true, 'id_suffix' => 'oc_bg']); ?>
-        </div>
-        <div class="ts-section">
-            <h3 class="ts-section-title"><?php _e('Layout', 'theme-styles'); ?></h3>
-            <div class="ts-field-row ts-field-row-3">
-                <div>
-                    <label class="ts-field-label"><?php _e('Padding', 'theme-styles'); ?></label>
-                    <input type="text" class="ts-field-input" data-field="offcanvas.padding" value="<?php echo esc_attr($oc['padding'] ?? '15px 0 40px 0'); ?>" placeholder="15px 0 40px 0" />
-                </div>
-                <div>
-                    <label class="ts-field-label"><?php _e('Align Horizontal', 'theme-styles'); ?></label>
-                    <select class="ts-field-select" data-field="offcanvas.align_hr">
-                        <option value="start"  <?php selected($oc['align_hr'] ?? 'start', 'start'); ?>>Left</option>
-                        <option value="center" <?php selected($oc['align_hr'] ?? 'start', 'center'); ?>>Center</option>
-                        <option value="end"    <?php selected($oc['align_hr'] ?? 'start', 'end'); ?>>Right</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="ts-field-label"><?php _e('Align Vertical', 'theme-styles'); ?></label>
-                    <select class="ts-field-select" data-field="offcanvas.align_vr">
-                        <option value="start"  <?php selected($oc['align_vr'] ?? 'center', 'start'); ?>>Top</option>
-                        <option value="center" <?php selected($oc['align_vr'] ?? 'center', 'center'); ?>>Center</option>
-                        <option value="end"    <?php selected($oc['align_vr'] ?? 'center', 'end'); ?>>Bottom</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- ═══ MENU HEADER ═══ -->
-    <div class="ts-module-tab-content" data-module-tab-content="oc_header">
+    <div class="ts-module-tab-content active" data-module-tab-content="oc_header">
         <div class="ts-section">
             <h3 class="ts-section-title"><?php _e('Menu Header', 'theme-styles'); ?></h3>
             <div class="ts-field-row ts-field-row-4">

@@ -9,8 +9,11 @@ namespace SaltHareket\Localization;
  * ACF options sayfasından okur (geriye uyumluluk) + kendi wp_options key'lerini kullanır.
  * ACF field'ları silinince kendi key'lerinden okumaya devam eder.
  *
- * @version 2.0.1
+ * @version 2.0.2
  * @changelog
+ *   2.0.2 - 2026-07-04
+ *     - PERF: readAcf() içindeki get_option() SaltConfig::get() ile değiştirildi.
+ *             ACF init olmadan önce ~5-6 DB query → 0 query.
  *   2.0.1 - 2026-06-17
  *     - Add: save() sonrası do_action('sh/localization/saved') + do_action('sh/localization/setting_changed')
  *   2.0.0 - 2026-06-16
@@ -34,10 +37,10 @@ class LocationSettings
         if ( self::$cache !== null ) return self::$cache;
 
         $defaults = [
-            'enable_localization'     => false,    // Ana switch
-            'location_data_source'    => 'database', // 'database' | 'package'
+            'enable_localization'     => false,
+            'location_data_source'    => 'database',
             'enable_ip2country'       => false,
-            'ip2country_source'       => 'api',    // 'db' | 'api'
+            'ip2country_source'       => 'api',
             'enable_location_db'      => false,
             'enable_regional_posts'   => false,
             'regional_post_settings'  => [],
@@ -45,25 +48,9 @@ class LocationSettings
             'woo_state_mapping'       => true,
         ];
 
-        // Önce kendi option'ımızdan oku
         $saved = get_option( self::OPTION_KEY, [] );
 
-        // ACF'den fallback (ACF field'ları henüz silinmemişse)
-        $acf_fallback = [
-            'enable_ip2country'      => self::readAcf( 'options_enable_ip2country' ),
-            'ip2country_source'      => self::readAcf( 'options_ip2country_settings' ) === 'db' ? 'db' : 'api',
-            'enable_location_db'     => self::readAcf( 'options_enable_location_db' ),
-            'enable_regional_posts'  => self::readAcf( 'options_enable_regional_posts' ),
-            'regional_post_settings' => self::readAcf( 'options_regional_post_settings' ) ?: [],
-            'region_main'            => self::readAcf( 'options_region_main' ) ?: [],
-        ];
-
-        // Merge: saved > acf_fallback > defaults
-        self::$cache = array_merge(
-            $defaults,
-            array_filter( $acf_fallback, fn( $v ) => $v !== null && $v !== false && $v !== '' ),
-            $saved
-        );
+        self::$cache = array_merge( $defaults, is_array( $saved ) ? $saved : [] );
 
         return self::$cache;
     }
@@ -158,14 +145,12 @@ class LocationSettings
     }
 
     /**
-     * ACF option'ından oku (ACF aktifse ve initialize olduysa).
+     * ACF option'ından oku — ACF field'ları kaldırıldı.
+     * @deprecated
      */
     private static function readAcf( string $key )
     {
-        if ( ! function_exists( 'get_field' ) || ! did_action( 'acf/init' ) ) {
-            return get_option( $key );
-        }
-        return get_field( $key, 'options' );
+        return null; // ACF field'ları silindiğinden devre dışı
     }
 
     /**

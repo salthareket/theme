@@ -50,6 +50,23 @@ function theme_styles_process_utilities($data, $generator) {
     $vars['scroll-to-top-font-size']      = $stt['font_size']       ?? '22px';
     $vars['scroll-to-top-duration']       = $stt['duration']        ?? '600';
 
+    // ── Icon split: 'solid:chevron-up' → icon + icon_style ──────
+    // Eski format: '<i class="fa-solid fa-chevron-up"></i>' da desteklenir
+    $raw_icon = $stt['icon'] ?? 'solid:chevron-up';
+    if ( strpos( $raw_icon, ':' ) !== false ) {
+        [ $icon_style, $icon_name ] = explode( ':', $raw_icon, 2 );
+    } elseif ( strpos( $raw_icon, '<i ' ) !== false ) {
+        // Eski HTML format fallback
+        preg_match( '/fa-(solid|regular|light|brands)\s+fa-([a-z0-9-]+)/', $raw_icon, $m );
+        $icon_style = $m[1] ?? 'solid';
+        $icon_name  = $m[2] ?? 'chevron-up';
+    } else {
+        $icon_style = 'solid';
+        $icon_name  = $raw_icon ?: 'chevron-up';
+    }
+    // Bu değerler Theme_Styles::init()->get_data() üzerinden Twig context'e geçer
+    // theme_styles.utilities.scroll_to_top.icon_style ve .icon olarak erişilir
+
     // ── Global variable'lar ──────────────────────────────────────
     $vars['breakpoints'] = "'" . implode(',', $bps) . "'";
 

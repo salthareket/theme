@@ -382,37 +382,25 @@ class WP_Rocket_Manifest_Manager {
     }
 
     private function define_manifest() {
-        // Varsayılan boş yapı
-        $this->manifest = [
-            'post'     => [],
-            'taxonomy' => []
-        ];
+        $this->manifest = [ 'post' => [], 'taxonomy' => [] ];
 
-        // ACF'den repeater verisini çek (Field adın: cache_manifest)
-        $acf_data = QueryCache::get_field('cache_manifest', 'options');
+        $data = get_option( 'options_cache_manifest', [] );
 
-        if (empty($acf_data) || !is_array($acf_data)) {
-            return;
-        }
+        if ( empty( $data ) || ! is_array( $data ) ) return;
 
-        foreach ($acf_data as $row) {
-            $type_group = $row['type']; // 'post_type' veya 'taxonomy' geliyor
+        foreach ( $data as $row ) {
+            $type     = $row['type'] ?? '';
+            $main_key = $type === 'post_type' ? 'post' : 'taxonomy';
+            $slug     = $type === 'post_type' ? ( $row['post_type'] ?? '' ) : ( $row['taxonomy'] ?? '' );
 
-            // Gruplandırma anahtarını belirle (ACF'den post_type gelirse biz 'post' yapıyoruz)
-            $main_key = ($type_group === 'post_type') ? 'post' : 'taxonomy';
-            
-            // Slug'ı belirle (post_type ise 'magazalar', taxonomy ise 'magaza-tipi' gibi)
-            $slug = ($type_group === 'post_type') ? $row['post_type'] : $row['taxonomy'];
+            if ( ! $slug ) continue;
 
-            if (empty($slug)) continue;
-
-            // Manifest formatına dönüştür
-            $this->manifest[$main_key][$slug] = [
-                'self'     => (bool) $row['self'],
-                'home'     => (bool) $row['home'],
-                'archives' => (bool) ($row['archive'] ?? false), // Archive sadece post'ta var
-                'pages'    => is_array($row['pages']) ? $row['pages'] : [],
-                'terms'    => is_array($row['terms']) ? $row['terms'] : []
+            $this->manifest[ $main_key ][ $slug ] = [
+                'self'     => (bool) ( $row['self']    ?? false ),
+                'home'     => (bool) ( $row['home']    ?? false ),
+                'archives' => (bool) ( $row['archive'] ?? false ),
+                'pages'    => is_array( $row['pages'] ) ? $row['pages'] : [],
+                'terms'    => is_array( $row['terms'] ) ? $row['terms'] : [],
             ];
         }
     }
@@ -579,8 +567,8 @@ class WP_Rocket_Manifest_Manager {
         $type_key = $is_taxonomy ? 'taxonomy' : 'post';
         $slug_or_type = $is_taxonomy ? get_term($object_id)->taxonomy : get_post_type($object_id);
         
-        $excluded_post_types = (array) QueryCache::get_field("exclude_post_types_from_cache", "options");
-        $excluded_taxonomies = (array) QueryCache::get_field("exclude_taxonomies_from_cache", "options");
+        $excluded_post_types = (array) get_option( 'options_exclude_post_types_from_cache', [] );
+        $excluded_taxonomies = (array) get_option( 'options_exclude_taxonomies_from_cache', [] );
         
         $rules = $this->manifest[$type_key][$slug_or_type] ?? null;
         if (!$rules) return;
@@ -645,8 +633,8 @@ class WP_Rocket_Manifest_Manager {
             $lang = $item['lang'];
 
             wp_remote_get($url, [
-                'timeout'   => 25,
-                'blocking'  => true,
+                'timeout'   => 0.01,
+                'blocking'  => false,
                 'headers'   => [
                     'User-Agent'          => 'WP Rocket/Preload',
                     'X-WP-Rocket-Preload' => 'yes',
@@ -654,8 +642,7 @@ class WP_Rocket_Manifest_Manager {
                 ],
                 'cookies'   => ['pll_language' => $lang]
             ]);
-            $this->log("✅ Preload [$lang]: $url");
-            usleep(500000);
+            $this->log("✅ Preload (non-blocking) [$lang]: $url");
         }
     }
 
@@ -750,12 +737,19 @@ class WP_Rocket_Manifest_Manager {
 
     private function get_archive_all_data($post_type) {
         $data = [];
-        if (function_exists('pll_languages_list')) {
-            foreach (pll_languages_list() as $lang) {
-                $data[] = [
-                    'url'  => trailingslashit(pll_home_url($lang)) . $post_type . '/',
-                    'lang' => $lang
-                ];
+        if ( function_exists( 'pll_languages_list' ) ) {
+            foreach ( pll_languages_list() as $lang ) {
+                $url = function_exists( 'pll_get_post_type_archive_link' )
+                    ? pll_get_post_type_archive_link( $post_type, $lang )
+                    : get_post_type_archive_link( $post_type );
+                if ( $url ) {
+                    $data[] = [ 'url' => trailingslashit( $url ), 'lang' => $lang ];
+                }
+            }
+        } else {
+            $url = get_post_type_archive_link( $post_type );
+            if ( $url ) {
+                $data[] = [ 'url' => trailingslashit( $url ), 'lang' => 'tr' ];
             }
         }
         return $data;

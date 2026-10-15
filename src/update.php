@@ -229,41 +229,7 @@ class Update {
     private static function get_current_version() {
         return self::get_package_version(self::$github_repo);
     }
-    /*private static function get_latest_version($package_name = "") {
-        if(empty($package_name)){
-            $url = self::$github_api_url . '/' . self::$github_repo . '/releases/latest';
-        }else{
-            $url = $this->get_package_github_url($package_name).'releases/latest';
-        }
-        //error_log("get_latest_version -> ".$url);
-        $response = wp_remote_get($url, [
-            'headers' => [
-                'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'WordPress/' . get_bloginfo('version'),
-                'Authorization' => 'Bearer ' . SALTHAREKET_TOKEN
-            ]
-        ]);
 
-        if (is_wp_error($response)) {
-            //error_log('HTTP request error: ' . $response->get_error_message());
-            return 'Error';
-        }
-
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            //error_log('JSON decode error: ' . json_last_error_msg());
-            return 'Error';
-        }
-
-        if (isset($data['tag_name'])) {
-            return $data['tag_name'];
-        }
-
-        //error_log('GitHub API response: ' . $body);
-        return 'Unknown';
-    }*/
     private static function get_latest_version($package_name = "", $cached = true) {
         // 1. Cache anahtarını belirle (her paket için ayrı cache)
         $cache_key = 'salthareket_version_' . md5($package_name ?: self::$github_repo);
@@ -485,208 +451,9 @@ class Update {
         }
         self::enqueue_update_script();
     }
-    public static function video_process_page() { 
-        
-        $video_process = new VideoProcessor();
-        $is_supported = $video_process->supported;
-        $is_available = $video_process->available;
-    ?>
-        <div class="wrap">
-            <h1>Video Process</h1>
-            <?php 
-            $args = [
-                'post_type'      => 'any',
-                'post_status'    => 'publish',
-                'meta_query'     => [
-                    [
-                        'key'     => 'video_tasks',
-                        'compare' => 'EXISTS',
-                    ],
-                ],
-                'posts_per_page' => -1,
-                'orderby'        => 'ID',
-                'order'          => 'ASC',
-            ];
-            $query = new WP_Query($args);
-            $posts = $query->posts;
 
-            if(!$is_supported){?>
-               <div class="alert alert-danger text-danger alert-dismissible rounded-3 w-25"><?php echo PHP_OS;?> is not supported!</div>
-            <?php
-            }else{    
-            ?>
-                <ul class="list-group w-50">
-                        <li class="list-group-item py-4">
-                            <div class="row align-items-center">
-                                <div class="col">
-                                    <strong>FFMpeg</strong> for <?php echo PHP_OS;?>
-                                </div>
-                                <div class="col col-auto text-end">
-                                    <?php
-                                    if($is_available){?>
-                                        <span class="text-success fw-bold">Installed</span>
-                                    <?php
-                                    }else{
-                                    ?>
-                                       <div class="alert alert-dismissible rounded-3 w-25 fade d-none"></div>
-                                       <button id="install-ffmpeg-button" class="button button-primary">Install</button>
-                                    <?php
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </li>
-                </ul>
-                <?php
-                if($posts){
-                ?>
-                    <div class="list-group w-50 mt-5">
-                    <?php
-                    foreach($posts as $post){
-                        $tasks = get_post_meta($post->ID, 'video_tasks', true);
-                        $blocks = parse_blocks($post->post_content);
-                    ?>
-                        <div class="list-group-item py-3">
-                            <?php echo "<h3 class='mb-3 mt-0'>".$post->post_title.": <span class='text-success'>Video Processing...</span></h3>";
-                            foreach($tasks as $task){ 
-                                $status = isset($task["tasks"]);
-                                $block = $blocks[$task["block_index"]];
-                                $video = wp_get_attachment_url($block["attrs"]["data"]["video_file_desktop"]);
-                            ?>
-                                <div class="list-group">
-                                    <div class="list-group-item py-3">
-                                        <div class="row">
-                                            <div class="col col-auto">
-                                                <video 
-                                                    src="<?php echo esc_url($video); ?>" 
-                                                    preload="metadata" 
-                                                    style="max-width: 200px; display: block; pointer-events: none;" 
-                                                    muted 
-                                                    playsinline 
-                                                    oncontextmenu="return false;" 
-                                                    class="rounded-3 overflow-hidden"
-                                                >
-                                                    Your browser does not support the video tag.
-                                                </video>
-                                            </div>
-                                            <div class="col">
-                                                <?php 
-                                                if($status){
-                                                ?>
-                                                <table class="table table-light table-striped">
-                                                    <tbody>
-                                                        <?php
-                                                         
-                                                        if(isset($task["tasks"]["sizes"])){
-                                                            foreach($task["tasks"]["sizes"] as $size => $size_status){
-                                                            ?>
-                                                            <tr>
-                                                                <?php
-                                                                if(!$size_status){
-                                                                ?>
-                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
-                                                                <?php
-                                                                }else{?>
-                                                                   <td class="text-center text-success text-center" style="width:30px;"><i class="fa fa-check"></i></td>
-                                                                <?php
-                                                                }
-                                                                ?>
-                                                                <td class="fw-bold">Generate <?php echo $size;?>p size</td>
-                                                                <td class="text-end">
-                                                                    <?php 
-                                                                     echo $size_status?"Completed":"In progress...";
-                                                                    ?>
-                                                                </td>
-                                                            </tr>
-                                                            <?php
-                                                            }
-                                                        }?>
-
-                                                        <?php 
-                                                        if(isset($task["tasks"]["poster"])){
-                                                            ?>
-                                                            <tr>
-                                                                <?php
-                                                                if(!$task["tasks"]["poster"]){
-                                                                ?>
-                                                                    <td class="loading loading-xs position-relative" style="width:30px;"></td> 
-                                                                <?php
-                                                                }else{?>
-                                                                    <td class="text-center text-success text-center" style="width:30px;"><i class="fa fa-check"></i></td>
-                                                                <?php
-                                                                }
-                                                                ?>
-                                                                <td class="fw-bold">Generating poster frame</td>
-                                                                <td class="text-end">
-                                                                    <?php 
-                                                                     echo $task["tasks"]["poster"]?"Completed":"In progress...";
-                                                                    ?>
-                                                                </td>
-                                                            </tr>
-                                                            <?php
-                                                        }?>
-                                                        
-                                                        <?php 
-                                                        if(isset($task["tasks"]["thumbnails"])){
-                                                            ?>
-                                                            <tr>
-                                                                <?php
-                                                                if(!$task["tasks"]["thumbnails"]){
-                                                                ?>
-                                                                   <td class="loading loading-xs position-relative" style="width:30px;"></td>
-                                                                <?php
-                                                                }else{?>
-                                                                   <td class="text-center text-success text-center" style="width:30px;"><i class="fa fa-check"></i></td>
-                                                                <?php
-                                                                }
-                                                                ?>
-                                                                <td class="fw-bold">Generating thumbnails</td>
-                                                                <td class="text-end">
-                                                                    <?php 
-                                                                     echo $task["tasks"]["thumbnails"]?"Completed":"In progress...";
-                                                                    ?>
-                                                                </td>
-                                                            </tr>
-                                                            <?php
-                                                        }?>
-
-                                                    </tbody>
-                                                </table>
-                                                <?php
-                                                }else{?>
-                                                   <span class="fw-bold text-success">Completed!</span>
-                                                <?php
-                                                }
-                                                ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php
-                            }
-                            ?>
-                        </div>
-                    <?php
-                    }?>
-                <?php 
-                }else{
-                ?>
-                
-                    <div class="list-group w-50 mt-5 rounded-4 py-5 text-center">
-                        <h3 class="text-muted">There are currently no video processing tasks in the queue</h3>
-                    </div>
-
-                <?php
-                }
-            }
-            ?>
-        </div>
-    <?php
-    }
-    public static function render_video_process_page() {
-        self::video_process_page();
-        self::enqueue_update_script();
-    }
+    // video_process_page() ve render_video_process_page() → apps/video-processor/ altına taşındı
+    // Artık VideoProcessorAdmin::renderPage() kullanılıyor (admin.php?page=sh-video-processor)
 
     public static function install_ffmpeg(){
         $package = "salthareket/ffmpeg-";
@@ -1781,7 +1548,7 @@ class Update {
         \PluginManager::check_and_update_local_plugins($plugin_types);
     }
     private static function compile_methods(){
-        acf_methods_settings();
+        \SaltHareket\AssetManager\AssetManager::getInstance()->compile_methods( false );
     }
     private static function generate_files(){
         // Yeni Theme_Styles sistemi — eski get_theme_styles() / save_theme_styles_* kaldırıldı
@@ -1794,7 +1561,7 @@ class Update {
         }
     }
     private static function compile_js_css(){
-        acf_compile_js_css();
+        \SaltHareket\AssetManager\AssetManager::getInstance()->compile_js_css( false );
     }
     private static function defaults($plugin_types = array()){
         self::disable_yearmonth_folders();
@@ -2172,7 +1939,7 @@ class Update {
             "default_ratio" => "16x9",
             "seperate_css" => 1,
             "seperate_js" => 1,
-            "enable_production" => 1
+            "enable_development" => 1
         ];
         if(in_array("multilanguage", $plugin_types)){
             array_unshift($default_values["header_end"]["header_tools"]["header_tools"], $header_tool_language);

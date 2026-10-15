@@ -2,9 +2,9 @@
 
     function salt_widgets_init() {
 		register_sidebar( array(
-			'name'          => translate( 'Blog Sidebar'),
+			'name'          => trans( 'Blog Sidebar'),
 			'id'            => 'sidebar-1',
-			'description'   => translate( 'Add widgets here to appear in your sidebar on blog posts and archive pages.'),
+			'description'   => trans( 'Add widgets here to appear in your sidebar on blog posts and archive pages.'),
 			'before_widget' => '<section id="%1$s" class="widget %2$s">',
 			'after_widget'  => '</section>',
 			'before_title'  => '<h2 class="widget-title">',

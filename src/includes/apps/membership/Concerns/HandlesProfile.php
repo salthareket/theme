@@ -68,6 +68,16 @@ trait HandlesProfile
     {
         $response = $this->response();
 
+        // user null ise get_current_user_id() ile force-yükle
+        if ( ! $this->user ) {
+            $uid = get_current_user_id();
+            if ( $uid ) {
+                $this->user = class_exists( 'User' )
+                    ? new \User( $uid )
+                    : \Timber\Timber::get_user( $uid );
+            }
+        }
+
         if ( ! $this->user ) {
             $response['error']   = true;
             $response['message'] = 'You must be logged in.';
@@ -78,6 +88,7 @@ trait HandlesProfile
 
         switch ( $action ) {
 
+            case 'profile':     // profile.twig form action alias
             case 'save_profile':
                 $response = $this->saveProfile( $vars );
                 break;
@@ -100,6 +111,22 @@ trait HandlesProfile
 
             case 'save_profile_photo':
                 $response = $this->saveProfilePhoto( $vars );
+                break;
+
+            case 'security':    // custom-extend alias → save_password
+                $response = $this->changePassword( $vars );
+                break;
+
+            case 'renew_password':
+                $response = $this->renewPassword( $vars );
+                break;
+
+            case 'set_role':
+                $response = $this->setRole( $vars );
+                break;
+
+            case 'upgrade':     // upgrade flow — save_profile ile aynı
+                $response = $this->saveProfile( $vars );
                 break;
 
             default:
@@ -165,6 +192,95 @@ trait HandlesProfile
         foreach ( $acf_fields as $field ) {
             if ( isset( $vars[ $field ] ) && function_exists( 'update_field' ) ) {
                 update_field( $field, $vars[ $field ], 'user_' . $user_id );
+            }
+        }
+
+        // ── Ek meta alanları — register_fields ile uyumlu ───────────────────
+        // about
+        if ( isset( $vars['about'] ) ) {
+            update_user_meta( $user_id, 'about', sanitize_textarea_field( $vars['about'] ) );
+        }
+        // phone
+        if ( isset( $vars['phone'] ) ) {
+            update_user_meta( $user_id, 'billing_phone', sanitize_text_field( $vars['phone'] ) );
+        }
+        if ( isset( $vars['phone_code'] ) ) {
+            update_user_meta( $user_id, 'billing_phone_code', sanitize_text_field( $vars['phone_code'] ) );
+        }
+        // country + state/city
+        if ( isset( $vars['country'] ) ) {
+            update_user_meta( $user_id, 'billing_country', sanitize_text_field( $vars['country'] ) );
+        }
+        if ( isset( $vars['city'] ) ) {
+            update_user_meta( $user_id, 'city', sanitize_text_field( $vars['city'] ) );
+        }
+        // ── Register fields — dinamik kayıt ────────────────────────────────
+        // text, custom_select, product_attributes tiplerini handle eder
+        $rf = \SaltHareket\Membership\MembershipSettings::getSetting( 'register_fields', [] );
+        $builtin_handled = [ 'first_name', 'last_name', 'phone', 'country', 'state' ]; // özel mantıkla handle edildi
+        foreach ( $rf as $field_key => $field_cfg ) {
+            if ( empty( $field_cfg['enabled'] ) ) continue;
+            if ( in_array( $field_key, $builtin_handled, true ) ) continue;
+
+            $type    = $field_cfg['type'] ?? 'text';
+            $ui_type = $field_cfg['ui_type'] ?? 'select';
+
+            if ( $type === 'text' ) {
+                if ( isset( $vars[ $field_key ] ) ) {
+                    update_user_meta( $user_id, $field_key, sanitize_text_field( $vars[ $field_key ] ) );
+                }
+            } elseif ( in_array( $type, [ 'custom_select', 'product_attributes' ], true ) ) {
+                if ( ! isset( $vars[ $field_key ] ) ) continue;
+
+                if ( $ui_type === 'checkbox' ) {
+                    $submitted = (array) $vars[ $field_key ];
+                    $safe      = array_map( 'sanitize_text_field', $submitted );
+                    update_user_meta( $user_id, $field_key, $safe );
+                } else {
+                    // select / radio
+                    $value = sanitize_text_field( $vars[ $field_key ] );
+                    update_user_meta( $user_id, $field_key, $value );
+                }
+            }
+        }
+        // website (user_url)
+        if ( isset( $vars['user_url'] ) ) {
+            wp_update_user( [ 'ID' => $user_id, 'user_url' => esc_url_raw( $vars['user_url'] ) ] );
+        }
+        // Social media — repeater formatı: social_media[brand][] + social_media[url][]
+        if ( isset( $vars['social_media'] ) && is_array( $vars['social_media'] ) ) {
+            $allowed_networks = array_keys( \SaltHareket\SocialShare\SocialShare::networks() );
+
+            // Önce tüm eski sosyal medya meta'larını temizle
+            foreach ( $allowed_networks as $net_key ) {
+                delete_user_meta( $user_id, $net_key );
+            }
+
+            $items = $vars['social_media'];
+
+            // Format 1: indexed — social_media[0][brand], social_media[0][url]
+            // Format 2: grouped — social_media[brand][], social_media[url][]
+            if ( isset( $items[0] ) || ( ! empty( $items ) && is_array( reset( $items ) ) ) ) {
+                // Format 1: indexed array
+                foreach ( $items as $item ) {
+                    if ( ! is_array( $item ) ) continue;
+                    $brand = sanitize_key( $item['brand'] ?? '' );
+                    $url   = esc_url_raw( $item['url']   ?? '' );
+                    if ( $brand && $url && in_array( $brand, $allowed_networks, true ) ) {
+                        update_user_meta( $user_id, $brand, $url );
+                    }
+                }
+            } else {
+                // Format 2: grouped
+                $brands = (array) ( $items['brand'] ?? [] );
+                $urls   = (array) ( $items['url']   ?? [] );
+                foreach ( $brands as $i => $brand ) {
+                    $brand = sanitize_key( $brand );
+                    $url   = esc_url_raw( $urls[ $i ] ?? '' );
+                    if ( $brand && $url && in_array( $brand, $allowed_networks, true ) ) {
+                        update_user_meta( $user_id, $brand, $url );
+                    }
+                }
             }
         }
 
@@ -493,5 +609,80 @@ trait HandlesProfile
         }
 
         return $result;
+    }
+
+    /**
+     * Şifre sıfırlama linki ile yeni şifre kaydet (renew_password action).
+     */
+    private function renewPassword( array $vars ): array
+    {
+        $response = $this->response();
+        $code     = $vars['activation-password'] ?? '';
+
+        if ( ! class_exists( 'Encrypt' ) ) {
+            $response['error']   = true;
+            $response['message'] = 'Encryption class not found.';
+            return $response;
+        }
+
+        $decrypt = new \Encrypt();
+        $data    = $decrypt->decrypt( $code );
+
+        if ( ! $data || empty( $data['email'] ) ) {
+            $response['error']   = true;
+            $response['message'] = trans( 'Your password renew link is invalid.' );
+            return $response;
+        }
+
+        $user = get_user_by( 'email', $data['email'] );
+        if ( ! $user ) {
+            $response['error']   = true;
+            $response['message'] = trans( 'The user you are trying to update the password for could not be found.' );
+            return $response;
+        }
+
+        $password = $vars['password'] ?? '';
+        wp_set_password( $password, $user->ID );
+        $response['message']  = trans( 'Your password updated!' );
+        $response['redirect'] = function_exists( 'Data' ) ? \Data::get( 'base_urls.account' ) : home_url( '/' );
+
+        return $response;
+    }
+
+    /**
+     * Kullanıcı rolünü ata (set_role action).
+     */
+    private function setRole( array $vars ): array
+    {
+        $response = $this->response();
+        $user_id  = $this->user->ID;
+        $role     = sanitize_key( $vars['role'] ?? '' );
+
+        $membership_roles = function_exists( 'Data' ) ? ( \Data::get( 'membership_roles' ) ?: [] ) : [];
+
+        if ( ! $role || ! in_array( $role, $membership_roles, true ) ) {
+            $response['error']   = true;
+            $response['message'] = 'Role (' . esc_html( $role ) . ') is not supported!';
+            return $response;
+        }
+
+        wp_update_user( [ 'ID' => $user_id, 'role' => $role ] );
+        update_user_meta( $user_id, 'billing_first_name', $this->user->first_name ?? '' );
+        update_user_meta( $user_id, 'billing_last_name',  $this->user->last_name  ?? '' );
+        update_user_meta( $user_id, 'billing_email',      $this->user->user_email ?? '' );
+
+        // Aktivasyon gerekiyorsa
+        if ( defined( 'ENABLE_MEMBERSHIP_ACTIVATION' ) && ENABLE_MEMBERSHIP_ACTIVATION ) {
+            $activation_type = defined( 'MEMBERSHIP_ACTIVATION_TYPE' ) ? MEMBERSHIP_ACTIVATION_TYPE : 'email';
+            if ( in_array( $activation_type, [ 'sms', 'email' ], true ) ) {
+                $vars['action'] = 'save_sms_requirements';
+                $response = $this->saveSmsRequirements( $vars );
+            }
+        }
+
+        do_action( 'sh_user_role_set', $user_id, $role );
+
+        $response['refresh'] = true;
+        return $response;
     }
 }

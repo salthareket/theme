@@ -85,6 +85,18 @@ function get_posts_by_taxonomy_terms($post_type = "post", $ids = [], $orderby = 
         return new WP_Error('invalid_orderby', 'Geçersiz orderby değeri: ' . esc_html($orderby));
     }
 
+    // Cache, cekirdek fonksiyonun icindeki Timber::get_terms / Timber::get_posts
+    // cagrilarinin QueryCache::get_timber_terms / get_timber_posts'a cevrilmesiyle
+    // ID-bazli yapilir. Boylece obje serialize sorunu olmaz, her term sorgusu
+    // kendi transient'ina duser, post/term save'de otomatik invalidate olur.
+    return _get_posts_by_taxonomy_terms_uncached( $post_type, $ids, $orderby );
+}
+
+/**
+ * get_posts_by_taxonomy_terms'un cache'siz cekirdegi.
+ * Cache QueryCache::wrap ile wrapper fonksiyonda yapilir.
+ */
+function _get_posts_by_taxonomy_terms_uncached($post_type = "post", $ids = [], $orderby = "") {
     // İlgili post türü için taksonomileri al
     $taxonomies = get_object_taxonomies($post_type, 'objects');
     if($taxonomies){
@@ -95,7 +107,11 @@ function get_posts_by_taxonomy_terms($post_type = "post", $ids = [], $orderby = 
 
     $results = array();
 
+    $use_cache = class_exists( 'QueryCache' ) && \QueryCache::is_enabled();
+
     // Her bir taksonomi için terimleri al
+    // NOT: terms cache'lenmiyor — get_timber_terms hit'te 'include' ile yeniden
+    // kurar ve term_order siralamasi kaybolur. Asil sorgu yuku get_posts'ta.
     foreach ($taxonomies as $taxonomy) {
         $terms = Timber::get_terms(array(
             'taxonomy' => $taxonomy->name,
@@ -150,8 +166,11 @@ function get_posts_by_taxonomy_terms($post_type = "post", $ids = [], $orderby = 
                 $args["orderby"] = $orderby;
             }
 
-            $posts = Timber::get_posts($args)->to_array();
-            
+            $posts_query = $use_cache
+                ? \QueryCache::get_timber_posts( $args )
+                : Timber::get_posts( $args );
+            $posts = is_array( $posts_query ) ? $posts_query : $posts_query->to_array();
+
 
             if ($posts) {
                 $results[] = array(
@@ -200,4 +219,66 @@ function custom_search_add_term() {
         $post_type = get_query_var("qpt");
         // Search history artık SearchHistory::auto_track_search() hook'u ile otomatik kaydediliyor
     }
+}
+
+// ─── Contact Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Seçili contact post type'ını döndür.
+ * ACF options_contact_post_type field'ından okur.
+ *
+ * @return string  Post type slug, yoksa boş string
+ */
+function get_contact_post_types(): string {
+    static $cached = null;
+    if ( $cached !== null ) return $cached;
+    // SaltConfig (config-cache.php) üzerinden oku — ACF bağımlılığı yok
+    $pt = \SaltHareket\SaltConfig::get( 'options_contact_post_types', [] );
+    if ( is_array($pt) ) {
+        // Multiple select — array olarak saklanıyor, ilk değeri al veya tüm arrayi döndür
+        // Eski kullanım string bekliyordu — geriye dönük uyumluluk için implode
+        return $cached = implode( ',', array_filter($pt) );
+    }
+    return $cached = (string) $pt;
+}
+
+/**
+ * Contact postlarını döndür.
+ * Seçili post type + isteğe bağlı contact-type taxonomy filtresi.
+ *
+ * @param string $type    contact-type taxonomy slug (boş = hepsi)
+ * @param array  $args    WP_Query extra args
+ * @return array          Timber Post array
+ *
+ * @example
+ *   // Tüm contactlar
+ *   $contacts = get_contacts();
+ *
+ *   // Sadece 'main' tipindekiler
+ *   $contacts = get_contacts('main');
+ *
+ *   // Sadece 'standard', limit 5
+ *   $contacts = get_contacts('standard', ['posts_per_page' => 5]);
+ */
+function get_contacts( string $type = '', array $args = [] ): array {
+    $post_type = get_contact_post_types();
+    if ( ! $post_type ) return [];
+
+    $query_args = array_merge([
+        'post_type'      => $post_type,
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'orderby'        => 'menu_order title',
+        'order'          => 'ASC',
+    ], $args);
+
+    if ( $type ) {
+        $query_args['tax_query'] = [[
+            'taxonomy' => 'contact-type',
+            'field'    => 'slug',
+            'terms'    => $type,
+        ]];
+    }
+
+    return \Timber\Timber::get_posts( $query_args ) ?: [];
 }

@@ -9,8 +9,25 @@
 // ── Icon Fonts ───────────────────────────────────────────────
 // CSS variable olarak root.css'de tanımlı: --icon-font, --icon-font-brands
 // SCSS compile için FA'nın kendi variable'ları kullanılır
-$use-fontawesome:    true;
-$fontawesome-brands: true;
+$use-fontawesome:    false;
+$fontawesome-brands: false;
+
+// ── FA SVG Path ──────────────────────────────────────────────
+// PHP wp_scss_set_variables() üzerinden inject edilir:
+//   "svg_path" => STATIC_URL . 'svg'   (actions-admin.php)
+// SCSS'de $svg_path veya $svg-path olarak erişilir (SCSS hyphen=underscore)
+// Kullanım: @include btnFa('heart') → mask-image: url(#{$svg-path}/solid/heart.svg)
+$svg-path: $svg_path !default;
+
+// ── FA SVG Path ──────────────────────────────────────────────
+// PHP'den inject edilir (wp_scss_variables filter → SCSSCompiler::set_variables)
+// Fallback: theme/static/svg/ altına bakılır
+// Kullanım: @include btnFa('heart', 'solid') → mask-image: url(#{$svg-path}/solid/heart.svg)
+// $svg-path PHP tarafından set edilmezse compile-time uyarı alırsın — PHP inject ekilmeli.
+// Bkz: theme.php scss_compile() veya wp_scss_variables filter
+@if not variable-exists(svg-path) {
+    $svg-path: '/wp-content/themes/salthareket/static/svg'; // fallback — PHP'den gelirse override
+}
 
 // ── Font fallbacks ────────────────────────────────────────────
 // $header-font, $font-primary vb. PHP'den inject edilir (wp_scss_set_variables)
@@ -18,7 +35,7 @@ $fontawesome-brands: true;
 // SCSS'de artık var(--header-font) kullanılıyor
 $fontawesome-thin:   false;
 $fontawesome-light:  false;
-$fontawesome-regular: true;
+$fontawesome-regular: false;
 $fontawesome-solid:  false;
 
 // ── Typography ───────────────────────────────────────────────
@@ -110,3 +127,12 @@ $loading-color-dark:     #000;
 $loading-color-light:    #ddd;
 $loading-color-bg-light: #fff;
 $loading-color-bg-dark:  #111;
+
+// ── NOT: Modal / Offcanvas / Dropdown ─────────────────────────
+// Bu component'ler için Sass $variable KULLANILMAZ.
+// Tüm stiller CSS custom property (--modal-*, --offcanvas-*, --dropdown-*)
+// üzerinden yönetilir. Bunlar:
+//   • root.css    : global default değerler
+//   • processor.php : theme-styles admin'den override
+//   • _applyCustomStyle() : per-button inline override (data-modal-style / data-offcanvas-style)
+// SCSS dosyaları: components/_modal.scss, _offcanvas.scss, _dropdown.scss

@@ -12,8 +12,7 @@ function theme_styles_process_typography($data, $generator) {
     if (!empty($t['font_primary']))     $vars['font-primary']      = $t['font_primary'];
     if (!empty($t['font_heading']))     $vars['header-font']       = $t['font_heading'];
     if (!empty($t['font_secondary']))   $vars['font-secondary']    = $t['font_secondary'];
-    if (!empty($t['icon_font']))        $vars['icon-font']         = $t['icon_font'];
-    if (!empty($t['icon_font_brands'])) $vars['icon-font-brands']  = $t['icon_font_brands'];
+    // icon_font / icon_font_brands kaldırıldı (2026-08-26) — icon font sistemi FA SVG'ye taşındı
 
     // ── Base font-size ve letter-spacing ─────────────────────────
     if (!empty($t['base_font_size']))      $vars['base-font-size']        = $t['base_font_size'];

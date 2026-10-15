@@ -103,3 +103,16 @@ table.wp-list-table.tags {
 .wp-picker-holder .iris-picker { max-width: 500px !important; }
 .wp-picker-holder .iris-picker .iris-palette { flex-wrap: wrap; }
 .wp-picker-holder .iris-picker .iris-palette .iris-palette-color { width: 24px !important; height: 24px !important; margin: 2px !important; }
+
+#wpfooter{
+    position:relative;
+}
+
+.acf-block-preview{
+    a, 
+    .btn, 
+    button[type="submit"], 
+    input[type="submit"]{
+        pointer-events: none;
+    }
+} 

@@ -1,108 +1,104 @@
-jQuery(document).ready(function ($) {
+/**
+ * Plugin Manager — Admin JS v2.1
+ * Anlık filtre: kaynak select + kategori select → show/hide rows
+ */
+jQuery(function ($) {
+    var ajaxUrl = pmAjax.ajax_url;
+    var nonce   = pmAjax.nonce;
 
-    function parseAjaxResponse(response) {
-        // Eğer response zaten bir nesne ise direkt dön
-        if (typeof response === "object") {
-            console.log("JSON Data:", response);
-            return response;
-        }
-
-        // JSON içerip içermediğini kontrol et
-        const jsonRegex = /{"success":.*}}/;
-
-        // JSON kısmını bul
-        const match = response.match(jsonRegex);
-        if (match) {
-            try {
-                // JSON kısmını ayıkla ve parse et
-                const jsonData = JSON.parse(match[0]);
-                console.log("JSON Data:", jsonData);
-                return jsonData;
-            } catch (error) {
-                console.error("JSON parse hatası:", error);
-                return null;
-            }
-        } else {
-            console.error("JSON verisi bulunamadı.");
-            return null;
-        }
+    // ── Toast ──────────────────────────────────────────────────────────────
+    function toast(msg, ok) {
+        var $t = $('#pm-toast');
+        $t.stop(true)
+          .css({ background: ok ? '#15803d' : '#dc2626', color: '#fff' })
+          .text(msg).fadeIn(150);
+        setTimeout(function () { $t.fadeOut(400); }, 3200);
     }
 
-    // Activate/Deactivate Plugin
-    $(document).on('click', '.activate-plugin, .deactivate-plugin', function () {
-        let $button = $(this);
-        let pluginSlug = $button.data('plugin-slug');
-        let local = $button.data('local');
+    // ── Anlık filtre ───────────────────────────────────────────────────────
+    function applyFilters() {
+        var source = $('#pm-filter-source').val() || 'all';
+        var cat    = $('#pm-filter-cat').val()    || 'all';
 
-        // Slug doğrulama
-        if (!pluginSlug || !pluginSlug.includes('/')) {
-            alert('Plugin slug eksik veya hatalı.');
-            return;
-        }
+        $('.pm-row').each(function () {
+            var $r      = $(this);
+            var rowSrc  = $r.data('source') + '';
+            var rowCats = ($r.data('cats') + '').split(',');
 
-        let actionType = $button.hasClass('deactivate-plugin') ? 'deactivate' : 'activate';
+            var okSrc = source === 'all' || rowSrc === source;
+            var okCat = cat === 'all'    || rowCats.indexOf(cat) !== -1;
 
-        $button.prop('disabled', true).text('Processing...');
+            $r.toggle(okSrc && okCat);
+        });
 
-        $.post(pluginManagerAjax.ajax_url, {
-            action: 'plugin_manager_process',
-            _pm_nonce: pluginManagerAjax.nonce,
-            plugin_slug: pluginSlug,
-            action_type: actionType,
-            local: local
-        })
-        .done(function (response) {
-            response = parseAjaxResponse(response);
-            if (response.success) {
-                alert(response.data.message);
-                location.reload();
+        // Grup başlıklarını: altında görünür row yoksa gizle
+        $('.pm-group-hdr').each(function () {
+            var group   = $(this).data('group');
+            var visible = $('.pm-row[data-group="' + group + '"]:visible').length;
+            $(this).toggle(visible > 0);
+        });
+    }
+
+    // Select change'leri dinle
+    $('#pm-filter-source, #pm-filter-cat').on('change', function () {
+        applyFilters();
+    });
+
+    // ── Tekil aksiyon ──────────────────────────────────────────────────────
+    $(document).on('click', '.pm-btn', function () {
+        var $btn  = $(this);
+        var slug  = $btn.data('slug') + '';
+        var local = $btn.data('local') + '';
+        var act   = $btn.data('act')   + '';
+        var orig  = $btn.text();
+
+        $btn.prop('disabled', true).text('⏳...');
+
+        $.post(ajaxUrl, {
+            action:      'pm_process_plugin',
+            _pm_nonce:   nonce,
+            plugin_slug: slug,
+            action_type: act,
+            local:       local
+        }, function (res) {
+            if (res.success) {
+                toast('✅ ' + res.data.message, true);
+                setTimeout(function () { location.reload(); }, 1100);
             } else {
-                alert('Error: ' + response.data.message);
-                $button.prop('disabled', false).text(actionType === 'activate' ? 'Activate' : 'Deactivate');
+                toast('❌ ' + (res.data ? res.data.message : 'Hata'), false);
+                $btn.prop('disabled', false).text(orig);
             }
-        })
-        .fail(function () {
-            alert('AJAX request failed.');
-            $button.prop('disabled', false).text(actionType === 'activate' ? 'Activate' : 'Deactivate');
+        }).fail(function () {
+            toast('❌ AJAX hatası', false);
+            $btn.prop('disabled', false).text(orig);
         });
     });
 
-    // Install/Update Plugin
-    $(document).on('click', '.install-plugin, .update-plugin', function () {
-        let $button = $(this);
-        let pluginSlug = $button.data('plugin-slug');
+    // ── Bulk: eksik yükle ─────────────────────────────────────────────────
+    $('#pm-install-missing').on('click', function () {
+        var $btn = $(this).prop('disabled', true).text('⏳ Yükleniyor...');
+        $.post(ajaxUrl, {
+            action:    'pm_bulk_action',
+            _pm_nonce: nonce,
+            bulk_type: 'install_missing'
+        }, function (res) {
+            toast(res.success ? '✅ ' + res.data.message : '❌ Hata', res.success);
+            if (res.success) setTimeout(function () { location.reload(); }, 1300);
+            else $btn.prop('disabled', false).text('⬇ Eksikleri Yükle');
+        });
+    });
 
-        // Slug doğrulama
-        if (!pluginSlug || !pluginSlug.includes('/')) {
-            alert('Plugin slug eksik veya hatalı.');
-            return;
-        }
-
-        let actionType = $button.hasClass('update-plugin') ? 'update' : 'install';
-        let local = $button.data('local');
-
-        $button.prop('disabled', true).text('Processing...');
-
-        $.post(pluginManagerAjax.ajax_url, {
-            action: 'plugin_manager_process',
-            _pm_nonce: pluginManagerAjax.nonce,
-            plugin_slug: pluginSlug,
-            action_type: actionType,
-            local: local
-        })
-        .done(function (response) {
-            response = parseAjaxResponse(response);
-            if (response.success) {
-                alert(response.data.message);
-                location.reload();
-            } else {
-                alert('Error: ' + response.data.message);
-                $button.prop('disabled', false).text(actionType === 'update' ? 'Update' : 'Install');
-            }
-        })
-        .fail(function () {
-            alert('AJAX request failed.');
-            $button.prop('disabled', false).text(actionType === 'update' ? 'Update' : 'Install');
+    // ── Bulk: tümünü güncelle ─────────────────────────────────────────────
+    $('#pm-update-all').on('click', function () {
+        var $btn = $(this).prop('disabled', true).text('⏳ Güncelleniyor...');
+        $.post(ajaxUrl, {
+            action:    'pm_bulk_action',
+            _pm_nonce: nonce,
+            bulk_type: 'update_all'
+        }, function (res) {
+            toast(res.success ? '✅ ' + res.data.message : '❌ Hata', res.success);
+            if (res.success) setTimeout(function () { location.reload(); }, 1300);
+            else $btn.prop('disabled', false).text('⬆ Güncelle');
         });
     });
 });

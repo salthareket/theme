@@ -423,10 +423,127 @@ class Lcp {
         return !empty($this->data[$this->device]["type"]);
     }
 
-    /**
-     * Check if LCP data exists for a specific device
-     */
-    public function hasDeviceData(string $device): bool {
-        return !empty($this->data[$device]["type"]);
+    // ─── AJAX: save_lcp_results ───────────────────────────────────────────────
+    // Eski konum: actions.php. Buraya taşındı — LCP class'ına ait.
+    // Frontend JS (measure-lcp.js) LCP verisini tespit edince bu endpoint'e POST eder.
+
+    public static function registerAjaxHooks(): void {
+        add_action( 'wp_ajax_save_lcp_results',        [ self::class, 'ajaxSaveLcpResults' ] );
+        add_action( 'wp_ajax_nopriv_save_lcp_results', [ self::class, 'ajaxSaveLcpResults' ] );
+        // sh_save_csp_violations → SecurityHooks::saveCspViolations() (security app'e taşındı)
+    }
+
+    public static function ajaxSaveLcpResults(): void {
+        $id_raw = isset( $_POST['id'] ) ? sanitize_text_field( $_POST['id'] ) : '';
+        $id     = is_numeric( $id_raw ) ? intval( $id_raw ) : $id_raw;
+        $type   = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : '';
+        $url    = isset( $_POST['url'] )  ? esc_url_raw( $_POST['url'] )           : '';
+
+        if ( empty( $id ) || ! $type || ! isset( $_POST['lcp_data'] ) ) {
+            wp_send_json_error( [ 'message' => 'Eksik veya geçersiz parametre!' ] );
+        }
+
+        $lcp_raw  = stripslashes( $_POST['lcp_data'] );
+        $lcp_data = json_decode( $lcp_raw, true );
+
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            wp_send_json_error( [ 'message' => 'JSON formatı bozuk!' ] );
+        }
+
+        if ( empty( $id ) || ! $type || ! $lcp_data ) {
+            wp_send_json_error( [ 'message' => 'Geçersiz veri!' ] );
+        }
+
+        // Selector'ları topla
+        $selectors = [];
+        foreach ( $lcp_data as $device => &$data ) {
+            if ( ! empty( $data['selectors'] ) && is_array( $data['selectors'] ) ) {
+                $selectors = array_merge( $selectors, $data['selectors'] );
+                unset( $data['selectors'] );
+            }
+        }
+        unset( $data );
+
+        $critical_css  = '';
+        $structure_fp  = '';
+        $existing_meta = [];
+
+        // Mevcut meta'yı çek
+        if ( $type === 'archive' || $type === 'dynamic' ) {
+            $existing_meta = get_option( $id . '_assets' );
+        } elseif ( in_array( $type, [ 'post', 'term', 'user', 'comment' ], true ) ) {
+            $existing_meta = call_user_func( "get_{$type}_meta", $id, 'assets', true );
+        } else {
+            wp_send_json_error( [ 'message' => 'Geçersiz type: ' . $type ] );
+        }
+
+        $structure_fp = $existing_meta['structure_fp'] ?? '';
+
+        if ( empty( $structure_fp ) ) {
+            wp_send_json_error( [ 'message' => 'Critical CSS oluşturulamadı: structure_fp bulunamadı.' ] );
+        }
+
+        // Critical CSS üret
+        $selectors = array_unique( $selectors );
+        if ( $selectors ) {
+            $cache_dir = STATIC_PATH . 'css/cache/';
+            $output    = $cache_dir . $structure_fp . '-critical.css';
+
+            $input = '';
+            if ( defined( 'SITE_ASSETS' ) && is_array( SITE_ASSETS ) ) {
+                if ( ! empty( SITE_ASSETS['plugin_css'] ) && file_exists( STATIC_PATH . SITE_ASSETS['plugin_css'] ) ) {
+                    $input .= file_get_contents( STATIC_PATH . SITE_ASSETS['plugin_css'] );
+                }
+                if ( ! empty( SITE_ASSETS['css_page'] ) && file_exists( STATIC_PATH . SITE_ASSETS['css_page'] ) ) {
+                    $input .= file_get_contents( STATIC_PATH . SITE_ASSETS['css_page'] );
+                }
+            }
+            if ( empty( $input ) && file_exists( STATIC_PATH . 'css/main-combined.css' ) ) {
+                $input = file_get_contents( STATIC_PATH . 'css/main-combined.css' );
+            }
+
+            if ( ! empty( $input ) && class_exists( 'SaltHareket\AssetManager\RemoveUnusedCss' ) ) {
+                try {
+                    $remover = new \SaltHareket\AssetManager\RemoveUnusedCss( $url, $input, $output, [], true );
+                    $remover->generate_critical_css( $selectors );
+                    if ( file_exists( $output ) ) {
+                        $critical_css = str_replace( STATIC_PATH, '', $output );
+                    }
+                } catch ( \Exception $e ) {
+                    if ( defined( 'ENABLE_LOGS' ) && ENABLE_LOGS ) {
+                        error_log( '[LCP] Critical CSS hatası: ' . $e->getMessage() );
+                    }
+                }
+            }
+        }
+
+        // LCP URL'lerini attachment ID'ye çevir
+        foreach ( $lcp_data as $key => $lcp ) {
+            if ( ! empty( $lcp['url'] ) && function_exists( 'is_local' ) && is_local( $lcp['url'] ) ) {
+                $lcp_data[ $key ]['id'] = function_exists( 'get_attachment_id_by_url' )
+                    ? get_attachment_id_by_url( $lcp['url'] )
+                    : 0;
+            }
+        }
+
+        // Meta'ya yaz
+        $return = false;
+        if ( $existing_meta ) {
+            $existing_meta['lcp'] = array_merge( (array) ( $existing_meta['lcp'] ?? [] ), $lcp_data );
+            if ( $critical_css ) {
+                $existing_meta['css_critical'] = $critical_css;
+            }
+            if ( $type === 'archive' || $type === 'dynamic' ) {
+                $return = update_option( $id . '_assets', $existing_meta );
+            } else {
+                $return = call_user_func( "update_{$type}_meta", $id, 'assets', $existing_meta );
+            }
+        }
+
+        wp_send_json_success( [
+            'message' => 'LCP verileri kaydedildi!',
+            'data'    => $lcp_data,
+            'status'  => $return,
+        ] );
     }
 }

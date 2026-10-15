@@ -1,0 +1,18 @@
+{#
+  partials/source/reactions/archive.twig — DISPATCHER
+
+  Override kuralı:
+    1. theme/templates/partials/source/reactions/archive-{type}.twig varsa kullanır
+    2. Yoksa _archive.twig (default) kullanır
+#}
+
+{% set reaction_type = reaction_type|default(source|replace({'reaction:': ''})) %}
+
+{% include 'partials/source/reactions/_archive.twig' with {
+    items: items,
+    meta: meta,
+    view: view,
+    source: source,
+    reaction_type: reaction_type,
+    object_type: object_type|default('post')
+} %}

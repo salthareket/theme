@@ -1,0 +1,597 @@
+{
+    "key": "group_salt_header_tool_item",
+    "title": "Header Tool Item — Settings",
+    "fields": [
+        {
+            "key": "field_shti_menu_type",
+            "label": "Type",
+            "name": "menu_type",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "offcanvas": "Offcanvas",
+                "inline": "Inline",
+                "dropdown": "Dropdown",
+                "modal": "Modal"
+            },
+            "default_value": "offcanvas",
+            "return_format": "value",
+            "allow_null": 0,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": "offcanvas"
+        },
+        {
+            "key": "field_shti_menu_view",
+            "label": "View",
+            "name": "menu_view",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "": "Default",
+                "drill": "Drill",
+                "accordion": "Accordion",
+                "plain": "Plain"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "allow_null": 1,
+            "ui": 0,
+            "multiple": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "create_options": 0,
+            "save_options": 0,
+            "allow_custom": 0,
+            "search_placeholder": "",
+            "pll_default_value": false
+        },
+        {
+            "key": "field_shti_menu_class",
+            "label": "CSS Class",
+            "name": "menu_class",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shti_menu_nav",
+            "label": "Menu Location",
+            "name": "menu_nav",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "Navigation \/ Offcanvas Navigation icin menu location key",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "35",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "main_menu",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": "",
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shti_menu_link",
+            "label": "Link URL",
+            "name": "menu_link",
+            "aria-label": "",
+            "type": "url",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shti_menu_image",
+            "label": "Image",
+            "name": "menu_image",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "array",
+            "preview_size": "thumbnail",
+            "library": "all",
+            "min_width": 0,
+            "min_height": 0,
+            "min_size": 0,
+            "max_width": 0,
+            "max_height": 0,
+            "max_size": 0,
+            "mime_types": "",
+            "uploader": "",
+            "acfe_thumbnail": 0
+        },
+        {
+            "key": "field_shti_menu_custom",
+            "label": "Custom Content (HTML)",
+            "name": "menu_custom",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "rows": 3,
+            "default_value": "",
+            "new_lines": "",
+            "maxlength": "",
+            "placeholder": "",
+            "acfe_textarea_code": 0,
+            "pll_default_value": ""
+        },
+        {
+            "key": "field_shti_menu_buttons",
+            "label": "Buttons",
+            "name": "menu_buttons",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "layout": "table",
+            "button_label": "Buton Ekle",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "collapsed": "",
+            "acfe_repeater_stylised_button": 0,
+            "sub_fields": [
+                {
+                    "key": "field_shti_btn_label",
+                    "label": "Label",
+                    "name": "label",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": "",
+                    "parent_repeater": "field_shti_menu_buttons"
+                },
+                {
+                    "key": "field_shti_btn_url",
+                    "label": "URL",
+                    "name": "url",
+                    "aria-label": "",
+                    "type": "url",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "35",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "placeholder": "",
+                    "pll_default_value": "",
+                    "parent_repeater": "field_shti_menu_buttons"
+                },
+                {
+                    "key": "field_shti_btn_style",
+                    "label": "CSS Class",
+                    "name": "style",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "btn btn-primary",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": "",
+                    "parent_repeater": "field_shti_menu_buttons"
+                },
+                {
+                    "key": "field_shti_btn_target",
+                    "label": "New Tab",
+                    "name": "target",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "15",
+                        "class": "",
+                        "id": ""
+                    },
+                    "ui": 1,
+                    "default_value": 0,
+                    "message": "",
+                    "ui_on_text": "",
+                    "ui_off_text": "",
+                    "pll_default_value": 0,
+                    "parent_repeater": "field_shti_menu_buttons"
+                }
+            ]
+        },
+        {
+            "key": "field_shti_style_overrides",
+            "label": "Style Overrides",
+            "name": "style_overrides",
+            "aria-label": "",
+            "type": "group",
+            "instructions": "Theme Styles global degerlerini bu item icin override et. Bos birakilirsa global degerler kullanilir.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "layout": "row",
+            "sub_fields": [
+                {
+                    "key": "field_shti_so_icon_color",
+                    "label": "Icon Color",
+                    "name": "icon_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_icon_hover",
+                    "label": "Icon Hover",
+                    "name": "icon_color_hover",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_icon_size",
+                    "label": "Icon Size",
+                    "name": "icon_size",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "10",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "20px",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_dot_color",
+                    "label": "Dot Color",
+                    "name": "icon_dot_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_link_color",
+                    "label": "Link Color",
+                    "name": "link_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_link_hover",
+                    "label": "Link Hover",
+                    "name": "link_color_hover",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_counter_color",
+                    "label": "Counter Color",
+                    "name": "counter_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_counter_bg",
+                    "label": "Counter Bg",
+                    "name": "counter_bg",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                },
+                {
+                    "key": "field_shti_so_toggler_color",
+                    "label": "Toggler Color",
+                    "name": "toggler_color",
+                    "aria-label": "",
+                    "type": "color_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "12",
+                        "class": "",
+                        "id": ""
+                    },
+                    "enable_opacity": 1,
+                    "return_format": "string",
+                    "default_value": "",
+                    "custom_palette_source": "",
+                    "palette_colors": "",
+                    "show_color_wheel": true,
+                    "pll_default_value": ""
+                }
+            ],
+            "acfe_seamless_style": 0,
+            "acfe_group_modal": 0,
+            "acfe_group_modal_close": 0,
+            "acfe_group_modal_button": "",
+            "acfe_group_modal_size": "large"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-cart"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-favorites"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-search"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-search-field"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-messages"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-notifications"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-custom"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-user-menu"
+            }
+        ],
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf\/header-tool-login"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786440000,
+    "acfe_categories": {
+        "block": "Block"
+    }
+}

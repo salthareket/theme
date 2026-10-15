@@ -57,8 +57,14 @@ class NotifyHooks
      */
     public static function register(): void
     {
+        // ── PHP Event Registry — fire() çalışmadan önce event'ler tanımlı olmalı ──
+        self::defineReviewEvents();
+
         // ── Account ──────────────────────────────────────────────────────────
         self::registerAccountHooks();
+
+        // ── Reviews ───────────────────────────────────────────────────────────
+        self::registerReviewHooks();
 
         // ── WooCommerce ───────────────────────────────────────────────────────
         if ( defined( 'ENABLE_ECOMMERCE' ) && ENABLE_ECOMMERCE ) {
@@ -301,5 +307,182 @@ class NotifyHooks
                 'to'        => $to,
             ] );
         }, 10, 3 );
+    }
+
+    // ─── REVIEW EVENTS ───────────────────────────────────────────────────────
+
+    /**
+     * Reviews için PHP event registry tanımları.
+     * NotifyEvent::define() ile kayıt yapılınca admin panelden kural tanımlanabilir
+     * ve Notifications::fire() çağrısında "No rules found" hatası oluşmaz.
+     *
+     * Alert body'leri varsayılan (fallback) içerik sağlar — Notifications admin'den override edilebilir.
+     */
+    private static function defineReviewEvents(): void
+    {
+        if ( ! class_exists( \SaltHareket\Notifications\NotifyEvent::class ) ) return;
+
+        $events = [
+
+            // ── Profil/post'a yeni yorum yapıldı — yorum hedefine bildirim ──────
+            'new-review' => [
+                'label'            => 'New Review',
+                'group'            => 'reviews',
+                'channels'         => [ 'alert' ],
+                'sender'           => '{{user}}',
+                'recipient'        => '{{custom:sh_notify_review_recipient}}',
+                'alert'            => [
+                    'body' => '{{ data.user.display_name }} left you a review{% if data.post %} on "{{ data.post.post_title }}"{% endif %}.',
+                    'url'  => '{% if data.post %}{{ data.post.guid }}{% endif %}',
+                ],
+                'throttle'         => [ 'limit' => 5, 'window' => 3600 ],
+                'user_can_disable' => true,
+            ],
+
+            // ── Yorumun sahibine: yorumu onaylandı ──────────────────────────────
+            'review-approved' => [
+                'label'     => 'Review Approved',
+                'group'     => 'reviews',
+                'channels'  => [ 'alert' ],
+                'sender'    => '{{admin}}',
+                'recipient' => '{{custom:sh_notify_review_recipient}}',
+                'alert'     => [
+                    'body' => 'Your review{% if data.post %} on "{{ data.post.post_title }}"{% endif %} has been approved and is now visible.',
+                    'url'  => '{% if data.post %}{{ data.post.guid }}{% endif %}',
+                ],
+            ],
+
+            // ── Yorumun sahibine: yorumu reddedildi ─────────────────────────────
+            'review-rejected' => [
+                'label'     => 'Review Rejected',
+                'group'     => 'reviews',
+                'channels'  => [ 'alert' ],
+                'sender'    => '{{admin}}',
+                'recipient' => '{{custom:sh_notify_review_recipient}}',
+                'alert'     => [
+                    'body' => 'Your review{% if data.post %} on "{{ data.post.post_title }}"{% endif %} was not approved.',
+                    'url'  => '{% if data.post %}{{ data.post.guid }}{% endif %}',
+                ],
+            ],
+
+            // ── Yorum sahibine: yorumuna yanıt verildi ──────────────────────────
+            'review-replied' => [
+                'label'            => 'Review Replied',
+                'group'            => 'reviews',
+                'channels'         => [ 'alert' ],
+                'sender'           => '{{user}}',
+                'recipient'        => '{{custom:sh_notify_review_recipient}}',
+                'alert'            => [
+                    'body' => '{{ data.user.display_name }} replied to your review{% if data.post %} on "{{ data.post.post_title }}"{% endif %}.',
+                    'url'  => '{% if data.post %}{{ data.post.guid }}{% endif %}',
+                ],
+                'user_can_disable' => true,
+            ],
+
+            // ── Yorum sahibine: yanıt onay bekliyor ─────────────────────────────
+            'review-reply-pending' => [
+                'label'     => 'Review Reply Pending Approval',
+                'group'     => 'reviews',
+                'channels'  => [ 'alert' ],
+                'sender'    => '{{user}}',
+                'recipient' => '{{custom:sh_notify_review_recipient}}',
+                'alert'     => [
+                    'body' => 'A reply to your review is waiting for your approval.',
+                ],
+            ],
+
+            // ── Yoruma reaction geldi (review objesine like/dislike vb.) ─────────
+            'review-reaction' => [
+                'label'            => 'Review Got a Reaction',
+                'group'            => 'reviews',
+                'channels'         => [ 'alert' ],
+                'sender'           => '{{user}}',
+                'recipient'        => '{{custom:sh_notify_review_recipient}}',
+                'alert'            => [
+                    'body' => '{{ data.user.display_name }} reacted to your review{% if data.post %} on "{{ data.post.post_title }}"{% endif %}.',
+                    'url'  => '{% if data.post %}{{ data.post.guid }}{% endif %}',
+                ],
+                'throttle'         => [ 'limit' => 3, 'window' => 3600 ],
+                'user_can_disable' => true,
+            ],
+
+        ];
+
+        foreach ( $events as $slug => $config ) {
+            if ( ! self::isDisabled( $slug ) ) {
+                \SaltHareket\Notifications\NotifyEvent::define( $slug, $config );
+            }
+        }
+
+        // Custom recipient resolver — {{custom:sh_notify_review_recipient}}
+        // $data['recipient'] doğrudan int olarak geçildiğinden bunu array'e çeviriyoruz.
+        if ( ! function_exists( 'sh_notify_review_recipient' ) ) {
+            function sh_notify_review_recipient( array $data ): array {
+                $id = (int) ( $data['recipient'] ?? 0 );
+                return $id > 0 ? [ $id ] : [];
+            }
+        }
+    }
+
+    /**
+     * Reviews app ek hook'ları.
+     * HandlesNotifications trait zaten new-review/approved/replied için Notifications::fire() çağırıyor.
+     * Burada ekstra: admin'in yorumu reddetmesi (transition_comment_status).
+     */
+    private static function registerReviewHooks(): void
+    {
+        /**
+         * Yorum reddedildi.
+         * Reviews app'inde admin yorumu unapprove/spam yaptığında tetiklenir.
+         * HandlesNotifications'da 'rejected' action yoktu — burada WP hook ile yakalıyoruz.
+         */
+        add_action( 'transition_comment_status', function ( string $new_status, string $old_status, \WP_Comment $comment ) {
+            if ( ( $comment->comment_type ?? '' ) !== 'review' ) return;
+            if ( ! in_array( $new_status, [ 'unapproved', 'spam' ], true ) ) return;
+            if ( $old_status === $new_status ) return;
+
+            $author_id = (int) $comment->user_id;
+            if ( $author_id < 1 ) return;
+
+            $author = get_userdata( $author_id );
+            if ( ! $author ) return;
+
+            self::fire( 'review-rejected', [
+                'user'      => $author,
+                'recipient' => $author_id,
+                'post'      => $comment->comment_post_ID ? get_post( $comment->comment_post_ID ) : null,
+                'comment'   => $comment,
+            ] );
+        }, 10, 3 );
+
+        /**
+         * review-reaction event'i — comment objesine reaction eklenince.
+         * ReactionsSettings'te comment type'ı için notify_event tanımlıysa Reactions app kendi fire'ını yapıyor.
+         * Burası sadece yoksa fallback olarak dinliyor.
+         */
+        add_action( 'sh_reaction_added', function ( string $type, int $object_id, string $object_type, int $user_id ) {
+            if ( $object_type !== 'comment' ) return;
+
+            // Reactions app kendi notify_event'ini zaten fire ediyor — sadece boş olanlar için devreye gir
+            $type_config    = \SaltHareket\Reactions\ReactionsSettings::getTypeConfig( $type );
+            $existing_event = $type_config['notify_event'] ?? '';
+            if ( ! empty( $existing_event ) ) return; // Zaten Reactions app handle etti
+
+            $comment = get_comment( $object_id );
+            if ( ! $comment ) return;
+            $owner_id = (int) $comment->user_id;
+            if ( $owner_id < 1 || $owner_id === $user_id ) return;
+
+            $actor = get_userdata( $user_id );
+            if ( ! $actor ) return;
+
+            self::fire( 'review-reaction', [
+                'user'      => $actor,
+                'recipient' => $owner_id,
+                'post'      => $comment->comment_post_ID ? get_post( $comment->comment_post_ID ) : null,
+                'reaction'  => $type,
+                'comment'   => $comment,
+            ] );
+        }, 10, 4 );
     }
 }

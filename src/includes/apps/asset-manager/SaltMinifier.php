@@ -26,8 +26,8 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
  */
 class SaltMinifier{
     
-    public $enable_production = false;
-    public $is_development = true; // in localhost
+    public $enable_development = false;
+    public $is_local = true; // in localhost
     public $rules = [];
 
     public $css_folder;
@@ -44,11 +44,18 @@ class SaltMinifier{
     public $main_js_files = [];
     public $theme_js_files = [];
 
-    function __construct($enable_production = false, $is_development = true){
-        $this->enable_production = $enable_production;
-        $this->is_development = $is_development;
+    function __construct($enable_development = false, $is_local = true){
+        $this->enable_development = $enable_development;
+        $this->is_local = $is_local;
 
-        $this->rules = compile_files_config();
+        // compile_files_config() global fonksiyon — namespace içinden \ prefix gerekli.
+        // minify-rules.php sadece ENABLE_DEVELOPMENT=true iken auto-include ediliyor,
+        // development modda AJAX compile çağrıldığında henüz yüklenmemiş olabilir.
+        if ( ! function_exists( 'compile_files_config' ) && defined( 'SH_INCLUDES_PATH' ) ) {
+            require_once SH_INCLUDES_PATH . 'minify-rules.php';
+        }
+
+        $this->rules = \compile_files_config();
         $this->css_folder = $this->rules["config"]["css"];
         $this->js_folder = $this->rules["config"]["js"];
         $this->js_uri = $this->rules["config"]["js_uri"];
@@ -190,19 +197,19 @@ class SaltMinifier{
     }
 
     public function js(){
-        if ($this->rules["js"]["jquery"] && $this->is_development){
+        if ($this->rules["js"]["jquery"] && $this->is_local){
             $this->minify_js($this->rules["js"]["jquery"], $this->output["jquery.min.js"]);
         }
         if ($this->rules["js"]["header"]){
             $this->minify_js($this->rules["js"]["header"], $this->output["header.min.js"]);
         }
-        if ($this->is_development){
+        if ($this->is_local){
             $this->locale_js();
         }
         $this->functions_js();
         $this->pre_js();
         $this->main_js();
-        if ($this->is_development){
+        if ($this->is_local){
             $this->plugins();
         }
         $this->mergeJs([
@@ -523,7 +530,7 @@ class SaltMinifier{
     public function plugin_settings(){
         $this->set_plugin_versions();
 
-        if($this->assets_check && $this->is_development){
+        if($this->assets_check && $this->is_local){
             foreach($this->assets_check as $css){
                 $this->plugin_assets($css);
             }
@@ -925,6 +932,83 @@ class SaltMinifier{
 
     public function init(){
         $this->css();
-        return $this->js();
+        $result = $this->js();
+
+        // ── SCSS SVG Tarama + Otomatik Üretim ────────────────────────────────
+        // SCSS dosyalarındaki mask-image: url('{svg_path}/{style}/{name}.svg') pattern'lerini tara
+        // Bulunan ikonları FaIconManager ile fiziksel SVG dosyaları olarak üret
+        $this->generateScssUsedSvgs();
+
+        return $result;
     }
+
+    /**
+     * SCSS dosyalarındaki mask-image SVG referanslarını tarar ve üretir.
+     * Pattern: url('.../{style}/{name}.svg') veya url(".../{style}/{name}.svg")
+     * Stil: solid | regular | light | brands
+     */
+    private function generateScssUsedSvgs(): void {
+        if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) {
+            $fa_file = defined('SH_CLASSES_PATH') ? SH_CLASSES_PATH . 'class.fa-icon-manager.php' : '';
+            if ( $fa_file && file_exists( $fa_file ) ) {
+                require_once $fa_file;
+            }
+        }
+        if ( ! class_exists( 'SaltHareket\FaIconManager' ) ) return;
+
+        // SCSS kaynak klasörü
+        $scss_dir = get_stylesheet_directory() . '/vendor/salthareket/theme/src/static/scss/';
+        if ( ! is_dir( $scss_dir ) ) return;
+
+        // Tüm .scss dosyalarını recursive tara
+        $scss_files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator( $scss_dir, \RecursiveDirectoryIterator::SKIP_DOTS )
+        );
+
+        $valid_styles = [ 'solid', 'regular', 'light', 'brands' ];
+        $found = [];
+
+        foreach ( $scss_files as $file ) {
+            if ( $file->getExtension() !== 'scss' ) continue;
+            $content = @file_get_contents( $file->getRealPath() );
+            if ( ! $content ) continue;
+
+            // Pattern 1: @include svgIcon('icon-name', 'style')
+            if ( preg_match_all(
+                "/@include\s+svgIcon\s*\(\s*['\"]([a-z0-9_-]+)['\"]\s*,\s*['\"](" . implode('|', $valid_styles) . ")['\"]/i",
+                $content,
+                $matches,
+                PREG_SET_ORDER
+            ) ) {
+                foreach ( $matches as $m ) {
+                    $name  = strtolower( $m[1] );
+                    $style = strtolower( $m[2] );
+                    $found[ $style . '/' . $name ] = [ 'style' => $style, 'name' => $name ];
+                }
+            }
+
+            // Pattern 2: url('{svg_path}/{style}/{name}.svg') — eski format için fallback
+            if ( preg_match_all(
+                "/url\s*\(\s*['\"]?[^'\"]*\/(" . implode('|', $valid_styles) . ")\/([a-z0-9_-]+)\.svg['\"]?\s*\)/i",
+                $content,
+                $matches2,
+                PREG_SET_ORDER
+            ) ) {
+                foreach ( $matches2 as $m ) {
+                    $style = strtolower( $m[1] );
+                    $name  = strtolower( $m[2] );
+                    $found[ $style . '/' . $name ] = [ 'style' => $style, 'name' => $name ];
+                }
+            }
+        }
+
+        if ( empty( $found ) ) return;
+
+        $result = \SaltHareket\FaIconManager::generateAll( array_values( $found ) );
+
+        if ( defined('ENABLE_LOGS') && ENABLE_LOGS ) {
+            error_log( '[SaltMinifier] SCSS SVG: generated=' . $result['generated'] . ' skipped=' . $result['skipped'] . ' failed=' . $result['failed'] );
+        }
+    }
+
 }

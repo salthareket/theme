@@ -15,7 +15,6 @@ window.addEventListener('popstate', function (event) {
         if (offcanvas) offcanvas.hide();
     }
 });
-
 const handleHashScroll = () => {
     const hash = window.location.hash;
     if (hash && typeof root !== "undefined" && root.ui && root.ui.scroll_to) {
@@ -44,6 +43,20 @@ const initHeaderAffix = () => {
     const headerEl = document.getElementById("header");
     if (!headerEl) return;
 
+    // bottom-start modu: data-affix-offset = body.scrollHeight - header.offsetHeight
+    // Bu deger updateHeaderOffset() ile yaziliyor ama requestAnimationFrame icinde (async)
+    // ScrollPosStyler.init() oncesinde bu degerin yazilmis olmasi gerekiyor
+    // Bu yuzden bottom-start icin offset'i burada sync hesaplayip yaziyoruz
+    if (headerEl.classList.contains("fixed-bottom-start")) {
+        const h = headerEl.offsetHeight || 0;
+        // CSS: top: calc(100vh - header-height) — viewport bazli
+        // Offset = viewport yuksekligi - header yuksekligi
+        // Bu kadar scroll yapilinca header viewport disina cikiyor, affix olmali
+        // Lenis aktifse window.lenis.scroll kullan, yoksa window.pageYOffset
+        const offset = Math.max(1, window.innerHeight - h);
+        headerEl.setAttribute("data-affix-offset", Math.round(offset));
+    }
+
     // ScrollPosStyler Init
     if (window["ScrollPosStyler"] && !headerEl.classList.contains("affix")) {
         ScrollPosStyler.init({
@@ -56,7 +69,6 @@ const initHeaderAffix = () => {
     }
 
     // Sayfa ilk yüklendiğinde mevcut scroll pozisyonuna göre header'ı düzelt
-    // Manuel kontrolü sadece ScrollPosStyler'ın yetişemediği ilk an için yapıyoruz
     const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
     const headerHeight = (typeof root !== "undefined") ? root.get_css_var("header-height") : 0;
 
@@ -148,10 +160,24 @@ window.withMethods = function(callback) {
     });
 };
 
+/**
+ * init_nav_equal — AJAX sonrasi .nav-equal elementlerini esitler.
+ * ajax-init-manager.js tarafindan cagirilir.
+ * @param {HTMLElement} context - AJAX ile yuklenen container
+ */
+function init_nav_equal(context) {
+    const $navEqual = context ? $(context).find('.nav-equal').addBack('.nav-equal') : $('.nav-equal');
+    if (!$navEqual.length) return;
+
+    $navEqual.sameSize(true, undefined, true);
+    navbar_visibility();
+
+    // init tamamlandi olarak isaretle
+    $navEqual.addClass('nav-equal-initialized');
+}
 function init_functions($plugins_req = []){
 	root.ui.scroll_dedect();
 	//function_secure("", "root.ui.scroll_dedect", []);
-
 
         if($('.nav-equal').length > 0){
 	        const runSameSizeAndVisibility = () => {
@@ -161,6 +187,9 @@ function init_functions($plugins_req = []){
 			    
 			    // 2. Ardından Görünürlük Kontrolünü Yap (Eşitlenmiş sütunları d-none yapmayacak şekilde)
 			    navbar_visibility();
+
+			    // init tamamlandi — AJAX initMap'in tekrar calismamasi icin
+			    $('.nav-equal').addClass('nav-equal-initialized');
 			};
 			runSameSizeAndVisibility();
 			let sameSizeRafId = null;
@@ -172,7 +201,6 @@ function init_functions($plugins_req = []){
 			  });
 			});
 		}
-
         document.querySelectorAll("a[href='#']").forEach(el => {
 		  el.addEventListener("click", e => e.preventDefault());
 		});
@@ -341,9 +369,472 @@ $( document ).ready(function() {
 		/*
 		/*******************************************/
 
+		/**
+		 * SOURCE_REGISTRY — yalnızca convention'dan SAPAN source'lar burada tanımlanır.
+		 * Kayıtta olmayan source convention'a düşer: method = 'get_{source}', vars = { view }.
+		 *
+		 *   handler(fn)  → tamamen özel yükleme (cart: window.cart / WC entegrasyonu).
+		 *   method(str)  → ajax method adı (convention 'get_{source}' yerine).
+		 *   vars(fn)     → ajax vars üretici: ($container, view, $trigger) => {...}.
+		 *
+		 * Yeni source eklemek için: methods/user/get_{source}/index.php +
+		 * partials/source/{source}/{archive,tease}.twig yeterli — buraya EKLEME GEREKMEZ.
+		 */
+		window.SOURCE_REGISTRY = {
+		    cart: {
+		        handler: function ($container, view) {
+		            // enable_ecommerce false ise WooCommerce devre dışı
+		            if (typeof ajax_request_vars !== 'undefined' && ajax_request_vars.enable_ecommerce === false) {
+		                $container.removeClass('loading-process')
+		                    .find('.load-container').html('<p style="text-align:center;padding:20px;color:#999;font-size:13px">🛒 Cart service is currently disabled.</p>');
+		                return;
+		            }
+		            if (window.cart) { window.cart.get($container, view); }
+		            else { $container.removeClass('loading-process'); }
+		        }
+		    },
+		    // favorites = reaction:favorite kısayolu. Filtre attribute'ları $trigger'dan.
+		    favorites: {
+		        method: 'get_reactions',
+		        vars: function ($container, view, $trigger) {
+		            var v = { reaction_type: 'favorite', object_type: 'post', view: view, posts_per_page: 12 };
+		            _applyReactionFilters(v, $container, $trigger);
+		            return v;
+		        }
+		    },
+		    notifications: {
+		        method: 'get_notifications',
+		        vars: function ($c, view) { return { view: view, set_seen: true, order: 'desc', posts_per_page: 15 }; }
+		    },
+		    messages: {
+		        method: 'get_messages',
+		        vars: function ($c, view) { return { view: view, order: 'desc', posts_per_page: 15 }; }
+		    }
+		    // reviews: KAYIT YOK → convention (get_reviews, { view }).
+		    // reaction:*: aşağıdaki reaction dalı (filtre vars $trigger data-*'tan).
+		};
+
+		/**
+		 * _applyReactionFilters — reaction vars'ına post_type/role/taxonomy filtrelerini ekler.
+		 */
+		function _applyReactionFilters(vars, $container, $trigger) {
+		    var $src      = ($trigger && $trigger.length) ? $trigger : $container;
+		    var postType  = $src.attr('data-post-type')    || $src.data('post-type')    || '';
+		    var commentType = $src.attr('data-comment-type') || $src.data('comment-type') || '';
+		    var role      = $src.attr('data-role')         || $src.data('role')         || '';
+		    var taxonomy  = $src.attr('data-taxonomy')     || $src.data('taxonomy')     || '';
+		    if (postType)    { vars.post_type    = postType; }
+		    if (commentType) { vars.comment_type = commentType; }
+		    if (role)        { vars.role         = role; }
+		    if (taxonomy)    { vars.taxonomy     = taxonomy; }
+		    return vars;
+		}
+
+		/**
+		 * loadSourceContent — TÜM view'lar (offcanvas/modal/dropdown) için tek yükleme yolu.
+		 * SOURCE_REGISTRY istisnalarını çözer; yoksa convention'a düşer.
+		 */
+		function loadSourceContent($container, source, view_type, $parent) {
+		    view_type = view_type || 'offcanvas';
+		    $parent   = $parent  || $container;
+		    if (!source || !$container || !$container.length) return;
+
+		    $container.addClass('loading-process');
+
+		    // reaction:* / reaction-* ailesi — convention + filtre vars ($trigger data-*).
+		    if (source.indexOf('reaction:') === 0 || source.indexOf('reaction-') === 0) {
+		        var reactionType = source.replace(/^reaction[:-]/, '');
+		        var objType      = $container.data('object-type') || ($parent && $parent.data('object-type')) || 'post';
+		        var rxVars       = { reaction_type: reactionType, object_type: objType, view: view_type };
+		        _applyReactionFilters(rxVars, $container, $parent);
+		        return _sourceAjax($container, 'get_reactions', rxVars, view_type, 'reaction:' + reactionType);
+		    }
+
+		    var entry = window.SOURCE_REGISTRY[source] || null;
+
+		    // Özel handler (cart) — WC entegrasyonu vb.
+		    if (entry && typeof entry.handler === 'function') {
+		        return entry.handler($container, view_type, $parent);
+		    }
+
+		    // Generic: kayıt varsa method/vars, yoksa convention (get_{source}, { view }).
+		    var method = (entry && entry.method) || ('get_' + source);
+		    var vars   = (entry && typeof entry.vars === 'function')
+		        ? entry.vars($container, view_type, $parent)
+		        : { view: view_type };
+
+		    // favorites badge'i reaction:favorite data-type'ına yazılır.
+		    var badgeSource = (source === 'favorites') ? 'reaction:favorite' : source;
+		    _sourceAjax($container, method, vars, view_type, badgeSource);
+		}
+
+		/**
+		 * _sourceAjax — standart ajax_query + _renderSourceResult + badge güncelleme (tek nokta).
+		 * source verilirse response.data'dan badge otomatik güncellenir.
+		 */
+		function _sourceAjax($container, method, vars, view_type, source) {
+		    var q = new ajax_query();
+		    q.method = method;
+		    q.vars   = vars;
+		    q.done   = function (res) {
+		        // login_required intercept — response_view() bypass et, container'a prompt render et
+		        if (res && res.login_required && res.html) {
+		            _renderSourceResult($container, res, view_type);
+		            return;
+		        }
+		        if (res && res.data && source) { updateSourceBadge(source, res.data); }
+		        if (res && res.html) { _renderSourceResult($container, res, view_type); }
+		        else { $container.removeClass('loading-process'); }
+		    };
+		    q.request();
+		}
+
+		/**
+		 * updateSourceBadge — bir source'un badge sayacını response.data'dan günceller.
+		 * Badge hedefi: [data-type="{source}"] .notification-count (reaction için reaction-{type}).
+		 * unread_count varsa onu, yoksa count'u kullanır (badge = okunmamış/toplam).
+		 *
+		 * @param {string} source  cart | notifications | messages | reviews | reaction:{type}
+		 * @param {object} data    response.data ({ count, unread_count, ... })
+		 */
+		window.updateSourceBadge = function updateSourceBadge(source, data) {
+		    if (!source || !data) return;
+		    var dataType = source.indexOf('reaction:') === 0
+		        ? 'reaction-' + source.slice('reaction:'.length)
+		        : source;
+		    var count = (typeof data.unread_count !== 'undefined' && data.unread_count !== null)
+		        ? parseInt(data.unread_count, 10)
+		        : parseInt(data.count, 10);
+		    if (isNaN(count)) return;
+
+		    $('[data-type="' + dataType + '"]').each(function () {
+		        var $badge = $(this).find('.notification-count');
+		        if (!$badge.length) return;
+		        $badge.text(count);
+		        $badge.toggleClass('d-none', count <= 0);
+		    });
+		};
+
+		/**
+		 * _renderSourceResult — source ajax response'ını container'a yazar.
+		 */
+		window._renderSourceResult = function _renderSourceResult($container, res, view_type) {
+		    var $html        = $('<div class="temp">' + res.html + '</div>');
+		    var bodyKey      = view_type + '-body';
+		    var footKey      = view_type + '-footer';
+		    var $bodyContent = $html.find('.' + bodyKey);
+		    var $footContent = $html.find('.' + footKey);
+
+		    log('[_renderSourceResult] view_type=' + view_type, 'info');
+		    log('[_renderSourceResult] $container classes=' + $container.attr('class'), 'info');
+		    log('[_renderSourceResult] bodyKey=' + bodyKey + ' found=' + $bodyContent.length, 'info');
+		    log('[_renderSourceResult] footKey=' + footKey + ' found=' + $footContent.length, 'info');
+		    log('[_renderSourceResult] res.html=' + (res.html ? res.html.substring(0,200) : 'EMPTY'), 'info');
+
+		    if ( ! $bodyContent.length ) {
+		        // Eski format fallback
+		        log('[_renderSourceResult] FALLBACK — bodyKey not found, writing raw html', 'warn');
+		        $container.html( res.html ).removeClass('loading-process');
+		        return;
+		    }
+
+		    if ( view_type === 'modal' ) {
+		        // Modal: $container = modal-content veya içindeki bir element
+		        var $modalContent = $container.hasClass('modal-content')
+		            ? $container
+		            : $container.closest('.modal-content');
+		        if ( ! $modalContent.length ) {
+		            $modalContent = $container.closest('.bootbox').find('.modal-content');
+		        }
+		        if ( $modalContent.length ) {
+		            // modal-body içeriğini güncelle — kendisini değil içini
+		            var $modalBody = $modalContent.find('.modal-body');
+		            $modalBody.html( $bodyContent.html() ).removeClass('loading-process');
+
+		            // Source pagination — modal-body içindeki source-container için
+		            setTimeout(function() { _initSourcePagination($modalBody, 'modal'); }, 50);
+
+		            // modal-footer: varsa güncelle, yoksa ekle
+		            var $existingFoot = $modalContent.find('.modal-footer');
+		            if ( $footContent.length ) {
+		                if ( $existingFoot.length ) {
+		                    $existingFoot.html( $footContent.html() ).removeClass('d-none');
+		                } else {
+		                    $modalContent.append( '<div class="modal-footer">' + $footContent.html() + '</div>' );
+		                }
+		            } else {
+		                $existingFoot.addClass('d-none');
+		            }
+		        } else {
+		            $container.html( $bodyContent.html() ).removeClass('loading-process');
+		        }
+		    } else {
+		        // Offcanvas / Dropdown
+		        // Kural: response HTML'deki wrapper ({view}-body, {view}-footer) hiçbir zaman
+		        // DOM'a tekrar yazılmaz. Sadece İÇERİĞİ alınır ve mevcut wrapper'a eklenir.
+		        // Response wrapper'ında extra class'lar varsa → mevcut DOM wrapper'ına eklenir.
+
+		        // ── Body ─────────────────────────────────────────────────────
+		        // DOM'da hedef {view}-body'yi bul
+		        var $targetBody = $container.hasClass(bodyKey)
+		            ? $container
+		            : $container.closest('.offcanvas, .dropdown-menu').find('.' + bodyKey);
+
+		        log('[_renderSourceResult] $targetBody found=' + $targetBody.length + ' classes=' + ($targetBody.length ? $targetBody.attr('class') : 'N/A'), 'info');
+
+		        if ( ! $targetBody.length ) {
+		            // Fallback: hedef yok, direkt yaz
+		            log('[_renderSourceResult] targetBody not found, fallback direct write', 'warn');
+		            $container.html( $bodyContent.html() ).removeClass('loading-process');
+		        } else {
+		            // Response wrapper'ındaki extra class'ları DOM wrapper'ına ekle
+		            var extraBodyClasses = $bodyContent[0].className
+		                .replace(bodyKey, '').trim();
+		            if ( extraBodyClasses ) {
+		                log('[_renderSourceResult] adding extra classes to targetBody: ' + extraBodyClasses, 'info');
+		                $targetBody.addClass(extraBodyClasses);
+		            }
+		            // İçeriği yaz
+		            log('[_renderSourceResult] writing to targetBody, content length=' + $bodyContent.html().length, 'info');
+		            $targetBody.html( $bodyContent.html() ).removeClass('loading-process');
+
+		            // ajax_paginate re-init — yazılan içerikte .ajax-paginate varsa init et
+		            if ( typeof ajax_paginate === 'function' ) {
+		                setTimeout(function() { ajax_paginate(); }, 50);
+		            }
+
+		            // Source pagination — source-container için scroll + load-more
+		            setTimeout(function() { _initSourcePagination($targetBody, view_type); }, 50);
+		        }
+
+		        // ── Footer ────────────────────────────────────────────────────
+		        var $targetFoot = $container
+		            .closest('.offcanvas, .dropdown-menu')
+		            .find('.' + footKey);
+		        if ( $targetFoot.length ) {
+		            if ( $footContent.length ) {
+		                // Extra class'ları ekle
+		                var extraFootClasses = $footContent[0].className
+		                    .replace(footKey, '').replace('d-none', '').trim();
+		                if ( extraFootClasses ) {
+		                    $targetFoot.addClass(extraFootClasses);
+		                }
+		                $targetFoot.html( $footContent.html() ).removeClass('d-none');
+		            } else {
+		                $targetFoot.addClass('d-none');
+		            }
+		        }
+		    }
+		}
+
+		/**
+		 * _applyCustomStyle — data-*-style attribute'undaki CSS variable string'ini
+		 * hedef element'in inline style'ına uygular. Cascade'de root.css'i override eder.
+		 *
+		 * @param {jQuery} $el    - style uygulanacak element (modal, offcanvas, dropdown-menu vb.)
+		 * @param {string} vars   - "--modal-bg:#1a1a1a;--modal-border-radius:12px;" formatında string
+		 */
+		window._applyCustomStyle = function _applyCustomStyle($el, vars) {
+		    if ( ! $el || ! $el.length || ! vars ) return;
+		    var hasBg = false;
+		    vars.split(';').forEach(function(pair) {
+		        pair = pair.trim();
+		        if ( ! pair ) return;
+		        var idx = pair.indexOf(':');
+		        if ( idx === -1 ) return;
+		        var prop = pair.substring(0, idx).trim();
+		        var val  = pair.substring(idx + 1).trim();
+		        if ( prop && val ) {
+		            $el[0].style.setProperty(prop, val);
+		            // bg set ediliyorsa gradient/image'ı temizle
+		            if ( prop === '--modal-bg' || prop === '--offcanvas-bg' ) hasBg = true;
+		        }
+		    });
+		    // bg override varsa gradient/image'ı da temizle ki bg rengi görünsün
+		    if ( hasBg ) {
+		        $el[0].style.setProperty('--modal-bg-gradient', 'none');
+		        $el[0].style.setProperty('--modal-bg-image', 'none');
+		        $el[0].style.setProperty('--offcanvas-bg-gradient', 'none');
+		        $el[0].style.setProperty('--offcanvas-bg-image', 'none');
+		    }
+		}
+
+		/**
+		 * _initSourcePagination — source-container içindeki pagination'ı başlatır.
+		 * Scroll-based: container sonuna yaklaşınca otomatik yükler.
+		 * Button: source-load-more-btn tıklanınca yükler.
+		 */
+		function _initSourcePagination($body, view_type) {
+		    var $container = $body.find('.source-container');
+		    if ( ! $container.length ) return;
+
+		    function loadNextPage() {
+		        var page      = parseInt( $container.data('page') ) || 1;
+		        var pageTotal = parseInt( $container.data('page-total') ) || 1;
+		        var method    = $container.data('source');
+		        var view      = $container.data('view') || view_type;
+		        var ppp       = parseInt( $container.data('posts-per-page') ) || 15;
+		        var nextPage  = page + 1;
+
+		        if ( nextPage > pageTotal ) return; // son sayfa
+
+		        var $btn = $container.find('.source-load-more-btn');
+		        if ( $btn.hasClass('loading') || $container.hasClass('src-loading') ) return; // zaten yukleniyor
+		        $btn.addClass('loading disabled');
+
+		        // Alt loading gostergesi — scroll ile yuklemede buton gizli oldugu icin
+		        // liste sonuna tema loader'i (.loading-inline) ekle; icerik gelince kaldirilir.
+		        $container.addClass('src-loading');
+		        var $loader = $container.find('.source-loading');
+		        if ( ! $loader.length ) {
+		            $loader = $('<div class="source-loading loading-inline loading-inline-sm" role="status" aria-live="polite"></div>');
+		            $container.find('.source-list').after( $loader );
+		        }
+		        $loader.removeClass('d-none');
+
+		        var methodMap = {
+		            'notifications':     'get_notifications',
+		            'messages':          'get_messages',
+		            'reviews':           'get_reviews',
+		            'cart':              'get_cart',
+		            'reaction:favorite': 'get_reactions',
+		            'reaction:like':     'get_reactions',
+		            'reaction:bookmark': 'get_reactions',
+		            'reaction:follow':   'get_reactions',
+		            'reaction:clap':     'get_reactions',
+		        };
+		        var ajaxMethod = methodMap[method] || ( method.indexOf('reaction:') === 0 ? 'get_reactions' : 'get_' + method );
+
+		        var q = new ajax_query();
+		        q.method = ajaxMethod;
+		        q.vars   = { view: view, page: nextPage, posts_per_page: ppp, order: 'desc', set_seen: true };
+
+		        // reactions için ek parametreler
+		        if ( method.indexOf('reaction:') === 0 ) {
+		            q.vars.reaction_type = method.replace('reaction:', '');
+		            q.vars.object_type   = $container.data('object-type') || 'post';
+		            var _pt  = $container.data('post-type')  || $container.closest('[data-post-type]').data('post-type')   || '';
+		            var _rl  = $container.data('role')       || $container.closest('[data-role]').data('role')             || '';
+		            var _tx  = $container.data('taxonomy')   || $container.closest('[data-taxonomy]').data('taxonomy')     || '';
+		            if (_pt) q.vars.post_type = _pt;
+		            if (_rl) q.vars.role      = _rl;
+		            if (_tx) q.vars.taxonomy  = _tx;
+		        }
+		        q.done   = function(res) {
+		            // Loading gostergesini kaldir (basari/hata farketmez).
+		            $container.removeClass('src-loading');
+		            $container.find('.source-loading').remove();
+
+		            if ( res && res.html ) {
+		                // Sadece <li> item'ları append et
+		                var $temp = $('<div>' + res.html + '</div>');
+		                var $items = $temp.find('.source-list li');
+		                if ( $items.length ) {
+		                    $container.find('.source-list').append( $items );
+		                }
+
+		                // data-page güncelle
+		                $container.data('page', nextPage);
+
+		                // load-more butonu güncelle
+		                var newTotal = parseInt( (res.data && res.data.page_total) ) || pageTotal;
+		                $container.data('page-total', newTotal);
+
+		                if ( nextPage >= newTotal ) {
+		                    $container.find('.source-load-more').remove();
+		                } else {
+		                    $btn.data('next-page', nextPage + 1)
+		                        .removeClass('loading disabled');
+		                }
+		            } else {
+		                $btn.removeClass('loading disabled');
+		            }
+		        };
+		        q.request();
+		    }
+
+		    // ── Load-more button ───────────────────────────────────────────
+		    $body.off('click.src-paginate').on('click.src-paginate', '.source-load-more-btn', function(e) {
+		        e.preventDefault();
+		        loadNextPage();
+		    });
+
+		    // ── Scroll-based ───────────────────────────────────────────────
+		    // Modal: .modal-dialog-scrollable varsa modal-body scroll eder,
+		    //        yoksa .modal wrapper (overflow-y: auto) scroll eder.
+		    // Offcanvas/Dropdown: $body doğrudan scroll eder.
+		    var $scrollTarget;
+		    if ( view_type === 'modal' ) {
+		        var $modalDialog = $body.closest('.modal-dialog');
+		        if ( $modalDialog.hasClass('modal-dialog-scrollable') ) {
+		            $scrollTarget = $body; // modal-body scrolls
+		        } else {
+		            $scrollTarget = $body.closest('.modal'); // modal itself scrolls
+		        }
+		    } else {
+		        $scrollTarget = $body;
+		    }
+
+		    var scrollEl = $scrollTarget[0];
+
+		    function _onSrcScroll() {
+		        var bottom = scrollEl.scrollTop + scrollEl.clientHeight;
+		        var total  = scrollEl.scrollHeight;
+		        if ( total - bottom <= 200 ) { loadNextPage(); }
+		    }
+		    if ( scrollEl._srcPaginate ) scrollEl.removeEventListener('scroll', scrollEl._srcPaginate, true);
+		    scrollEl._srcPaginate = _onSrcScroll;
+		    scrollEl.addEventListener('scroll', _onSrcScroll, true);
+
+		    // Offcanvas: parent .offcanvas da dinle (capture=true)
+		    if ( view_type === 'offcanvas' ) {
+		        var $offcanvas = $body.closest('.offcanvas');
+		        if ( $offcanvas.length ) {
+		            var ocEl = $offcanvas[0];
+		            function _onOcScroll() {
+		                var bottom = ocEl.scrollTop + ocEl.clientHeight;
+		                var total  = ocEl.scrollHeight;
+		                if ( total - bottom <= 200 ) { loadNextPage(); }
+		            }
+		            if ( ocEl._srcPaginate ) ocEl.removeEventListener('scroll', ocEl._srcPaginate, true);
+		            ocEl._srcPaginate = _onOcScroll;
+		            ocEl.addEventListener('scroll', _onOcScroll, true);
+		        }
+		    }
+		}
+
+		// Dropdown'u KESIN kapat — Bootstrap state'i (hover ile) senkronsuz olabildiginden
+		// hem menu hem parent'tan 'show' temizlenir, aria-expanded false, backdrop (body class)
+		// kaldirilir, Bootstrap instance da hide edilir (varsa). Tek dogru kapatma noktasi.
+		function _forceCloseDropdown($wrap) {
+		    if (!$wrap || !$wrap.length) return;
+		    var $toggle = $wrap.find('[data-bs-toggle="dropdown"], .dropdown-toggle').first();
+		    var $menu   = $wrap.find('.dropdown-menu').first();
+		    $wrap.removeClass('show');
+		    $menu.removeClass('show').removeAttr('style'); // Popper inline style de temizlensin
+		    if ($toggle.length) $toggle.attr('aria-expanded', 'false');
+		    // Backdrop / body state
+		    document.body.classList.remove('notifications-open');
+		    $wrap.parent().removeClass('active');
+		    $wrap.trigger('hidden.bs.dropdown');
+		}
+		window._forceCloseDropdown = _forceCloseDropdown;
+
 		function bs_events_dropdown() {
 		    const _this = this;
 		    const body = document.body;
+
+		    // Dis alana tiklama → acik hover dropdown'lari kapat (Bootstrap auto-close senkronsuz
+		    // state'te calismayabildiginden elle garanti).
+		    $(document).on('click.shDropdownOutside', function (e) {
+		        var $openHover = $('.dropdown-hover.show, .dropdown-hover .dropdown-menu.show').closest('.dropdown-hover');
+		        if (!$openHover.length) return;
+		        $openHover.each(function () {
+		            if (!$(this).is(e.target) && $(this).has(e.target).length === 0) {
+		                _forceCloseDropdown($(this));
+		            }
+		        });
+		    });
 
 		    // 1️⃣ Global Listeners (Delegasyon ile tek merkezden yönetim)
 		    $(document)
@@ -355,44 +846,46 @@ $( document ).ready(function() {
 		        // UI Durumları
 		        $parent.parent().addClass('active');
 		        body.classList.add('notifications-open');
-
 		        // Search açıksa kapat (Native API kullanımı)
 		        const openSearch = document.querySelector('.collapse-search.show');
 		        if (openSearch) {
 		            bootstrap.Collapse.getOrCreateInstance(openSearch).hide();
 		        }
 
-		        // --- Veri Yükleme (Switch-Case ile daha temiz) ---
-		        if ($container.length) {
-		            switch(type) {
-		                case 'favorites':
-		                    handle_favorites_load($parent, $container, "dropdown");
-		                    break;
-		                case 'messages':
-		                    if (window.messages) {
-		                        $container.addClass('loading-process');
-		                        window.messages.get($container, "dropdown");
-		                    }
-		                    break;
-		                case 'cart':
-		                    if (window.cart) {
-		                        $container.addClass('loading-process');
-		                        window.cart.get($container, "dropdown");
-		                    }
-		                    break;
-		                case 'notifications':
-		                    $container.addClass('loading-process');
-		                    var nQuery = new ajax_query();
-		                    nQuery.method = "get_notifications";
-		                    nQuery.vars = { view: "dropdown" };
-		                    nQuery.done = function(res) {
-		                        if (res && res.html) {
-		                            $container.html(res.html).removeClass("loading-process");
+		        // Lenis — dropdown scrollable body'sinde native scroll çalışsın
+		        const scrollableEl = $parent.find('.dropdown-body.scrollable')[0];
+		        if (scrollableEl && window.lenis) {
+		            scrollableEl.addEventListener('wheel', function(e) {
+		                e.stopPropagation();
+		            }, { passive: true });
+		            // Lenis'i dropdown açıkken durdurma — sadece event propagation engelle
+		        }
+		        // (slinky DOM'a geç eklendi ya da gizliyken init edildi)
+		        if ( typeof init_slinky === 'function' ) {
+		            setTimeout(function() {
+		                $parent.find('.slinky-menu').each(function() {
+		                    // Token varsa zaten init edilmiş — atla
+		                    if ( !$(this).hasClass('slinky-menu-init') ) {
+		                        init_slinky();
+		                    } else {
+		                        // Init edilmiş ama gizliyken oluştu — height'i düzelt
+		                        var sl = $(this).data('slinky');
+		                        if (sl && sl.menu) {
+		                            sl.menu.css('height', '');
+		                            sl.menu.find('ul').first().css('height', '');
 		                        }
-		                    };
-		                    nQuery.request();
-		                    break;
-		            }
+		                    }
+		                });
+		            }, 50);
+		        }
+
+		        // --- Veri Yükleme — loadSourceContent ile merkezi yönetim ---
+		        if ($container.length && type) {
+		            // Dropdown için $parent = .dropdown-notifications div — reaction filter data-* yok.
+		            // Trigger <a> (data-bs-toggle=dropdown olan ebeveyn <li>'nin içindeki) data-*'ı taşır.
+		            var $dropTrigger = $parent.find('[data-type]').first();
+		            if (!$dropTrigger.length) $dropTrigger = $parent.closest('li[data-type]').first();
+		            loadSourceContent($container, type, 'dropdown', $dropTrigger.length ? $dropTrigger : $parent);
 		        }
 		    })
 		    .on('hidden.bs.dropdown', '.dropdown-notifications', function () {
@@ -415,53 +908,112 @@ $( document ).ready(function() {
 		            $toggle.html(`${$link.html()} <span class="caret"></span>`);
 		        }
 		    })
-		    // 3️⃣ Manuel Dismiss
+		    // 3️⃣ Manuel Dismiss (close butonu)
 		    .on('click', '[data-bs-dismiss="dropdown"]', function (e) {
-		        const $dropdown = $(this).closest('.dropdown').find('[data-bs-toggle="dropdown"]');
-		        if ($dropdown.length) {
-		            bootstrap.Dropdown.getOrCreateInstance($dropdown[0]).hide();
-		        }
+		        e.preventDefault();
+		        _forceCloseDropdown($(this).closest('.dropdown'));
 		    });
 
-		    // 4️⃣ Dropdown Hover (Native CSS alternatifi ama JS lazımsa en hızlısı bu)
-		    // Hover'da class eklemek yerine Bootstrap API'sini tetiklemek daha sağlıklıdır
-		    $('.dropdown-hover').on('mouseenter', function() {
-		        const $toggle = $(this).find('[data-bs-toggle="dropdown"]');
-		        if ($toggle.length) {
-		            bootstrap.Dropdown.getOrCreateInstance($toggle[0]).show();
-		        }
-		    }).on('mouseleave', function() {
-		        const $toggle = $(this).find('[data-bs-toggle="dropdown"]');
-		        if ($toggle.length) {
-		            bootstrap.Dropdown.getOrCreateInstance($toggle[0]).hide();
-		        }
+		    // 4️⃣ Dropdown Hover — SADECE ACAR, mouseleave ile KAPATMAZ.
+		    // Istek: hover ile acilir; kapanma yalnizca (a) dis alana tiklama,
+		    // (b) toggle butonuna tiklama, (c) close butonuna tiklama ile olur.
+		    //
+		    // NOT (kritik): Bootstrap Dropdown.show() API'si .dropdown-menu'ye 'show' ekler ama
+		    // parent .dropdown'a EKLEMEZ ve internal _isShown state'ini bizim hover ile senkron
+		    // tutmaz. Sonuc: parent.show=false, menu.show=true -> Bootstrap toggle/hide "zaten
+		    // kapali" sanip menu'yu kapatamaz (DevTools ile dogrulandi). Cozum: hover'da state'i
+		    // ELLE senkronla (parent.show + aria-expanded), kapatmayi da _forceCloseDropdown ile
+		    // ELLE garanti et (Bootstrap .hide()'a guvenme).
+		    // TAM MANUEL yaklasim — Bootstrap Dropdown JS'ini bu dropdown'larda KULLANMIYORUZ.
+		    // Sebep: Bootstrap.show() API'si parent.show'u set etmiyor (state senkronsuz), ve
+		    // toggle'daki data-bs-toggle="dropdown" Bootstrap'in kendi document-delegated click
+		    // listener'ini tetikleyip bizim handler'la yarisiyor -> toggle click'te menu kapanmiyor
+		    // (sadece backdrop gidiyor). Cozum: acma/kapama tamamen bizim class toggle'imizla
+		    // (_openDropdown/_forceCloseDropdown), Bootstrap toggle click'i CAPTURE phase'de iptal.
+		    function _openDropdown($wrap, $toggle, $menu) {
+		        $wrap.addClass('show');
+		        $menu.addClass('show');
+		        $toggle.attr('aria-expanded', 'true');
+        document.body.classList.add('notifications-open');
+		        $wrap.parent().addClass('active');
+		        // shown.bs.dropdown dinleyicisi (loadSourceContent) — manuel tetikle ($wrap = .dropdown-notifications).
+		        $wrap.trigger('shown.bs.dropdown');
+		    }
+
+		    $('.dropdown-hover').each(function() {
+		        var $wrap   = $(this);
+		        var $toggle = $wrap.find('[data-bs-toggle="dropdown"]').first();
+		        var $menu   = $wrap.find('.dropdown-menu').first();
+		        if (!$toggle.length || !$menu.length) return;
+
+		        // Bootstrap'in bu toggle'daki dropdown davranisini KAPAT
+		        try {
+		            var _inst = bootstrap.Dropdown.getInstance($toggle[0]);
+		            if (_inst) _inst.dispose();
+		        } catch (err) {}
+		        $toggle.removeAttr('data-bs-toggle');
+
+		        // data attribute'lardan delay oku — override edilebilir
+		        var openDelay  = parseInt( $wrap.data('hover-delay')       || 300, 10 );
+		        var closeDelay = parseInt( $wrap.data('hover-leave-delay') || 200, 10 );
+
+		        var _openTimer  = null;
+		        var _closeTimer = null;
+
+		        // Hover → delay sonra ac
+		        $wrap.on('mouseenter', function() {
+		            clearTimeout(_closeTimer);
+		            _closeTimer = null;
+		            if (!$menu.hasClass('show')) {
+		                _openTimer = setTimeout(function() {
+		                    _openDropdown($wrap, $toggle, $menu);
+		                }, openDelay);
+		            }
+		        });
+
+		        // Mouseleave → delay sonra kapat
+		        $wrap.on('mouseleave', function() {
+		            clearTimeout(_openTimer);
+		            _openTimer = null;
+		            if ($menu.hasClass('show')) {
+		                _closeTimer = setTimeout(function() {
+		                    _forceCloseDropdown($wrap);
+		                }, closeDelay);
+		            }
+		        });
+
+		        // Toggle click → anında aç/kapat (delay yok, kasıtlı tıklama)
+		        $toggle[0].addEventListener('click', function(e) {
+		            e.preventDefault();
+		            e.stopPropagation();
+		            clearTimeout(_openTimer);
+		            clearTimeout(_closeTimer);
+		            if ($menu.hasClass('show')) _forceCloseDropdown($wrap);
+		            else _openDropdown($wrap, $toggle, $menu);
+		        }, true);
 		    });
 		};
 		bs_events_dropdown();
 
-		// 5️⃣ Favorites Karşılaştırma (Daha hızlı ve temiz)
-		function handle_favorites_load($parent, $container, view_type) {
-		    view_type = view_type || "dropdown";
-		    let favs = window.site_config?.favorites || [];
-		    if (typeof favs === "string") favs = JSON.parse(favs);
-		    
-		    if (favs.length > 0) {
-		        // Mevcut ID'leri bir Set içinde topla (Arama hızı O(1) olur)
-		        const currentIds = new Set(
-		            Array.from($container[0].querySelectorAll('.notification-item'))
-		                 .map(el => el.dataset.id)
-		        );
-
-		        // Eğer favs içindeki herhangi bir ID mevcut Set'te yoksa veya sayılar tutmuyorsa yükle
-		        const isDifferent = favs.length !== currentIds.size || favs.some(id => !currentIds.has(id.toString()));
-
-		        if (isDifferent && window.favorites) {
-		            $container.addClass('loading-process');
-		            window.favorites.get($container, view_type);
+		// Per-button offcanvas custom style — sayfa yüklenince statik offcanvas'lara uygula
+		$(function() {
+		    $('[data-offcanvas-style]').each(function() {
+		        var _ocStyle = $(this).data('offcanvas-style') || '';
+		        if ( _ocStyle ) {
+		            var ocId = $(this).data('salt-offcanvas') || $(this).attr('data-bs-target') || '';
+		            if ( ocId ) {
+		                var $oc = $(ocId.charAt(0) === '#' ? ocId : '#' + ocId);
+		                if ( $oc.length ) { _applyCustomStyle($oc, _ocStyle); }
+		            }
 		        }
-		    } else {
-		        $container.html('<div class="empty-notify">Henüz favori yok.</div>');
-		    }
+		    });
+		});
+
+		// 5️⃣ Favorites — geriye dönük uyum sarmalayıcı.
+		// favorites artık SOURCE_REGISTRY'de (reaction:favorite kısayolu). Eski çağrılar
+		// (modal handler vb.) bozulmasın diye loadSourceContent'e yönlendiriyoruz.
+		function handle_favorites_load($parent, $container, view_type) {
+		    loadSourceContent($container, 'favorites', view_type || 'dropdown', $parent);
 		}
 
 
@@ -565,63 +1117,193 @@ $( document ).ready(function() {
 		        }, 100);
 		    });
 
-		    // ── 3. WooCommerce EVENTS ──────────────────────
-		    // Sepete ekleme/cikarma vs. sonrasi cart guncelle.
-		    $(document.body).on(
-		        "added_to_cart removed_from_cart wc_fragments_loaded updated_cart_totals",
-		        function(e) {
-		            // Cart dropdown guncelle
-		            var $cartDropdown = $(".dropdown-notifications[data-type='cart']").find(".dropdown-container");
-		            if ($cartDropdown.length > 0 && typeof cart !== "undefined") {
-		                cart.get($cartDropdown, "dropdown");
-		            }
-		            // Cart offcanvas guncelle
-		            var $cartOffcanvas = $("#offcanvasCart .load-container");
-		            if ($cartOffcanvas.length > 0 && typeof cart !== "undefined") {
-		                cart.get($cartOffcanvas, "offcanvas");
-		            }
-		        }
-		    );
-
-		    // ── 4. WC Store API Intercept ──────────────────
-		    // Native WC cart/checkout block'lari Store API kullanir.
-		    // Fetch response'larindan items_count alip badge guncelle.
-		    (function() {
-		        var _origFetch = window.fetch;
-		        window.fetch = function(url, opts) {
-		            return _origFetch.apply(this, arguments).then(function(response) {
-		                // Sadece WC Store API cart endpoint'lerini dinle
-		                if (typeof url === "string" && url.indexOf("/wc/store/") !== -1 &&
-		                    (url.indexOf("/cart") !== -1 || url.indexOf("/batch") !== -1)) {
-		                    // Response'u clone et (body sadece 1 kez okunabilir)
-		                    response.clone().json().then(function(data) {
-		                        var count = null;
-
-		                        // Direkt cart response
-		                        if (data && typeof data.items_count !== "undefined") {
-		                            count = data.items_count;
-		                        }
-		                        // Batch response (remove-item vs.)
-		                        else if (data && data.responses && data.responses.length > 0) {
-		                            var body = data.responses[0].body;
-		                            if (body && typeof body.items_count !== "undefined") {
-		                                count = body.items_count;
-		                            }
-		                        }
-
-		                        if (count !== null && typeof cart !== "undefined") {
-		                            cart.updateBadge("cart", count);
-		                        }
-		                    }).catch(function() {});
-		                }
-		                return response;
-		            });
-		        };
-		    })();
 		}
 
 		// Init
 		init_panel_interactions();
+
+		// ── _checkEmptyState — liste boşalınca empty HTML göster ─────────────
+		function _checkEmptyState($container, source, count) {
+		    if (!$container || !$container.length) return;
+
+		    // Count parametresi verilmemişse DOM'dan hesapla
+		    if (typeof count === 'undefined' || count === null) {
+		        count = $container.find('.source-item, .notification-item, li[data-id]').length;
+		    }
+
+		    if (count > 0) return;
+
+		    // source-container'daki data-source'dan empty template belirle
+		    var sourceType = source || $container.data('source') || '';
+		    var emptyHtml  = _getEmptyHtml(sourceType);
+
+		    // source-list varsa oraya yaz, yoksa container'a
+		    var $list = $container.find('.source-list, .list-cards, .dropdown-body .content');
+		    if ($list.length) {
+		        $list.html(emptyHtml);
+		    } else {
+		        $container.html(emptyHtml);
+		    }
+
+		    // Footer'ı gizle (load-more + cart toplam/checkout footer'i vb.)
+		    // NOT: footer $container'in KARDESI degil — .offcanvas/.modal/.dropdown
+		    // kabinin altinda, .offcanvas-body'nin kardesidir. Bu yuzden siblings()
+		    // ile bulunamiyordu ve sepet bosalinca footer kaliyordu. closest().find()
+		    // ile kabi bulup footer'i gizle (_renderSourceResult ile ayni yol).
+		    $container.find('.source-load-more').addClass('d-none');
+		    var $footer = $container
+		        .closest('.offcanvas, .dropdown-menu, .modal-content, .dropdown-notifications')
+		        .find('.offcanvas-footer, .dropdown-footer, .modal-footer');
+		    if ($footer.length) $footer.addClass('d-none');
+
+		    // has-dropdown-item class'ını kaldır
+		    $container.closest('.dropdown-container, .load-container').removeClass('has-dropdown-item');
+		}
+
+		// ── _getEmptyHtml — source tipine göre empty state HTML'i ────────────
+		function _getEmptyHtml(source) {
+		    var icon = '';
+		    var message = '';
+
+		    if (source === 'cart') {
+		        icon = fa_icon('cart', 'fa-3x opacity-25');
+		        message = translate('Your cart is empty.');
+		    } else if (source === 'favorites' || source.indexOf('reaction:favorite') === 0) {
+		        icon = fa_icon('favorite', 'fa-3x opacity-25');
+		        message = translate('Your favorites list is empty.');
+		    } else if (source.indexOf('reaction:') === 0) {
+		        var rxKey = source.replace(/^reaction[:-]/, '');
+		        icon = fa_icon(rxKey, 'fa-3x opacity-25') || fa_icon('empty', 'fa-3x opacity-25');
+		        message = translate('No items found.');
+		    } else if (source === 'notifications') {
+		        icon = fa_icon('notifications', 'fa-3x opacity-25');
+		        message = translate('No notifications.');
+		    } else if (source === 'messages') {
+		        icon = fa_icon('messages', 'fa-3x opacity-25');
+		        message = translate('No messages.');
+		    } else if (source === 'reviews') {
+		        icon = fa_icon('reviews', 'fa-3x opacity-25');
+		        message = translate('No reviews.');
+		    } else {
+		        icon = fa_icon('empty', 'fa-3x opacity-25');
+		        message = translate('No items found.');
+		    }
+
+		    return '<div class="source-empty text-center py-5">'
+		        + '<div class="d-flex flex-column align-items-center gap-3">'
+		        + icon
+		        + '<p class="text-muted mb-0">' + message + '</p>'
+		        + '</div>'
+		        + '</div>';
+		}
+
+		// Global erişim (diğer modüller kullanabilsin)
+		window._checkEmptyState = _checkEmptyState;
+
+		// ── .btn-remove — evrensel kaldır handler ────────────────────────────
+		// data-source="cart"     → cart item kaldır (data-key gerekli)
+		// data-reaction-type     → reaction toggle (kaldır)
+		// Event delegation — AJAX ile yüklenen içerik için de çalışır
+		$(document).on('click', '.btn-remove', function(e) {
+		    e.preventDefault();
+		    e.stopPropagation();
+		    var $btn = $(this);
+		    if ($btn.hasClass('loading')) return;
+
+		    var source       = $btn.data('source') || '';
+		    var reactionType = $btn.data('reaction-type') || '';
+		    var objectType   = $btn.data('object-type') || 'post';
+		    var objectId     = $btn.data('id') || 0;
+		    var $item        = $btn.closest('.source-item, .notification-item, li[data-id]');
+		    var $container   = $btn.closest('.source-container, .load-container, .dropdown-container, .offcanvas-body, .modal-body');
+
+		    // ── Cart item kaldır ──────────────────────────────────────────
+		    if ( source === 'cart' || $btn.hasClass('cart-item-remove') ) {
+		        var cartKey = $btn.data('key') || '';
+		        if (!cartKey) return;
+		        $btn.addClass('loading');
+		        var q = new ajax_query();
+		        q.method = 'wc_cart_item_remove';
+		        q.vars   = { key: cartKey };
+		        q.done   = function(res) {
+		            $btn.removeClass('loading');
+		            if (res && !res.error) {
+		                // Badge güncelle
+		                var count = (res.data && typeof res.data.count !== 'undefined') ? res.data.count : null;
+		                if (count !== null && typeof cart !== 'undefined') {
+		                    cart.updateBadge('cart', count);
+		                }
+		                // Item'ı kaldır
+		                $item.fadeOut(200, function(){
+		                    $(this).remove();
+		                    // Empty state kontrolü
+		                    _checkEmptyState($container, 'cart', count);
+		                });
+		            }
+		        };
+		        q.request();
+		        return;
+		    }
+
+		    // ── Reaction kaldır ───────────────────────────────────────────
+		    if ( reactionType && objectId ) {
+		        $btn.addClass('loading');
+		        var rq = new ajax_query();
+		        rq.method = 'reaction_toggle';
+		        rq.vars   = { type: reactionType, object_id: objectId, object_type: objectType };
+		        rq.done   = function(res) {
+		            $btn.removeClass('loading');
+		            if (res && !res.error && res.action === 'removed') {
+		                // Badge güncelle — salt:reaction:toggled event dispatch
+		                document.dispatchEvent(new CustomEvent('salt:reaction:toggled', {
+		                    detail: { type: reactionType, action: 'removed', object_id: objectId, object_type: objectType }
+		                }));
+		                // Item'ı kaldır
+		                $item.fadeOut(200, function(){
+		                    $(this).remove();
+		                    // Empty state kontrolü
+		                    _checkEmptyState($container, 'reaction:' + reactionType);
+		                });
+		            }
+		        };
+		        rq.request();
+		        return;
+		    }
+		});
+
+		// ── Reaction toggle → notification-count badge anlık güncelleme ──────
+		document.addEventListener('salt:reaction:toggled', function(e) {
+		    var d = e.detail;
+		    if (!d) return;
+
+		    var dataType = 'reaction-' + d.type;
+		    var $items = $('[data-type="' + dataType + '"]');
+		    if (!$items.length) return;
+
+		    $items.each(function() {
+		        var $badge = $(this).find('.notification-count');
+		        if (!$badge.length) return;
+
+		        // badge'deki mevcut user toplam count'u al
+		        var current = parseInt($badge.text()) || 0;
+		        // action: 'added' veya 'removed' — reactions.js'den geliyor
+		        // 'exists' = zaten vardı, değişmedi — badge değiştirme
+		        if (d.action === 'added') {
+		            var newCount = current + 1;
+		        } else if (d.action === 'removed') {
+		            var newCount = Math.max(0, current - 1);
+		        } else {
+		            return; // exists veya başka — değiştirme
+		        }
+
+		        $badge.text(newCount);
+		        if (newCount > 0) {
+		            $badge.removeClass('d-none');
+		        } else {
+		            $badge.addClass('d-none');
+		        }
+		    });
+		});
 
         /********************************************
 		/*
@@ -801,14 +1483,166 @@ $( document ).ready(function() {
 		    const body = document.body;
 		    const $doc = $(document);
 
+		    // ── Source-based modal: bootbox'ı direkt JS'den aç ───────────────
+		    $doc.on('click', '[data-bs-source-modal]', function(e) {
+		        e.preventDefault();
+		        const $btn    = $(this);
+
+		        // Son tıklanan source-modal trigger'ını kaydet — show.bs.modal'da kullanılır
+		        window._lastSourceModalBtn = $btn;
+		        const source  = $btn.data('bs-source-modal');
+		        const size    = $btn.data('size') || 'lg';
+		        const title   = $btn.data('title') || '';
+		        const cls     = $btn.data('class') || '';
+		        const scroll  = $btn.data('scrollable') ? true : false;
+		        const closeBtn = $btn.data('close') !== false && $btn.data('close') !== undefined ? true : false;
+		        const modalStyle = $btn.data('modal-style') || '';
+
+		        // CSS lazy load varsa yüklenene kadar bekle, sonra modal aç
+		        function _openSourceModal() {
+		            // bootbox yüklü değilse önce yükle, sonra aç
+		            if (typeof bootbox === 'undefined') {
+		                if (typeof function_secure === 'function') {
+		                    function_secure('bootbox', 'init_bootbox', []);
+		                }
+		                // bootbox async yüklenince tekrar dene
+		                var _bbRetry = 0;
+		                var _bbWait = setInterval(function() {
+		                    _bbRetry++;
+		                    if (typeof bootbox !== 'undefined') {
+		                        clearInterval(_bbWait);
+		                        _openSourceModal();
+		                    } else if (_bbRetry > 40) { // 2sn timeout
+		                        clearInterval(_bbWait);
+		                        console.error('[modal] bootbox yüklenemedi');
+		                    }
+		                }, 50);
+		                return;
+		            }
+		            const dialog = bootbox.dialog({
+		                title:      title,
+		                message:    '<div class="load-container loading-process"></div>',
+		                size:       size,
+		                scrollable: scroll,
+		                onEscape:   true,
+		                closeButton: true,
+		                className:  'modal-source modal-source-' + source.replace(':', '-') + (cls ? ' ' + cls : ''),
+		                buttons: {}
+		            });
+
+		        // show.bs.modal: custom style'ı modal görünmeden önce uygula
+		        dialog.on('show.bs.modal', function() {
+		            if ( modalStyle ) {
+		                var $mc = $(this).find('.modal-content');
+		                _applyCustomStyle($mc, modalStyle);
+		            }
+		        });
+
+		        // shown.bs.modal: içeriği yükle
+		        dialog.on('shown.bs.modal', function() {
+		            var $dialog       = $(this);
+		            var $modalContent = $dialog.find('.modal-content');
+		            var $modalBody    = $modalContent.find('.modal-body');
+		            $modalBody.addClass('loading-process');
+
+		            // AJAX ile içeriği çek
+		            var q = new ajax_query();
+		            q.method = 'get_' + (source === 'cart' ? 'cart' :
+		                        source === 'notifications' ? 'notifications' :
+		                        source === 'messages' ? 'messages' :
+		                        source === 'reviews' ? 'reviews' :
+		                        source.indexOf('reaction:') === 0 ? 'reactions' : source);
+
+		            q.vars = { view: 'modal' };
+
+		            if ( source.indexOf('reaction:') === 0 ) {
+		                q.vars.reaction_type = source.replace('reaction:', '');
+		                q.vars.object_type   = $btn.data('object-type') || $btn.attr('data-object-type') || 'post';
+		                // Reaction filter: post_type / comment_type / role / taxonomy — <a> elementinden oku
+		                var _rxPostType    = $btn.attr('data-post-type')    || '';
+		                var _rxCommentType = $btn.attr('data-comment-type') || '';
+		                var _rxRole        = $btn.attr('data-role')         || '';
+		                var _rxTaxonomy    = $btn.attr('data-taxonomy')     || '';
+		                if (_rxPostType)    q.vars.post_type    = _rxPostType;
+		                if (_rxCommentType) q.vars.comment_type = _rxCommentType;
+		                if (_rxRole)        q.vars.role         = _rxRole;
+		                if (_rxTaxonomy)    q.vars.taxonomy     = _rxTaxonomy;
+		            }
+
+		            q.done = function(res) {
+		                if (!res || !res.html) { $modalBody.removeClass('loading-process'); return; }
+		                var $html      = $('<div>' + res.html + '</div>');
+		                var $newBody   = $html.find('.modal-body');
+		                var $newFooter = $html.find('.modal-footer');
+
+		                if ( $newBody.length ) {
+		                    // İçeriği güncelle, class'ları merge et
+		                    var extraClasses = $newBody.attr('class')
+		                        .replace('modal-body', '').trim();
+		                    if ( extraClasses ) $modalBody.addClass(extraClasses);
+		                    $modalBody.html( $newBody.html() ).removeClass('loading-process');
+		                } else {
+		                    $modalBody.html( res.html ).removeClass('loading-process');
+		                }
+
+		                if ( $newFooter.length ) {
+		                    var $existFoot = $modalContent.find('.modal-footer');
+		                    if ( $existFoot.length ) {
+		                        $existFoot.html( $newFooter.html() ).removeClass('d-none');
+		                    } else {
+		                        $modalContent.append( $newFooter );
+		                    }
+		                }
+
+		                // Source pagination — scroll-based yükleme
+		                setTimeout(function() { _initSourcePagination($modalBody, 'modal'); }, 50);
+		            };
+		            q.request();
+		        });
+		        } // _openSourceModal end
+
+		        // CSS lazy load tamamlanmış mı? Tamamlandıysa direkt aç,
+		        // değilse yüklenen <link> onload'ını bekle
+		        var _dynCssLink = document.querySelector('link[data-sh-dynamic-css]');
+		        if ( _dynCssLink && !_dynCssLink.sheet ) {
+		            _dynCssLink.addEventListener('load', _openSourceModal, { once: true });
+		        } else {
+		            _openSourceModal();
+		        }
+		    });
+		    // ─────────────────────────────────────────────────────────────────
+
 		    $doc
-		    .on('show.bs.modal', '.modal', function () {
-		        // Offcanvas açıksa kapat (Zaten hızlı çalışıyor)
+		    .on('show.bs.modal', '.modal', function (e) {
+		        // Offcanvas açıksa kapat
 		        const openOffcanvas = document.querySelector('.offcanvas.show');
 		        if (openOffcanvas) {
 		            bootstrap.Offcanvas.getOrCreateInstance(openOffcanvas).hide();
 		        }
-		    })
+
+		        // ── Per-button custom CSS variables — modal görünmeden önce uygula ──
+		        var $modal   = $(e.target);
+		        var modalId  = $modal.attr('id') || '';
+		        var $trigger = $();
+
+		        // 1. Standart BS5 trigger
+		        if ( modalId ) {
+		            $trigger = $('[data-bs-target="#' + modalId + '"], [href="#' + modalId + '"]').first();
+		        }
+		        // 2. Bootbox / data-bs-source-modal — son tıklanan source modal trigger'ı
+		        if ( ! $trigger.length && window._lastSourceModalBtn ) {
+		            $trigger = window._lastSourceModalBtn;
+		        }
+
+		        log('[customStyle show.bs.modal] modalId=' + modalId + ' trigger found=' + $trigger.length, 'info');
+
+		        if ( $trigger.length ) {
+		            var _modalStyle = $trigger.data('modal-style') || '';
+		            log('[customStyle show.bs.modal] style=' + _modalStyle, 'info');
+		            if ( _modalStyle ) {
+		                _applyCustomStyle($modal.find('.modal-content'), _modalStyle);
+		            }
+		        }		    })
 		    .on('shown.bs.modal', '.modal', function (e) {
 		        const $modal = $(e.target);//$(this);
 		        const visibleModals = $('.modal:visible');
@@ -819,6 +1653,16 @@ $( document ).ready(function() {
 			        window.bsStateStack.push(el);
 			        history.pushState({ bsOpen: true, type: 'modal' }, "");
 			    }
+
+		// ── Source-based modal content loading — tek yol: loadSourceContent ──
+		        const source = $modal.data('source');
+		        if (source) {
+		            const $body = $modal.find('.modal-body');
+		            if ($body.length) {
+		                loadSourceContent($body, source, 'modal', $modal);
+		            }
+		        }
+		        // ─────────────────────────────────────────────────────────────
 		        
 		        if (modalCount > 1) {
 		            // Bootstrap varsayılan z-index 1050'dir. 
@@ -846,6 +1690,19 @@ $( document ).ready(function() {
 		    .on('hidden.bs.modal', '.modal', function (e) {
 		        const $modal = $(e.target);
 		        const visibleModals = $('.modal:visible');
+
+		        // Per-button custom style temizle — bir sonraki açılışta temiz başlasın
+		        var $mc = $modal.find('.modal-content');
+		        if ( $mc.length ) {
+		            ['--modal-bg','--modal-bg-gradient','--modal-bg-image',
+		             '--modal-border-radius','--modal-box-shadow','--modal-color',
+		             '--modal-header-bg','--modal-header-color','--modal-header-padding',
+		             '--modal-padding','--modal-footer-bg','--modal-footer-padding',
+		             '--modal-transition','--modal-fade-transform'].forEach(function(prop) {
+		                $mc[0].style.removeProperty(prop);
+		            });
+		        }
+		        window._lastSourceModalBtn = null;
 
 		        const el = e.currentTarget;
 			    const index = window.bsStateStack.indexOf(el);
@@ -900,13 +1757,43 @@ $( document ).ready(function() {
 		function bs_events_offcanvas() {
 		    const $body = $("body");
 
+		    // ── Responsive offcanvas (.offcanvas-{bp}) dismiss fix ──────────────
+		    // Bootstrap'in native data-bs-dismiss="offcanvas" handler'ı sadece base
+		    // `.offcanvas` class'ını arar. `.offcanvas-md` gibi responsive class'larda
+		    // (page-settings sidebar) close butonu çalışmaz. Burada manuel kapatıyoruz.
+		    $(document).on('click', '[data-bs-dismiss="offcanvas"]', function (e) {
+		        const $target = $(e.target).closest('[data-bs-dismiss="offcanvas"]');
+		        // En yakın offcanvas kabını bul (responsive dahil)
+		        const $oc = $target.closest('.offcanvas, .offcanvas-sm, .offcanvas-md, .offcanvas-lg, .offcanvas-xl, .offcanvas-xxl');
+		        if ($oc.length && !$oc.hasClass('offcanvas')) {
+		            // Sadece responsive (base .offcanvas olmayan) durumda müdahale et;
+		            // normal .offcanvas'ı Bootstrap kendi hallediyor.
+		            e.preventDefault();
+		            e.stopPropagation();
+		            const inst = bootstrap.Offcanvas.getInstance($oc[0]) || bootstrap.Offcanvas.getOrCreateInstance($oc[0]);
+		            if (inst) inst.hide();
+		        }
+		    });
+
 		    $(document)
 		    .on('show.bs.offcanvas', '.offcanvas', function (e) {
 		        const $obj = $(e.target);
 		        const $container = $obj.find(".offcanvas-body");
 
 		        $body.addClass("offcanvas-open");
-		        
+
+		        // ── Per-button custom CSS variables ──────────────────────────
+		        var _ocTrigger = $('[data-bs-target="#' + $obj.attr('id') + '"], [data-salt-offcanvas="' + $obj.attr('id') + '"]').first();
+		        if ( _ocTrigger.length ) {
+		            var _ocStyle = _ocTrigger.data('offcanvas-style') || '';
+		            if ( _ocStyle ) { _applyCustomStyle($obj, _ocStyle); }
+		        }
+
+		        // Dropdown içinden açıldıysa dropdown'ı kapat
+		        const $openDropdown = $('.dropdown-menu.show').closest('.dropdown').find('[data-bs-toggle="dropdown"]');
+		        if ($openDropdown.length) {
+		            bootstrap.Dropdown.getOrCreateInstance($openDropdown[0]).hide();
+		        }
 		        if($obj.hasClass("offcanvas-search")) $body.addClass("search-open");
 		        if($obj.hasClass("offcanvas-menu")) $body.addClass("menu-open");
 		        if($obj.hasClass("offcanvas-show-header")) $body.addClass("menu-show-header");
@@ -921,26 +1808,36 @@ $( document ).ready(function() {
 		            $("header.fixed-bottom-start").not(".affix").addClass("affix");
 		        }
 
-		        if($obj.hasClass("offcanvas-messages") && window.messages) {
-		            $container.addClass("loading-process");
-		            window.messages.get($container);
-		        }
+		        // ── Source offcanvas'ları — TEK YOL: loadSourceContent ──────────────
+		        // Kaynak (source) offcanvas'ının id'si source slug'ıdır:
+		        //   offcanvas-cart → id='cart', offcanvas-reviews → id='reviews',
+		        //   reaction → id='reaction-{type}' → loadSourceContent normalize eder.
+		        // Named class'lı SABIT offcanvas'lar (offcanvas-{source}) ile dinamik
+		        // source offcanvas'ları AYNI generic yoldan yüklenir. cart özel handler'ı
+		        // loadSourceContent içindeki SOURCE_REGISTRY'de (window.cart) çözülür.
+		        //
+		        // YENI SISTEM MUAFIYETI: sh-oc-* prefix'li offcanvas'lar SaltOffcanvas.js
+		        // tarafından yönetilir. loadSourceContent onlara KARIŞMAZ.
+		        var _ocId = $obj.attr('id') || '';
+		        var _isSaltManaged = _ocId.indexOf('sh-oc-') === 0;
+		        // Source OLMAYAN sistem offcanvas'ları (search/menu vb.) generic yola girmesin.
+		        var _isSystemOc = $obj.hasClass('offcanvas-search') || $obj.hasClass('offcanvas-menu') ||
+		                          $obj.hasClass('offcanvas-show-header');
 
-		        if($obj.hasClass("offcanvas-cart") && window.cart) {
-		            $container.addClass("loading-process");
-		            window.cart.get($container, "offcanvas");
-		        }
-
-		        if($obj.hasClass("offcanvas-favorites") && window.favorites) {
-		            $container.addClass("loading-process");
-		            handle_favorites_load($obj, $container, "offcanvas");
-		        }
-
-		        if($obj.hasClass("offcanvas-notifications")) {
-		            $container.addClass("loading-process");
-		            if (window.notifications) {
-		                window.notifications.get($container);
+		        if (_ocId && !_isSaltManaged && !_isSystemOc && $container.children().length === 0) {
+		            // source slug'ı = offcanvas id'si (_button.twig source offcanvas'a id={source} verir;
+		            // reaction için id='reaction-{type}' → loadSourceContent normalize eder).
+		            var _source = _ocId;
+		            // Eski/statik named offcanvas'lar (id camelCase olabilir) için offcanvas-{source}
+		            // class'ından source türet — yalnızca bilinen named source'lar (güvenli).
+		            var _named = ['cart','favorites','notifications','messages','reviews'];
+		            for (var _i = 0; _i < _named.length; _i++) {
+		                if ($obj.hasClass('offcanvas-' + _named[_i])) { _source = _named[_i]; break; }
 		            }
+		            // Trigger li'yi bul — data-post-type/role/taxonomy oradan okunur.
+		            var _trigger = $('[data-bs-target="#' + _ocId + '"], [data-salt-offcanvas="' + _ocId + '"]').closest('li[data-type]').first();
+		            if (!_trigger.length) _trigger = $('[data-bs-target="#' + _ocId + '"]').first();
+		            loadSourceContent($container, _source, 'offcanvas', _trigger.length ? _trigger : $obj);
 		        }
 		    })
 		    .on('shown.bs.offcanvas', '.offcanvas', function (e) {
@@ -1064,3 +1961,39 @@ $( document ).ready(function() {
 
         //woocommerce events — init_panel_interactions() icinde yonetiliyor
 });
+
+
+
+
+
+
+
+// WC select2'yi init ettikten sonra bootstrap-5 theme uygula
+function shApplySelect2Bootstrap() {
+    if (!$.fn.select2) return;
+    $('select.select2-hidden-accessible').each(function(){
+        var $sel = $(this);
+        // Zaten bootstrap-5 uygulanmışsa atla
+        if ($sel.data('select2') && $sel.data('select2').$container.hasClass('select2-container--bootstrap-5')) return;
+        // Mevcut select2'yi destroy edip yeniden init et
+        try {
+            $sel.select2('destroy');
+        } catch(e) {}
+        $sel.select2({ theme: 'bootstrap-5' });
+    });
+}
+
+// WC select2 init'inden sonra çalış
+$(document).on('change', 'select[name="billing_country"], select[name="shipping_country"]', function(){
+    setTimeout(shApplySelect2Bootstrap, 100);
+});
+
+// Sayfa ilk yüklenince WC init'i bitmeden önce polling yap
+var _s2Timer = setInterval(function(){
+    if ($('select.select2-hidden-accessible').length > 0) {
+        clearInterval(_s2Timer);
+        shApplySelect2Bootstrap();
+    }
+}, 100);
+// 5 saniye sonra polling'i durdur
+setTimeout(function(){ clearInterval(_s2Timer); }, 5000);

@@ -115,12 +115,10 @@
             align-items: center;
             justify-content: center;
             &:before{
+                    @include svgIcon('play', 'solid');
                     position:absolute;
-                    font-family: var(--icon-font);
                     color:#fff;
                     font-size:62px;
-                    font-weight:600;
-                    line-height:100%;
                     z-index: 1;
             }
             &:after{
@@ -139,7 +137,7 @@
             .overlay{
                 background-size:cover;
                 &:before{
-                    content:"\f144";
+                    @include svgIcon('play', 'solid');
                 }
                 &:after{
                     background-color:rgba(#000, .3);
@@ -150,7 +148,7 @@
             .overlay{
                 background-size:0;
                 &:before{
-                    content:"\f28b";
+                    @include svgIcon('pause', 'solid');
                     opacity: 0;
                     @include transition(opacity .3s ease-out);
                 }
@@ -179,22 +177,19 @@
     background-image:none!important;
     &.video-react{
             cursor:pointer;
-            //&.loaded{
             display:flex;
             justify-content:center;
             align-items:center;
             &:before{
+                @include svgIcon('play', 'solid');
                 position:absolute;
-                font-family: var(--icon-font);
                 color:#fff;
                 font-size:62px;
-                font-weight:600;
-                line-height:100%;
                 z-index: 1;
                 opacity: 0;
                 top: calc(50% - 31px);
                 @include transition(opacity .3s ease-out);
-            }  
+            }
             .video-bg{
                 &:after{
                     content:"";
@@ -215,7 +210,7 @@
             }
             &.paused{
                 &:before{
-                    content:"\f144";
+                    @include svgIcon('play', 'solid');
                     opacity: 1;
                 }
                 .video-bg{
@@ -236,7 +231,7 @@
             }
             &.playing{
                 &:before{
-                    content:"\f28b";
+                    @include svgIcon('pause', 'solid');
                     opacity: 0;
                     @include transition(opacity .3s ease-out);
                 }
@@ -313,13 +308,10 @@
     align-items: center;
     justify-content: center;
     &:before{
-        content:"\f144";
+        @include svgIcon('play', 'solid');
         position:absolute;
-        font-family: var(--icon-font);
         color:#fff;
         font-size:62px;
-        font-weight:600;
-        line-height:100%;
         z-index: 1;
     }
     &:after{

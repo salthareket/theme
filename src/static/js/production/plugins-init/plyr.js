@@ -152,6 +152,14 @@ class PlyrManager {
         const video = new Plyr($obj, config);
         debugJS(video);
 
+        // Plyr'ın getTitle() → noembed fetch'ini engelle
+        // getTitle compiled Plyr'da it.getTitle olarak tanımlı, override edemeyiz.
+        // Bunun yerine config.urls.youtube.api'yi Plyr init sonrası da null yapıyoruz
+        // ve Plyr'ın embed objesinin getTitle'ını no-op ile patch ediyoruz
+        if (video && video.config && video.config.urls && video.config.urls.youtube) {
+            video.config.urls.youtube.api = '';
+        }
+
         // Store reference
         if (video.elements.container) {
             video.elements.container.plyr = video;
@@ -183,12 +191,30 @@ class PlyrManager {
         
         // youtube-nocookie.com kullan → third-party cookie yok
         config.youtube = {
-            noCookie: true,        // youtube-nocookie.com domain'i kullan
-            rel: 0,                // ilgili video önerme
+            noCookie: true,
+            rel: 0,
             showinfo: 0,
-            iv_load_policy: 3,     // annotation yok
-            modestbranding: 1      // YouTube logo küçük
+            iv_load_policy: 3,
+            modestbranding: 1
         };
+
+        // Title varsa Plyr'a ver
+        const title = $obj.attr('data-title') || $obj.attr('title') || '';
+        if (title) config.title = title;
+
+        // Plyr'ın noembed.com'a yaptığı title fetch'ini engelle.
+        // api config'i ile engellenemez — Plyr onReady'de koşulsuz getTitle() çağırır.
+        // Çözüm: Plyr init'inden önce Plyr prototype'ına no-op getTitle ekle.
+        // (Plyr compiled dosyasına dokunmadan)
+        if (!config.urls) config.urls = {};
+        if (!config.urls.youtube) config.urls.youtube = {};
+        config.urls.youtube.sdk = 'https://www.youtube.com/iframe_api';
+        // Plyr onReady'de kosulsuz getTitle() cagirip api URL'sini fetch eder.
+        // ONCEKI: window.location.origin + '/wp-json/' → subdirectory (/salthub/) atlandigi
+        // icin YANLIS URL → sayfanin kendisine (localhost/salthub/) redirect → her video
+        // acilista ~487KB tam sayfa HTML fetch (2 video = 2 gereksiz istek + profiler log).
+        // COZUM: data: URI → HIC network istegi yok, aninda bos JSON, Plyr sessiz succeed.
+        config.urls.youtube.api = 'data:application/json,{}';
 
         return config;
     }

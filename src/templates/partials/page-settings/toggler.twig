@@ -1,0 +1,31 @@
+{#
+    Page Settings Sidebar Toggler
+
+    Sidebar modda (is_sidebar) breakpoint altında görünen toggle butonu.
+    Bootstrap-native: data-bs-toggle="offcanvas" + data-bs-target ile sidebar'ı açar.
+    Standalone modda (is_standalone) her ekran boyutunda görünen toggle butonu.
+
+    Icon + label General Settings defaults'tan gelir.
+    base.twig zaten `.sidebar-toggler-container d-{bp}-none` wrapper'ı ekliyor (sidebar modda).
+
+    Beklenen context: page_settings.offcanvas + sidebar_toggler_icon + sidebar_toggler_label
+#}
+{% set _oc = page_settings.offcanvas %}
+{% if (_oc.is_sidebar or _oc.is_standalone) and _oc.template_id %}
+{% set _tog_icon  = sidebar_toggler_icon|default('light:bars') %}
+{% set _tog_label = sidebar_toggler_label|default('Menu') %}
+{% set _tog_style = _tog_icon|split(':') %}
+{#
+    Standalone modda: salt-offcanvas.js ile acilir (data-salt-offcanvas).
+    Sidebar modda: sidebar base.twig grid kolonunda; breakpoint altinda ise
+    yine ayni offcanvas DOM'unu salt-offcanvas ile acar. Bootstrap-native
+    data-bs-toggle KULLANILMAZ (responsive/registry cakismasi + _config hatasi).
+#}
+<button type="button"
+        class="btn btn-sidebar-toggler d-inline-flex align-items-center gap-2"
+        data-salt-offcanvas="{{ _oc.id }}"
+        aria-controls="{{ _oc.id }}">
+    {% if _tog_icon %}{{ fa_icon(_tog_style[1]|default(_tog_icon), _tog_style[0]|default('light'), 'sidebar-toggler-icon') }}{% endif %}
+    {% if _tog_label %}<span class="sidebar-toggler-label">{{ translate(_tog_label) }}</span>{% endif %}
+</button>
+{% endif %}

@@ -1,4 +1,22 @@
 <?php
+// =============================================================================
+// ACTIONS — Frontend Hooks & Filters
+// =============================================================================
+// @version 1.1.0
+//
+// @changelog
+//   1.1.0 - 2026-08-21
+//     - Remove: header_footer_options() ~130 satır deprecated fonksiyon kaldırıldı.
+//     - Remove: header_has_dropdown(), header_has_navigation() kaldırıldı.
+//     - Remove: acf/save_post hook (header_footer_options JSON sistemi) kaldırıldı.
+//     - Remove: restrict_author_pages(), remove_empty_p(), post_prev_next_order(),
+//              ns_filter_avatar() devre dışı fonksiyon tanımları kaldırıldı.
+//     - Remove: CSP send_headers comment bloğu bırakıldı (ileride aktif edilebilir).
+//     - Remove: get_terms_args filter comment (Polylang bug - kasıtlı disable).
+//     - Note: prepare_logo_field() hala aktif - logo alanları için kullanılıyor.
+//   1.0.0 - 2026-05-16
+//     - Add: Initial actions file
+// =============================================================================
 
 if (!function_exists('wp_doing_rest')) {
     function wp_doing_rest() {
@@ -227,171 +245,16 @@ function custom_result_count() {
 }
 
 /**
- * Bu yardımcı fonksiyonlar artık DB'ye gitmeyecek.
- * header_footer_options içinden gelen hazır veriyi kontrol edecekler.
+ * Logo alanını döndürür, URL'yi relative path'e dönüştürür.
  */
-
-function header_has_dropdown($header_options = null) {
-    if (!$header_options) $header_options = header_footer_options();
-    
-    foreach (['start', 'center', 'end'] as $pos) {
-        $section = $header_options['header'][$pos];
-        if ($section['type'] == 'tools' && isset($section['tools'])) {
-            // Tools içindeki her bir aracı kontrol et
-            foreach ($section['tools'] as $tool) {
-                if (isset($tool['menu_type']) && $tool['menu_type'] == 'dropdown') {
-                    return true;
-                }
-            }
-        }
+function prepare_logo_field(string $field, string $post_id = 'options'): array|string|null {
+    $data = QueryCache::get_field($field, $post_id);
+    if (is_array($data) && !empty($data['url'])) {
+        $data['url'] = to_relative_url($data['url']);
+    } elseif (is_string($data)) {
+        $data = to_relative_url($data);
     }
-    return false;
-}
-function header_has_navigation($header_options = null) {
-    if (!$header_options) $header_options = header_footer_options();
-
-    foreach (['start', 'center', 'end'] as $pos) {
-        $section = $header_options['header'][$pos];
-        // Direkt navigasyon mu?
-        if ($section['type'] == 'navigation') return true;
-        
-        // Yoksa tools içinde dropdown navigasyon mu?
-        if ($section['type'] == 'tools' && isset($section['tools'])) {
-            foreach ($section['tools'] as $tool) {
-                if (isset($tool['menu_item']) && $tool['menu_item'] == 'navigation' && $tool['menu_type'] == 'dropdown') {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-/**
- * Header ve Footer ayarlarını tek bir pakette toplar.
- * JSON varsa oradan okur, yoksa DB'den çeker ve JSON oluşturur.
- * * @param bool $save True gönderilirse JSON dosyasını zorunlu günceller.
- */
-function header_footer_options($save = false) {
-    $json_path = THEME_STATIC_PATH . 'data/header-footer-options.json';
-
-    // 1. ADIM: JSON varsa ve güncelleme istenmiyorsa direkt dosyadan oku (0 Sorgu)
-    if (!$save && file_exists($json_path)) {
-        $content = file_get_contents($json_path);
-        return json_decode($content, true);
-    }
-
-
-
-    // 2. ADIM: JSON yoksa veya $save=true ise DB'den verileri topla
-    // get_option zaten arka planda ACF Bulk Option sistemini kullanır.
-    
-    // --- Header Ayarları ---
-    $header_fixed = QueryCache::get_field("header_fixed", "options");//get_option("options_header_fixed");
-    $header_fixed = in_array($header_fixed, ["top", "bottom", "bottom-start"]) ? $header_fixed : false;
-    
-    $header_affix = false;
-    if ($header_fixed == "top" || $header_fixed == "bottom-start") {
-        $header_affix = boolval(QueryCache::get_field("header_affix", "options"));//boolval(get_option("options_header_affix"));
-    }
-
-    $header_hide_on_scroll_down = QueryCache::get_field("header_hide_on_scroll_down","options");//get_option("options_header_hide_on_scroll_down");
-    $header_hide_on_scroll_down = ($header_affix && $header_hide_on_scroll_down) ? true : false;
-
-    $header_equal    = QueryCache::get_field("header_equal", "options");//get_option("options_header_equal");
-    $header_equal_on = QueryCache::get_field("header_equal_on", "options");//get_option("options_header_equal_on");
-
-    $header_container = QueryCache::get_field("header_container", "options");//get_option("options_header_container");
-    $header_container = block_container($header_container);
-    $header_container = empty($header_container) ? "vw-100 px-3" : "";
-
-    $header_data = [];
-    $sections = ["header_start", "header_center", "header_end"];
-
-    foreach ($sections as $section) {
-        $item = QueryCache::get_field($section, "options");
-        $key = str_replace('header_', '', $section); // start, center, end
-        
-        $header_data[$key] = [
-            "type"        => "",
-            "align"       => "",
-            "tools"       => [],
-            "class"       => "",
-            "menu"        => "",
-            "parent_link" => false,
-            "logo_height" => false
-        ];
-
-        if ($item) {
-            $header_data[$key]["type"]  = $item["type"];
-            $header_data[$key]["align"] = $item["align"];
-            $header_data[$key]["menu"]  = $item["menu"];
-
-            if ($item["type"] == "tools") {
-                $tools = isset($item["header_tools"]["header_tools"]) ? $item["header_tools"]["header_tools"] : [];
-                $tools["affix"] = $header_affix;
-                $header_data[$key]["tools"] = $tools;
-            } elseif ($item["type"] == "navigation") {
-                $header_data[$key]["parent_link"] = $item["navigation_parent_link"];
-            } elseif ($item["type"] == "brand") {
-                $header_data[$key]["logo_height"] = $item["logo_height"];
-            }
-        }
-    }
-
-    // Header Class Hesaplamaları
-    if ($header_data["center"]["type"] != "empty") {
-        $header_data["start"]["class"]  = "flex-shrink-0" . ($header_equal ? " nav-equal nav-equal-".$header_equal_on : "");
-        $header_data["center"]["class"] = "flex-grow-1 h-100";
-        $header_data["end"]["class"]    = "flex-shrink-0" . ($header_equal ? " nav-equal nav-equal-".$header_equal_on : "");
-    } else {
-        $header_data["start"]["class"]  = ($header_data["start"]["type"] != "empty" ? "flex-shrink-0" : "flex-grow-1");
-        $header_data["center"]["class"] = "flex-grow-1 h-100";
-        $header_data["end"]["class"]    = ($header_data["end"]["type"] != "empty" ? "flex-shrink-0" : "flex-grow-1");
-    }
-
-    $header_options = [
-        "affix"                      => $header_affix,
-        "fixed"                      => $header_fixed,
-        "header_hide_on_scroll_down" => $header_hide_on_scroll_down,
-        "container"                  => $header_container,
-        "start"                      => array_urls_to_relative($header_data["start"]),
-        "center"                     => array_urls_to_relative($header_data["center"]),
-        "end"                        => array_urls_to_relative($header_data["end"])
-    ];
-    $header_options["has_dropdown"] = header_has_dropdown(["header" => $header_options]);
-    $header_options["has_navigation"] = header_has_navigation(["header" => $header_options]);
-
-
-   
-    // --- Footer Ayarları ---
-    $footer_menu_raw = QueryCache::get_field("footer_menu", "options");
-    $footer_menu_processed = [];
-    if (is_array($footer_menu_raw)) {
-        foreach ($footer_menu_raw as $m) {
-            $footer_menu_processed[$m["name"]] = $m["menu"];
-        }
-    }
-
-    $footer_options = [
-        "container" => block_container(QueryCache::get_field("footer_container", "options")),//block_container(get_option("footer_container")),
-        "text"      => QueryCache::get_field("footer_text", "options"),//get_option("options_footer_text"),
-        "logo"      => to_relative_url(QueryCache::get_field("logo_footer", "options")),
-        "menu"      => $footer_menu_processed,
-        "template"  => QueryCache::get_field("footer_template", "options")//get_option("options_footer_template")
-    ];
-
-    $result = [
-        "header" => $header_options,
-        "footer" => $footer_options
-    ];
-
-    // 3. ADIM: JSON dosyasını oluştur veya güncelle
-    if (!is_dir(dirname($json_path))) {
-        mkdir(dirname($json_path), 0755, true);
-    }
-    file_put_contents($json_path, json_encode($result));
-
-    return $result;
+    return $data;
 }
 
 // Timber posts kontrolü
@@ -557,285 +420,21 @@ function add_img_fluid_to_gutenberg($block_content, $block) {
 add_filter('render_block', 'add_img_fluid_to_gutenberg', 10, 2);
 
 
+// ── Taşındı (2026-08-26) ──────────────────────────────────────────────────────
+// save_lcp_results AJAX handler → Lcp::ajaxSaveLcpResults() (class.lcp.php)
+// Kayıt: variables.php'de Lcp::registerAjaxHooks() çağrısı.
+// ─────────────────────────────────────────────────────────────────────────────
 
-function restrict_author_pages() {
-    if (is_author()) {
-        $allowed_role = 'administrator';
-        if (!current_user_can($allowed_role)) {
-            wp_redirect(home_url());
-            exit;
-        }
-    }
-}
-//add_action('template_redirect', 'restrict_author_pages');
-
-//remove empty <p> tags
-function remove_empty_p( $content ) {
-    $content = force_balance_tags( $content );
-    $content = preg_replace( '#<p>\s*+(<br\s*/*>)?\s*</p>#i', '<br/>', $content );
-    $content = preg_replace( '~\s?<p>(\s|&nbsp;)+</p>\s?~', '<br/>', $content );
-    return $content;
-}
-//add_filter('the_content', 'remove_empty_p', 20, 1);
-
-function post_prev_next_order ( $order_by, $post, $order ) {
-    global $wpdb;
-    return "ORDER BY p.post_title ASC LIMIT 1";
-}
-//add_filter ( 'get_next_post_sort', 'post_prev_next_order', 10, 3 );
-//add_filter ( 'get_previous_post_sort', 'post_prev_next_order', 10, 3 );
-
-function ns_filter_avatar($avatar, $id_or_email, $size, $default, $alt, $args) {
-    $headers = @get_headers( $args['url'] );
-    if( ! preg_match("|200|", $headers[0] ) ) {
-        return;
-    }
-    return $avatar; 
-}
-//add_filter('get_avatar','ns_filter_avatar', 10, 6);
-
-
-add_action('wp_ajax_save_lcp_results', 'save_lcp_results');
-add_action('wp_ajax_nopriv_save_lcp_results', 'save_lcp_results');
-function save_lcp_results() {
-    $id_raw = isset($_POST['id']) ? sanitize_text_field($_POST['id']) : '';
-    $id = is_numeric($id_raw) ? intval($id_raw) : $id_raw; // archive için string ID olabilir
-    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
-    $url = isset($_POST['url']) ? esc_url_raw($_POST['url']) : '';
-    $lang = isset($_POST['lang']) ? sanitize_text_field($_POST['lang']) : '';
-
-    if (empty($id) || !$type || !isset($_POST['lcp_data'])) {
-        wp_send_json_error(['message' => 'Eksik veya geçersiz parametre!']);
-    }
-
-    $lcp_raw = stripslashes($_POST['lcp_data']);
-    $lcp_data = json_decode($lcp_raw, true);
-
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        wp_send_json_error(['message' => 'JSON formatı bozuk!']);
-    }
-
-    if (empty($id) || !$type || !$lcp_data) {
-        wp_send_json_error(['message' => 'Geçersiz veri!']);
-    }
-
-    $selectors = [];
-    foreach ($lcp_data as $device => &$data) { 
-        if (!empty($data['selectors']) && is_array($data['selectors'])) {
-            $selectors = array_merge($selectors, $data['selectors']);
-            unset($data['selectors']);
-        }
-    }
-    unset($data); 
-
-    $critical_css = "";
-    $structure_fp = ""; 
-    $existing_meta = [];
-
-    // 1. Existing meta verisini çekin (structure_fp'yi almak için)
-    if ($type === "archive" || $type === "dynamic") {
-        // archive ve dynamic type'lar option'da saklanir
-        $option_name = $id . '_assets'; 
-        $existing_meta = get_option($option_name);
-    } elseif (in_array($type, ['post', 'term', 'user', 'comment'])) {
-        $meta_function_get = "get_{$type}_meta";
-        $existing_meta = call_user_func($meta_function_get, $id, 'assets', true);
-    } else {
-        wp_send_json_error(['message' => 'Geçersiz type: ' . $type]);
-    }
-    
-    // structure_fp'yi al
-    if (!empty($existing_meta['structure_fp'])) {
-        $structure_fp = $existing_meta['structure_fp'];
-    }
-
-    // EĞER structure_fp YOKSA, İŞLEMİ İPTAL ET (Manifest kaydı yoksa dosya yetim kalır)
-    if (empty($structure_fp)) {
-         wp_send_json_error(['message' => 'Critical CSS oluşturulamadı: structure_fp bulunamadı.']);
-    }
-
-    $selectors = array_unique($selectors);
-    if($selectors){
-        $cache_dir = STATIC_PATH . 'css/cache/';
-        
-        // Dosya adını structure_fp ile belirle
-        $output = $cache_dir . $structure_fp . '-critical.css'; 
-
-        // Input CSS'i topla (plugin + page CSS)
-        $input = "";
-        if(defined("SITE_ASSETS") && is_array(SITE_ASSETS)){
-            if(!empty(SITE_ASSETS["plugin_css"]) && file_exists(STATIC_PATH . SITE_ASSETS["plugin_css"])){
-                $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["plugin_css"]);
-            }
-            if(!empty(SITE_ASSETS["css_page"]) && file_exists(STATIC_PATH . SITE_ASSETS["css_page"])){
-                $input .= file_get_contents(STATIC_PATH . SITE_ASSETS["css_page"]);
-            }
-        }
-        
-        // Fallback: main-combined.css
-        if(empty($input) && file_exists(STATIC_PATH . "css/main-combined.css")){
-            $input = file_get_contents(STATIC_PATH . "css/main-combined.css");
-        }
-
-        // Critical CSS oluştur (RemoveUnusedCss class'ı kullan)
-        if(!empty($input) && class_exists('SaltHareket\AssetManager\RemoveUnusedCss')){
-            try {
-                $remover = new \SaltHareket\AssetManager\RemoveUnusedCss($url, $input, $output, [], true);
-                $remover->generate_critical_css($selectors);
-                
-                if(file_exists($output)){
-                    $critical_css = str_replace(STATIC_PATH, '', $output);
-                    error_log("[LCP] Critical CSS oluşturuldu: {$critical_css}");
-                } else {
-                    error_log("[LCP] Critical CSS dosyası oluşturulamadı: {$output}");
-                }
-            } catch (Exception $e) {
-                error_log("[LCP] Critical CSS hatası: " . $e->getMessage());
-            }
-        }
-    }
-
-    // LCP verilerini ve Critical CSS yolunu meta veriye kaydetme (Mevcut mantık)
-    foreach ($lcp_data as $key => $lcp) {
-        if(isset($lcp["url"]) && !empty($lcp["url"])){
-            if(is_local($lcp["url"])){
-                $lcp_data[$key]["id"] = get_attachment_id_by_url($lcp["url"]);
-            }
-        }
-    }
-
-    if($type === "archive" || $type === "dynamic"){
-        // archive ve dynamic type'lar option'da saklanir
-        $option_name = $id . '_assets';
-        
-        if ($existing_meta) {
-            $existing_meta["lcp"] = array_merge((array)($existing_meta["lcp"] ?? []), $lcp_data);
-            if($critical_css){
-                $existing_meta["css_critical"] = $critical_css;
-            }
-            $return = update_option($option_name, $existing_meta);
-        }
-    } elseif (in_array($type, ['post', 'term', 'user', 'comment'])) {
-        $meta_function_update = "update_{$type}_meta";
-        
-        if ($existing_meta) {
-            $existing_meta["lcp"] = array_merge((array)($existing_meta["lcp"] ?? []), $lcp_data);
-            if($critical_css){
-                $existing_meta["css_critical"] = $critical_css;
-            }
-            $return = call_user_func($meta_function_update, $id, 'assets', $existing_meta);
-        }
-    }
-
-    wp_send_json_success(['message' => 'LCP verileri kaydedildi!', 'data' => $lcp_data, 'status' => $return ?? false]);
-}
-
-// 2️⃣ send_headers'de option'dan oku
+// ── Taşındı (2026-08-26) ──────────────────────────────────────────────────────
+// CSP ve security header'ları → apps/security/SecurityHooks.php::sendSecurityHeaders()
+// ─────────────────────────────────────────────────────────────────────────────
 /*
 add_action('send_headers', function () {
-    $csp_directives = [
-        "default-src" => ["'self'"],
-        "style-src"   => ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com", "https://maps.googleapis.com", "https://maps.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.plyr.io", "https://*.facebook.com"],
-        "script-src"  => [
-            "'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", 
-            "https://unpkg.com", "https://maps.googleapis.com", "https://maps.gstatic.com", 
-            "https://www.youtube.com", "https://player.vimeo.com", "https://www.googletagmanager.com", 
-            "https://www.google-analytics.com", "https://connect.facebook.net", // Facebook SDK
-            "https://*.hotjar.com", "https://*.hotjar.io", // Hotjar ısı haritası
-            "https://mc.yandex.ru", // Yandex Metrica
-            "https://analytics.tiktok.com", // Tiktok Pixel
-        ],
-        "worker-src"  => ["'self'", "blob:", "https://*.hotjar.com"],
-        "img-src" => [
-            "'self'", "data:", "blob:",
-            "https://*.google.com", "https://*.google.com.tr", "https://*.google-analytics.com", 
-            "https://*.googletagmanager.com", "https://*.googleapis.com", "https://*.gstatic.com", 
-            "https://img.youtube.com", "https://i.ytimg.com", "https://*.tile.openstreetmap.org", 
-            "https://s.w.org", "https://secure.gravatar.com", "https://*.vimeocdn.com",
-            "https://*.cdninstagram.com", "https://*.fbcdn.net", "https://*.facebook.com", 
-            "https://www.facebook.com", "https://googleads.g.doubleclick.net", // Google Ads
-            "https://mc.yandex.ru" // Yandex görselleri
-        ],
-        "font-src"    => ["'self'", "data:", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://*.hotjar.com"],
-        "object-src"  => ["'none'"],
-        "base-uri"    => ["'self'"],
-        "frame-ancestors" => ["'self'"],
-        "frame-src"   => [
-            "'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com", 
-            "https://player.vimeo.com", "https://*.google.com", "https://www.openstreetmap.org",
-            "https://td.doubleclick.net", "https://www.facebook.com", "https://connect.facebook.net",
-            "https://vars.hotjar.com"
-        ],
-        "connect-src" => [
-            "'self'", "https://*.google-analytics.com", "https://*.analytics.google.com", 
-            "https://*.googletagmanager.com", "https://*.googleapis.com", "https://*.gstatic.com", 
-            "https://*.tile.openstreetmap.org", "https://noembed.com", "https://cdn.plyr.io",
-            "https://*.facebook.com", "https://*.facebook.net", // Facebook API
-            "https://*.hotjar.com", "https://*.hotjar.io", "wss://*.hotjar.com", // Hotjar WebSocket
-            "https://mc.yandex.ru", "https://analytics.tiktok.com"
-        ]
-    ];
-
-    // Orijinal approved_domains döngün aynen kalsın...
-    $approved_domains = get_option('csp_approved_domains', []);
-    if (is_array($approved_domains)) {
-        foreach ($approved_domains as $directive => $domains) {
-            if (!isset($csp_directives[$directive]) || !is_array($domains)) continue;
-            foreach ($domains as $domain) {
-                if (!in_array($domain, $csp_directives[$directive])) {
-                    $csp_directives[$directive][] = $domain;
-                }
-            }
-        }
-    }
-
-    $csp_string = '';
-    foreach ($csp_directives as $key => $values) {
-        $csp_string .= $key . ' ' . implode(' ', $values) . '; ';
-    }
-
-    header("Content-Security-Policy: " . $csp_string);
-});
-*/
-
-function add_cache_control_headers() {
-    // Admin panelinde veya header zaten gönderildiyse dokunma
-    if ( is_admin() || headers_sent() ) {
-        return;
-    }
-
-    // Temel güvenlik header'ları
-    if (!is_admin()) {
-        header('X-Content-Type-Options: nosniff');
-        header('X-Frame-Options: SAMEORIGIN');
-        header('Referrer-Policy: strict-origin-when-cross-origin');
-        header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
-    }
-
-    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
-
-    // 1. MP3 DOSYALARI İÇİN ÖZEL HEADER (Streaming Desteği)
-    if ( stripos( $request_uri, '.mp3' ) !== false ) {
-        header( 'Cache-Control: public, max-age=31536000, immutable' );
-        header( 'Content-Type: audio/mpeg' );
-        header( 'Accept-Ranges: bytes' );
-        header( 'Content-Disposition: inline' );
-        return; // MP3 ise burada bitir
-    }
-
-    // 2. HTML SAYFALARI İÇİN (Normal Sayfa Yükü)
-    // Buraya immutable koyarsan revizyon yapamazsın. 
-    // max-age=3600 (1 saat) veya 0 (no-cache) daha güvenlidir.
-    // Cloudflare veya cache eklentisi kullanıyorsan burayı onlar yönetmeli.
-    if ( ! is_user_logged_in() ) {
-        // Giriş yapmamış kullanıcıya 1 saatlik cache hakkı tanıyalım
-        header( 'Cache-Control: public, max-age=3600, must-revalidate' );
-    } else {
-        // Login olmuş kullanıcıya cache verme (Admin bar vb. güncel kalsın)
-        header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
-    }
-}
-add_action('send_headers', 'add_cache_control_headers');
+// ── Taşındı (2026-08-26) ──────────────────────────────────────────────────────
+// CSP ve security header'ları → apps/security/SecurityHooks.php::sendSecurityHeaders()
+// add_cache_control_headers() → SecurityHooks tarafından yönetiliyor.
+// CSP direktifleri → SecuritySettings::getSection('csp') + SecurityHooks::buildCspString()
+// ─────────────────────────────────────────────────────────────────────────────
 
 
 /**
@@ -992,28 +591,8 @@ add_action('save_post_page', 'clear_page_redirection_cache');
 add_action('before_delete_post', 'clear_page_redirection_cache');
 
 
-/**
- * [PERFORMANS] Term sorgularını cache'e zorlar ve meta verileri tek seferde yükler.
- * Sorgu sayısını (N+1 problemi) azaltmak için kritiktir.
- */
-add_filter('get_terms_args', function($args, $taxonomies) {
-    // 1. Admin panelinde veya Ajax'ta cache bazen sorun çıkarabilir, kısıtlayalım.
-    if (!is_admin() && !defined('DOING_AJAX')) {
-        
-        // 2. Sorgu sonuçlarını cache'le
-        $args['cache_results'] = true;
-        
-        // 3. Term meta verilerini (ACF vb.) tek seferde çek (Lazy loading'i engeller)
-        $args['update_term_meta_cache'] = true;
-
-        // 4. Eğer çok fazla kategori varsa, sadece gerekli alanları çekerek RAM'i koruyalım
-        // Örn: Sadece ID'leri değil tüm objeyi istiyorsak bu kalsın.
-    }
-    return $args;
-}, 10, 2);
-
-
 add_filter( 'http_request_args', function( $args, $url ) {
-    $args['timeout'] = 30; // 5 saniyeyi 30 saniyeye çıkar
+    $args['timeout'] = 30;
     return $args;
 }, 10, 2 );
+

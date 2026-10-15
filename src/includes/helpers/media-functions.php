@@ -695,11 +695,11 @@ function get_video($video_args=array()){
     $audio = '<audio class="player video {{class}}" {{controls}} {{autoplay}} {{muted}} {{config}}>
       <source src="{{src}}" type="audio/mp3" />
     </audio>';
-    $file = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{lazy}} {{attrs}}>
+    $file = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{fetchpriority}} {{lazy}} {{attrs}}>
       <source src="{{src}}" type="video/mp4" />
       {{vtt}}
     </video>';
-    $file_responsive = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{lazy}} {{attrs}}>
+    $file_responsive = '<video class="player video {{class}} w-100" playsinline {{controls}} {{autoplay}} {{poster}} {{muted}} {{config}} preload="{{preload}}" {{fetchpriority}} {{lazy}} {{attrs}}>
       {{src}}
       {{vtt}}
     </video>';
@@ -736,6 +736,9 @@ function get_video($video_args=array()){
     
     $code = str_replace("{{lazy}}", "", $code);
     $code = str_replace("{{preload}}", "metadata", $code);
+    // fetchpriority: file/file_responsive template'lerinde {{fetchpriority}} placeholder'ı var
+    // embed template'inde yok — {{attrs}} üzerinden gider
+    $code = str_replace("{{fetchpriority}}", $is_lcp ? 'fetchpriority="high"' : '', $code);
     if(isset($video_args["attrs"])){
         $code = str_replace("{{attrs}}", array2Attrs($video_args["attrs"]) . " " . $attrs_extra, $code);
     }
@@ -829,14 +832,9 @@ function get_video($video_args=array()){
             // Normal video için poster - sadece HTML poster attribute kullan
             if(isset($settings["video_image"]) && !empty($settings["video_image"])){
                 $poster = $settings["video_image"];
-                $code = str_replace("{{poster}}", "poster=".$poster." data-poster=".$poster, $code);
-                
-                // LCP ise preload ekle
-                if(image_is_lcp($poster)){
-                    add_action('wp_head', function() use ($poster) {
-                        SaltHareket\Image::add_preload_image($poster);
-                    }, 1);
-                }
+                $code = str_replace("{{poster}}", "poster=" . $poster . " data-poster=" . $poster, $code);
+                // LCP preload — is_lcp zaten yukarıda check edildi, burada çift preload yapmıyoruz
+                // inject_preload class.lcp.php tarafından wp_head'de yapılıyor
             }else{
                 $code = str_replace("{{poster}}", "", $code);
             }
@@ -917,6 +915,13 @@ function get_video($video_args=array()){
     //$config = str_replace('"','', $config);
     $data_config = "data-plyr-config='$config'";
     $code = str_replace("{{config}}", $data_config, $code);
+
+    // Güvenlik: replace edilmemiş {{src}} placeholder'ı kalırsa boş string yap.
+    // Aksi halde browser {{src}} URL'sine istek atar → gereksiz 404 + log gürültüsü.
+    if ( strpos( $code, '{{src}}' ) !== false ) {
+        return ''; // src yoksa video render etme
+    }
+
     return $code;
 }
 

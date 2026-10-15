@@ -15,7 +15,7 @@ class DownloadLogAdmin {
 
     use HandlesLog;
 
-    const MENU_SLUG = 'salt-download-log';
+    const MENU_SLUG = 'sh-download-log';
     const NONCE_KEY = 'sh_download_admin';
 
     // ─── MENU ────────────────────────────────────────────
@@ -67,7 +67,12 @@ class DownloadLogAdmin {
         $tab   = sanitize_key( $_GET['tab'] ?? 'log' );
         $nonce = wp_create_nonce( self::NONCE_KEY );
         echo '<div class="wrap sh-wrap" id="sh-download-log-page">';
-        echo '<div class="sh-toolbar"><h1>&#128229; Download Log</h1>';
+        $dl_badge_enabled = (bool) \SaltHareket\DownloadLog\DownloadLogSettings::getSetting('enable_download_log', true);
+        $dl_badge_class   = $dl_badge_enabled ? 'sh-badge-green' : 'sh-badge-gray';
+        $dl_badge_label   = $dl_badge_enabled ? 'Enabled' : 'Disabled';
+        echo '<div class="sh-toolbar"><h1 style="display:inline-flex;align-items:center;gap:8px;">&#128229; Download Log <span id="sh-dl-header-badge" class="sh-badge ' . $dl_badge_class . '" style="font-size:11px">' . $dl_badge_label . '</span></h1>';
+        $dl_nonce   = wp_create_nonce( self::NONCE_KEY );
+        $dl_ajax    = esc_url( admin_url( 'admin-ajax.php' ) );
         echo '<div class="sh-toolbar-right">';
         foreach ( [ 'log' => '&#128229; Log', 'rules' => '&#9881; Rules', 'settings' => '&#9881; Settings', 'analytics' => '&#128200; Analytics' ] as $t => $l ) {
             echo '<a href="?page=' . self::MENU_SLUG . '&tab=' . $t . '" class="sh-tab-btn ' . ( $tab === $t ? 'active' : '' ) . '">' . $l . '</a>';
@@ -511,6 +516,7 @@ class DownloadLogAdmin {
     // ─── SETTINGS TAB ────────────────────────────────────
 
     private static function renderSettingsTab( string $nonce ): void {
+        $enabled       = (bool) \SaltHareket\DownloadLog\DownloadLogSettings::getSetting('enable_download_log', true);
         $recipients    = get_option( 'sh_download_report_recipients', '' );
         $schedule      = get_option( 'sh_download_report_schedule', 'weekly' );
         $mail_limit    = (int) get_option( 'sh_download_report_mail_limit', 50 );
@@ -532,7 +538,53 @@ class DownloadLogAdmin {
         <div class="sh-layout">
         <div class="sh-main">
 
-        <!-- Report Settings -->
+        <!-- App Enable Toggle -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+            <strong style="font-size:13px;color:#1d2327;">Enable Download Log</strong>
+            <label class="sh-toggle">
+                <input type="checkbox" id="sh-download-log-app-toggle"
+                       <?php checked( $enabled ); ?>
+                       onchange="shDownloadLogAppToggle(this.checked)">
+                <span class="sh-toggle-slider"></span>
+            </label>
+            <span id="sh-download-log-app-label" style="font-size:12px;color:<?php echo $enabled ? '#00a32a' : '#9ca3af'; ?>">
+                <?php echo $enabled ? 'Enabled' : 'Disabled'; ?>
+            </span>
+            <span id="sh-download-log-app-saving" style="display:none;font-size:12px;color:#9ca3af;margin-left:4px;">
+                <span style="display:inline-block;width:12px;height:12px;border:2px solid #ddd;border-top-color:#2271b1;border-radius:50%;animation:sh-spin .6s linear infinite;vertical-align:middle;margin-right:4px;"></span>Saving...
+            </span>
+        </div>
+        <script>
+        function shDownloadLogAppToggle(enabled) {
+            var label  = document.getElementById('sh-download-log-app-label');
+            var saving = document.getElementById('sh-download-log-app-saving');
+            var toggle = document.getElementById('sh-download-log-app-toggle');
+            if (saving) saving.style.display = 'inline-flex';
+            if (label)  label.style.display  = 'none';
+            var fd = new FormData();
+            fd.append('action',  'sh_download_log_save_app_toggle');
+            fd.append('nonce',   <?php echo wp_json_encode( wp_create_nonce( self::NONCE_KEY ) ); ?>);
+            fd.append('enabled', enabled ? '1' : '0');
+            fetch(<?php echo wp_json_encode( admin_url('admin-ajax.php') ); ?>, { method:'POST', body:fd, credentials:'same-origin' })
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if (saving) saving.style.display = 'none';
+                    if (label) {
+                        label.style.display = '';
+                        label.style.color   = enabled ? '#00a32a' : '#9ca3af';
+                        label.textContent   = enabled ? 'Enabled' : 'Disabled';
+                    }
+                    // h1 badge sync
+                    var hb = document.getElementById('sh-dl-header-badge');
+                    if (hb) { hb.textContent = enabled ? 'Enabled' : 'Disabled'; hb.className = 'sh-badge ' + (enabled ? 'sh-badge-green' : 'sh-badge-gray'); }
+                })
+                .catch(function(){
+                    if (saving) saving.style.display = 'none';
+                    if (label)  label.style.display  = '';
+                    if (toggle) toggle.checked = !enabled;
+                });
+        }
+        </script>
         <div class="sh-table-wrap" style="margin-bottom:20px;">
             <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
                 <h2 style="margin:0;font-size:15px;font-weight:600;">&#128229; Scheduled Reports</h2>
@@ -1383,6 +1435,16 @@ class DownloadLogAdmin {
 
         // Temizle
         @unlink( $filepath );
+    }
+
+    public static function ajaxSaveAppToggle(): void {
+        check_ajax_referer( 'sh_download_log_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Unauthorized', 403 );
+
+        $enabled = ! empty( $_POST['enabled'] ) && $_POST['enabled'] !== '0';
+        \SaltHareket\DownloadLog\DownloadLogSettings::save( [ 'enable_download_log' => $enabled ] );
+
+        wp_send_json_success( [ 'enabled' => $enabled ] );
     }
 
     public static function clearLogs(): void {

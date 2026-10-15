@@ -91,8 +91,26 @@ $active = !empty($stt['active']);
                 <!-- Icon & Animation -->
                 <div class="ts-field-row ts-field-row-3" style="margin-bottom:20px;">
                     <div>
-                        <label class="ts-field-label"><?php _e('Icon (FA HTML)', 'theme-styles'); ?></label>
-                        <input type="text" class="ts-field-input" data-field="scroll_to_top.icon" value="<?php echo esc_attr($stt['icon'] ?? '<i class="fa-solid fa-chevron-up"></i>'); ?>" placeholder='<i class="fa-solid fa-chevron-up"></i>' />
+                        <label class="ts-field-label"><?php _e('Icon', 'theme-styles'); ?></label>
+                        <?php
+                        // Eski format: '<i class="fa-solid fa-chevron-up"></i>' → yeni: 'solid:chevron-up'
+                        $icon_val = $stt['icon'] ?? '';
+                        // Eski HTML formatını temizle
+                        if ( strpos( (string)$icon_val, '<i ' ) !== false ) {
+                            preg_match('/fa-(solid|regular|light|brands)\s+fa-([a-z0-9-]+)/', $icon_val, $m);
+                            $icon_val = isset($m[1], $m[2]) ? $m[1] . ':' . $m[2] : 'regular:angle-up';
+                        }
+                        // Eski sadece isim formatı (prefix yok) → default style ekle
+                        if ( $icon_val && strpos( (string)$icon_val, ':' ) === false ) {
+                            $icon_val = 'regular:' . $icon_val;
+                        }
+                        if ( ! $icon_val ) $icon_val = 'regular:angle-up';
+                        ?>
+                        <input type="hidden"
+                               data-field="scroll_to_top.icon"
+                               data-sh-icon-picker
+                               data-placeholder="İkon seç..."
+                               value="<?php echo esc_attr( $icon_val ); ?>" />
                     </div>
                     <div>
                         <label class="ts-field-label"><?php _e('Animation Duration (ms)', 'theme-styles'); ?></label>

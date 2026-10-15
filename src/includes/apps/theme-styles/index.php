@@ -47,7 +47,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define constants
-define('THEME_STYLES_VERSION', '1.0.0');
+define('THEME_STYLES_VERSION', '1.0.2');
 define('THEME_STYLES_PATH', __DIR__);
 define('THEME_STYLES_URL', get_template_directory_uri() . '/vendor/salthareket/theme/src/includes/apps/theme-styles');
 

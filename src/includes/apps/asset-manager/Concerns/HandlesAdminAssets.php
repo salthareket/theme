@@ -21,10 +21,16 @@ trait HandlesAdminAssets
             'bootstrap-admin'=> [ 'url' => STATIC_URL . 'css/bootstrap-admin.css' ],
             'root'           => [ 'url' => STATIC_URL . 'css/root.css' ],
             'acf-layouts'    => [ 'url' => STATIC_URL . 'css/header-admin.css' ],
-            'main-admin'     => [ 'url' => STATIC_URL . 'css/main-admin.css' ],
             'blocks-admin'   => [ 'url' => STATIC_URL . 'css/blocks-admin.css' ],
             'admin-addon'    => [ 'url' => STATIC_URL . 'css/admin-addon.css' ],
         ];
+
+        // main-admin.css sadece block editor kullanan sayfalarda yükle
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        $is_block_editor_page = $screen && method_exists( $screen, 'is_block_editor' ) && $screen->is_block_editor();
+        if ( $is_block_editor_page ) {
+            $admin_styles['main-admin'] = [ 'url' => STATIC_URL . 'css/main-admin.css' ];
+        }
 
         // Filter ile dışarıdan ekle/çıkar
         $admin_styles = apply_filters( 'sh_admin_styles', $admin_styles );
@@ -40,9 +46,11 @@ trait HandlesAdminAssets
         }
 
         // Sabit admin JS'ler
+        // functions.min.js kaldırıldı — içeriği AjaxInitManager (frontend plugin lazy-loader).
+        // Admin'de .swiper/.plyr/.btn-favorite gibi frontend widget'ları yok,
+        // js_files_conditional_set.json'dan plugin config okuyup init yapmaya gerek yok.
         $admin_scripts = [
             'admin'          => [ 'url' => STATIC_URL . 'js/admin.min.js',         'deps' => [ 'jquery' ], 'footer' => true ],
-            'functions'      => [ 'url' => STATIC_URL . 'js/functions.min.js',     'deps' => [ 'jquery' ], 'footer' => true ],
             'plugins-admin'  => [ 'url' => STATIC_URL . 'js/plugins-admin.min.js', 'deps' => [ 'jquery' ], 'footer' => true ],
         ];
 

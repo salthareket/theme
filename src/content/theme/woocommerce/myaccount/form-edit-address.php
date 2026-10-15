@@ -55,7 +55,7 @@ if ( ! wc_ship_to_billing_address_only() && wc_shipping_enabled() ){
 
 						<?php do_action( "woocommerce_before_edit_address_form_{$load_address}" ); ?>
 
-						<div class="row--">
+						<div class="row-- www">
 							<?php
 							foreach ( $address as $key => $field ) {
 								woocommerce_form_field( $key, $field, wc_get_post_data_by_key( $key, $field['value'] ) );

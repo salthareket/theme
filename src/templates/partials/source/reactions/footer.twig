@@ -1,0 +1,18 @@
+{#
+  partials/source/reactions/footer.twig
+  Context: meta, view, reaction_type
+#}
+
+{% set endpoint_map = {
+    'favorite': 'favorites',
+    'bookmark': 'bookmarks',
+    'follow':   'following',
+    'like':     'liked'
+} %}
+
+{% set endpoint = endpoint_map[reaction_type]|default(reaction_type ~ 's') %}
+
+<a href="{{ function('wc_get_account_endpoint_url', endpoint)|default('#') }}"
+   class="btn btn-primary btn-sm w-100">
+    {{ translate('View All') }}
+</a>

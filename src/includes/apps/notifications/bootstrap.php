@@ -31,18 +31,11 @@ require_once $notify_base . 'NotifyDispatcher.php';
 require_once $notify_base . 'Carriers/NotifyCarrier.php';
 require_once $notify_base . 'Carriers/AlertCarrier.php';
 require_once $notify_base . 'Carriers/EmailCarrier.php';
-// SMS — multi-provider
-require_once $notify_base . 'Carriers/SmsContract.php';
-require_once $notify_base . 'Carriers/SmsEncoding.php';
-require_once $notify_base . 'Carriers/SmsSettings.php';
-require_once $notify_base . 'Carriers/Providers/D7Provider.php';
-require_once $notify_base . 'Carriers/Providers/TwilioProvider.php';
-require_once $notify_base . 'Carriers/Providers/VonageProvider.php';
-require_once $notify_base . 'Carriers/Providers/InfobipProvider.php';
-require_once $notify_base . 'Carriers/Providers/SinchProvider.php';
-require_once $notify_base . 'Carriers/Providers/NetgsmProvider.php';
-require_once $notify_base . 'Carriers/SmsManager.php';
-require_once $notify_base . 'Carriers/SmsCarrier.php';
+// SMS — sadece ENABLE_SMS aktifse yükle
+// sms/bootstrap.php zaten önce yüklendi (variables.php'de sıra garantili)
+if ( defined('ENABLE_SMS') && ENABLE_SMS ) {
+    require_once $notify_base . 'Carriers/SmsCarrier.php';
+}
 // Email — multi-provider
 require_once $notify_base . 'Carriers/Email/EmailContract.php';
 require_once $notify_base . 'Carriers/Email/EmailSettings.php';

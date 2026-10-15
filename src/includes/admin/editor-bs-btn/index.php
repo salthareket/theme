@@ -36,9 +36,9 @@ add_filter('tiny_mce_before_init', function($init_array) {
     $breakpoints = Data::get('breakpoints');
     if ($breakpoints) {
         $typography    = [];
-        $theme_styles  = function_exists('acf_get_theme_styles') ? acf_get_theme_styles() : [];
-        if (isset($theme_styles['typography'])) {
-            $typography = $theme_styles['typography'];
+        if ( class_exists( 'Theme_Styles' ) ) {
+            $ts = Theme_Styles::init()->get_data();
+            $typography = $ts['typography'] ?? [];
         }
 
         $title_classes = [];

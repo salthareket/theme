@@ -79,21 +79,31 @@ trait HandlesLanguage
      */
     private function pae_lang_list(): array
     {
+        static $cached = null;
+        if ( $cached !== null ) return $cached;
+
         if (\Data::has('languages') && is_array(\Data::get('languages'))) {
-            $names = array_column(\Data::get('languages'), 'name');
-            return array_values(array_filter(array_map('strval', $names)));
+            $names  = array_column(\Data::get('languages'), 'name');
+            $cached = array_values(array_filter(array_map('strval', $names)));
+            return $cached;
         } else {
             if (class_exists('SaltHareket\Theme')) {
                 $theme = \SaltHareket\Theme::getInstance();
                 if (ENABLE_MULTILANGUAGE) {
-                    $theme->language_settings(); // Dilleri burada zorla ayarla
+                    $theme->language_settings();
                 } else {
-                    $theme->language_settings_basic(); // Dilleri burada zorla ayarla
+                    $theme->language_settings_basic();
                 }
-                return $this->pae_lang_list();
+                // Tekrar oku — language_settings() Data::set('languages') yapmış olabilir
+                if (\Data::has('languages') && is_array(\Data::get('languages'))) {
+                    $names  = array_column(\Data::get('languages'), 'name');
+                    $cached = array_values(array_filter(array_map('strval', $names)));
+                    return $cached;
+                }
             }
         }
-        return $this->pae_lang_default() ? [$this->pae_lang_default()] : [];
+        $cached = $this->pae_lang_default() ? [$this->pae_lang_default()] : [];
+        return $cached;
     }
 
     // =========================================================
@@ -152,8 +162,11 @@ trait HandlesLanguage
      */
     public function get_content_lang($id, $type = null): string
     {
+        static $lang_cache = [];
+        $type     = $type ?: $this->type;
+        $cache_key = $type . ':' . $id;
+        if ( isset( $lang_cache[ $cache_key ] ) ) return $lang_cache[ $cache_key ];
         $lang = '';
-        $type = $type ?: $this->type; // Tip verilmediyse sınıfın o anki tipini kullan
 
         if (defined('ENABLE_MULTILANGUAGE') && ENABLE_MULTILANGUAGE === 'polylang') {
 
@@ -192,7 +205,9 @@ trait HandlesLanguage
             }
         }
 
-        return !empty($lang) ? strtolower($lang) : '';
+        $result = !empty($lang) ? strtolower($lang) : '';
+        $lang_cache[ $cache_key ] = $result;
+        return $result;
     }
 
     // =========================================================
@@ -269,7 +284,27 @@ trait HandlesLanguage
             return [];
         }
 
-        $slug    = isset($pto->rewrite['slug']) ? trim($pto->rewrite['slug'], '/') : trim($post_type, '/');
+        // WooCommerce: product archive URL'i rewrite slug değil, shop page permalink'i
+        // wc_get_page_permalink('shop') doğru URL'i döndürür (ör. /shop/)
+        if ( $post_type === 'product' && function_exists('wc_get_page_permalink') ) {
+            $shop_url = wc_get_page_permalink('shop');
+            if ( $shop_url && ! is_wp_error($shop_url) ) {
+                // home_url prefix'ini kaldır, sadece path kısmını al
+                // ör: http://localhost/salthub/shop/ → shop
+                $home_path = rtrim( parse_url( home_url(), PHP_URL_PATH ) ?: '', '/' );
+                $shop_path = rtrim( parse_url( $shop_url, PHP_URL_PATH ) ?: '', '/' );
+                // home path'i çıkar: /salthub/shop → /shop → shop
+                if ( $home_path && strpos( $shop_path, $home_path ) === 0 ) {
+                    $shop_path = substr( $shop_path, strlen( $home_path ) );
+                }
+                $slug = trim( $shop_path, '/' );
+                $this->error_log("[PAE] product archive: using WC shop URL slug={$slug}");
+            } else {
+                $slug = isset($pto->rewrite['slug']) ? trim($pto->rewrite['slug'], '/') : trim($post_type, '/');
+            }
+        } else {
+            $slug = isset($pto->rewrite['slug']) ? trim($pto->rewrite['slug'], '/') : trim($post_type, '/');
+        }
         $langs   = (\Data::has('languages') && is_array(\Data::get('languages'))) ? \Data::get('languages') : [];
         $default = \Data::has('language_default') ? (string) \Data::get('language_default') : '';
 

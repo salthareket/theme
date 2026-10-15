@@ -246,7 +246,7 @@
       setTimeout(function () { countEl.style.transform = ''; }, 150);
     }
     // Clap animasyonu — icon'u yukari ziplat
-    const icon = btn.querySelector('i, img, .salt-reaction-icon');
+    const icon = btn.querySelector('i, img, .salt-reaction-icon, .fa-icon');
     if (icon) {
       icon.style.transform = 'scale(1.4) translateY(-3px)';
       icon.style.transition = 'transform .15s ease';
@@ -293,7 +293,7 @@
 
     if (iconHtml) {
       // Mevcut icon element'ini bul ve replace et
-      const existingIcon = btn.querySelector('i, img, .salt-reaction-icon');
+      const existingIcon = btn.querySelector('i, img, .salt-reaction-icon, .fa-icon');
       if (existingIcon) {
         const tmp = document.createElement('span');
         tmp.innerHTML = iconHtml;

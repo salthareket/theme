@@ -3,15 +3,27 @@
 // ─────────────────────────────────────────────────────────────
 
 @keyframes spinner {
+    from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 
 @keyframes load8 {
+    from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+// Reduced motion override — zorla animasyonu aç
+@media (prefers-reduced-motion: reduce) {
+    .loading:after,
+    .loading-process:after {
+        animation-duration: 1s !important;
+        animation-play-state: running !important;
+    }
 }
 
 // ── Base loading spinner ──────────────────────────────────────
 .loading {
+    position: relative; // :after absolute konumlanması için gerekli
     &:after {
         content: '';
         box-sizing: border-box;
@@ -152,6 +164,47 @@ body.loading:not(.loaded) {
         background-color: rgba(var(--body-bg-color-rgb), .8);
         z-index: 100;
     }
+}
+
+// ── Inline loader ─────────────────────────────────────────────
+// Akis icinde (absolute degil) spinner — infinite scroll, "daha fazla yukleniyor"
+// gibi liste sonu gostergeleri icin. Kendi yerini kaplar, icerikten sonra gelir.
+// Kullanim: <div class="loading-inline"></div>  (opsiyonel: loading-inline-sm|lg, loading-light)
+.loading-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+    min-height: #{$loading-size-default + 16}px;
+
+    &:after {
+        content: '';
+        box-sizing: border-box;
+        display: block;
+        width: #{$loading-size-default}px;
+        height: #{$loading-size-default}px;
+        border-radius: 50%;
+        // Renk: tema primary'sine bagli (fallback koyu). border ile spinner.
+        border-top: 2px solid var(--loading-color, var(--primary-color, #{$loading-color-dark}));
+        border-right: 2px solid transparent;
+        animation: spinner .6s linear infinite;
+    }
+
+    // Size variants — .loading ile ayni olceklerden turetilir.
+    @each $screen-size in $base-screen-sizes {
+        $index: index($base-screen-sizes, $screen-size);
+        $size: nth($loading-sizes, $index);
+        &.loading-inline-#{$screen-size} {
+            min-height: #{$size + 16}px;
+            &:after { width: #{$size}px; height: #{$size}px; }
+        }
+    }
+
+    &.loading-light:after { border-top-color: $loading-color-light; }
+    &.loading-dark:after  { border-top-color: $loading-color-dark; }
+
+    // Gizli durum — icerik gelince JS d-none ekler (ya da element kaldirilir).
+    &.d-none { display: none !important; }
 }
 
 // ── Circle loader ─────────────────────────────────────────────

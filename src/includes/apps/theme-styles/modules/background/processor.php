@@ -28,10 +28,9 @@ function theme_styles_process_background($data, $generator) {
 
     $variables = [
         'body-bg-color'              => $bg_color,
-        // Gradient ve image her zaman set edilir - none ise CSS'de görünmez
-        // bg_type sadece UI tab'ı için, CSS'de ikisi birden çalışabilir
-        'body-bg-gradient'           => !empty($bg_grad) ? $bg_grad : 'none',
-        'body-bg-image'              => !empty($bg_image_url) ? 'url(' . $bg_image_url . ')' : 'none',
+        // bg_type'a göre gradient ve image set et — sadece seçili tip aktif
+        'body-bg-gradient'           => ( $bg_type === 'gradient' && !empty($bg_grad) ) ? $bg_grad : 'none',
+        'body-bg-image'              => ( $bg_type === 'image' && !empty($bg_image_url) ) ? 'url(' . $bg_image_url . ')' : 'none',
         'body-bg-size'               => $bg_size,
         'body-bg-position'           => $body['bg_position']   ?? 'center center',
         'body-bg-repeat'             => $body['bg_repeat']     ?? 'no-repeat',

@@ -320,8 +320,8 @@ function get_map_embed_url($type = "leaflet", $locations = []) {
 
 function get_map_config_v1($fields = array(), $block_meta = array()){
 	$html = "";
-	$map_service = QueryCache::get_field("map_service", "options");//get_option("options_map_service");
-	$map_view = QueryCache::get_field("map_view", "options");//get_option("options_map_view");
+	$map_service = \SaltHareket\SaltConfig::get('options_map_service', 'leaflet');
+	$map_view    = \SaltHareket\SaltConfig::get('options_map_view', 'dynamic');
 
 	$map_type = isset($fields["map_type"])?$fields["map_type"]:"static";
 	$settings = isset($fields['map_settings'])?$fields['map_settings']:[];
@@ -353,9 +353,9 @@ function get_map_config_v1($fields = array(), $block_meta = array()){
 		    	if(isset($settings['marker']) && $settings['marker']){
 		    		$marker = $settings['marker'];
 		    	}else{
-		    		$marker = QueryCache::get_field("map_marker", "options");
+		    		$marker = \SaltHareket\SaltConfig::get('options_map_marker');
 		    		if(!$marker){
-		    			$marker = QueryCache::get_field("logo_marker", "options");
+		    			$marker = \SaltHareket\SaltConfig::get('options_logo_marker');
 		    		}
 		    	}
 		    	if($marker){
@@ -461,10 +461,10 @@ function get_map_config_v1($fields = array(), $block_meta = array()){
 
 function get_map_config($fields = array(), $block_meta = array()) {
     $html = "";
-    
+
     // Ayarları çek
-    $map_service = QueryCache::get_option("options_map_service", "leaflet");
-    $map_view    = QueryCache::get_option("options_map_view", "dynamic"); // Default JS view
+    $map_service = \SaltHareket\SaltConfig::get('options_map_service', 'leaflet');
+    $map_view    = \SaltHareket\SaltConfig::get('options_map_view', 'dynamic');
     $map_type    = $fields["map_type"] ?? "static";
     $settings    = $fields['map_settings'] ?? [];
 
@@ -496,7 +496,7 @@ function get_map_config($fields = array(), $block_meta = array()) {
             ];
 
             // Marker İkon Mantığı
-            $marker = $settings['marker'] ?? QueryCache::get_field("map_marker", "options") ?? QueryCache::get_field("logo_marker", "options");
+            $marker = $settings['marker'] ?? \SaltHareket\SaltConfig::get('options_map_marker') ?? \SaltHareket\SaltConfig::get('options_logo_marker');
             
             if ($marker) {
                 $data["marker"] = [

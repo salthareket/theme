@@ -133,6 +133,7 @@ class PageAssetsExtractor {
     public bool    $disable_hooks = false;
     public bool    $force_rebuild = false;
     public bool    $grouped_fetch = false;
+    public bool    $_heavy_running = false;
     public bool    $debug         = true;
 
     // Fetch state
@@ -223,11 +224,11 @@ class PageAssetsExtractor {
         $this->manifest_path = $cache_root . 'assets-manifest.json';
         $this->manifest_read();
 
-        // CSS mtime kontrolü
-        $css_mtime = file_exists($this->source_css) ? filemtime($this->source_css) : 0;
-        if (!isset($this->manifest['last_css_mtime']) || $this->manifest['last_css_mtime'] !== $css_mtime) {
+        // CSS içerik hash kontrolü — mtime MAMP'ta güvenilmez olabilir
+        $css_hash = file_exists($this->source_css) ? md5_file($this->source_css) : '0';
+        if (!isset($this->manifest['last_css_mtime']) || $this->manifest['last_css_mtime'] !== $css_hash) {
             $this->force_rebuild                  = true;
-            $this->manifest['last_css_mtime']     = $css_mtime;
+            $this->manifest['last_css_mtime']     = $css_hash;
             $this->manifest_write();
         }
 
@@ -254,6 +255,8 @@ class PageAssetsExtractor {
         add_action('wp_ajax_page_assets_update',      [$this, 'page_assets_update']);
         add_action('wp_ajax_pae_clear_cache',         [$this, 'pae_clear_cache_ajax']);
         add_action('wp_ajax_pae_toggle_dual_fetch',   [$this, 'pae_toggle_dual_fetch_ajax']);
+        add_action('wp_ajax_pae_clean_orphans',       [$this, 'pae_clean_orphans_ajax']);
+        add_action('wp_ajax_pae_get_orphan_count',    [$this, 'pae_get_orphan_count_ajax']);
 
         // Admin menü
         add_action('admin_menu', [$this, 'register_admin_page']);
@@ -356,6 +359,13 @@ class PageAssetsExtractor {
             }
         }
 
+        // Page Settings force-rebuild sinyali — container/sidebar gibi DOM class'i
+        // degistiren bir page_settings kaydi yapildiysa CSS'i taze uret (ilk save'de dogru sonuc)
+        if ( get_post_meta( $post_id, '_page_settings_force_asset_rebuild', true ) ) {
+            $this->force_rebuild = true;
+            delete_post_meta( $post_id, '_page_settings_force_asset_rebuild' );
+        }
+
         $this->type = 'post';
         $ok         = $this->fetch_post_url($post_id);
 
@@ -382,6 +392,12 @@ class PageAssetsExtractor {
             if ( ! file_exists( $css_abs ) ) {
                 $this->force_rebuild = true;
             }
+        }
+
+        // Page Settings force-rebuild sinyali (term)
+        if ( get_term_meta( $term_id, '_page_settings_force_asset_rebuild', true ) ) {
+            $this->force_rebuild = true;
+            delete_term_meta( $term_id, '_page_settings_force_asset_rebuild' );
         }
 
         $this->type = 'term';
@@ -527,9 +543,6 @@ class PageAssetsExtractor {
     public function remove_critical_css(): void {
         $this->error_log('[PAE] remove_critical_css: akıllı temizlik kullanıldığı için atlandı.');
     }
-
-    
-
 }
 
 // ── Otomatik başlat ───────────────────────────────────────────────────────────

@@ -49,13 +49,111 @@ trait QueriesReviews
      */
     public function getForUser( int $user_id, array $args = [] ): array
     {
-        $q               = $this->buildQuery( $args );
-        $q['meta_query'][] = [
-            'key'   => 'comment_profile',
-            'value' => $user_id,
-            'type'  => 'NUMERIC',
+        global $wpdb;
+
+        $status   = ( ( $args['status'] ?? 'approve' ) === 'hold' ) ? '0' : '1';
+        $per_page = max( 1, (int) ( $args['per_page'] ?? 10 ) );
+        $page     = max( 1, (int) ( $args['page'] ?? 1 ) );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        // Direkt SQL — WP_Comment_Query comment_post_ID=0 olan yorumları atlıyor
+        $ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT c.comment_ID
+             FROM {$wpdb->comments} c
+             JOIN {$wpdb->commentmeta} m ON c.comment_ID = m.comment_id
+             WHERE c.comment_type = 'review'
+               AND c.comment_approved = %s
+               AND c.comment_parent = 0
+               AND m.meta_key = 'comment_profile'
+               AND m.meta_value = %d
+             ORDER BY c.comment_date_gmt DESC",
+            $status,
+            $user_id
+        ) );
+
+        $total = count( $ids );
+        if ( $total === 0 ) {
+            return [ 'reviews' => [], 'data' => [ 'count' => 0, 'total' => 0, 'page' => $page, 'page_total' => 1, 'per_page' => $per_page ] ];
+        }
+
+        $paged_ids = array_slice( $ids, $offset, $per_page );
+        $q = $this->buildQuery( $args );
+        $q['comment__in'] = array_map( 'intval', $paged_ids );
+        $q['orderby']     = 'comment__in';
+        unset( $q['status'] ); // zaten ID ile filtreledik
+
+        $result = $this->runQuery( $q );
+        $result['data']['count'] = $total;
+        $result['data']['total'] = $total;
+        $result['data']['page_total'] = max( 1, (int) ceil( $total / $per_page ) );
+        return $result;
+    }
+
+    /**
+     * Kullanıcının author olduğu post'lara yapılan review'lar.
+     * (getReceived'ın sadece post kısmı — profil review'ları hariç)
+     */
+    public function getForPosts( int $user_id, array $args = [] ): array
+    {
+        global $wpdb;
+
+        $status   = ( ( $args['status'] ?? 'approve' ) === 'hold' ) ? '0' : '1';
+        $per_page = max( 1, (int) ( $args['per_page'] ?? 10 ) );
+        $page     = max( 1, (int) ( $args['page'] ?? 1 ) );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        $ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT c.comment_ID
+             FROM {$wpdb->comments} c
+             JOIN {$wpdb->posts} p ON c.comment_post_ID = p.ID
+             WHERE c.comment_type = 'review'
+               AND c.comment_approved = %s
+               AND c.comment_parent = 0
+               AND p.post_author = %d
+               AND p.post_status = 'publish'
+             ORDER BY c.comment_date_gmt DESC",
+            $status,
+            $user_id
+        ) );
+
+        $total = count( $ids );
+        if ( $total === 0 ) {
+            return [ 'reviews' => [], 'data' => [ 'count' => 0, 'total' => 0, 'page' => $page, 'page_total' => 1, 'per_page' => $per_page ] ];
+        }
+
+        $paged_ids = array_slice( $ids, $offset, $per_page );
+
+        if ( empty( $paged_ids ) ) {
+            return [ 'reviews' => [], 'data' => [ 'count' => $total, 'total' => $total, 'page' => $page, 'page_total' => max(1,(int)ceil($total/$per_page)), 'per_page' => $per_page ] ];
+        }
+
+        // Direkt SQL ile fetch — WP_Comment_Query comment_post_ID=0 bypass
+        $placeholders = implode( ',', array_fill( 0, count( $paged_ids ), '%d' ) );
+        $comment_ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_ID IN ({$placeholders})",
+            $paged_ids
+        ) );
+
+        // ID sırasını koru
+        $comments = [];
+        foreach ( $paged_ids as $cid ) {
+            $comment = get_comment( (int) $cid );
+            if ( $comment ) $comments[] = $comment;
+        }
+
+        $reviews = array_map( function( $c ) { return $this->wrapComment( $c ); }, $comments );
+
+        $result = [
+            'reviews' => $reviews,
+            'data'    => [
+                'count'      => $total,
+                'total'      => $total,
+                'page'       => $page,
+                'page_total' => max( 1, (int) ceil( $total / $per_page ) ),
+                'per_page'   => $per_page,
+            ],
         ];
-        return $this->runQuery( $q );
+        return $result;
     }
 
     /**
@@ -66,6 +164,67 @@ trait QueriesReviews
     {
         $q            = $this->buildQuery( $args );
         $q['user_id'] = $user_id;
+        return $this->runQuery( $q );
+    }
+
+    /**
+     * Kullanıcıya YAPILAN review'lar (received).
+     *
+     * Kapsam — badge (getUnreadCount) ile birebir aynı küme:
+     *   - Kullanıcının sahibi olduğu (post_author) publish post'lara yazılan review'lar
+     *   - Kullanıcının profiline yazılan review'lar (comment_profile meta)
+     *
+     * Not: reply'lar (comment_type='review_reply') parent=0 filtresiyle liste dışıdır;
+     * reply'a ihtiyaç olursa item bazında getReplies() ile çekilir.
+     *
+     * @param int   $user_id  İçerik/profil sahibi kullanıcı ID
+     * @param array $args     buildQuery args (page, per_page, status, order, rating, ...)
+     * @return array{reviews: array, data: array}
+     */
+    public function getReceived( int $user_id, array $args = [] ): array
+    {
+        global $wpdb;
+
+        // Bu kullanıcıya YAPILMIŞ review comment_ID'lerini topla (post sahibi OR profile).
+        $status = ( ( $args['status'] ?? 'approve' ) === 'hold' ) ? '0' : '1';
+        $ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT c.comment_ID
+             FROM {$wpdb->comments} c
+             WHERE c.comment_type = 'review'
+               AND c.comment_approved = %s
+               AND c.comment_parent = 0
+               AND (
+                   c.comment_post_ID IN (
+                       SELECT ID FROM {$wpdb->posts}
+                       WHERE post_author = %d AND post_status = 'publish'
+                   )
+                   OR
+                   c.comment_ID IN (
+                       SELECT comment_id FROM {$wpdb->commentmeta}
+                       WHERE meta_key = 'comment_profile' AND meta_value = %d
+                   )
+               )",
+            $status,
+            $user_id,
+            $user_id
+        ) );
+
+        $ids = array_map( 'intval', (array) $ids );
+
+        // Hiç yoksa boş sonuç — buildQuery/runQuery'yi boşa çalıştırma.
+        if ( empty( $ids ) ) {
+            $per_page = max( 1, (int) ( $args['per_page'] ?? 10 ) );
+            return [
+                'reviews' => [],
+                'data'    => [ 'total' => 0, 'page' => 1, 'page_total' => 1, 'per_page' => $per_page ],
+            ];
+        }
+
+        $q               = $this->buildQuery( $args );
+        $q['comment__in'] = $ids;
+        // comment__in verildiğinde post_id/user_id kısıtı kalksın — küme zaten $ids.
+        unset( $q['post_id'], $q['user_id'] );
+
         return $this->runQuery( $q );
     }
 
@@ -93,6 +252,106 @@ trait QueriesReviews
         ] );
 
         return array_map( fn( $c ) => $this->wrapComment( $c ), $comments );
+    }
+
+    // =========================================================================
+    // OKUNMAMIŞ REVIEW'LAR
+    // =========================================================================
+
+    /**
+     * Kullanicinin icerikllerine yazilan okunmamis review sayisi.
+     * 
+     * Review olusturulunca commentmeta'ya _sh_review_read = 0 yazilir (ManagesReviews::create()).
+     * Kullanici reviews sayfasini goruntuluyunca markReviewsAsRead() cagirilarak 1 yapilir.
+     * Badge bu sayiyi gosterir — 0 ise d-none.
+     *
+     * @param int $user_id  Icerik sahibi kullanici ID
+     * @return int
+     */
+    public static function getUnreadCount( int $user_id = 0 ): int {
+        $user_id = $user_id ?: (int) get_current_user_id();
+        if ( $user_id < 1 ) return 0;
+
+        $cache_key = "sh_reviews_unread_{$user_id}";
+        $cached    = wp_cache_get( $cache_key, 'reviews' );
+        if ( $cached !== false ) return (int) $cached;
+
+        global $wpdb;
+
+        // Bu kullanicinin post'larina veya profile'ina yazilmis, onaylanmis, okunmamis review'lar
+        $count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(c.comment_ID)
+             FROM {$wpdb->comments} c
+             LEFT JOIN {$wpdb->commentmeta} m
+                ON m.comment_id = c.comment_ID AND m.meta_key = '_sh_review_read'
+             WHERE c.comment_type = 'review'
+               AND c.comment_approved = '1'
+               AND c.comment_parent = 0
+               AND (
+                   -- Post sahibi bu kullanici
+                   c.comment_post_ID IN (
+                       SELECT ID FROM {$wpdb->posts}
+                       WHERE post_author = %d AND post_status = 'publish'
+                   )
+                   OR
+                   -- Profile review (comment_profile meta)
+                   c.comment_ID IN (
+                       SELECT comment_id FROM {$wpdb->commentmeta}
+                       WHERE meta_key = 'comment_profile' AND meta_value = %d
+                   )
+               )
+               AND ( m.meta_value IS NULL OR m.meta_value = '0' )",
+            $user_id,
+            $user_id
+        ) );
+
+        wp_cache_set( $cache_key, $count, 'reviews', 300 );
+        return $count;
+    }
+
+    /**
+     * Kullanicinin icerikllerine yazilmis review'lari okunmus olarak isaretle.
+     * Reviews sayfasi goruntulendikce cagirilir.
+     *
+     * @param int $user_id
+     */
+    public static function markReviewsAsRead( int $user_id = 0 ): void {
+        $user_id = $user_id ?: (int) get_current_user_id();
+        if ( $user_id < 1 ) return;
+
+        global $wpdb;
+
+        // Bu kullanicinin post'larina yazilmis okunmamis review'larin comment_ID'lerini al
+        $comment_ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT c.comment_ID
+             FROM {$wpdb->comments} c
+             LEFT JOIN {$wpdb->commentmeta} m
+                ON m.comment_id = c.comment_ID AND m.meta_key = '_sh_review_read'
+             WHERE c.comment_type = 'review'
+               AND c.comment_approved = '1'
+               AND c.comment_parent = 0
+               AND (
+                   c.comment_post_ID IN (
+                       SELECT ID FROM {$wpdb->posts}
+                       WHERE post_author = %d AND post_status = 'publish'
+                   )
+                   OR
+                   c.comment_ID IN (
+                       SELECT comment_id FROM {$wpdb->commentmeta}
+                       WHERE meta_key = 'comment_profile' AND meta_value = %d
+                   )
+               )
+               AND ( m.meta_value IS NULL OR m.meta_value = '0' )",
+            $user_id,
+            $user_id
+        ) );
+
+        foreach ( $comment_ids as $id ) {
+            update_comment_meta( (int) $id, '_sh_review_read', 1 );
+        }
+
+        // Cache temizle
+        wp_cache_delete( "sh_reviews_unread_{$user_id}", 'reviews' );
     }
 
     // =========================================================================

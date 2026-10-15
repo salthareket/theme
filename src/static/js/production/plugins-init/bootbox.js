@@ -76,16 +76,11 @@ function _confirm(title, msg, size, className, btn_confirm, btn_cancel, callback
 }
 function _alert(title, msg, size, className, btn_ok, callback, closeButton, centerContent){
 	   if(!isLoadedJS("bootbox")){
-	    	alert(title+"\n"+msg);
+	    	requirePlugin("bootbox", function(){
+	    		_alert(title, msg, size, className, btn_ok, callback, closeButton, centerContent);
+	    	});
 	    	return false;
 	   }
-
-	   /*let sonuc = isLoadedJS("bootbox", true, function(){
-         _alert(title, msg, size, className, btn_ok, callback, closeButton, centerContent)
-      });
-      if(!sonuc){
-         return false;
-      }*/
 
 	   var options = {
        	    	className: "modal-alert text-center ",

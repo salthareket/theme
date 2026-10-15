@@ -49,7 +49,7 @@
 }
 
 // ── Collapsed nav dropdown ────────────────────────────────────
-.nav.nav-collapsed .dropdown-menu {
+.nav.nav-expanded .dropdown-menu {
     position: relative;
     transform: none;
     --bs-dropdown-padding-y: 0;

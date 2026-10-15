@@ -12,14 +12,27 @@
  *
  * @see         https://woocommerce.com/document/template-structure/
  * @package     WooCommerce\Templates
- * @version     9.6.0
+ * @version     10.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( $related_products ) : ?>
+if ( $related_products ) :
+	/**
+	 * Ensure all images of related products are lazy loaded by increasing the
+	 * current media count to WordPress's lazy loading threshold if needed.
+	 * Because wp_increase_content_media_count() is a private function, we
+	 * check for its existence before use.
+	 */
+	if ( function_exists( 'wp_increase_content_media_count' ) ) {
+		$content_media_count = wp_increase_content_media_count( 0 );
+		if ( $content_media_count < wp_omit_loading_attr_threshold() ) {
+			wp_increase_content_media_count( wp_omit_loading_attr_threshold() - $content_media_count );
+		}
+	}
+	?>
 
 	<section class="section-home related products bg-secondary">
 		<div class="container">
@@ -29,29 +42,22 @@ if ( $related_products ) : ?>
 						<?php
 						$heading = apply_filters( 'woocommerce_product_related_products_heading', __( 'Related products', 'woocommerce' ) );
 						if ( $heading ) :
-							?>
-							<?php echo esc_html( $heading ); ?>
-						<?php endif; ?>
+							echo esc_html( $heading );
+						endif;
+						?>
 					</h2>
-					<div class="action">
-	                   <!--<a href="product-category.html" class="btn-view-all btn btn-base btn-sm btn-extend">VIEW ALL</a>-->
-					</div>
-                </div>
-                <div class="card-body loading">
-                	<div class="card-products-slider swiper swiper-container fade">
+				</div>
+				<div class="card-body loading">
+					<div class="card-products-slider swiper swiper-container fade--">
 						<div class="swiper-wrapper">
 							<?php woocommerce_product_loop_start(); ?>
 
 								<?php foreach ( $related_products as $related_product ) : ?>
-
 									<?php
 									$post_object = get_post( $related_product->get_id() );
-
-									setup_postdata( $GLOBALS['post'] =& $post_object ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited, Squiz.PHP.DisallowMultipleAssignments.Found
-
+									setup_postdata( $GLOBALS['post'] = $post_object ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited, Squiz.PHP.DisallowMultipleAssignments.Found
 									wc_get_template_part( 'content', 'product' );
 									?>
-
 								<?php endforeach; ?>
 
 							<?php woocommerce_product_loop_end(); ?>
@@ -60,12 +66,12 @@ if ( $related_products ) : ?>
 				</div>
 				<div class="card-footer">
 					<div class="swiper-pagination"></div>
-				    <a href="product-category.html" class="btn-view-all btn btn-base btn-sm btn-extend">VIEW ALL</a>
 				</div>
-	        </div>
-	    </div>
+			</div>
+		</div>
 	</section>
 
-<?php endif;
+<?php
+endif;
 
 wp_reset_postdata();

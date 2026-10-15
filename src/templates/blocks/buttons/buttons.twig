@@ -22,7 +22,5 @@
 {% extends "blocks/_block-container.twig" %}
 
 {% block block_content %}
-
-    {% include "blocks/_button.twig" with { buttons: fields.buttons}  %}
-
+    {% include "blocks/_button.twig" with { direction: fields.direction, gap: fields.gap, buttons: fields.buttons}  %}
 {% endblock %}

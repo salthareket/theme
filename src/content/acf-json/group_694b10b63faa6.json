@@ -60,7 +60,8 @@
                     "allow_in_bindings": 0,
                     "placeholder": "",
                     "prepend": "",
-                    "append": ""
+                    "append": "",
+                    "pll_default_value": ""
                 },
                 {
                     "key": "field_69729350e16fc",
@@ -133,7 +134,8 @@
                     "create_options": 0,
                     "save_options": 0,
                     "allow_custom": 0,
-                    "search_placeholder": ""
+                    "search_placeholder": "",
+                    "pll_default_value": "none"
                 },
                 {
                     "key": "field_6972942de16fe",
@@ -223,7 +225,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 1
                 },
                 {
                     "key": "field_69729eba0a814",
@@ -285,7 +288,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_6972a8140a816",
@@ -333,29 +337,6 @@
             "acfe_group_modal_button": "",
             "acfe_group_modal_size": "large",
             "sub_fields": [
-                {
-                    "key": "field_69726b3ebaad2",
-                    "label": "ID",
-                    "name": "id",
-                    "aria-label": "",
-                    "type": "text",
-                    "instructions": "",
-                    "required": 0,
-                    "conditional_logic": 0,
-                    "wrapper": {
-                        "width": "33.333",
-                        "class": "",
-                        "id": ""
-                    },
-                    "default_value": "",
-                    "translations": "translate",
-                    "maxlength": "",
-                    "allow_in_bindings": 0,
-                    "placeholder": "",
-                    "prepend": "",
-                    "append": "",
-                    "pll_default_value": ""
-                },
                 {
                     "key": "field_6972956f5ef7e",
                     "label": "Position",
@@ -429,6 +410,29 @@
                     "pll_default_value": "offcanvas"
                 },
                 {
+                    "key": "field_6a7cb10b247b1",
+                    "label": "Class",
+                    "name": "class",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "translations": "translate",
+                    "maxlength": "",
+                    "allow_in_bindings": 0,
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": "",
+                    "pll_default_value": ""
+                },
+                {
                     "key": "field_6972961d5ef80",
                     "label": "Backdrop",
                     "name": "backdrop",
@@ -470,7 +474,8 @@
                     "allow_in_bindings": 0,
                     "ui_on_text": "",
                     "ui_off_text": "",
-                    "ui": 1
+                    "ui": 1,
+                    "pll_default_value": 0
                 },
                 {
                     "key": "field_697296375ef81",
@@ -494,6 +499,82 @@
                     "ui_off_text": "",
                     "ui": 1,
                     "pll_default_value": 0
+                },
+                {
+                    "key": "field_6a7be34c52d8f",
+                    "label": "Method",
+                    "name": "method",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "acf-ajax-methods",
+                        "id": ""
+                    },
+                    "choices": {
+                        "acf_layout_posts": "acf_layout_posts",
+                        "add_to_cart": "add_to_cart",
+                        "autocomplete_terms": "autocomplete_terms",
+                        "comment_product": "comment_product",
+                        "comment_product_detail": "comment_product_detail",
+                        "comment_product_modal": "comment_product_modal",
+                        "custom_modal": "custom_modal",
+                        "custom_track_product_view": "custom_track_product_view",
+                        "form_modal": "form_modal",
+                        "get_cart": "get_cart",
+                        "get_notification_alerts": "get_notification_alerts",
+                        "get_notifications": "get_notifications",
+                        "get_post": "get_post",
+                        "get_products": "get_products",
+                        "get_reviews": "get_reviews",
+                        "iframe_modal": "iframe_modal",
+                        "login": "login",
+                        "map_modal": "map_modal",
+                        "nickname_exist": "nickname_exist",
+                        "page_modal": "page_modal",
+                        "pagination_ajax": "pagination_ajax",
+                        "password_recover": "password_recover",
+                        "pay_now": "pay_now",
+                        "register": "register",
+                        "salt_recently_viewed_products": "salt_recently_viewed_products",
+                        "search_terms_add": "search_terms_add",
+                        "search_terms_remove": "search_terms_remove",
+                        "send_profile_message": "send_profile_message",
+                        "site_config": "site_config",
+                        "template_modal": "template_modal",
+                        "twig_render": "twig_render",
+                        "update_profile": "update_profile",
+                        "update_profile_photo": "update_profile_photo",
+                        "user_exist": "user_exist",
+                        "validate_phone": "validate_phone",
+                        "wc_api_create_product": "wc_api_create_product",
+                        "wc_api_create_product_variation": "wc_api_create_product_variation",
+                        "wc_api_filter_products": "wc_api_filter_products",
+                        "wc_api_update_product": "wc_api_update_product",
+                        "wc_cart_clear": "wc_cart_clear",
+                        "wc_cart_item_remove": "wc_cart_item_remove",
+                        "wc_cart_quantity_update": "wc_cart_quantity_update",
+                        "wc_modal_page_template": "wc_modal_page_template",
+                        "wc_order_list": "wc_order_list",
+                        "woo_get_product_variation_thumbnails": "woo_get_product_variation_thumbnails"
+                    },
+                    "default_value": false,
+                    "return_format": "value",
+                    "multiple": 0,
+                    "translations": "sync",
+                    "allow_null": 1,
+                    "allow_in_bindings": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "create_options": 0,
+                    "save_options": 0,
+                    "allow_custom": 0,
+                    "search_placeholder": "",
+                    "pll_default_value": false
                 }
             ]
         },
@@ -545,13 +626,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_autosync": [
-        "json"
-    ],
-    "acfe_form": 0,
-    "acfe_meta": "",
-    "acfe_note": "",
-    "modified": 1774822332,
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786749004,
     "acfe_categories": {
         "general": "General"
     }

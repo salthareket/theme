@@ -223,3 +223,40 @@ class hide_biography{
 
 // Custom Product Fields are loaded via woocommerce.php → custom-fields/index.php
 // No need to include here anymore
+
+// ── Variation admin fixes ─────────────────────────────────────────────────────
+
+// Fix 1: Description (TinyMCE) değişince "Değişiklikleri kaydet" aktif olsun
+add_action( 'admin_footer', function() {
+    $screen = get_current_screen();
+    if ( ! $screen || $screen->id !== 'product' ) return;
+    ?>
+    <script>
+    jQuery(function($) {
+        // TinyMCE editor değişince variation save butonunu aktif et
+        $(document).on('woocommerce_variations_loaded', function() {
+            // Her variation'ın editor'üne input listener ekle
+            setTimeout(function() {
+                if (typeof tinymce !== 'undefined') {
+                    tinymce.on('AddEditor', function(e) {
+                        e.editor.on('input keyup change paste', function() {
+                            $('.save-variation-changes').prop('disabled', false).removeAttr('disabled');
+                        });
+                    });
+                }
+                // Mevcut editor'leri de yakala
+                $('.wc-metabox .wp-editor-area').on('input keyup', function() {
+                    $('.save-variation-changes').prop('disabled', false).removeAttr('disabled');
+                });
+            }, 500);
+        });
+    });
+    </script>
+    <?php
+} );
+
+// Fix 2: product_variation post type'ına custom-fields support ekle
+// Böylece WP admin'deki Özel Alanlar metabox'ı çalışır
+add_action( 'init', function() {
+    add_post_type_support( 'product_variation', 'custom-fields' );
+}, 20 );

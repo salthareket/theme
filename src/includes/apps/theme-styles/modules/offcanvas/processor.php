@@ -3,7 +3,6 @@ if (!defined('ABSPATH')) exit;
 
 function theme_styles_process_offcanvas($data, $generator) {
     $oc   = $data['offcanvas'] ?? [];
-    $ocg  = $oc['offcanvas']    ?? [];
     $och  = $oc['header']       ?? [];
     $ocni = $oc['nav_item']     ?? [];
     $ocns = $oc['nav_sub']      ?? [];
@@ -11,25 +10,44 @@ function theme_styles_process_offcanvas($data, $generator) {
     $vars = [];
 
     // ── Background ───────────────────────────────────────────────
-    $bg_type = $ocg['bg_type']     ?? 'color';
-    $bg_color= $ocg['bg_color']    ?? 'transparent';
-    $bg_grad = $ocg['bg_gradient'] ?? '';
+    // _button.twig ve _applyCustomStyle() --offcanvas-bg bekliyor
+    // root.css default: --offcanvas-bg: #ffffff
+    $bg_type  = $oc['bg_type']     ?? 'color';
+    $bg_color = $oc['bg_color']    ?? '';
+    $bg_grad  = $oc['bg_gradient'] ?? '';
+    $bg_img   = $oc['bg_image_url']?? '';
 
-    $vars['offcanvas-bg-color']    = $bg_type === 'gradient' ? 'transparent' : $bg_color;
-    $vars['offcanvas-bg-gradient'] = $bg_type === 'gradient' ? $bg_grad : '';
-
-    if (!empty($ocg['bg_image_url'])) {
-        $vars['offcanvas-bg-image'] = 'url(' . $ocg['bg_image_url'] . ')';
+    if ( $bg_type === 'gradient' ) {
+        $vars['offcanvas-bg']          = 'transparent';
+        if ( ! empty( $bg_grad ) ) {
+            $vars['offcanvas-bg-gradient'] = $bg_grad;
+        }
+    } elseif ( $bg_type === 'image' && ! empty( $bg_img ) ) {
+        $vars['offcanvas-bg']       = 'transparent';
+        $vars['offcanvas-bg-image'] = 'url(' . $bg_img . ')';
+    } elseif ( ! empty( $bg_color ) ) {
+        $vars['offcanvas-bg']          = $bg_color;
+        $vars['offcanvas-bg-gradient'] = 'none';
+        $vars['offcanvas-bg-image']    = 'none';
+        // RGB versiyonu — rgba() ile opacity efektleri için
+        $rgb = $generator ? $generator->hexToRgb( $bg_color ) : null;
+        if ( $rgb ) {
+            $vars['offcanvas-bg-rgb'] = $rgb;
+        }
     }
 
-    // Backdrop
-    $vars['offcanvas-backdrop-color']    = $ocg['backdrop_color']   ?? 'rgba(0,0,0,0.5)';
-    $vars['offcanvas-backdrop-gradient'] = $ocg['backdrop_gradient'] ?? '';
-    $vars['offcanvas-backdrop-opacity']  = $ocg['backdrop_opacity']  ?? '0.7';
+    // ── Width ────────────────────────────────────────────────────
+    if ( ! empty( $oc['width'] ) ) $vars['offcanvas-width'] = $oc['width'];
 
-    $vars['offcanvas-padding']   = $ocg['padding']   ?? '20px 30px 40px 30px';
-    $vars['offcanvas-align-hr']  = $ocg['align_hr']  ?? 'start';
-    $vars['offcanvas-align-vr']  = $ocg['align_vr']  ?? 'start';
+    // ── Color ────────────────────────────────────────────────────
+    if ( ! empty( $oc['color'] ) ) $vars['offcanvas-color'] = $oc['color'];
+
+    // ── Box Shadow ───────────────────────────────────────────────
+    if ( ! empty( $oc['box_shadow'] ) ) $vars['offcanvas-box-shadow'] = $oc['box_shadow'];
+
+    // ── Padding ──────────────────────────────────────────────────
+    if ( ! empty( $oc['padding_x'] ) ) $vars['offcanvas-padding-x'] = $oc['padding_x'];
+    if ( ! empty( $oc['padding_y'] ) ) $vars['offcanvas-padding-y'] = $oc['padding_y'];
 
     // ── Header ───────────────────────────────────────────────────
     if (!empty($och['font_family']))    $vars['offcanvas-header-font']           = $och['font_family'];
@@ -39,6 +57,17 @@ function theme_styles_process_offcanvas($data, $generator) {
     if (!empty($och['padding']))        $vars['offcanvas-header-padding']        = $och['padding'];
     if (!empty($och['icon_font_size'])) $vars['offcanvas-header-icon-font-size'] = $och['icon_font_size'];
     if (!empty($och['icon_color']))     $vars['offcanvas-header-icon-color']     = $och['icon_color'];
+    if (!empty($och['bg_color']))       $vars['offcanvas-header-bg']             = $och['bg_color'];
+    if (!empty($och['border_color']))   $vars['offcanvas-header-border-color']   = $och['border_color'];
+    if (!empty($och['border_width']))   $vars['offcanvas-header-border-width']   = $och['border_width'];
+
+    // ── Footer ───────────────────────────────────────────────────
+    $ocf = $oc['footer'] ?? [];
+    if (!empty($ocf['bg_color']))     $vars['offcanvas-footer-bg']           = $ocf['bg_color'];
+    if (!empty($ocf['color']))        $vars['offcanvas-footer-color']        = $ocf['color'];
+    if (!empty($ocf['padding']))      $vars['offcanvas-footer-padding']      = $ocf['padding'];
+    if (!empty($ocf['border_color'])) $vars['offcanvas-footer-border-color'] = $ocf['border_color'];
+    if (!empty($ocf['border_width'])) $vars['offcanvas-footer-border-width'] = $ocf['border_width'];
 
     // ── Nav Item ─────────────────────────────────────────────────
     if (!empty($ocni['font_family']))    $vars['offcanvas-item-font']         = $ocni['font_family'];

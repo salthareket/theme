@@ -85,11 +85,13 @@ trait CleanupTask {
         $instance->error_log('======================================== CRON TEMİZLİK BAŞLADI ========================================', 'CRON');
 
         try {
-            $instance->error_log('1. Manifest tabanlı temizlik başlıyor...', 'CRON');
-            $orphan_count = $instance->purge_orphan_assets();
-            $instance->error_log("Manifest temizlik: {$orphan_count} dosya silindi", 'CRON');
+            // NOT: purge_orphan_assets() (manifest tabanlı) kaldırıldı.
+            // Manifest yalnızca o anda fetch edilmiş sayfanın verilerini içerdiğinden,
+            // başka sayfaların plugin bundle dosyalarını yanlışlıkla siliyor.
+            // Bunun yerine sadece DB tabanlı temizlik kullanılıyor — tüm sayfaların
+            // meta kayıtlarına bakarak aktif dosyaları koruyor.
 
-            $instance->error_log('2. Veritabanı tabanlı temizlik başlıyor...', 'CRON');
+            $instance->error_log('Veritabanı tabanlı temizlik başlıyor...', 'CRON');
             $result = $instance->cleanup_db_based(500);
             $instance->error_log("Veritabanı temizlik: {$result}", 'CRON');
 

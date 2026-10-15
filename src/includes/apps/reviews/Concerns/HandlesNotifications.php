@@ -80,16 +80,18 @@ trait HandlesNotifications
      * Tamamen generic — hardcode role yok.
      *
      * Örnekler:
-     *   new    + post → 'new-review'
-     *   new    + user → 'new-review'
-     *   approved      → 'review-approved'
-     *   replied       → 'review-replied'
+     *   new      + post → 'new-review'
+     *   new      + user → 'new-review'
+     *   approved        → 'review-approved'
+     *   rejected        → 'review-rejected'
+     *   replied         → 'review-replied'
      */
     private function resolveNotificationEvent( string $action, array $target, int $author_id ): string
     {
         return match ( $action ) {
             'new'      => 'new-review',
             'approved' => 'review-approved',
+            'rejected' => 'review-rejected',
             'replied'  => 'review-replied',
             default    => '',
         };

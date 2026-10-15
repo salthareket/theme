@@ -1,7 +1,7 @@
 /**
  * SaltReactions — Styles
  *
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 // ─── BASE BUTTON ─────────────────────────────────────────
@@ -33,13 +33,34 @@
   }
 
   // Pop animation on activate
-  &.is-active i {
+  &.is-active .salt-reaction-icon,
+  &.is-active .fa-icon {
     animation: salt-reaction-pop 0.25s ease;
   }
 
-  i {
-    font-size: 1em;
-    line-height: 1;
+  // SVG icon
+  .salt-reaction-icon,
+  .fa-icon {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+    pointer-events: none;
+    vertical-align: middle;
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  // Image icon (img: format)
+  img.salt-reaction-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    object-fit: contain;
+    flex-shrink: 0;
     pointer-events: none;
   }
 
@@ -58,27 +79,10 @@
 
 // ─── STYLES ──────────────────────────────────────────────
 
-// icon-only: just the icon, no extra padding
 .salt-reaction--icon-only {
   padding: 4px;
 }
 
-// icon-count: icon + number
-.salt-reaction--icon-count {
-  // default
-}
-
-// icon-text: icon + label
-.salt-reaction--icon-text {
-  // default
-}
-
-// text-only: no icon
-.salt-reaction--text-only {
-  i { display: none; }
-}
-
-// pill: bordered button, fills on active
 .salt-reaction--pill {
   border: 1.5px solid currentColor;
   border-radius: 999px;
@@ -100,17 +104,14 @@
 
 // ─── ACTIVE STATE ────────────────────────────────────────
 
-// Each reaction type gets its active color via CSS custom property
-// set by the JS from data-reaction-color
 .salt-reaction-btn.is-active {
-  // Color is applied inline via JS for flexibility
-  // But we can add a subtle scale
-  i {
+  .salt-reaction-icon,
+  .fa-icon {
     transform: scale(1.1);
   }
 }
 
-// ─── ANIMATION ───────────────────────────────────────────
+// ─── ANIMATIONS ──────────────────────────────────────────
 
 @keyframes salt-reaction-pop {
   0%   { transform: scale(1); }
@@ -119,9 +120,6 @@
   100% { transform: scale(1); }
 }
 
-// ─── CUMULATIVE MODE ─────────────────────────────────────
-
-// Limit dolunca titreme
 @keyframes shReactionShake {
   0%, 100% { transform: translateX(0); }
   20%      { transform: translateX(-4px); }
@@ -130,14 +128,9 @@
   80%      { transform: translateX(3px); }
 }
 
+// ─── CUMULATIVE MODE ─────────────────────────────────────
+
 .salt-reaction--limit {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-// Cumulative buton — limit dolunca disabled gorunum
-.salt-reaction-btn[data-reaction-mode="cumulative"] {
-  &.is-active {
-    // Aktif renk JS tarafindan inline olarak uygulanir
-  }
 }

@@ -63,20 +63,22 @@ class ReviewsSettings
         return [
             'general' => [
                 'enable_reviews'         => true,
-                'disable_review_approve' => false,  // true = yorum onayı devre dışı (otomatik yayın)
-                'auto_approve_reviews'   => false,   // false = admin onayı gerekli
-                'auto_approve_verified'  => true,    // verified kullanıcı → otomatik
-                'auto_approve_trusted'   => true,    // güvenilir kullanıcı → otomatik
-                'trusted_threshold'      => 3,       // kaç onaylı review sonra güvenilir
+                'disable_review_approve' => false,
+                'auto_approve_reviews'   => false,
+                'auto_approve_verified'  => true,
+                'auto_approve_trusted'   => true,
+                'trusted_threshold'      => 3,
                 'require_login'          => true,
                 'one_review_per_user'    => true,
+                'rate_limit_per_hour'    => 5,   // saat başına max review sayısı (0 = devre dışı)
             ],
             'rating' => [
-                'type'           => 'stars',    // stars | thumbs | nps | multi
-                'max_rating'     => 5,          // 5 veya 10
-                'allow_half'     => false,      // 4.5 gibi
-                'show_breakdown' => true,       // dağılım göster
-                'criteria'       => [
+                'type'             => 'stars',    // stars | thumbs | nps | multi
+                'max_rating'       => 5,          // 5 veya 10
+                'allow_half'       => false,      // 4.5 gibi
+                'show_breakdown'   => true,       // dağılım göster
+                'criteria_display' => 'inline',   // inline | popover
+                'criteria'         => [
                     // Global default — post type override yoksa bu kullanılır
                     'default'    => [],
                     // Post type bazlı kriterler
@@ -103,6 +105,24 @@ class ReviewsSettings
                 'notify_on_new_review' => true,
                 'notify_on_reply'      => true,
                 'notify_on_approve'    => true,
+            ],
+            // ── Target Types — hangi object type'a review yapılabilir ──────────
+            // key: object_type veya object_type:subtype (post:product, user:author vb.)
+            // subtype için post → post_type slug, user → WP role slug
+            'types' => [
+                'post' => [
+                    'enabled'       => false,
+                    'modes'         => [ 'rate', 'comment' ],
+                    'criteria'      => [],
+                ],
+                'user' => [
+                    'enabled'       => true,
+                    'modes'         => [ 'rate', 'comment' ],
+                    'criteria'      => [],
+                ],
+                // Subtype override örnekleri — admin'den eklenir:
+                // 'post:product' => [ 'enabled' => true, 'modes' => ['rate','comment','criteria'], 'criteria' => [...] ],
+                // 'user:author'  => [ 'enabled' => true, 'modes' => ['rate','comment','criteria'], 'criteria' => [...] ],
             ],
         ];
     }
@@ -145,9 +165,9 @@ class ReviewsSettings
         static $cache = null;
         if ( $cache !== null ) return $cache;
 
-        $saved   = get_option( self::OPTION_KEY, [] );
-        $saved   = is_array( $saved ) ? $saved : [];
-        $cache   = self::deepMerge( self::defaults(), $saved );
+        $saved = get_option( self::OPTION_KEY, [] );
+        $saved = is_array( $saved ) ? $saved : [];
+        $cache = self::deepMerge( self::defaults(), $saved );
         return $cache;
     }
 
@@ -236,10 +256,28 @@ class ReviewsSettings
      *
      * @return array{key: string, label: string, weight: float}[]
      */
-    public static function getCriteria( string $post_type = '' ): array
+    /**
+     * Object type + subtype için aktif criteria'yı döndür.
+     *
+     * @param string $post_type  post_type slug (post için) veya WP role slug (user için)
+     * @param string $context    'post' | 'user'
+     */
+    public static function getCriteria( string $post_type = '', string $context = 'post' ): array
     {
         $all      = self::all();
         $criteria = $all['rating']['criteria'] ?? [];
+
+        if ( $context === 'user' ) {
+            // User role bazlı override
+            if ( $post_type && ! empty( $criteria['user_roles'][ $post_type ] ) ) {
+                return $criteria['user_roles'][ $post_type ];
+            }
+            // User default
+            if ( ! empty( $criteria['user_roles']['default'] ) ) {
+                return $criteria['user_roles']['default'];
+            }
+            return [];
+        }
 
         // Post type bazlı override var mı?
         if ( $post_type && ! empty( $criteria['post_types'][ $post_type ] ) ) {
@@ -248,6 +286,49 @@ class ReviewsSettings
 
         // Global default
         return $criteria['default'] ?? [];
+    }
+
+    /**
+     * Object type + subtype için review config döndür.
+     * Öncelik: types[object_type:subtype] → types[object_type] → defaults
+     *
+     * @param string $object_type  'post' | 'user'
+     * @param string $subtype      post_type slug veya WP role slug — boş = fallback
+     * @return array{ enabled: bool, modes: string[], criteria: array[] }
+     */
+    public static function getTypeConfig( string $object_type, string $subtype = '' ): array
+    {
+        $types = self::all()['types'] ?? [];
+
+        // 1. Subtype override (post:product, user:author vb.)
+        if ( $subtype ) {
+            $key = $object_type . ':' . $subtype;
+            if ( isset( $types[ $key ] ) ) {
+                return array_merge(
+                    [ 'enabled' => false, 'modes' => [], 'criteria' => [] ],
+                    $types[ $key ]
+                );
+            }
+        }
+
+        // 2. Object type fallback
+        if ( isset( $types[ $object_type ] ) ) {
+            return array_merge(
+                [ 'enabled' => false, 'modes' => [], 'criteria' => [] ],
+                $types[ $object_type ]
+            );
+        }
+
+        return [ 'enabled' => false, 'modes' => [], 'criteria' => [] ];
+    }
+
+    /**
+     * Belirtilen object type + subtype için review yapılabilir mi?
+     */
+    public static function canReviewType( string $object_type, string $subtype = '' ): bool
+    {
+        if ( ! self::get( 'general.enable_reviews' ) ) return false;
+        return (bool) self::getTypeConfig( $object_type, $subtype )['enabled'];
     }
 
     /**

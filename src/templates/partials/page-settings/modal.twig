@@ -1,0 +1,46 @@
+{# Page Settings Modal — triggers existing AJAX modal system on page load #}
+{% if modal_post %}
+{% set _modal_view = modal_view|default('always') %}
+{% set _modal_view_time = modal_view_time|default(30) %}
+{% set _modal_size = modal_size|default('md') %}
+
+<a href="#" 
+   class="d-none ps-modal-auto-trigger"
+   data-ajax-method="template_modal" 
+   data-id="{{modal_post.ID}}" 
+   data-template="{{modal_post.meta('template')|default('')}}"
+   data-size="{{_modal_size}}"
+   data-title="{{modal_post.title}}">
+</a>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    var view = '{{_modal_view}}';
+    var viewTime = {{_modal_view_time}};
+    var storageKey = 'ps_modal_{{modal_post.ID}}';
+
+    function shouldShow() {
+        if (view === 'always') return true;
+        var next = localStorage.getItem(storageKey);
+        if (!next) return true;
+        return new Date(next) <= new Date();
+    }
+
+    if (!shouldShow()) return;
+
+    // Trigger via existing AJAX modal system
+    var trigger = document.querySelector('.ps-modal-auto-trigger');
+    if (trigger) {
+        setTimeout(function(){ 
+            trigger.click(); 
+        }, 500);
+    }
+
+    if (view === 'scheduled' && viewTime > 0) {
+        var expires = new Date();
+        expires.setMinutes(expires.getMinutes() + viewTime);
+        localStorage.setItem(storageKey, expires.toISOString());
+    }
+});
+</script>
+{% endif %}

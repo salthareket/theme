@@ -1,104 +1,578 @@
-<ul class="list-inline m-0">
-        {% for item in buttons %}
+{% if buttons %}
 
-            {% if item.link_type == "modal" %}
+                    <ul class="d-flex flex-{{ direction }} align-items-center list-unstyled m-0" style="gap:{{ gap|default(10) }}px">
+                        {% for button in buttons %}
 
-                {#% set modal_settings = item.modal_settings #}
-                {% set attrs = function("modal_build_attrs", item.modal_settings) %}
+                            {# ── Content Source ────────────────────────────────────────────── #}
+                            {% set _cs = button.content_source|default('') %}
+                            {% set _has_source = _cs is not empty %}
 
-                {# set attrs = " data-ajax-method='" ~ modal_settings.type ~ "' " %}
+                            {# ── Reaction filter fields — erken set et (count + data attr için) #}
+                            {% set _reaction_post_type    = '' %}
+                            {% set _reaction_comment_type = '' %}
+                            {% set _reaction_role         = '' %}
+                            {% set _reaction_taxonomy     = '' %}
+                            {% if _cs starts with 'reaction:' %}
+                                {% set _reaction_post_type    = button.reaction_object_post_type ?? '' %}
+                                {% set _reaction_comment_type = button.reaction_object_comment_types ?? '' %}
+                                {% set _reaction_role         = button.reaction_object_role ?? '' %}
+                                {% set _reaction_taxonomy     = button.reaction_object_taxonomy ?? '' %}
+                            {% endif %}
 
-                {% if modal_settings.type in ["custom_modal"] %}
-                    {% set template = get_post(modal_settings.template) %}
-                    {% set template_attrs = template.get_custom_template_data("modal") %}
-                    {% if template_attrs %}
-                        {% set attrs = attrs ~ template_attrs %}
-                    {% endif %}
-                {% else %}
-                    {% set attrs = attrs ~ " data-close='" ~ modal_settings.close ~ "' " %}
-                    {% set attrs = attrs ~ " data-scrollable='" ~ modal_settings.scrollable ~ "' " %}
-                    {% set attrs = attrs ~ " data-class='" ~ modal_settings.class ~ "' " %}
-                    {% set attrs = attrs ~ (modal_settings.title != "" ? " data-title='" ~ modal_settings.title ~ "' ":"") %}
-                    {% set attrs = attrs ~ (modal_settings.size == "fullscreen"?"data-fullscreen='true' ":"data-size='" ~ modal_settings.size ~ "' ") %}
-                {% endif %}
+                            {# ── show_if_enabled: feature flag kontrolü ───────────────────── #}
+                            {% set _skip = false %}
+                            {% if button.show_if_enabled and _has_source %}
+                                {% if _cs == 'cart' and not enable_cart %}{% set _skip = true %}{% endif %}
+                                {% if _cs == 'notifications' and not enable_notifications %}{% set _skip = true %}{% endif %}
+                                {% if _cs == 'messages' and not enable_chat %}{% set _skip = true %}{% endif %}
+                                {% if (_cs == 'favorites' or _cs starts with 'reaction:') and not enable_reactions %}{% set _skip = true %}{% endif %}
+                            {% endif %}
+                            {# enable_ecommerce false iken WC bağımlı butonları gizle #}
+                            {% if not enable_ecommerce %}
+                                {% if _cs == 'cart' %}{% set _skip = true %}{% endif %}
+                                {% if button.link_type in ['modal','offcanvas','dropdown'] and _cs starts with 'reaction:' %}{% set _skip = true %}{% endif %}
+                            {% endif %}
+                            {# login type: giriş yapmış kullanıcıya gösterme #}
+                            {% if button.link_type == 'login' and user.logged %}{% set _skip = true %}{% endif %}
 
-                {% if modal_settings.type in ["page_modal", "form_modal"] %}
-                    {% set attrs = attrs ~ " data-id='" ~ modal_settings.id ~ "' " %}
-                {% endif %}
+                            {% if not _skip %}
 
-                {% if modal_settings.type in ["iframe_modal"] %}
-                    {% set attrs = attrs ~ " data-height='" ~ modal_settings.height ~ "' " %}
-                    {% if modal_settings.content_type == "url" %}
-                        {% set attrs = attrs ~ " data-url='" ~ modal_settings.url ~ "' " %}
-                    {% endif %}
-                    {% if modal_settings.content_type == "file" %}
-                        {% set attrs = attrs ~ " data-url='" ~ modal_settings.file ~ "' " %}
-                    {% endif %}
-                {% endif %}
+                            {# attrs her iterasyonda sıfırla — bir önceki button'dan kalma değer taşınmasın #}
+                            {% set attrs = "" %}
 
-                {% if modal_settings.type in ["map_modal"] %}
-                    {% set modal_args = [{"modal-body": "ratio ratio-" ~ modal_settings.ratio ~ " overflow-hidden"}]|json_attr %}
-                    {% set attrs = attrs ~ " data-modal='" ~ modal_args ~ "' " %}
-                    {% if modal_settings.location_type == "static" %}
-                        {% set attrs = attrs ~ " data-lat='" ~ modal_settings.lat ~ "' data-lng='" ~ modal_settings.lng ~ "' " %}
-                    {% endif %}
-                    {% if modal_settings.location_type == "dynamic" %}
-                        {% set attrs = attrs ~ " data-ids='" ~ modal_settings.posts|json_attr ~ "' " %}
-                    {% endif %}
-                    {% if modal_settings.marker_popup %}
-                        {% set popup_args = {"type": modal_settings.marker_popup_type, "title": modal_settings.marker_popup_title }|json_attr %}
-                        {% set attrs = attrs ~ " data-popup='" ~ popup_args ~ "' " %}
-                    {% endif %}
-                {% endif #}
+                            {# ── Offcanvas Settings ───────────────────────────────────────── #}
+                            {% set _oc = button.offcanvas_settings %}
+                            {% set _oc_position  = _oc.position|default('end') %}
+                            {# Visibility: SOURCE offcanvas (cart/reaction/favorite vb.) her zaman
+                               'offcanvas' (standalone) olur — sidebar moduna DUSMEZ. Cunku source
+                               paneli SaltOffcanvas _buildEl ile <body>'ye fixed olusturulur; sayfa
+                               grid'ine gomulu gercek sidebar OLAMAZ (sidebar sadece PageSettings
+                               template mekanizmasinda mumkun). Kullanici 'On md' gibi bir deger
+                               secse bile source icin gecersiz — offcanvas'a zorla. #}
+                            {% set _oc_visibility = _has_source ? 'offcanvas' : (_oc.visibility|default('offcanvas')) %}
+                            {% set _oc_backdrop  = _oc.backdrop ? 'true' : 'false' %}
+                            {% set _oc_scrollable = _oc.scrollable ? 'true' : 'false' %}
+                            {% set _oc_fullscreen = _oc.fullscreen %}
+                            {% set _oc_class     = _oc.class|default('') %}
+                            {% set _oc_toggler   = _oc.toggler %}
 
-            {% else %}
-                {% set attrs = item.outside?"target='_blank' rel='nofollow'":"" %}
-            {% endif %}
+                            {# ── attrs başlangıcı ─────────────────────────────────────────── #}
+                            {% if button.link_type == "modal" %}
 
-            {% set btn_class = "" %}
-            {% if item.link_only %}
-                {% set btn_class = btn_class ~ "btn-link " %}
-                {% if item.type != "custom" %}
-                    {% set btn_class = btn_class ~ "text-" ~ item.type ~ " " %}
-                {% endif %}
-            {% else %}
-                {% set btn_class = btn_class ~ "btn " %}
-                {% if item.type != "custom" %}
-                   {% set btn_class = btn_class ~ "btn" ~ (item.outline?"-outline":"") ~ "-" ~ item.type ~ " " %}
-                {% endif %}
-                {% if item.size != "default" %}
-                    {% set btn_class = btn_class ~ "btn-" ~ item.size ~ " " %}
-                {% endif %}
-            {% endif %}
-            {% if not item.link_outside and not item.modal %}
-                {% set btn_class = btn_class ~ "btn-loading-page" %}
-            {% endif %}
-            {% set btn_class = btn_class ~ " " ~ item.class %}
-            
-            {% if item.type == "custom" %}
-                {% if item.outline %}
-                    {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg:transparent; --bs-btn-border-color: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg:' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-hover-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-active-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-border-color: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
-                {% else %}
-                    {% if item.link_only %}
-                        {% set attrs = attrs ~ ' style="--bs-link-color-rgb: ' ~ item.custom.default.color|hex2rgbValues|default("transparent") ~ ';--bs-link-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';"' %}
-                    {% else %}
-                        {% set attrs = attrs ~ ' style="--bs-btn-color: ' ~ item.custom.default.color|default("transparent") ~ ';--bs-btn-bg: ' ~ item.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color: ' ~ item.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg: ' ~ item.custom.hover.bg|default("transparent") ~ ';"' %}
-                    {% endif %}
-                {% endif %}
-            {% endif %}
+                                {# ── Modal custom style ───────────────────────────────────── #}
+                                {% set _ms = button.modal_settings %}
+                                {% set _mc = _ms.custom_styles %}
+                                {% set _modal_vars = '' %}
+                                {% if _ms.customize %}
+                                    {% if _mc.bg_color %}{% set _modal_vars = _modal_vars ~ '--modal-bg:' ~ _mc.bg_color ~ ';--modal-bg-gradient:none;--modal-bg-image:none;' %}{% endif %}
+                                    {% if _mc.color %}{% set _modal_vars = _modal_vars ~ '--modal-color:' ~ _mc.color ~ ';' %}{% endif %}
+                                    {% if _mc.border_radius %}{% set _modal_vars = _modal_vars ~ '--modal-border-radius:' ~ _mc.border_radius ~ ';' %}{% endif %}
+                                    {% if _mc.box_shadow %}{% set _modal_vars = _modal_vars ~ '--modal-box-shadow:' ~ _mc.box_shadow ~ ';' %}{% endif %}
+                                    {% if _mc.animation_type %}
+                                        {% set _anim_dur = _mc.animation_duration|default('0.3s') %}
+                                        {% set _modal_vars = _modal_vars ~ '--modal-transition:transform ' ~ _anim_dur ~ ' ease-out;' %}
+                                        {% if _mc.animation_type == 'slide-up' %}{% set _modal_vars = _modal_vars ~ '--modal-fade-transform:translate(0,-50px);' %}
+                                        {% elseif _mc.animation_type == 'slide-down' %}{% set _modal_vars = _modal_vars ~ '--modal-fade-transform:translate(0,50px);' %}
+                                        {% elseif _mc.animation_type == 'zoom' %}{% set _modal_vars = _modal_vars ~ '--modal-fade-transform:scale(0.85);' %}
+                                        {% elseif _mc.animation_type == 'zoom-in' %}{% set _modal_vars = _modal_vars ~ '--modal-fade-transform:scale(1.15);' %}
+                                        {% elseif _mc.animation_type == 'flip' %}{% set _modal_vars = _modal_vars ~ '--modal-fade-transform:rotateX(-15deg);' %}
+                                        {% endif %}
+                                    {% elseif _mc.animation_duration %}
+                                        {% set _modal_vars = _modal_vars ~ '--modal-transition:transform ' ~ _mc.animation_duration ~ ' ease-out;' %}
+                                    {% endif %}
+                                    {% if _mc.header_bg %}{% set _modal_vars = _modal_vars ~ '--modal-header-bg:' ~ _mc.header_bg ~ ';' %}{% endif %}
+                                    {% if _mc.header_color %}{% set _modal_vars = _modal_vars ~ '--modal-header-color:' ~ _mc.header_color ~ ';' %}{% endif %}
+                                    {% if _mc.header_padding %}{% set _modal_vars = _modal_vars ~ '--modal-header-padding:' ~ _mc.header_padding ~ ';' %}{% endif %}
+                                    {% if _mc.body_padding %}{% set _modal_vars = _modal_vars ~ '--modal-padding:' ~ _mc.body_padding ~ ';' %}{% endif %}
+                                    {% if _mc.footer_bg %}{% set _modal_vars = _modal_vars ~ '--modal-footer-bg:' ~ _mc.footer_bg ~ ';' %}{% endif %}
+                                    {% if _mc.footer_padding %}{% set _modal_vars = _modal_vars ~ '--modal-footer-padding:' ~ _mc.footer_padding ~ ';' %}{% endif %}
+                                {% endif %}
 
-            <li class="list-inline-item mb-2-" {{function("block_aos_delay", block_meta.aos, (50*loop.index0))}}>
-                {% if item.modal and item.modal_settings.type in ["page_modal", "form_modal"] %}
-                    {% set url = "#" %}
-                {% elseif item.modal and item.modal_settings.type in ["iframe_modal"]  %}
-                   {% set url   = item.modal_settings.content_type == "file" ? item.modal_settings.file : item.modal_settings.url %}
-                {% else %}
-                    {% set url   = item.outside?item.link_outside:item.link_inside %}
-                    {% set url   = url ~ (item.anchor?"#"~item.anchor:"") %}
-                {% endif %}
-                {% set title = item.link_text is empty and not item.outside ? get_title_from_url(item.link_inside) : item.link_text  %}
-                <a href="{{url}}" class="{{btn_class}}" {{attrs}} title="{{title}}">{{title}}</a>
-            </li>
+                                {% if _has_source %}
+                                    {# Source var — bootbox JS'den direkt açılır, data-ajax-method yok
+                                       main.js'de [data-bs-source-modal] click handler devreye girer #}
+                                    {% set _m_attrs = "data-bs-source-modal='" ~ _cs ~ "' data-required-js='bootbox'" %}
+                                    {% if _ms.size %}{% set _m_attrs = _m_attrs ~ " data-size='" ~ _ms.size ~ "'" %}{% endif %}
+                                    {% if _ms.scrollable %}{% set _m_attrs = _m_attrs ~ " data-scrollable='true'" %}{% endif %}
+                                    {% if _ms.class %}{% set _m_attrs = _m_attrs ~ " data-class='" ~ _ms.class ~ "'" %}{% endif %}
+                                    {% if _ms.title %}{% set _m_attrs = _m_attrs ~ " data-title='" ~ _ms.title ~ "'" %}{% endif %}
+                                    {% if _ms.close %}{% set _m_attrs = _m_attrs ~ " data-close='true'" %}{% endif %}
+                                    {% if _modal_vars %}{% set _m_attrs = _m_attrs ~ " data-modal-style='" ~ _modal_vars ~ "'" %}{% endif %}
+                                    {# _m_attrs'ı attrs'a aktar #}
+                                    {% set attrs = _m_attrs %}
+                                    {# Reaction filter: data-post-type/role/taxonomy/comment-type → <a>'ya da yaz #}
+                                    {% if _cs starts with 'reaction:' %}
+                                        {% set _reaction_obj_t = button.reaction_object_type|default('post') %}
+                                        {% set attrs = attrs ~ " data-object-type='" ~ _reaction_obj_t ~ "'" %}
+                                        {% if _reaction_obj_t == 'post' and _reaction_post_type %}
+                                            {% set attrs = attrs ~ " data-post-type='" ~ (_reaction_post_type is iterable ? _reaction_post_type|join(',') : _reaction_post_type) ~ "'" %}
+                                        {% elseif _reaction_obj_t == 'comment' and _reaction_comment_type %}
+                                            {% set attrs = attrs ~ " data-comment-type='" ~ (_reaction_comment_type is iterable ? _reaction_comment_type|join(',') : _reaction_comment_type) ~ "'" %}
+                                        {% elseif _reaction_obj_t == 'user' and _reaction_role %}
+                                            {% set attrs = attrs ~ " data-role='" ~ (_reaction_role is iterable ? _reaction_role|join(',') : _reaction_role) ~ "'" %}
+                                        {% elseif _reaction_obj_t == 'term' and _reaction_taxonomy %}
+                                            {% set attrs = attrs ~ " data-taxonomy='" ~ (_reaction_taxonomy is iterable ? _reaction_taxonomy|join(',') : _reaction_taxonomy) ~ "'" %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% else %}
+                                    {% set attrs = function("modal_build_attrs", button.modal_settings) %}
+                                    {% set attrs = attrs ~ " data-required-js='bootbox'" %}
+                                    {% if _modal_vars %}{% set attrs = attrs ~ " data-modal-style='" ~ _modal_vars ~ "'" %}{% endif %}
+                                {% endif %}
+                            {% elseif button.link_type == "external" %}
+                                {% set attrs = "target='_blank' rel='nofollow'" %}
+                            {% elseif button.link_type == "dropdown" %}
+                                {% set attrs = "data-bs-toggle='dropdown' aria-expanded='false' data-bs-auto-close='outside'" %}
+                                {# Reaction filter: data-post-type/role/taxonomy/comment-type → <a>'ya da yaz #}
+                                {% if _cs starts with 'reaction:' %}
+                                    {% set _reaction_obj_t = button.reaction_object_type|default('post') %}
+                                    {% set attrs = attrs ~ " data-object-type='" ~ _reaction_obj_t ~ "'" %}
+                                    {% if _reaction_obj_t == 'post' and _reaction_post_type %}
+                                        {% set attrs = attrs ~ " data-post-type='" ~ (_reaction_post_type is iterable ? _reaction_post_type|join(',') : _reaction_post_type) ~ "'" %}
+                                    {% elseif _reaction_obj_t == 'comment' and _reaction_comment_type %}
+                                        {% set attrs = attrs ~ " data-comment-type='" ~ (_reaction_comment_type is iterable ? _reaction_comment_type|join(',') : _reaction_comment_type) ~ "'" %}
+                                    {% elseif _reaction_obj_t == 'user' and _reaction_role %}
+                                        {% set attrs = attrs ~ " data-role='" ~ (_reaction_role is iterable ? _reaction_role|join(',') : _reaction_role) ~ "'" %}
+                                    {% elseif _reaction_obj_t == 'term' and _reaction_taxonomy %}
+                                        {% set attrs = attrs ~ " data-taxonomy='" ~ (_reaction_taxonomy is iterable ? _reaction_taxonomy|join(',') : _reaction_taxonomy) ~ "'" %}
+                                    {% endif %}
+                                {% endif %}
+                            {% elseif button.link_type == "offcanvas" %}
+                                {# ── Offcanvas host kaydi ──────────────────────────────────────
+                                   Icerik kaynagini (base) belirle: source varsa source adi,
+                                   yoksa secilen template. render_mode host'tan (_oc.render_mode)
+                                   gelir; source/method durumunda dynamic zorunlu.
+                                   register_offcanvas() OffcanvasRegistry'ye kaydeder ve benzersiz
+                                   DOM id dondurur (sh-oc-...). #}
+                                {% set _oc_id      = "" %}
+                                {% set _oc_base    = "" %}
+                                {% set _oc_tplid   = 0 %}
+                                {% set _oc_method  = "" %}
 
-        {% endfor %}
-    </ul>
+                                {% if _has_source %}
+                                    {# Source: predefined offcanvas (cart, notifications, favorites, reaction:... vb.)
+                                       Icerigi main.js loadSourceContent yonetir (dogru method get_notifications +
+                                       vars + infinite scroll). Bu yuzden salt-offcanvas'a method GONDERILMEZ
+                                       (o basit fetch yapardi, vars'siz → bos). Bunun yerine offcanvas'a
+                                       'offcanvas-{source}' class'i eklenir; main.js show.bs.offcanvas'ta bu
+                                       class'i gorup loadSourceContent cagirir. #}
+                                    {% set _oc_base   = _cs|replace({':': '-'}) %}
+                                    {% set _oc_method = '' %}
+                                    {% set _oc_class  = (_oc_class ~ ' offcanvas-' ~ (_cs|replace({':': '-'})))|trim %}
+                                {% else %}
+                                    {% set _oc_twig_path = '' %}
+                                    {% set _oc_tpl_type = _oc.template_type|default('offcanvas') %}
+                                    {% if _oc_tpl_type == 'manual' %}
+                                        {# Manual template: theme partial (manual/...). twig path'i sakla,
+                                           wp_footer Timber::compile ile render eder. #}
+                                        {% set _oc_twig_path = _oc.template_manual %}
+                                        {% set _oc_base = _oc.template_manual|replace({'manual/': ''})|replace({'/': '-'}) %}
+                                    {% elseif _oc_tpl_type == 'custom' %}
+                                        {# Custom template: twig dosyasi (post ID YOK). twig path'i sakla,
+                                           wp_footer Timber::compile ile render eder — post-ID pipeline'i
+                                           bunu basamiyordu, offcanvas bos geliyordu. #}
+                                        {% set _oc_twig_path = _oc.template_custom %}
+                                        {% set _oc_base = _oc_twig_path ? _oc_twig_path|split('/')|last : "" %}
+                                    {% else %}
+                                        {% set _oc_post  = get_post(_oc.template_offcanvas) %}
+                                        {% set _oc_base  = _oc_post ? _oc_post.post_name : "" %}
+                                        {% set _oc_tplid = _oc_post ? _oc_post.ID : 0 %}
+                                    {% endif %}
+                                {% endif %}
+
+                                {# render_mode: source/method → dynamic zorunlu; template → host secimi #}
+                                {% set _oc_render_mode = _has_source ? 'dynamic' : (_oc.render_mode|default('dynamic')) %}
+
+                                {% if _has_source %}
+                                    {# ── SOURCE OFFCANVAS (bootbox mantigi) ────────────────────
+                                       Panel STATIK basilmaz. Toggler'a sh-oc'SUZ, dogrudan source
+                                       adiyla data-salt-offcanvas + gerekli opts data-attribute'lari
+                                       verilir. SaltOffcanvas _open('{source}') cagrilinca DOM'da
+                                       element bulamayip _buildEl ile <body>'ye olusturur (header
+                                       scope'una takilmaz). Icerik AJAX ile main.js loadSourceContent
+                                       generic dalindan gelir (ID sh-oc- olmadigi icin muafiyete
+                                       takilmaz, source olarak ID kullanilir). #}
+                                    {% set _src_target = _cs|replace({':': '-'}) %}
+                                    {% set _src_class  = ('offcanvas-' ~ _src_target ~ ' ' ~ _oc_class)|trim %}
+                                    {% set attrs = "data-salt-offcanvas='" ~ _src_target ~ "'"
+                                        ~ " data-soc-position='" ~ _oc_position ~ "'"
+                                        ~ " data-soc-visibility='" ~ _oc_visibility ~ "'"
+                                        ~ " data-soc-class='" ~ _src_class ~ "'"
+                                        ~ " data-soc-backdrop='" ~ (_oc.backdrop ? '1' : '0') ~ "'"
+                                        ~ " data-soc-scrollable='" ~ (_oc.scrollable ? '1' : '0') ~ "'"
+                                        ~ (_oc_fullscreen ? " data-soc-fullscreen='1'" : '')
+                                        ~ " aria-haspopup='dialog' aria-controls='" ~ _src_target ~ "'" %}
+                                    {# Reaction filter: data-post-type/role/taxonomy → <a>'ya da yaz #}
+                                    {% if _cs starts with 'reaction:' %}
+                                        {% set _reaction_obj_t = button.reaction_object_type|default('post') %}
+                                        {% set attrs = attrs ~ " data-object-type='" ~ _reaction_obj_t ~ "'" %}
+                                        {% if _reaction_obj_t == 'post' and _reaction_post_type %}
+                                            {% set attrs = attrs ~ " data-post-type='" ~ (_reaction_post_type is iterable ? _reaction_post_type|join(',') : _reaction_post_type) ~ "'" %}
+                                        {% elseif _reaction_obj_t == 'comment' and _reaction_comment_type %}
+                                            {% set attrs = attrs ~ " data-comment-type='" ~ (_reaction_comment_type is iterable ? _reaction_comment_type|join(',') : _reaction_comment_type) ~ "'" %}
+                                        {% elseif _reaction_obj_t == 'user' and _reaction_role %}
+                                            {% set attrs = attrs ~ " data-role='" ~ (_reaction_role is iterable ? _reaction_role|join(',') : _reaction_role) ~ "'" %}
+                                        {% elseif _reaction_obj_t == 'term' and _reaction_taxonomy %}
+                                            {% set attrs = attrs ~ " data-taxonomy='" ~ (_reaction_taxonomy is iterable ? _reaction_taxonomy|join(',') : _reaction_taxonomy) ~ "'" %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% else %}
+                                    {% if _oc_base %}
+                                        {% set _oc_id = register_offcanvas(_oc_base, {
+                                            'template':    _oc_tplid,
+                                            'twig_path':   _oc_twig_path|default(''),
+                                            'render_mode': _oc_render_mode,
+                                            'method':      _oc_method,
+                                            'position':    _oc_position,
+                                            'visibility':  _oc_visibility,
+                                            'backdrop':    _oc.backdrop,
+                                            'scrollable':  _oc.scrollable,
+                                            'fullscreen':  _oc_fullscreen,
+                                            'class':       _oc_class,
+                                            'title':       _oc.title|default('')
+                                        }) %}
+                                    {% endif %}
+
+                                    {# SADECE data-salt-offcanvas kullan — SaltOffcanvas.js hem static (DOM'da
+                                       hazir) hem dynamic (lazy-build) durumu yonetir. data-bs-toggle="offcanvas"
+                                       (Bootstrap native) EKLENMEZ: ilk tiklamada DOM'da element yoksa
+                                       "_config is undefined" hatasi veriyor ve SaltOffcanvas ile cakisiyordu.
+                                       aria-controls: statik offcanvas'larda yazilir (DOM'da ID mevcut).
+                                       Dinamik (lazy-build) offcanvas'larda aria-haspopup="dialog" kullanilir. #}
+                                    {% set attrs = _oc_id ? "data-salt-offcanvas='" ~ _oc_id ~ "' aria-haspopup='dialog' aria-controls='" ~ _oc_id ~ "'" : "" %}
+                                {% endif %}
+
+                                {# ── Offcanvas custom style ───────────────────────────────── #}
+                                {% set _occ = _oc.custom_styles %}
+                                {% set _oc_vars = '' %}
+                                {% if _oc.customize %}
+                                    {% if _occ.bg_color %}{% set _oc_vars = _oc_vars ~ '--offcanvas-bg:' ~ _occ.bg_color ~ ';' %}{% endif %}
+                                    {% if _occ.width %}{% set _oc_vars = _oc_vars ~ '--offcanvas-width:' ~ _occ.width ~ ';' %}{% endif %}
+                                    {% if _occ.header_bg %}{% set _oc_vars = _oc_vars ~ '--offcanvas-header-bg:' ~ _occ.header_bg ~ ';' %}{% endif %}
+                                    {% if _occ.header_color %}{% set _oc_vars = _oc_vars ~ '--offcanvas-header-color:' ~ _occ.header_color ~ ';' %}{% endif %}
+                                    {% if _occ.backdrop_opacity %}{% set _oc_vars = _oc_vars ~ '--backdrop-opacity:' ~ _occ.backdrop_opacity ~ ';' %}{% endif %}
+                                {% endif %}
+                                {% if _oc_vars %}{% set attrs = attrs ~ " data-offcanvas-style='" ~ _oc_vars ~ "'" %}{% endif %}
+                            {% else %}
+                                {% set attrs = "" %}
+                            {% endif %}
+
+                            {# ── Icon parse: "solid:heart" → style + name ─────────────────── #}
+                            {% set _icon_svg = "" %}
+                            {% set _icon_pos = button.icon_position|default("left") %}
+                            {% if button.icon is not empty %}
+                                {% set _icon_parts = button.icon|split(":") %}
+                                {% set _icon_svg = fa_icon(_icon_parts[1]|default(""), _icon_parts[0]|default("solid")) %}
+                            {% endif %}
+
+                            {# ── CSS class üretimi ────────────────────────────────────────── #}
+                            {% set btn_class = "" %}
+                            {% if button.link_only %}
+                                {% set btn_class = btn_class ~ "btn-link " %}
+                                {% if button.type is not empty and button.type != "custom" %}
+                                    {% set btn_class = btn_class ~ "text-" ~ button.type ~ " " %}
+                                {% endif %}
+                            {% elseif not _oc_toggler %}
+                                {% set btn_class = btn_class ~ "btn " %}
+                                {% if button.type is not empty and button.type != "custom" %}
+                                    {% set btn_class = btn_class ~ "btn" ~ (button.outline ? "-outline" : "") ~ "-" ~ button.type ~ " " %}
+                                {% endif %}
+                                {% if button.size is not empty and button.size != "default" %}
+                                    {# size seçiliyse class ekle, boşsa (none) p-0 ile padding sıfırla #}
+                                    {% set btn_class = btn_class ~ "btn-" ~ button.size ~ " " %}
+                                {% elseif button.size is defined and button.size == "" %}
+                                    {% set btn_class = btn_class ~ "p-0 btn-link " %}
+                                {% endif %}
+                            {% endif %}
+
+                            {# icon varsa flex class ekle #}
+                            {% if _icon_svg is not empty %}
+                                {% if _icon_pos in ["top", "bottom"] %}
+                                    {% set btn_class = btn_class ~ "d-inline-flex flex-column align-items-center gap-1 " %}
+                                {% elseif _icon_pos != "only" %}
+                                    {% set btn_class = btn_class ~ "d-inline-flex align-items-center gap-2 " %}
+                                {% endif %}
+                            {% endif %}
+
+                            {# btn-loading-page: popup/external/email/phone olmayan tiplerde #}
+                            {% if button.link_type not in ["external", "modal", "email", "phone", "offcanvas", "dropdown", "login"] %}
+                                {% set btn_class = btn_class ~ "btn-loading-page " %}
+                            {% endif %}
+                            {% set btn_class = (btn_class ~ " " ~ button.class)|trim %}
+
+                            {# ── Custom renk — inline style ───────────────────────────────── #}
+                            {% if button.type == "custom" %}
+                                {% if button.outline %}
+                                    {% set attrs = attrs ~ ' style="--bs-btn-color:' ~ button.custom.default.color|default("transparent") ~ ';--bs-btn-bg:transparent;--bs-btn-border-color:' ~ button.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color:' ~ button.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg:' ~ button.custom.hover.bg|default("transparent") ~ ';--bs-btn-hover-border-color:' ~ button.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-color:' ~ button.custom.hover.color|default("transparent") ~ ';--bs-btn-active-bg:' ~ button.custom.hover.bg|default("transparent") ~ ';--bs-btn-active-border-color:' ~ button.custom.hover.bg|default("transparent") ~ ';"' %}
+                                {% elseif button.link_only %}
+                                    {% set attrs = attrs ~ ' style="--bs-link-color-rgb:' ~ button.custom.default.color|hex2rgbValues|default("transparent") ~ ';--bs-link-hover-color:' ~ button.custom.hover.color|default("transparent") ~ ';"' %}
+                                {% else %}
+                                    {% set attrs = attrs ~ ' style="--bs-btn-color:' ~ button.custom.default.color|default("transparent") ~ ';--bs-btn-bg:' ~ button.custom.default.bg|default("transparent") ~ ';--bs-btn-hover-color:' ~ button.custom.hover.color|default("transparent") ~ ';--bs-btn-hover-bg:' ~ button.custom.hover.bg|default("transparent") ~ ';"' %}
+                                {% endif %}
+                            {% endif %}
+
+                            {# ── Notification / Badge count ─────────────────────────────── #}
+                            {% set _notif_count = 0 %}
+                            {% set _notif_show = false %}
+                            {% if button.show_notification and _has_source %}
+
+                                {% if _cs == 'cart' and enable_cart %}
+                                    {% set _notif_count = user.cart.count|default(0) %}
+                                    {% set _notif_show = true %}
+
+                                {% elseif _cs == 'notifications' and enable_notifications and user %}
+                                    {% set _notif_count = user.get_notifications_unseen_count() %}
+                                    {% set _notif_show = true %}
+
+                                {% elseif _cs == 'messages' and enable_chat and user %}
+                                    {% set _notif_count = user.get_messages_unread_count() %}
+                                    {% set _notif_show = true %}
+
+                                {% elseif _cs == 'reviews' and enable_reviews and user %}
+                                    {% set _notif_count = user.get_reviews_unread_count() %}
+                                    {% set _notif_show = true %}
+
+                                {% elseif _cs starts with 'reaction:' and enable_reactions %}
+                                    {% set _reaction_key = _cs|replace({'reaction:': ''}) %}
+                                    {% set _reaction_mode = button.reaction_mode_type|default('object_count') %}
+
+                                    {% if _reaction_mode == 'user_count' and user %}
+                                        {% set _reaction_obj = button.reaction_object_type|default('post') %}
+                                        {# subtype filtresi — object_type'a göre doğru field'dan al #}
+                                        {% set _reaction_subtype = '' %}
+                                        {% if _reaction_obj == 'post' and _reaction_post_type %}
+                                            {% set _reaction_subtype = _reaction_post_type is iterable ? _reaction_post_type|first : _reaction_post_type %}
+                                        {% elseif _reaction_obj == 'user' and _reaction_role %}
+                                            {% set _reaction_subtype = _reaction_role is iterable ? _reaction_role|first : _reaction_role %}
+                                        {% elseif _reaction_obj == 'term' and _reaction_taxonomy %}
+                                            {% set _reaction_subtype = _reaction_taxonomy is iterable ? _reaction_taxonomy|first : _reaction_taxonomy %}
+                                        {% endif %}
+                                        {% set _notif_count = fn('class_exists', 'SaltHareket\\Reactions\\Reactions') ? fn('SaltHareket\\Reactions\\Reactions::getByUser', user.ID, _reaction_key, _reaction_obj, _reaction_subtype)|length : 0 %}
+                                    {% else %}
+                                        {% if post %}
+                                            {% set _notif_count = fn('class_exists', 'SaltHareket\\Reactions\\Reactions') ? fn('SaltHareket\\Reactions\\Reactions::count', _reaction_key, post.ID, 'post') : 0 %}
+                                        {% endif %}
+                                    {% endif %}
+                                    {% set _notif_show = true %}
+                                {% endif %}
+                            {% endif %}
+
+                            {# ── URL üretimi ──────────────────────────────────────────────── #}
+                            {% if button.link_type == "modal" %}
+                                {% if button.modal_settings.type in ["page_modal", "form_modal"] %}
+                                    {% set url = "#" %}
+                                {% elseif button.modal_settings.type == "iframe_modal" %}
+                                    {% set url = button.modal_settings.content_type == "file" ? button.modal_settings.file : button.modal_settings.url %}
+                                {% else %}
+                                    {% set url = "#" %}
+                                {% endif %}
+                            {% elseif button.link_type == "offcanvas" %}
+                                {% set url = "#" %}
+                            {% elseif button.link_type == "dropdown" %}
+                                {% set url = "#" %}
+                            {% elseif button.link_type == "login" %}
+                                {% set url = function('get_login_url') %}
+                            {% elseif button.link_type == "email" %}
+                                {% set _email = button.custom_email ? button.link_email_custom : button.link_email %}
+                                {% set url = "mailto:" ~ _email|trim %}
+                            {% elseif button.link_type == "phone" %}
+                                {% set _phone = button.custom_phone ? button.link_phone_custom : button.link_phone %}
+                                {% set url = "tel:" ~ _phone|replace({" ": ""})|trim %}
+                            {% elseif button.link_type == "external" %}
+                                {% set url = button.link_external ~ (button.anchor ? "#" ~ button.anchor : "") %}
+                            {% elseif button.link_type == "post" %}
+                                {% set url = button.link_post ~ (button.anchor ? "#" ~ button.anchor : "") %}
+                            {% elseif button.link_type == "term" %}
+                                {% set _term = get_term(button.link_term) %}
+                                {% set url = _term.link ~ (button.anchor ? "#" ~ button.anchor : "") %}
+                            {% else %}
+                                {% set url = button.anchor ? "#" ~ button.anchor : "#" %}
+                            {% endif %}
+
+                            {# ── Li class + data-type ─────────────────────────────────────── #}
+                            {% set title = button.link_text %}
+                            {# login type: text boşsa varsayılan "Login" #}
+                            {% if button.link_type == "login" and not title %}
+                                {% set title = translate("Login") %}
+                            {% endif %}
+                            {% set _is_dropdown = button.link_type == 'dropdown' %}
+                            {% set _dd = button.dropdown_settings %}
+                            {% set _dd_hover = _is_dropdown and _dd.hover %}
+
+                            {% set _li_classes = [] %}
+                            {% if _has_source %}
+                                {% set _li_classes = _li_classes|merge(['nav-item']) %}
+                            {% endif %}
+                            {% if _is_dropdown %}
+                                {% set _li_classes = _li_classes|merge(['nav-item', 'dropdown', 'dropdown-notifications']) %}
+                                {% if _dd_hover %}{% set _li_classes = _li_classes|merge(['dropdown-hover']) %}{% endif %}
+                            {% endif %}
+
+                            {# data-type: badge update + ajax için #}
+                            {% set _data_type = _has_source ? _cs|replace({':': '-'}) : '' %}
+                            {# reaction subtype — data attribute için #}
+                            {% set _reaction_subtype = '' %}
+                            {% if _cs starts with 'reaction:' %}
+                                {% set _reaction_obj_t = button.reaction_object_type|default('post') %}
+                                {% if _reaction_obj_t == 'post' and _reaction_post_type %}
+                                    {% set _reaction_subtype = _reaction_post_type is iterable ? _reaction_post_type|join(',') : _reaction_post_type %}
+                                {% elseif _reaction_obj_t == 'user' and _reaction_role %}
+                                    {% set _reaction_subtype = _reaction_role is iterable ? _reaction_role|join(',') : _reaction_role %}
+                                {% elseif _reaction_obj_t == 'term' and _reaction_taxonomy %}
+                                    {% set _reaction_subtype = _reaction_taxonomy is iterable ? _reaction_taxonomy|join(',') : _reaction_taxonomy %}
+                                {% endif %}
+                            {% endif %}
+
+                            <li class="{{ _li_classes|join(' ') }}"
+                                {% if _data_type %} data-type="{{ _data_type }}"{% endif %}
+                                {% if _reaction_post_type %} data-post-type="{{ _reaction_post_type is iterable ? _reaction_post_type|join(',') : _reaction_post_type }}"{% endif %}
+                                {% if _reaction_comment_type %} data-comment-type="{{ _reaction_comment_type is iterable ? _reaction_comment_type|join(',') : _reaction_comment_type }}"{% endif %}
+                                {% if _reaction_role %} data-role="{{ _reaction_role is iterable ? _reaction_role|join(',') : _reaction_role }}"{% endif %}
+                                {% if _reaction_taxonomy %} data-taxonomy="{{ _reaction_taxonomy is iterable ? _reaction_taxonomy|join(',') : _reaction_taxonomy }}"{% endif %}
+                                {{ function("block_aos_delay", block_meta.aos, (50 * loop.index0)) }}>
+                                {%- if button.link_type == "offcanvas" and _oc_toggler -%}
+                                    {# Hamburger / toggler render #}
+                                    {# aria-label: title varsa kullan, yoksa data-type'tan türet; boş string yazma #}
+                                    {% set _aria_label = title is not empty ? title : (_data_type ? _data_type|replace({'-': ' '})|capitalize : '') %}
+                                    <a href="#" class="nav-toggler-custom {{ btn_class }}" {{ attrs }} title="{{ _aria_label }}"{% if _aria_label %} aria-label="{{ _aria_label }}"{% endif %}>
+                                        {%- if _icon_svg is not empty -%}
+                                            {{ _icon_svg|raw }}
+                                        {%- else -%}
+                                            <span></span>
+                                        {%- endif -%}
+                                    </a>
+                                {%- else -%}
+                                    {# aria-label: title varsa kullan, yoksa data-type'tan türet; boş string yazma #}
+                                    {% set _aria_label = title is not empty ? title : (_data_type ? _data_type|replace({'-': ' '})|capitalize : '') %}
+                                    <a href="{{ url }}" class="{{ btn_class }}" {{ attrs }} title="{{ _aria_label }}"{% if _aria_label %} aria-label="{{ _aria_label }}"{% endif %}>
+                                        {%- if _icon_svg is not empty -%}
+                                            {%- if _icon_pos == "only" -%}
+                                                {{ _icon_svg|raw }}
+                                            {%- elseif _icon_pos in ["left", "top"] -%}
+                                                {{ _icon_svg|raw }}<span>{{ title }}</span>
+                                            {%- elseif _icon_pos in ["right", "bottom"] -%}
+                                                <span>{{ title }}</span>{{ _icon_svg|raw }}
+                                            {%- endif -%}
+                                        {%- else -%}
+                                            {{ title }}
+                                        {%- endif -%}
+                                        {%- if _notif_show -%}<div class="notification-count{% if _notif_count == 0 %} d-none{% endif %}">{{ _notif_count }}</div>{%- endif -%}
+                                    </a>
+                                {%- endif -%}
+
+                                {%- if _is_dropdown -%}
+                                    {# ── Dropdown menu ────────────────────────────────────── #}
+                                    {% set _dd_size  = _dd.size  ? 'dropdown-' ~ _dd.size  : '' %}
+                                    {% set _dd_align = _dd.align ? 'dropdown-menu-' ~ _dd.align : '' %}
+                                    {% set _dd_class = (_dd_size ~ ' ' ~ _dd_align ~ ' ' ~ _dd.class)|trim %}
+
+                                    {# ── Dropdown inline CSS variables ──────────────────────── #}
+                                    {% set _ddc = _dd.custom_styles %}
+                                    {% set _dd_inline = '' %}
+                                    {% if _dd.customize and _ddc %}
+                                        {% if _ddc.bg_color %}{% set _dd_inline = _dd_inline ~ '--dropdown-bg:' ~ _ddc.bg_color ~ ';' %}{% endif %}
+                                        {% if _ddc.color %}{% set _dd_inline = _dd_inline ~ '--dropdown-color:' ~ _ddc.color ~ ';' %}{% endif %}
+                                        {% if _ddc.border_radius %}{% set _dd_inline = _dd_inline ~ '--dropdown-border-radius:' ~ _ddc.border_radius ~ ';' %}{% endif %}
+                                        {% if _ddc.border_color %}{% set _dd_inline = _dd_inline ~ '--dropdown-border-color:' ~ _ddc.border_color ~ ';' %}{% endif %}
+                                        {% if _ddc.border_width %}{% set _dd_inline = _dd_inline ~ '--dropdown-border-width:' ~ _ddc.border_width ~ ';' %}{% endif %}
+                                        {% if _ddc.box_shadow %}{% set _dd_inline = _dd_inline ~ '--dropdown-box-shadow:' ~ _ddc.box_shadow ~ ';' %}{% endif %}
+                                        {% if _ddc.min_width %}{% set _dd_inline = _dd_inline ~ '--dropdown-min-width:' ~ _ddc.min_width ~ ';' %}{% endif %}
+                                        {% if _ddc.padding_x %}{% set _dd_inline = _dd_inline ~ '--dropdown-padding-x:' ~ _ddc.padding_x ~ ';' %}{% endif %}
+                                        {% if _ddc.padding_y %}{% set _dd_inline = _dd_inline ~ '--dropdown-padding-y:' ~ _ddc.padding_y ~ ';' %}{% endif %}
+                                        {% if _ddc.item_color %}{% set _dd_inline = _dd_inline ~ '--dropdown-link-color:' ~ _ddc.item_color ~ ';' %}{% endif %}
+                                        {% if _ddc.item_color_hover %}{% set _dd_inline = _dd_inline ~ '--dropdown-link-hover-color:' ~ _ddc.item_color_hover ~ ';' %}{% endif %}
+                                        {% if _ddc.item_bg_hover %}{% set _dd_inline = _dd_inline ~ '--dropdown-link-hover-bg:' ~ _ddc.item_bg_hover ~ ';' %}{% endif %}
+                                        {% if _ddc.header_color %}{% set _dd_inline = _dd_inline ~ '--dropdown-header-color:' ~ _ddc.header_color ~ ';' %}{% endif %}
+                                        {% if _ddc.divider_color %}{% set _dd_inline = _dd_inline ~ '--dropdown-divider-bg:' ~ _ddc.divider_color ~ ';' %}{% endif %}
+                                    {% endif %}
+
+                                    <div class="dropdown-menu {{ _dd_class }}"{% if _dd_inline %} style="{{ _dd_inline }}"{% endif %}>
+                                        {%- if _dd.title -%}
+                                        <div class="dropdown-header">
+                                            <div class="title">{{ _dd.title }}</div>
+                                            <div class="action">
+                                                <a href="#" data-bs-dismiss="dropdown" aria-label="Close">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                                        <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {%- endif -%}
+                                        <div class="dropdown-body scrollable">
+                                            <div class="dropdown-container load-container">
+                                                {%- if _has_source -%}
+                                                    {# Source var — içerik JS ile ajax'tan gelecek, load-container yeterli #}
+                                                {%- elseif _dd.template_type == 'manual' and _dd.template_manual -%}
+                                                    {%- set _dm = _dd.template_manual -%}
+                                                    {%- if fn('template_validator', _dm, 'dropdown') -%}
+                                                        {{ include(_dm ~ ".twig", ignore_missing = true) }}
+                                                    {%- else -%}
+                                                        {{ include(_dm ~ ".twig", ignore_missing = true) }}
+                                                    {%- endif -%}
+                                                {%- elseif _dd.template_type == 'custom' and _dd.template_custom -%}
+                                                    {%- set _dc = _dd.template_custom -%}
+                                                    {%- if fn('template_validator', _dc, 'dropdown') -%}
+                                                        {{ include(_dc ~ ".twig", ignore_missing = true) }}
+                                                    {%- else -%}
+                                                        {{ include(_dc ~ ".twig", ignore_missing = true) }}
+                                                    {%- endif -%}
+                                                {%- elseif _dd.template_dropdown -%}
+                                                    {%- set _dtp = fn('get_template_twig_for_lang', _dd.template_dropdown) -%}
+                                                    {%- if _dtp -%}
+                                                        {%- if fn('template_validator', _dtp, 'dropdown') -%}
+                                                            {{ include(_dtp ~ ".twig", ignore_missing = true) }}
+                                                        {%- else -%}
+                                                            {{ include(_dtp ~ ".twig", ignore_missing = true) }}
+                                                        {%- endif -%}
+                                                    {%- endif -%}
+                                                {%- else -%}
+                                                    {# Ajax — JS load-container'ı doldurur #}
+                                                {%- endif -%}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {%- endif -%}
+                            </li>
+
+                            {% endif %}{# end not _skip #}
+
+                        {% endfor %}
+                    </ul>
+
+                    {# ── Offcanvas HTML — <ul> dışında basılır ────────────────────────────── #}
+                    {% for button in buttons %}
+                        {% if button.link_type == "offcanvas" %}
+                            {% set _oc_s     = button.offcanvas_settings %}
+                            {% set _cs       = button.content_source|default('') %}
+                            {% set _has_src  = _cs is not empty %}
+                            {% set _pos      = _oc_s.position|default('end') %}
+                            {% set _vis      = _oc_s.visibility|default('offcanvas') %}
+                            {% set _fs       = _oc_s.fullscreen %}
+                            {% set _scroll   = _oc_s.scrollable %}
+                            {% set _backdrop = _oc_s.backdrop %}
+                            {% set _oc_cls   = _oc_s.class|default('') %}
+
+                            {# Offcanvas class'ları #}
+                            {% set _oc_base_class = _vis ~ ' offcanvas-' ~ _pos %}
+                            {% if _fs %}{% set _oc_base_class = _oc_base_class ~ ' offcanvas-fullscreen' %}{% endif %}
+                            {% if _oc_cls %}{% set _oc_base_class = _oc_base_class ~ ' ' ~ _oc_cls %}{% endif %}
+
+                            {# data-bs attrs #}
+                            {% set _oc_data = '' %}
+                            {% if _scroll %}{% set _oc_data = _oc_data ~ " data-bs-scroll='true'" %}{% endif %}
+                            {% if not _backdrop %}{% set _oc_data = _oc_data ~ " data-bs-backdrop='false'" %}{% endif %}
+
+                            {# STATIK PRINT YOK — hicbir template tipi icin.
+                               Tum offcanvas'lar (source, custom twig, manual twig, post-ID
+                               template) tek merkezden basilir:
+                                 - source        → SaltOffcanvas _buildEl (body, AJAX icerik)
+                                 - custom/manual → wp_footer registry render + Timber::compile(twig_path)
+                                 - post-ID       → wp_footer registry render + get_blocks()
+                               Eskiden burada custom/manual icin prefix'siz id="{base}" statik
+                               element basiliyordu; bu registry'nin sh-oc-{base} elementiyle
+                               CIFT element yaratiyordu. Kaldirildi. #}
+                        {% endif %}
+                    {% endfor %}
+
+{% endif %}

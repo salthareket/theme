@@ -6,12 +6,12 @@
         min-width: 33px;
         text-align: center;
 
-        // FA6 icon overrides
-        &.apss-facebook i:before  { content: "\f39e"; font-family: var(--icon-font-brands); }
-        &.apss-twitter  i:before  { content: "\f099"; font-family: var(--icon-font-brands); }
-        &.apss-linkedin i:before  { content: "\f08c"; font-family: var(--icon-font-brands); }
-        &.apss-pinterest i:before { content: "\f0d2"; font-family: var(--icon-font-brands); }
-        &.apss-email i:before     { content: "\f0e0"; font-family: var(--icon-font); }
+        // FA6 icon overrides — svgIcon mixin ile SVG sistemi
+        &.apss-facebook i  { &:before { display: none !important; } @include svgIcon('facebook', 'brands'); }
+        &.apss-twitter  i  { &:before { display: none !important; } @include svgIcon('x-twitter', 'brands'); }
+        &.apss-linkedin i  { &:before { display: none !important; } @include svgIcon('linkedin-in', 'brands'); }
+        &.apss-pinterest i { &:before { display: none !important; } @include svgIcon('pinterest-p', 'brands'); }
+        &.apss-email i     { &:before { display: none !important; } @include svgIcon('envelope', 'solid'); }
 
         &:not(:first-child) > a > .apss-icon-block { border-left: none !important; }
 

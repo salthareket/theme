@@ -247,11 +247,30 @@ function list_social_accounts($accounts=array(), $class="", $hover=false){
 	    	if($account["name"] == "whatsapp"){
 	    		$link = "https://wa.me/".str_replace("+", "", filter_var($link, FILTER_SANITIZE_NUMBER_INT));
 	    	}
-	    	$code .= '<li class="list-inline-item"><a href="'.$link.'" class="'.($hover?'btn-social-'.$account["name"].'-hover':'').'" title="'.$account["name"].'" target="_blank" rel="nofollow" itemprop="sameAs"><i class="fab fa-'.$account["name"].($account["name"]=="facebook"?"-f":"").' fa-fw"></i></a></li>';
+            // facebook → facebook-f (FA brands'ta ayrı ikon)
+            $icon_name = $account["name"] === 'facebook' ? 'facebook-f' : $account["name"];
+            $svg = fa_icon( $icon_name, 'brands', 'fa-fw' );
+	    	$code .= '<li class="list-inline-item"><a href="'.$link.'" class="'.($hover?'btn-social-'.$account["name"].'-hover':'').'" title="'.$account["name"].'" target="_blank" rel="nofollow" itemprop="sameAs">'.$svg.'</a></li>';
 		}
 		$code .= "</ul>";
 	}
 	return $code;
+}
+
+function list_social_accounts_v1($accounts=array(), $class="", $hover=false){
+    $code = "";
+    if(isset($accounts) && $accounts){
+        $code = '<ul class="'.$class.' list-social list-inline">';
+        foreach($accounts as $account){
+            $link = $account["url"];
+            if($account["name"] == "whatsapp"){
+                $link = "https://wa.me/".str_replace("+", "", filter_var($link, FILTER_SANITIZE_NUMBER_INT));
+            }
+            $code .= '<li class="list-inline-item"><a href="'.$link.'" class="'.($hover?'btn-social-'.$account["name"].'-hover':'').'" title="'.$account["name"].'" target="_blank" rel="nofollow" itemprop="sameAs"><i class="fab fa-'.$account["name"].($account["name"]=="facebook"?"-f":"").' fa-fw"></i></a></li>';
+        }
+        $code .= "</ul>";
+    }
+    return $code;
 }
 
 function wrap_last($text, $tag){

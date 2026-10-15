@@ -97,11 +97,42 @@ class MembershipHooks
         // ── Activation URL Handlers ───────────────────────────────────────────
         add_action( 'init', [ self::class, 'handleActivationUrls' ], 99999 );
 
+        // ── Public Profile Rewrite Rule ───────────────────────────────────────
+        // profile/{slug} → author archive (author.php + author.twig)
+        add_action( 'init', [ self::class, 'registerPublicProfileRewrite' ] );
+        add_filter( 'query_vars', function( $vars ) {
+            $vars[] = 'sh_profile_slug';
+            return $vars;
+        } );
+        add_action( 'template_redirect', [ self::class, 'handlePublicProfileRedirect' ], 5 );
+
         // ── Endpoint Registration ─────────────────────────────────────────────
         add_action( 'init', [ $mm, 'registerEndpoints' ] );
 
         // Endpoint content fonksiyonlarını register et
         add_action( 'init', [ $mm, 'registerEndpointContent' ], 5 );
+
+        // ── Register Form Field Actions ───────────────────────────────────────
+        // sh_register_form_field_* action'larını register et — sadece enabled field'lar
+        add_action( 'init', [ $mm, 'registerFormFieldActions' ], 10 );
+
+        // ── Menü: not-activated item'ını aktive olmuş kullanıcıdan gizle ─────
+        add_filter( 'sh_membership_menu_items', function( array $items ) use ( $mm ) {
+            // edit-account (Account Details) — profile sayfası tüm bilgileri kapsıyor
+            unset( $items['edit-account'] );
+            // Eski hardcoded favorites'ı kaldır — yerini private reaction type'lar aldı
+            unset( $items['favorites'] );
+
+            if ( ! $mm->user ) return $items;
+            // Kullanıcı aktive olmuşsa 'not-activated' menüden kaldır
+            $user_id = is_object( $mm->user ) && isset( $mm->user->ID )
+                ? (int) $mm->user->ID
+                : get_current_user_id();
+            if ( $user_id && $mm->isUserActive( $user_id ) ) {
+                unset( $items['not-activated'] );
+            }
+            return $items;
+        }, 20 );
 
         // ── Social Login ──────────────────────────────────────────────────────
         if ( defined( 'ENABLE_SOCIAL_LOGIN' ) && ENABLE_SOCIAL_LOGIN ) {
@@ -122,6 +153,12 @@ class MembershipHooks
         // edit_user_profile_update: admin profil sayfasından status güncelleme
         // SaltBase delegate'i (onAdminUserUpdate) bu işi yapıyor
         // add_action( 'edit_user_profile_update', [ $mm, 'onAdminUserUpdate' ] );
+
+        // ── WC menüsünden eski favorites'ı kaldır ────────────────────────────
+        add_filter( 'woocommerce_account_menu_items', function( array $items ) {
+            unset( $items['favorites'] );
+            return $items;
+        }, 20 );
     }
 
     /**
@@ -293,5 +330,104 @@ class MembershipHooks
     {
         $disabled = apply_filters( 'sh_membership_hooks_disabled', [] );
         return in_array( $hook, (array) $disabled, true );
+    }
+
+    /**
+     * Public profil URL rewrite kurallarını kaydet.
+     * /profile/{slug} → ?sh_profile_slug={slug}
+     * /role/{slug}    → author archive (role-based URL)
+     */
+    public static function registerPublicProfileRewrite(): void
+    {
+        if ( ! \SaltHareket\Membership\MembershipSettings::getSetting( 'enable_public_profile' ) ) return;
+
+        $url_type   = \SaltHareket\Membership\MembershipSettings::getSetting( 'profile_url_type', 'standard' );
+        $url_prefix = \SaltHareket\Membership\MembershipSettings::getSetting( 'profile_url_prefix', 'profile' );
+
+        if ( $url_type === 'role' ) {
+            // Tüm WP rolleri için tek rule — rewrite.php mantığı
+            global $wp_roles;
+            if ( ! isset( $wp_roles ) ) $wp_roles = new \WP_Roles();
+            $roles = implode( '|', array_keys( $wp_roles->get_names() ) );
+            if ( $roles ) {
+                add_rewrite_rule(
+                    '^(' . $roles . ')/([^/]+)/?$',
+                    'index.php?sh_profile_slug=$matches[2]',
+                    'top'
+                );
+            }
+        } else {
+            // Standard veya custom prefix
+            add_rewrite_rule(
+                '^' . preg_quote( $url_prefix, '/' ) . '/([^/]+)/?$',
+                'index.php?sh_profile_slug=$matches[1]',
+                'top'
+            );
+        }
+
+        // author_link filter — /author/ → /profile/ veya /{role}/
+        add_filter( 'author_link', function( $link, $author_id ) use ( $url_type, $url_prefix ) {
+            if ( $url_type === 'role' ) {
+                $role = function_exists( 'get_user_role' ) ? get_user_role( $author_id ) : '';
+                if ( is_array( $role ) ) $role = ! empty( $role ) ? reset( $role ) : '';
+                if ( $role ) $link = str_replace( '/author/', '/' . $role . '/', $link );
+            } else {
+                $link = str_replace( '/author/', '/' . $url_prefix . '/', $link );
+            }
+            return $link;
+        }, 10, 2 );
+
+        // Flush sadece yeni rule yoksa
+        $rules   = get_option( 'rewrite_rules', [] );
+        $pattern = $url_type === 'role' ? '^[^/]+/([^/]+)/?$' : '^' . preg_quote( $url_prefix, '/' ) . '/([^/]+)/?$';
+        if ( is_array( $rules ) && ! isset( $rules[ $pattern ] ) ) {
+            flush_rewrite_rules( false );
+        }
+    }
+
+    /**
+     * sh_profile_slug query var'ı gelince author archive'e yönlendir.
+     */
+    public static function handlePublicProfileRedirect(): void
+    {
+        $slug = get_query_var( 'sh_profile_slug' );
+        if ( ! $slug ) return;
+
+        // nicename veya nickname ile kullanıcı bul
+        $user = get_user_by( 'slug', $slug ); // user_nicename
+        if ( ! $user ) {
+            global $wpdb;
+            $user_id = $wpdb->get_var( $wpdb->prepare(
+                "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'nickname' AND meta_value = %s LIMIT 1",
+                $slug
+            ) );
+            if ( $user_id ) $user = get_userdata( $user_id );
+        }
+
+        if ( ! $user ) {
+            global $wp_query;
+            $wp_query->set_404();
+            status_header( 404 );
+            nocache_headers();
+            return;
+        }
+
+        // WP query'sini author archive gibi ayarla
+        global $wp_query;
+        $wp_query->is_author   = true;
+        $wp_query->is_archive  = true;
+        $wp_query->is_404      = false;
+        $wp_query->is_home     = false;
+        $wp_query->is_singular = false;
+        $wp_query->queried_object    = $user;
+        $wp_query->queried_object_id = $user->ID;
+        $wp_query->set( 'author_name', $user->user_nicename );
+        $wp_query->set( 'author', $user->ID );
+
+        // Template'i doğrudan author.php'ye yönlendir
+        add_filter( 'template_include', function( $template ) {
+            $author_tpl = locate_template( 'author.php' );
+            return $author_tpl ?: $template;
+        }, 99 );
     }
 }

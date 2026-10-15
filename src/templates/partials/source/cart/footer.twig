@@ -1,0 +1,29 @@
+{#
+  partials/source/cart/footer.twig
+
+  Context:
+    meta — {count, total}
+    view — offcanvas | dropdown | modal
+#}
+
+<table class="table-total table table-sm mb-3">
+    <tbody>
+        <tr class="quantity">
+            <td>{{ translate('Product quantity') }}</td>
+            <td>{{ meta.count }}</td>
+        </tr>
+        <tr class="total fw-bold">
+            <td>{{ translate('TOTAL') }}</td>
+            <td>{{ meta.total }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="btn-group w-100">
+    <a href="{{ function('wc_get_cart_url') }}" class="btn btn-outline-primary">
+        {{ translate('View Cart') }}
+    </a>
+    <a href="{{ function('woo_checkout_url') }}" class="btn btn-primary">
+        {{ translate('Pay Now') }}
+    </a>
+</div>

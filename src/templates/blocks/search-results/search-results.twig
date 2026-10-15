@@ -27,7 +27,7 @@
 	{% if is_preview %}
 		<div class="alert alert-waning text-center">Search results will be displayed here.</div>
 	{% else %}
-		{% include "partials/posts/posts.twig" with { row_class : block_meta.row.class, row_attrs : block_meta.row.attrs } %}
+		{% include "blocks/search-results/posts.twig" with { row_class : block_meta.row.class, row_attrs : block_meta.row.attrs } %}
 	{% endif %}
 
 {% endblock %}

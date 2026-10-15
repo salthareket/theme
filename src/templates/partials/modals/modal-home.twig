@@ -4,7 +4,7 @@
         <div class="modal" id="modal_home" tabindex="-1" aria-labelledby="modal_homeLabel" aria-modal="false" role="dialog">
             <div class="modal-dialog modal-dialog-centered modal-{{modal_home.modal_size}}">
                 <div class="modal-content border-0">
-                    <button type="button" class="btn-close position-absolute fs-5 p-3 bg-white rounded-circle" data-bs-dismiss="modal" aria-label="{{translate("Kapat")}}" style="top:10px;right:10px;z-index: 9999;"></button>
+                    <button type="button" class="btn-close position-absolute fs-5 p-3 bg-white rounded-circle" data-bs-dismiss="modal" aria-label="{{translate("Close")}}" style="top:10px;right:10px;z-index: 9999;"></button>
                     <div class="modal-body p-0 overflow-hidden shadow-lg {% if modal_home.type in ["image", "video"] %}rounded-3{% endif %}">
                             
                         {% if modal_home.type == "image" %}

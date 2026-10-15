@@ -42,12 +42,68 @@ define("ENCRYPT_SECRET_KEY", "gV6QaS3zRm4Ei8NkXw0Lp1bBfDy5hTjY");
 
 // Gerekli sınıflar
 include_once SH_CLASSES_PATH . "class.config.php";
-include_once SH_CLASSES_PATH."class.query-cache.php";
+function get_sh_config( $key, $default = false ) {
+    return \SaltHareket\SaltConfig::get( $key, $default );
+}
+include_once SH_CLASSES_PATH . "class.query-cache.php";
+include_once SH_CLASSES_PATH . "class.fa-icon-manager.php";
+include_once SH_CLASSES_PATH . "class.icon-registry.php";
+include_once SH_CLASSES_PATH . "class.profiler.php";
+
+// Profiler — aktif etmek için wp-config.php'ye ekle: define('SALT_PROFILER', true);
+// Admin-ajax, REST ve cron request'lerinde profiler kapalı (log gürültüsü önleme)
+$_salt_script = isset($_SERVER['SCRIPT_FILENAME']) ? basename($_SERVER['SCRIPT_FILENAME']) : '';
+$_salt_uri    = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+$_salt_profiler_skip = (defined('DOING_AJAX') && DOING_AJAX)
+    || (defined('DOING_CRON') && DOING_CRON)
+    || (defined('REST_REQUEST') && REST_REQUEST)
+    || $_salt_script === 'admin-ajax.php'
+    || strpos($_salt_uri, '/wp-json/') !== false
+    || strpos($_salt_uri, 'admin-ajax.php') !== false
+    // Prefetch/prerender request'lerini atla
+    || ( isset($_SERVER['HTTP_X_PURPOSE']) && strtolower($_SERVER['HTTP_X_PURPOSE']) === 'preview' )
+    || ( isset($_SERVER['HTTP_X_MOZ']) && strtolower($_SERVER['HTTP_X_MOZ']) === 'prefetch' )
+    || ( isset($_SERVER['HTTP_SEC_PURPOSE']) && strtolower($_SERVER['HTTP_SEC_PURPOSE']) === 'prefetch' )
+    || ( isset($_SERVER['HTTP_PURPOSE']) && strtolower($_SERVER['HTTP_PURPOSE']) === 'prefetch' )
+    // PAE internal fetch
+    || ( defined('IS_INTERNAL_FETCH') && IS_INTERNAL_FETCH )
+    || ( isset($_SERVER['HTTP_X_INTERNAL_FETCH']) );
+
+if ( defined('SALT_PROFILER') && SALT_PROFILER && ! $_salt_profiler_skip ) {
+    SaltProfiler::enable();
+    SaltProfiler::mark('variables.php start');
+    // Shutdown hook — sadece bu request'e bağla
+    add_action( 'shutdown', static function () {
+        $url        = $_SERVER['REQUEST_URI'] ?? 'unknown';
+        $ua         = substr( $_SERVER['HTTP_USER_AGENT'] ?? 'no-ua', 0, 80 );
+        $referer    = $_SERVER['HTTP_REFERER'] ?? '';
+        $method     = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $title      = "SALT PROFILER — {$method} {$url}";
+        if ( $referer ) $title .= " [ref: {$referer}]";
+        $title .= " [ua: {$ua}]";
+        \SaltProfiler::mark( 'shutdown' );
+        \SaltProfiler::report( $title );
+    }, 9998 );
+}
+unset($_salt_script, $_salt_uri, $_salt_profiler_skip);
+
+// fa_icon() global PHP helper
+if ( ! function_exists( 'fa_icon' ) ) {
+    function fa_icon( string $name, string $style = 'solid', string $classes = '' ): string {
+        return \SaltHareket\FaIconManager::render( $name, $style, $classes );
+    }
+}
 
 // App Settings — define()'lardan ÖNCE yüklenmeli
+include_once SH_INCLUDES_PATH . 'apps/asset-manager/AssetSettings.php'; // ENABLE_DEVELOPMENT vs. için erken yükle
 include_once SH_INCLUDES_PATH . 'apps/membership/MembershipSettings.php';
 include_once SH_INCLUDES_PATH . 'apps/notifications/NotificationsSettings.php';
 include_once SH_INCLUDES_PATH . 'apps/reactions/ReactionsAppSettings.php';
+include_once SH_INCLUDES_PATH . 'apps/download-log/DownloadLogSettings.php'; // ENABLE_DOWNLOAD_LOG için erken yükle
+// SMS App Settings — ENABLE_SMS define'ından önce yüklenmeli
+include_once SH_INCLUDES_PATH . 'apps/sms/Contracts/SmsContract.php';
+include_once SH_INCLUDES_PATH . 'apps/sms/SmsEncoding.php';
+include_once SH_INCLUDES_PATH . 'apps/sms/SmsSettings.php';
 include_once SH_INCLUDES_PATH . 'apps/search-history/SearchHistorySettings.php';
 include_once SH_INCLUDES_PATH . 'apps/reviews/ReviewsSettings.php';
 include_once SH_INCLUDES_PATH . 'apps/localization/LocationSettings.php';
@@ -58,27 +114,23 @@ include_once SH_INCLUDES_PATH . 'apps/localization/Concerns/HandlesRegionalPosts
 include_once SH_INCLUDES_PATH . 'apps/localization/Concerns/HandlesGeoQuery.php';
 include_once SH_INCLUDES_PATH . 'apps/localization/LocationManager.php';
 
-function get_sh_config($key, $default = false) {
-    return \SaltHareket\SaltConfig::get($key, $default);
-}
-
 // Tema kontrolü
-define('SH_THEME_EXISTS', (is_array($status = get_sh_config('sh_theme_tasks_status', [])) && array_key_exists("copy_theme", $status)));
+define('SH_THEME_EXISTS', (is_array($status = \get_sh_config('sh_theme_tasks_status', [])) && array_key_exists("copy_theme", $status)));
 
-// Üretim ve Log Ayarları
-define("ENABLE_PRODUCTION",     get_sh_config("options_enable_production"));
-define("ENABLE_LOGS",           ENABLE_PRODUCTION && get_sh_config("options_enable_logs"));
-define("ENABLE_CONSOLE_LOGS",   ENABLE_PRODUCTION && get_sh_config("options_enable_console_logs"));
-define("ENABLE_TWIG_CACHE",     get_sh_config("options_enable_twig_cache"));
-define("SEPERATE_CSS",          get_sh_config("options_seperate_css"));
-define("SEPERATE_JS",           get_sh_config("options_seperate_js"));
-define("INLINE_CSS",            SEPERATE_CSS && (bool) get_sh_config("options_inline_css", 0));
-define("INLINE_JS",             SEPERATE_JS && (bool) get_sh_config("options_inline_js", 0));
+// Üretim ve Log Ayarları — AssetSettings üzerinden okunuyor (ACF'den taşındı)
+define("ENABLE_DEVELOPMENT",     \SaltHareket\AssetManager\AssetSettings::getSetting("enable_development"));
+define("ENABLE_LOGS",           ENABLE_DEVELOPMENT && \SaltHareket\AssetManager\AssetSettings::getSetting("enable_logs"));
+define("ENABLE_CONSOLE_LOGS",   ENABLE_DEVELOPMENT && \SaltHareket\AssetManager\AssetSettings::getSetting("enable_console_logs"));
+define("ENABLE_TWIG_CACHE",     \SaltHareket\AssetManager\AssetSettings::getSetting("enable_twig_cache"));
+define("SEPERATE_CSS",          \SaltHareket\AssetManager\AssetSettings::getSetting("seperate_css"));
+define("SEPERATE_JS",           \SaltHareket\AssetManager\AssetSettings::getSetting("seperate_js"));
+define("INLINE_CSS",            SEPERATE_CSS && (bool) \SaltHareket\AssetManager\AssetSettings::getSetting("inline_css"));
+define("INLINE_JS",             SEPERATE_JS && (bool) \SaltHareket\AssetManager\AssetSettings::getSetting("inline_js"));
 
 $exclude_from_search = get_sh_config("options_exclude_from_search", []);
 define("EXCLUDE_FROM_SEARCH", is_array($exclude_from_search) ? $exclude_from_search : []);
 define("DISABLE_COMMENTS",      false);
-define("ENABLE_ECOMMERCE",      class_exists("WooCommerce"));
+define("ENABLE_ECOMMERCE",      class_exists("WooCommerce") && !(bool) get_sh_config('options_disable_wc_frontend', false));
 
 
 // Üyelik Ayarları
@@ -100,6 +152,15 @@ define("ENABLE_REMEMBER_LOGIN", ENABLE_MEMBERSHIP && \SaltHareket\Membership\Mem
 define("ENABLE_SOCIAL_LOGIN",   ENABLE_MEMBERSHIP && class_exists("NextendSocialLogin") && \SaltHareket\Membership\MembershipSettings::getSetting("enable_social_login"));
 define("ENABLE_LOST_PASSWORD",  ENABLE_MEMBERSHIP && \SaltHareket\Membership\MembershipSettings::getSetting("enable_lost_password"));
 define("ENABLE_PASSWORD_RECOVER", ENABLE_MEMBERSHIP && \SaltHareket\Membership\MembershipSettings::getSetting("enable_password_recover"));
+
+// SMS App — Login Security'den ÖNCE tanımlanmalı (ENABLE_PASSWORDLESS ve ENABLE_2FA_SMS bağımlı)
+define("ENABLE_SMS", (bool) \SaltHareket\Sms\SmsSettings::get()['enabled'] ?? false);
+
+// Login Security — ENABLE_SMS artık tanımlı
+define("LOGIN_2FA_METHOD",  ENABLE_MEMBERSHIP ? (string) \SaltHareket\Membership\MembershipSettings::getSetting("login_2fa_method", "none") : "none");
+define("ENABLE_2FA_SMS",    LOGIN_2FA_METHOD === "sms"  && ENABLE_SMS);
+define("ENABLE_2FA_TOTP",   LOGIN_2FA_METHOD === "totp" && class_exists('\PragmaRX\Google2FAQRCode\Google2FA'));
+define("ENABLE_PASSWORDLESS", ENABLE_MEMBERSHIP && ENABLE_SMS && (bool) \SaltHareket\Membership\MembershipSettings::getSetting("enable_passwordless"));
 $_pw_recover_type = \SaltHareket\Membership\MembershipSettings::getSetting("password_recover_type");
 define("PASSWORD_RECOVER_TYPE", (ENABLE_LOST_PASSWORD || ENABLE_PASSWORD_RECOVER) ? $_pw_recover_type : []);
 
@@ -110,10 +171,16 @@ define("ENABLE_CHAT",           ENABLE_MEMBERSHIP && class_exists("Redq_YoBro") 
 define("ENABLE_NOTIFICATIONS",  ENABLE_MEMBERSHIP && \SaltHareket\Notifications\NotificationsSettings::getSetting("enable_notifications"));
 define("ENABLE_SMS_NOTIFICATIONS", ENABLE_MEMBERSHIP && \SaltHareket\Notifications\NotificationsSettings::getSetting("enable_sms_notifications"));
 define("ENABLE_WEB_PUSH", ENABLE_MEMBERSHIP && ENABLE_NOTIFICATIONS && \SaltHareket\Notifications\NotificationsSettings::getSetting("enable_web_push"));
+// ENABLE_SMS yukarıda tanımlandı — burada tekrar tanımlanmıyor
+// Video Processor App — FFmpeg tabanlı video optimizasyonu
+define("ENABLE_VIDEO_PROCESSOR", (bool) get_sh_config('vp_enabled', false));
 
 define("ENABLE_SEARCH_HISTORY", \SaltHareket\SearchHistory\SearchHistorySettings::getSetting("enable_search_history"));
 define("DISABLE_REVIEW_APPROVE", \SaltHareket\Reviews\ReviewsSettings::isApproveDisabled());
+define("ENABLE_REVIEWS",        (bool) \SaltHareket\Reviews\ReviewsSettings::get('general.enable_reviews'));
 define("ENABLE_POSTCODE_VALIDATION", \SaltHareket\Membership\MembershipSettings::getSetting("enable_postcode_validation"));
+// Download Log App
+define("ENABLE_DOWNLOAD_LOG", (bool) \SaltHareket\DownloadLog\DownloadLogSettings::getSetting('enable_download_log', true));
 
 
 // Lokasyon ve Bölgesel Ayarlar
@@ -125,63 +192,99 @@ define("ENABLE_LOCATION_DB",    \SaltHareket\Localization\LocationSettings::getS
 define("REGIONAL_POST_SETTINGS", \SaltHareket\Localization\LocationSettings::getSetting("regional_post_settings", []));
 
 
-// Under Construction Ayarları
-define("ACTIVATE_UNDER_CONSTRUCTION", get_sh_config("underConstructionActivationStatus"));
-$white_pages = get_sh_config("options_white_pages", []);
-define("WHITE_PAGES_UNDER_CONSTRUCTION", is_array($white_pages) ? $white_pages : []);
+// ─── Maintenance App ─────────────────────────────────────────────────────────
+// Eski underconstruction plugin'inin yerini alır.
+// MaintenanceSettings variables.php'den önce yüklenmeli.
+require_once SH_INCLUDES_PATH . 'apps/maintenance/MaintenanceSettings.php';
+require_once SH_INCLUDES_PATH . 'apps/maintenance/Maintenance.php';
+
+define( 'MAINTENANCE_MODE',        \SaltHareket\Maintenance\MaintenanceSettings::isActive() );
+define( 'MAINTENANCE_WHITE_PAGES', \SaltHareket\Maintenance\MaintenanceSettings::getSetting( 'white_pages', [] ) );
 
 
 // E-Ticaret Ek Ayarlar
-define("ENABLE_WOO_API",        get_sh_config("options_enable_woo_api"));
-define("ENABLE_CART",           ENABLE_ECOMMERCE && get_sh_config("options_enable_cart"));
+// options_woo_api_local SaltConfig target_keys'de — get_sh_config ile cache'ten oku
+define("ENABLE_WOO_API",        (array) get_sh_config('options_woo_api_local', []));
+define("ENABLE_CART",           ENABLE_ECOMMERCE && (bool) get_sh_config('options_enable_cart', false));
 define("ENABLE_FILTERS",        defined('YITH_WCAN'));
 define("DISABLE_DEFAULT_CAT",   get_sh_config("options_disable_default_cat"));
 
+// ── Product Card (tease.twig) ayarları ──────────────────────────────────────
+// options_tease_settings SaltConfig cache'ten okunur — her request'te DB sorgusu yok.
+(function() {
+    $__tease = (array) \SaltHareket\SaltConfig::get('options_tease_settings', []);
+    define("TEASE_MULTIPLE_IMAGES",  (bool)   ( $__tease['multiple_images']   ?? false ));
+    define("TEASE_SHOW_VARIATIONS",  (bool)   ( $__tease['show_variations']   ?? false ));
+    define("TEASE_SWATCH_TOOLTIP",   (bool)   ( $__tease['swatch_tooltip']    ?? false ));
+    define("TEASE_SHOW_OOS_SWATCHES",(bool)   ( $__tease['show_oos_swatches'] ?? false ));
+    define("TEASE_SWATCH_LIMIT",     (int)    ( $__tease['swatch_limit']      ?? 115   ));
+    define("TEASE_SHOW_SALE_BADGE",  (bool)   ( $__tease['show_sale_badge']   ?? true  ));
+    define("TEASE_SHOW_FEAT_BADGE",  (bool)   ( $__tease['show_feat_badge']   ?? true  ));
+    define("TEASE_SHOW_OOS_BADGE",   (bool)   ( $__tease['show_oos_badge']    ?? true  ));
+    define("TEASE_SHOW_CATEGORY",    (bool)   ( $__tease['show_category']     ?? true  ));
+    define("TEASE_SHOW_PRICE",       (bool)   ( $__tease['show_price']        ?? true  ));
+    define("TEASE_IMG_RATIO",        in_array( $__tease['img_ratio'] ?? '', ['1x1','4x3','3x4','16x9'], true )
+                                       ? $__tease['img_ratio'] : '1x1' );
+    define("TEASE_DEFAULT_SIZE",     in_array( $__tease['default_size'] ?? '', ['xs','sm','md','lg'], true )
+                                       ? $__tease['default_size'] : 'md' );
+    define("TEASE_BUNDLE_CTA",       in_array( $__tease['bundle_cta'] ?? '', ['view','cart'], true )
+                                       ? $__tease['bundle_cta'] : 'view' );
+})();
+
+// ── Product Gallery (single-product) ayarları ────────────────────────────────
+// options_gallery_settings SaltConfig cache'ten okunur.
+(function() {
+    $__g = (array) \SaltHareket\SaltConfig::get('options_gallery_settings', []);
+    define("GALLERY_TYPE",             in_array( $__g['type']       ?? '', ['single','swiper','stack','grid'], true )
+                                           ? $__g['type'] : 'swiper' );
+    define("GALLERY_RATIO",            in_array( $__g['ratio']      ?? '', ['1x1','4x3','3x4','16x9','original'], true )
+                                           ? $__g['ratio'] : '4x3' );
+    define("GALLERY_OBJECT_FIT",       in_array( $__g['object_fit'] ?? '', ['cover','contain'], true )
+                                           ? $__g['object_fit'] : 'cover' );
+    define("GALLERY_HOVER",            in_array( $__g['hover']      ?? '', ['none','zoom','lightbox','both'], true )
+                                           ? $__g['hover'] : 'lightbox' );
+    define("GALLERY_LIGHTBOX",         (bool) ( $__g['lightbox']         ?? true  ));
+    define("GALLERY_NAVIGATION",       (bool) ( $__g['navigation']       ?? true  ));
+    define("GALLERY_LOOP",             (bool) ( $__g['loop']             ?? false ));
+    define("GALLERY_THUMBS",           (bool) ( $__g['thumbs']           ?? true  ));
+    define("GALLERY_THUMB_NAV",        (bool) ( $__g['thumb_nav']        ?? true  ));
+    define("GALLERY_VARIATION_UPDATE", (bool) ( $__g['variation_update'] ?? true  ));
+    define("GALLERY_PAGINATION",       in_array( $__g['pagination']     ?? '', ['none','bullets','fraction','progressbar'], true )
+                                           ? $__g['pagination'] : 'bullets' );
+    define("GALLERY_SLIDES_PER_VIEW",  max( 1, min( 5, (int) ( $__g['slides_per_view'] ?? 1 ) ) ));
+    define("GALLERY_THUMB_COUNT",      max( 2, min( 10, (int) ( $__g['thumb_count']    ?? 4 ) ) ));
+    define("GALLERY_STACK_GAP",        max( 0, min( 64, (int) ( $__g['stack_gap']     ?? 8 ) ) ));
+})();
+
 
 /**
- * Bakım modu görünürlük kontrolü
+ * Maintenance görünürlük kontrolü — MAINTENANCE_VISIBLE define'ı set eder.
+ * Twig context'te $context["maintenance_visible"] için kullanılır.
+ * Maintenance::isVisible()'a delege eder.
  */
-function visibility_under_construction() {
-    if (defined("VISIBILITY_UNDER_CONSTRUCTION")) return;
+function maintenance_check_visibility(): void {
+    if ( defined( 'MAINTENANCE_VISIBLE' ) ) return;
 
-    // 1. Ã–NCE PLUGIN AKTÄ°F MÄ° ONA BAKALIM
-    // ACTIVATE_UNDER_CONSTRUCTION zaten yukarıda bir yerlerde get_option ile tanımlanmış olmalı.
-    // Eğer plugin pasifse, hiÃ§ post_id veya whitelist kontrolüne girmeden Ã§ıkalım.
-    if (!ACTIVATE_UNDER_CONSTRUCTION) {
-        define("VISIBILITY_UNDER_CONSTRUCTION", true);
+    if ( ! MAINTENANCE_MODE ) {
+        define( 'MAINTENANCE_VISIBLE', true );
         return;
     }
 
-    // 2. ADMIN KONTROLÜ (Ã‡ok hızlıdır, DB yormaz)
-    if (current_user_can("administrator")) {
-        define("VISIBILITY_UNDER_CONSTRUCTION", true);
+    if ( class_exists( '\SaltHareket\Maintenance\Maintenance' ) ) {
+        // White page kontrolü dahil tam visibility check
+        $visible = \SaltHareket\Maintenance\Maintenance::isVisible();
+        if ( ! $visible ) {
+            $page_id = \SaltHareket\Maintenance\Maintenance::resolveCurrentPageId();
+            if ( $page_id > 0 && \SaltHareket\Maintenance\MaintenanceSettings::isWhitePage( $page_id ) ) {
+                $visible = true;
+            }
+        }
+        define( 'MAINTENANCE_VISIBLE', $visible );
         return;
     }
 
-    // 3. WHITELIST KONTROLÜ (Sadece gerekliyse url_to_postid Ã§alıştır)
-    // Eğer whitelist boşsa veya ana sayfadaysak url_to_postid'ye gerek kalmayabilir
-    $visible = false;
-    
-    // Global post objesi varsa url_to_postid'ye gerek kalmaz, direkt ID'yi alırız
-    global $post;
-    if (isset($post->ID) && $post->ID > 0) {
-        $page_id = $post->ID;
-    } elseif (function_exists('url_to_postid') && function_exists('current_url')) {
-        $page_id = url_to_postid(current_url());
-    } else {
-        $page_id = 0;
-    }
-
-    if ($page_id > 0 && in_array($page_id, WHITE_PAGES_UNDER_CONSTRUCTION)) {
-        $visible = true;
-    }
-
-    define("VISIBILITY_UNDER_CONSTRUCTION", $visible);
-    
-    // Pluginin davranışını manipüle et
-    add_filter("option_underConstructionActivationStatus", function ($status) use ($visible) {
-        return ($status == "1" && $visible) ? "0" : $status;
-    });
+    // Fallback: sınıf yüklenememişse sadece administrator görür
+    define( 'MAINTENANCE_VISIBLE', current_user_can( 'administrator' ) );
 }
 
 /*add_action('acf/init', function() {
@@ -255,6 +358,14 @@ add_action('after_setup_theme', function () use ($is_admin) {
             return SH_STATIC_PATH . "no-acf.html";
         });
     }
+
+    // 5. Maintenance Mode — template_redirect ile maintenance sayfasını serve et.
+    //    AJAX ($is_ajax=true), Admin ($is_admin=true) ve REST ($is_ajax=true) isteklerinde
+    //    bu hook kaydedilmez — bypass Maintenance::isVisible() içinde de var (çift güvence).
+    if ( defined('MAINTENANCE_MODE') && MAINTENANCE_MODE && ! $is_ajax && ! $is_admin ) {
+        add_action( 'template_redirect', [ '\SaltHareket\Maintenance\Maintenance', 'handleRequest' ], 1 );
+    }
+
 }, 1);
 
 $multilanguage = false;
@@ -282,11 +393,15 @@ if ( defined( 'SH_INCLUDES_PATH' ) && file_exists( SH_INCLUDES_PATH . 'apps/memb
 }
 
 // Dahili Dosyalar
+SaltProfiler::start('helpers/index');
 include_once SH_INCLUDES_PATH . "helpers/index.php";
+SaltProfiler::stop('helpers/index');
 if (SH_THEME_EXISTS){// || file_exists(THEME_INCLUDES_PATH . "globals.php")) {
     include_once THEME_INCLUDES_PATH . "globals.php";
 }
+SaltProfiler::start('blocks');
 include_once SH_INCLUDES_PATH . "blocks.php";
+SaltProfiler::stop('blocks');
 
 // class.otp.php — SmsManager yuklendikten sonra yuklenir (notifications bootstrap sonrasi)
 // Bkz: notifications/bootstrap.php sonrasinda yukleniyor
@@ -304,23 +419,58 @@ if (!ENABLE_ECOMMERCE) {
 
 
 // Sınıf Yüklemeleri
-if (ENABLE_REACTIONS || $is_admin) {
-    include_once SH_INCLUDES_PATH . 'apps/reactions/bootstrap.php';
+// Reactions bootstrap her zaman yüklenir:
+// - Twig helper'ları (salt_reaction_button vb.) her zaman register edilmeli,
+//   aksi hâlde reactions kapalıyken tease.twig gibi şablonlar Fatal error verir.
+// - WP hooks (wp_enqueue_scripts, AJAX, admin_menu) bootstrap içinde
+//   ENABLE_REACTIONS || $is_admin koşuluyla korunuyor.
+SaltProfiler::start('app:reactions');
+include_once SH_INCLUDES_PATH . 'apps/reactions/bootstrap.php';
+SaltProfiler::stop('app:reactions');
+
+// Social Share — her zaman yükle (shortcode + action hook her sayfada kullanılabilir)
+include_once SH_INCLUDES_PATH . 'apps/social-share/bootstrap.php';
+// Search History bootstrap: aktifse her zaman, pasifse sadece admin'de yükle (menü görünsün)
+if ( ENABLE_SEARCH_HISTORY || $is_admin ) {
+    include_once SH_INCLUDES_PATH . "apps/search-history/SearchHistory.php";
+    new SearchHistory();
 }
-if (ENABLE_SEARCH_HISTORY) include_once SH_INCLUDES_PATH . "apps/search-history/SearchHistory.php";
+SaltProfiler::start('app:reviews');
 include_once SH_INCLUDES_PATH . "apps/reviews/bootstrap.php";
+SaltProfiler::stop('app:reviews');
+
+// ProductStats bootstrap: WooCommerce aktifse yükle
+if ( ENABLE_ECOMMERCE ) {
+    include_once SH_INCLUDES_PATH . 'apps/product-stats/bootstrap.php';
+}
+// SMS App bootstrap: Notifications'dan ÖNCE yüklenmeli
+// SmsCarrier notifications pipeline'ında kullanılıyor, SmsManager/SmsSettings burada yükleniyor
+if ( ENABLE_SMS || $is_admin ) {
+    SaltProfiler::start('app:sms');
+    include_once SH_INCLUDES_PATH . "apps/sms/bootstrap.php";
+    SaltProfiler::stop('app:sms');
+}
 // Notifications bootstrap: aktifse her zaman, pasifse sadece admin'de yükle (menü görünsün)
 if ( ENABLE_NOTIFICATIONS || $is_admin ) {
+    SaltProfiler::start('app:notifications');
     include_once SH_INCLUDES_PATH . "apps/notifications/bootstrap.php";
+    SaltProfiler::stop('app:notifications');
+}
+// Video Processor bootstrap: aktifse her zaman, pasifse sadece admin'de yükle (menü görünsün)
+if ( ENABLE_VIDEO_PROCESSOR || $is_admin ) {
+    include_once SH_INCLUDES_PATH . "apps/video-processor/bootstrap.php";
 }
 // Membership bootstrap: her zaman yükle â€” global fonksiyonlar (salt_my_account_links vs.)
 // tema dosyaları tarafından kullanılıyor. Hook'lar ENABLE_MEMBERSHIP kontrolüne bakıyor.
 include_once SH_INCLUDES_PATH . "apps/membership/bootstrap.php";
+// Maintenance App bootstrap: her zaman yükle (frontend + admin)
+include_once SH_INCLUDES_PATH . "apps/maintenance/bootstrap.php";
 // Theme Export bootstrap: sadece admin'de yükle
 if ( $is_admin ) {
     include_once SH_INCLUDES_PATH . "apps/theme-export/bootstrap.php";
 }
-// Download Log bootstrap
+// Download Log bootstrap — her zaman yükle (Twig helper'lar koşulsuz kayıtlı olmalı)
+// ENABLE_DOWNLOAD_LOG=false iken sh_download/sh_download_attrs '' döner, stream/log işlemleri çalışmaz
 include_once SH_INCLUDES_PATH . 'apps/download-log/bootstrap.php';
 
 // Localization + Regional Posts bootstrap
@@ -330,7 +480,16 @@ if ( (defined('ENABLE_IP2COUNTRY') && ENABLE_IP2COUNTRY) || (defined('ENABLE_LOC
 
 // App Settings Hooks — ACF'den taşınan side effect'ler
 // Admin'de yükle: settings değişiklikleri admin AJAX'ından geliyor
+// Page Settings — frontend + admin'de yüklenmeli (resolve() frontend'de çalışır)
+include_once SH_INCLUDES_PATH . 'apps/page-settings/bootstrap.php';
+
+// Security App — frontend (send_headers) + admin (Security tab UI)
+include_once SH_INCLUDES_PATH . 'apps/security/bootstrap.php';
+
 if ( $is_admin ) {
+    include_once SH_INCLUDES_PATH . 'apps/dashboard/bootstrap.php';
+    include_once SH_INCLUDES_PATH . 'apps/general-settings/bootstrap.php';
+    include_once SH_INCLUDES_PATH . 'apps/plugin-manager/bootstrap.php';
     include_once SH_INCLUDES_PATH . 'apps/hooks.php';
 }
 if (!empty($GLOBALS["pagenow"]) && $GLOBALS["pagenow"] === "wp-login.php") include_once SH_INCLUDES_PATH . "admin/custom-login.php";
@@ -341,7 +500,16 @@ if (class_exists("ACF")) {
     include_once SH_INCLUDES_PATH . "plugins/acf.php";
     if (class_exists('ACFE')) include_once SH_INCLUDES_PATH . "plugins/acfe.php";
     if (class_exists("OpenStreetMap")) include_once SH_INCLUDES_PATH . "plugins/acf-osm.php";
-    if ($is_admin) include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
+    if ($is_admin) {
+        // ── Field Registry (FieldChoices + FieldRegistry) ────────────────
+        // acf_add_field_options fonksiyonunun yerini alır.
+        // Geri almak için: bu satırı comment'e alıp alttaki satırı aktive et.
+        include_once SH_INCLUDES_PATH . "apps/field-registry/bootstrap.php";
+        // [ESKI] include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
+        // [ESKI KONUM] plugins/acf-admin.php — içinde acf_add_field_options'ın yerini yukarıdaki aldı
+        // Diğer fonksiyonlar (save hooks, map koordinatları vb.) hâlâ acf-admin.php içinde:
+        include_once SH_INCLUDES_PATH . "plugins/acf-admin.php";
+    }
 }
 
 // Diğer Eklentiler
@@ -373,14 +541,19 @@ if (function_exists("mt_profile_img")) include_once SH_INCLUDES_PATH . "plugins/
 if (defined("WP_ROCKET_VERSION")) include_once SH_INCLUDES_PATH . "plugins/wp-rocket.php";
 if (class_exists("WP_Socializer")) include_once SH_INCLUDES_PATH . "plugins/wpsr.php";
 //if (ENABLE_SOCIAL_LOGIN) include_once SH_INCLUDES_PATH . "plugins/nsl.php";
-if (class_exists("YABE_WEBFONT") && $is_admin) include_once SH_INCLUDES_PATH . "plugins/yabe-font.php";
+// Jooosi Fon (eski adı: Yabe Webfont) — plugin ismi değişti, class adı da değişti.
+// Yeni: JooosiFon\Plugin | Eski (geriye uyumluluk): YABE_WEBFONT
+if ( ( class_exists( 'JooosiFon\Plugin' ) || class_exists( 'YABE_WEBFONT' ) ) && $is_admin ) {
+    include_once SH_INCLUDES_PATH . 'plugins/yabe-font.php';
+}
 
-if (ENABLE_PRODUCTION) include_once SH_INCLUDES_PATH . "minify-rules.php";
+if (ENABLE_DEVELOPMENT) include_once SH_INCLUDES_PATH . "minify-rules.php";
 
 if(get_sh_config('sh_theme_tasks_status')){
     include_once SH_CLASSES_PATH . "class.encrypt.php";
     include_once SH_CLASSES_PATH . "class.paginate.php";
     include_once SH_CLASSES_PATH . "class.lcp.php";
+    \Lcp::registerAjaxHooks(); // save_lcp_results AJAX — eski konum: actions.php
     include_once SH_INCLUDES_PATH . "apps/asset-manager/bootstrap.php";
 }
 
@@ -391,7 +564,7 @@ if ($is_admin) {
     // SCSSCompiler, MergeCSS, RemoveUnusedCss, AssetPacker -> asset-manager bootstrap'ta yukleniyor
     include_once SH_INCLUDES_PATH . "apps/page-assets-extractor/PageAssetsExtractor.php";
     include_once SH_CLASSES_PATH . "class.featured-image.php";
-    include_once SH_CLASSES_PATH . "class.ffmpeg.php";
+    // class.ffmpeg.php → Artık apps/video-processor/ altında (VideoProcessor sınıfı)
     include_once SH_CLASSES_PATH . "class.fluidcss.php";
     include_once SH_CLASSES_PATH . "class.columns-thumbnail.php";
     //include_once SH_CLASSES_PATH . "class.theme-export.php";
@@ -439,8 +612,6 @@ include_once SH_INCLUDES_PATH . "rewrite.php";
 include_once SH_INCLUDES_PATH . "ajax.php";
 include_once SH_INCLUDES_PATH . "custom.php";
 
-// Download Log bootstrap
-include_once SH_INCLUDES_PATH . 'apps/download-log/bootstrap.php';
 
 // Localization + Regional Posts bootstrap â€” yukarıda zaten yüklendi
 // Eski dosyalar devre dışı:
@@ -503,5 +674,46 @@ if ( ! isset( $salt ) ) {
     $salt = null;
 }
 Data::set("salt", $salt);
+
+// ─── SaltProfiler — Checkpoint hook'ları ─────────────────────────────────────
+// Aktif etmek için wp-config.php'ye ekle: define('SALT_PROFILER', true);
+if ( defined('SALT_PROFILER') && SALT_PROFILER && class_exists('SaltProfiler') && SaltProfiler::isEnabled() ) {
+
+    // WP boot checkpoint'leri
+    add_action( 'after_setup_theme', fn() => SaltProfiler::mark('after_setup_theme'), PHP_INT_MIN );
+    add_action( 'init',              fn() => SaltProfiler::mark('init'),              PHP_INT_MIN );
+    add_action( 'init',              fn() => SaltProfiler::mark('init: end'),         PHP_INT_MAX );
+    add_action( 'admin_init',        fn() => SaltProfiler::mark('admin_init: start'), PHP_INT_MIN );
+    add_action( 'admin_init',        fn() => SaltProfiler::mark('admin_init: end'),   PHP_INT_MAX );
+    add_action( 'wp',                fn() => SaltProfiler::mark('wp'),                PHP_INT_MIN );
+    add_action( 'template_redirect', fn() => SaltProfiler::mark('template_redirect'), PHP_INT_MIN );
+    add_action( 'wp_loaded',         fn() => SaltProfiler::mark('wp_loaded'),         PHP_INT_MIN );
+    add_action( 'current_screen',    fn() => SaltProfiler::mark('current_screen'),    PHP_INT_MIN );
+    add_action( 'rest_api_init',     fn() => SaltProfiler::mark('rest_api_init'),     PHP_INT_MIN );
+    add_action( 'admin_enqueue_scripts', fn() => SaltProfiler::mark('admin_enqueue_scripts'), PHP_INT_MIN );
+    add_action( 'admin_head',        fn() => SaltProfiler::mark('admin_head: start'), PHP_INT_MIN );
+    add_action( 'admin_head',        fn() => SaltProfiler::mark('admin_head: end'),   PHP_INT_MAX );
+
+    // block_editor_rest_api_preload — profiler mark'ları
+    add_filter( 'block_editor_rest_api_preload_paths', function( $paths ) {
+        \SaltProfiler::mark( 'rest_preload: paths filter (' . count($paths) . ' paths)' );
+        \SaltProfiler::mark( 'rest_preload: after filter (' . count($paths) . ' remain)' );
+        return $paths;
+    }, PHP_INT_MIN );
+    add_action( 'admin_enqueue_scripts', fn() => SaltProfiler::mark('before admin_enqueue_scripts'), PHP_INT_MIN - 1 );
+
+    // Timber context süresi
+    add_filter('timber/context', function($ctx) { SaltProfiler::start('timber/context'); return $ctx; }, 1);
+    add_filter('timber/context', function($ctx) { SaltProfiler::stop('timber/context');  return $ctx; }, 9999);
+
+    // Timber render bitti
+    $profiler_reported = false;
+    add_action( 'timber/output', function( $output ) use ( &$profiler_reported ) {
+        if ( $profiler_reported ) return $output;
+        $profiler_reported = true;
+        SaltProfiler::mark('timber/output done');
+        return $output;
+    }, PHP_INT_MAX );
+}
 
 define('VARIABLES_LOADED', true);

@@ -52,6 +52,12 @@
         if (mode === 'full') {
             $('.sh-mode-full').show();
         }
+        // ACF Fields: sadece target url, db credentials, include alanlarını gizle
+        if (mode === 'acf_fields') {
+            $('#sh-target-url').closest('.sh-field-group').hide();
+            $('#sh-db-name').closest('.sh-field-group').hide();
+            $('#sh-inc-wp-content').closest('.sh-field-group').hide();
+        }
     }
 
     // Init mode fields on load
@@ -64,7 +70,38 @@
         isCancelled = false;
         eTmp = ''; eZip = ''; eId = ''; activeSteps = [];
 
+        var mode = $('input[name="export_mode"]:checked').val() || 'full';
+
+        // ACF Fields modu: normal export flow'u bypass et, direkt AJAX çağır
+        if (mode === 'acf_fields') {
+            var $btn = $(this);
+            var origHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="sh-btn-spinner"></span> Exporting...');
+
+            $.post(AJAX, { action: 'acf_export_field_groups' }, function (res) {
+                $btn.prop('disabled', false).html(origHtml);
+                if (res.success) {
+                    window.location.href = res.data.zip_url;
+                    toast('✅ ACF field groups exported successfully.');
+                } else {
+                    toast('❌ ' + ((res.data && res.data.message) || 'Export failed.'), true);
+                }
+            }).fail(function () {
+                $btn.prop('disabled', false).html(origHtml);
+                toast('❌ AJAX request failed.', true);
+            });
+            return;
+        }
+
+        // Normal export: butonu loading yap
+        var $startBtn = $(this);
+        var origHtml  = $startBtn.html();
+        $startBtn.prop('disabled', true).html('<span class="sh-btn-spinner"></span> Starting...');
+
+        // Sonra progress panel açılır, buton zaten gizlenir
         $('#sh-export-form-card').hide();
+        $startBtn.prop('disabled', false).html(origHtml);
+
         $('#sh-export-progress').show();
         $('#sh-export-done').hide();
         $('#sh-cancel-export').show();

@@ -176,11 +176,13 @@
             "choices": {
                 "flat": "Flat",
                 "collapsible": "Collapsible",
-                "slinky": "Slinky"
+                "slinky": "Slinky",
+                "expanded": "Expanded"
             },
             "default_value": "flat",
             "return_format": "value",
             "multiple": 0,
+            "translations": "sync",
             "allow_null": 0,
             "allow_in_bindings": 0,
             "ui": 0,
@@ -255,6 +257,28 @@
             "pll_default_value": 0
         },
         {
+            "key": "field_nav_offcanvas_toggle",
+            "label": "Offcanvas Toggler",
+            "name": "show_offcanvas_toggle",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Aciksa mobilde hamburger toggler butonu gosterilir ve offcanvas navigasyon aktif olur.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "allow_in_bindings": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1,
+            "pll_default_value": 0
+        },
+        {
             "key": "field_6903779fee801",
             "label": "Menu",
             "name": "menu",
@@ -284,7 +308,7 @@
             "save_options": 0,
             "allow_custom": 0,
             "search_placeholder": "",
-            "pll_default_value": ""
+            "pll_default_value": false
         }
     ],
     "location": [
@@ -306,13 +330,15 @@
     "description": "",
     "show_in_rest": 0,
     "display_title": "",
-    "acfe_autosync": [
-        "json"
-    ],
-    "acfe_form": 0,
-    "acfe_meta": "",
-    "acfe_note": "",
-    "modified": 1774822330,
+    "allow_ai_access": false,
+    "ai_description": "",
+    "acfe": {
+        "autosync": [
+            "json"
+        ]
+    },
+    "pll_display_field_instructions": 1,
+    "modified": 1786465939,
     "acfe_categories": {
         "block": "Block"
     }

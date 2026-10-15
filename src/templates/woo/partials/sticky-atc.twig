@@ -1,0 +1,124 @@
+{#
+  woo/partials/sticky-atc.twig
+  ─────────────────────────────────────────────────────────────────────────────
+  Sticky Add to Cart Bar — scroll edilince görünür.
+
+  Settings (General Settings → WooCommerce → Sticky ATC):
+    enabled          : bool
+    position         : 'top' | 'bottom'
+    show_image       : bool
+    show_price       : bool
+    show_reactions   : bool  — Reactions butonlarını göster (ENABLE_REACTIONS gerekli)
+    threshold        : int   — kaç px scroll sonra görünsün (default: 300)
+    btn_text         : string — boş bırakılırsa WC native metni kullanılır
+  ─────────────────────────────────────────────────────────────────────────────
+#}
+{% set cfg = sticky_atc_cfg ?? {} %}
+{% if cfg.enabled is not empty and cfg.enabled %}
+
+{% set pos            = cfg.position       ?? 'bottom' %}
+{% set show_img       = cfg.show_image     ?? true %}
+{% set show_price     = cfg.show_price     ?? true %}
+{% set show_reactions = cfg.show_reactions ?? true %}
+{% set threshold      = cfg.threshold      ?? 300 %}
+
+{# btn_text: boşsa WC native "Add to Cart" — JS syncPrice gibi DOM'dan alınır #}
+{% set btn_text = cfg.btn_text ? translate(cfg.btn_text) : '' %}
+
+<div id="sh-sticky-atc"
+     class="sh-sticky-atc sh-sticky-atc--{{ pos }} d-none"
+     data-threshold="{{ threshold }}"
+     data-position="{{ pos }}"
+     aria-hidden="true">
+
+    <div class="container">
+        <div class="sh-sticky-atc__inner d-flex align-items-center gap-3">
+
+            {# Ürün görseli #}
+            {% if show_img %}
+            {% set _sticky_img = initial_variation.thumb_url ?? post.thumbnail.src('woocommerce_thumbnail') ?? '' %}
+            <div class="sh-sticky-atc__thumb flex-shrink-0">
+                <img src="{{ _sticky_img }}"
+                     alt="{{ post.title }}"
+                     width="48" height="48"
+                     class="sh-sticky-atc__img rounded object-fit-cover border"
+                     data-sticky-img
+                     loading="lazy"/>
+            </div>
+            {% endif %}
+
+            {# Ürün adı + fiyat #}
+            <div class="sh-sticky-atc__info flex-grow-1 min-w-0">
+                <div class="sh-sticky-atc__title text-truncate fw-semibold" data-sticky-title>
+                    {{ initial_variation.title ?? post.title }}
+                </div>
+                {% if show_price %}
+                <div class="sh-sticky-atc__price" data-sticky-price>
+                    {{ initial_variation.price_html ?? '' }}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Reactions butonları — ENABLE_REACTIONS aktifse ve show_reactions açıksa #}
+            {% if show_reactions and constant('ENABLE_REACTIONS') %}
+            <div class="sh-sticky-atc__reactions d-flex align-items-center gap-1 flex-shrink-0">
+                {{ post.reaction_buttons()|raw }}
+            </div>
+            {% endif %}
+
+            {# Sepete Ekle #}
+            <div class="sh-sticky-atc__action flex-shrink-0">
+                <button type="button"
+                        class="sh-sticky-atc__btn btn btn-primary"
+                        id="sh-sticky-atc-btn"
+                        data-sync-text=".single_add_to_cart_button"
+                        aria-label="{{ btn_text ?: translate('Add to Cart') }}">
+                    {# Metin JS ile DOM'daki WC butonundan senkronize edilir #}
+                    <span class="sh-sticky-btn-text">{{ btn_text ?: translate('Add to Cart') }}</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<style data-inline="true">
+/* ── Sticky ATC bar ── */
+.sh-sticky-atc {
+    position: fixed;
+    left: 0; right: 0;
+    z-index: 1030;
+    background: var(--bs-body-bg, #fff);
+    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
+    transform: translateY(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1), opacity .28s;
+    opacity: 0;
+    pointer-events: none;
+}
+.sh-sticky-atc--top {
+    top: 0; bottom: auto;
+    box-shadow: 0 2px 12px rgba(0,0,0,.10);
+    transform: translateY(-100%);
+}
+.sh-sticky-atc--bottom { bottom: 0; top: auto; }
+.sh-sticky-atc.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+.sh-sticky-atc__inner { padding: 10px 0; min-height: 60px; }
+.sh-sticky-atc__img { width: 48px; height: 48px; object-fit: cover; }
+.sh-sticky-atc__title { font-size: 14px; line-height: 1.3; }
+.sh-sticky-atc__price { font-size: 15px; font-weight: 700; color: var(--bs-primary, #8c734b); margin-top: 2px; }
+.sh-sticky-atc__btn { white-space: nowrap; min-width: 120px; }
+/* Reactions butonlarını kompakt göster */
+.sh-sticky-atc__reactions .sh-reaction-btn .sh-reaction-label { display: none; }
+.sh-sticky-atc__reactions .sh-reaction-btn { padding: 6px 8px; }
+@media (max-width: 576px) {
+    .sh-sticky-atc__title { font-size: 12px; }
+    .sh-sticky-atc__btn { min-width: 90px; font-size: 13px; }
+    .sh-sticky-atc__reactions { display: none !important; }
+}
+</style>

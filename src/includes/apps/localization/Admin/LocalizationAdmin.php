@@ -25,7 +25,7 @@ class LocalizationAdmin
     public static function register(): void
     {
         if ( ! is_admin() ) return;
-        add_action( 'admin_menu',            [ self::class, 'addMenuPage' ], 28 );
+        // add_action( 'admin_menu',            [ self::class, 'addMenuPage' ], 28 ); // Dashboard üzerinden erişiliyor
         add_action( 'admin_head',            [ self::class, 'hideNotices' ] );
         add_action( 'admin_enqueue_scripts', [ self::class, 'enqueueAssets' ] );
         add_action( 'wp_ajax_sh_loc_save_settings',       [ self::class, 'ajaxSaveSettings' ] );
@@ -154,7 +154,10 @@ class LocalizationAdmin
         <div class="sh-wrap" id="sh-localization-page">
 
         <div class="sh-toolbar">
-            <h1>🌍 Localization</h1>
+            <?php $loc_enabled = ! empty( $settings['enable_localization'] ); ?>
+            <h1>🌍 Localization
+                <span id="sh-loc-header-badge" class="sh-badge <?php echo $loc_enabled ? 'sh-badge-green' : 'sh-badge-gray'; ?>" style="font-size:11px"><?php echo $loc_enabled ? 'Enabled' : 'Disabled'; ?></span>
+            </h1>
             <?php if ( $settings['enable_regional_posts'] ) : ?>
                 <span class="sh-badge sh-badge-blue">Regional Posts Active</span>
             <?php endif; ?>
@@ -731,6 +734,24 @@ class LocalizationAdmin
         <script>
         function shLocToggleMain(enabled) {
             document.getElementById('sh-loc-options').style.display = enabled ? '' : 'none';
+            // AJAX ile kaydet + h1 badge sync
+            var fd = new FormData();
+            fd.append('action',   'sh_loc_save_settings');
+            fd.append('nonce',    window.shLoc ? window.shLoc.nonce : '');
+            fd.append('settings[enable_localization]', enabled ? '1' : '0');
+            fetch(window.shLoc ? window.shLoc.ajaxUrl : ajaxurl, { method:'POST', body:fd, credentials:'same-origin' })
+                .then(function(r){ return r.json(); })
+                .then(function(res) {
+                    if (res.success) {
+                        var hb = document.getElementById('sh-loc-header-badge');
+                        if (hb) { hb.textContent = enabled ? 'Enabled' : 'Disabled'; hb.className = 'sh-badge ' + (enabled ? 'sh-badge-green' : 'sh-badge-gray'); }
+                        shLocToast(enabled ? 'Localization enabled' : 'Localization disabled');
+                    } else {
+                        shLocToast(res.data || 'Save failed', true);
+                        document.getElementById('sh-enable-localization').checked = !enabled;
+                        document.getElementById('sh-loc-options').style.display = !enabled ? '' : 'none';
+                    }
+                });
         }
         function shLocSourceChange(source) {
             var dbWrap   = document.getElementById('sh-db-tables-wrap');

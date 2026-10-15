@@ -21,12 +21,9 @@
          background-color:#fff!important;
       }
       &:after{
-        font-family: var(--icon-font);
-        content:'\f107';
-        border:none;
-        font-size:15px;
-        color:$base-color;
-        font-weight:600;
+        @include svgIcon('chevron-down', 'solid');
+        color: $base-color;
+        font-size: 0.9em;
       }
       .filter-option{
           display:flex;
@@ -108,12 +105,9 @@
    &.dropup{
       >.dropdown-toggle{
           &:after{
-            font-family: var(--icon-font);
-            content:'\f106';
-            border:none;
-            font-size:13px;
-            color:#999;
-            font-weight:600;
+            @include svgIcon('chevron-up', 'solid');
+            color: #999;
+            font-size: 0.9em;
           }
       }
    }

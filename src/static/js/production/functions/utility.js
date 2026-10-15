@@ -495,8 +495,12 @@ $.fn.sameSize = function (width, max, keepMin = false) {
     // İlk çalıştırma
     applyEqualize();
     
-    // Pencere yeniden boyutlandığında tekrar çalıştır (responsive davranış için)
-    $(window).on('resize.sameSize', applyEqualize);
+    // Listener birikimini önle: sameSize() her çağrısında yeni listener eklememeli.
+    // Resize yönetimi main.js'in 'resize.sameSizeAndVisibility' handler'ına bırakılıyor.
+    // sameSize() sadece dışarıdan çağrıldığında tek seferlik apply eder.
+    // Eğer bağımsız kullanımdaysa (main.js dışında) resize lazımsa:
+    // $(window).off('resize.sameSize').on('resize.sameSize', applyEqualize);
+    // Şu an kaldırılıyor — main.js zaten resize'da sameSize() çağırıyor.
     
     return this;
 };
@@ -704,54 +708,48 @@ function ajaxResponseFilter(input) {
   }
 }
 function response_view(response) {
-    // response objesinin varlığını kontrol edelim
     if (!response) return;
 
     var modal = $(".modal.show");
-    
-    // Güvenli hasOwnProperty kontrolü için kısa yol
     var hasProp = function(obj, prop) {
         return Object.prototype.hasOwnProperty.call(obj, prop);
     };
 
+    // _alert'i güvenli çağıran helper — bootbox yüklü değilse önce yükler
+    function safe_alert(title, msg, size, className, btn_ok, callback, closeButton) {
+        requirePlugin("bootbox", function() {
+            _alert(title, msg, size, className, btn_ok, callback, closeButton);
+        });
+    }
+
     if (response.error) {
         $("body").removeClass("loading-process");
-        
-        // jQuery 4.0 güvenli kontrol
         if (hasProp(response, "error_type") && response.error_type == "nonce") {
             if (modal.length > 0) modal.modal("hide");
-            
-            _alert(response.message, response.description, "", "", "Refresh Page", function() {
+            safe_alert(response.message, response.description, "", "", "Refresh Page", function() {
                 window.location.reload();
             });
         } else {
-            // Hata mesajı var mı kontrolü
-            _alert(response.message || "Hata!", response.description || "", "", "", "", "", true);
+            safe_alert(response.message || "Hata!", response.description || "", "", "", "", "", true);
         }
     } else {
         if (response.redirect) {
             if (response.message) {
                 if (modal.length > 0) modal.addClass("remove-on-hidden").modal("hide");
-                _alert(response.message, response.description);
+                safe_alert(response.message, response.description);
             }
-            // Redirect işlemi
             redirect_polyfill(response.redirect, response.redirect_blank);
-            
         } else if (response.refresh) {
             $("body").addClass("loading");
             window.location.reload();
-            
         } else if (response.refresh_confirm) {
-            _alert(response.message, response.description, "", "", "Tamam", function() {
+            safe_alert(response.message, response.description, "", "", "Tamam", function() {
                 window.location.reload();
             });
-            
         } else {
-            // Sadece mesaj gösterip modal kapatma durumu
             if (response.message) {
-                // Eğer halihazırda bir alert gösteriliyorsa modalı gizle
                 if (modal.length > 0) modal.addClass("remove-on-hidden").modal("hide");
-                _alert(response.message, response.description);
+                safe_alert(response.message, response.description, "", "", "", null, true);
             }
             $("body").removeClass("loading-process");
         }
@@ -784,6 +782,17 @@ function translate(str, count = 1, replacements = {}) {
         entry = entry.replaceAll(key, replacements[key]);
     }
     return entry;
+}
+
+// SVG İkon İşlevi — site_config.icons registry'den SVG döndürür
+function fa_icon(key, extraClass) {
+    var icons = (typeof site_config !== 'undefined' && site_config.icons) ? site_config.icons : {};
+    var svg = icons[key] || '';
+    if (!svg) return '';
+    if (extraClass) {
+        svg = svg.replace(/class="([^"]*)"/, 'class="$1 ' + extraClass + '"');
+    }
+    return svg;
 }
 
 

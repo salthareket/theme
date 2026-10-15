@@ -357,6 +357,15 @@ class OembedVideo {
     private function fetch_api(): void {
         if ($this->api !== null) return; // Already fetched (or failed)
 
+        // Transient cache -- dis API request'ini engelle
+        // Key: oembed_api_{type}_{id} | TTL: 30 gun
+        $cache_key = 'oembed_api_' . $this->type . '_' . md5($this->id);
+        $cached = get_transient($cache_key);
+        if ($cached !== false) {
+            $this->api = is_object($cached) ? $cached : (object)(array)$cached;
+            return;
+        }
+
         $api_uri = match ($this->type) {
             'youtube'              => "https://noembed.com/embed?url=" . urlencode(function_exists('extract_url') ? extract_url($this->url) : $this->url),
             'vimeo'                => "https://vimeo.com/api/oembed.json?url=" . urlencode("https://vimeo.com/{$this->id}"),
@@ -366,22 +375,27 @@ class OembedVideo {
             'wistia'               => "https://fast.wistia.com/oembed?url=" . urlencode("https://fast.wistia.com/medias/{$this->id}"),
             'ted'                  => "https://www.ted.com/services/v1/oembed.json?url=" . urlencode("https://www.ted.com/talks/{$this->id}"),
             'twitch', 'twitch_clip', 'reddit', 'vevo' => "https://noembed.com/embed?url=" . urlencode($this->url),
-            default                => "https://noembed.com/embed?url=" . urlencode($this->url), // Noembed universal fallback
+            default                => "https://noembed.com/embed?url=" . urlencode($this->url),
         };
 
         if (empty($api_uri)) {
             $this->api = (object) [];
+            set_transient($cache_key, $this->api, 30 * DAY_IN_SECONDS);
             return;
         }
 
         $response = wp_remote_get($api_uri, ['timeout' => 5]);
         if (is_wp_error($response)) {
             $this->api = (object) [];
+            set_transient($cache_key, $this->api, HOUR_IN_SECONDS);
             return;
         }
 
-        $body = wp_remote_retrieve_body($response);
+        $body    = wp_remote_retrieve_body($response);
         $decoded = json_decode($body);
         $this->api = is_object($decoded) ? $decoded : (object) [];
+
+        // Basarili response -- 30 gun cache
+        set_transient($cache_key, $this->api, 30 * DAY_IN_SECONDS);
     }
 }

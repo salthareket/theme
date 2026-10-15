@@ -65,9 +65,44 @@ function theme_styles_process_pagination($data, $generator) {
     $nbch = $p['nav_border_color_hover'] ?? '#2271b1';
     $vars['pagination-nav-border-hover'] = "{$nbwh} {$nbsh} {$nbch}";
 
-    // Icons - her zaman set et
-    $vars['pagination-nav-prev-icon'] = !empty($p['prev_icon']) ? '"' . $p['prev_icon'] . '"' : '"\f053"';
-    $vars['pagination-nav-next-icon'] = !empty($p['next_icon']) ? '"' . $p['next_icon'] . '"' : '"\f054"';
+    // Icons — SVG mask-image tekniği (breadcrumb ile aynı yaklaşım)
+    // prev_icon / next_icon: 'regular:angle-left' formatında geliyor
+    $raw_prev = $p['prev_icon'] ?? 'regular:angle-left';
+    $raw_next = $p['next_icon'] ?? 'regular:angle-right';
+
+    // Eski unicode format fallback → boş bırak, default devreye girer
+    if ( strpos( $raw_prev, '\\' ) !== false || strpos( $raw_prev, '\f' ) !== false ) {
+        $raw_prev = 'regular:angle-left';
+    }
+    if ( strpos( $raw_next, '\\' ) !== false || strpos( $raw_next, '\f' ) !== false ) {
+        $raw_next = 'regular:angle-right';
+    }
+
+    // Prefix'siz format → regular: ekle
+    if ( $raw_prev && strpos( $raw_prev, ':' ) === false ) {
+        $raw_prev = 'regular:' . $raw_prev;
+    }
+    if ( $raw_next && strpos( $raw_next, ':' ) === false ) {
+        $raw_next = 'regular:' . $raw_next;
+    }
+
+    foreach ( [ 'prev' => $raw_prev, 'next' => $raw_next ] as $dir => $raw ) {
+        $svg_url = '';
+        if ( $raw && strpos( $raw, ':' ) !== false ) {
+            [ $icon_style, $icon_name ] = explode( ':', $raw, 2 );
+            if ( $icon_name && class_exists( 'SaltHareket\FaIconManager' ) ) {
+                $svg_raw = \SaltHareket\FaIconManager::extractFromJs( $icon_name, $icon_style );
+                if ( $svg_raw ) {
+                    $svg_for_css = str_replace( '<path d=', '<path fill="currentColor" d=', $svg_raw );
+                    if ( strpos( $svg_for_css, 'xmlns=' ) === false ) {
+                        $svg_for_css = str_replace( '<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ', $svg_for_css );
+                    }
+                    $svg_url = "url(\"data:image/svg+xml," . rawurlencode( $svg_for_css ) . "\")";
+                }
+            }
+        }
+        $vars[ "pagination-nav-{$dir}-icon-svg" ] = $svg_url ?: 'none';
+    }
 
     // Eski sistemde var: prev/next text ve gap
     if (isset($p['prev_text'])) $vars['pagination-nav-prev-text'] = $p['prev_text'];

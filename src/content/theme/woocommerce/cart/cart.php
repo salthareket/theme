@@ -12,7 +12,7 @@
  *
  * @see     https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
- * @version 9.7.0
+ * @version 10.8.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -27,10 +27,10 @@ do_action( 'woocommerce_before_cart' ); ?>
 			<tr>
 				<th class="product-remove"><span class="screen-reader-text"><?php esc_html_e( 'Remove item', 'woocommerce' ); ?></span></th>
 				<th class="product-thumbnail"><span class="screen-reader-text"><?php esc_html_e( 'Thumbnail image', 'woocommerce' ); ?></span></th>
-				<th class="product-name"><?php esc_html_e( 'Product', 'woocommerce' ); ?></th>
-				<th class="product-price"><?php esc_html_e( 'Price', 'woocommerce' ); ?></th>
-				<th class="product-quantity"><?php esc_html_e( 'Quantity', 'woocommerce' ); ?></th>
-				<th class="product-subtotal"><?php esc_html_e( 'Subtotal', 'woocommerce' ); ?></th>
+				<th scope="col" class="product-name"><?php esc_html_e( 'Product', 'woocommerce' ); ?></th>
+				<th scope="col" class="product-price"><?php esc_html_e( 'Price', 'woocommerce' ); ?></th>
+				<th scope="col" class="product-quantity"><?php esc_html_e( 'Quantity', 'woocommerce' ); ?></th>
+				<th scope="col" class="product-subtotal"><?php esc_html_e( 'Subtotal', 'woocommerce' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -40,17 +40,27 @@ do_action( 'woocommerce_before_cart' ); ?>
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 				$_product   = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 				$product_id = apply_filters( 'woocommerce_cart_item_product_id', $cart_item['product_id'], $cart_item, $cart_item_key );
+
 				/**
-				 * Filter the product name.
+				 * Filter whether this cart item is visible in the cart.
 				 *
 				 * @since 2.1.0
-				 * @param string $product_name Name of the product in the cart.
-				 * @param array $cart_item The product in the cart.
-				 * @param string $cart_item_key Key for the product in the cart.
+				 * @param bool   $visible     Whether the cart item is visible. Default true.
+				 * @param array  $cart_item     The cart item data.
+				 * @param string $cart_item_key The cart item key.
 				 */
-				$product_name = apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key );
+				$visible = apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key );
 
-				if ( $_product && $_product->exists() && $cart_item['quantity'] > 0 && apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key ) ) {
+				if ( $_product instanceof WC_Product && $_product->exists() && $cart_item['quantity'] > 0 && $visible ) {
+					/**
+					 * Filter the product name.
+					 *
+					 * @since 2.1.0
+					 * @param string $product_name Name of the product in the cart.
+					 * @param array $cart_item The product in the cart.
+					 * @param string $cart_item_key Key for the product in the cart.
+					 */
+					$product_name      = apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key );
 					$product_permalink = apply_filters( 'woocommerce_cart_item_permalink', $_product->is_visible() ? $_product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
 					?>
 					<tr class="woocommerce-cart-form__cart-item <?php echo esc_attr( apply_filters( 'woocommerce_cart_item_class', 'cart_item', $cart_item, $cart_item_key ) ); ?>">
@@ -60,7 +70,7 @@ do_action( 'woocommerce_before_cart' ); ?>
 								echo apply_filters( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 									'woocommerce_cart_item_remove_link',
 									sprintf(
-										'<a href="%s" class="remove" aria-label="%s" data-product_id="%s" data-product_sku="%s">&times;</a>',
+										'<a role="button" href="%s" class="remove" aria-label="%s" data-product_id="%s" data-product_sku="%s">&times;</a>',
 										esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
 										/* translators: %s is the product name */
 										esc_attr( sprintf( __( 'Remove %s from cart', 'woocommerce' ), wp_strip_all_tags( $product_name ) ) ),
@@ -74,23 +84,36 @@ do_action( 'woocommerce_before_cart' ); ?>
 
 						<td class="product-thumbnail">
 						<?php
+						/**
+						 * Filter the product thumbnail displayed in the WooCommerce cart.
+						 *
+						 * This filter allows developers to customize the HTML output of the product
+						 * thumbnail. It passes the product image along with cart item data
+						 * for potential modifications before being displayed in the cart.
+						 *
+						 * @param string $thumbnail     The HTML for the product image.
+						 * @param array  $cart_item     The cart item data.
+						 * @param string $cart_item_key Unique key for the cart item.
+						 *
+						 * @since 2.1.0
+						 */
 						$thumbnail = apply_filters( 'woocommerce_cart_item_thumbnail', $_product->get_image(), $cart_item, $cart_item_key );
 
 						if ( ! $product_permalink ) {
-							echo $thumbnail; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							echo $thumbnail; // PHPCS: XSS ok.
 						} else {
-							printf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $thumbnail ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							printf( '<a href="%s">%s</a>', esc_url( $product_permalink ), $thumbnail ); // PHPCS: XSS ok.
 						}
 						?>
 						</td>
 
-						<td class="product-name" data-title="<?php esc_attr_e( 'Product', 'woocommerce' ); ?>">
+						<td scope="row" role="rowheader" class="product-name" data-title="<?php esc_attr_e( 'Product', 'woocommerce' ); ?>">
 						<?php
 						if ( ! $product_permalink ) {
 							echo wp_kses_post( $product_name . '&nbsp;' );
 						} else {
 							/**
-							 * This filter is documented in woocommerce/templates/cart/cart.php
+							 * This filter is documented above.
 							 *
 							 * @since 2.1.0
 							 */
@@ -100,7 +123,7 @@ do_action( 'woocommerce_before_cart' ); ?>
 						do_action( 'woocommerce_after_cart_item_name', $cart_item, $cart_item_key );
 
 						// Meta data.
-						echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						echo wc_get_formatted_cart_item_data( $cart_item ); // PHPCS: XSS ok.
 
 						// Backorder notification.
 						if ( $_product->backorders_require_notification() && $_product->is_on_backorder( $cart_item['quantity'] ) ) {
@@ -111,7 +134,7 @@ do_action( 'woocommerce_before_cart' ); ?>
 
 						<td class="product-price" data-title="<?php esc_attr_e( 'Price', 'woocommerce' ); ?>">
 							<?php
-								echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $_product ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+								echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $_product ), $cart_item, $cart_item_key ); // PHPCS: XSS ok.
 							?>
 						</td>
 
@@ -137,13 +160,13 @@ do_action( 'woocommerce_before_cart' ); ?>
 							false
 						);
 
-						echo apply_filters( 'woocommerce_cart_item_quantity', $product_quantity, $cart_item_key, $cart_item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						echo apply_filters( 'woocommerce_cart_item_quantity', $product_quantity, $cart_item_key, $cart_item ); // PHPCS: XSS ok.
 						?>
 						</td>
 
 						<td class="product-subtotal" data-title="<?php esc_attr_e( 'Subtotal', 'woocommerce' ); ?>">
 							<?php
-								echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+								echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // PHPCS: XSS ok.
 							?>
 						</td>
 					</tr>
@@ -159,14 +182,12 @@ do_action( 'woocommerce_before_cart' ); ?>
 
 					<?php if ( wc_coupons_enabled() ) { ?>
 						<div class="coupon">
-							<label for="coupon_code" class="screen-reader-text"><?php esc_html_e( 'Coupon:', 'woocommerce' ); ?></label> 
-							<input type="text" name="coupon_code" class="input-text form-control" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'woocommerce' ); ?>" /> 
-							<button type="submit" class="button btn btn-outline-info<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'woocommerce' ); ?>"><?php esc_html_e( 'Apply coupon', 'woocommerce' ); ?></button>
+							<label for="coupon_code" class="screen-reader-text"><?php esc_html_e( 'Coupon:', 'woocommerce' ); ?></label> <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e( 'Coupon code', 'woocommerce' ); ?>" /> <button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="apply_coupon" value="<?php esc_attr_e( 'Apply coupon', 'woocommerce' ); ?>"><?php esc_html_e( 'Apply coupon', 'woocommerce' ); ?></button>
 							<?php do_action( 'woocommerce_cart_coupon' ); ?>
 						</div>
 					<?php } ?>
 
-					<button type="submit" class="button btn btn-outline-primary<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="update_cart" value="<?php esc_attr_e( 'Update cart', 'woocommerce' ); ?>"><?php esc_html_e( 'Update cart', 'woocommerce' ); ?></button>
+					<button type="submit" class="button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="update_cart" value="<?php esc_attr_e( 'Update cart', 'woocommerce' ); ?>"><?php esc_html_e( 'Update cart', 'woocommerce' ); ?></button>
 
 					<?php do_action( 'woocommerce_cart_actions' ); ?>
 

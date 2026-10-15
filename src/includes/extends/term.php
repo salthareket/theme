@@ -353,6 +353,34 @@ class Term extends Timber\Term{
         return \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->term_id, 'term', $type, $options );
     }
 
+    /**
+     * Term taxonomy'sine göre kayıtlı tüm aktif reaction butonlarını render eder.
+     * Twig: {{ term.reaction_buttons()|raw }}
+     */
+    public function reaction_buttons( array $options = [], string $wrapper_tag = 'div', string $wrapper_class = 'd-flex gap-1 align-items-center' ): string {
+        if ( ! class_exists( \SaltHareket\Reactions\Admin\ReactionsAjax::class ) ) return '';
+        if ( ! defined('ENABLE_REACTIONS') || ! ENABLE_REACTIONS ) return '';
+
+        static $btn_cache = null;
+        if ( $btn_cache === null ) $btn_cache = (array) get_option( 'sh_reactions_buttons', [] );
+
+        $taxonomy = $this->taxonomy ?? '';
+        $html     = '';
+        foreach ( $btn_cache as $btn ) {
+            if ( ( $btn['object_type'] ?? '' ) !== 'term' ) continue;
+            if ( isset( $btn['active'] ) && ! $btn['active'] ) continue;
+            $btn_subtype = $btn['subtype'] ?? '';
+            if ( $btn_subtype !== '' && $btn_subtype !== $taxonomy ) continue;
+            $type = $btn['type'] ?? '';
+            if ( ! $type ) continue;
+            $html .= \SaltHareket\Reactions\Admin\ReactionsAjax::renderButton( $this->term_id, 'term', $type, $options );
+        }
+
+        if ( $html === '' ) return '';
+        if ( $wrapper_tag === '' ) return $html;
+        return "<{$wrapper_tag} class=\"" . esc_attr($wrapper_class) . "\">{$html}</{$wrapper_tag}>";
+    }
+
     // ── END REACTIONS ─────────────────────────────────────────────────────────
 
 }

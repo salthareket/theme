@@ -28,7 +28,7 @@
 
             .caret {
                 margin-left: auto;
-                &:before { font-family: var(--icon-font); }
+                // chevron icon — twig/PHP tarafında fa_icon() ile render edilmeli
             }
 
             + ul {

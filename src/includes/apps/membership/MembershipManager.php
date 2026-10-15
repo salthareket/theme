@@ -9,6 +9,10 @@ use SaltHareket\Membership\Concerns\HandlesProfile;
 use SaltHareket\Membership\Concerns\HandlesPassword;
 use SaltHareket\Membership\Concerns\HandlesSocialLogin;
 use SaltHareket\Membership\Concerns\HandlesMyAccount;
+use SaltHareket\Membership\Concerns\Handles2FA;
+use SaltHareket\Membership\Concerns\HandlesPasswordless;
+use SaltHareket\Membership\Concerns\HandlesDevice;
+use SaltHareket\Membership\Concerns\HandlesPhone;
 
 /**
  * MembershipManager
@@ -93,6 +97,10 @@ class MembershipManager
     use HandlesPassword;
     use HandlesSocialLogin;
     use HandlesMyAccount;
+    use Handles2FA;
+    use HandlesPasswordless;
+    use HandlesDevice;
+    use HandlesPhone;
 
     // ─── Singleton ───────────────────────────────────────────────────────────
 

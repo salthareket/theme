@@ -1,0 +1,204 @@
+{#
+  woo/product-gallery.twig
+  ─────────────────────────────────────────────────────────────────────────────
+  Ürün detay sayfası galeri bileşeni.
+  WooProduct::product_gallery() tarafından render edilir.
+
+  Değişkenler (PHP'den gelir):
+    gallery_cfg        : array   — tüm ayarlar (type, ratio, hover, swiper params…)
+    gallery_images     : array   — görsel URL listesi
+    gallery_post_id    : int     — post ID (variation update için)
+    gallery_is_variable: bool    — variable ürün mü?
+    gallery_size       : string  — WP image size
+
+  Twig'den doğrudan çağrı:
+    {{ post.product_gallery() }}
+    {{ post.product_gallery({'type': 'swiper', 'thumbs': true}) }}
+  ─────────────────────────────────────────────────────────────────────────────
+#}
+
+{% set cfg       = gallery_cfg %}
+{% set images    = gallery_images %}
+{% set post_id   = gallery_post_id %}
+{% set is_var    = gallery_is_variable %}
+{% set zoom_images = gallery_zoom_images ?? images %}
+
+{# ── Ratio class ────────────────────────────────────────────────────────── #}
+{% set ratio_map = {'1x1': 'ratio-1x1', '4x3': 'ratio-4x3', '3x4': 'ratio-3x4', '16x9': 'ratio-16x9', 'original': ''} %}
+{% set ratio_cls = ratio_map[cfg.ratio] ?? 'ratio-4x3' %}
+
+{# ── Hover / lightbox class'ları ──────────────────────────────────────── #}
+{% set has_zoom     = cfg.hover in ['zoom', 'both'] %}
+{% set has_lightbox = cfg.hover in ['lightbox', 'both'] %}
+
+
+{# ── Required JS — her zaman tüm gallery plugin'leri (PAE settings'ten bağımsız bulabilsin) #}
+{% set _all_gallery_js = 'swiper,lightgallery,jquery-zoom' %}
+{% set var_attrs = '' %}
+{% if is_var and cfg.variation_update %}
+    {% set var_attrs = 'data-product-gallery="' ~ post_id ~ '" data-gallery-type="' ~ cfg.type ~ '" data-product-gallery-base-url="' ~ (gallery_base_url ?? '') ~ '"' %}
+{% endif %}
+
+{# ── Inline JS: tüm variation gallery verileri ────────────────────────── #}
+{% if gallery_js_data is defined and gallery_js_data %}
+<script>
+window.shGalleryData = window.shGalleryData || {};
+{% for var_id, items in gallery_js_data %}
+window.shGalleryData[{{ var_id }}] = {{ items|json_encode|raw }};
+{% endfor %}
+window.shGalleryCurrentId = {{ post_id }};
+</script>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# TİP: single ─────────────────────────────────────────────────────────── #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{% if cfg.type == 'single' %}
+
+<div class="product-gallery product-gallery--single" {{ var_attrs|raw }}
+     data-required-js="{{ _all_gallery_js }}">
+    {% set img = images[0] ?? '' %}
+    {% if img %}
+        <div class="{{ ratio_cls ? 'ratio ' ~ ratio_cls : '' }} product-gallery__frame{% if has_lightbox %} lightgallery init-me{% endif %}"{% if has_zoom %} data-zoom="{{ zoom_images[0] ?? img }}"{% endif %}>
+            {% if has_lightbox %}<a href="{{ img }}" class="gallery-item d-block w-100 h-100">{% endif %}
+                <img src="{{ img }}"
+                     alt="{{ post.title ?? '' }}"
+                     class="product-gallery__img w-100 h-100 object-fit-{{ cfg.object_fit }}"
+                     {% if has_lightbox %}data-lg-src="{{ img }}"{% endif %}
+                     loading="eager"
+                     fetchpriority="high"/>
+            {% if has_lightbox %}</a>{% endif %}
+        </div>
+    {% endif %}
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# TİP: swiper ─────────────────────────────────────────────────────────── #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{% elseif cfg.type == 'swiper' %}
+
+{% set gallery_id = 'product-gallery-' ~ post_id %}
+{% set thumbs_id  = 'product-gallery-thumbs-' ~ post_id %}
+
+{# ── Required JS — her zaman tüm gallery plugin'leri (PAE settings'ten bağımsız bulabilsin) #}
+{% set _required_js = _all_gallery_js %}
+
+<div class="product-gallery product-gallery--swiper" {{ var_attrs|raw }}
+     data-gallery-config="{{ cfg|json_encode|e('html_attr') }}"
+     data-required-js="{{ _required_js }}">
+
+    {# ── Ana Swiper ───────────────────────────────────────────────────── #}
+    <div id="{{ gallery_id }}"
+         class="swiper swiper-slider product-gallery__main{% if has_lightbox %} lightgallery init-me{% endif %}"
+         data-slider-slides-per-view="{{ cfg.slides_per_view }}"
+         {% if has_lightbox %}data-gallery-images="{{ images|map(img => {'src': img})|json_encode|e('html_attr') }}"{% endif %}
+         data-slider-navigation="{{ cfg.navigation ? 'true' : 'false' }}"
+         {% if cfg.pagination != 'none' %}data-slider-pagination="{{ cfg.pagination }}"{% endif %}
+         data-slider-loop="{{ cfg.loop ? 'true' : 'false' }}"
+         data-slider-effect="slide"
+         data-slider-grab="true">
+
+        <div class="swiper-wrapper">
+            {% for img in images %}
+            <div class="swiper-slide">
+                <div class="{{ ratio_cls ? 'ratio ' ~ ratio_cls : '' }} product-gallery__frame"{% if has_zoom %} data-zoom="{{ zoom_images[loop.index0] ?? img }}"{% endif %}>
+                        <img {% if loop.first %}src{% else %}data-src{% endif %}="{{ img }}"
+                             {% if not loop.first %}src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"{% endif %}
+                             alt="{{ post.title ?? '' }}"
+                             class="product-gallery__img w-100 h-100 object-fit-{{ cfg.object_fit }}{% if not loop.first %} lazy{% endif %}"
+                             {% if loop.first %}fetchpriority="high"{% endif %}
+                             {% if has_lightbox %}data-lg-src="{{ img }}"{% endif %}/>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Pagination — birden fazla görsel varsa #}
+        {% if cfg.pagination != 'none' and images|length > 1 %}
+        <div class="swiper-pagination"></div>
+        {% endif %}
+
+        {# Navigation okları — birden fazla görsel varsa #}
+        {% if cfg.navigation and images|length > 1 %}
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-button-next"></div>
+        {% endif %}
+
+    </div>
+    {# ── Thumbnail Swiper ─────────────────────────────────────────────── #}
+    {% if cfg.thumbs and images|length > 1 %}
+    <div id="{{ thumbs_id }}"
+         class="swiper product-gallery__thumbs mt-2"
+         data-product-gallery-thumbs="{{ gallery_id }}"
+         data-thumb-count="{{ cfg.thumb_count }}"
+         data-thumb-nav="{{ cfg.thumb_nav ? '1' : '0' }}">
+        <div class="swiper-wrapper">
+            {% for img in images %}
+            {% set thumb_img = gallery_thumb_images[loop.index0] ?? img %}
+            <div class="swiper-slide product-gallery__thumb-slide{% if loop.first %} swiper-slide-thumb-active{% endif %}">
+                <div class="ratio ratio-1x1 product-gallery__thumb-frame">
+                    <img src="{{ thumb_img }}"
+                         alt="{{ post.title ?? '' }} - {{ loop.index }}"
+                         class="product-gallery__thumb-img w-100 h-100 object-fit-{{ cfg.object_fit }}"
+                         loading="lazy"/>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if cfg.thumb_nav %}
+        <div class="swiper-button-prev product-gallery__thumb-prev"></div>
+        <div class="swiper-button-next product-gallery__thumb-next"></div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# TİP: stack ──────────────────────────────────────────────────────────── #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{% elseif cfg.type == 'stack' %}
+
+<div class="product-gallery product-gallery--stack d-flex flex-column{% if has_lightbox %} lightgallery init-me{% endif %}" {{ var_attrs|raw }}
+     style="gap:{{ cfg.stack_gap ?? 8 }}px"
+     data-required-js="{{ _all_gallery_js }}">
+    {% for img in images %}
+    <div class="{{ ratio_cls ? 'ratio ' ~ ratio_cls : '' }} product-gallery__frame"{% if has_zoom %} data-zoom="{{ zoom_images[loop.index0] ?? img }}"{% endif %}>
+        {% if has_lightbox %}<a href="{{ img }}" class="gallery-item d-block w-100 h-100">{% endif %}
+            <img {% if loop.first %}src{% else %}data-src{% endif %}="{{ img }}"
+                 {% if not loop.first %}src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"{% endif %}
+                 alt="{{ post.title ?? '' }}"
+                 class="product-gallery__img w-100 h-100 object-fit-{{ cfg.object_fit }}{% if not loop.first %} lazy{% endif %}"
+                 {% if loop.first %}fetchpriority="high"{% endif %}
+                 {% if has_lightbox %}data-lg-src="{{ img }}"{% endif %}/>
+        {% if has_lightbox %}</a>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# TİP: grid ───────────────────────────────────────────────────────────── #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{% elseif cfg.type == 'grid' %}
+
+<div class="product-gallery product-gallery--grid{% if has_lightbox %} lightgallery init-me{% endif %}" {{ var_attrs|raw }}
+     data-required-js="{{ _all_gallery_js }}">
+    <div class="row g-2">
+        {% for img in images %}
+        <div class="{{ loop.first ? 'col-12' : 'col-6' }}">
+            <div class="{{ ratio_cls ? 'ratio ' ~ ratio_cls : '' }} product-gallery__frame"{% if has_zoom %} data-zoom="{{ zoom_images[loop.index0] ?? img }}"{% endif %}>
+                {% if has_lightbox %}<a href="{{ img }}" class="gallery-item d-block w-100 h-100">{% endif %}
+                    <img {% if loop.first %}src{% else %}data-src{% endif %}="{{ img }}"
+                         {% if not loop.first %}src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"{% endif %}
+                         alt="{{ post.title ?? '' }}"
+                         class="product-gallery__img w-100 h-100 object-fit-{{ cfg.object_fit }}{% if not loop.first %} lazy{% endif %}"
+                         {% if loop.first %}fetchpriority="high"{% endif %}
+                         {% if has_lightbox %}data-lg-src="{{ img }}"{% endif %}/>
+                {% if has_lightbox %}</a>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endif %}

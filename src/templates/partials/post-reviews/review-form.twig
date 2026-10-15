@@ -1,0 +1,565 @@
+{#
+  review-form.twig — Minimal 2-kolon review yazma formu.
+
+  Sol kolon : Rating (stars/multi-criteria/thumbs/nps) — mode config'e göre
+  Sağ kolon : Yorum textarea + foto upload
+
+  Context:
+    post, user, reviews_settings, reviews_criteria, rating_type
+    target_type  — 'post' | 'user' (default: 'post')
+    target_id    — post.ID veya user.ID
+    review_modes — ['rate', 'comment', 'criteria'] — type config'den gelir
+#}
+{% import "partials/post-reviews/_macros.twig" as rm %}
+
+{% set rs            = reviews_settings ?? {} %}
+{% set _rtype        = rating_type ?? (rs.rating.type ?? 'stars') %}
+{% set _max          = rs.rating.max_rating ?? 5 %}
+{% set _criteria     = reviews_criteria ?? [] %}
+{% set _enable_media = rs.media.enable_media ?? true %}
+{% set _enable_media = _show_comment and _enable_media %}
+{% set _max_images   = rs.media.max_images ?? 5 %}
+{% set _target_type  = target_type ?? 'post' %}
+{% set _target_id    = target_id ?? post.ID %}
+{% set _modes        = review_modes ?? ['rate', 'comment'] %}
+{% set _show_rate    = 'rate' in _modes %}
+{% set _show_comment = 'comment' in _modes %}
+{% set _show_criteria = 'criteria' in _modes %}
+{# _enable_media: Media tab aktif AND modes'da 'uploads' var #}
+{% set _show_uploads  = 'uploads' in _modes %}
+{% set _enable_media  = (rs.media.enable_media ?? false) and _show_uploads %}
+
+{% if not _show_rate %}
+    {% set _rtype = 'none' %}
+{% elseif _rtype == 'multi' and _criteria|length == 0 %}
+    {% set _rtype = 'stars' %}
+{% endif %}
+
+<div class="sh-review-form-wrap" id="sh-review-form-wrap">
+
+    <form class="sh-review-form sh-review-form--2col"
+          id="sh-review-form"
+          data-post-id="{{ _target_id }}"
+          data-target-type="{{ _target_type }}"
+          data-target-id="{{ _target_id }}"
+          data-rating-type="{{ _rtype }}"
+          novalidate>
+
+        {# ════ 2-KOLON LAYOUT ═══════════════════════════════════════════════
+           Sol: rating bölümü
+           Sağ: yorum + foto
+        ════════════════════════════════════════════════════════════════════ #}
+        <div class="sh-rf-left">
+
+            {# ── STARS ── #}
+            {% if _rtype == 'stars' %}
+            <div class="sh-rf-rating-block">
+                <span class="sh-rf-rating-label">{{ translate("Your Rating") }} <span class="text-danger">*</span></span>
+                {{ rm.star_picker('rating', _max, 'lg') }}
+                <div class="sh-star-hint" id="sh-star-hint"></div>
+            </div>
+
+            {# ── THUMBS ── #}
+            {% elseif _rtype == 'thumbs' %}
+            <div class="sh-rf-rating-block">
+                <span class="sh-rf-rating-label">{{ translate("Your Opinion") }} <span class="text-danger">*</span></span>
+                <div class="sh-thumbs-picker">
+                    <button type="button" class="sh-thumb-btn" data-value="5" onclick="shSetThumb(this,5)">
+                        {{ fa_icon('thumbs-up','solid','me-1') }}{{ translate("Liked") }}
+                    </button>
+                    <button type="button" class="sh-thumb-btn" data-value="1" onclick="shSetThumb(this,1)">
+                        {{ fa_icon('thumbs-down','solid','me-1') }}{{ translate("Disliked") }}
+                    </button>
+                </div>
+                <input type="hidden" name="rating" id="sh-ri-rating" value="0">
+            </div>
+
+            {# ── NPS ── #}
+            {% elseif _rtype == 'nps' %}
+            <div class="sh-rf-rating-block">
+                <span class="sh-rf-rating-label">{{ translate("Recommend?") }} <span class="text-danger">*</span></span>
+                <div class="sh-nps-picker">
+                    {% for i in 0..10 %}
+                    <button type="button"
+                            class="sh-nps-btn sh-nps-btn--{{ i <= 6 ? 'low' : (i <= 8 ? 'mid' : 'high') }}"
+                            data-value="{{ i }}" onclick="shSetNps(this,{{ i }})">{{ i }}</button>
+                    {% endfor %}
+                </div>
+                <div class="sh-nps-labels">
+                    <span>{{ translate("Not at all") }}</span>
+                    <span>{{ translate("Definitely") }}</span>
+                </div>
+                <input type="hidden" name="rating" id="sh-ri-rating" value="-1">
+            </div>
+
+            {# ── MULTI CRITERIA ── #}
+            {% elseif _rtype == 'multi' %}
+            <div class="sh-rf-rating-block">
+                <span class="sh-rf-rating-label">{{ translate("Rate by criteria") }} <span class="text-danger">*</span></span>
+                <div class="sh-rf-criteria">
+                    {% for criterion in _criteria %}
+                    <div class="sh-rf-criterion-row">
+                        <span class="sh-rf-criterion-label">{{ criterion.label }}</span>
+                        <div class="sh-star-picker sh-star-picker--sm sh-criteria-stars"
+                             id="sh-sp-{{ criterion.key }}"
+                             data-key="{{ criterion.key }}"
+                             data-max="5"
+                             data-weight="{{ criterion.weight ?? 1 }}">
+                            {% for i in 1..5 %}
+                            <button type="button"
+                                    class="sh-star-pick"
+                                    data-value="{{ i }}"
+                                    onclick="shSetCriteria('{{ criterion.key }}',{{ i }},this)">
+                                {{ fa_icon('star','regular','sh-star-svg') }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="criteria[{{ criterion.key }}]" id="sh-ri-{{ criterion.key }}" value="0">
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="sh-ri-rating" value="0">
+            </div>
+            {% endif %}
+
+        </div>{# /sh-rf-left #}
+
+        <div class="sh-rf-right">
+
+            {# ── Yorum ── #}
+            {% if _show_comment %}
+            <textarea name="content"
+                      id="sh-review-content"
+                      class="form-control sh-rf-textarea"
+                      rows="3"
+                      placeholder="{{ translate('Share your experience... (optional)') }}"></textarea>
+            {% endif %}
+
+            {# ── Foto upload ── #}
+                    {% if _enable_media %}
+            <div class="sh-rf-upload">
+                <label for="sh-review-images" class="sh-rf-upload-btn" id="sh-upload-btn-label" title="{{ translate('Add Photos') }}">
+                    {{ fa_icon('camera','solid','me-1') }}
+                    <span>{{ translate("Add Photos") }} 0/{{ _max_images }}</span>
+                </label>
+                <input type="file" name="review_images[]" id="sh-review-images"
+                       accept="image/jpeg,image/png,image/webp"
+                       multiple data-max="{{ _max_images }}"
+                       class="sh-rf-upload-input"
+                       onchange="shReviewPreviewImages(this)">
+                <div class="sh-rf-preview" id="sh-review-preview-grid"></div>
+            </div>
+            {% endif %}
+
+            {# Başlık — gizli ama DOM'da #}
+            <input type="hidden" name="title" id="sh-review-title" maxlength="100">
+
+            <div class="sh-review-error alert alert-danger py-2 px-3 mt-2"
+                 id="sh-review-error" style="display:none" role="alert"></div>
+
+            <div class="sh-rf-footer">
+                <button type="submit" class="btn btn-primary btn-sm sh-review-submit">
+                    {{ translate("Submit") }}
+                </button>
+            </div>
+
+        </div>{# /sh-rf-right #}
+
+    </form>
+</div>
+
+{# ════ CSS ══════════════════════════════════════════════════════════════════ #}
+<style>
+/* ── 2-kolon form layout ── */
+.sh-review-form--2col {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:16px 20px;
+    align-items:start;
+}
+@media (max-width:576px) {
+    .sh-review-form--2col { grid-template-columns:1fr; }
+}
+
+/* ── Sol kolon ── */
+.sh-rf-left {}
+.sh-rf-rating-block {
+    background:#f9fafb; border-radius:10px;
+    padding:14px; display:flex; flex-direction:column; gap:10px;
+}
+.sh-rf-rating-label {
+    font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.04em;
+}
+
+/* ── Multi criteria (compact) ── */
+.sh-rf-criteria { display:flex; flex-direction:column; gap:8px; }
+.sh-rf-criterion-row {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+.sh-rf-criterion-label {
+    font-size:12px; font-weight:500; color:#374151; flex:1;
+}
+.sh-rf-criterion-row .sh-star-picker { flex-shrink:0; }
+
+/* ── Sağ kolon ── */
+.sh-rf-right { display:flex; flex-direction:column; gap:10px; }
+.sh-rf-textarea {
+    font-size:14px; resize:none; border:1px solid #e5e7eb;
+    border-radius:8px; padding:10px 12px; min-height:100px;
+}
+.sh-rf-textarea:focus { border-color:#6b7280; box-shadow:none; }
+
+/* ── Upload ── */
+.sh-rf-upload { position:relative; }
+.sh-rf-upload-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; color:#6b7280; cursor:pointer;
+    padding:6px 10px; border:1px dashed #d1d5db;
+    border-radius:6px; background:#fafafa; transition:all .15s;
+    position:relative; z-index:1; user-select:none;
+}
+.sh-rf-upload-btn:hover { border-color:#9ca3af; color:#374151; }
+.sh-rf-upload-btn svg { width:14px; height:14px; }
+.sh-rf-upload-btn--full {
+    opacity:.45; cursor:not-allowed; pointer-events:none;
+    border-style:solid; color:#9ca3af;
+}
+/* Input sadece butonun üstünde, preview grid'in altında */
+.sh-rf-upload-input {
+    position:absolute;
+    top:0; left:0;
+    width:auto; height:auto;
+    opacity:0; cursor:pointer;
+    z-index:2;
+    /* Sadece buton boyutunda — preview'e taşmaz */
+    clip-path:none;
+    pointer-events:none; /* JS ile kontrol */
+}
+.sh-rf-upload-btn:not(.sh-rf-upload-btn--full) + .sh-rf-upload-input {
+    pointer-events:auto;
+    width:160px; height:32px;
+}
+
+/* ── Preview ── */
+.sh-rf-preview { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.sh-preview-item {
+    position:relative; width:60px; height:60px;
+    border-radius:6px; overflow:hidden; border:1px solid #e5e7eb;
+    cursor:default;
+}
+.sh-preview-item img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+.sh-preview-remove {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0); color:transparent;
+    border:none; cursor:pointer; padding:0;
+    transition:background .15s, color .15s;
+    font-size:18px; font-weight:700; z-index:5;
+}
+.sh-preview-item:hover .sh-preview-remove {
+    background:rgba(0,0,0,.5); color:#fff;
+}
+
+/* ── Footer ── */
+.sh-rf-footer { display:flex; justify-content:flex-end; margin-top:4px; }
+
+/* ── Star picker (reuse) ── */
+.sh-star-picker { display:flex; gap:2px; }
+.sh-star-pick { background:none; border:none; padding:1px; cursor:pointer; line-height:1; color:#d1d5db; transition:color .15s; }
+.sh-star-pick.active { color:#f59e0b; }
+.sh-star-picker--lg .sh-star-svg { width:28px; height:28px; }
+.sh-star-picker--md .sh-star-svg { width:20px; height:20px; }
+.sh-star-picker--sm .sh-star-svg { width:16px; height:16px; }
+.sh-star-hint { font-size:11px; color:#9ca3af; min-height:16px; }
+
+/* ── Thumbs ── */
+.sh-thumbs-picker { display:flex; gap:8px; flex-wrap:wrap; }
+.sh-thumb-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; border:1px solid #e5e7eb; border-radius:6px;
+    background:#fff; font-size:13px; cursor:pointer; transition:all .15s;
+}
+.sh-thumb-btn.active { border-color:#2271b1; background:#dbeafe; color:#1d4ed8; }
+.sh-thumb-btn svg { width:13px; height:13px; }
+
+/* ── NPS ── */
+.sh-nps-picker { display:flex; gap:3px; flex-wrap:wrap; }
+.sh-nps-btn {
+    width:30px; height:30px; border:1px solid #e5e7eb; border-radius:4px;
+    background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:all .12s;
+}
+.sh-nps-btn--low.active  { border-color:#ef4444; background:#fee2e2; color:#b91c1c; }
+.sh-nps-btn--mid.active  { border-color:#f59e0b; background:#fef3c7; color:#92400e; }
+.sh-nps-btn--high.active { border-color:#22c55e; background:#dcfce7; color:#15803d; }
+.sh-nps-labels { display:flex; justify-content:space-between; font-size:10px; color:#9ca3af; }
+</style>
+
+{# ════ JS ════════════════════════════════════════════════════════════════════ #}
+<script>
+(function () {
+    var _rType = '{{ _rtype }}';
+    var _hints = {1:'{{ translate("Poor") }}',2:'{{ translate("Fair") }}',3:'{{ translate("Good") }}',4:'{{ translate("Very Good") }}',5:'{{ translate("Excellent") }}'};
+    var translate_add_photos = '{{ translate("Add Photos") }}';
+
+    /* ── Star picker hover + set ── */
+    window.shStarPickerSet = function (key, val) {
+        var picker = document.getElementById('sh-sp-' + key);
+        var hidden = document.getElementById('sh-ri-' + key);
+        if (!picker || !hidden) return;
+        hidden.value = val;
+        picker.dataset.value = val;
+        picker.querySelectorAll('.sh-star-pick').forEach(function (btn, i) {
+            var svg = btn.querySelector('svg,.sh-star-svg');
+            var on  = (i + 1) <= val;
+            btn.classList.toggle('active', on);
+            if (svg) svg.style.color = on ? '#f59e0b' : '';
+        });
+        var hint = document.getElementById('sh-star-hint');
+        if (hint) hint.textContent = _hints[val] || '';
+    };
+
+    /* ── Multi-criteria ── */
+    window.shSetCriteria = function (key, val, btn) {
+        var picker = btn.closest('.sh-criteria-stars,.sh-star-picker');
+        var hidden = document.getElementById('sh-ri-' + key);
+        if (!picker || !hidden) return;
+        hidden.value = val;
+        picker.dataset.value = val;
+        picker.querySelectorAll('.sh-star-pick').forEach(function (b, i) {
+            var svg = b.querySelector('svg,.sh-star-svg');
+            var on  = (i + 1) <= val;
+            b.classList.toggle('active', on);
+            if (svg) svg.style.color = on ? '#f59e0b' : '';
+        });
+        /* Ağırlıklı ortalama → genel rating */
+        var wSum = 0, wTotal = 0;
+        document.querySelectorAll('.sh-criteria-stars').forEach(function (p) {
+            var v = parseFloat(p.dataset.value || 0);
+            var w = parseFloat(p.dataset.weight || 1);
+            if (v > 0) { wSum += v * w; wTotal += w; }
+        });
+        var main = document.getElementById('sh-ri-rating');
+        if (main && wTotal > 0) main.value = Math.round(wSum / wTotal);
+    };
+
+    /* ── Hover efekti (tüm pickers) ── */
+    document.querySelectorAll('.sh-star-picker').forEach(function (picker) {
+        var btns = picker.querySelectorAll('.sh-star-pick');
+        btns.forEach(function (btn, i) {
+            btn.addEventListener('mouseenter', function () {
+                btns.forEach(function (b, j) {
+                    var svg = b.querySelector('svg,.sh-star-svg');
+                    if (svg) svg.style.color = j <= i ? '#f59e0b' : '';
+                });
+            });
+            btn.addEventListener('mouseleave', function () {
+                var cur = parseInt(picker.dataset.value || 0);
+                btns.forEach(function (b, j) {
+                    var svg = b.querySelector('svg,.sh-star-svg');
+                    if (svg) svg.style.color = j < cur ? '#f59e0b' : '';
+                });
+            });
+        });
+    });
+
+    /* ── Thumbs / NPS ── */
+    window.shSetThumb = function (btn, val) {
+        document.getElementById('sh-ri-rating').value = val;
+        document.querySelectorAll('.sh-thumb-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+    };
+    window.shSetNps = function (btn, val) {
+        document.getElementById('sh-ri-rating').value = val;
+        document.querySelectorAll('.sh-nps-btn').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+    };
+
+    /* ── Photo preview ── */
+    var _accumulatedFiles = [];
+    var _maxImages = parseInt(document.getElementById('sh-review-images')?.dataset.max) || 5;
+
+    function _updateUploadBtn() {
+        var btn   = document.querySelector('.sh-rf-upload-btn');
+        var input = document.getElementById('sh-review-images');
+        if (!btn) return;
+        var count  = _accumulatedFiles.length;
+        var isFull = count >= _maxImages;
+        var span   = btn.querySelector('span');
+        if (span) span.textContent = translate_add_photos + ' ' + count + '/' + _maxImages;
+        btn.classList.toggle('sh-rf-upload-btn--full', isFull);
+        // input pointer-events CSS class ile kontrol ediliyor, disabled attr'a gerek yok
+        if (input) input.disabled = isFull;
+    }
+
+    window.shReviewPreviewImages = function (input) {
+        var grid = document.getElementById('sh-review-preview-grid');
+        var max  = parseInt(input.dataset.max) || 5;
+        if (!grid) return;
+
+        // Yeni dosyaları mevcut listeye ekle (max kontrolü)
+        Array.from(input.files).forEach(function (file) {
+            if (_accumulatedFiles.length < max) {
+                _accumulatedFiles.push(file);
+            }
+        });
+
+        // Input'u DataTransfer ile güncelle
+        var dt = new DataTransfer();
+        _accumulatedFiles.forEach(function (f) { dt.items.add(f); });
+        input.files = dt.files;
+
+        _renderPreviews(grid);
+        _updateUploadBtn();
+    };
+
+    window.shReviewRemovePhoto = function (idx) {
+        _accumulatedFiles.splice(idx, 1);
+        var input = document.getElementById('sh-review-images');
+        if (input) {
+            var dt = new DataTransfer();
+            _accumulatedFiles.forEach(function (f) { dt.items.add(f); });
+            input.files = dt.files;
+        }
+        var grid = document.getElementById('sh-review-preview-grid');
+        if (grid) _renderPreviews(grid);
+        _updateUploadBtn();
+    };
+
+    function _renderPreviews(grid) {
+        grid.innerHTML = '';
+        _accumulatedFiles.forEach(function (file, idx) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var item = document.createElement('div');
+                item.className = 'sh-preview-item';
+                item.innerHTML = '<img src="' + e.target.result + '" alt="">'
+                    + '<button type="button" class="sh-preview-remove" onclick="shReviewRemovePhoto(' + idx + ')">×</button>';
+                grid.appendChild(item);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /* ── Form submit ── */
+    var form = document.getElementById('sh-review-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var rating = (document.getElementById('sh-ri-rating') || {}).value;
+        // Rating opsiyonel — sadece yorum da gönderilebilir
+        // En az biri dolu olmalı: ya rating ya content
+        var content = (document.getElementById('sh-review-content') || {}).value || '';
+        if (_rType !== 'nps' && (!rating || parseInt(rating) < 1) && !content.trim()) {
+            _err('{{ translate("Please select a rating or write a comment.") }}'); return;
+        }
+        var btn = form.querySelector('.sh-review-submit');
+        btn.disabled = true;
+
+        // FormData'yı form'dan oluştur (non-file alanlar)
+        var fd = new FormData(form);
+        fd.append('action', 'sh_review_create');
+        fd.append('post_id', form.dataset.postId);
+        fd.append('target_type', form.dataset.targetType || 'post');
+        fd.append('target_id',   form.dataset.targetId   || form.dataset.postId);
+        fd.append('_wpnonce', '{{ function("wp_create_nonce","sh_review_create") }}');
+
+        // Dosyaları _accumulatedFiles'tan manuel ekle
+        // (DataTransfer → input.files bazı tarayıcılarda FormData'ya geçmiyor)
+        fd.delete('review_images[]'); // input.files'tan gelebilecek boş entry'yi temizle
+        _accumulatedFiles.forEach(function (file) {
+            fd.append('review_images[]', file, file.name);
+        });
+
+        fetch('{{ function("admin_url","admin-ajax.php") }}', { method:'POST', body:fd })
+            .then(function(r){ return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    document.getElementById('sh-review-form-wrap').innerHTML =
+                        '<div class="alert alert-success py-2 px-3">' + res.message + '</div>';
+                } else {
+                    _err(res.message || '{{ translate("An error occurred.") }}', res.retry_after || 0);
+                    btn.disabled = false;
+                }
+            })
+            .catch(function(){ _err('{{ translate("Connection error.") }}'); btn.disabled = false; });
+    });
+    function _err(msg, retryAfter) {
+        var el = document.getElementById('sh-review-error');
+        if (!el) return;
+        el.innerHTML = '';
+        el.style.display = 'block';
+
+        var msgEl = document.createElement('span');
+        msgEl.textContent = msg;
+        el.appendChild(msgEl);
+
+        // retry_after varsa countdown ekle
+        if (retryAfter && retryAfter > 0) {
+            var now = Math.floor(Date.now() / 1000);
+            var remaining = retryAfter - now;
+            if (remaining > 0) {
+                var cdWrap = document.createElement('span');
+                cdWrap.id = 'sh-rl-countdown';
+                cdWrap.style.marginLeft = '6px';
+                cdWrap.style.fontWeight = '600';
+                el.appendChild(cdWrap);
+
+                if (typeof shCountdownStart === 'function') {
+                    shCountdownStart(cdWrap, remaining, function() {
+                        cdWrap.textContent = '';
+                    }, null, 'mm:ss');
+                } else {
+                    // Fallback — basit timer
+                    (function() {
+                        var rem = remaining;
+                        function tick() {
+                            var m = Math.floor(rem/60), s = rem%60;
+                            cdWrap.textContent = '(' + (m<10?'0':'')+m+':'+(s<10?'0':'')+s + ')';
+                            if (rem-- > 0) setTimeout(tick, 1000);
+                            else cdWrap.textContent = '';
+                        }
+                        tick();
+                    })();
+                }
+            }
+        }
+    }
+
+    /* ── Vote / Reply ── */
+    window.shReviewVote = function (btn) {
+        if (!btn) return;
+        fetch('{{ function("admin_url","admin-ajax.php") }}', {
+            method:'POST',
+            body: new URLSearchParams({ action:'sh_review_vote', id:btn.dataset.id, type:btn.dataset.type, _wpnonce:'{{ function("wp_create_nonce","sh_review_vote") }}' })
+        }).then(function(r){ return r.json(); }).then(function(res) {
+            if (!res.success) return;
+            var card = btn.closest('.sh-review-item');
+            if (!card) return;
+            var hBtn = card.querySelector('.sh-vote-btn[data-type="helpful"]');
+            var uBtn = card.querySelector('.sh-vote-btn[data-type="unhelpful"]');
+            if (hBtn) { hBtn.classList.remove('active'); hBtn.querySelector('.sh-vote-count').textContent = res.helpful ?? 0; }
+            if (uBtn) { uBtn.classList.remove('active'); uBtn.querySelector('.sh-vote-count').textContent = res.unhelpful ?? 0; }
+            if (res.voted === 'helpful'   && hBtn) hBtn.classList.add('active');
+            if (res.voted === 'unhelpful' && uBtn) uBtn.classList.add('active');
+        });
+    };
+    window.shToggleReply = function (btn) {
+        var box = document.getElementById('sh-reply-' + btn.dataset.id);
+        if (box) box.style.display = box.style.display === 'none' ? '' : 'none';
+    };
+    window.shSubmitReply = function (btn) {
+        var id = btn.dataset.id;
+        var box = document.getElementById('sh-reply-' + id);
+        var content = box && box.querySelector('.sh-reply-text').value.trim();
+        if (!content) return;
+        btn.disabled = true;
+        fetch('{{ function("admin_url","admin-ajax.php") }}', {
+            method:'POST',
+            body: new URLSearchParams({ action:'sh_review_reply', comment_id:id, content:content, _wpnonce:'{{ function("wp_create_nonce","sh_review_reply") }}' })
+        }).then(function(r){ return r.json(); }).then(function(res) {
+            if (res.success) { box.style.display='none'; box.querySelector('.sh-reply-text').value=''; location.reload(); }
+            btn.disabled = false;
+        });
+    };
+})();
+</script>

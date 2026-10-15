@@ -220,7 +220,7 @@ function btn_ajax_method($container){ /// ***new*** updated function - Container
 		$container = $($container);
 	}
 
-	function init_ajax_v1($obj, $button){
+	/*function init_ajax_v1($obj, $button){
 		log("btn_ajax_method="+$obj.data("ajax-method"))
 		log("obj")
 		log($obj)
@@ -237,9 +237,6 @@ function btn_ajax_method($container){ /// ***new*** updated function - Container
 				    query.method  =  $obj.data("ajax-method");
 				    query.vars    = $data;
 					query.form    = $form;
-					/*query.objs = {
-		        		"btn" : $obj
-		        	}*/
 		        	if($button){
 		        		query.objs = {
 			        		"btn" : $obj
@@ -260,14 +257,34 @@ function btn_ajax_method($container){ /// ***new*** updated function - Container
 			}else{
                 callback();
 			}
-	}
+	}*/
 
 	function init_ajax($obj, $button){
+		console.log($obj)
+		console.log($obj.data())
 	    var $data = JSON.parse(JSON.stringify($obj.data()));
 
 	    // ajax_query sisteminde method URL'den geliyor — vars'tan temizle
-	    var skipKeys = ['ajaxMethod', 'ajaxInit', 'ajaxSubmit', 'confirm', 'confirmMessage'];
+	    var skipKeys = ['ajaxMethod', 'ajaxInit', 'ajaxSubmit', 'confirm', 'confirmMessage', 'validator'];
 	    skipKeys.forEach(function(k){ delete $data[k]; });
+
+	    // Form ise field'ları serialize edip vars'a ekle
+	    if ($obj.is('form')) {
+	        $obj.find('input, select, textarea').each(function(){
+	            var $field = $(this);
+	            var name   = $field.attr('name');
+	            if (!name) return;
+	            var type = ($field.attr('type') || '').toLowerCase();
+	            if (type === 'file') return; // file input'ları atla — ayrı FormData gerekir
+	            if (type === 'checkbox') {
+	                if ($field.is(':checked')) $data[name] = $field.val();
+	            } else if (type === 'radio') {
+	                if ($field.is(':checked')) $data[name] = $field.val();
+	            } else {
+	                $data[name] = $field.val();
+	            }
+	        });
+	    }
 
 	    var currentMethod = $obj.attr("data-ajax-method");
 
@@ -298,9 +315,12 @@ function btn_ajax_method($container){ /// ***new*** updated function - Container
 	        $obj.on("click", function(e){
 	        	e.preventDefault();
 	        	let $btn = $(this);
-			    init_ajax($btn, true);
+	        	withMethods(function(){ init_ajax($btn, true); });
 	        });
         } else if(is_form) {
+            // form-validate class'ı varsa submit'i form_validate()'nin submitHandler'ına bırak
+            // Çift submit + validation bypass sorununu önler
+            if ($obj.hasClass('form-validate')) return;
             // Form: submit event'inde tetikle, sayfa acilinca degil
             $obj.on("submit", function(e){
                 e.preventDefault();
@@ -317,6 +337,8 @@ function btn_ajax_method($container){ /// ***new*** updated function - Container
         .addClass(token_init_submit)
         .on("click", function(e){
         	var form = $($(this).attr("data-ajax-submit"));
+        	console.log("--------------------------")
+        	console.log(form);
         	if(form.length > 0){
         		form.submit();
         	}
@@ -440,42 +462,7 @@ function getEvents(obj, calendar, month, year){
 		 query.objs   = objs;
 		 query.request();
 }
-function btn_favorite($container){
-	// Container belirtilmemişse document kullan
-	if (typeof $container === 'undefined' || !$container) {
-		$container = $(document);
-	} else {
-		$container = $($container);
-	}
-	
-	// Container içindeki btn-favorite elementlerini bul ve init et
-    $container.find(".btn-favorite").unbind("click").on("click", function(e){
-		e.preventDefault();
-		if($(this).hasClass("active")){
-			favorites.remove($(this));
-		}else{
-			favorites.add($(this));
-		}
-	});
 
-	// Mevcut favorites state'ini yeni yüklenen butonlara uygula
-	if (typeof site_config !== 'undefined' && site_config.hasOwnProperty("favorites")) {
-		var favs = site_config.favorites;
-		if (typeof favs === 'string') {
-			try { favs = JSON.parse(favs); } catch(e) { favs = []; }
-		}
-		if (Array.isArray(favs) && favs.length > 0) {
-			$container.find(".btn-favorite").each(function(){
-				var id = parseInt($(this).attr("data-id"));
-				if (inArray(id, favs)) {
-					$(this).addClass("active");
-				} else {
-					$(this).removeClass("active");
-				}
-			});
-		}
-	}
-}
 function ajax_paginate($obj){
 	var token_init = "ajax-paginate-init";
     
@@ -585,7 +572,14 @@ function ajax_paginate($obj){
 
 						    	// HTML varsa list-cards'a append et
 						    	if (response && response.html) {
-						    	    obj.find(".list-cards").append(response.html);
+						    	    var $listCards = obj.find(".list-cards");
+						    	    var prevCount   = $listCards.children().length;
+						    	    $listCards.append(response.html);
+						    	    // Yeni eklenen ilk item'a data-page marker ekle
+						    	    var $newFirst = $listCards.children().eq(prevCount);
+						    	    if ($newFirst.length) {
+						    	        $newFirst.attr("data-page", page);
+						    	    }
 						    	}
 						    
 							    	var total = parseInt(response.data.count);
@@ -654,17 +648,37 @@ function ajax_paginate($obj){
 						}
 					break;
 					case "scroll":
+
 					    if(!btn.hasClass("ajax-load-scroll")){
 					        btn.addClass("ajax-load-scroll");
+
+					        // Scroll container tespiti:
+					        // offcanvas-body, dropdown-body, modal-body içindeyse o element'i dinle
+					        // Aksi halde window
+					        var $scrollParent = obj.closest('.offcanvas-body, .dropdown-body, .modal-body');
+					        var scrollEl      = $scrollParent.length ? $scrollParent[0] : null;
+					        var $scrollEl     = scrollEl ? $(scrollEl) : $(window);
+
 					        const checkAjaxLoadViewport = function() {
-					            if( btn.inViewport()) {
-					                ajax_paginate_load(btn);
+					            if ( !scrollEl ) {
+					                // Window scroll — normal sayfa
+					                if ( btn.inViewport() ) {
+					                    ajax_paginate_load(btn);
+					                }
+					            } else {
+					                // Container scroll — container sonuna yaklaştı mı?
+					                var scrollBottom = scrollEl.scrollTop + scrollEl.clientHeight;
+					                var scrollTotal  = scrollEl.scrollHeight;
+					                if ( scrollTotal - scrollBottom <= 200 ) {
+					                    ajax_paginate_load(btn);
+					                }
 					            }
 					        };
-					        $(window).on('scroll resize', throttle(checkAjaxLoadViewport, 100));
-					        setTimeout(checkAjaxLoadViewport, 150); 
+
+					        $scrollEl.on('scroll resize', throttle(checkAjaxLoadViewport, 100));
+					        setTimeout(checkAjaxLoadViewport, 150);
 					    } else {
-					        ajax_paginate_load(btn); 
+					        ajax_paginate_load(btn);
 					    }
 					break;
 				}
@@ -830,59 +844,9 @@ class FavoritesManager extends BaseManager {
         }
     }
 
-    async add(obj) {
-        const id = obj.data("id");
-        obj.addClass("disabled loading");
-        
-        const res = await this.request(obj, { method: "favorites_add", vars: { id } });
-        if (res) {
-            obj.removeClass("disabled loading").addClass("active");
-            $(`.btn-favorite[data-id='${id}']`).addClass("active");
-            this.sync(res.data);
-            this.updateBadge("favorites", res.count);
-            if (res.html) obj.find(".info").html(res.html);
-            this.notify(res.message, 'add');
-        }
-    }
-
-    async remove(obj) {
-        const id = obj.data("id");
-        obj.addClass("disabled loading");
-        if (obj.data("type") == "favorites") obj.closest(this.classTease).addClass("loading-process");
-
-        const res = await this.request(obj, { method: "favorites_remove", vars: { id } });
-        if (res) {
-            obj.removeClass("active disabled loading");
-            $(`.btn-favorite[data-id='${id}']`).removeClass("active");
-            
-            if (obj.data("type") == "favorites") {
-                obj.closest(this.classTease).parent().remove();
-            }
-
-            this.sync(res.data);
-            this.updateBadge("favorites", res.count);
-            this.notify(res.message, 'remove');
-        }
-    }
-
     sync(data) {
         if (typeof site_config !== 'undefined') site_config.favorites = data;
         $(".dropdown-notifications[data-type='favorites']").toggleClass("active", data.length > 0);
-    }
-
-    notify(msg, type) {
-        const img = type === 'add' ? 'favorites-add.jpg' : 'favorites-remove.jpg';
-        const data = {
-            message: msg,
-            sender: { image: `<img src='${ajax_request_vars.theme_url}/static/img/notification/${img}' class='img-fluid' />` }
-        };
-        if (typeof toast_notification === "function" && typeof Toastify === "function") {
-            toast_notification(data);
-        } else if (typeof isLoadedJS === "function") {
-            isLoadedJS("toastify-js", true, function() {
-                if (typeof toast_notification === "function") toast_notification(data);
-            });
-        }
     }
 }
 var favorites = new FavoritesManager();
@@ -908,17 +872,25 @@ class CartManager extends BaseManager {
     }
 
     render(obj, res) {
-        const $html = $("<div class='temp'>" + res.html + "</div>");
-        let footer = "";
-        
-        if ($html.find(".offcanvas-footer").length > 0) {
-            footer = $html.find(".offcanvas-footer").html();
-            $html.find(".offcanvas-footer").remove();
+        // Yeni partials/source/ yapısı: {view}-body + {view}-footer gelir
+        // window._renderSourceResult varsa kullan, yoksa fallback
+        if (typeof window._renderSourceResult === 'function') {
+            var viewType = 'dropdown';
+            if (obj.closest('.offcanvas').length) viewType = 'offcanvas';
+            else if (obj.closest('.modal').length) viewType = 'modal';
+            window._renderSourceResult(obj, res, viewType);
+        } else {
+            // Fallback — eski format
+            const $html = $("<div class='temp'>" + res.html + "</div>");
+            let footer = "";
+            if ($html.find(".offcanvas-footer").length > 0) {
+                footer = $html.find(".offcanvas-footer").html();
+                $html.find(".offcanvas-footer").remove();
+            }
+            obj.html($html.html()).removeClass("loading-process");
+            const footerObj = obj.next(".offcanvas-footer");
+            if (footerObj.length) footerObj.html(footer).toggleClass("d-none", !footer);
         }
-
-        obj.html($html.html()).removeClass("loading-process");
-        const footerObj = obj.next(".offcanvas-footer");
-        if (footerObj.length) footerObj.html(footer).toggleClass("d-none", !footer);
 
         const count = (res.data && res.data.count) || 0;
         this.updateBadge("cart", count);
@@ -937,16 +909,16 @@ class MessageManager extends BaseManager {
         obj.addClass("loading-process");
         const res = await this.request(obj, { 
             method: "get_messages", 
-            vars: { template: "partials/" + view_type + "/archive", type: "messages", view: view_type } 
+            vars: { view: view_type }
         });
         
         if (res) {
-            obj.html(res.html).removeClass("loading-process");
-            this.updateBadge("messages", (res.data && res.data.count) || 0);
-            if (typeof SimpleScrollbar !== 'undefined') {
-                const scrollEl = obj.find(".dropdown-body")[0];
-                if (scrollEl) SimpleScrollbar.initEl(scrollEl);
+            if (typeof _renderSourceResult === 'function') {
+                _renderSourceResult(obj, res, view_type);
+            } else {
+                obj.html(res.html).removeClass("loading-process");
             }
+            this.updateBadge("messages", (res.data && res.data.count) || 0);
         }
     }
 }
@@ -966,7 +938,11 @@ class NotificationsManager extends BaseManager {
         });
 
         if (res) {
-            obj.html(res.html).removeClass("loading-process");
+            if (typeof _renderSourceResult === 'function') {
+                _renderSourceResult(obj, res, view_type);
+            } else {
+                obj.html(res.html).removeClass("loading-process");
+            }
             this.updateBadge("notifications", 0); // okundu işaretlendi
         }
     }

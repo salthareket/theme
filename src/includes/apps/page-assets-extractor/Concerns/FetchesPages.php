@@ -146,13 +146,15 @@ trait FetchesPages {
                 if ($st === 0) {
                     // cURL bağlanamadı (localhost loopback veya network sorunu) — wp_remote_get ile devam et
                     $this->error_log("[PAE] get_page_status=0, skipping status check (localhost/loopback fallback)");
-                } elseif ($st != 200) {
+                } elseif ($st >= 500) {
+                    $this->error_log("PAE: Server Error! Status: {$st} for URL: {$fetch_url}");
+                    return false;
+                } elseif ($st >= 300 && $st < 400) {
+                    // 3xx redirect — wp_remote_get redirect'i takip edecek, devam et
+                    $this->error_log("[PAE] {$st} redirect — wp_remote_get will follow. id={$id}");
+                } elseif ($st !== 200) {
                     if ($this->type !== 'dynamic') {
                         $this->error_log("PAE: Fetch Error! Status: {$st} for URL: {$fetch_url}");
-                        return false;
-                    }
-                    if ($st >= 500) {
-                        $this->error_log("PAE: Server Error! Status: {$st} for URL: {$fetch_url}");
                         return false;
                     }
                 }
@@ -161,7 +163,7 @@ trait FetchesPages {
             $this->url = $fetch_url;
 
             $response = wp_remote_get($fetch_url, [
-                'timeout'     => 20,
+                'timeout'     => 60, // 20 → 60 saniye (fetch işlemleri için yeterli süre)
                 'headers'     => [
                     'User-Agent'       => 'MyFetchBot/1.0',
                     'X-Internal-Fetch' => '1',
@@ -193,7 +195,7 @@ trait FetchesPages {
                 $this->auth_cookies = [];
 
                 $anon_response = wp_remote_get($fetch_url, [
-                    'timeout'     => 20,
+                    'timeout'     => 60,
                     'headers'     => ['User-Agent' => 'MyFetchBot/1.0', 'X-Internal-Fetch' => '1'],
                     'httpversion' => '1.1',
                     'cookies'     => [],
@@ -203,31 +205,96 @@ trait FetchesPages {
 
                 if (!is_wp_error($anon_response)) {
                     $anon_html_raw = wp_remote_retrieve_body($anon_response);
+
+                    // My Account: ?activation-password ve ?activation-code parametreli sayfaları da fetch et
+                    // form-renew-password.twig ve email aktivasyon class'ları bu şekilde yakalanır
+                    // not-activated endpoint'i de auth cookies ile fetch edilir (SMS OTP adımı için)
+                    $extra_html_raw = '';
+                    if (is_numeric($id) && function_exists('wc_get_page_id') && (int)$id === (int)wc_get_page_id('myaccount')) {
+                        // Parametreli sayfalar — anon fetch
+                        $extra_params = [
+                            'activation-password' => 'pae_test_pw',
+                            'activation-code'     => 'pae_test_code',
+                        ];
+                        foreach ($extra_params as $param => $value) {
+                            $extra_url = add_query_arg($param, $value, $url);
+                            $extra_url .= (strpos($extra_url, '?') !== false ? '&' : '?') . 'fetch&nocache=true';
+                            $extra_resp = wp_remote_get($extra_url, [
+                                'timeout'     => 20,
+                                'headers'     => ['User-Agent' => 'MyFetchBot/1.0', 'X-Internal-Fetch' => '1'],
+                                'httpversion' => '1.1',
+                                'cookies'     => [],
+                            ]);
+                            if (!is_wp_error($extra_resp)) {
+                                $extra_html_raw .= "\n<!-- PAE_EXTRA_{$param} -->\n" . wp_remote_retrieve_body($extra_resp);
+                            }
+                        }
+
+                        // not-activated endpoint — auth cookies ile fetch (SMS OTP adımı + otp-input/countdown)
+                        $not_activated_url = trailingslashit($url) . 'not-activated/?fetch&nocache=true';
+                        $na_resp = wp_remote_get($not_activated_url, [
+                            'timeout'     => 20,
+                            'headers'     => ['User-Agent' => 'MyFetchBot/1.0', 'X-Internal-Fetch' => '1'],
+                            'httpversion' => '1.1',
+                            'cookies'     => $this->auth_cookies ?? [],
+                        ]);
+                        if (!is_wp_error($na_resp)) {
+                            $extra_html_raw .= "\n<!-- PAE_EXTRA_not-activated -->\n" . wp_remote_retrieve_body($na_resp);
+                            $this->error_log('[PAE] extra fetch not-activated (logged) done');
+                        }
+                    }
+
                     if (!empty($anon_html_raw)) {
-                        $merged_html_raw = wp_remote_retrieve_body($response) . "\n<!-- PAE_DUAL_ANON -->\n" . $anon_html_raw;
-                        $merged_dom      = \voku\helper\HtmlDomParser::str_get_html($merged_html_raw);
+                        $merged_html_raw = wp_remote_retrieve_body($response)
+                            . "\n<!-- PAE_DUAL_ANON -->\n" . $anon_html_raw
+                            . (!empty($extra_html_raw) ? $extra_html_raw : '');
+                        $merged_dom = \voku\helper\HtmlDomParser::str_get_html($merged_html_raw);
                         if ($merged_dom) {
                             $html_content = $merged_dom;
                             $this->html   = $html_content;
-                            $this->error_log('[PAE] dual fetch merged: logged + anon HTML', 'fetch');
+                            $this->error_log('[PAE] dual fetch merged: logged + anon + activation HTML', 'fetch');
                         }
                     }
                 }
+            }
+
+            // ── type normalize: page/product vb. → 'post' ────────────
+            // extract_assets() ve save_meta() çağrılmadan önce yapılmalı
+            // ki maybe_copy_meta_to_translations() doğru dalı çalıştırsın
+            // NOT: 'term', 'user', 'comment' type'larında dokunma — ID çakışabilir
+            if ( ! in_array( $this->type, [ 'term', 'user', 'comment', 'archive', 'dynamic' ], true )
+                 && is_numeric($id) && function_exists('get_post') && get_post($id) ) {
+                $this->type = 'post';
             }
 
             // ── Asset çıkarma ─────────────────────────────────────────
             $result = $this->extract_assets($html_content, $id);
             $this->error_log("[PAE] extract_assets DONE type={$this->type} id={$id}");
 
+            // ── FA SVG Icon — HTML'den kullanılan ikonları tespit et ve üret ──
+            if ( class_exists( 'SaltHareket\FaIconManager' ) ) {
+                $raw_html = wp_remote_retrieve_body( $response );
+                if ( ! empty( $raw_html ) ) {
+                    $fa_icons = \SaltHareket\FaIconManager::detectInContent( $raw_html );
+                    if ( ! empty( $fa_icons ) ) {
+                        $fa_result = \SaltHareket\FaIconManager::generateAll( $fa_icons );
+                        $this->error_log( '[PAE] FA SVG generated=' . $fa_result['generated'] . ' skipped=' . $fa_result['skipped'] . ' failed=' . $fa_result['failed'] );
+                    }
+                }
+            }
+
             // ── CSP domain tespiti ────────────────────────────────────
             $this->detect_and_save_csp_domains($html_content, $response);
 
-            if (is_numeric($id) && function_exists('get_post') && get_post($id)) {
-                $this->type = 'post';
-            }
-
-            if ($this->type === 'post') {
-                $this->build_related_assets($id, $this->detect_post_type($id));
+            // build_related_assets: sadece doğrudan tetiklenen fetch'lerde çalışır.
+            // Shutdown hook'u üzerinden tetiklenen translation fetch'lerinde çalışmaz
+            // (disable_hooks=true ile gelirler) — bu döngüyü kırar.
+            if ( ! $this->disable_hooks ) {
+                if ($this->type === 'post') {
+                    $this->build_related_assets($id, $this->detect_post_type($id));
+                } elseif ($this->type === 'term') {
+                    $this->build_related_assets($id);
+                }
             }
 
             return $result;
@@ -411,8 +478,7 @@ trait FetchesPages {
      * @return bool false ise işlem zaten çalışıyor
      */
     private function start_heavy_process(): bool {
-        static $is_already_running = false;
-        if ($is_already_running) return false;
+        if ( $this->_heavy_running ?? false ) return false;
 
         if (get_transient('pae_global_lock')) {
             $this->error_log('PAE: İşlem zaten başka bir süreçte çalışıyor.');
@@ -420,7 +486,7 @@ trait FetchesPages {
         }
 
         set_transient('pae_global_lock', 'true', 120);
-        $is_already_running = true;
+        $this->_heavy_running = true;
 
         if (!defined('DISABLE_WP_CRON')) define('DISABLE_WP_CRON', true);
         add_filter('pre_spawn_cron', '__return_false');
@@ -438,9 +504,11 @@ trait FetchesPages {
      */
     private function end_heavy_process(): void {
         remove_filter('pre_spawn_cron', '__return_false');
+        remove_filter('action_scheduler_allow_async_activity', '__return_false', 999);
         remove_filter('action_scheduler_allow_async_request', '__return_false', 999);
         remove_filter('wp_doing_cron', '__return_true');
         delete_transient('pae_global_lock');
+        $this->_heavy_running = false;
         $this->error_log('PAE: Heavy Process BİTTİ.');
     }
 
@@ -536,15 +604,17 @@ trait FetchesPages {
         }
 
         if (!empty($new_domains)) {
-            $approved = get_option('csp_approved_domains', []);
-            if (!is_array($approved)) $approved = [];
+            // csp_detected_domains: PAE'nin saptadığı — readonly, admin onaylamaz
+            // csp_approved_domains: admin onayladığı — CSP header'ına girer (SecurityHooks)
+            $detected = get_option('csp_detected_domains', []);
+            if (!is_array($detected)) $detected = [];
             foreach ($new_domains as $directive => $domains) {
-                if (!isset($approved[$directive]) || !is_array($approved[$directive])) {
-                    $approved[$directive] = [];
+                if (!isset($detected[$directive]) || !is_array($detected[$directive])) {
+                    $detected[$directive] = [];
                 }
-                $approved[$directive] = array_unique(array_merge($approved[$directive], $domains));
+                $detected[$directive] = array_unique(array_merge($detected[$directive], $domains));
             }
-            update_option('csp_approved_domains', $approved);
+            update_option('csp_detected_domains', $detected);
         }
     }
 }

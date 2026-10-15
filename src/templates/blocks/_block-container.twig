@@ -99,7 +99,8 @@
 			<div class="alert alert-danger">
 				<div class="row align-items-center">
 					<div class="col col-auto">
-                   <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
+                  {#<i class="fa-solid fa-triangle-exclamation fa-2x"></i>#}
+                  {{ fa_icon( 'triangle-exclamation', 'solid', 'fa-2x' )}}
 					</div>
 					<div class="col">
 						<h4 class="fw-bold mb-1">Attention</h4>
@@ -172,7 +173,7 @@
 		</div>
 	{% endif %}
 
-	{% if block_meta.css and (fetch or enable_production or is_preview) %}
+	{% if block_meta.css and (fetch or enable_development or is_preview) %}
        {{ block_meta.css }}
    {% endif %}
 

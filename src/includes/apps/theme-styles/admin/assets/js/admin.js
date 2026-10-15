@@ -25,6 +25,85 @@
             this.bindEvents();
             this.initColorPickers();
             this.trackChanges();
+            // Sayfa yüklenince aktif gradient tab'larini init et
+            // Her modülün kendi init'ine güvenmek yerine global handle et
+            this.initAllActiveGradientPickers();
+            // themeStyles.data'ya göre bg_type tab'larini sync et
+            this.syncBgTypeTabs();
+        },
+        
+        /**
+         * themeStyles.data'daki bg_type değerlerine göre tüm modüllerin bg tab'larını sync et
+         */
+        syncBgTypeTabs() {
+            const data = themeStyles.data || {};
+            // Her modülün bg_type field'ını bul ve DOM'u güncelle
+            $('.theme-styles-module-panel').each(function() {
+                const module = $(this).data('module');
+                const moduleData = data[module] || {};
+
+                // Her wrapper için bg_type'ı bul
+                $(this).find('.ts-bg-field-wrapper').each(function() {
+                    const $wrap   = $(this);
+                    const $hidden = $wrap.find('.ts-bg-type-value');
+                    if (!$hidden.length) return;
+
+                    // data-field attribute'undan key'i al: "bg_type", "page_bg_type" vb.
+                    const fieldAttr = $hidden.data('field'); // örn: "bg_type" veya "page_bg_type"
+                    const typeKey   = fieldAttr ? fieldAttr.replace('_type', '') : 'bg';
+
+                    // moduleData'dan bg_type bul
+                    let bgType = moduleData[typeKey + '_type'] || moduleData['bg_type'] || null;
+
+                    // Nested key'ler için (offcanvas.bg_type vb.)
+                    if (!bgType && fieldAttr) {
+                        const parts = fieldAttr.split('_');
+                        // son kelime 'type' ise prefix key
+                        bgType = moduleData[fieldAttr] || null;
+                    }
+
+                    if (!bgType) return;
+
+                    // DOM'u güncelle
+                    $hidden.val(bgType);
+                    $wrap.find('.ts-bg-type-btn').removeClass('active');
+                    $wrap.find(`.ts-bg-type-btn[data-type="${bgType}"]`).addClass('active');
+                    $wrap.find('.ts-bg-tab').removeClass('active');
+                    $wrap.find(`.ts-bg-tab[data-tab="${bgType}"]`).addClass('active');
+                });
+            });
+        },
+        initAllActiveGradientPickers() {
+            setTimeout(() => {
+                $('.ts-bg-tab[data-tab="gradient"].active').each(function() {
+                    const control = $(this).find('[class*="ts-bg-gradient-picker-"]')[0];
+                    if (!control || control.dataset.gpInit) return;
+                    control.dataset.gpInit = '1';
+                    const $input = $(control).closest('.ts-bg-field-wrapper').find('.ts-gradient-input');
+                    if (!$input.length) return;
+                    if (!window.wp || !wp.element || !wp.components) return;
+                    const { createElement, useState } = wp.element;
+                    const { GradientPicker } = wp.components;
+                    const defaultGrad = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    const currentVal = $input.val() || defaultGrad;
+                    const Picker = () => {
+                        const [val, setVal] = React.useState ? React.useState(currentVal) : useState(currentVal);
+                        return createElement(GradientPicker, {
+                            value: val,
+                            onChange: (v) => {
+                                setVal(v);
+                                $input.val(v).trigger('change');
+                            }
+                        });
+                    };
+                    try {
+                        if (wp.element.createRoot) wp.element.createRoot(control).render(createElement(Picker));
+                        else wp.element.render(createElement(Picker), control);
+                    } catch(e) {
+                        console.warn('[ThemeStyles] Gradient picker init failed:', e);
+                    }
+                });
+            }, 300); // WP scripts yüklendikten sonra
         },
         
         /**
@@ -237,6 +316,32 @@
             
             // Scroll to top
             $('.theme-styles-main-inner').scrollTop(0);
+
+            // Aktif olan modülde gradient picker init et
+            setTimeout(() => {
+                $(`#module-${module}`).find('.ts-bg-tab[data-tab="gradient"].active').each(function() {
+                    const control = $(this).find('[class*="ts-bg-gradient-picker-"]')[0];
+                    if (!control || control.dataset.gpInit) return;
+                    control.dataset.gpInit = '1';
+                    const $input = $(control).closest('.ts-bg-field-wrapper').find('.ts-gradient-input');
+                    if (!$input.length) return;
+                    if (!window.wp || !wp.element || !wp.components) return;
+                    const { createElement, useState } = wp.element;
+                    const { GradientPicker } = wp.components;
+                    const currentVal = $input.val() || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    const Picker = () => {
+                        const [val, setVal] = useState(currentVal);
+                        return createElement(GradientPicker, {
+                            value: val,
+                            onChange: (v) => { setVal(v); $input.val(v).trigger('change'); }
+                        });
+                    };
+                    try {
+                        if (wp.element.createRoot) wp.element.createRoot(control).render(createElement(Picker));
+                        else wp.element.render(createElement(Picker), control);
+                    } catch(e) {}
+                });
+            }, 100);
         },
         
         /**
@@ -249,7 +354,8 @@
             
             const palettes = this.getColorPalettes();
             
-            $inputs.not('.wp-color-picker').wpColorPicker({
+            // Standart (hex) color picker
+            $inputs.not('.ts-color-input-alpha').not('.wp-color-picker').wpColorPicker({
                 palettes: palettes,
                 change: (event, ui) => {
                     const color = ui.color.toString();
@@ -258,6 +364,27 @@
                 clear: (event, ui) => {
                     // setTimeout: WP Color Picker kendi işini bitirsin, sonra tetikle
                     // trigger('change') değil trigger('input') - sonsuz döngüyü önler
+                    setTimeout(() => {
+                        $(event.target).closest('.wp-picker-container')
+                            .find('.wp-color-picker').val('').trigger('input');
+                    }, 10);
+                }
+            });
+
+            // RGBA alpha color picker
+            const $alphaInputs = $context
+                ? $context.find('.ts-color-input-alpha')
+                : $('.ts-color-input-alpha');
+
+            $alphaInputs.not('.wp-color-picker').wpColorPicker({
+                palettes: palettes,
+                // Iris alpha desteği: WP 5.7+ gerekli
+                alpha: true,
+                change: (event, ui) => {
+                    const color = ui.color.toCSS();
+                    $(event.target).val(color).trigger('change');
+                },
+                clear: (event, ui) => {
                     setTimeout(() => {
                         $(event.target).closest('.wp-picker-container')
                             .find('.wp-color-picker').val('').trigger('input');

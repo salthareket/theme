@@ -644,20 +644,18 @@ function get_menu_locations() {
         'header-menu' => 'Header Menu',
         'footer-menu' => 'Footer Menu',
     ];
-    if(!function_exists("get_field")){
+    // ACF bağımsız — doğrudan wp_options'dan oku
+    $value = get_option( 'options_menu_locations', [] );
+    if ( empty( $value ) || ! is_array( $value ) ) {
         return $locations;
     }
-    $value = QueryCache::get_field("menu_locations", "options");//get_cached_field("menu_locations", "option");
-    if (empty($value)) {
-        return $locations;
+    foreach ( $value as $location ) {
+        $menu_name = $location['name'] ?? '';
+        if ( ! $menu_name ) continue;
+        $key = sanitize_title( $menu_name );
+        $locations[ $key ] = $menu_name;
     }
-    $formatted_locations = $locations;
-    foreach ($value as $location) {
-        $menu_name = $location["name"]; // Array'deki ilk değeri alır
-        $key = sanitize_title($menu_name); // 'Header Menu' => 'header-menu'
-        $formatted_locations[$key] = $menu_name;
-    }
-    return $formatted_locations;
+    return $locations;
 }
 function wp_query_to_sql($type = "post", $query = [], $helper = []) {
     global $wpdb;

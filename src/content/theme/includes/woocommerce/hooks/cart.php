@@ -13,10 +13,81 @@ function custom_empty_cart_message() {
 
 
 
-// WooCommerce'de çapraz satış ürünlerini sepetin altından kaldırıp
-// sepetteki ürün listesinden sonra (after_cart) gösterir
+// WooCommerce cross-sell native render'ı kaldır
+// Kendi product-list.twig ile render ediyoruz
 remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cross_sell_display' );
-add_action( 'woocommerce_after_cart', 'woocommerce_cross_sell_display', 30 );
+remove_action( 'woocommerce_after_cart', 'woocommerce_cross_sell_display', 30 );
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// [sh_new_in_store] shortcode — boş sepet için eski yaklaşım, devre dışı
+// Artık template-cart.php context'i + page-cart.twig after_main bloğu kullanılıyor
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Cross-sell + Recently Viewed → kendi product-list.twig ile
+add_action( 'woocommerce_after_cart', function() {
+    if ( ! class_exists( 'Timber\Timber' ) ) return;
+
+    $pl_cfg          = (array) get_option( 'options_product_lists', [] );
+    $crosssell_cfg   = (array) ( $pl_cfg['crosssell']       ?? [] );
+    $rv_cfg          = (array) ( $pl_cfg['recently_viewed'] ?? [] );
+
+    // Cross-sell ürünleri
+    $crosssell_products = [];
+    $cs_enabled  = ! empty( $crosssell_cfg['enabled'] );
+    $cs_location = $crosssell_cfg['location'] ?? 'both';
+    $cs_on_cart  = $cs_enabled && in_array( $cs_location, [ 'cart_page', 'both' ], true );
+
+    if ( $cs_on_cart ) {
+        $cs_count      = max( 1, (int) ( $crosssell_cfg['count'] ?? 8 ) );
+        $crosssell_ids = WC()->cart ? array_slice( WC()->cart->get_cross_sells(), 0, $cs_count ) : [];
+        foreach ( $crosssell_ids as $id ) {
+            $p = \Timber\Timber::get_post( $id );
+            if ( $p ) $crosssell_products[] = $p;
+        }
+    }
+
+    // Recently Viewed ürünleri
+    $recently_viewed_products = [];
+    $rv_enabled = ! empty( $rv_cfg['enabled'] );
+
+    if ( $rv_enabled ) {
+        $rv_count   = max( 1, (int) ( $rv_cfg['count'] ?? 8 ) );
+        $viewed_ids = array_filter( array_map( 'absint',
+            explode( '|', wp_unslash( $_COOKIE['woocommerce_recently_viewed'] ?? '' ) )
+        ) );
+        if ( ! empty( $viewed_ids ) ) {
+            $cart_ids   = WC()->cart
+                ? array_column( array_map( fn( $i ) => [ 'id' => $i['product_id'] ], array_values( WC()->cart->get_cart() ) ), 'id' )
+                : [];
+            $viewed_ids = array_slice( array_diff( $viewed_ids, $cart_ids ), 0, $rv_count );
+            foreach ( $viewed_ids as $id ) {
+                $p = \Timber\Timber::get_post( $id );
+                if ( $p ) $recently_viewed_products[] = $p;
+            }
+        }
+    }
+
+    if ( empty( $crosssell_products ) && empty( $recently_viewed_products ) ) return;
+
+    $context = [
+        'pl_cfg'                   => $pl_cfg,
+        'crosssell_products'       => $crosssell_products,
+        'recently_viewed_products' => $recently_viewed_products,
+    ];
+
+    if ( ! empty( $crosssell_products ) ) {
+        \Timber\Timber::render( 'woo/partials/product-list.twig',
+            array_merge( $context, [ 'list_type' => 'crosssell' ] )
+        );
+    }
+
+    if ( ! empty( $recently_viewed_products ) ) {
+        \Timber\Timber::render( 'woo/partials/product-list.twig',
+            array_merge( $context, [ 'list_type' => 'recently_viewed' ] )
+        );
+    }
+}, 20 );
 
 
 

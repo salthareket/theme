@@ -33,14 +33,11 @@ var ScrollPosStyler = (function(document, window) {
 
     function calculateClassChanges(force) {
         var changes = [];
-        // OKUMA İŞLEMİ (Read)
-        scrollPos = window.pageYOffset;
+        // Lenis aktifse onun scroll degerini kullan, yoksa native
+        scrollPos = (window.lenis ? window.lenis.scroll : null) || window.pageYOffset;
 
         for (var t = 0; spsElements[t]; ++t) {
-
             var element = spsElements[t];
-                // offset değeri okunur
-                //offsetY = element.getAttribute(currentOffsetTag) || currentScrollOffsetY,
             var attrValue = element.getAttribute(currentOffsetTag);
             var offsetY = (attrValue !== null && attrValue !== "") ? parseInt(attrValue, 10) : currentScrollOffsetY;
             var hasClassAbove = element.classList.contains(currentClassAbove);
@@ -63,7 +60,6 @@ var ScrollPosStyler = (function(document, window) {
     }
 
     function applyClassChanges(changes) {
-        // YAZMA İŞLEMİ (Write)
         for (var e = 0; changes[e]; ++e) {
             var change = changes[e];
             change.element.classList.add(change.addClass);
@@ -90,7 +86,6 @@ var ScrollPosStyler = (function(document, window) {
             var changes = calculateClassChanges(true);
 
             if (changes.length > 0) {
-                // DOM değişiklikleri için requestAnimationFrame
                 window.requestAnimationFrame(function() {
                     applyClassChanges(changes);
                 });
@@ -101,13 +96,11 @@ var ScrollPosStyler = (function(document, window) {
     };
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Init'i 50ms geciktirerek tarayıcıya kritik işleri bitirmesi için zaman tanır.
         setTimeout(function() {
             publicAPI.init();
         }, 50);
     });
 
-    // SCROLL OLAYI (100ms throttle ve passive: true)
     window.addEventListener("scroll", throttle(function() {
         if (!isTicking) {
             var changes = calculateClassChanges(false);
@@ -119,7 +112,7 @@ var ScrollPosStyler = (function(document, window) {
                 });
             }
         }
-    }, 100), {
+    }, 16), {
         passive: true
     });
 

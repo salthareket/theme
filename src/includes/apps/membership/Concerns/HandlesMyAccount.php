@@ -238,8 +238,28 @@ trait HandlesMyAccount
             if ( $endpoint === 'favorites' && defined( 'ENABLE_REACTIONS' ) && ENABLE_REACTIONS ) {
                 $item['count'] = count( (array) \Data::get( 'favorites' ) );
             }
+            // Private reaction type'ları için dinamik count
+            if ( defined( 'ENABLE_REACTIONS' ) && ENABLE_REACTIONS && class_exists( '\SaltHareket\Reactions\ReactionsSettings' ) ) {
+                $private_types = \SaltHareket\Reactions\ReactionsSettings::getPrivateTypes();
+                if ( isset( $private_types[ $endpoint ] ) ) {
+                    $uid = get_current_user_id();
+                    if ( $uid ) {
+                        $ids = \SaltHareket\Reactions\Reactions::getByUser( $uid, $endpoint, 'post' );
+                        $item['count'] = count( $ids );
+                    }
+                }
+            }
             if ( $endpoint === 'reviews' && ! ( defined( 'DISABLE_COMMENTS' ) && DISABLE_COMMENTS ) ) {
-                $item['count'] = $this->user ? $this->user->get_reviews_count() : 0;
+                // Pending count: kendine + postlarına yapılan onay bekleyen yorumlar
+                $pending_count = 0;
+                $uid = get_current_user_id();
+                if ( $uid && class_exists( '\SaltHareket\Reviews\Reviews' ) ) {
+                    $reviews_obj = new \SaltHareket\Reviews\Reviews( $uid );
+                    $r1 = $reviews_obj->getForUser( $uid, [ 'status' => 'hold', 'per_page' => 1 ] );
+                    $r2 = $reviews_obj->getForPosts( $uid, [ 'status' => 'hold', 'per_page' => 1 ] );
+                    $pending_count = (int) ( $r1['data']['count'] ?? 0 ) + (int) ( $r2['data']['count'] ?? 0 );
+                }
+                $item['count'] = $pending_count;
             }
 
             $item = apply_filters( 'sh_membership_menu_item', $item, $endpoint );
@@ -277,7 +297,14 @@ trait HandlesMyAccount
             $items['notifications'] = __( 'Notifications', 'salthareket' );
         }
         if ( defined( 'ENABLE_REACTIONS' ) && ENABLE_REACTIONS ) {
-            $items['favorites'] = __( 'Favorites', 'salthareket' );
+            // Hardcoded favorites yerine private type'ları dinamik olarak ekle
+            if ( class_exists( '\SaltHareket\Reactions\ReactionsSettings' ) ) {
+                foreach ( \SaltHareket\Reactions\ReactionsSettings::getPrivateTypes() as $type_key => $type_def ) {
+                    $items[ $type_key ] = $type_def['label'] ?? ucfirst( $type_key );
+                }
+            } else {
+                $items['favorites'] = __( 'Favorites', 'salthareket' );
+            }
         }
         if ( ! ( defined( 'DISABLE_COMMENTS' ) && DISABLE_COMMENTS ) ) {
             $items['reviews'] = __( 'Reviews', 'salthareket' );
@@ -385,10 +412,25 @@ trait HandlesMyAccount
         $endpoints = [];
 
         if ( defined( 'ENABLE_REACTIONS' ) && ENABLE_REACTIONS ) {
-            $endpoints['favorites'] = [
-                'title'    => function_exists( 'trans' ) ? trans( 'Favorites' ) : 'Favorites',
-                'callback' => [ $this, 'renderFavoritesContent' ],
-            ];
+            // Hardcoded favorites yerine private type'ları dinamik olarak ekle
+            if ( class_exists( '\SaltHareket\Reactions\ReactionsSettings' ) ) {
+                foreach ( \SaltHareket\Reactions\ReactionsSettings::getPrivateTypes() as $type_key => $type_def ) {
+                    $label       = $type_def['label'] ?? ucfirst( $type_key );
+                    $type_key_safe = $type_key; // closure capture için
+                    $endpoints[ $type_key ] = [
+                        'title'    => function_exists( 'trans' ) ? trans( $label ) : $label,
+                        'callback' => function( string $slug, string $title ) use ( $type_key_safe ) {
+                            $this->renderReactionContent( $type_key_safe, $title );
+                        },
+                    ];
+                }
+            } else {
+                // Fallback — ReactionsSettings yüklü değilse eski favorites
+                $endpoints['favorites'] = [
+                    'title'    => function_exists( 'trans' ) ? trans( 'Favorites' ) : 'Favorites',
+                    'callback' => [ $this, 'renderFavoritesContent' ],
+                ];
+            }
         }
 
         if ( defined( 'ENABLE_NOTIFICATIONS' ) && ENABLE_NOTIFICATIONS ) {
@@ -426,25 +468,22 @@ trait HandlesMyAccount
             ];
         }
 
-        // Dışarıdan ekle/çıkar/değiştir
-        $endpoints = apply_filters( 'sh_my_account_endpoints', $endpoints );
-
         // Her endpoint için my_account_custom_content_{endpoint} fonksiyonu tanımla
         foreach ( $endpoints as $slug => $config ) {
             $func_name = 'my_account_custom_content_' . str_replace( '-', '_', $slug );
             $callback  = $config['callback'] ?? null;
 
-            if ( ! function_exists( $func_name ) && $callback ) {
-                // PHP 7.4+ closure binding trick — fonksiyon adıyla global tanımla
+            if ( $callback ) {
                 $title = $config['title'] ?? $slug;
                 $cb    = $callback;
                 $fn    = function() use ( $cb, $title, $slug ) {
                     call_user_func( $cb, $slug, $title );
                 };
-                // Global namespace'de fonksiyon tanımla
                 \Closure::bind( $fn, null, null );
-                // WC hook'una bağla
                 add_action( 'woocommerce_account_' . $slug . '_endpoint', $fn );
+                if ( strpos( $slug, '-' ) !== false ) {
+                    add_action( 'woocommerce_account_' . str_replace( '-', '_', $slug ) . '_endpoint', $fn );
+                }
             }
         }
     }
@@ -643,12 +682,53 @@ trait HandlesMyAccount
         \Timber\Timber::render( [ 'my-account/my-favorites.twig', 'my-account/favorites.twig' ], $context );
     }
 
+    /**
+     * Genel private reaction sayfası renderer — my-reactions.twig ile render eder.
+     * renderFavoritesContent'in yerini alan dinamik versiyon.
+     *
+     * @param string $reaction_type  'favorite' | 'bookmark' | herhangi private type
+     * @param string $title          Sayfa başlığı (menü label'ından gelir)
+     */
+    public function renderReactionContent( string $reaction_type = 'favorite', string $title = '' ): void
+    {
+        if ( ! defined( 'ENABLE_REACTIONS' ) || ! ENABLE_REACTIONS ) return;
+        if ( ! class_exists( '\SaltHareket\Reactions\Reactions' ) ) return;
+
+        $user_id  = get_current_user_id();
+        if ( ! $user_id ) return;
+
+        $type_def = \SaltHareket\Reactions\ReactionsSettings::getType( $reaction_type );
+        if ( ! $title ) {
+            $title = function_exists( 'trans' ) ? trans( $type_def['label'] ?? ucfirst( $reaction_type ) ) : ( $type_def['label'] ?? ucfirst( $reaction_type ) );
+        }
+
+        // Kullanıcının bu reaction'daki tüm object type'larını bul
+        // Her object type için count al — tab sistemi için
+        $object_types = [ 'post', 'user', 'term' ];
+        $tabs = [];
+        foreach ( $object_types as $ot ) {
+            $ids = \SaltHareket\Reactions\Reactions::getByUser( $user_id, $reaction_type, $ot );
+            if ( ! empty( $ids ) ) {
+                $tabs[ $ot ] = count( $ids );
+            }
+        }
+
+        $context                    = \Timber\Timber::context();
+        $context['title']           = $title;
+        $context['reaction_type']   = $reaction_type;
+        $context['type_def']        = $type_def;
+        $context['tabs']            = $tabs;
+        $context['active_tab']      = sanitize_key( get_query_var( 'reaction_tab', array_key_first( $tabs ) ?: 'post' ) );
+        $context['total']           = array_sum( $tabs );
+
+        \Timber\Timber::render( [ 'my-account/my-reactions.twig', 'my-account/my-favorites.twig' ], $context );
+    }
+
     public function renderNotificationsContent( string $slug = 'notifications', string $title = '' ): void
     {
         if ( ! defined( 'ENABLE_NOTIFICATIONS' ) || ! ENABLE_NOTIFICATIONS ) return;
 
         $context          = \Timber\Timber::context();
-        $context['type']  = 'notifications';
         $context['title'] = $title ?: ( function_exists( 'trans' ) ? trans( 'Notifications' ) : 'Notifications' );
 
         \Timber\Timber::render( [ 'my-account/notifications.twig' ], $context );
@@ -670,14 +750,54 @@ trait HandlesMyAccount
         $user = \Data::get( 'user' );
         if ( ! $user ) return;
 
-        $context             = \Timber\Timber::context();
-        $context['type']     = 'reviews';
-        $context['title']    = $title ?: ( function_exists( 'trans' ) ? trans( 'My Reviews' ) : 'My Reviews' );
-        $context['statuses'] = [
-            [ 'slug' => 'approved',        'name' => 'Approved',         'count' => $user->get_reviews_count( 1 ) ],
-            [ 'slug' => 'waiting-approval','name' => 'Waiting Approval', 'count' => $user->get_reviews_count( 0 ) ],
+        $user_id  = get_current_user_id();
+        $action   = get_query_var( 'reviews' ) ?: 'approved';
+        $view_tab = sanitize_key( $_REQUEST['tab'] ?? 'on_me' );
+
+        // Count: URL'den tab oku + received_pending her tab için sabit
+        $count_approved   = 0;
+        $count_pending    = 0;
+        $received_pending = 0;
+        if ( class_exists( '\SaltHareket\Reviews\Reviews' ) ) {
+            $reviews_obj = new \SaltHareket\Reviews\Reviews( $user_id );
+            $qs_raw = $_SERVER['QUERY_STRING'] ?? '';
+            parse_str( $qs_raw, $qs );
+            $tab_raw = $qs['tab'] ?? ( $_GET['tab'] ?? ( $_REQUEST['tab'] ?? 'on_me' ) );
+            $tab = sanitize_key( $tab_raw );
+            if ( ! in_array( $tab, [ 'on_me', 'on_posts', 'authored' ], true ) ) $tab = 'on_me';
+
+            // on_me pending — her tab'da Reviews on Me badge için
+            $rp = $reviews_obj->getForUser( $user_id, [ 'status' => 'hold', 'per_page' => 1 ] );
+            $received_pending = (int) ( $rp['data']['count'] ?? 0 );
+
+            // on_posts pending — her tab'da Reviews on My Posts badge için
+            $rp_posts         = $reviews_obj->getForPosts( $user_id, [ 'status' => 'hold', 'per_page' => 1 ] );
+            $on_posts_pending = (int) ( $rp_posts['data']['count'] ?? 0 );
+
+            if ( $tab === 'on_me' ) {
+                $r1 = $reviews_obj->getForUser( $user_id, [ 'status' => 'approve', 'per_page' => 1 ] );
+                $r2 = $rp;
+            } elseif ( $tab === 'on_posts' ) {
+                $r1 = $reviews_obj->getForPosts( $user_id, [ 'status' => 'approve', 'per_page' => 1 ] );
+                $r2 = $reviews_obj->getForPosts( $user_id, [ 'status' => 'hold',    'per_page' => 1 ] );
+            } else {
+                $r1 = $reviews_obj->getByAuthor( $user_id, [ 'status' => 'approve', 'per_page' => 1 ] );
+                $r2 = $reviews_obj->getByAuthor( $user_id, [ 'status' => 'hold',    'per_page' => 1 ] );
+            }
+            $count_approved = (int) ( $r1['data']['count'] ?? 0 );
+            $count_pending  = (int) ( $r2['data']['count'] ?? 0 );
+        }
+
+        $context                     = \Timber\Timber::context();
+        $context['title']            = $title ?: ( function_exists( 'trans' ) ? trans( 'My Reviews' ) : 'My Reviews' );
+        $context['action']           = $action;
+        $context['view_tab']         = $view_tab;
+        $context['received_pending'] = $received_pending; // on_me pending — her tab'da badge için
+        $context['on_posts_pending'] = $on_posts_pending ?? 0; // on_posts pending — her tab'da badge için
+        $context['statuses']         = [
+            [ 'slug' => 'approved',         'name' => function_exists( 'trans' ) ? trans( 'Approved' )         : 'Approved',         'count' => $count_approved ],
+            [ 'slug' => 'waiting-approval', 'name' => function_exists( 'trans' ) ? trans( 'Waiting Approval' ) : 'Waiting Approval', 'count' => $count_pending ],
         ];
-        $context['action'] = get_query_var( 'reviews' ) ?: 'approved';
 
         \Timber\Timber::render( [ 'my-account/my-reviews.twig' ], $context );
     }

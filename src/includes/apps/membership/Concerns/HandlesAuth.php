@@ -100,22 +100,106 @@ trait HandlesAuth
             return $response;
         }
 
-        // Başarılı login
+        // Başarılı login — 2FA aktifse auth cookie set etme, önce doğrulama yap
         $this->clearFailedLogins( $username );
+
+        // Trusted device kontrolü — güvenilir cihazsa 2FA atla
+        $needs2FA = $this->is2FAEnabled( $signon->ID ) && ! $this->isTrustedDevice( $signon->ID );
+
+        if ( $needs2FA ) {
+            $method = $this->get2FAMethod();
+            $token  = $this->setPending2FA( $signon->ID );
+
+            if ( $method === 'sms' ) {
+                $sms = $this->send2FASMS( $signon->ID );
+                $response['requires_2fa'] = true;
+                $response['method']       = 'sms';
+                $response['pending_token'] = $token;
+                $response['otp_id']       = $sms['data']['otp_id'] ?? ( $sms['otp_id'] ?? '' );
+                $response['message']      = 'Verification code sent to your phone.';
+            } elseif ( $method === 'totp' ) {
+                $response['requires_2fa']  = true;
+                $response['method']        = 'totp';
+                $response['pending_token'] = $token;
+                $response['message']       = 'Enter the code from your authenticator app.';
+            }
+
+            return $response;
+        }
+
+        // 2FA yok veya trusted device → direkt giriş
+        // Aktivasyon kontrolü — aktive edilmemişse cookie set etme
+        if ( self::isActivationRequired() && ! $this->isUserActive( $signon->ID ) ) {
+            // Cookie set et ki not-activated sayfası görünsün (WooCommerce endpoint erişimi için)
+            wp_set_current_user( $signon->ID );
+            wp_set_auth_cookie( $signon->ID, $remember );
+            $this->refreshUser( $signon->ID );
+
+            $response['message']  = 'Please activate your account.';
+            $response['redirect'] = $this->getEndpointUrl( 'not-activated' );
+            return $response;
+        }
+
         wp_set_current_user( $signon->ID );
         wp_set_auth_cookie( $signon->ID, $remember );
         $this->refreshUser( $signon->ID );
 
         $response['message'] = 'Login successful.';
 
-        // Redirect
+        // ── Redirect URL belirle ──────────────────────────────────────────────
+        // Öncelik: form'dan gelen redirect_url > settings > fallback
         if ( ! empty( $vars['redirect_url'] ) ) {
-            $response['redirect'] = $vars['redirect_url'];
-        } elseif ( \Data::has( 'base_urls.logged_url' ) ) {
-            $response['redirect'] = \Data::get( 'base_urls.logged_url' );
+            // Form veya çağıran tarafından belirtilmişse direkt kullan
+            $redirect_url = esc_url_raw( $vars['redirect_url'] );
         } else {
-            $response['redirect'] = $this->getEndpointUrl( 'profile' );
+            $redirect_type   = \SaltHareket\Membership\MembershipSettings::getSetting( 'login_redirect_type', 'dashboard' );
+            $redirect_page_id = (int) \SaltHareket\Membership\MembershipSettings::getSetting( 'login_redirect_page_id', 0 );
+
+            switch ( $redirect_type ) {
+                case 'referer':
+                    // Session'da saklanan referer (woo_login_url() tarafından set edilir)
+                    $referer = isset( $_SESSION['referer_url'] ) ? esc_url_raw( $_SESSION['referer_url'] ) : '';
+                    if ( $referer ) {
+                        unset( $_SESSION['referer_url'] );
+                    }
+                    $redirect_url = $referer ?: $this->getEndpointUrl( 'dashboard' );
+                    break;
+
+                case 'profile':
+                    $redirect_url = $this->getEndpointUrl( 'profile' );
+                    break;
+
+                case 'home':
+                    $redirect_url = home_url( '/' );
+                    break;
+
+                case 'custom':
+                    if ( $redirect_page_id > 0 ) {
+                        // Polylang aktifse kullanıcının aktif dili için çeviri sayfasını al
+                        if ( function_exists( 'pll_get_post' ) ) {
+                            $user_lang        = function_exists( 'pll_current_language' ) ? pll_current_language() : pll_default_language();
+                            $translated_id    = pll_get_post( $redirect_page_id, $user_lang );
+                            $target_id        = ( $translated_id && $translated_id !== $redirect_page_id ) ? $translated_id : $redirect_page_id;
+                        } else {
+                            $target_id = $redirect_page_id;
+                        }
+                        $redirect_url = (string) get_permalink( $target_id );
+                    } else {
+                        $redirect_url = $this->getEndpointUrl( 'dashboard' );
+                    }
+                    break;
+
+                case 'dashboard':
+                default:
+                    $redirect_url = $this->getEndpointUrl( 'dashboard' );
+                    break;
+            }
         }
+
+        // ── Filter: dışarıdan override edilebilir ─────────────────────────────
+        $redirect_url = (string) apply_filters( 'sh_login_redirect_url', $redirect_url, $signon->ID );
+
+        $response['redirect'] = $redirect_url;
 
         return $response;
     }

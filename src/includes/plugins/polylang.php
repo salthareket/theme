@@ -693,6 +693,10 @@ function pll_set_language($lang = "en") {
 /**
  * BRIC CORE - ULTRA OPTIMIZED POST SYNC (v2)
  * Assets metasını korur ve veritabanını yormaz.
+ *
+ * NOT: Bu fonksiyon custom.php içinden direkt çağrılır, save_post hook'una
+ * bağlı DEĞİLDİR. Eski remove/add_action pattern'i Polylang Pro 3.6+ ile
+ * PLL_Sync_Post::save_post() fatal error'ına yol açıyordu — kaldırıldı.
  */
 function pll_copy_post_languages($post_id) {
     if (wp_is_post_revision($post_id) || (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)) return;
@@ -701,18 +705,16 @@ function pll_copy_post_languages($post_id) {
 
     if (pll_get_post_language($post_id) !== pll_default_language()) return;
 
-    $target_ids = get_option('synchronized_pages');
+    $target_ids = get_option('options_synchronized_pages');
     if (!is_array($target_ids) || !in_array($post_id, $target_ids)) return;
 
     $translations = pll_get_post_translations($post_id);
     $source_post = get_post($post_id);
 
-    remove_action('save_post', 'pll_copy_post_languages');
-
     foreach ($translations as $lang => $trans_id) {
         if ($trans_id === $post_id || !$trans_id) continue;
 
-        // 1. SQL ile Hızlı İçerik Güncelleme
+        // 1. SQL ile Hızlı İçerik Güncelleme (save_post tetiklemez)
         global $wpdb;
         $wpdb->update(
             $wpdb->posts,
@@ -722,6 +724,8 @@ function pll_copy_post_languages($post_id) {
             ],
             ['ID' => $trans_id]
         );
+        // WP önbelleğini temizle — $wpdb->update WP cache'i güncellemez
+        clean_post_cache($trans_id);
 
         // 2. Meta Güncelleme (Filtreli)
         $all_metas = get_post_meta($post_id);
@@ -742,8 +746,6 @@ function pll_copy_post_languages($post_id) {
             update_post_meta($trans_id, '_thumbnail_id', $thumb_id);
         }
     }
-
-    add_action('save_post', 'pll_copy_post_languages', 100);
 }
 function my_custom_pll_filter($meta_keys, $sync, $from, $to) {
     $excluded_meta_keys = ['assets'];
@@ -773,7 +775,7 @@ add_filter('pre_get_posts', function($query) {
     // Senkronize edilecek taksonomileri bir kere çek, hafızada tut
     static $sync_tax_list = null;
     if ($sync_tax_list === null) {
-        $sync_tax_list = get_option('sync_taxonomies_to_language', []);
+        $sync_tax_list = get_option('options_sync_taxonomies_to_language', []);
     }
 
     if (empty($sync_tax_list)) return $query;
