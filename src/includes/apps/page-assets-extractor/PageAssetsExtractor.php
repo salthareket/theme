@@ -513,6 +513,10 @@ class PageAssetsExtractor {
         if (empty($input)) {
             $input = @file_get_contents($this->source_css);
         }
+        // Lazy load — asset-manager bootstrap yüklenmemişse direkt include et
+        if ( ! class_exists( 'SaltHareket\AssetManager\RemoveUnusedCss' ) ) {
+            require_once __DIR__ . '/../asset-manager/RemoveUnusedCss.php';
+        }
         $remover = new \SaltHareket\AssetManager\RemoveUnusedCss($html, $input, $output, $whitelist, $critical_css);
         return $remover->process();
     }
