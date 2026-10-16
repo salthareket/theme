@@ -343,4 +343,30 @@ class Theme_Styles_CSS_Generator {
 
         return $value;
     }
+
+    /**
+     * Hex renk kodunu "r, g, b" formatına çevirir (rgba() için).
+     * #fff, #ffffff, #ffffffff formatlarını destekler.
+     * Geçersiz renk için null döner.
+     *
+     * @param  string $hex  #rgb | #rrggbb | #rrggbbaa
+     * @return string|null  "255, 255, 255" formatında string veya null
+     */
+    public function hexToRgb( string $hex ): ?string {
+        $hex = ltrim( $hex, '#' );
+        $len = strlen( $hex );
+
+        if ( $len === 3 ) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+            $len = 6;
+        }
+
+        if ( $len !== 6 && $len !== 8 ) return null;
+
+        $r = hexdec( substr( $hex, 0, 2 ) );
+        $g = hexdec( substr( $hex, 2, 2 ) );
+        $b = hexdec( substr( $hex, 4, 2 ) );
+
+        return "{$r}, {$g}, {$b}";
+    }
 }
