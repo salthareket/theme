@@ -22,6 +22,10 @@ class Manager {
     }
     
     public function init() {
+        // ACF henüz yüklenmemişse erken çık
+        if (!function_exists('get_field')) {
+            return;
+        }
         // Ana şalter - remove_woocommerce_styles açık olmalı
         if (get_field('remove_woocommerce_styles', 'option')) {
             $this->load_modules();
