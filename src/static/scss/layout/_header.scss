@@ -1,5 +1,6 @@
 // Header base styles
 header#header {
+    position: relative;
     background-color: var(--header-bg);
     z-index: var(--header-z-index);
     /*@include transition(
