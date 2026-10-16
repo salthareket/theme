@@ -49,9 +49,11 @@ if ( is_admin() || ( defined('DOING_AJAX') && DOING_AJAX ) || ( defined('REST_RE
     require_once $am_base . 'MergeCSS.php';
     require_once $am_base . 'AssetPacker.php';
     require_once $am_base . 'SaltMinifier.php';
-    require_once $am_base . 'RemoveUnusedCss.php';
     require_once $am_base . 'SCSSCompiler.php';
 }
+
+// RemoveUnusedCss — PAE frontend'de de kullanıyor, koşulsuz yükle
+require_once $am_base . 'RemoveUnusedCss.php';
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
