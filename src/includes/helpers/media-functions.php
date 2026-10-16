@@ -975,6 +975,11 @@ function update_term_featured_image($term_id, $tt_id, $taxonomy) {
     // Sadece senin kullandığın taksonomide çalışsın istersen burayı kısıtla
     // if ($taxonomy !== 'dosya-tipi') return;
 
+    // ACF henüz yüklenmemişse erken çık
+    if (!function_exists('get_field')) {
+        return;
+    }
+
     // ACF meta alanından 'media' verisini çekiyoruz
     $media = get_field('media', $taxonomy . '_' . $term_id);
     $attachment_id = null;
