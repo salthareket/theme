@@ -1567,6 +1567,7 @@ class Update {
         self::disable_yearmonth_folders();
         self::update_site_logo(SH_PATH ."content/logo-salt-hareket.png");
         self::set_default_acf_values($plugin_types);
+        self::set_default_app_settings($plugin_types);
         self::create_home_page();
         self::create_menu();
         self::update_image_sizes();
@@ -1951,6 +1952,88 @@ class Update {
         }
         //error_log("Default header values have been set.");
     }
+
+    /**
+     * App Settings'lerin default değerlerini DB'ye yaz.
+     * Her Settings::save() zaten mevcut değeri override etmiyor (array_merge: saved > defaults).
+     * Burada sadece henüz set edilmemiş (boş) app settings'leri initialize ediyoruz.
+     */
+    private static function set_default_app_settings($plugin_types = []) {
+
+        // ── AssetSettings ─────────────────────────────────────────────────────
+        // Kurulumda development mode açık, diğerleri default (false)
+        if ( ! get_option( 'sh_asset_manager_settings' ) ) {
+            update_option( 'sh_asset_manager_settings', [
+                'enable_development'   => true,
+                'enable_logs'          => false,
+                'enable_console_logs'  => false,
+                'enable_twig_cache'    => false,
+                'seperate_css'         => false,
+                'seperate_js'          => false,
+                'inline_css'           => false,
+                'inline_js'            => false,
+                'remove_global_styles' => 'auto',
+                'remove_block_styles'  => 'auto',
+                'block_google_fonts'   => true,
+            ], false );
+        }
+
+        // ── MembershipSettings ────────────────────────────────────────────────
+        if ( ! get_option( 'sh_membership_settings' ) ) {
+            $membership_defaults = [
+                'enable_membership'           => in_array( 'membership', $plugin_types ),
+                'enable_registration'         => true,
+                'enable_remember_login'       => true,
+                'enable_lost_password'        => true,
+                'enable_password_recover'     => false,
+                'enable_membership_activation'=> false,
+                'membership_activation_type'  => 'email',
+                'login_2fa_method'            => 'none',
+                'enable_passwordless'         => false,
+                'enable_social_login'         => false,
+            ];
+            update_option( 'sh_membership_settings', $membership_defaults, false );
+        }
+
+        // ── ReviewsSettings ───────────────────────────────────────────────────
+        if ( ! get_option( 'sh_reviews_settings' ) ) {
+            update_option( 'sh_reviews_settings', [
+                'general' => [
+                    'enable_reviews' => true,
+                    'modes'          => ['rate', 'comment'],
+                ],
+            ], false );
+        }
+
+        // ── ReactionsAppSettings ──────────────────────────────────────────────
+        if ( ! get_option( 'sh_reactions_app_settings' ) ) {
+            update_option( 'sh_reactions_app_settings', [
+                'enable_reactions' => in_array( 'membership', $plugin_types ),
+            ], false );
+        }
+
+        // ── NotificationsSettings ─────────────────────────────────────────────
+        if ( ! get_option( 'sh_notifications_settings' ) ) {
+            update_option( 'sh_notifications_settings', [
+                'enable_notifications'     => false,
+                'enable_sms_notifications' => false,
+                'enable_web_push'          => false,
+            ], false );
+        }
+
+        // ── SearchHistorySettings ─────────────────────────────────────────────
+        if ( ! get_option( 'sh_search_history_settings' ) ) {
+            update_option( 'sh_search_history_settings', [
+                'enable_search_history' => false,
+            ], false );
+        }
+
+        // SaltConfig cache'ini güncelle
+        if ( class_exists( '\\SaltHareket\\SaltConfig' ) ) {
+            \SaltHareket\SaltConfig::generate();
+        }
+    }
+
     private static function create_home_page() {
         if(get_option("page_on_front")){
             return;
